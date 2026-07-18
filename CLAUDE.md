@@ -1,6 +1,6 @@
 ## AI sandbox 前提(ai-sandbox-setup 導入済み)
 
-このリポジトリの AI エージェント作業は Dev Container(compose.ai.yml)内で行う。サンドボックス内かは `printenv AI_SANDBOX`(=1)で判定できる。Flutter/Dart プロジェクトのため、Node.js 向け標準テンプレートを手動で移植した構成になっている(ベースイメージは Flutter SDK 同梱の `ghcr.io/cirruslabs/flutter:stable`)。
+このリポジトリの AI エージェント作業は Dev Container(compose.ai.yml)内で行う。サンドボックス内かは `printenv AI_SANDBOX`(=1)で判定できる。Flutter/Dart プロジェクト向け構成(ai-sandbox-setup の `--lang flutter` で生成): ベースは `debian:bookworm-slim` に Flutter SDK をホストと同じ revision で pin して導入したもので、非 root ユーザー `dev` で動作する。Claude Code / Codex の CLI はイメージに導入済みで、ログインは volume に永続化される。
 
 - コンテナ内の `secrets/` はダミー実体(secrets.example の read-only マウント)。環境変数も、`.env` 等の慣習パスの中身もすべてダミー値になる。本物が見えないのは故障ではなく仕様。本物の env で動かすのは人間の実行時のみ
 - `compose.ai.yml` と `.devcontainer/` は read-only。変更が必要なら人間に依頼する

@@ -3,15 +3,20 @@
   "dockerComposeFile": "../compose.ai.yml",
   "service": "ai-dev",
   "workspaceFolder": "/workspace",
-  "remoteUser": "root",
-  "postStartCommand": "/usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/check-secrets.sh",
-  "postCreateCommand": "if [ \"$GH_TOKEN\" = \"github_pat_REPLACE_ME\" ] || [ -z \"$GH_TOKEN\" ]; then echo \"secrets/ai.env の PAT が未記入です。記入して Rebuild Container してください(gh 認証設定はスキップ)。\"; else gh auth setup-git && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"; fi",
+  "remoteUser": "dev",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/check-secrets.sh",
   "remoteEnv": {
     "SSH_AUTH_SOCK": null
   },
   "customizations": {
     "vscode": {
-      "extensions": ["dart-code.flutter", "dart-code.dart-code"]
+      "extensions": [
+        "anthropic.claude-code",
+        "openai.chatgpt",
+        "Dart-Code.dart-code",
+        "Dart-Code.flutter"
+      ]
     }
-  }
+  },
+  "postCreateCommand": "if [ \"$GH_TOKEN\" = \"github_pat_REPLACE_ME\" ] || [ -z \"$GH_TOKEN\" ]; then echo \"secrets/ai.env の PAT が未記入です。記入して Rebuild Container してください(gh 認証設定はスキップ)。\"; else gh auth setup-git && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"; fi"
 }

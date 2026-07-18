@@ -1,25 +1,35 @@
 #!/bin/bash
 # egress allowlist: 許可した宛先以外への外向き通信を遮断する。
 # Anthropic の Claude Code リファレンス devcontainer の init-firewall.sh を基にした簡略版。
+# 最新版: https://github.com/anthropics/claude-code/tree/main/.devcontainer
 #
 # 注意:
-# - このスクリプトはイメージに COPY され、コンテナ起動時(postStartCommand)に実行される。
+# - このスクリプトはイメージに COPY され、sudo で実行される(devcontainer.json の postStartCommand)。
 #   変更したら compose build のやり直しが必要。
 # - allowlist は「ドメイン→IP 解決」を起動時に一度行う方式。CDN の IP ローテーションで
-#   到達できなくなった場合は /usr/local/bin/init-firewall.sh を再実行する。
+#   到達できなくなった場合は `sudo /usr/local/bin/init-firewall.sh` を再実行する。
 set -euo pipefail
 IFS=$'\n\t'
 
 # ============================================================
-# 許可ドメイン(Flutter/Dart プロジェクト向け)
+# 許可ドメイン(scaffold.mjs が言語・エージェント選択に応じてこの配列を書き換える。
+# 手動配置の場合は使うものだけ残して編集する。プロジェクト固有ドメインは随時追記)
 # ============================================================
 ALLOWED_DOMAINS=(
-  "pub.dev"                  # flutter pub get
-  "pub.dartlang.org"         # pub の旧ホスト名(一部ツールが参照)
-  "storage.googleapis.com"   # pub パッケージ本体・Flutter SDK アーティファクトの実配信元
-  "api.anthropic.com"        # Claude Code
-  "statsig.anthropic.com"
-  "sentry.io"
+  "pub.dev"                # dart pub / flutter pub
+  "pub.dartlang.org"       # pub の旧ホスト(リダイレクトで残る)
+  "storage.googleapis.com" # Flutter エンジン成果物・Dart SDK(注: GCS 全バケットに開く。references/flutter.md)
+  "registry.npmjs.org"     # AI エージェント CLI の更新
+  "api.anthropic.com"       # Claude Code (API)
+  "statsig.anthropic.com"   # Claude Code (テレメトリ)
+  "sentry.io"               # Claude Code (エラーレポート)
+  "claude.ai"               # Claude Code (OAuth ログイン)
+  "console.anthropic.com"   # Claude Code (OAuth ログイン)
+  "api.openai.com"          # Codex CLI (API)
+  "auth.openai.com"         # Codex CLI (ログイン)
+  "chatgpt.com"             # Codex CLI (ChatGPT プラン利用時)
+  # --- プロジェクト固有の例(必要なものだけ有効化) ---
+  # "<project-ref>.supabase.co"
 )
 
 # 既存ルールをクリア
@@ -30,18 +40,25 @@ iptables -P OUTPUT ACCEPT
 iptables -P FORWARD ACCEPT
 ipset destroy allowed-domains 2>/dev/null || true
 
-# DNS と localhost は先に許可(以降のドメイン解決に必要)
-iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+# localhost を許可し、DNS は resolv.conf のリゾルバ宛だけ許可する(以降のドメイン解決に必要)。
+# 任意宛先の 53 番を開けると DNS クエリ自体が持ち出しチャネルになるため宛先を絞る。
+# Docker 内では通常 127.0.0.11(内蔵 DNS)= loopback 経由。リゾルバの再帰解決を使う
+# DNS トンネリングは残る(references/firewall.md の「限界」参照)
 iptables -A OUTPUT -o lo -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
+while read -r ns; do
+  iptables -A OUTPUT -p udp -d "$ns" --dport 53 -j ACCEPT
+  iptables -A OUTPUT -p tcp -d "$ns" --dport 53 -j ACCEPT
+done < <(awk '/^nameserver/ {print $2}' /etc/resolv.conf | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
 
 ipset create allowed-domains hash:net
 
-# GitHub は IP レンジが公開されているので meta API から登録(git clone/push, gh CLI)
+# GitHub は IP レンジが公開されているので meta API から登録(git clone/push, gh CLI)。
+# scaffold は git-method に応じて種類を絞る(方式A: .git+.web / 方式B: +.api。.packages は使うときだけ手で足す)。
+# 手動配置の場合も必要な種類だけ残すこと
 echo "Fetching GitHub IP ranges..."
 gh_ranges=$(curl -fsS --connect-timeout 10 https://api.github.com/meta)
-for range in $(echo "$gh_ranges" | jq -r '(.git + .api + .web + .packages)[]' | grep -v ':' | sort -u); do
+for range in $(echo "$gh_ranges" | jq -r '(.git + .api + .web)[]' | grep -v ':' | sort -u); do
   ipset add allowed-domains "$range" 2>/dev/null || true
 done
 
@@ -79,8 +96,9 @@ if curl --connect-timeout 5 -fsS https://example.com >/dev/null 2>&1; then
   echo "NG: example.com に到達できてしまう(firewall が効いていない)" >&2
   exit 1
 fi
-if ! curl --connect-timeout 10 -fsS https://api.github.com/zen >/dev/null 2>&1; then
-  echo "NG: api.github.com に到達できない(allowlist が効いていない)" >&2
+# 到達確認は github.com(.web レンジ)で行う — api.github.com(.api)は方式Aでは allowlist に入れない
+if ! curl --connect-timeout 10 -fsS -o /dev/null https://github.com; then
+  echo "NG: github.com に到達できない(allowlist が効いていない)" >&2
   exit 1
 fi
 echo "OK: egress firewall configured"

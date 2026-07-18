@@ -7,9 +7,10 @@
 #   1) /workspace/secrets がダミー差し替え(secrets.example の ro マウント)になっているか(マーカー照合)。
 #      不一致 = 本物の secrets/ が見えている可能性 → 即エラー(fail-open の検出)
 #   2) secrets/ の外に秘密パターンのファイルが見えていないか(ドリフト検出)。
+#      symlink は -type f にマッチしないので、リンク方式の慣習パス(.env 等)は警告されない
 #
-# 秘密は導入時に一度 secrets/ へ集約しても、日常開発で再発しうる:
-#   flutter build 時の署名設定(android/key.properties)や Firebase 導入(google-services.json)など
+# 秘密は導入時に一度 secrets/ へ集約しても、日常開発で再発する:
+#   npx prisma init → ルートに .env / vercel env pull → .env.local / terraform → 実値 tfvars・ローカル state
 #
 # ホスト側でも実行できる: bash .devcontainer/check-secrets.sh .
 #   (ホストではマーカー検査をスキップし、ドリフト検出のみ行う。secrets/ は実体の置き場なので除外)
@@ -38,16 +39,17 @@ PATTERNS=(
   "*.pem"
   "*.key"
   "*.p12"
-  "*.jks"
-  "*.keystore"
-  "key.properties"
-  "google-services.json"
-  "GoogleService-Info.plist"
   "service-account*.json"
   "firebase-adminsdk*.json"
   "*.tfvars"
   "*.tfstate"
   "*.tfstate.*"
+  # Flutter / モバイルの署名鍵・設定(Node プロジェクトではマッチしないだけなので常に入れておく)
+  "*.jks"
+  "*.keystore"
+  "key.properties"
+  "google-services.json"
+  "GoogleService-Info.plist"
 )
 
 found=0
@@ -56,10 +58,12 @@ for p in "${PATTERNS[@]}"; do
     case "$f" in
       "$ROOT/secrets/"*) continue ;;     # コンテナではダミー(マーカー確認済み)、ホストでは実体の正しい置き場
       */secrets.example/*) continue ;;   # ダミーは対象外
-      */.dart_tool/*) continue ;;
-      */build/*) continue ;;
+      */node_modules/*) continue ;;
+      */.dart_tool/*) continue ;;        # Flutter のツールキャッシュ
+      */.pub-cache/*) continue ;;        # pub のパッケージキャッシュ(volume)
+      "$ROOT/build/"*) continue ;;       # Flutter のビルド成果物(ルート直下のみ除外。実体の秘密は元ファイル側で検出される)
       */.git/*) continue ;;
-      *.example | *.sample) continue ;;
+      *.example | *.sample) continue ;;  # .env.example / dev.tfvars.example 等
     esac
     [ -s "$f" ] || continue              # 空ファイルは対象外(.gitkeep 等)
     echo "WARN: 秘密の可能性があるファイルが AI から見えています: $f" >&2
