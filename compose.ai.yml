@@ -1,0 +1,45 @@
+# AI エージェント用コンテナ。本物の secrets/ は見せず、ダミー値だけを渡す。
+#
+# このファイルは必ず単独で使う: docker compose -f compose.ai.yml ...
+# 既存の実行用 compose.yml は無いが、将来追加しても連結マージ(-f compose.yml -f compose.ai.yml)
+# は本物の env_file やマウントを継承して隔離が壊れるため禁止。
+name: batch-rename-master-ai
+services:
+  ai-dev:
+    build:
+      context: .devcontainer
+    working_dir: /workspace
+    # init-firewall.sh(egress allowlist)に必要
+    # NET_ADMIN のみ。SYS_ADMIN は絶対に追加しない — コンテナ内 root が umount できるようになり、
+    # secrets/ のダミー差し替えマウントを AI 自身が剥がして本物を露出できる(検証済み)
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./:/workspace
+      # 隔離設定自体を AI が書き換えられないよう read-only で覆う(fail-open 対策)
+      - ./compose.ai.yml:/workspace/compose.ai.yml:ro
+      - ./.devcontainer:/workspace/.devcontainer:ro
+      # Windows ホストの性能・ネイティブバイナリ互換のため、Flutter のビルドキャッシュ類を分離
+      - dart_tool:/workspace/.dart_tool
+      - flutter_build:/workspace/build
+      - pub_cache:/workspace/.pub-cache
+      # 本物の secrets/ をダミー実体(secrets.example)で覆い隠す(深いパスのマウントが勝つ)。
+      # secrets.example/.dummy-marker を check-secrets.sh が毎起動照合し、この行が消えた場合(fail-open)を検出する
+      - ./secrets.example:/workspace/secrets:ro
+    env_file:
+      # 方式B(fine-grained PAT)。ファイル自体は AI から見えない
+      - secrets/ai.env
+    environment:
+      PUB_CACHE: /workspace/.pub-cache
+      # サンドボックス内であることの機械判定用マーカー(CLAUDE.md の前提ブロックが参照する)
+      AI_SANDBOX: "1"
+      GIT_AUTHOR_NAME: ai-dev
+      GIT_AUTHOR_EMAIL: ai-dev@example.local
+      GIT_COMMITTER_NAME: ai-dev
+      GIT_COMMITTER_EMAIL: ai-dev@example.local
+    command: sleep infinity
+
+volumes:
+  dart_tool:
+  flutter_build:
+  pub_cache:

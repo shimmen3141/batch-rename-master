@@ -15,3 +15,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## AI サンドボックス開発環境
+
+このリポジトリには、AI エージェント(Claude Code / Cursor 等)が秘密情報に到達できないよう隔離された Dev Container 環境があります。使い方は [docs/ai-sandbox.md](docs/ai-sandbox.md) を参照してください。

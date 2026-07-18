@@ -43,3 +43,38 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# real secrets
+secrets/*
+!secrets/.gitkeep
+
+# root env files should not be used or committed
+.env
+.env.*
+.dev.vars
+
+# common secret files
+*.pem
+*.key
+*.p12
+service-account*.json
+firebase-adminsdk*.json
+
+# Flutter/Firebase 署名鍵・設定
+*.jks
+*.keystore
+key.properties
+google-services.json
+GoogleService-Info.plist
+
+# Terraform secrets(実値 tfvars・ローカル state)
+*.tfvars
+*.tfstate
+*.tfstate.*
+!*.tfvars.example
+
+# ダミーの影(secrets.example/)は必ずコミットする。
+# 上の .env / service-account*.json 等の広いパターンが secrets.example/ 配下のダミーまで
+# 隠してしまい、clone 後にダミー差し替えマウントが空になる(隔離が壊れる)のを打ち消す。
+!secrets.example/
+!secrets.example/**

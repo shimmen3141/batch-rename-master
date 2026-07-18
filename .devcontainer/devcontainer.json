@@ -1,0 +1,12 @@
+{
+  "name": "ai-safe-dev",
+  "dockerComposeFile": "../compose.ai.yml",
+  "service": "ai-dev",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "root",
+  "postStartCommand": "/usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/check-secrets.sh",
+  "postCreateCommand": "if [ \"$GH_TOKEN\" = \"github_pat_REPLACE_ME\" ] || [ -z \"$GH_TOKEN\" ]; then echo \"secrets/ai.env の PAT が未記入です。記入して Rebuild Container してください(gh 認証設定はスキップ)。\"; else gh auth setup-git && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"; fi",
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": null
+  }
+}
