@@ -28,6 +28,12 @@ services:
       # AI エージェント CLI のログイン・設定の永続化(Rebuild してもログインが消えない)
       - claude_config:/home/dev/.claude
       - codex_config:/home/dev/.codex
+      # 各メンバーのホスト側 skills / agents(標準配置)を読み取り専用で共有。
+      # ~ は compose がそのメンバーのホームに展開する。ディレクトリが無いメンバーは空ディレクトリが
+      # 自動作成されるだけで害はない。ホストの ~/.claude 全体は絶対にマウントしない(資格情報・履歴を持ち込むため)。
+      # :ro 必須 — コンテナ内 AI が skill を書き換えられると、ホスト側で使ったときに汚染指示が実行される
+      - ~/.agents/skills:/home/dev/.claude/skills:ro
+      - ~/.claude/agents:/home/dev/.claude/agents:ro
       # 本物の secrets/ をダミー実体(secrets.example)で覆い隠す(深いパスのマウントが勝つ)。
       # secrets.example/.dummy-marker を check-secrets.sh が毎起動照合し、この行が消えた場合(fail-open)を検出する
       - ./secrets.example:/workspace/secrets:ro
