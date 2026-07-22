@@ -45,8 +45,17 @@
    ```bash
    printenv AI_SANDBOX                      # → 1
    printenv SSH_AUTH_SOCK                    # → 空
-   git config --list | grep -i credential    # → 空
+   git config --list | grep -i credential    # → gh の helper だけが出れば正常(下記)
    ```
+
+   方式Bでは3つ目のコマンドは**空になりません**。`gh auth setup-git` が次のような helper を設定するためで、これは正常です(空行は既存 helper をリセットするための定石):
+
+   ```
+   credential.https://github.com.helper=
+   credential.https://github.com.helper=!/usr/bin/gh auth git-credential
+   ```
+
+   ここで確認したいのは「**ホスト由来の認証情報が紛れ込んでいないか**」です。`manager`・`manager-core`・`osxkeychain`・`store` といった**gh 以外の helper が出たら異常**で、ホストの gitconfig がコピーされています(§1 の `dev.containers.copyGitConfig: false` を設定してから Rebuild してください)。
 
 5. **そのコンテナ内ターミナルで** AI エージェントを起動して作業します(下の「AI エージェントのログイン」参照)。
 

@@ -44,3 +44,7 @@ ENV PUB_CACHE=/workspace/.pub-cache
 RUN echo 'export PATH="$HOME/flutter/bin:$HOME/.local/bin:$PATH"' >> /home/dev/.profile
 # 初回実行で Dart SDK・ツールをダウンロードしてイメージに焼き込む
 RUN flutter --version
+# artifacts(Material Fonts / Gradle Wrapper / engine 等)も焼き込む。
+# これが無いと VS Code の Flutter 拡張が daemon 起動時に毎回ダウンロードを始め、
+# タイムアウトして「The Flutter Daemon failed to start」になる(実機で確認)
+RUN flutter precache
