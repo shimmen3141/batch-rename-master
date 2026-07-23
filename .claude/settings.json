@@ -1,4 +1,8 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
   "permissions": {
     "ask": [
       "Bash(git push:*)",
@@ -7,6 +11,15 @@
       "Bash(rm -rf:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 .claude/hooks/stop_verify.py" }
+        ]
+      }
     ]
   }
 }

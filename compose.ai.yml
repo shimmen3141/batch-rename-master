@@ -35,6 +35,9 @@ services:
       - ~/.agents/skills:/home/dev/.claude/skills:ro
       - ~/.claude/agents:/home/dev/.claude/agents:ro
       - ~/.agents/skills:/home/dev/.agents/skills:ro
+      # Claude Code の statusLine スクリプト(--statusline)。ファイル単位の ro bind。
+      # 有効化には .claude/settings.json 側に statusLine キーの設定も要る
+      - ~/.claude/statusline-command.sh:/home/dev/.claude/statusline-command.sh:ro
       # 本物の secrets/ をダミー実体(secrets.example)で覆い隠す(深いパスのマウントが勝つ)。
       # secrets.example/.dummy-marker を check-secrets.sh が毎起動照合し、この行が消えた場合(fail-open)を検出する
       - ./secrets.example:/workspace/secrets:ro

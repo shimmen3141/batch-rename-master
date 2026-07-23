@@ -1,0 +1,60 @@
+# ASDD issue運用「あり(自動同期)」= mode B のワークフロー。
+# plan.md への push をトリガーに、計画タスクを GitHub Issue へ投影する(AI 不要・決定的)。
+#
+# 導入時に project-plan-to-issues skill が行うこと:
+#   1. このファイルを .github/workflows/asdd-sync-issues.yml に置く
+#   2. scripts/project_plan_to_issues.py を .github/scripts/ にコピー(CI から参照するため)
+#
+# 前提: リポジトリ設定 > Actions > Workflow permissions を "Read and write" にする
+#       (または下の permissions で contents:write / issues:write が有効なこと)。
+name: ASDD sync issues
+
+on:
+  push:
+    branches: [main]           # 既定ブランチに合わせる
+    paths: ["specs/**/plan.md"]
+
+permissions:
+  contents: write              # issue 番号を plan.md へ書き戻すため
+  issues: write                # Issue の作成・更新・close のため
+
+concurrency:                   # 連続 push でも同期を直列化(取り合い防止)
+  group: asdd-sync-issues
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Project each approved plan to issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # PR 運用を併用する場合は、done→close を PR の Closes #N に任せるため
+          # 下の python 行に --no-close-done を足す。
+          fatal=0
+          flagged=0
+          for plan in specs/*/plan.md; do
+            [ -f "$plan" ] || continue
+            echo "::group::$plan"
+            python .github/scripts/project_plan_to_issues.py "$plan" --apply
+            rc=$?
+            echo "::endgroup::"
+            # exit 2 = 要確認の不整合(renumber 疑い等)。それ以外の非ゼロは致命的
+            if [ "$rc" = "2" ]; then flagged=1; elif [ "$rc" != "0" ]; then fatal=$rc; fi
+          done
+          if [ "$flagged" = "1" ]; then
+            echo "::warning::plan.md と Issue に要確認の不整合があります(ログの『要確認』を参照)"
+          fi
+          exit $fatal   # gh 認証失敗・例外などはジョブを失敗させる
+
+      - name: Write back issue numbers into plan.md
+        run: |
+          if ! git diff --quiet -- 'specs/**/plan.md'; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -am "chore(asdd): sync issue numbers into plan.md [skip ci]"
+            git push
+          fi
