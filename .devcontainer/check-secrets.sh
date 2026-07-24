@@ -74,7 +74,7 @@ done
 if [ "$found" -eq 1 ]; then
   echo "" >&2
   echo "対処: 実値なら secrets/ へ移す。ダミー/重複/再取得可能なら削除。対応はホスト側で行う。" >&2
-  echo "手順は docs/ai-sandbox.md の「ツールが新しい秘密ファイルを作ったら」節を参照。対応後にコンテナを再起動する。" >&2
+  echo "手順は docs/development/ai-sandbox.md の「ツールが新しい秘密ファイルを作ったら」節を参照。対応後にコンテナを再起動する。" >&2
   exit 1 # postStartCommand を失敗させ、ユーザーに通知を出す(コンテナ自体は動く)
 fi
 echo "OK: no secret-like files visible"

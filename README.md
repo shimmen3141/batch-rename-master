@@ -18,4 +18,4 @@ samples, guidance on mobile development, and a full API reference.
 
 ## AI サンドボックス開発環境
 
-このリポジトリには、AI エージェント(Claude Code / Cursor 等)が秘密情報に到達できないよう隔離された Dev Container 環境があります。使い方は [docs/ai-sandbox.md](docs/ai-sandbox.md) を参照してください。
+このリポジトリには、AI エージェント(Claude Code / Cursor 等)が秘密情報に到達できないよう隔離された Dev Container 環境があります。使い方は [docs/development/ai-sandbox.md](docs/development/ai-sandbox.md) を参照してください。
