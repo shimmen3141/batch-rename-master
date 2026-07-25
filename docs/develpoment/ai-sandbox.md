@@ -126,13 +126,25 @@ AI もコンテナ内から push / PR を作成できます(対象リポジト�
 - **実値だが `secrets/` に同じものがある、または再取得できる** → 削除(再取得は出力先を `secrets/` に指定: 例 `vercel env pull secrets/.env`)
 - **実値で、そのファイルにしか無い** → `secrets/` へ移す(削除するとデータ喪失)。手順は下記
 
+### ダミー(`secrets.example/`)は手で作らない — 再生成コマンドがある
+
+`secrets/` の内容を足したり変えたりしたら、**ホストのプロジェクトルートで次を実行**します。本物の値には触れず(スクリプト内でだけ変換)、`secrets.example/` のダミーが `secrets/` から作り直されます:
+
+```bash
+node scripts/refresh-secrets.mjs
+```
+
+`secrets.example/` のダミーを手で書く必要はありません(本物を開いてコンテキストや履歴に載せる事故を防ぐため、手作業は避けます)。更新されるのは `secrets.example/` だけで、`Dockerfile` / `compose.ai.yml` には触れません。既存ファイルの値変更・同じファイル内へのキー追加は、これだけで済みます。
+
+> **新しい種類のファイルを初めて足した場合**(例: これまで無かった `.env.local` を新規作成)だけは、コンテナへダミーを渡すために `compose.ai.yml` の `env_file` にも登録が要ります。この一度きりの反映は、このプロジェクトを作ったときの `ai-sandbox-setup` の scaffold を `--force` 付きで再実行し、`compose.ai.yml` の diff をレビューしてから Rebuild します(compose は隔離設定なので必ず目視)。以後の値変更は上の `refresh-secrets.mjs` に戻ってよいです。
+
 実値を `secrets/` へ移す手順(アダプタ方式):
 
 ```bash
 mv <file> secrets/                          # 本物を secrets/ へ
 ```
 
-そのうえで、そのファイルを使うツールに `secrets/` を指させます(Node なら `dotenv -e secrets/<file> -- ...`、Flutter なら `--dart-define-from-file=secrets/<file>`、または compose の `env_file`)。ツールが**固定パスでしか読めない**ファイル(`google-services.json` 等)は、`compose.ai.yml` に個別ダミーマウント `- ./secrets.example/<file>:/workspace/<file>:ro` を足してコンテナから隠します。**compose の変更は隔離設定の変更なので、レビューしてから rebuild** してください。あわせて、そのファイルのダミー版を `secrets.example/` にも足します。
+そのうえで、そのファイルを使うツールに `secrets/` を指させます(Node なら `dotenv -e secrets/<file> -- ...`、Flutter なら `--dart-define-from-file=secrets/<file>`、または compose の `env_file`)。ツールが**固定パスでしか読めない**ファイル(`google-services.json` 等)は、`compose.ai.yml` に個別ダミーマウント `- ./secrets.example/<file>:/workspace/<file>:ro` を足してコンテナから隠します。**compose の変更は隔離設定の変更なので、レビューしてから rebuild** してください。ダミー自体は **`node scripts/refresh-secrets.mjs`** が作るので、手では書きません。
 
 > コンテナの中では `vercel env pull` のような「実値を取得する」コマンドは認証が無く失敗します。これは仕様です。pull はホスト側で行ってください。
 
