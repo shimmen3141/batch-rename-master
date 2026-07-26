@@ -1,0 +1,286 @@
+{
+  "schema_version": "1.0",
+  "feature_id": "FEAT-001",
+  "title": "コア命名エンジン(rename-core)",
+  "status": "approved",
+  "scope": {
+    "in": [
+      "トークン列(元名・リテラル・連番・日時)から1ファイルの生成後名を構成する評価。",
+      "選択・並び順を反映したプレビュー生成。",
+      "ドライラン検証(重複・桁不足・空名の警告生成)。",
+      "自動解決(重複回避の接尾辞付与・連番桁数の自動拡張)。"
+    ],
+    "out": [
+      "実ファイルの読み書き・SAF 権限取得・ファイルシステムアクセス(004/005 の担当)。",
+      "OS 別の禁止文字・最大長のファイル名バリデーション(004/005 の担当)。",
+      "トークンの既定パラメータ(開始番号・桁数・増分・既定書式)の決定(UI 003 の担当)。",
+      "Flutter ウィジェット・画面・状態管理(002/003 の担当)。"
+    ]
+  },
+  "terms": [
+    {
+      "term": "FileEntry",
+      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグを持つ。"
+    },
+    {
+      "term": "ベース名",
+      "definition": "name 内で最後に出現するドット(先頭文字のドットは境界とみなさない)より前の部分。ドットが無い場合は name 全体。"
+    },
+    {
+      "term": "拡張子",
+      "definition": "name のベース名境界のドットより後ろの文字列(ドットを含まない)。境界が無い場合は空文字列。"
+    },
+    {
+      "term": "Token",
+      "definition": "命名ルールの構成要素。元名トークン・リテラルトークン・連番トークン・日時トークンの4種。"
+    },
+    {
+      "term": "RenameRule",
+      "definition": "Token の順序付きリスト。"
+    },
+    {
+      "term": "選択順位",
+      "definition": "選択されたファイルをリスト表示順で上から数えた1始まりの整数。"
+    },
+    {
+      "term": "最終名集合",
+      "definition": "未選択ファイルの現在の name と、選択ファイルの生成後名を合わせた多重集合。"
+    },
+    {
+      "term": "now",
+      "definition": "現在日時を表す入力値。エンジンは時計を参照せず呼び出し側が渡す。"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "元名トークンは、対象 FileEntry の name から導出したベース名を出力する。ベース名と拡張子の分割は、name 内で最後に出現するドット(ただし先頭文字のドットは境界としない)を境界とする。",
+      "observable": true,
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "REQ-002",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "リテラルトークンは、設定された文字列をそのまま出力する。区切り記号(ハイフン・アンダーバー・スペース)もリテラルトークンとして扱う。",
+      "observable": true,
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "REQ-003",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "連番トークンは、選択順位 position に対して 開始番号 + (position - 1) × 増分 を計算し、指定桁数まで左を 0 で埋めた10進文字列を出力する。",
+      "observable": true,
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "REQ-004",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "日時トークンは、基準(作成日時・更新日時・現在日時)の日時を書式で整形して出力する。書式記号 YYYY(4桁年)・YY(2桁年)・MM(2桁月)・DD(2桁日)・HH(2桁時24時制)・mm(2桁分)・ss(2桁秒)をゼロ埋め固定幅で展開し、書式は左から最長一致で走査し、記号に一致しない文字はそのまま出力する。記号は大文字小文字を区別する。現在日時は入力 now を用いる。",
+      "observable": true,
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "REQ-005",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "生成後フルネームは、ルール内のトークンを順に連結した文字列に、対象ファイルの拡張子を(拡張子が空でなければ先頭にドットを付けて)後置したものとする。",
+      "observable": true,
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "REQ-006",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "プレビュー生成は、選択されたファイルのみを対象とし、入力のリスト表示順を保持し、上から順に選択順位 1, 2, 3 を割り当てる。未選択ファイルはプレビューに含めない。",
+      "observable": true,
+      "verification": ["VER-002"]
+    },
+    {
+      "id": "REQ-007",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ドライラン検証は、選択ファイルの生成後名が最終名集合の中で2回以上出現する場合、その選択ファイルを重複として警告する。",
+      "observable": true,
+      "verification": ["VER-003"]
+    },
+    {
+      "id": "REQ-008",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ドライラン検証は、連番トークンの計算値が指定桁数に収まらない(計算値が 10 の指定桁数乗以上になる)場合、その連番トークンを桁不足として警告する。",
+      "observable": true,
+      "verification": ["VER-003"]
+    },
+    {
+      "id": "REQ-009",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ドライラン検証は、選択ファイルの生成後ベース名(拡張子を除いた部分)が空文字列になる場合、その選択ファイルを空名として警告する。",
+      "observable": true,
+      "verification": ["VER-003"]
+    },
+    {
+      "id": "REQ-010",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "自動解決は、生成後名が最終名集合で衝突する選択ファイルに対し、リスト表示順で最初の出現はそのまま残し、以降の衝突する出現にはベース名の末尾へ半角スペースと括弧付き整数 ' (n)'(n は 1 始まり)を付与し、最終名集合で衝突しなくなる最小の n を選ぶ。",
+      "observable": true,
+      "verification": ["VER-004"]
+    },
+    {
+      "id": "REQ-011",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "自動解決は、連番トークンに桁不足が生じる場合、その連番トークンの桁数を、割り当てられる最大の計算値が収まる桁数まで拡張する。",
+      "observable": true,
+      "verification": ["VER-004"]
+    },
+    {
+      "id": "REQ-012",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "自動解決の結果が定める最終名集合は、重複を含まず、桁不足を含まない。",
+      "observable": true,
+      "verification": ["VER-004"]
+    },
+    {
+      "id": "REQ-013",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "エンジンの各操作は、同一の(ルール, ファイル列, now)入力に対して常に同一の出力を返す。",
+      "observable": true,
+      "verification": ["VER-005"]
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-001",
+      "statement": "RenameRule は Token の順序付きリストであり、任意の種別のトークンを任意個・任意の順序で含められる。",
+      "owner": "RenameRule"
+    },
+    {
+      "id": "INV-002",
+      "statement": "生成後フルネームにおいて、対象ファイルの拡張子は変更されない。",
+      "owner": "命名エンジン(buildName)"
+    },
+    {
+      "id": "INV-003",
+      "statement": "自動解決の出力では、最終名集合に同一の名前が2つ以上存在しない。",
+      "owner": "自動解決(autoResolve)"
+    },
+    {
+      "id": "INV-004",
+      "statement": "エンジンはファイルシステムへアクセスせず、現在日時は入力 now としてのみ取得する。",
+      "owner": "命名エンジン"
+    }
+  ],
+  "operations": [
+    {
+      "id": "OP-001",
+      "name": "buildName",
+      "interface": "buildName(rule: RenameRule, file: FileEntry, position: int, now: DateTime) -> String",
+      "preconditions": ["position は 1 以上の整数である。"],
+      "postconditions": [
+        "返り値は、REQ-001 から REQ-005 に従って構成された対象ファイルの生成後フルネームである。",
+        "各トークンは REQ-001 から REQ-004 に従って評価される。"
+      ],
+      "errors": [],
+      "side_effects": ["none"],
+      "nondeterminism": ["none"],
+      "requirements": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005"],
+      "verification": ["VER-001"]
+    },
+    {
+      "id": "OP-002",
+      "name": "generatePreview",
+      "interface": "generatePreview(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<PreviewEntry>",
+      "preconditions": ["files はフォルダ内ファイルの入力列である。"],
+      "postconditions": [
+        "返り値は選択ファイルのみを含み、入力の並び順を保持する。",
+        "選択ファイルのうち i 番目(1始まり)の結果名は buildName(rule, そのファイル, i, now) に等しい。"
+      ],
+      "errors": [],
+      "side_effects": ["none"],
+      "nondeterminism": ["none"],
+      "requirements": ["REQ-006"],
+      "verification": ["VER-002"]
+    },
+    {
+      "id": "OP-003",
+      "name": "validate",
+      "interface": "validate(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<Warning>",
+      "preconditions": ["files はフォルダ内ファイルの入力列である。"],
+      "postconditions": [
+        "重複・桁不足・空名の各条件(REQ-007・REQ-008・REQ-009)に該当する箇所ごとに、その種別と対象を示す警告を1件含む。",
+        "いずれの条件にも該当しない箇所については警告を含まない。"
+      ],
+      "errors": [],
+      "side_effects": ["none"],
+      "nondeterminism": ["none"],
+      "requirements": ["REQ-007", "REQ-008", "REQ-009"],
+      "verification": ["VER-003"]
+    },
+    {
+      "id": "OP-004",
+      "name": "autoResolve",
+      "interface": "autoResolve(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<ResolvedEntry>",
+      "preconditions": ["files はフォルダ内ファイルの入力列である。"],
+      "postconditions": [
+        "各選択ファイルに、REQ-010 と REQ-011 に従って衝突しない最終名を割り当てる。",
+        "出力が定める最終名集合は、重複を含まず桁不足を含まない(REQ-012・INV-003)。"
+      ],
+      "errors": [],
+      "side_effects": ["none"],
+      "nondeterminism": ["none"],
+      "requirements": ["REQ-010", "REQ-011", "REQ-012"],
+      "verification": ["VER-004"]
+    }
+  ],
+  "state_machines": [],
+  "quality_attributes": [],
+  "implementation_constraints": [
+    {
+      "id": "CON-001",
+      "statement": "命名エンジンのコアは package:flutter および dart:io に依存してはならない。",
+      "rationale": "プラットフォーム非依存の純粋 Dart とすることで、Android SDK を持たないサンドボックスでも flutter test による検証を可能にし、Android と Windows で同一のリネームロジックを共有するため。dart:io で直接ファイルへアクセスする案は、テスト容易性とプラットフォーム分離を損なうため不採用。"
+    }
+  ],
+  "verification": [
+    {
+      "id": "VER-001",
+      "type": "property",
+      "artifact": "test/spec_001_rename_core/token_evaluation_test.dart",
+      "covers": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "INV-002", "OP-001"]
+    },
+    {
+      "id": "VER-002",
+      "type": "property",
+      "artifact": "test/spec_001_rename_core/preview_test.dart",
+      "covers": ["REQ-006", "INV-001", "OP-002"]
+    },
+    {
+      "id": "VER-003",
+      "type": "example",
+      "artifact": "test/spec_001_rename_core/validation_test.dart",
+      "covers": ["REQ-007", "REQ-008", "REQ-009", "OP-003"]
+    },
+    {
+      "id": "VER-004",
+      "type": "property",
+      "artifact": "test/spec_001_rename_core/auto_resolve_test.dart",
+      "covers": ["REQ-010", "REQ-011", "REQ-012", "INV-003", "OP-004"]
+    },
+    {
+      "id": "VER-005",
+      "type": "property",
+      "artifact": "test/spec_001_rename_core/determinism_test.dart",
+      "covers": ["REQ-013", "INV-004", "CON-001"]
+    }
+  ],
+  "open_questions": []
+}
