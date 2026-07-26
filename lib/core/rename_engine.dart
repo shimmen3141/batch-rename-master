@@ -27,3 +27,39 @@ String buildName(RenameRule rule, FileEntry file, int position, DateTime now) {
   final ext = file.extension;
   return ext.isEmpty ? base : '$base.$ext';
 }
+
+/// プレビューの1エントリ(OP-002 の出力要素)。
+class PreviewEntry {
+  /// 元ファイル。
+  final FileEntry source;
+
+  /// [source] に対する生成後フルネーム。
+  final String resultName;
+
+  const PreviewEntry({required this.source, required this.resultName});
+}
+
+/// 選択・並び順を反映したプレビューを生成する(OP-002 / REQ-006)。
+///
+/// [files] のうち選択されたものだけを、入力の並び順を保ったまま対象とし、
+/// 上から選択順位 1, 2, 3... を割り当てて各ファイルの生成後名を求める。
+/// 未選択ファイルは結果に含めない。
+List<PreviewEntry> generatePreview(
+  RenameRule rule,
+  List<FileEntry> files,
+  DateTime now,
+) {
+  final result = <PreviewEntry>[];
+  var position = 0;
+  for (final file in files) {
+    if (!file.selected) continue;
+    position += 1;
+    result.add(
+      PreviewEntry(
+        source: file,
+        resultName: buildName(rule, file, position, now),
+      ),
+    );
+  }
+  return result;
+}
