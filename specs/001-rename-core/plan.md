@@ -52,7 +52,7 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Strict) | M | - | done | #2 |
-| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | pending | #3 |
+| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | done | #3 |
 | T3 | 連番・日時トークンの評価 | M | T2 | pending | #4 |
 | T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | pending | #5 |
 | T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | pending | #6 |
@@ -123,5 +123,8 @@
 - 2026-07-26 / T1 / done / verifier PASS(試行1) / Strict 契約・spec.md・ADR-001 作成、spec_lint --strict PASS(errors=0/warnings=0)。仕様は draft。**仕様の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。契約 open_questions 1件(接尾辞書式の確認)は承認時に解消。
 - 2026-07-26 / 仕様承認 / 開発者承認(「behavior-contract.json は承認します」「接尾辞書式はあなたの提案で確定」)。contract status draft → approved、open_questions 解消(空)、spec.md Status approved。lint --strict PASS 継続。**T2 が実行可能に**。
 - 2026-07-26 / T1 / PR #1 作成(asdd/001-rename-core/T1 → main)。PR運用のためマージ待ちで停止。T2 は T1 の PR マージ後に着手可(依存の完了判定 = done かつ PR マージ済み)。
+- 2026-07-26 / 運用変更 / 開発者指示: 以降タスクブランチは main ではなく dev から分岐(dev 作成・push 済み)。Co-Authored-By とコミット/PR の Claude 帰属フッタは付けない。
+- 2026-07-26 / T2 / done / verifier PASS(試行1) / lib/core に FileEntry・Token(sealed: 元名/リテラル)・RenameContext・RenameRule・buildName を実装(REQ-001/002/005・INV-001/002・OP-001)。flutter test 15/15、flutter analyze 0 issue、dart format PASS、lib/core は Flutter/dart:io 非依存(CON-001)。claim=Issue #3 assign。
+- 2026-07-26 / T2 / PR #8 作成(asdd/001-rename-core/T2 → dev, Closes #3)。マージ待ちで停止。T3 は T2 の PR マージ後に着手可。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
