@@ -11,7 +11,7 @@ name: ASDD sync issues
 
 on:
   push:
-    branches: [main]           # 既定ブランチに合わせる
+    branches: [main, dev]           # 既定ブランチに合わせる
     paths: ["specs/**/plan.md"]
 
 permissions:
