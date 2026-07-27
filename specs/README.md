@@ -5,12 +5,14 @@
 | 機能 | 計画 | 仕様 | 進捗 | 依存する機能 | 概要 |
 |------|------|------|------|--------------|------|
 | [001-rename-core](001-rename-core/plan.md) | done | approved (Strict) | 6/6 | - | 一括リネームアプリの中核となる**純粋 Dart の命名エンジン**を、UI・ファイルIO・プラットフォーム固有処理から |
+| [002-file-list](002-file-list/plan.md) | in_progress | draft (Light) | 1/5 | 001-rename-core | メインのワークスペース画面。読み込んだファイルを一覧表示し、左に現在名・右に変更後名(001 のプレビュー)を並べる。チ |
 <!-- 例: | [001-auth](001-auth/plan.md) | in_progress | approved (Strict) | 2/5 | - | 認証基盤 | -->
 <!-- 計画: draft / approved / in_progress / done。進捗: doneタスク数/全タスク数
      仕様: `-`(作らない) / `予定(Light)` / `予定(Strict)`(計画にT1がある未着手状態) / `draft (レベル)` / `approved (レベル)` / `deprecated` -->
 
 ## 機能間のタスク依存
 
+- 002-file-list.T3 → 001-rename-core.T4
 
 <!-- 機能をまたぐタスク依存はここに列挙する(依存する側の plan.md のタスク表にも `<機能ディレクトリ名>.Tn` 形式で書く。例: 001-auth.T3)
 例: 002-billing.T2 → 001-auth.T3(認証APIの完成が前提) -->
