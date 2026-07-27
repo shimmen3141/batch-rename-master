@@ -54,7 +54,7 @@
 | T1 | 振る舞い仕様の作成(Strict) | M | - | done | #2 |
 | T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | done | #3 |
 | T3 | 連番・日時トークンの評価 | M | T2 | done | #4 |
-| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | pending | #5 |
+| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | done | #5 |
 | T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | pending | #6 |
 | T6 | 自動解決(強制実行時の名前確定) | M | T5 | pending | #7 |
 
@@ -129,5 +129,8 @@
 - 2026-07-26 / T2 / PR #8 マージ(dev)。CI(pull_request トリガ)success を確認。
 - 2026-07-26 / T3 / done / verifier PASS(試行1) / token.dart に SequenceToken(REQ-003)・DateTimeToken/DateTimeSource・日時整形(REQ-004: 最長一致・大小区別・基準切替・非該当リテラル・INV-004 時計非参照)を追加。flutter test 28/28、analyze 0 issue、format PASS。claim=Issue #4 assign。
 - 2026-07-26 / T3 / PR #9 作成(asdd/001-rename-core/T3 → dev, Closes #4)。マージ待ちで停止。T4 は T3 の PR マージ後に着手可。
+- 2026-07-26 / T3 / PR #9 マージ(dev)。開発者が sync ワークフローに dev トリガを追加、dev push で投影が走り #3/#4 クローズを確認。
+- 2026-07-26 / T4 / done / verifier PASS(試行1) / rename_engine.dart に PreviewEntry・generatePreview(REQ-006/OP-002: 選択のみ・表示順保持・上から連番、i番目=buildName(...,i,...))を追加。flutter test 34/34、analyze 0 issue、format PASS。claim=Issue #5 assign。
+- 2026-07-26 / T4 / PR #10 作成(asdd/001-rename-core/T4 → dev, Closes #5)。マージ待ちで停止。T5 は T4 の PR マージ後に着手可。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
