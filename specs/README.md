@@ -4,7 +4,7 @@
 
 | 機能 | 計画 | 仕様 | 進捗 | 依存する機能 | 概要 |
 |------|------|------|------|--------------|------|
-| [001-rename-core](001-rename-core/plan.md) | in_progress | approved (Strict) | 5/6 | - | 一括リネームアプリの中核となる**純粋 Dart の命名エンジン**を、UI・ファイルIO・プラットフォーム固有処理から |
+| [001-rename-core](001-rename-core/plan.md) | done | approved (Strict) | 6/6 | - | 一括リネームアプリの中核となる**純粋 Dart の命名エンジン**を、UI・ファイルIO・プラットフォーム固有処理から |
 <!-- 例: | [001-auth](001-auth/plan.md) | in_progress | approved (Strict) | 2/5 | - | 認証基盤 | -->
 <!-- 計画: draft / approved / in_progress / done。進捗: doneタスク数/全タスク数
      仕様: `-`(作らない) / `予定(Light)` / `予定(Strict)`(計画にT1がある未着手状態) / `draft (レベル)` / `approved (レベル)` / `deprecated` -->

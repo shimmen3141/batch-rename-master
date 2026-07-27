@@ -1,6 +1,6 @@
 # 計画: コア命名エンジン(rename-core)
 
-- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-07-26
 - 元情報: `specs/discovery.md`(機能横断ディスカバリ)、`docs/proposals/001-PRD.md`
 - 仕様: Strict: contracts/behavior-contract.json(正しさの定義はそちらが正本)
@@ -56,7 +56,7 @@
 | T3 | 連番・日時トークンの評価 | M | T2 | done | #4 |
 | T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | done | #5 |
 | T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | done | #6 |
-| T6 | 自動解決(強制実行時の名前確定) | M | T5 | pending | #7 |
+| T6 | 自動解決(強制実行時の名前確定) | M | T5 | done | #7 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変(順序ではなく identity)。実行順は依存列と行順で表す -->
 
@@ -135,5 +135,9 @@
 - 2026-07-27 / T4 / PR #10 マージ(dev)。
 - 2026-07-27 / T5 / done / verifier PASS(試行1) / rename_engine.dart に Warning 階層(Duplicate/DigitShortage/EmptyName)と validate(OP-003/REQ-007〜009: 最終名集合ベースの重複、連番桁不足、空名)を追加。flutter test 46/46、analyze 0 issue、format PASS。claim=Issue #6 assign。
 - 2026-07-27 / T5 / PR #11 作成(asdd/001-rename-core/T5 → dev, Closes #6)。マージ待ちで停止。T6 は T5 の PR マージ後に着手可(最後のタスク)。
+- 2026-07-27 / T5 / PR #11 マージ(dev)。
+- 2026-07-27 / T6 / done / verifier PASS(試行1) / rename_engine.dart に ResolvedEntry・autoResolve・_expandDigits・_withSuffix(OP-004/REQ-010〜012/INV-003: 重複 (n) 付与・連番桁自動拡張・結果は重複/桁不足なし)を追加。flutter test 54/54、analyze 0 issue、format PASS。claim=Issue #7 assign。
+- 2026-07-27 / 計画完了 / 全6タスク done。計画 状態 → done。全体の受け入れ条件を最終検証(spec_lint --strict PASS / test/spec_001_rename_core が flutter test 60/60 PASS / analyze 0 / format PASS / lib/core は Flutter 非依存)。完了検証で VER-005 未作成を検出し determinism_test を補完(FINDINGS 記録)。PR #12(T6)は dev マージ待ち。
+- 2026-07-27 / T6 / PR #12 作成(asdd/001-rename-core/T6 → dev, Closes #7)。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
