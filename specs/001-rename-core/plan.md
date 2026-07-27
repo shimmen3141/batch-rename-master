@@ -1,6 +1,6 @@
 # 計画: コア命名エンジン(rename-core)
 
-- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-07-26
 - 元情報: `specs/discovery.md`(機能横断ディスカバリ)、`docs/proposals/001-PRD.md`
 - 仕様: Strict: contracts/behavior-contract.json(正しさの定義はそちらが正本)
@@ -52,11 +52,11 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Strict) | M | - | done | #2 |
-| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | pending | #3 |
-| T3 | 連番・日時トークンの評価 | M | T2 | pending | #4 |
-| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | pending | #5 |
-| T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | pending | #6 |
-| T6 | 自動解決(強制実行時の名前確定) | M | T5 | pending | #7 |
+| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | done | #3 |
+| T3 | 連番・日時トークンの評価 | M | T2 | done | #4 |
+| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | done | #5 |
+| T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | done | #6 |
+| T6 | 自動解決(強制実行時の名前確定) | M | T5 | done | #7 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変(順序ではなく identity)。実行順は依存列と行順で表す -->
 
@@ -123,5 +123,21 @@
 - 2026-07-26 / T1 / done / verifier PASS(試行1) / Strict 契約・spec.md・ADR-001 作成、spec_lint --strict PASS(errors=0/warnings=0)。仕様は draft。**仕様の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。契約 open_questions 1件(接尾辞書式の確認)は承認時に解消。
 - 2026-07-26 / 仕様承認 / 開発者承認(「behavior-contract.json は承認します」「接尾辞書式はあなたの提案で確定」)。contract status draft → approved、open_questions 解消(空)、spec.md Status approved。lint --strict PASS 継続。**T2 が実行可能に**。
 - 2026-07-26 / T1 / PR #1 作成(asdd/001-rename-core/T1 → main)。PR運用のためマージ待ちで停止。T2 は T1 の PR マージ後に着手可(依存の完了判定 = done かつ PR マージ済み)。
+- 2026-07-26 / 運用変更 / 開発者指示: 以降タスクブランチは main ではなく dev から分岐(dev 作成・push 済み)。Co-Authored-By とコミット/PR の Claude 帰属フッタは付けない。
+- 2026-07-26 / T2 / done / verifier PASS(試行1) / lib/core に FileEntry・Token(sealed: 元名/リテラル)・RenameContext・RenameRule・buildName を実装(REQ-001/002/005・INV-001/002・OP-001)。flutter test 15/15、flutter analyze 0 issue、dart format PASS、lib/core は Flutter/dart:io 非依存(CON-001)。claim=Issue #3 assign。
+- 2026-07-26 / T2 / PR #8 作成(asdd/001-rename-core/T2 → dev, Closes #3)。マージ待ちで停止。T3 は T2 の PR マージ後に着手可。
+- 2026-07-26 / T2 / PR #8 マージ(dev)。CI(pull_request トリガ)success を確認。
+- 2026-07-26 / T3 / done / verifier PASS(試行1) / token.dart に SequenceToken(REQ-003)・DateTimeToken/DateTimeSource・日時整形(REQ-004: 最長一致・大小区別・基準切替・非該当リテラル・INV-004 時計非参照)を追加。flutter test 28/28、analyze 0 issue、format PASS。claim=Issue #4 assign。
+- 2026-07-26 / T3 / PR #9 作成(asdd/001-rename-core/T3 → dev, Closes #4)。マージ待ちで停止。T4 は T3 の PR マージ後に着手可。
+- 2026-07-26 / T3 / PR #9 マージ(dev)。開発者が sync ワークフローに dev トリガを追加、dev push で投影が走り #3/#4 クローズを確認。
+- 2026-07-26 / T4 / done / verifier PASS(試行1) / rename_engine.dart に PreviewEntry・generatePreview(REQ-006/OP-002: 選択のみ・表示順保持・上から連番、i番目=buildName(...,i,...))を追加。flutter test 34/34、analyze 0 issue、format PASS。claim=Issue #5 assign。
+- 2026-07-26 / T4 / PR #10 作成(asdd/001-rename-core/T4 → dev, Closes #5)。マージ待ちで停止。T5 は T4 の PR マージ後に着手可。
+- 2026-07-27 / T4 / PR #10 マージ(dev)。
+- 2026-07-27 / T5 / done / verifier PASS(試行1) / rename_engine.dart に Warning 階層(Duplicate/DigitShortage/EmptyName)と validate(OP-003/REQ-007〜009: 最終名集合ベースの重複、連番桁不足、空名)を追加。flutter test 46/46、analyze 0 issue、format PASS。claim=Issue #6 assign。
+- 2026-07-27 / T5 / PR #11 作成(asdd/001-rename-core/T5 → dev, Closes #6)。マージ待ちで停止。T6 は T5 の PR マージ後に着手可(最後のタスク)。
+- 2026-07-27 / T5 / PR #11 マージ(dev)。
+- 2026-07-27 / T6 / done / verifier PASS(試行1) / rename_engine.dart に ResolvedEntry・autoResolve・_expandDigits・_withSuffix(OP-004/REQ-010〜012/INV-003: 重複 (n) 付与・連番桁自動拡張・結果は重複/桁不足なし)を追加。flutter test 54/54、analyze 0 issue、format PASS。claim=Issue #7 assign。
+- 2026-07-27 / 計画完了 / 全6タスク done。計画 状態 → done。全体の受け入れ条件を最終検証(spec_lint --strict PASS / test/spec_001_rename_core が flutter test 60/60 PASS / analyze 0 / format PASS / lib/core は Flutter 非依存)。完了検証で VER-005 未作成を検出し determinism_test を補完(FINDINGS 記録)。PR #12(T6)は dev マージ待ち。
+- 2026-07-27 / T6 / PR #12 作成(asdd/001-rename-core/T6 → dev, Closes #7)。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
