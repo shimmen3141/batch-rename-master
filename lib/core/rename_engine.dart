@@ -181,3 +181,79 @@ int _decimalDigits(int value) {
   final magnitude = value.abs();
   return magnitude == 0 ? 1 : magnitude.toString().length;
 }
+
+/// 自動解決で確定した1エントリ(OP-004 の出力要素)。
+class ResolvedEntry {
+  /// 元ファイル。
+  final FileEntry source;
+
+  /// 衝突しない最終フルネーム。
+  final String resultName;
+
+  const ResolvedEntry({required this.source, required this.resultName});
+}
+
+/// 自動解決(OP-004 / REQ-010〜012 / INV-003)。強制実行時の最終名を確定する。
+///
+/// まず連番トークンの桁不足を、選択数に対する最大値が収まる桁数まで拡張する
+/// (REQ-011)。次にプレビューを求め、最終名集合(未選択の現在名 + 確定済みの
+/// 名前)で衝突する場合は、リスト表示順で最初の出現をそのまま残し、以降の衝突には
+/// ベース名の末尾へ ' (n)'(n は1始まり)を付与して衝突しない最小の n を選ぶ
+/// (REQ-010)。結果の最終名集合は重複と桁不足を含まない(REQ-012 / INV-003)。
+List<ResolvedEntry> autoResolve(
+  RenameRule rule,
+  List<FileEntry> files,
+  DateTime now,
+) {
+  final count = files.where((file) => file.selected).length;
+  final expandedRule = RenameRule([
+    for (final token in rule.tokens) _expandDigits(token, count),
+  ]);
+  final preview = generatePreview(expandedRule, files, now);
+
+  // 未選択ファイルの現在名を既使用として初期化する(上書き防止)。
+  final taken = <String>{
+    for (final file in files)
+      if (!file.selected) file.name,
+  };
+
+  final resolved = <ResolvedEntry>[];
+  for (final entry in preview) {
+    var candidate = entry.resultName;
+    if (taken.contains(candidate)) {
+      final ext = entry.source.extension;
+      final base = ext.isEmpty
+          ? entry.resultName
+          : entry.resultName.substring(
+              0,
+              entry.resultName.length - ext.length - 1,
+            );
+      var n = 1;
+      while (taken.contains(_withSuffix(base, n, ext))) {
+        n += 1;
+      }
+      candidate = _withSuffix(base, n, ext);
+    }
+    taken.add(candidate);
+    resolved.add(ResolvedEntry(source: entry.source, resultName: candidate));
+  }
+  return resolved;
+}
+
+/// 桁不足を起こす連番トークンの桁数を、最大値が収まる桁数まで拡張する(REQ-011)。
+Token _expandDigits(Token token, int selectedCount) {
+  if (token is! SequenceToken || selectedCount == 0) return token;
+  final requiredDigits = _decimalDigits(
+    _maxSequenceValue(token, selectedCount),
+  );
+  if (requiredDigits <= token.digits) return token;
+  return SequenceToken(
+    start: token.start,
+    digits: requiredDigits,
+    increment: token.increment,
+  );
+}
+
+/// ベース名 [base] の末尾に ' (n)' を付与し、拡張子 [ext] を後置する(REQ-010)。
+String _withSuffix(String base, int n, String ext) =>
+    ext.isEmpty ? '$base ($n)' : '$base ($n).$ext';

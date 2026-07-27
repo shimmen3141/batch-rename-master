@@ -1,0 +1,9 @@
+# asdd-suite FINDINGS
+
+asdd-suite の skill・規約・フック・生成物への気づき(不具合・不備・改善点)を1行ずつ記録する。修正は専用セッションが検証込みで行う。コンテナ/読み取り専用マウントのためプラグイン直下の FINDINGS.md に書けないので、プロジェクト側のここに追記している。
+
+- 2026-07-26 / 規約 / 仕様由来テストの配置が `tests/spec_<NNN>_<機能名>/` 固定だが、Flutter/Dart は `flutter test` が `test/` 配下を走査するため `test/spec_<NNN>_...` でないと拾えない。言語ごとのテストディレクトリ差を規約が扱っておらず、計画の決定事項で読み替えて対応した。create-verifiable-spec / 規約に「言語慣習に合わせて test ルートを読み替える」注記があると手戻りが減る。
+- 2026-07-26 / フック(asdd-sync-issues.yml)/ mode B の投影トリガが `branches: [main]` 固定。PR運用で統合ブランチ(dev)に PR をマージする運用だと、dev マージでは Issue の投影・クローズが走らず main 到達までズレる。ユーザーが後から `dev` をトリガに追加して解消。PR運用×非main統合ブランチの相互作用を asdd-setup / project-plan-to-issues が確認・案内できるとよい。
+- 2026-07-26 / フック(asdd-sync-issues.yml)/ issue運用「あり」かつ PR運用「あり」なのに、生成された workflow の投影コマンドに `--no-close-done` が付いていない(コメントで言及のみ)。CLAUDE.md 規約は PR運用併用時に `--no-close-done` を付けろと指示しており、生成物と規約が不一致。本プロジェクトでは dev マージでのクローズが望ましかったため実害は無かったが、PR運用時に done→close が二重管理になりうる。
+- 2026-07-27 / 計画(create-plan)/ 仕様の VER-005(determinism_test: REQ-013/INV-004/CON-001)が、計画のタスク分割(T2〜T6=VER-001〜004)のどのタスクの受け入れ条件にも割り当てられておらず、全タスク done 後の「全体の受け入れ条件」最終検証で初めて未作成が発覚した。create-plan がタスク分割時に「契約の全 VER がいずれかのタスクに被覆されているか」を照合できると、末端での取りこぼしを防げる。今回は完了検証時に determinism_test を追加して解消。
+- 2026-07-27 / 手戻り / ブランチの分岐元(main か dev か)と Claude 帰属(コミットの Co-Authored-By・PR 本文のフッタ)の方針が計画・規約に無く、既定で main 分岐・帰属付きで進めた後にユーザー指摘で dev 分岐・帰属なしへ修正(コミット amend / force-push)が発生。asdd-setup か create-plan で「統合ブランチ」「コミット/PR の帰属方針」を初期に確認できると手戻りを防げる。
