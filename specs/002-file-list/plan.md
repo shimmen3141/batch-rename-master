@@ -102,5 +102,7 @@
 - 2026-07-27 / T1 / 着手 / 担当: shimmen3141(暫定 claim)。002 plan.md が dev/main 未到達で Issue 未投影のため claim を plan.md 側に置く(T1 PR の dev マージで projection が 002 Issue を作成)。状態 → in_progress。
 - 2026-07-27 / T1 / done / verifier PASS(試行1) / Light 仕様 spec.md 作成(選択・ソート4種・カスタム順自動切替・001 generatePreview 連携の REQ-001〜007/VER-001〜002、反証ログ、open_questions 6件に推奨デフォルト併記)。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
 - 2026-07-27 / T1 / PR #14 作成(asdd/002-file-list/T1 → dev)。spec.md レビュー・承認待ちで停止。マージで 002 の Issue が projection される。
+- 2026-08-01 / 参考デザイン反映 / claude design(`docs/design/Bulk Renamer.html`)到着。3点をレビューし機能ごとに仕分け(開発者確認済み): ①ファイル先行選択=004 の追加要求(矛盾なし)、②リネーム後 undo=005(セッション内・単一ステップ・時限トースト。discovery の「永続 undo スタック除外」とは別物として 005 へ)、③a base トークン大小変換=approved 001 の将来拡張(今は 001 を触らない)、③b レイアウト3案/プリセット保存=視覚(002範囲外)/003。**いずれも 002 の draft 仕様・計画に変更不要**(002 は `List<FileEntry>`+`RenameRule` 注入で構造的に隔離)。①②③の将来スコープは discovery.md に記録。
+- 2026-08-01 / T1 / spec.md approved / 開発者承認(未解決事項への個別回答: 初期ソートを「入力順(custom)のまま」で確定=現行 spec の ASSUMED と一致)。設計が既定選択・ソート4種・自動カスタム順・ライブプレビューを追認。spec.md の Status draft→approved、未解決事項6件を確定値へ。**後続 T2 は PR #14 の dev マージ(002 Issue projection)後に /run-plan で実行可**。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
