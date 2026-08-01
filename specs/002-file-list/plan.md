@@ -44,7 +44,7 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #15 |
-| T2 | 状態コントローラ(選択・ソート・カスタム順) | M | T1 | pending | #16 |
+| T2 | 状態コントローラ(選択・ソート・カスタム順) | M | T1 | done | #16 |
 | T3 | プレビュー連携(001 の generatePreview で行データ供給) | S | T2, 001-rename-core.T4 | pending | #17 |
 | T4 | ウィジェット: 2カラムリスト + チェックボックス + ソート切替 | M | T3 | pending | #18 |
 | T5 | ウィジェット: ドラッグ並び替え + カスタム順への自動切替 | M | T4 | pending | #19 |
@@ -104,5 +104,9 @@
 - 2026-07-27 / T1 / PR #14 作成(asdd/002-file-list/T1 → dev)。spec.md レビュー・承認待ちで停止。マージで 002 の Issue が projection される。
 - 2026-08-01 / 参考デザイン反映 / claude design(`docs/design/Bulk Renamer.html`)到着。3点をレビューし機能ごとに仕分け(開発者確認済み): ①ファイル先行選択=004 の追加要求(矛盾なし)、②リネーム後 undo=005(セッション内・単一ステップ・時限トースト。discovery の「永続 undo スタック除外」とは別物として 005 へ)、③a base トークン大小変換=approved 001 の将来拡張(今は 001 を触らない)、③b レイアウト3案/プリセット保存=視覚(002範囲外)/003。**いずれも 002 の draft 仕様・計画に変更不要**(002 は `List<FileEntry>`+`RenameRule` 注入で構造的に隔離)。①②③の将来スコープは discovery.md に記録。
 - 2026-08-01 / T1 / spec.md approved / 開発者承認(未解決事項への個別回答: 初期ソートを「入力順(custom)のまま」で確定=現行 spec の ASSUMED と一致)。設計が既定選択・ソート4種・自動カスタム順・ライブプレビューを追認。spec.md の Status draft→approved、未解決事項6件を確定値へ。**後続 T2 は PR #14 の dev マージ(002 Issue projection)後に /run-plan で実行可**。
+- 2026-08-01 / T1 / PR #14 マージ済み(dev)。002 Issue が projection(T1→#15 … T5→#19)。
+- 2026-08-01 / T2 / 着手 / 担当: shimmen3141(Issue #16 を assign)。ブランチ asdd/002-file-list/T2。
+- 2026-08-01 / T2 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`FileListController`(選択 identity Set・ソート4種・reorder→custom 自動切替・setRule)と `file_sort.dart`(自然順・大小無視・安定ソート)を実装。REQ-001〜005 を覆う controller_test.dart 17件通過、`flutter analyze` 0 issue、`dart format` PASS。プレビュー行データ(REQ-006/007)は T3。
+- 2026-08-01 / T2 / PR #21 作成(asdd/002-file-list/T2 → dev, Closes #16)。マージ待ちで停止。次の T3 は T2 のマージ後に実行可(依存 = done ∧ PR マージ済み)。
 
 <!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
