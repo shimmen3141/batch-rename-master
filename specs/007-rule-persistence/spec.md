@@ -1,6 +1,6 @@
 # ルール永続化(rule-persistence) 振る舞い仕様
 
-- Status: draft
+- Status: approved
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -93,11 +93,14 @@
 | 異常系の網羅 | 不正JSON・未知 type・欠損・非対応バージョン → null（REQ-004）。空ストア・空ルール・保存失敗（best-effort）を明記。 |
 | 判定不能語 | 「適切に」等を排し、往復等価・「最後に書いた値」等の観測可能条件で記述。 |
 
-## 未解決事項（approved にする前に解消。各行に推奨デフォルトを併記）
+## 決定済み事項（旧・未解決事項。2026-08-02 に開発者承認で確定）
 
-- JSON スキーマ: [ASSUMED] トップレベル `{"version": 1, "tokens": [...]}`。各トークンは `type` タグ + パラメータ:
-  `{"type":"original"}` / `{"type":"literal","value":"_"}` / `{"type":"sequence","start":1,"digits":2,"increment":1}` / `{"type":"datetime","source":"created","format":"YYYYMMDD"}`（source は `created`/`modified`/`current`）。
-- 保存の粒度: [ASSUMED] 変更のたび保存（単純・確実）。デバウンスは将来の最適化。
-- 読み込み失敗時: [ASSUMED] 空ルールで開始（確定・低リスク）。
-- 空ルールの保存: [ASSUMED] 保存する（空も有効状態として復元）。
-- 非対応バージョン: [ASSUMED] `null`（空フォールバック）。移行は将来。
+- JSON スキーマ: トップレベル `{"version": 1, "tokens": [...]}`。各トークンは `type` タグ + パラメータ。**type タグ名は一目で分かる語に確定（開発者指示）**:
+  - 元名: `{"type":"original_name"}`
+  - 自由テキスト/区切り（同一実体 `LiteralToken`）: `{"type":"text","value":"_"}`
+  - 連番: `{"type":"sequence_number","start":1,"digits":2,"increment":1}`
+  - 日時: `{"type":"datetime","source":"created","format":"YYYYMMDD"}`（source は `created`/`modified`/`current`）
+- 保存の粒度: 変更のたび保存（単純・確実）。デバウンスは将来の最適化。
+- 読み込み失敗時: 空ルールで開始（確定・低リスク）。
+- 空ルールの保存: 保存する（空も有効状態として復元）。
+- 非対応バージョン: `null`（空フォールバック）。移行は将来。
