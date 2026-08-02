@@ -40,6 +40,7 @@
 | 2026-08-02 | 仕様レベル | Light(復元失敗は空ルールで低リスク。シリアライズは round-trip テストで担保) | Claude(判定) |
 | 2026-08-02 | プリセット保存 | 本機能の対象外(別機能)。シリアライズ基盤のみ共有 | 開発者 |
 | 2026-08-02 | 番号 | 007(004〜006 の予約を保持) | 開発者 |
+| 2026-08-02 | JSON type タグ名 | 一目で分かる語に確定: `original_name` / `text`(自由テキスト・区切り兼用の LiteralToken)/ `sequence_number` / `datetime`。正本は spec.md | 開発者 |
 
 ## タスク一覧
 
@@ -105,5 +106,7 @@
 - 2026-08-02 / T1 / 着手 / 担当: shimmen3141(Issue #38 を assign)。ブランチ asdd/007-rule-persistence/T1。
 - 2026-08-02 / T1 / done / verifier PASS(試行1)。Light 仕様 spec.md 作成(シリアライズ round-trip/異常系 REQ-001〜004、RuleStore 契約と復元/保存 REQ-005〜007、配線 REQ-008、VER-001〜003、反証ログ5観点、open_questions 5件に推奨デフォルト併記)。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
 - 2026-08-02 / T1 / PR #43 作成(asdd/007-rule-persistence/T1 → dev, Closes #38)。spec.md レビュー・承認待ちで停止。
+- 2026-08-02 / T1 / 補足 / PR #43 は spec が draft のまま dev マージされた(承認前)。開発者承認を受けて別 PR で spec.md を approved 化する(下記)。
+- 2026-08-02 / T1 / spec.md approved / 開発者承認(JSON type タグ名を確定: original_name / text / sequence_number / datetime。他 open_questions は推奨どおり)。LiteralToken は自由テキスト・区切り兼用のため type は単一(`text`)。dev の spec は draft でマージ済みだったため、別 PR で Status draft→approved と type タグ名確定を反映。**後続 T2 はこの承認 PR の dev マージ後に /run-plan で実行可**。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
