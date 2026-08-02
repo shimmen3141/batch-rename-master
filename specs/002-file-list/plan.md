@@ -1,6 +1,6 @@
 # 計画: ファイル選択・リストUI(file-list)
 
-- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-07-27
 - 元情報: `specs/discovery.md`(002)、`docs/proposals/001-PRD.md` §3.1/§4.1
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -125,3 +125,5 @@
 - 2026-08-02 / T5 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`FileListView` を `ReorderableListView.builder` 化し、行末尾に `ReorderableDragStartListener` のドラッグハンドルを追加。並び替えで `sortMode` が custom へ自動切替し連番・プレビューへ反映(REQ-003)。Flutter 3.44 で `onReorder` が非推奨のため `onReorderItem`(newIndex=削除後の挿入先)を採用し、`controller.reorder` を同規約(removeAt→insert)へ整理。既存 T2 の reorder テスト3件を新規約に追随(結果の並びは不変、index 引数のみ調整)。reorder_view_test.dart 新規3件(直接コールバック駆動 + 実ジェスチャドラッグ + ハンドル表示)。spec_002 計35件通過、`flutter analyze` 0 issue、`dart format` PASS。
 - 2026-08-02 / T5 / 全体の受け入れ条件を最終検証: spec.md approved(Light)/ `test/spec_002_file_list/` 35件 PASS / `flutter analyze` 0 issue / `dart format --set-exit-if-changed .` PASS / コントローラ層は Widget 構築に非依存(`foundation.dart` のみ)。全条件クリア。計画は PR #24 の dev マージで done(5/5)。
 - 2026-08-02 / T5 / PR #24 作成(asdd/002-file-list/T5 → dev, Closes #19)。マージ待ちで停止。マージで 002 全タスク完了(5/5)→ 計画 done へ。
+- 2026-08-02 / T5 / PR #24 マージ済み(dev)。#19 close。全タスク done かつ全 PR マージ済み。
+- 2026-08-02 / 計画完了 / 002 全タスク(T1〜T5)done・全 PR マージ済み・全体の受け入れ条件クリア。計画状態 in_progress → done。
