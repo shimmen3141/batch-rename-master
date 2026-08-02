@@ -47,7 +47,7 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #38 |
-| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | pending | #39 |
+| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | done | #39 |
 | T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | pending | #40 |
 | T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | #41 |
 | T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | #42 |
@@ -108,5 +108,9 @@
 - 2026-08-02 / T1 / PR #43 作成(asdd/007-rule-persistence/T1 → dev, Closes #38)。spec.md レビュー・承認待ちで停止。
 - 2026-08-02 / T1 / 補足 / PR #43 は spec が draft のまま dev マージされた(承認前)。開発者承認を受けて別 PR で spec.md を approved 化する(下記)。
 - 2026-08-02 / T1 / spec.md approved / 開発者承認(JSON type タグ名を確定: original_name / text / sequence_number / datetime。他 open_questions は推奨どおり)。LiteralToken は自由テキスト・区切り兼用のため type は単一(`text`)。dev の spec は draft でマージ済みだったため、別 PR で Status draft→approved と type タグ名確定を反映。**後続 T2 はこの承認 PR の dev マージ後に /run-plan で実行可**。
+- 2026-08-02 / T1 / spec 承認 PR #44 マージ済み(dev)。spec.md approved 確定。
+- 2026-08-02 / T2 / 着手 / 担当: shimmen3141(Issue #39 を assign)。ブランチ asdd/007-rule-persistence/T2。
+- 2026-08-02 / T2 / done / verifier PASS(試行1・独自プローブ含む)+レビューパス(P0/P1 なし)。`lib/core/rule_serialization.dart`(純粋 Dart, `dart:convert` のみ)を追加: 確定スキーマ(`{"version":1,"tokens":[...]}`、type=original_name/text/sequence_number/datetime)で serializeRule/deserializeRule。異常系(不正JSON/未知type/欠損/型不一致/非対応バージョン)は例外を投げず null。REQ-001〜004 を覆う serialization_test.dart 12件通過(全体133)、`flutter analyze` 0 issue、`dart format` PASS。
+- 2026-08-02 / T2 / PR #46 作成(asdd/007-rule-persistence/T2 → dev, Closes #39)。マージ待ちで停止。次は T3(ストレージポート + fake + オーケストレーション。依存 T2。サンドボックス完結)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
