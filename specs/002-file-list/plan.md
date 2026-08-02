@@ -45,7 +45,7 @@
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #15 |
 | T2 | 状態コントローラ(選択・ソート・カスタム順) | M | T1 | done | #16 |
-| T3 | プレビュー連携(001 の generatePreview で行データ供給) | S | T2, 001-rename-core.T4 | pending | #17 |
+| T3 | プレビュー連携(001 の generatePreview で行データ供給) | S | T2, 001-rename-core.T4 | done | #17 |
 | T4 | ウィジェット: 2カラムリスト + チェックボックス + ソート切替 | M | T3 | pending | #18 |
 | T5 | ウィジェット: ドラッグ並び替え + カスタム順への自動切替 | M | T4 | pending | #19 |
 
@@ -108,5 +108,7 @@
 - 2026-08-01 / T2 / 着手 / 担当: shimmen3141(Issue #16 を assign)。ブランチ asdd/002-file-list/T2。
 - 2026-08-01 / T2 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`FileListController`(選択 identity Set・ソート4種・reorder→custom 自動切替・setRule)と `file_sort.dart`(自然順・大小無視・安定ソート)を実装。REQ-001〜005 を覆う controller_test.dart 17件通過、`flutter analyze` 0 issue、`dart format` PASS。プレビュー行データ(REQ-006/007)は T3。
 - 2026-08-01 / T2 / PR #21 作成(asdd/002-file-list/T2 → dev, Closes #16)。マージ待ちで停止。次の T3 は T2 のマージ後に実行可(依存 = done ∧ PR マージ済み)。
-
-<!-- /run-plan が追記する。着手/完了の記録はそちらの管轄 -->
+- 2026-08-01 / T2 / PR #21 マージ済み(dev)。#16 close。参考デザイン PR #20 もマージ済み。
+- 2026-08-01 / T3 / 着手 / 担当: shimmen3141(Issue #17 を assign)。ブランチ asdd/002-file-list/T3。
+- 2026-08-01 / T3 / done / verifier PASS(試行1)。`RowView`(row_view.dart)と `FileListController.rows` ゲッターを追加。001 の `generatePreview` に委譲(連番は再実装せず)し、選択状態を FileEntry.selected へ写した複製を表示順で渡す。未選択行は newName=null(REQ-007)。日時「現在」用に clock 注入で決定性確保。REQ-005/006/007 を覆う preview_rows_test.dart 10件通過(spec_002 計27件)、`flutter analyze` 0 issue、`dart format` PASS。verifier 指摘の doc コメント重複を整理。
+- 2026-08-01 / T3 / PR #22 作成(asdd/002-file-list/T3 → dev, Closes #17)。マージ待ちで停止。次の T4(ウィジェット層)は T3 のマージ後に実行可。
