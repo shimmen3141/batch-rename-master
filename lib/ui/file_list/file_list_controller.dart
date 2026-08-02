@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
 import 'file_sort.dart';
+import 'row_view.dart';
 
 /// メイン画面のプレゼンテーション状態層(002 spec: `FileListController`)。
 ///
@@ -16,17 +17,21 @@ import 'file_sort.dart';
 class FileListController extends ChangeNotifier {
   /// [files] を入力順で保持し、既定で全選択する(002 決定済み事項)。
   /// [rule] はプレビューに用いる注入ルール(既定は空 = 元名のみ相当)。
+  /// [clock] は日時トークンの「現在日時」に用いる時計(既定は [DateTime.now])。
   /// 初期 [sortMode] は入力順を表す [FileSortMode.custom](002 決定済み事項)。
   FileListController({
     required List<FileEntry> files,
     RenameRule rule = RenameRule.empty,
+    DateTime Function() clock = DateTime.now,
   }) : _items = List<FileEntry>.of(files),
        _selected = Set<FileEntry>.identity()..addAll(files) {
     _rule = rule;
+    _clock = clock;
   }
 
   List<FileEntry> _items;
   final Set<FileEntry> _selected;
+  DateTime Function() _clock = DateTime.now;
   FileSortMode _sortMode = FileSortMode.custom;
   RenameRule _rule = RenameRule.empty;
 
@@ -100,4 +105,43 @@ class FileListController extends ChangeNotifier {
     _rule = rule;
     notifyListeners();
   }
+
+  /// 各行の表示データを現在の表示順で供給する(REQ-006 / REQ-007)。
+  ///
+  /// 選択行の変更後名は 001 の [generatePreview] に一致する(選択行を表示順で
+  /// 連番割り当て)。未選択行の [RowView.newName] は `null`(プレビュー対象外)。
+  /// 選択・並び順・ルールの変更は次回の取得に反映される。
+  ///
+  /// 選択の正本はこのコントローラが持つため、`generatePreview` へは各 item の
+  /// 選択状態を [FileEntry.selected] に写した複製を表示順で渡す。「現在日時」の
+  /// 日時トークン用に [_clock] を一度だけ評価する。
+  List<RowView> get rows {
+    final now = _clock();
+    final ordered = <FileEntry>[
+      for (final item in _items) _withSelection(item, _selected.contains(item)),
+    ];
+    final preview = generatePreview(_rule, ordered, now);
+    final newNameOf = Map<FileEntry, String>.identity();
+    for (final entry in preview) {
+      newNameOf[entry.source] = entry.resultName;
+    }
+    return <RowView>[
+      for (var i = 0; i < _items.length; i++)
+        RowView(
+          source: _items[i],
+          currentName: _items[i].name,
+          newName: newNameOf[ordered[i]],
+          selected: _selected.contains(_items[i]),
+        ),
+    ];
+  }
+
+  /// [item] の値を保ちつつ選択状態だけを [selected] にした複製。
+  static FileEntry _withSelection(FileEntry item, bool selected) => FileEntry(
+    name: item.name,
+    createdAt: item.createdAt,
+    modifiedAt: item.modifiedAt,
+    size: item.size,
+    selected: selected,
+  );
 }
