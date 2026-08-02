@@ -45,7 +45,7 @@
 
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light) | S | - | pending | #38 |
+| T1 | 振る舞い仕様の作成(Light) | S | - | done | #38 |
 | T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | pending | #39 |
 | T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | pending | #40 |
 | T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | #41 |
@@ -101,5 +101,9 @@
 ## 作業ログ
 
 - 2026-08-02 / 計画承認 / 開発者承認(「承認します」)。状態 draft → approved。番号 007(004〜006 の予約保持)・仕様 Light・プリセット保存は別機能、で確定。T1 実行は 007 plan.md の dev 到達(コミット→投影)後。
+- 2026-08-02 / 計画投影 / PR #37 マージで 007 の Issue projection(T1→#38 … T5→#42)。状態 → in_progress。
+- 2026-08-02 / T1 / 着手 / 担当: shimmen3141(Issue #38 を assign)。ブランチ asdd/007-rule-persistence/T1。
+- 2026-08-02 / T1 / done / verifier PASS(試行1)。Light 仕様 spec.md 作成(シリアライズ round-trip/異常系 REQ-001〜004、RuleStore 契約と復元/保存 REQ-005〜007、配線 REQ-008、VER-001〜003、反証ログ5観点、open_questions 5件に推奨デフォルト併記)。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
+- 2026-08-02 / T1 / PR #43 作成(asdd/007-rule-persistence/T1 → dev, Closes #38)。spec.md レビュー・承認待ちで停止。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
