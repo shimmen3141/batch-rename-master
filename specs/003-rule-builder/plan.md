@@ -51,7 +51,7 @@
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #26 |
 | T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | done | #27 |
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
-| T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | pending | #29 |
+| T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | done | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | pending | #30 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
@@ -117,5 +117,9 @@
 - 2026-08-02 / T3 / 着手 / 担当: shimmen3141(Issue #28 を assign)。ブランチ asdd/003-rule-builder/T3。
 - 2026-08-02 / T3 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleBuilderView`(薄い描画層)+ `token_presets.dart`(既定トークン・区切り/日時プリセット・ラベルを集約)を追加。トークン Chip の横並び(横 ReorderableListView)・5種の追加ボタン・各 Chip 削除・D&D 並び替え(onReorderItem)を controller へ委譲。色は AppColors。REQ-002/003/004 を widget で被覆(rule_builder_view_test.dart 5件、spec_003 計17件)、`flutter analyze` 0 issue、`dart format` PASS。自由テキストの追加は暫定プレースホルダ(T4 でエディタ確定フローへ)。Chip タップ→編集(onEditToken)配線は T4。
 - 2026-08-02 / T3 / PR #33 作成(asdd/003-rule-builder/T3 → dev, Closes #28)。マージ待ちで停止。次は T4(詳細エディタ。依存 T2。T3 とは独立だが同一ファイル rule_builder_view.dart に onEditToken 配線を足すため T3 マージ後が無難)。
+- 2026-08-02 / T3 / PR #33 マージ済み(dev)。#28 close。
+- 2026-08-02 / T4 / 着手 / 担当: shimmen3141(Issue #29 を assign)。ブランチ asdd/003-rule-builder/T4。
+- 2026-08-02 / T4 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`token_editors.dart`(ボトムシートの詳細エディタ + `showTokenEditor`)を追加、`rule_builder_view.dart` の Chip タップを既定エディタ→`replaceAt` に配線(REQ-005)。自由テキスト/区切り=空不可ガード付き LiteralToken エディタ(区切りプリセット4種)、連番=ステッパー(start≥0/digits≥1/increment≥1、負を型で排除)、日時=基準選択+プリセット+自由入力、元名=設定なし。token_editors_test.dart 6件(spec_003 計23件)、`flutter analyze` 0 issue、`dart format` PASS。
+- 2026-08-02 / T4 / PR #34 作成(asdd/003-rule-builder/T4 → dev, Closes #29)。マージ待ちで停止。最後の T5(レスポンシブ外殻 + 002 setRule 連携)は T3・T4 のマージ後に実行可。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
