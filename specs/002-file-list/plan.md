@@ -38,6 +38,7 @@
 | 2026-07-27 | 仕様レベル | Light(表示・選択・ソートのUI機能。お金・データ整合性・並行性なし) | Claude(判定) |
 | 2026-07-27 | ルールの供給 | 002 は `RenameRule` を外部注入で受け取り、既定は元名トークンのみ。ルール構築は 003 | Claude(設計) |
 | 2026-07-27 | 参考デザイン | 後日 claude design の参考デザイン到着時に UI 視覚をすり合わせる。計画・仕様は振る舞い中心・視覚非固定 | 開発者 |
+| 2026-08-02 | UI 視覚方針 | ウィジェット層(T4/T5)は `docs/design/Bulk Renamer.html` に全面準拠。色はセマンティック名で `ThemeExtension`(`AppColors`)に定義し再利用(直接指定しない)。色・細部は後日別途調整あり。※仕様は振る舞い中心で視覚非規範のため spec 変更なし | 開発者 |
 
 ## タスク一覧
 
@@ -46,7 +47,7 @@
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #15 |
 | T2 | 状態コントローラ(選択・ソート・カスタム順) | M | T1 | done | #16 |
 | T3 | プレビュー連携(001 の generatePreview で行データ供給) | S | T2, 001-rename-core.T4 | done | #17 |
-| T4 | ウィジェット: 2カラムリスト + チェックボックス + ソート切替 | M | T3 | pending | #18 |
+| T4 | ウィジェット: 2カラムリスト + チェックボックス + ソート切替 | M | T3 | done | #18 |
 | T5 | ウィジェット: ドラッグ並び替え + カスタム順への自動切替 | M | T4 | pending | #19 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
@@ -112,3 +113,9 @@
 - 2026-08-01 / T3 / 着手 / 担当: shimmen3141(Issue #17 を assign)。ブランチ asdd/002-file-list/T3。
 - 2026-08-01 / T3 / done / verifier PASS(試行1)。`RowView`(row_view.dart)と `FileListController.rows` ゲッターを追加。001 の `generatePreview` に委譲(連番は再実装せず)し、選択状態を FileEntry.selected へ写した複製を表示順で渡す。未選択行は newName=null(REQ-007)。日時「現在」用に clock 注入で決定性確保。REQ-005/006/007 を覆う preview_rows_test.dart 10件通過(spec_002 計27件)、`flutter analyze` 0 issue、`dart format` PASS。verifier 指摘の doc コメント重複を整理。
 - 2026-08-01 / T3 / PR #22 作成(asdd/002-file-list/T3 → dev, Closes #17)。マージ待ちで停止。次の T4(ウィジェット層)は T3 のマージ後に実行可。
+- 2026-08-02 / T3 / PR #22 マージ済み(dev)。#17 close。
+- 2026-08-02 / 開発者指示 / ウィジェット層を docs/design に全面準拠、色はセマンティック名(AppColors ThemeExtension)で再利用可能に定義。上の決定事項表に記録。視覚は仕様非規範のため spec 変更なし。
+- 2026-08-02 / T4 / 着手 / 担当: shimmen3141(Issue #18 を assign)。ブランチ asdd/002-file-list/T4。
+- 2026-08-02 / T4 / done / verifier PASS(試行1)+レビューパス(効率P2を1件修正: rows ゲッターの行ごと再計算を builder で1回に集約)。`FileListView`(ListenableBuilder で購読する薄い描画層)+ セマンティックカラー基盤 `AppColors`(ThemeExtension)/`appDarkTheme` を追加。ヘッダ(全選択トグル+件数)・ソートチップ4種・2カラム行(チェックボックス+現在名/変更後名)。VER-002 の file_list_view_test.dart 5件通過(spec_002 計32件)、`flutter analyze` 0 issue、`dart format` PASS。色は生値を app_colors.dart に集約し直書きなし(grep 確認)。REQ-002/004/006/007 を widget で被覆(REQ-003 ドラッグは T5)。
+- 2026-08-02 / T4 / スコープ観察(実装せず報告): 参考デザインの「⚠N件の問題」warn 表示(PRD §4.2 のリアルタイム警告 = 001 validate 由来)は approved の 002 spec の REQ に含まれないため T4 では出していない。002 spec への追加(→再承認)か後続機能で扱うかを要判断。
+- 2026-08-02 / T4 / PR #23 作成(asdd/002-file-list/T4 → dev, Closes #18)。マージ待ちで停止。最後の T5(ドラッグ並び替え)は T4 のマージ後に実行可。
