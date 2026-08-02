@@ -1,30 +1,18 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+// デモアプリのスモークテスト: サンプルデータで 002/003 を束ねた入口が
+// 例外なく起動し、ファイルリストとルール編集の導線が出ることを確認する。
+import 'package:batch_rename_master/main.dart';
+import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:batch_rename_master/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('デモアプリが起動しファイルリストを表示する', (tester) async {
+    await tester.pumpWidget(const DemoApp());
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // ファイルリストとサンプルファイル、ルール編集導線が出る。
+    expect(find.byType(FileListView), findsOneWidget);
+    expect(find.text('memo.txt'), findsOneWidget);
+    // 既定サイズ(800x600)はモバイル幅なのでルール編集ボタンが出る。
+    expect(find.text('ルールを編集'), findsOneWidget);
   });
 }
