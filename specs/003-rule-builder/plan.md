@@ -49,7 +49,7 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #26 |
-| T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | pending | #27 |
+| T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | done | #27 |
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | pending | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | pending | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | pending | #30 |
@@ -109,5 +109,9 @@
 - 2026-08-02 / T1 / done / verifier PASS(試行1)。Light 仕様 spec.md 作成(RuleController の状態・操作 REQ-001〜007/VER-001〜002、反証ログ5観点、open_questions 5件に推奨デフォルト併記)。reorder は 002 と同じ onReorderItem 規約。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
 - 2026-08-02 / T1 / PR #31 作成(asdd/003-rule-builder/T1 → dev, Closes #26)。spec.md レビュー・承認待ちで停止。
 - 2026-08-02 / T1 / spec.md approved / 開発者承認(「承認します」)。レビューでの指示・回答を open_questions に反映して確定: 連番 digits=2、区切りプリセットに全角スペース追加、自由テキストは空不可(エディタで未入力時は確定無効・T4/VER-002)、連番は正のみ(start≥0・digits≥1・increment≥1、負・降順は除外)、日時はプリセット+自由入力(自由入力欄のUIはT4で検討)、レスポンシブ境界840dp、空ルール許容。spec.md Status draft→approved。**後続 T2 は PR #31 の dev マージ後に /run-plan で実行可**。
+- 2026-08-02 / T1 / PR #31 マージ済み(dev)。#26 close。マージ済みローカルブランチを整理。
+- 2026-08-02 / T2 / 着手 / 担当: shimmen3141(Issue #27 を assign)。ブランチ asdd/003-rule-builder/T2。
+- 2026-08-02 / T2 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleController`(ChangeNotifier)を実装: addToken/removeAt/reorder(onReorderItem 規約・002 と一致)/replaceAt、`rule` はスナップショット公開。REQ-001〜007 を覆う rule_controller_test.dart 12件通過(全体107)、`flutter analyze` 0 issue、`dart format` PASS。Widget 非依存(foundation のみ)。
+- 2026-08-02 / T2 / PR #32 作成(asdd/003-rule-builder/T2 → dev, Closes #27)。マージ待ちで停止。次は T3/T4(依存 T2。互いに独立=並列可)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
