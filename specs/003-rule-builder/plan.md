@@ -50,7 +50,7 @@
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #26 |
 | T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | done | #27 |
-| T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | pending | #28 |
+| T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | pending | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | pending | #30 |
 
@@ -113,5 +113,9 @@
 - 2026-08-02 / T2 / 着手 / 担当: shimmen3141(Issue #27 を assign)。ブランチ asdd/003-rule-builder/T2。
 - 2026-08-02 / T2 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleController`(ChangeNotifier)を実装: addToken/removeAt/reorder(onReorderItem 規約・002 と一致)/replaceAt、`rule` はスナップショット公開。REQ-001〜007 を覆う rule_controller_test.dart 12件通過(全体107)、`flutter analyze` 0 issue、`dart format` PASS。Widget 非依存(foundation のみ)。
 - 2026-08-02 / T2 / PR #32 作成(asdd/003-rule-builder/T2 → dev, Closes #27)。マージ待ちで停止。次は T3/T4(依存 T2。互いに独立=並列可)。
+- 2026-08-02 / T2 / PR #32 マージ済み(dev)。#27 close。
+- 2026-08-02 / T3 / 着手 / 担当: shimmen3141(Issue #28 を assign)。ブランチ asdd/003-rule-builder/T3。
+- 2026-08-02 / T3 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleBuilderView`(薄い描画層)+ `token_presets.dart`(既定トークン・区切り/日時プリセット・ラベルを集約)を追加。トークン Chip の横並び(横 ReorderableListView)・5種の追加ボタン・各 Chip 削除・D&D 並び替え(onReorderItem)を controller へ委譲。色は AppColors。REQ-002/003/004 を widget で被覆(rule_builder_view_test.dart 5件、spec_003 計17件)、`flutter analyze` 0 issue、`dart format` PASS。自由テキストの追加は暫定プレースホルダ(T4 でエディタ確定フローへ)。Chip タップ→編集(onEditToken)配線は T4。
+- 2026-08-02 / T3 / PR #33 作成(asdd/003-rule-builder/T3 → dev, Closes #28)。マージ待ちで停止。次は T4(詳細エディタ。依存 T2。T3 とは独立だが同一ファイル rule_builder_view.dart に onEditToken 配線を足すため T3 マージ後が無難)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
