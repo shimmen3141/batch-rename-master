@@ -33,11 +33,20 @@ class FileListView extends StatelessWidget {
               _HeaderBar(controller: controller),
               _SortBar(controller: controller),
               Expanded(
-                child: ListView.builder(
+                child: ReorderableListView.builder(
+                  // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
+                  // 行タップと衝突させない)。
+                  buildDefaultDragHandles: false,
                   itemCount: rows.length,
+                  // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
+                  onReorderItem: controller.reorder,
                   itemBuilder: (context, index) {
                     final row = rows[index];
                     return _FileRow(
+                      // ReorderableListView は各子に安定 Key を要求する。
+                      // FileEntry は同一性で扱う値なので ValueKey で追従する。
+                      key: ValueKey(row.source),
+                      index: index,
                       row: row,
                       onToggle: () => controller.toggleSelection(row.source),
                     );
@@ -217,10 +226,17 @@ class _SortChip extends StatelessWidget {
   }
 }
 
-/// 1行: チェックボックス + 現在名(左) + 変更後名(右)。
+/// 1行: チェックボックス + 現在名(左) + 変更後名(右) + ドラッグハンドル。
 class _FileRow extends StatelessWidget {
-  const _FileRow({required this.row, required this.onToggle});
+  const _FileRow({
+    super.key,
+    required this.index,
+    required this.row,
+    required this.onToggle,
+  });
 
+  /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
+  final int index;
   final RowView row;
   final VoidCallback onToggle;
 
@@ -252,6 +268,13 @@ class _FileRow extends StatelessWidget {
             child: Icon(Icons.arrow_forward, size: 14, color: colors.textMuted),
           ),
           Expanded(child: _NewName(row: row)),
+          ReorderableDragStartListener(
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(Icons.drag_handle, size: 18, color: colors.textMuted),
+            ),
+          ),
         ],
       ),
     );

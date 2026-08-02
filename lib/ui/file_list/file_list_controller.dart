@@ -84,17 +84,16 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// [oldIndex] の item を [newIndex] の位置へ移動し、ソート種別を
+  /// [oldIndex] の item を取り出し [newIndex] の位置へ挿入して、ソート種別を
   /// [FileSortMode.custom] へ自動切替する(REQ-003)。
   ///
-  /// インデックスは Flutter の `ReorderableListView.onReorder` 規約に従う
-  /// (下方向へ移動する場合、[newIndex] は削除前の位置を指すため 1 減じる)。
+  /// インデックスは Flutter の `ReorderableListView.onReorderItem` 規約に従う。
+  /// [newIndex] は「[oldIndex] の要素を取り除いた後の挿入先」を指す(調整済み)
+  /// ため、そのまま `removeAt(oldIndex)` → `insert(newIndex)` に用いる。
   void reorder(int oldIndex, int newIndex) {
     final next = List<FileEntry>.of(_items);
-    var target = newIndex;
-    if (target > oldIndex) target -= 1;
     final moved = next.removeAt(oldIndex);
-    next.insert(target, moved);
+    next.insert(newIndex, moved);
     _items = next;
     _sortMode = FileSortMode.custom;
     notifyListeners();

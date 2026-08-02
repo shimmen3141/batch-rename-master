@@ -102,24 +102,25 @@ void main() {
   });
 
   group('REQ-003: reorder → custom 自動切替', () {
-    test('下方向へ移動(ReorderableListView 規約)', () {
+    // インデックスは onReorderItem 規約(newIndex = 削除後の挿入先)。
+    test('下方向へ移動', () {
       final c = FileListController(files: [_f('a'), _f('b'), _f('c'), _f('d')]);
       c.setSortMode(FileSortMode.name);
-      c.reorder(0, 2);
+      c.reorder(0, 1); // a を取り出し index1 へ -> [b, a, c, d]
       expect(_names(c), ['b', 'a', 'c', 'd']);
       expect(c.sortMode, FileSortMode.custom);
     });
 
     test('上方向へ移動', () {
       final c = FileListController(files: [_f('a'), _f('b'), _f('c'), _f('d')]);
-      c.reorder(2, 0);
+      c.reorder(2, 0); // c を取り出し先頭へ -> [c, a, b, d]
       expect(_names(c), ['c', 'a', 'b', 'd']);
       expect(c.sortMode, FileSortMode.custom);
     });
 
     test('末尾へ移動', () {
       final c = FileListController(files: [_f('a'), _f('b'), _f('c')]);
-      c.reorder(0, 3);
+      c.reorder(0, 2); // a を取り出し末尾(削除後 index2)へ -> [b, c, a]
       expect(_names(c), ['b', 'c', 'a']);
     });
   });

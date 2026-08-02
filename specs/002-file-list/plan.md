@@ -18,10 +18,10 @@
 
 ## 全体の受け入れ条件
 
-- [ ] `spec.md` の Status が approved(Light)。
-- [ ] T1 で定義される REQ/VER を覆う `test/spec_002_file_list/` が `flutter test` で通る(コントローラの unit test + ウィジェットの widget test)。
-- [ ] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
-- [ ] コントローラ層はウィジェット(`Widget` の構築)に依存せず、ロジックが unit test 単体で検証できる。
+- [x] `spec.md` の Status が approved(Light)。
+- [x] T1 で定義される REQ/VER を覆う `test/spec_002_file_list/` が `flutter test` で通る(コントローラの unit test 27件 + ウィジェットの widget test 8件 = 35件)。
+- [x] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
+- [x] コントローラ層はウィジェット(`Widget` の構築)に依存せず、ロジックが unit test 単体で検証できる(`foundation.dart` のみ依存)。
 
 ## 設計方針
 
@@ -48,7 +48,7 @@
 | T2 | 状態コントローラ(選択・ソート・カスタム順) | M | T1 | done | #16 |
 | T3 | プレビュー連携(001 の generatePreview で行データ供給) | S | T2, 001-rename-core.T4 | done | #17 |
 | T4 | ウィジェット: 2カラムリスト + チェックボックス + ソート切替 | M | T3 | done | #18 |
-| T5 | ウィジェット: ドラッグ並び替え + カスタム順への自動切替 | M | T4 | pending | #19 |
+| T5 | ウィジェット: ドラッグ並び替え + カスタム順への自動切替 | M | T4 | done | #19 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -119,3 +119,9 @@
 - 2026-08-02 / T4 / done / verifier PASS(試行1)+レビューパス(効率P2を1件修正: rows ゲッターの行ごと再計算を builder で1回に集約)。`FileListView`(ListenableBuilder で購読する薄い描画層)+ セマンティックカラー基盤 `AppColors`(ThemeExtension)/`appDarkTheme` を追加。ヘッダ(全選択トグル+件数)・ソートチップ4種・2カラム行(チェックボックス+現在名/変更後名)。VER-002 の file_list_view_test.dart 5件通過(spec_002 計32件)、`flutter analyze` 0 issue、`dart format` PASS。色は生値を app_colors.dart に集約し直書きなし(grep 確認)。REQ-002/004/006/007 を widget で被覆(REQ-003 ドラッグは T5)。
 - 2026-08-02 / T4 / スコープ観察(実装せず報告): 参考デザインの「⚠N件の問題」warn 表示(PRD §4.2 のリアルタイム警告 = 001 validate 由来)は approved の 002 spec の REQ に含まれないため T4 では出していない。002 spec への追加(→再承認)か後続機能で扱うかを要判断。
 - 2026-08-02 / T4 / PR #23 作成(asdd/002-file-list/T4 → dev, Closes #18)。マージ待ちで停止。最後の T5(ドラッグ並び替え)は T4 のマージ後に実行可。
+- 2026-08-02 / T4 / PR #23 マージ済み(dev)。#18 close。
+- 2026-08-02 / 開発者決定 / 警告表示(PRD §4.2 のリアルタイム警告)は 005 で扱う。002 では持たない。discovery.md の 005 と FINDINGS に記録。
+- 2026-08-02 / T5 / 着手 / 担当: shimmen3141(Issue #19 を assign)。ブランチ asdd/002-file-list/T5。
+- 2026-08-02 / T5 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`FileListView` を `ReorderableListView.builder` 化し、行末尾に `ReorderableDragStartListener` のドラッグハンドルを追加。並び替えで `sortMode` が custom へ自動切替し連番・プレビューへ反映(REQ-003)。Flutter 3.44 で `onReorder` が非推奨のため `onReorderItem`(newIndex=削除後の挿入先)を採用し、`controller.reorder` を同規約(removeAt→insert)へ整理。既存 T2 の reorder テスト3件を新規約に追随(結果の並びは不変、index 引数のみ調整)。reorder_view_test.dart 新規3件(直接コールバック駆動 + 実ジェスチャドラッグ + ハンドル表示)。spec_002 計35件通過、`flutter analyze` 0 issue、`dart format` PASS。
+- 2026-08-02 / T5 / 全体の受け入れ条件を最終検証: spec.md approved(Light)/ `test/spec_002_file_list/` 35件 PASS / `flutter analyze` 0 issue / `dart format --set-exit-if-changed .` PASS / コントローラ層は Widget 構築に非依存(`foundation.dart` のみ)。全条件クリア。計画は PR #24 の dev マージで done(5/5)。
+- 2026-08-02 / T5 / PR #24 作成(asdd/002-file-list/T5 → dev, Closes #19)。マージ待ちで停止。マージで 002 全タスク完了(5/5)→ 計画 done へ。
