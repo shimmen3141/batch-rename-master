@@ -45,11 +45,11 @@
 
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light) | S | - | pending | |
-| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | pending | |
-| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | pending | |
-| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | |
-| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | |
+| T1 | 振る舞い仕様の作成(Light) | S | - | pending | #38 |
+| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | pending | #39 |
+| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | pending | #40 |
+| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | #41 |
+| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | #42 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
