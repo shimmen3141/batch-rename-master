@@ -1,6 +1,6 @@
 # 計画: ルール構築UI(トークンビルダー)(rule-builder)
 
-- 状態: approved <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`(003)、`docs/proposals/001-PRD.md` §3.2、`docs/design/Bulk Renamer.html`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -19,11 +19,11 @@
 
 ## 全体の受け入れ条件
 
-- [ ] `spec.md` の Status が approved(Light)。
-- [ ] T1 で定義される REQ/VER を覆う `test/spec_003_rule_builder/` が `flutter test` で通る(状態層 unit test + ウィジェット widget test)。
-- [ ] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
-- [ ] `RuleController` はウィジェット(`Widget` の構築)に依存せず、ロジックが unit test 単体で検証できる。
-- [ ] 組み上げた `RenameRule` が 002 の `FileListController.setRule` 経由でプレビューへ反映される(結合を widget test で確認)。
+- [x] `spec.md` の Status が approved(Light)。
+- [x] T1 で定義される REQ/VER を覆う `test/spec_003_rule_builder/` が `flutter test` で通る(unit 12 + widget 14 = 26件)。
+- [x] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
+- [x] `RuleController` はウィジェット(`Widget` の構築)に依存せず、ロジックが unit test 単体で検証できる(`foundation.dart` のみ)。
+- [x] 組み上げた `RenameRule` が 002 の `FileListController.setRule` 経由でプレビューへ反映される(rule_builder_workspace_test.dart で結合を確認)。
 
 ## 設計方針
 
@@ -52,7 +52,7 @@
 | T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | done | #27 |
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | done | #29 |
-| T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | pending | #30 |
+| T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | done | #30 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -121,5 +121,10 @@
 - 2026-08-02 / T4 / 着手 / 担当: shimmen3141(Issue #29 を assign)。ブランチ asdd/003-rule-builder/T4。
 - 2026-08-02 / T4 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`token_editors.dart`(ボトムシートの詳細エディタ + `showTokenEditor`)を追加、`rule_builder_view.dart` の Chip タップを既定エディタ→`replaceAt` に配線(REQ-005)。自由テキスト/区切り=空不可ガード付き LiteralToken エディタ(区切りプリセット4種)、連番=ステッパー(start≥0/digits≥1/increment≥1、負を型で排除)、日時=基準選択+プリセット+自由入力、元名=設定なし。token_editors_test.dart 6件(spec_003 計23件)、`flutter analyze` 0 issue、`dart format` PASS。
 - 2026-08-02 / T4 / PR #34 作成(asdd/003-rule-builder/T4 → dev, Closes #29)。マージ待ちで停止。最後の T5(レスポンシブ外殻 + 002 setRule 連携)は T3・T4 のマージ後に実行可。
+- 2026-08-02 / T4 / PR #34 マージ済み(dev)。#29 close。
+- 2026-08-02 / T5 / 着手 / 担当: shimmen3141(Issue #30 を assign)。ブランチ asdd/003-rule-builder/T5。
+- 2026-08-02 / T5 / done / verifier PASS(試行1)+レビューパス(初期同期テストを非空ルールで強化)。`RuleBuilderWorkspace`(StatefulWidget)を追加: `RuleController` の変更を listener で `FileListController.setRule` へ同期(初期同期 + 変更同期、dispose/didUpdateWidget で解除)、幅 840dp を境にモバイル(リスト全面+ボトムシートでルール編集)/デスクトップ(左リスト+右ルールの2ペイン)を切替。rule_builder_workspace_test.dart 3件(spec_003 計26件)、`flutter analyze` 0 issue、`dart format` PASS。
+- 2026-08-02 / T5 / 全体の受け入れ条件を最終検証: spec approved(Light)/ `test/spec_003_rule_builder/` 26件 PASS(全体121)/ analyze 0 / format PASS / RuleController は Widget 非依存 / 002 setRule 連携を widget test で確認。全条件クリア。全タスク done。計画状態 approved→done(PR #35 の dev マージで確定)。
+- 2026-08-02 / T5 / PR #35 作成(asdd/003-rule-builder/T5 → dev, Closes #30)。マージ待ちで停止。マージで 003 完了(5/5)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
