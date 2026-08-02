@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import 'rule_controller.dart';
+import 'token_editors.dart';
 import 'token_presets.dart';
 
 /// トークンビルダーの描画層(003 spec の VER-002 対象)。
@@ -19,8 +20,22 @@ class RuleBuilderView extends StatelessWidget {
 
   final RuleController controller;
 
-  /// Chip タップ時に呼ぶ(index のトークンを編集する。T4 で使用)。
+  /// Chip タップ時の編集をホスト側で差し替えたい場合に指定する。
+  /// 省略時は既定の詳細エディタ([showTokenEditor])を開いて [RuleController]
+  /// へ差し替える([replaceAt])。
   final void Function(int index)? onEditToken;
+
+  /// index のトークンを編集する。onEditToken 指定時はそちらへ委譲し、
+  /// 省略時は既定エディタを開いて確定結果を replaceAt する（REQ-005）。
+  Future<void> _editAt(BuildContext context, int index) async {
+    final override = onEditToken;
+    if (override != null) {
+      override(index);
+      return;
+    }
+    final edited = await showTokenEditor(context, controller.tokens[index]);
+    if (edited != null) controller.replaceAt(index, edited);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +71,7 @@ class RuleBuilderView extends StatelessWidget {
                             index: index,
                             label: tokenLabel(tokens[index]),
                             onDelete: () => controller.removeAt(index),
-                            onTap: onEditToken == null
-                                ? null
-                                : () => onEditToken!(index),
+                            onTap: () => _editAt(context, index),
                           );
                         },
                       ),

@@ -6,7 +6,7 @@
 |------|------|------|------|--------------|------|
 | [001-rename-core](001-rename-core/plan.md) | done | approved (Strict) | 6/6 | - | 一括リネームアプリの中核となる**純粋 Dart の命名エンジン**を、UI・ファイルIO・プラットフォーム固有処理から |
 | [002-file-list](002-file-list/plan.md) | done | approved (Light) | 5/5 | 001-rename-core | メインのワークスペース画面。読み込んだファイルを一覧表示し、左に現在名・右に変更後名(001 のプレビュー)を並べる。チ |
-| [003-rule-builder](003-rule-builder/plan.md) | approved | approved (Light) | 3/5 | 002-file-list | 命名ルールを組み立てる UI。トークン(元のファイル名 / 自由テキスト / 区切り / 連番 / 日時)を Chip |
+| [003-rule-builder](003-rule-builder/plan.md) | approved | approved (Light) | 4/5 | 002-file-list | 命名ルールを組み立てる UI。トークン(元のファイル名 / 自由テキスト / 区切り / 連番 / 日時)を Chip |
 <!-- 例: | [001-auth](001-auth/plan.md) | in_progress | approved (Strict) | 2/5 | - | 認証基盤 | -->
 <!-- 計画: draft / approved / in_progress / done。進捗: doneタスク数/全タスク数
      仕様: `-`(作らない) / `予定(Light)` / `予定(Strict)`(計画にT1がある未着手状態) / `draft (レベル)` / `approved (レベル)` / `deprecated` -->
