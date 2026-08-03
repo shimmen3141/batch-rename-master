@@ -48,7 +48,7 @@
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #38 |
 | T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | done | #39 |
-| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | pending | #40 |
+| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | done | #40 |
 | T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | #41 |
 | T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | #42 |
 
@@ -112,5 +112,9 @@
 - 2026-08-02 / T2 / 着手 / 担当: shimmen3141(Issue #39 を assign)。ブランチ asdd/007-rule-persistence/T2。
 - 2026-08-02 / T2 / done / verifier PASS(試行1・独自プローブ含む)+レビューパス(P0/P1 なし)。`lib/core/rule_serialization.dart`(純粋 Dart, `dart:convert` のみ)を追加: 確定スキーマ(`{"version":1,"tokens":[...]}`、type=original_name/text/sequence_number/datetime)で serializeRule/deserializeRule。異常系(不正JSON/未知type/欠損/型不一致/非対応バージョン)は例外を投げず null。REQ-001〜004 を覆う serialization_test.dart 12件通過(全体133)、`flutter analyze` 0 issue、`dart format` PASS。
 - 2026-08-02 / T2 / PR #46 作成(asdd/007-rule-persistence/T2 → dev, Closes #39)。マージ待ちで停止。次は T3(ストレージポート + fake + オーケストレーション。依存 T2。サンドボックス完結)。
+- 2026-08-02 / T2 / PR #46 マージ済み(dev)。#39 close。docs 統合の再着地 PR #45 もマージ済み(dev の develpoment→development)。
+- 2026-08-02 / T3 / 着手 / 担当: shimmen3141(Issue #40 を assign)。ブランチ asdd/007-rule-persistence/T3。
+- 2026-08-02 / T3 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`lib/data/rule_store/rule_store.dart`(抽象 `RuleStore` + `InMemoryRuleStore` fake)と `rule_persistence.dart`(`loadLastRule`/`saveCurrentRule`)を追加。両フォールバック経路(read null / deserialize null)で空ルール、store 経由 round-trip、fake のみで完結(実ストア不要)。flutter/dart:io 非依存。REQ-005〜007 を覆う persistence_test.dart 10件通過(spec_007 計22件、全体143)、`flutter analyze` 0 issue、`dart format` PASS。
+- 2026-08-02 / T3 / PR #47 作成(asdd/007-rule-persistence/T3 → dev, Closes #40)。マージ待ちで停止。次は T4(RuleController 配線。依存 T3 + 003-rule-builder.T2。fake で sandbox 検証)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
