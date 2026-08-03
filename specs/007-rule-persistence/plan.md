@@ -49,7 +49,7 @@
 | T1 | 振る舞い仕様の作成(Light) | S | - | done | #38 |
 | T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | done | #39 |
 | T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | done | #40 |
-| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | pending | #41 |
+| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | done | #41 |
 | T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | #42 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
@@ -116,5 +116,9 @@
 - 2026-08-02 / T3 / 着手 / 担当: shimmen3141(Issue #40 を assign)。ブランチ asdd/007-rule-persistence/T3。
 - 2026-08-02 / T3 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`lib/data/rule_store/rule_store.dart`(抽象 `RuleStore` + `InMemoryRuleStore` fake)と `rule_persistence.dart`(`loadLastRule`/`saveCurrentRule`)を追加。両フォールバック経路(read null / deserialize null)で空ルール、store 経由 round-trip、fake のみで完結(実ストア不要)。flutter/dart:io 非依存。REQ-005〜007 を覆う persistence_test.dart 10件通過(spec_007 計22件、全体143)、`flutter analyze` 0 issue、`dart format` PASS。
 - 2026-08-02 / T3 / PR #47 作成(asdd/007-rule-persistence/T3 → dev, Closes #40)。マージ待ちで停止。次は T4(RuleController 配線。依存 T3 + 003-rule-builder.T2。fake で sandbox 検証)。
+- 2026-08-02 / T3 / PR #47 マージ済み(dev)。#40 close。
+- 2026-08-03 / T4 / 着手 / 担当: shimmen3141(Issue #41 を assign)。ブランチ asdd/007-rule-persistence/T4。
+- 2026-08-03 / T4 / done / verifier PASS(試行1・dispose 追試含む)。`lib/ui/rule_builder/persistent_rule_controller.dart`(`PersistentRuleController.restore` = 前回ルール復元で RuleController 初期化 + 変更購読で saveCurrentRule、dispose でリスナー解除+破棄)を追加。空ストア/壊れデータは空ルールで開始。REQ-008 を覆う wiring_test.dart 6件通過(spec_007 計28件、全体149)、`flutter analyze` 0 issue、`dart format` PASS。fake ストアで完結(実ストア不要)。
+- 2026-08-03 / T4 / PR #48 作成(asdd/007-rule-persistence/T4 → dev, Closes #41)。マージ待ちで停止。最後の T5(実 shared_preferences + 入口配線)は T4 マージ後。ここで初めて実デバイス確認(変更→再起動→復元)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
