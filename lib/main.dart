@@ -1,21 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/rename_engine.dart';
+import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
+import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
 import 'ui/theme/app_theme.dart';
 
 /// デモ/プレビュー用のアプリ入口。
 ///
-/// サンプルの [FileEntry] 一覧と初期ルールで 002(ファイルリスト)・003(ルール
-/// ビルダー)・リアルタイムプレビューを組み上げ、エミュレータ/実機で UI を目視
-/// 確認できるようにする(手動検証の足場)。実ファイルの読み込み(004)・リネーム
-/// 実行(005)はまだ配線していないため、扱うのはサンプルデータのみ。
-void main() => runApp(const DemoApp());
+/// サンプルの [FileEntry] 一覧で 002(ファイルリスト)・003(ルールビルダー)・
+/// リアルタイムプレビューを組み上げる。ルールは 007 の永続化(`shared_preferences`)
+/// と結線し、**前回のルールを次回起動時に復元**する。実ファイルの読み込み(004)・
+/// リネーム実行(005)は未配線のため、扱うのはサンプルデータのみ。
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  // 前回ルールを復元し、以降の変更を自動保存するセッションを起動する。
+  final session = await PersistentRuleController.restore(
+    SharedPreferencesRuleStore(prefs),
+  );
+  runApp(DemoApp(ruleController: session.controller));
+}
 
 class DemoApp extends StatelessWidget {
-  const DemoApp({super.key});
+  const DemoApp({super.key, required this.ruleController});
+
+  /// 永続化から復元済みのルールコントローラ(変更は自動保存される)。
+  final RuleController ruleController;
 
   @override
   Widget build(BuildContext context) {
@@ -23,14 +37,16 @@ class DemoApp extends StatelessWidget {
       title: '一括リネーム（デモ）',
       debugShowCheckedModeBanner: false,
       theme: appDarkTheme(),
-      home: const DemoWorkspace(),
+      home: DemoWorkspace(rule: ruleController),
     );
   }
 }
 
-/// サンプルデータで 002/003 を束ねたデモ画面。
+/// サンプルデータで 002/003 を束ねたデモ画面。ルールは外部注入(永続化と結線)。
 class DemoWorkspace extends StatefulWidget {
-  const DemoWorkspace({super.key});
+  const DemoWorkspace({super.key, required this.rule});
+
+  final RuleController rule;
 
   @override
   State<DemoWorkspace> createState() => _DemoWorkspaceState();
@@ -40,18 +56,11 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   late final FileListController _files = FileListController(
     files: _sampleFiles(),
   );
-  late final RuleController _rule = RuleController(
-    tokens: const [
-      OriginalNameToken(),
-      LiteralToken('_'),
-      SequenceToken(start: 1, digits: 2),
-    ],
-  );
 
   @override
   void dispose() {
     _files.dispose();
-    _rule.dispose();
+    // widget.rule は永続化セッションの所有物なのでここでは破棄しない。
     super.dispose();
   }
 
@@ -59,7 +68,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('一括リネーム（デモ）')),
-      body: RuleBuilderWorkspace(fileList: _files, rule: _rule),
+      body: RuleBuilderWorkspace(fileList: _files, rule: widget.rule),
     );
   }
 }
