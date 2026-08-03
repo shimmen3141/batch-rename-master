@@ -52,10 +52,10 @@
 
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | pending | |
-| T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | pending | |
-| T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | |
-| T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | |
+| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | pending | #51 |
+| T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | pending | #52 |
+| T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
+| T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
