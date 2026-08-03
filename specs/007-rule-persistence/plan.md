@@ -1,6 +1,6 @@
 # 計画: ルール永続化(前回ルールの復元)(rule-persistence)
 
-- 状態: approved <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`「追加の機能候補」、`lib/core/token.dart`、`lib/ui/rule_builder/rule_controller.dart`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -18,11 +18,11 @@
 
 ## 全体の受け入れ条件
 
-- [ ] `spec.md` の Status が approved(Light)。
-- [ ] T1 で定義される REQ/VER を覆う `test/spec_007_rule_persistence/` が `flutter test` で通る。
-- [ ] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
-- [ ] シリアライズ層・復元/保存オーケストレーションは**純粋 Dart / fake ストア**でサンドボックス検証できる(実ストアなしで)。
-- [ ] 実ストア(`shared_preferences`)実装とアプリ配線は、サンドボックスで analyze/test(モック)まで、実永続化はホストで確認(手順は `docs/development/emulator-verification.md`)。
+- [x] `spec.md` の Status が approved(Light)。
+- [x] T1 で定義される REQ/VER を覆う `test/spec_007_rule_persistence/` が `flutter test` で通る(serialization 12 + persistence 10 + wiring 6 + shared_preferences 5 = 33件)。
+- [x] `flutter analyze` 0 issue、`dart format --output=none --set-exit-if-changed .` PASS。
+- [x] シリアライズ層・復元/保存オーケストレーションは**純粋 Dart / fake ストア**でサンドボックス検証できる(実ストアなしで)。
+- [x] 実ストア(`shared_preferences`)実装とアプリ配線は、サンドボックスで analyze/test(モック)まで完了。**実永続化(再起動で復元)の実機/エミュレータ確認はホスト側の残作業**(手順は `docs/development/emulator-verification.md`)。
 
 ## 設計方針
 
@@ -50,7 +50,7 @@
 | T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | done | #39 |
 | T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | done | #40 |
 | T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | done | #41 |
-| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | pending | #42 |
+| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | done | #42 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -120,5 +120,10 @@
 - 2026-08-03 / T4 / 着手 / 担当: shimmen3141(Issue #41 を assign)。ブランチ asdd/007-rule-persistence/T4。
 - 2026-08-03 / T4 / done / verifier PASS(試行1・dispose 追試含む)。`lib/ui/rule_builder/persistent_rule_controller.dart`(`PersistentRuleController.restore` = 前回ルール復元で RuleController 初期化 + 変更購読で saveCurrentRule、dispose でリスナー解除+破棄)を追加。空ストア/壊れデータは空ルールで開始。REQ-008 を覆う wiring_test.dart 6件通過(spec_007 計28件、全体149)、`flutter analyze` 0 issue、`dart format` PASS。fake ストアで完結(実ストア不要)。
 - 2026-08-03 / T4 / PR #48 作成(asdd/007-rule-persistence/T4 → dev, Closes #41)。マージ待ちで停止。最後の T5(実 shared_preferences + 入口配線)は T4 マージ後。ここで初めて実デバイス確認(変更→再起動→復元)。
+- 2026-08-03 / T4 / PR #48 マージ済み(dev)。#41 close。
+- 2026-08-03 / T5 / 着手 / 担当: shimmen3141(Issue #42 を assign)。ブランチ asdd/007-rule-persistence/T5。
+- 2026-08-03 / T5 / done / verifier PASS(試行1)。`shared_preferences` を pubspec に追加(pub get 成功)。`lib/data/rule_store/shared_preferences_rule_store.dart`(実 `RuleStore` アダプタ)を追加、`lib/main.dart` を `SharedPreferences.getInstance → 実ストア → PersistentRuleController.restore → DemoApp` に配線(前回ルール復元 + 変更自動保存)。widget_test は RuleController 注入に追随。モックテスト shared_preferences_rule_store_test.dart 5件(公式 setMockInitialValues)通過。spec_007 計33件・全体154件通過、`flutter analyze` 0 issue、`dart format` PASS。**実永続化(再起動で復元)の実機/エミュレータ確認はホスト側の残作業**(emulator-verification.md)。
+- 2026-08-03 / T5 / 全体の受け入れ条件を最終検証: spec approved / `test/spec_007_rule_persistence/` 33件 PASS / analyze 0 / format PASS / 純粋層は fake で sandbox 検証 / 実ストア・配線は analyze/test(モック)まで。サンドボックスで検証可能な範囲は全てクリア。全タスク done。計画状態 approved→done(PR #49 の dev マージで確定)。ホストでの実永続化目視のみ残。
+- 2026-08-03 / T5 / PR #49 作成(asdd/007-rule-persistence/T5 → dev, Closes #42)。マージ待ちで停止。マージで 007 完了(5/5)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
