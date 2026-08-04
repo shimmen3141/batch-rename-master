@@ -106,12 +106,34 @@ class EmptyNameWarning extends Warning {
   const EmptyNameWarning(this.file);
 }
 
-/// ドライラン検証(OP-003 / REQ-007〜009)。実行はせず警告のみを返す。
+/// 日時トークンの基準日時が取得不能(REQ-014)。
+///
+/// 基準が作成日時で、対象ファイルの作成日時が不明なときに生じる。該当トークンは
+/// 空文字列を出力し(REQ-004)、更新日時・現在日時では代替しない(INV-006)。
+class MissingSourceDateWarning extends Warning {
+  /// 基準日時を取得できなかった選択ファイル。
+  final FileEntry file;
+
+  /// ルール内での日時トークンの位置(0始まり)。
+  final int tokenIndex;
+
+  /// 基準日時を取得できなかった日時トークン。
+  final DateTimeToken token;
+
+  const MissingSourceDateWarning({
+    required this.file,
+    required this.tokenIndex,
+    required this.token,
+  });
+}
+
+/// ドライラン検証(OP-003 / REQ-007〜009・REQ-014)。実行はせず警告のみを返す。
 ///
 /// 最終名集合 = 未選択ファイルの現在名 ∪ 選択ファイルの生成後名。選択ファイルの
 /// 生成後名がこの集合で2回以上出現すれば重複([DuplicateWarning])。連番トークンが
 /// 選択数に対して桁不足なら [DigitShortageWarning]。生成後ベース名が空なら
-/// [EmptyNameWarning]。該当が無い箇所については警告を含めない。
+/// [EmptyNameWarning]。日時トークンの基準日時が取得不能なら
+/// [MissingSourceDateWarning]。該当が無い箇所については警告を含めない。
 List<Warning> validate(RenameRule rule, List<FileEntry> files, DateTime now) {
   final warnings = <Warning>[];
   final preview = generatePreview(rule, files, now);
@@ -127,7 +149,7 @@ List<Warning> validate(RenameRule rule, List<FileEntry> files, DateTime now) {
     counts[entry.resultName] = (counts[entry.resultName] ?? 0) + 1;
   }
 
-  // 重複・空名は選択ファイル(プレビュー)ごとに判定する。
+  // 重複・空名・基準日時不明は選択ファイル(プレビュー)ごとに判定する。
   for (final entry in preview) {
     if ((counts[entry.resultName] ?? 0) >= 2) {
       warnings.add(
@@ -136,6 +158,20 @@ List<Warning> validate(RenameRule rule, List<FileEntry> files, DateTime now) {
     }
     if (_hasEmptyBase(entry)) {
       warnings.add(EmptyNameWarning(entry.source));
+    }
+    // 基準日時が取得不能な日時トークンごとに1件(REQ-014)。
+    for (var i = 0; i < rule.tokens.length; i++) {
+      final token = rule.tokens[i];
+      if (token is DateTimeToken &&
+          token.baseDateOf(entry.source, now) == null) {
+        warnings.add(
+          MissingSourceDateWarning(
+            file: entry.source,
+            tokenIndex: i,
+            token: token,
+          ),
+        );
+      }
     }
   }
 

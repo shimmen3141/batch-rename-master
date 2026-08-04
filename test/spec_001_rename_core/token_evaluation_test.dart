@@ -1,6 +1,7 @@
 // VER-001: トークン評価と名前組み立ての検証(FEAT-001)。
 // 対象: REQ-001(元名/分割), REQ-002(リテラル), REQ-003(連番), REQ-004(日時),
-//       REQ-005(組み立て+拡張子), INV-002(拡張子不変), OP-001(buildName)。
+//       REQ-005(組み立て+拡張子), INV-002(拡張子不変), INV-006(不明な作成日時を
+//       代替しない), OP-001(buildName)。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -223,6 +224,79 @@ void main() {
         DateTimeToken(source: DateTimeSource.created, format: 'YY'),
       ]);
       expect(buildName(rule, f, 1, _now), '05');
+    });
+  });
+
+  group('REQ-004 / INV-006: 基準日時が取得不能なときは空文字列(代替しない)', () {
+    /// 作成日時が不明(取得できなかった)ファイル。更新日時は 2021-08-09。
+    final unknownCreated = FileEntry(
+      name: 'x.txt',
+      modifiedAt: DateTime(2021, 8, 9, 10, 11, 12),
+      size: 0,
+    );
+
+    test('例13: 基準=作成日時で不明 -> 日時部分は空(他トークンは残る)', () {
+      const rule = RenameRule([
+        DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        OriginalNameToken(),
+      ]);
+      expect(buildName(rule, unknownCreated, 1, _now), 'x.txt');
+    });
+
+    test('日時トークンのみなら生成後ベース名は空(拡張子は温存)', () {
+      const rule = RenameRule([
+        DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+      ]);
+      expect(buildName(rule, unknownCreated, 1, _now), '.txt');
+    });
+
+    test('更新日時では代替しない(更新日時基準の出力と一致しない)', () {
+      const created = RenameRule([
+        DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+      ]);
+      const modified = RenameRule([
+        DateTimeToken(source: DateTimeSource.modified, format: 'YYYYMMDD'),
+      ]);
+      expect(buildName(created, unknownCreated, 1, _now), '.txt');
+      expect(buildName(modified, unknownCreated, 1, _now), '20210809.txt');
+    });
+
+    test('now でも代替しない', () {
+      const created = RenameRule([
+        DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+      ]);
+      expect(
+        buildName(created, unknownCreated, 1, _now),
+        isNot(contains('20260726')),
+      );
+    });
+
+    test('基準が更新日時・現在日時のトークンは影響を受けない', () {
+      const rule = RenameRule([
+        DateTimeToken(source: DateTimeSource.modified, format: 'YYYY'),
+        LiteralToken('-'),
+        DateTimeToken(source: DateTimeSource.current, format: 'YYYY'),
+      ]);
+      expect(buildName(rule, unknownCreated, 1, _now), '2021-2026.txt');
+    });
+
+    test('baseDateOf は作成日時が不明なときだけ null を返す', () {
+      const created = DateTimeToken(
+        source: DateTimeSource.created,
+        format: 'YYYY',
+      );
+      const modified = DateTimeToken(
+        source: DateTimeSource.modified,
+        format: 'YYYY',
+      );
+      const current = DateTimeToken(
+        source: DateTimeSource.current,
+        format: 'YYYY',
+      );
+      expect(created.baseDateOf(unknownCreated, _now), isNull);
+      expect(modified.baseDateOf(unknownCreated, _now), isNotNull);
+      expect(current.baseDateOf(unknownCreated, _now), _now);
+      expect(created.baseDateOf(_file('a.txt'), _now), isNotNull);
     });
   });
 }

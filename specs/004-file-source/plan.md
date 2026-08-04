@@ -66,7 +66,7 @@
 | T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
 | T5 | 時系列ソート2種+警告の**仕様更新**(001 Strict / 002 / 004)→ 再承認依頼 | M | T2 | done | #63 |
-| T6 | 時系列ソート2種+警告の**実装**(取得可否・ソート・警告表示) | M | T5 | pending | #64 |
+| T6 | 時系列ソート2種+警告の**実装**(取得可否・ソート・警告表示) | M | T5 | done | #64 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -163,3 +163,7 @@
 - 2026-08-04 / T5 / 開発者フィードバックで 002 の仕様を改訂(PR #65 を更新): 作成日時が不明な item は**更新日時をソートキーに代替**(旧「末尾・相対順保持」を置換)、警告に代替した旨を明記(REQ-011)、**REQ-013 追加**(各行が両日時+不明フラグを供給。見た目は非規範)。代替は 002 の並べ替え・表示に閉じ、004 REQ-003(データ)と 001 INV-006(命名)は不変。代表例を 12→13 件に更新し反証ログも同期。決定事項に2行追加。
 - 2026-08-04 / T5 / **開発者再承認**(「承認します」)。3仕様を approved に戻し(001 契約 status / 001・002・004 の spec.md Status と各更新セクションの見出し)、004 spec の波及節を最新の決定(更新日時で代替・REQ-013)に同期。index 再生成。
 - 2026-08-04 / 計画変更 / **T6 の受け入れ条件に4項目を追記**(開発者指示「T6の受け入れ条件に追記してください」): 作成日時の「不明」表現への追随 / 作成日時ソートの代替キー(002 REQ-002) / 警告に代替した旨を含める(002 REQ-011) / 各行の両日時+不明フラグの供給と識別表示(002 REQ-013) / validate の基準日時不明警告(001 REQ-014)。あわせて参考欄に RowView・validate を追加。非規範の `specs/discovery.md` に残っていた旧方針(「004 は暫定『更新日時』まで」)も承認済み仕様に合わせて更新。
+- 2026-08-04 / T6 着手 / shimmen3141。Issue #64 を assign(claim)、ブランチ asdd/004-file-source/T6。
+- 2026-08-04 / T6 完了 / **core**: `FileEntry.createdAt` を `DateTime?`(不明を表現)、`DateTimeToken.baseDateOf` を追加し基準日時が取得不能なら空文字列(001 REQ-004 / INV-006)、`MissingSourceDateWarning` を追加し `validate` が選択ファイル×トークンごとに発行(001 REQ-014)。**002**: `FileSortMode.modifiedAt` 追加、`createdAtSortKey`(判明→その値 / 不明→当該 item の更新日時)で作成日時ソートを代替、`unknownCreatedAtCount` と `createdAtSortWarning`(0件・他ソートでは供給しない)、UI に「更新日時順」チップ・警告バナー・行の日時サブ情報(不明は `AppColors.danger` + 警告アイコン)。テスト +34(合計 221)。**221 tests PASS / analyze 0 issue / format PASS / spec_lint --strict PASS**。verifier PASS(試行1回・8条件充足)。検証ループ中の修正2件: 狭幅で行サブ情報が overflow → `Text.rich` 1行化、widget test の RichText 特定が別テキストを拾う → プレーンテキストで絞り込み。
+- 2026-08-04 / T6 / 申し送り(いずれも T6 の変更対象外・人間の判断待ち): (1) **002 spec の VER 表の成果物パスが実体と食い違う** — REQ-011/012/013 の実テストは新規の `test/spec_002_file_list/created_at_sort_test.dart` / `created_at_sort_view_test.dart` にあるが、VER-001/002 は `controller_test.dart` / `file_list_view_test.dart` を指したまま(approved 済みのため更新には再承認が必要)。(2) `lib/main.dart` のデモデータは全件 `createdAt` を持つため、デモでは警告バナー・「作成日時: 不明」行が出ない(T3/T4 で実データが入る際に手動確認)。(3) **002 REQ-010(場所サブ情報)は未実装のまま**で VER-002 の宣言と食い違う — T3 で回収されるか計画側の確認が要る。
+- 2026-08-04 / T6 / PR #67 作成(Closes #64)。マージ待ちで停止。

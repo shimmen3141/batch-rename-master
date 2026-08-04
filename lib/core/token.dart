@@ -105,14 +105,22 @@ class DateTimeToken extends Token {
 
   const DateTimeToken({required this.source, required this.format});
 
-  DateTime _baseOf(RenameContext ctx) => switch (source) {
-    DateTimeSource.created => ctx.file.createdAt,
-    DateTimeSource.modified => ctx.file.modifiedAt,
-    DateTimeSource.current => ctx.now,
+  /// [file] と [now] に対する基準日時。**取得できない場合は `null`**(REQ-004)。
+  ///
+  /// 基準が作成日時で [FileEntry.createdAt] が不明なときだけ `null` になる。
+  /// 更新日時・現在日時は常に値を持つ。取得不能を別の日時で代替しない(INV-006)。
+  DateTime? baseDateOf(FileEntry file, DateTime now) => switch (source) {
+    DateTimeSource.created => file.createdAt,
+    DateTimeSource.modified => file.modifiedAt,
+    DateTimeSource.current => now,
   };
 
   @override
-  String render(RenameContext ctx) => _formatDateTime(_baseOf(ctx), format);
+  String render(RenameContext ctx) {
+    final base = baseDateOf(ctx.file, ctx.now);
+    // 基準日時が取得不能なら空文字列(REQ-004)。別の日時で代替しない(INV-006)。
+    return base == null ? '' : _formatDateTime(base, format);
+  }
 }
 
 /// 日時 [dt] を [format] で整形する(REQ-004)。左から最長一致で走査する。
