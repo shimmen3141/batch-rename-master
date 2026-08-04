@@ -1,6 +1,6 @@
 # 計画: ファイル読み込み(SAF / ピッカー)(file-source)
 
-- 状態: approved <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-08-03
 - 元情報: `specs/discovery.md`(004)、`docs/proposals/001-PRD.md` §2/§5、`lib/core/file_entry.dart`、`lib/ui/file_list/file_list_controller.dart`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -52,7 +52,7 @@
 
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | pending | #51 |
+| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | done | #51 |
 | T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | pending | #52 |
 | T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
@@ -106,3 +106,6 @@
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
 
 - 2026-08-03 / 承認 / 計画を draft→approved。開発者承認(「改訂版は承認します」)。決定事項に「アプリの形(汎用1アプリ・写真機能は後続)」「複数フォルダ=作業セット方式」「同種前提にしない」「時刻ラベルの正直化(更新日時)」を記録。リネーム時刻ずらし案は 005 候補として discovery へ記録(004 対象外)。
+- 2026-08-04 / T1 着手 / shimmen3141。Issue #51 を assign(claim)、ブランチ asdd/004-file-source/T1。計画全体を in_progress に。create-verifiable-spec で Light 仕様を作成する。
+- 2026-08-04 / T1 完了 / spec.md(Light・draft)作成: REQ-001〜008 / VER-001〜003 / 「波及: 001・002 の再承認が要る更新点」/ 反証ログ5観点 / open_questions OQ-1〜4。verifier PASS(試行1回・6条件すべて充足)。**spec は draft。approved 化は人間。後続 T2 以降は spec approved まで実行不可。**
+- 2026-08-04 / T1 / PR #56 作成(Closes #51)。マージ待ちで停止。
