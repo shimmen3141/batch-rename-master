@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
-  "status": "draft",
+  "status": "approved",
   "scope": {
     "in": [
       "トークン列(元名・リテラル・連番・日時)から1ファイルの生成後名を構成する評価。",
