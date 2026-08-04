@@ -57,7 +57,7 @@
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | done | #51 |
-| T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | pending | #52 |
+| T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | done | #52 |
 | T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
 
@@ -116,3 +116,7 @@
 - 2026-08-04 / T1 / open_questions を開発者回答で解消(D-1〜D-4)。spec を更新: `PickResult`(Picked/Cancelled/Failed)+ Failed 通知(REQ-001/008)、場所のサブ情報表示(REQ-009)、隠しファイル非フィルタ(対象外)、追加順(REQ-007)。REQ-009 追加に伴い波及に「002 RowView 場所副題」「001 FileEntry 表示用の場所」を追記。PR #56 を更新。spec は引き続き draft(approved 化は人間)。
 - 2026-08-04 / T1 / PR #56 マージ。**spec.md を approved に(開発者承認: 「承認します」)。** open_questions ゼロ・全 REQ 確定。次ゲートは T2 前の 001/002 仕様更新→再承認。
 - 2026-08-04 / 波及 / ハンドル・場所の置き場を **core `FileEntry` の任意フィールド**に決定(開発者選択)。001(Strict): `sourceHandle`/`sourceLocation` + INV-005 を追加、`spec_lint --strict` PASS(errors=0, warnings=0)。002(Light): `addFiles`/`removeFile`/`clearFiles`(REQ-008/009)・時系列ソート `createdAt`→`modifiedAt`(REQ-002)・場所サブ情報(REQ-010)。PR #58 で **開発者再承認**(「#58は承認します」)→ 両仕様を approved に復帰し index 再生成。**T2 のゲート解除。**
+- 2026-08-04 / T2 着手 / shimmen3141。Issue #52 を assign(claim)、ブランチ asdd/004-file-source/T2。
+- 2026-08-04 / T2 完了 / `FileSource` ポート + `PickResult`(Picked/Cancelled/Failed)+ `FakeFileSource`(lib/data/file_source/file_source.dart)、結線 `applyPick`/`loadFolderInto`/`loadFilesInto`(file_loading.dart、data→ui 依存を避けるため受け口は `AddFiles` コールバック)、`FileEntry` に `sourceHandle`/`sourceLocation` を追加、002 に `addFiles`/`removeFile`/`clearFiles`。テスト28件(VER-001/002/003)。verifier PASS(試行1回・5条件充足)。レビューパスの指摘で **INV-005 の回帰検出を determinism_test.dart に追加**(P1: VER-005 が宣言していたが実体が無かった)。全 187 tests PASS / analyze 0 issue / format PASS。
+- 2026-08-04 / T2 / スコープ外の申し送り(未実施・plan の判断待ち): (1) **002 REQ-002 の時系列ソート `createdAt`→`modifiedAt` が未実装**(`lib/ui/file_list/file_sort.dart` は `FileSortMode.createdAt` のまま)。T2 の変更対象外のため触らず。T3 に含めるか別タスク化するか要判断。(2) T4 の実 `FileSource` は全エントリに `sourceHandle` を必ず設定すること(null はハンドル重複排除の対象外のため)。
+- 2026-08-04 / T2 / PR #61 作成(Closes #52)。マージ待ちで停止。

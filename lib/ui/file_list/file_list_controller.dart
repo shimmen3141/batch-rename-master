@@ -105,6 +105,54 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 作業セットへ [entries] を追加する(REQ-008 / 004 REQ-004・005)。
+  ///
+  /// 元場所ハンドルが既存に無いものだけを、与えられた順で末尾へ追加し、
+  /// 追加分を選択状態にする。既存ハンドルと一致するものは追加しない
+  /// (同名でも別ハンドルなら別ファイルとして追加される)。空リストは無変化。
+  ///
+  /// ハンドルを持たない要素([FileEntry.sourceHandle] が `null`)は重複判定の
+  /// 対象にできないため、常に新規として追加する。
+  void addFiles(List<FileEntry> entries) {
+    final existing = <String>{
+      for (final item in _items)
+        if (item.sourceHandle != null) item.sourceHandle!,
+    };
+    final added = <FileEntry>[];
+    for (final entry in entries) {
+      final handle = entry.sourceHandle;
+      if (handle != null && !existing.add(handle)) continue;
+      added.add(entry);
+    }
+    if (added.isEmpty) return;
+    _items = <FileEntry>[..._items, ...added];
+    _selected.addAll(added);
+    notifyListeners();
+  }
+
+  /// 元場所ハンドルが [handle] に一致する item を除去する(REQ-009)。
+  ///
+  /// 一致が無ければ無変化(通知もしない)。
+  void removeFile(String handle) {
+    final remaining = <FileEntry>[];
+    final removed = <FileEntry>[];
+    for (final item in _items) {
+      (item.sourceHandle == handle ? removed : remaining).add(item);
+    }
+    if (removed.isEmpty) return;
+    _items = remaining;
+    _selected.removeAll(removed);
+    notifyListeners();
+  }
+
+  /// 作業セットと選択を空にする(REQ-009)。
+  void clearFiles() {
+    if (_items.isEmpty && _selected.isEmpty) return;
+    _items = <FileEntry>[];
+    _selected.clear();
+    notifyListeners();
+  }
+
   /// 各行の表示データを現在の表示順で供給する(REQ-006 / REQ-007)。
   ///
   /// 選択行の変更後名は 001 の [generatePreview] に一致する(選択行を表示順で
@@ -142,5 +190,7 @@ class FileListController extends ChangeNotifier {
     modifiedAt: item.modifiedAt,
     size: item.size,
     selected: selected,
+    sourceHandle: item.sourceHandle,
+    sourceLocation: item.sourceLocation,
   );
 }
