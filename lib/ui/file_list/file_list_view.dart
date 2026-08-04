@@ -46,6 +46,7 @@ class FileListView extends StatelessWidget {
                   onReorderItem: controller.reorder,
                   itemBuilder: (context, index) {
                     final row = rows[index];
+                    final handle = row.source.sourceHandle;
                     return _FileRow(
                       // ReorderableListView は各子に安定 Key を要求する。
                       // FileEntry は同一性で扱う値なので ValueKey で追従する。
@@ -53,6 +54,10 @@ class FileListView extends StatelessWidget {
                       index: index,
                       row: row,
                       onToggle: () => controller.toggleSelection(row.source),
+                      // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
+                      onRemove: handle == null
+                          ? null
+                          : () => controller.removeFile(handle),
                     );
                   },
                 ),
@@ -272,12 +277,16 @@ class _FileRow extends StatelessWidget {
     required this.index,
     required this.row,
     required this.onToggle,
+    this.onRemove,
   });
 
   /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
   final int index;
   final RowView row;
   final VoidCallback onToggle;
+
+  /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +323,16 @@ class _FileRow extends StatelessWidget {
             child: Icon(Icons.arrow_forward, size: 14, color: colors.textMuted),
           ),
           Expanded(child: _NewName(row: row)),
+          if (onRemove != null)
+            IconButton(
+              onPressed: onRemove,
+              icon: const Icon(Icons.close, size: 16),
+              color: colors.textMuted,
+              tooltip: 'このファイルを外す',
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+            ),
           ReorderableDragStartListener(
             index: index,
             child: Padding(
@@ -327,11 +346,12 @@ class _FileRow extends StatelessWidget {
   }
 }
 
-/// 行のサブ情報: 作成日時と更新日時の双方(REQ-013)。
+/// 行のサブ情報: 場所(元フォルダ)と、作成日時・更新日時の双方(REQ-010 / REQ-013)。
 ///
-/// 作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで示し、更新日時で
-/// 代替されたことを行レベルで見分けられるようにする。見た目は非規範だが、色は
-/// [AppColors] のセマンティック名から取る(生の色値を書かない)。
+/// 場所は同名・非同名に関わらず常時表示する(別フォルダの同名ファイルを見分ける
+/// 手がかりになる)。作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで
+/// 示し、更新日時で代替されたことを行レベルで見分けられるようにする。見た目は
+/// 非規範だが、色は [AppColors] のセマンティック名から取る(生の色値を書かない)。
 class _DateSubInfo extends StatelessWidget {
   const _DateSubInfo({required this.file});
 
@@ -361,6 +381,9 @@ class _DateSubInfo extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 children: [
+                  // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
+                  if (file.sourceLocation != null)
+                    TextSpan(text: '${file.sourceLocation} · '),
                   TextSpan(
                     text: '作成日時: ${unknown ? '不明' : _format(createdAt)}',
                     style: TextStyle(

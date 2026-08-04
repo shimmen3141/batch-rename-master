@@ -63,7 +63,7 @@
 |----|--------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | done | #51 |
 | T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | done | #52 |
-| T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
+| T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | done | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
 | T5 | 時系列ソート2種+警告の**仕様更新**(001 Strict / 002 / 004)→ 再承認依頼 | M | T2 | done | #63 |
 | T6 | 時系列ソート2種+警告の**実装**(取得可否・ソート・警告表示) | M | T5 | done | #64 |
@@ -173,3 +173,8 @@
 - 2026-08-04 / 仕様更新 / **002 の VER 表を実体に合わせ、ディレクトリ+種別の指定に変更**(開発者指示「2については早めにやりたい」)。単一ファイル固定だったため T6 で分割した `created_at_sort_test.dart` / `created_at_sort_view_test.dart` と食い違っていた(FINDINGS 記録済み)。**規範要件(REQ)の変更は無く、検証の成果物指定のみ**。002 spec を draft にし再承認を依頼する。
 - 2026-08-04 / デモデータ / `lib/main.dart` のサンプルに **`createdAt` が不明な1件(`Screenshot_20260304.png`)を追加**(開発者指示「3についてはデモデータに1件不明を混ぜてください」)。作成日時順ソートで警告帯と「作成日時: 不明」行をエミュレータで目視確認できるようにするため。221 tests PASS のまま(退行なし)。
 - 2026-08-04 / 仕様 / 002 spec を **approved に復帰**(開発者承認「002を承認します」)。VER 成果物指定のディレクトリ化のみで規範要件の変更なし。
+- 2026-08-04 / T3 着手 / shimmen3141。Issue #53 を assign(claim)、ブランチ asdd/004-file-source/T3。
+- 2026-08-04 / T3 完了 / `FileSourceBar`(lib/ui/file_source/)を追加: 「フォルダを開く」「ファイルを選ぶ」で `loadFolderInto`/`loadFilesInto` を呼び作業セットへ追加、「すべて外す」で全消去、`Failed` は SnackBar で理由通知(`Cancelled`・成功は通知なし)。`FileListView` の各行に **× で個別除去**(元場所ハンドルを持つ行のみ)と、サブ情報の先頭に**場所(元フォルダ)を常時表示**(002 REQ-010 の回収)。`lib/main.dart` にバーを配線(デモ用 `FakeFileSource`。**T4 で実 `FileSource` に差し替える**)。テスト +16(合計 237: ui_entry_test 12 / location_view_test 4)。**237 tests PASS / analyze 0 issue / format PASS**。verifier PASS(試行1回・4条件充足)。
+- 2026-08-04 / T3 / 設計判断 / バーは `FileListController` を**購読しない**設計にした。購読すると、003 の `RuleBuilderWorkspace` が `initState` でビルド中に `setRule`(= `notifyListeners`)を呼ぶため「ビルド中の setState」エラーになる。**003 は T3 の変更対象外**のため触らず、表示が作業セットに依存しないバー側で依存を持たない形に。機能欠落なし(空での「すべて外す」は無変化・無通知)。**003 の潜在バグは未解消**(同コントローラを購読する兄弟ウィジェットを近傍に置くと再発)。FINDINGS に記録。
+- 2026-08-04 / T3 / 申し送り(T3 の変更対象外・人間の判断待ち): (1) **004 VER-003 の成果物パスが実体と食い違う** — T3 の widget テストは `test/spec_004_file_source/ui_entry_test.dart` だが VER-003 は `wiring_test.dart` を指したまま。002 で実施した「ディレクトリ + 種別」指定への変更を 004 spec にも適用すると再発を防げる(approved 済みのため再承認が必要)。002 VER-002 の「現在:」列挙にも `location_view_test.dart` が未記載。(2) 003 の潜在バグ(上記)の回収。(3) 行の × は `sourceHandle` を持つ行にのみ出る — T4 で全エントリにハンドルを付ける前提(T2 申し送り)が守られることの確認が必要。
+- 2026-08-04 / T3 / PR #71 作成(Closes #53)。マージ待ちで停止。
