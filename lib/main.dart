@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/rename_engine.dart';
+import 'data/file_source/file_source.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
+import 'ui/file_source/file_source_bar.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
@@ -64,13 +66,49 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     super.dispose();
   }
 
+  /// 読み込み入口のデモ用ソース。**T4 で実 `FileSource`(SAF / ピッカー)に
+  /// 差し替える**箇所。ここでは押すたびに別フォルダのファイルが増える様子を
+  /// 再現し、キャンセル・失敗の見え方も確認できるようにしている。
+  late final FileSource _demoSource = FakeFileSource(
+    folderResults: [
+      Picked(_demoFolder('ダウンロード', 'dl', 3)),
+      Picked(_demoFolder('スクリーンショット', 'ss', 2)),
+      const Failed(PickError(PickErrorKind.permissionDenied)),
+    ],
+    fileResults: [Picked(_demoFolder('書類', 'doc', 2))],
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('一括リネーム（デモ）')),
-      body: RuleBuilderWorkspace(fileList: _files, rule: widget.rule),
+      body: Column(
+        children: [
+          FileSourceBar(source: _demoSource, controller: _files),
+          Expanded(
+            child: RuleBuilderWorkspace(fileList: _files, rule: widget.rule),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// デモ用に、あるフォルダから読み込んだ体の [FileEntry] を作る。
+List<FileEntry> _demoFolder(String location, String prefix, int count) {
+  final base = DateTime(2026, 5, 2, 13);
+  return [
+    for (var i = 0; i < count; i++)
+      FileEntry(
+        name: '$prefix-${i + 1}.jpg',
+        // スクリーンショット相当のフォルダは作成日時が取得できない体にする。
+        createdAt: prefix == 'ss' ? null : base.add(Duration(hours: i)),
+        modifiedAt: base.add(Duration(hours: i, minutes: 20)),
+        size: 1_000_000 + i * 1000,
+        sourceHandle: 'demo://$prefix/${i + 1}',
+        sourceLocation: location,
+      ),
+  ];
 }
 
 /// UI 確認用のサンプルファイル（名前・作成日時・サイズを散らしてソート/連番が
