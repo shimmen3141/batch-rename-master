@@ -5,9 +5,6 @@
   },
   "permissions": {
     "ask": [
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh issue create:*)",
       "Bash(rm -rf:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)"
