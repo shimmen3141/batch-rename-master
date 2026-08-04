@@ -1,6 +1,6 @@
 # 計画: ファイル読み込み(SAF / ピッカー)(file-source)
 
-- 状態: approved <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done -->
 - 作成日: 2026-08-03
 - 元情報: `specs/discovery.md`(004)、`docs/proposals/001-PRD.md` §2/§5、`lib/core/file_entry.dart`、`lib/ui/file_list/file_list_controller.dart`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -47,12 +47,16 @@
 | 2026-08-03 | Android 権限 | `MANAGE_EXTERNAL_STORAGE` を使わず SAF のフォルダ単位 URI 権限/`OPEN_DOCUMENT`(複数)。プラグイン選定は実装制約として ADR | 開発者(PRD §5) |
 | 2026-08-03 | スコープ | 読み取りのみ(書き込み=リネームは 005)。サブフォルダ再帰は対象外 | Claude(スコープ) |
 | 2026-08-03 | 仕様レベル | Light(読み取り専用で低リスク。権限・実 IO はプラットフォーム=ホスト検証) | Claude(判定) |
+| 2026-08-04 | キャンセル/エラー(spec D-1) | 区別する。結果型 `PickResult`=`Picked`/`Cancelled`/`Failed`。`Failed`(権限拒否・IO)は無変化のまま**ユーザーに通知**。005 の命名警告とは別チャネル | 開発者 |
+| 2026-08-04 | 隠し/システムファイル(spec D-2) | フィルタしない(002 で選択解除)。クロスプラットフォームで確実な判別手段が無いため。将来トグルは後続 | 開発者 |
+| 2026-08-04 | 返り順(spec D-3) | 追加順。初期ソートは 002 の `custom`(=追加順)。以後ソートで並び替え | 開発者 |
+| 2026-08-04 | 場所の表示(spec D-4) | 同名か否かに関わらず、各行に**場所(フォルダ)をサブ情報として常時表示**。`FileEntry` に表示用の場所、002 `RowView` に副題を追加(001/002 波及) | 開発者 |
 
 ## タスク一覧
 
 | ID | タスク | 規模 | 依存 | 状態 | issue |
 |----|--------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | pending | #51 |
+| T1 | 振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し | M | - | done | #51 |
 | T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | pending | #52 |
 | T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
@@ -106,3 +110,7 @@
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
 
 - 2026-08-03 / 承認 / 計画を draft→approved。開発者承認(「改訂版は承認します」)。決定事項に「アプリの形(汎用1アプリ・写真機能は後続)」「複数フォルダ=作業セット方式」「同種前提にしない」「時刻ラベルの正直化(更新日時)」を記録。リネーム時刻ずらし案は 005 候補として discovery へ記録(004 対象外)。
+- 2026-08-04 / T1 着手 / shimmen3141。Issue #51 を assign(claim)、ブランチ asdd/004-file-source/T1。計画全体を in_progress に。create-verifiable-spec で Light 仕様を作成する。
+- 2026-08-04 / T1 完了 / spec.md(Light・draft)作成: REQ-001〜008 / VER-001〜003 / 「波及: 001・002 の再承認が要る更新点」/ 反証ログ5観点 / open_questions OQ-1〜4。verifier PASS(試行1回・6条件すべて充足)。**spec は draft。approved 化は人間。後続 T2 以降は spec approved まで実行不可。**
+- 2026-08-04 / T1 / PR #56 作成(Closes #51)。マージ待ちで停止。
+- 2026-08-04 / T1 / open_questions を開発者回答で解消(D-1〜D-4)。spec を更新: `PickResult`(Picked/Cancelled/Failed)+ Failed 通知(REQ-001/008)、場所のサブ情報表示(REQ-009)、隠しファイル非フィルタ(対象外)、追加順(REQ-007)。REQ-009 追加に伴い波及に「002 RowView 場所副題」「001 FileEntry 表示用の場所」を追記。PR #56 を更新。spec は引き続き draft(approved 化は人間)。
