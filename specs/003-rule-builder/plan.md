@@ -1,6 +1,6 @@
 # 計画: ルール構築UI(トークンビルダー)(rule-builder)
 
-- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done。2026-08-04: 後から見つかった不具合の修正タスク T6 を追加したため done→in_progress -->
+- 状態: done <!-- draft → approved(人間が変更) → in_progress → done。2026-08-04: 不具合修正タスク T6 の追加で一時 in_progress に戻し、完了して done -->
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`(003)、`docs/proposals/001-PRD.md` §3.2、`docs/design/Bulk Renamer.html`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -53,7 +53,7 @@
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | done | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | done | #30 |
-| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | pending | #73 |
+| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | done | #73 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -146,3 +146,8 @@
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
 - 2026-08-04 / 計画変更 / **T6(不具合修正)を追加**(開発者指示「1については修正タスクを立ててください」)。004 T3 で発見した「`RuleBuilderWorkspace` の初期同期がビルド中に `FileListController` へ通知する」問題の回収。計画状態を done → in_progress に戻した。再発検出のため、同一フレームで同コントローラを購読する兄弟ウィジェットを並べる widget test を受け入れ条件に含めた。
+- 2026-08-04 / T6 着手 / shimmen3141。Issue #73 を assign(claim)、ブランチ asdd/003-rule-builder/T6。
+- 2026-08-04 / T6 完了 / `RuleBuilderWorkspace` の初期同期(initState / didUpdateWidget)を `addPostFrameCallback` + `mounted` ガードでフレーム後へ回した。ユーザー操作由来の `_syncRule` は同期実行のまま。再発検出として、**同じ `FileListController` を購読する兄弟ウィジェットをワークスペースより前に置く** widget test を2件追加(`tester.takeException()` が null であることを検証)。既存テストには初期反映を待つ `await tester.pump()` を1行足しただけで、**アサーションの削除・弱化なし**。修正を戻すと新規2件が「setState() called during build」で落ち、初期同期を削除すると既存テストが落ちることを実行して確認(回帰検出として有効)。**239 tests PASS / analyze 0 issue / format PASS**。verifier PASS(試行1回・4条件充足)。
+- 2026-08-04 / T6 / 申し送り(T6 の変更対象外): `lib/ui/file_source/file_source_bar.dart` のコメント「購読すると 003 のワークスペースが『ビルド中の setState』を誘発する」が、原因解消により**事実と異なる説明**になった。同ファイルは 004 の担当なので触らず報告する。あわせて、バーが再びコントローラを購読できるようになったため「作業セットが空なら『すべて外す』を無効化」の UX も復活可能(004 側の任意改善)。
+- 2026-08-04 / 計画完了 / T6 done により 6/6。計画状態を in_progress → done に戻した。
+- 2026-08-04 / T6 / PR #75 作成(Closes #73)。マージ待ちで停止。
