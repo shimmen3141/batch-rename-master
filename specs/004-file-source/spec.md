@@ -1,6 +1,6 @@
 # ファイル読み込み(file-source) 振る舞い仕様
 
-- Status: draft <!-- 検証(VER)の成果物指定をディレクトリ+種別へ変更したため再承認待ち。規範要件(REQ)の変更なし -->
+- Status: approved <!-- draft → approved(人間が変更) → deprecated。2026-08-04: T5 の更新と VER 成果物指定の変更を再承認 -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
