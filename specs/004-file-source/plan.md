@@ -32,7 +32,7 @@
 - ポート `FileSource`: `Future<List<FileEntry>> pickFolder()` と `Future<List<FileEntry>> pickFiles()`(キャンセルは空リスト)。プラットフォーム権限・URI 保持は実装の内側に隠す。
 - **元場所ハンドル**: 各 `FileEntry` に、リネーム書き戻し先を一意に特定できる**不透明なハンドル(SAF URI / ファイルパスの文字列)**を持たせる。作業セットの重複排除もこのハンドルで行う(同名でも別フォルダなら別物)。core を純粋に保つため型は文字列。フィールドを `FileEntry` に足すか data 層のラッパにするかは T1/T2 の設計判断。
 - **作業セット(かご)**: UI は選択のたびに結果を**追加**する(差し替えない)。除去・全消去も可能。キャンセル=空リストは何も足さない。002 のコントローラに**追加/除去 API**を設ける(既定は追加分も選択状態)。
-- **メタデータの可用性**: `modifiedAt`・サイズ・名前は SAF/ピッカーで確実に取得。**`createdAt` は SAF では取得不能**(誕生時刻の API が無い)。よって 004 では `createdAt` を埋めず、時系列ソート/ラベルは暫定的に**「更新日時(modifiedAt)」に正直化**する(「作成日時」と偽らない)。**撮影日時(不変キー)は後続の写真機能で正直な選択肢として追加**する。
+- **メタデータの可用性**: `modifiedAt`・サイズ・名前は SAF/ピッカーで確実に取得。**`createdAt` は SAF の列としては取得不能**(規格に無い)。ただし作成日時は他経路(EXIF・コンテナメタデータ・MediaStore・NTFS)で取得しうるため、**取得できたときだけ設定し、できなければ「不明」として扱う**(`modifiedAt` を暗黙代入して偽らない)。時系列ソートは**作成日時・更新日時の2種**を提供し、作成日時ソートでは**取得できなかった件数を警告**する(判定はファイル種別ではなく取得可否。T5/T6・決定事項参照)。
 - 002 連携: 読み込んだ一覧を作業セットへ足す。ファイル先行選択もフォルダ読み込みも、同じ `List<FileEntry>` として 002 に渡る。混在(画像+文書)を許し、**同種は前提にしない**。時刻の次元だけ種別ごとに最善値(画像の撮影日時は後続機能、それ以外は更新日時)。
 
 ## 決定事項
@@ -43,7 +43,7 @@
 | 2026-08-03 | アプリの形 | **汎用1アプリのまま**。画像の撮影日時と横断ギャラリーは MediaStore/EXIF ベースの専用後続機能へ。画像専用へフォークしない | 開発者 |
 | 2026-08-03 | 複数フォルダ選択 | 004 で**作業セット(かご)方式**を採用。選択を蓄積し別フォルダも混在。各 `FileEntry` に**元場所ハンドル**を保持。002 に**追加/除去 API**を足す | 開発者 |
 | 2026-08-03 | 同種前提 | 一括リネームは**同種を前提にしない**(混在可)。時刻次元だけ種別ごとに最善値 | 開発者 |
-| 2026-08-03 | 時刻ラベルの正直化 | `createdAt` は SAF で取れないため、暫定の時系列ソート/ラベルを「**更新日時(modifiedAt)**」に。撮影日時は後続機能で追加。**001/002 の該当仕様は 004 の一部として更新→人間の再承認** | 開発者/Claude |
+| 2026-08-03 | ~~時刻ラベルの正直化~~(2026-08-04 に下記3行で置換) | ~~`createdAt` は SAF で取れないため、時系列ソート/ラベルを「更新日時(modifiedAt)」に置換~~ → **作成日時ソートは残し、更新日時と2種提供+取得可否で警告**へ変更。`FileEntry` へのハンドル/場所追加の再承認(2026-08-04 実施済み)は有効 | 開発者/Claude |
 | 2026-08-03 | Android 権限 | `MANAGE_EXTERNAL_STORAGE` を使わず SAF のフォルダ単位 URI 権限/`OPEN_DOCUMENT`(複数)。プラグイン選定は実装制約として ADR | 開発者(PRD §5) |
 | 2026-08-03 | スコープ | 読み取りのみ(書き込み=リネームは 005)。サブフォルダ再帰は対象外 | Claude(スコープ) |
 | 2026-08-03 | 仕様レベル | Light(読み取り専用で低リスク。権限・実 IO はプラットフォーム=ホスト検証) | Claude(判定) |
@@ -51,6 +51,9 @@
 | 2026-08-04 | 隠し/システムファイル(spec D-2) | フィルタしない(002 で選択解除)。クロスプラットフォームで確実な判別手段が無いため。将来トグルは後続 | 開発者 |
 | 2026-08-04 | 返り順(spec D-3) | 追加順。初期ソートは 002 の `custom`(=追加順)。以後ソートで並び替え | 開発者 |
 | 2026-08-04 | 場所の表示(spec D-4) | 同名か否かに関わらず、各行に**場所(フォルダ)をサブ情報として常時表示**。`FileEntry` に表示用の場所、002 `RowView` に副題を追加(001/002 波及) | 開発者 |
+| 2026-08-04 | 時系列ソートの構成 | **作成日時ソートを残す**(画像ではリネーム順にとって撮影時刻が本質的で、更新日時はリネームで書き換わる)。**更新日時ソートと両方**提供し、作成日時ソート選択時に危険なら警告。旧決定「時刻ラベルの正直化(更新日時へ置換)」を**置き換える** | 開発者 |
+| 2026-08-04 | 警告の判定条件 | **ファイル種別ではなく「作成日時を取得できたか」で判定**(取得できなかった件数を警告)。スクショのような「画像だが EXIF 撮影日時が無い」ケースを種別判定は誤検出するため。取得可否を表現するため `FileEntry.createdAt` を**取得不可を表せる形**にする | 開発者 |
+| 2026-08-04 | 作成日時の取得経路 | 単一手段に限定せず**優先順位付きチェーン**: ① コンテンツ由来(EXIF `DateTimeOriginal` / 動画 `mvhd` / PDF `CreationDate` / Office `dcterms:created` / XMP) → ② プラットフォーム由来(Windows NTFS `CreationTime` は FFI で取得可・**コピーで更新される点に注意** / Android MediaStore `DATE_TAKEN`・`DATE_ADDED`) → ③ 取得不可(null)。**SAF には作成日時カラムが無く、`stat()` の ctime は作成時刻ではない**。判定を取得可否に置いたため、経路の追加は仕様を変えずに拡張できる | 開発者/Claude |
 
 ## タスク一覧
 
@@ -60,6 +63,8 @@
 | T2 | `FileSource` ポート + 元場所ハンドル + 作業セット + fake + 002 結線 | M | T1 | done | #52 |
 | T3 | UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test) | M | T2, 002-file-list.T2 | pending | #53 |
 | T4 | 実 `FileSource`(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証) | L | T3 | pending | #54 |
+| T5 | 時系列ソート2種+警告の**仕様更新**(001 Strict / 002 / 004)→ 再承認依頼 | M | T2 | pending | |
+| T6 | 時系列ソート2種+警告の**実装**(取得可否・ソート・警告表示) | M | T5 | pending | |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -100,10 +105,31 @@
 
 - 変更対象: pubspec.yaml, lib/data/file_source/, lib/main.dart, android/・windows/ 設定, test/spec_004_file_source/
 - 受け入れ条件:
-  - [ ] Android(SAF フォルダ URI 権限 + `OPEN_DOCUMENT` 複数選択、必要な永続化権限)/ Windows(ピッカー)の `FileSource` 実装を追加(プラグイン選定は実装制約として ADR)。各ファイルの元場所ハンドルを実 URI/パスで満たす。可能な範囲でモック/ユニット test を置く。
+  - [ ] Android(SAF フォルダ URI 権限 + `OPEN_DOCUMENT` 複数選択、必要な永続化権限)/ Windows(ピッカー)の `FileSource` 実装を追加(プラグイン選定は実装制約として ADR)。可能な範囲でモック/ユニット test を置く。
+  - [ ] **返す全エントリに `sourceHandle` を必ず設定する**(実 URI/パス)。null は作業セットのハンドル重複排除の対象外になり、同一ファイルが多重に積まれるため(T2 の申し送り)。
   - [ ] アプリ入口で実 `FileSource` を注入し、実ファイルを 002 の作業セットに流す。`flutter analyze`/`dart format`/`flutter test` PASS。
   - [ ] **実権限・実読み込み・複数フォルダ蓄積(別フォルダの選択を重ねて1リストになる)の実機/エミュレータ確認はホスト側**(手順は emulator-verification.md)。`.github/workflows` 変更が要る場合は人間に依頼。
 - 参考: T1、T3、PRD §5、`docs/development/emulator-verification.md`
+
+### T5: 時系列ソート2種+警告の仕様更新(001 Strict / 002 / 004)
+
+- 変更対象: specs/001-rename-core/contracts/behavior-contract.json, specs/001-rename-core/spec.md, specs/002-file-list/spec.md, specs/004-file-source/spec.md
+- 受け入れ条件:
+  - [ ] `FileEntry.createdAt` が**「取得できなかった」を表現できる**形(nullable 等)に更新され、001 契約の用語と、**日時トークン `source: created` が取得不可のときの出力**(REQ-004)が規定されている。
+  - [ ] 002: 時系列ソートは**作成日時・更新日時の2種**を提供する(旧「createdAt→modifiedAt 置換」の決定を上書き)。作成日時ソート選択時に**作成日時を取得できなかった件数**を警告として供給する REQ が定義され、取得不可の並び順(末尾等)も規定されている。
+  - [ ] 004: `FileSource` が作成日時を**取得できた場合のみ**設定し、取得不可は「不明」として扱う(捏造しない)ことが REQ として明記されている(現 REQ-003 の更新)。取得経路は「決定事項」の優先順位付きチェーンに従い、**具体的な経路の実装範囲は自由とする点**に置く(経路追加で仕様が変わらないこと)。
+  - [ ] `spec_lint.py --strict`(001)が PASS し、3仕様が draft でインデックス登録され、完了報告にレビュー依頼が含まれる(**approved 化は人間。T6 は再承認まで実行不可**)。
+- 参考: create-verifiable-spec skill、004 spec の「波及」節、決定事項の「時系列ソートの構成」「警告の判定条件」「作成日時の取得経路」
+
+### T6: 時系列ソート2種+警告の実装
+
+- 変更対象: lib/core/file_entry.dart, lib/core/rename_engine.dart(日時トークンの取得不可時), lib/ui/file_list/file_sort.dart, lib/ui/file_list/file_list_controller.dart, lib/ui/file_list/file_list_view.dart, lib/data/file_source/, test/spec_001_rename_core/, test/spec_002_file_list/, test/spec_004_file_source/
+- 受け入れ条件:
+  - [ ] T5 の仕様が **approved**(未承認なら着手せずブロック報告)。
+  - [ ] 作成日時・更新日時の**両ソート**が動き、作成日時ソート選択時に**取得できなかった件数の警告**が表示される(取得可否での判定。ファイル種別では判定しない)。
+  - [ ] 取得不可を捏造しない(`modifiedAt` の暗黙代入をしない)ことがテストで示される。
+  - [ ] 該当 REQ/VER を覆うテストが通り、既存の 001/002/003/004/007 テストが緑のまま(退行なし)。`flutter analyze`/`dart format` PASS。色は `AppColors`。
+- 参考: T5、002 `file_sort.dart`/`FileListView`、001 の日時トークン、`AppColors`
 
 ## 作業ログ
 
@@ -120,3 +146,7 @@
 - 2026-08-04 / T2 完了 / `FileSource` ポート + `PickResult`(Picked/Cancelled/Failed)+ `FakeFileSource`(lib/data/file_source/file_source.dart)、結線 `applyPick`/`loadFolderInto`/`loadFilesInto`(file_loading.dart、data→ui 依存を避けるため受け口は `AddFiles` コールバック)、`FileEntry` に `sourceHandle`/`sourceLocation` を追加、002 に `addFiles`/`removeFile`/`clearFiles`。テスト28件(VER-001/002/003)。verifier PASS(試行1回・5条件充足)。レビューパスの指摘で **INV-005 の回帰検出を determinism_test.dart に追加**(P1: VER-005 が宣言していたが実体が無かった)。全 187 tests PASS / analyze 0 issue / format PASS。
 - 2026-08-04 / T2 / スコープ外の申し送り(未実施・plan の判断待ち): (1) **002 REQ-002 の時系列ソート `createdAt`→`modifiedAt` が未実装**(`lib/ui/file_list/file_sort.dart` は `FileSortMode.createdAt` のまま)。T2 の変更対象外のため触らず。T3 に含めるか別タスク化するか要判断。(2) T4 の実 `FileSource` は全エントリに `sourceHandle` を必ず設定すること(null はハンドル重複排除の対象外のため)。
 - 2026-08-04 / T2 / PR #61 作成(Closes #52)。マージ待ちで停止。
+- 2026-08-04 / T2 / PR #61 マージ。
+- 2026-08-04 / 計画変更 / **T5・T6 を追加**(開発者承認: 「新タスク T5」を選択。仕様更新と実装の間に人間の再承認ゲートが入るため、T1/T2 と同じ形で2タスクに分割)。決定事項に「時系列ソートの構成(作成日時を残し2種提供)」「警告の判定条件(種別ではなく取得可否)」「作成日時の取得経路(優先順位付きチェーン)」を追加し、2026-08-03 の「時刻ラベルの正直化」決定を置換。設計方針の該当箇所も更新。T2 の申し送り(1)はこの T5/T6 で回収する。
+- 2026-08-04 / 計画変更 / T4 の受け入れ条件に「返す全エントリに `sourceHandle` を必ず設定する」を追加(T2 の申し送り(2)。承認済み 004 REQ-002 の詳細化であり矛盾のない追加)。
+- 2026-08-04 / FINDINGS / asdd-suite への気づきを specs/FINDINGS.md に5件追記(波及のタスク化漏れ・宣言だけの検証 ID・規約と verifier の食い違い・read-only マウントの git 事故・gitconfig 非永続とホスト生成物)。
