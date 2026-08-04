@@ -1,6 +1,6 @@
 # コア命名エンジン(rename-core) 振る舞い仕様
 
-- Status: draft(004 由来の `FileEntry` 更新のため再承認待ち。正本の承認状態は `contracts/behavior-contract.json` の `status`)
+- Status: approved(2026-07-26 開発者承認 / 2026-08-04 004 由来の `FileEntry` 更新を再承認。正本の承認状態は `contracts/behavior-contract.json` の `status`)
 - Level: Strict(**正本は `contracts/behavior-contract.json`**。本ファイルは説明・図解・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的(説明的・正誤判定には使わない)
@@ -119,6 +119,6 @@ Step 3(仕様の反証)の実施記録。
 
 - なし(2026-07-26 承認時に解消)。自動解決の重複回避接尾辞は ` (n)`(半角スペース + 半角括弧 + 1始まり整数)で確定(REQ-010)。契約 open_questions は空。
 
-### 004 由来の更新(2026-08-04・再承認待ち)
+### 004 由来の更新(2026-08-04・開発者再承認済み)
 
-`FileEntry` に**任意フィールド** `sourceHandle`(識別・005 書き戻し用の不透明値)と `sourceLocation`(表示用の元フォルダ文字列)を追加(用語 FileEntry)。**加算的・振る舞い不変**の変更で、命名エンジンの出力は両者に依存しない(INV-005 を追加、VER-005 で被覆)。日時トークン(REQ-004)は変更しない。実装(FileEntry へのフィールド追加)は 004 T2。Strict のため `spec_lint --strict` PASS を確認済み、承認は人間。
+`FileEntry` に**任意フィールド** `sourceHandle`(識別・005 書き戻し用の不透明値)と `sourceLocation`(表示用の元フォルダ文字列)を追加(用語 FileEntry)。**加算的・振る舞い不変**の変更で、命名エンジンの出力は両者に依存しない(INV-005 を追加、VER-005 で被覆)。日時トークン(REQ-004)は変更しない。実装(FileEntry へのフィールド追加)は 004 T2。`spec_lint --strict` PASS(errors=0, warnings=0)を確認の上、2026-08-04 に開発者が再承認(契約 `status` = approved)。
