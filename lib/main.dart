@@ -75,23 +75,30 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
 /// UI 確認用のサンプルファイル（名前・作成日時・サイズを散らしてソート/連番が
 /// 分かるようにしている）。
+///
+/// `createdAt` が `null` の件を1つ混ぜてある（スクリーンショットは画像でも EXIF
+/// 撮影日時を持たないことが多く、作成日時を取得できない代表例）。作成日時順ソート
+/// を選ぶと、この行が「作成日時: 不明」と警告色で表示され、更新日時で代替して
+/// 並べた旨の警告帯が出る（002 REQ-011/013 の目視確認用）。
 List<FileEntry> _sampleFiles() {
   final base = DateTime(2026, 3, 1, 9);
-  final names = <(String, int)>[
-    ('IMG_0009.jpg', 2_400_000),
-    ('IMG_0010.jpg', 3_100_000),
-    ('IMG_0002.jpg', 1_800_000),
-    ('scan document.pdf', 540_000),
-    ('memo.txt', 1_200),
-    ('旅行 写真.png', 4_800_000),
-    ('report_final.docx', 88_000),
-    ('archive.tar.gz', 9_900_000),
+  // (名前, サイズ, 作成日時を取得できたか)
+  final names = <(String, int, bool)>[
+    ('IMG_0009.jpg', 2_400_000, true),
+    ('IMG_0010.jpg', 3_100_000, true),
+    ('IMG_0002.jpg', 1_800_000, true),
+    ('scan document.pdf', 540_000, true),
+    ('memo.txt', 1_200, true),
+    ('旅行 写真.png', 4_800_000, true),
+    ('Screenshot_20260304.png', 760_000, false),
+    ('report_final.docx', 88_000, true),
+    ('archive.tar.gz', 9_900_000, true),
   ];
   return [
     for (var i = 0; i < names.length; i++)
       FileEntry(
         name: names[i].$1,
-        createdAt: base.add(Duration(hours: i * 7)),
+        createdAt: names[i].$3 ? base.add(Duration(hours: i * 7)) : null,
         modifiedAt: base.add(Duration(hours: i * 7, minutes: 30)),
         size: names[i].$2,
       ),

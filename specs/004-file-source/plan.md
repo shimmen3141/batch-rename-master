@@ -97,11 +97,13 @@
 
 ### T3: UI 入口(フォルダを開く / ファイルを選ぶ・追加/除去)
 
-- 変更対象: lib/ui/ または lib/main.dart, test/spec_004_file_source/
+- 変更対象: lib/ui/ または lib/main.dart, test/spec_002_file_list/, test/spec_004_file_source/
 - 受け入れ条件:
   - [ ] 「フォルダを開く」「ファイルを選ぶ」の導線から `FileSource` を呼び、結果が 002 の作業セットに**追加**される(複数回で別フォルダ分も蓄積)。選択の除去・全消去導線がある。空(キャンセル)時は無変化(fake を注入した widget test で検証)。
-  - [ ] 該当 REQ/VER を覆う widget test が通り、`flutter analyze`/`dart format` PASS。色は `AppColors`。
-- 参考: T1、T2、002 の `FileListView`、`AppColors`
+  - [ ] `Failed` のとき作業セットを変えずに**エラー(理由)をユーザーへ通知**する(004 REQ-008。`Cancelled` では通知しない)。
+  - [ ] **各行に場所(元フォルダ)がサブ情報として表示される**(002 REQ-010。T6 で作った行サブ情報に並べる。同名・非同名に関わらず常時表示。色は `AppColors`)。REQ-010 は T2 でデータ供給まで実装済みで**表示が未実装**のため、ここで回収する。
+  - [ ] 該当 REQ/VER を覆う widget test が通り、既存テストが緑のまま(退行なし)。`flutter analyze`/`dart format` PASS。色は `AppColors`。
+- 参考: T1、T2、002 の `FileListView` と T6 の `_DateSubInfo`、`AppColors`
 
 ### T4: 実 `FileSource`(Android SAF / Windows)+ 実データ配線(ホスト検証)
 
@@ -167,3 +169,6 @@
 - 2026-08-04 / T6 完了 / **core**: `FileEntry.createdAt` を `DateTime?`(不明を表現)、`DateTimeToken.baseDateOf` を追加し基準日時が取得不能なら空文字列(001 REQ-004 / INV-006)、`MissingSourceDateWarning` を追加し `validate` が選択ファイル×トークンごとに発行(001 REQ-014)。**002**: `FileSortMode.modifiedAt` 追加、`createdAtSortKey`(判明→その値 / 不明→当該 item の更新日時)で作成日時ソートを代替、`unknownCreatedAtCount` と `createdAtSortWarning`(0件・他ソートでは供給しない)、UI に「更新日時順」チップ・警告バナー・行の日時サブ情報(不明は `AppColors.danger` + 警告アイコン)。テスト +34(合計 221)。**221 tests PASS / analyze 0 issue / format PASS / spec_lint --strict PASS**。verifier PASS(試行1回・8条件充足)。検証ループ中の修正2件: 狭幅で行サブ情報が overflow → `Text.rich` 1行化、widget test の RichText 特定が別テキストを拾う → プレーンテキストで絞り込み。
 - 2026-08-04 / T6 / 申し送り(いずれも T6 の変更対象外・人間の判断待ち): (1) **002 spec の VER 表の成果物パスが実体と食い違う** — REQ-011/012/013 の実テストは新規の `test/spec_002_file_list/created_at_sort_test.dart` / `created_at_sort_view_test.dart` にあるが、VER-001/002 は `controller_test.dart` / `file_list_view_test.dart` を指したまま(approved 済みのため更新には再承認が必要)。(2) `lib/main.dart` のデモデータは全件 `createdAt` を持つため、デモでは警告バナー・「作成日時: 不明」行が出ない(T3/T4 で実データが入る際に手動確認)。(3) **002 REQ-010(場所サブ情報)は未実装のまま**で VER-002 の宣言と食い違う — T3 で回収されるか計画側の確認が要る。
 - 2026-08-04 / T6 / PR #67 作成(Closes #64)。マージ待ちで停止。
+- 2026-08-04 / 計画変更 / **T3 の受け入れ条件に2項目を追記**(開発者指示「1についてはT3の受け入れ状態に含めてください」): (a) **002 REQ-010 の場所サブ情報表示**(T2 でデータ供給まで実装済み・表示が未実装だった分の回収。T6 の `_DateSubInfo` に並べる)、(b) 004 REQ-008 の `Failed` 時のエラー通知(spec にはあったが T3 の条件に明示されていなかったため詳細化)。変更対象に `test/spec_002_file_list/` を追加。
+- 2026-08-04 / 仕様更新 / **002 の VER 表を実体に合わせ、ディレクトリ+種別の指定に変更**(開発者指示「2については早めにやりたい」)。単一ファイル固定だったため T6 で分割した `created_at_sort_test.dart` / `created_at_sort_view_test.dart` と食い違っていた(FINDINGS 記録済み)。**規範要件(REQ)の変更は無く、検証の成果物指定のみ**。002 spec を draft にし再承認を依頼する。
+- 2026-08-04 / デモデータ / `lib/main.dart` のサンプルに **`createdAt` が不明な1件(`Screenshot_20260304.png`)を追加**(開発者指示「3についてはデモデータに1件不明を混ぜてください」)。作成日時順ソートで警告帯と「作成日時: 不明」行をエミュレータで目視確認できるようにするため。221 tests PASS のまま(退行なし)。

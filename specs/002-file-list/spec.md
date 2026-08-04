@@ -1,6 +1,6 @@
 # ファイル選択・リストUI(file-list) 振る舞い仕様
 
-- Status: approved <!-- 2026-08-01 承認 / 2026-08-04 004 由来の更新(作業セット・場所・時系列ソート2種+警告)を開発者が再承認 -->
+- Status: draft <!-- 検証(VER)の成果物指定をディレクトリ+種別へ変更したため再承認待ち。規範要件(REQ)の変更なし -->
 - Level: Light（正しさの正本は本ファイル。視覚デザインは非規範）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -93,8 +93,12 @@
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_002_file_list/controller_test.dart | REQ-001〜013 |
-| VER-002 | widget | test/spec_002_file_list/file_list_view_test.dart | REQ-003, REQ-004, REQ-010, REQ-011, REQ-013（ウィジェット操作→状態反映・場所サブ情報・作成日時ソート時の警告表示・作成日時が不明な行の識別） |
+| VER-001 | unit | `test/spec_002_file_list/` 配下の**コントローラ unit テスト**（現在: `controller_test.dart`, `preview_rows_test.dart`, `created_at_sort_test.dart`） | REQ-001〜013 |
+| VER-002 | widget | `test/spec_002_file_list/` 配下の**ウィジェットテスト**（現在: `file_list_view_test.dart`, `reorder_view_test.dart`, `created_at_sort_view_test.dart`） | REQ-003, REQ-004, REQ-010, REQ-011, REQ-013（ウィジェット操作→状態反映・場所サブ情報・作成日時ソート時の警告表示・作成日時が不明な行の識別） |
+
+<!-- 成果物は「ディレクトリ + 種別」で指定し、括弧内は現時点の内訳（非規範）。
+     テストをファイルへ分割しても VER の宣言が古くならないようにするため
+     （2026-08-04: 単一ファイル固定だったため実体と食い違った。FINDINGS 参照）。 -->
 
 ## 反証ログ
 
