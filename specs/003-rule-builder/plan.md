@@ -1,6 +1,6 @@
 # 計画: ルール構築UI(トークンビルダー)(rule-builder)
 
-- 状態: done <!-- draft → approved(人間が変更) → in_progress → done -->
+- 状態: in_progress <!-- draft → approved(人間が変更) → in_progress → done。2026-08-04: 後から見つかった不具合の修正タスク T6 を追加したため done→in_progress -->
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`(003)、`docs/proposals/001-PRD.md` §3.2、`docs/design/Bulk Renamer.html`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
@@ -53,6 +53,7 @@
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | done | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | done | #30 |
+| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | pending | |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -101,6 +102,22 @@
   - [ ] `flutter analyze`/`dart format` PASS。
 - 参考: T1、002 の `FileListController.setRule`/`FileListView`、PRD §3.2
 
+### T6: 不具合修正 — 初期ルール同期がビルド中に `notifyListeners` を呼ぶ
+
+004 T3 で発見(FINDINGS 2026-08-04)。`RuleBuilderWorkspace` の `initState` / `didUpdateWidget` が
+その場で `fileList.setRule(...)` を呼ぶため、**ビルド中に `FileListController` へ通知**が飛ぶ。
+同じフレームで同コントローラを購読する兄弟ウィジェットがあると Flutter の
+「`setState()` or `markNeedsBuild()` called during build」アサーションで落ちる。
+004 T3 では読み込み入口のバー側が購読しない設計で回避したが、原因は未解消。
+
+- 変更対象: lib/ui/rule_builder/rule_builder_workspace.dart, test/spec_003_rule_builder/
+- 受け入れ条件:
+  - [ ] `RuleBuilderWorkspace` の**初期同期がビルド中に通知しない**(フレーム後へ回す等)。ユーザー操作由来の同期は従来どおり。
+  - [ ] **同じ `FileListController` を購読する兄弟ウィジェットを同一フレームで並べても例外が出ない**ことを widget test で示す(再発検出。004 の `FileSourceBar` を並べる形でよい)。
+  - [ ] 003 の既存の振る舞い(初期ルールがプレビューに反映される・変更が反映される)が保たれる。反映が1フレーム遅れる場合はテストを適切に待たせる(**アサーションの緩和・削除は不可**)。
+  - [ ] 既存テストが緑のまま(退行なし)。`flutter analyze`/`dart format` PASS。
+- 参考: 004 T3 の作業ログと `specs/FINDINGS.md`、`lib/ui/file_source/file_source_bar.dart`(購読しない回避策のコメント)
+
 ## 作業ログ
 
 - 2026-08-02 / 計画承認 / 開発者承認(「承認します」)。状態 draft → approved。除外2件(プリセット保存=別機能 / 元名大小変換=001未対応で除外)を開発者確定。新要求「前回ルールの復元」は**別機能として計画**(開発者選択)。将来機能2件(前回ルール復元・プリセット保存)を discovery.md に記録。T1 実行は 003 plan.md の dev 到達(#25 マージ後にコミット→投影)を待つ。
@@ -128,3 +145,4 @@
 - 2026-08-02 / T5 / PR #35 作成(asdd/003-rule-builder/T5 → dev, Closes #30)。マージ待ちで停止。マージで 003 完了(5/5)。
 
 <!-- /run-plan が着手・完了を追記する。テンプレの書式に従う -->
+- 2026-08-04 / 計画変更 / **T6(不具合修正)を追加**(開発者指示「1については修正タスクを立ててください」)。004 T3 で発見した「`RuleBuilderWorkspace` の初期同期がビルド中に `FileListController` へ通知する」問題の回収。計画状態を done → in_progress に戻した。再発検出のため、同一フレームで同コントローラを購読する兄弟ウィジェットを並べる widget test を受け入れ条件に含めた。
