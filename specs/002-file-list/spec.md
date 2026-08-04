@@ -94,7 +94,7 @@
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
 | VER-001 | unit | `test/spec_002_file_list/` 配下の**コントローラ unit テスト**（現在: `controller_test.dart`, `preview_rows_test.dart`, `created_at_sort_test.dart`） | REQ-001〜013 |
-| VER-002 | widget | `test/spec_002_file_list/` 配下の**ウィジェットテスト**（現在: `file_list_view_test.dart`, `reorder_view_test.dart`, `created_at_sort_view_test.dart`） | REQ-003, REQ-004, REQ-010, REQ-011, REQ-013（ウィジェット操作→状態反映・場所サブ情報・作成日時ソート時の警告表示・作成日時が不明な行の識別） |
+| VER-002 | widget | `test/spec_002_file_list/` 配下の**ウィジェットテスト**（現在: `file_list_view_test.dart`, `reorder_view_test.dart`, `created_at_sort_view_test.dart`, `location_view_test.dart`） | REQ-003, REQ-004, REQ-010, REQ-011, REQ-013（ウィジェット操作→状態反映・場所サブ情報・作成日時ソート時の警告表示・作成日時が不明な行の識別） |
 
 <!-- 成果物は「ディレクトリ + 種別」で指定し、括弧内は現時点の内訳（非規範）。
      テストをファイルへ分割しても VER の宣言が古くならないようにするため

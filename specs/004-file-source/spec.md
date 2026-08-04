@@ -1,6 +1,6 @@
 # ファイル読み込み(file-source) 振る舞い仕様
 
-- Status: approved <!-- draft → approved(人間が変更) → deprecated。2026-08-04 T5 の更新を再承認 -->
+- Status: draft <!-- 検証(VER)の成果物指定をディレクトリ+種別へ変更したため再承認待ち。規範要件(REQ)の変更なし -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -100,9 +100,14 @@
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_004_file_source/file_source_contract_test.dart | REQ-001/002/003/010(fake `FileSource` の `Picked`/`Cancelled`/`Failed` 契約・ハンドル・メタデータ・no-throw・作成日時は取得できたときのみ設定し不明を代替しない) |
-| VER-002 | unit | test/spec_004_file_source/working_set_test.dart | REQ-002/004/005/006(追加・重複排除・既定選択・除去・全消去・順序保持) |
-| VER-003 | unit/widget | test/spec_004_file_source/wiring_test.dart | REQ-004/005/007/008/009(fake を注入し、`Picked` で 002 リスト/プレビューへ反映・`Cancelled` 無変化・`Failed` は無変化+通知・場所のサブ情報表示) |
+| VER-001 | unit | `test/spec_004_file_source/` 配下の**ポート契約テスト**(現在: `file_source_contract_test.dart`) | REQ-001/002/003/010(fake `FileSource` の `Picked`/`Cancelled`/`Failed` 契約・ハンドル・メタデータ・no-throw・作成日時は取得できたときのみ設定し不明を代替しない) |
+| VER-002 | unit | `test/spec_004_file_source/` 配下の**作業セットのテスト**(現在: `working_set_test.dart`) | REQ-002/004/005/006(追加・重複排除・既定選択・除去・全消去・順序保持) |
+| VER-003 | unit/widget | `test/spec_004_file_source/` 配下の**結線・UI 入口のテスト**(現在: `wiring_test.dart`, `ui_entry_test.dart`) | REQ-004/005/007/008/009(fake を注入し、`Picked` で 002 リスト/プレビューへ反映・`Cancelled` 無変化・`Failed` は無変化+通知・場所のサブ情報表示) |
+
+<!-- 成果物は「ディレクトリ + 種別」で指定し、括弧内は現時点の内訳(非規範)。
+     テストをファイルへ分割しても VER の宣言が古くならないようにするため
+     (2026-08-04: 単一ファイル固定だったため T3 の ui_entry_test.dart と食い違った。
+     002 spec と同じ形に揃えた。FINDINGS 参照)。 -->
 
 ## 反証ログ
 
