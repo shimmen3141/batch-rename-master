@@ -2,12 +2,12 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
-  "status": "approved",
+  "status": "draft",
   "scope": {
     "in": [
       "トークン列(元名・リテラル・連番・日時)から1ファイルの生成後名を構成する評価。",
       "選択・並び順を反映したプレビュー生成。",
-      "ドライラン検証(重複・桁不足・空名の警告生成)。",
+      "ドライラン検証(重複・桁不足・空名・基準日時不明の警告生成)。",
       "自動解決(重複回避の接尾辞付与・連番桁数の自動拡張)。"
     ],
     "out": [
@@ -20,7 +20,7 @@
   "terms": [
     {
       "term": "FileEntry",
-      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグに加え、任意で元場所ハンドル(sourceHandle: 取得元を一意に識別し 005 の書き戻し先を指す不透明な文字列)と表示用の場所(sourceLocation: 元フォルダを表す人間可読の文字列)を持つ。sourceHandle・sourceLocation は 004/002/005 が用いるメタデータで、命名エンジンの評価には用いない(INV-005)。"
+      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグに加え、任意で元場所ハンドル(sourceHandle: 取得元を一意に識別し 005 の書き戻し先を指す不透明な文字列)と表示用の場所(sourceLocation: 元フォルダを表す人間可読の文字列)を持つ。sourceHandle・sourceLocation は 004/002/005 が用いるメタデータで、命名エンジンの評価には用いない(INV-005)。作成日時は取得できない場合があり、そのときは不明(値なし)として表す。不明を更新日時などの別の値で代替してはならない(INV-006)。更新日時は常に値を持つ。"
     },
     {
       "term": "ベース名",
@@ -49,6 +49,10 @@
     {
       "term": "now",
       "definition": "現在日時を表す入力値。エンジンは時計を参照せず呼び出し側が渡す。"
+    },
+    {
+      "term": "基準日時",
+      "definition": "日時トークンが整形の対象とする日時。基準が作成日時なら FileEntry の作成日時、更新日時なら FileEntry の更新日時、現在日時なら入力 now。作成日時が不明な FileEntry に対する基準=作成日時の場合、基準日時は取得不能である。"
     }
   ],
   "requirements": [
@@ -80,7 +84,7 @@
       "id": "REQ-004",
       "kind": "functional",
       "priority": "must",
-      "statement": "日時トークンは、基準(作成日時・更新日時・現在日時)の日時を書式で整形して出力する。書式記号 YYYY(4桁年)・YY(2桁年)・MM(2桁月)・DD(2桁日)・HH(2桁時24時制)・mm(2桁分)・ss(2桁秒)をゼロ埋め固定幅で展開し、書式は左から最長一致で走査し、記号に一致しない文字はそのまま出力する。記号は大文字小文字を区別する。現在日時は入力 now を用いる。",
+      "statement": "日時トークンは、基準日時を書式で整形して出力する。書式記号 YYYY(4桁年)・YY(2桁年)・MM(2桁月)・DD(2桁日)・HH(2桁時24時制)・mm(2桁分)・ss(2桁秒)をゼロ埋め固定幅で展開し、書式は左から最長一致で走査し、記号に一致しない文字はそのまま出力する。記号は大文字小文字を区別する。現在日時は入力 now を用いる。基準日時が取得不能(作成日時が不明なファイルで基準が作成日時)の場合、そのトークンは空文字列を出力する。別の日時で代替しない。",
       "observable": true,
       "verification": ["VER-001"]
     },
@@ -155,6 +159,14 @@
       "statement": "エンジンの各操作は、同一の(ルール, ファイル列, now)入力に対して常に同一の出力を返す。",
       "observable": true,
       "verification": ["VER-005"]
+    },
+    {
+      "id": "REQ-014",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ドライラン検証は、選択ファイルに対してルール内の日時トークンの基準日時が取得不能である場合、その選択ファイルと当該トークンを基準日時不明として警告する。基準日時が取得できるトークンについては警告しない。",
+      "observable": true,
+      "verification": ["VER-003"]
     }
   ],
   "invariants": [
@@ -182,6 +194,11 @@
       "id": "INV-005",
       "statement": "命名エンジンの各操作(buildName・generatePreview・validate・autoResolve)の出力は、FileEntry の sourceHandle・sourceLocation に依存しない。これらは識別・表示用のメタデータであり、生成後名・警告・解決結果に影響しない。",
       "owner": "命名エンジン"
+    },
+    {
+      "id": "INV-006",
+      "statement": "作成日時が不明な FileEntry に対して、基準を作成日時とする日時トークンの出力は空文字列であり、更新日時または now を基準としたときの出力で代替されない。",
+      "owner": "命名エンジン(日時トークン評価)"
     }
   ],
   "operations": [
@@ -221,13 +238,13 @@
       "interface": "validate(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<Warning>",
       "preconditions": ["files はフォルダ内ファイルの入力列である。"],
       "postconditions": [
-        "重複・桁不足・空名の各条件(REQ-007・REQ-008・REQ-009)に該当する箇所ごとに、その種別と対象を示す警告を1件含む。",
+        "重複・桁不足・空名・基準日時不明の各条件(REQ-007・REQ-008・REQ-009・REQ-014)に該当する箇所ごとに、その種別と対象を示す警告を1件含む。",
         "いずれの条件にも該当しない箇所については警告を含まない。"
       ],
       "errors": [],
       "side_effects": ["none"],
       "nondeterminism": ["none"],
-      "requirements": ["REQ-007", "REQ-008", "REQ-009"],
+      "requirements": ["REQ-007", "REQ-008", "REQ-009", "REQ-014"],
       "verification": ["VER-003"]
     },
     {
@@ -260,7 +277,7 @@
       "id": "VER-001",
       "type": "property",
       "artifact": "test/spec_001_rename_core/token_evaluation_test.dart",
-      "covers": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "INV-002", "OP-001"]
+      "covers": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "INV-002", "INV-006", "OP-001"]
     },
     {
       "id": "VER-002",
@@ -272,7 +289,7 @@
       "id": "VER-003",
       "type": "example",
       "artifact": "test/spec_001_rename_core/validation_test.dart",
-      "covers": ["REQ-007", "REQ-008", "REQ-009", "OP-003"]
+      "covers": ["REQ-007", "REQ-008", "REQ-009", "REQ-014", "OP-003"]
     },
     {
       "id": "VER-004",
