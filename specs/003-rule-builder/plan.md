@@ -53,7 +53,7 @@
 | T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | done | #28 |
 | T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | done | #29 |
 | T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | done | #30 |
-| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | pending | |
+| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | pending | #73 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
