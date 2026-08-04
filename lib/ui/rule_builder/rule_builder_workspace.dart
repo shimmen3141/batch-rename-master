@@ -35,7 +35,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
   void initState() {
     super.initState();
     widget.rule.addListener(_syncRule);
-    _syncRule(); // 初期ルールをプレビューへ反映。
+    _scheduleSyncRule(); // 初期ルールをプレビューへ反映(フレーム後)。
   }
 
   @override
@@ -44,8 +44,20 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     if (oldWidget.rule != widget.rule) {
       oldWidget.rule.removeListener(_syncRule);
       widget.rule.addListener(_syncRule);
-      _syncRule();
+      _scheduleSyncRule();
     }
+  }
+
+  /// 初期同期をフレーム後へ回す(003 T6)。
+  ///
+  /// `initState` / `didUpdateWidget` はビルド中に走るため、その場で
+  /// [FileListController] へ通知すると、同じフレームで同じコントローラを購読して
+  /// いる他のウィジェット(読み込み入口のバー等)が「ビルド中の `setState`」に
+  /// なって落ちる。ユーザー操作由来の [_syncRule] はビルド外なので同期実行のまま。
+  void _scheduleSyncRule() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncRule();
+    });
   }
 
   @override

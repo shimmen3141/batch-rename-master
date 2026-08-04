@@ -43,10 +43,12 @@ void main() {
   testWidgets('初期ルールとその後の変更が setRule 経由でプレビューに反映される(002 連携)', (tester) async {
     _setSize(tester, const Size(1000, 800)); // デスクトップ
     final fl = FileListController(files: [_file('a.txt')]);
-    // 非空ルールで初期化 → initState の初期同期が働いて初めてプレビューに出る
+    // 非空ルールで初期化 → 初期同期が働いて初めてプレビューに出る
     // (同期を外すと fl.rule は空のままで X.txt が描画されず、本テストが落ちる)。
     final rc = RuleController(tokens: const [LiteralToken('X')]);
     await _pump(tester, fl, rc);
+    // 初期同期はフレーム後に走る(T6: ビルド中に通知しないため)。反映を1フレーム待つ。
+    await tester.pump();
 
     expect(fl.rule.tokens, hasLength(1)); // 初期同期
     expect(find.text('X.txt'), findsOneWidget);
@@ -84,5 +86,73 @@ void main() {
 
     expect(find.byType(RuleBuilderView), findsOneWidget); // シートで開く
     expect(find.text('＋ 連番'), findsOneWidget);
+  });
+
+  group('T6: 初期同期はビルド中に通知しない', () {
+    testWidgets('同じ FileListController を購読する兄弟ウィジェットと同一フレームに置ける', (
+      tester,
+    ) async {
+      _setSize(tester, const Size(1000, 800));
+      final fl = FileListController(files: [_file('a.txt')]);
+      final rc = RuleController(tokens: const [LiteralToken('X')]);
+
+      // ワークスペースより前に、同じコントローラを購読する兄弟を置く。
+      // 初期同期がビルド中に notifyListeners を呼ぶと、この兄弟が
+      // 「setState() called during build」で落ちる(修正前の再現構成)。
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: Column(
+              children: [
+                ListenableBuilder(
+                  listenable: fl,
+                  builder: (context, _) => Text('件数: ${fl.items.length}'),
+                ),
+                Expanded(
+                  child: RuleBuilderWorkspace(fileList: fl, rule: rc),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump(); // 初期同期(フレーム後)を反映。
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('件数: 1'), findsOneWidget);
+      expect(find.text('X.txt'), findsOneWidget); // 初期ルールは反映される
+    });
+
+    testWidgets('兄弟がいても、その後のルール変更はプレビューへ反映される', (tester) async {
+      _setSize(tester, const Size(1000, 800));
+      final fl = FileListController(files: [_file('a.txt')]);
+      final rc = RuleController(tokens: const [LiteralToken('X')]);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: Column(
+              children: [
+                ListenableBuilder(
+                  listenable: fl,
+                  builder: (context, _) => Text('件数: ${fl.items.length}'),
+                ),
+                Expanded(
+                  child: RuleBuilderWorkspace(fileList: fl, rule: rc),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      rc.addToken(const OriginalNameToken());
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Xa.txt'), findsOneWidget);
+    });
   });
 }
