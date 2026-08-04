@@ -56,41 +56,49 @@ class FileSourceBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    // このバーは [controller] を購読しない(表示が作業セットに依存しないため)。
-    // 購読すると、同じフレームで初期ルールを流し込む 003 のワークスペースが
-    // 「ビルド中の setState」を誘発する。空のときの「すべて外す」は
-    // clearFiles が無変化・無通知なので押されても害はない。
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: Row(
-        children: [
-          _SourceButton(
-            key: const Key('open-folder-button'),
-            icon: Icons.folder_open,
-            label: 'フォルダを開く',
-            onPressed: () => _run(context, loadFolderInto),
+    // 作業セットの件数に応じて「すべて外す」の有効/無効を切り替えるため購読する。
+    // (003 T6 で初期ルール同期がフレーム後に回り、ビルド中の通知が無くなったため
+    //  同一フレームに並べても安全になった。)
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final hasFiles = controller.items.isNotEmpty;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            border: Border(bottom: BorderSide(color: colors.border)),
           ),
-          const SizedBox(width: 8),
-          _SourceButton(
-            key: const Key('pick-files-button'),
-            icon: Icons.note_add_outlined,
-            label: 'ファイルを選ぶ',
-            onPressed: () => _run(context, loadFilesInto),
+          child: Row(
+            children: [
+              _SourceButton(
+                key: const Key('open-folder-button'),
+                icon: Icons.folder_open,
+                label: 'フォルダを開く',
+                onPressed: () => _run(context, loadFolderInto),
+              ),
+              const SizedBox(width: 8),
+              _SourceButton(
+                key: const Key('pick-files-button'),
+                icon: Icons.note_add_outlined,
+                label: 'ファイルを選ぶ',
+                onPressed: () => _run(context, loadFilesInto),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                key: const Key('clear-files-button'),
+                onPressed: hasFiles ? controller.clearFiles : null,
+                icon: const Icon(Icons.playlist_remove, size: 16),
+                label: const Text('すべて外す'),
+                style: TextButton.styleFrom(
+                  foregroundColor: colors.textSecondary,
+                  disabledForegroundColor: colors.textDisabled,
+                ),
+              ),
+            ],
           ),
-          const Spacer(),
-          TextButton.icon(
-            key: const Key('clear-files-button'),
-            onPressed: controller.clearFiles,
-            icon: const Icon(Icons.playlist_remove, size: 16),
-            label: const Text('すべて外す'),
-            style: TextButton.styleFrom(foregroundColor: colors.textSecondary),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
