@@ -18,5 +18,5 @@
       ]
     }
   },
-  "postCreateCommand": "if [ \"$GH_TOKEN\" = \"github_pat_REPLACE_ME\" ] || [ -z \"$GH_TOKEN\" ]; then echo \"secrets/ai.env の PAT が未記入です。記入して Rebuild Container してください(gh 認証設定はスキップ)。\"; else gh auth setup-git && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"; fi"
+  "postCreateCommand": "git config --global --add safe.directory /workspace; if [ \"$GH_TOKEN\" = \"github_pat_REPLACE_ME\" ] || [ -z \"$GH_TOKEN\" ]; then echo \"secrets/ai.env の PAT が未記入です。記入して Rebuild Container してください(gh 認証設定はスキップ)。\"; else gh auth setup-git && git config --global url.\"https://github.com/\".insteadOf \"git@github.com:\"; fi"
 }
