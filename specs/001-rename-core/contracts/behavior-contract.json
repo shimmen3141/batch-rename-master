@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
-  "status": "approved",
+  "status": "draft",
   "scope": {
     "in": [
       "トークン列(元名・リテラル・連番・日時)から1ファイルの生成後名を構成する評価。",
@@ -20,7 +20,7 @@
   "terms": [
     {
       "term": "FileEntry",
-      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグを持つ。"
+      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグに加え、任意で元場所ハンドル(sourceHandle: 取得元を一意に識別し 005 の書き戻し先を指す不透明な文字列)と表示用の場所(sourceLocation: 元フォルダを表す人間可読の文字列)を持つ。sourceHandle・sourceLocation は 004/002/005 が用いるメタデータで、命名エンジンの評価には用いない(INV-005)。"
     },
     {
       "term": "ベース名",
@@ -177,6 +177,11 @@
       "id": "INV-004",
       "statement": "エンジンはファイルシステムへアクセスせず、現在日時は入力 now としてのみ取得する。",
       "owner": "命名エンジン"
+    },
+    {
+      "id": "INV-005",
+      "statement": "命名エンジンの各操作(buildName・generatePreview・validate・autoResolve)の出力は、FileEntry の sourceHandle・sourceLocation に依存しない。これらは識別・表示用のメタデータであり、生成後名・警告・解決結果に影響しない。",
+      "owner": "命名エンジン"
     }
   ],
   "operations": [
@@ -279,7 +284,7 @@
       "id": "VER-005",
       "type": "property",
       "artifact": "test/spec_001_rename_core/determinism_test.dart",
-      "covers": ["REQ-013", "INV-004", "CON-001"]
+      "covers": ["REQ-013", "INV-004", "INV-005", "CON-001"]
     }
   ],
   "open_questions": []

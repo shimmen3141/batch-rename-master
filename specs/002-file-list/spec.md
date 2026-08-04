@@ -1,6 +1,6 @@
 # ファイル選択・リストUI(file-list) 振る舞い仕様
 
-- Status: approved
+- Status: draft <!-- 004 由来の更新のため再承認待ち。approved 化は人間 -->
 - Level: Light（正しさの正本は本ファイル。視覚デザインは非規範）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -9,8 +9,8 @@
 
 ## 境界
 
-- 対象（in scope）: `FileListController` の状態と操作、行データ（RowView 列）の算出、ソート種別、カスタム順への自動切替。
-- 対象外（out of scope）: 実ファイル読み込み（004）・リネーム実行（005）・ルール構築UI（003）・エクスプローラ D&D（006）・視覚デザイン（レイアウト/配色/余白）。
+- 対象（in scope）: `FileListController` の状態と操作、**作業セットへのファイル追加/除去/全消去**（004 が供給、操作は本コントローラ）、行データ（RowView 列。**場所サブ情報を含む**）の算出、ソート種別、カスタム順への自動切替。
+- 対象外（out of scope）: 実ファイルの**取得元・権限**（004）・リネーム実行（005）・ルール構築UI（003）・エクスプローラ D&D（006）・視覚デザイン（レイアウト/配色/余白）。作業セットへ供給する `FileEntry` の生成は 004（本コントローラは受け取った `FileEntry` を保持・操作するのみ）。
 - アクター: ユーザー操作（ウィジェット経由）、注入元（003 の `RenameRule`、004 の `FileEntry` 一覧）。
 - 入力: `List<FileEntry>`、`RenameRule`（注入、既定は元名トークンのみ）、`now`。
 - 出力: 行データ列（各行の現在名・変更後名・選択状態）、現在のソート種別。
@@ -21,33 +21,39 @@
 
 ### 状態変数
 
-- `items`: 表示順の `FileEntry` 列。
+- `items`: 表示順の `FileEntry` 列（追加された順を初期表示順とする）。
 - `selectedOf(item)`: 各 item の選択フラグ。
-- `sortMode`: `name` / `createdAt` / `size` / `custom`。
+- `sortMode`: `name` / `modifiedAt` / `size` / `custom`。（旧 `createdAt` は 004 で実データの作成日時を確実に取得できないため `modifiedAt`=「更新日時」に置換。撮影日時は後続の写真機能で追加。）
 - `rule`: プレビューに用いる `RenameRule`（注入。既定は元名トークンのみ）。
 
 ### 操作（イベント）
 
 | 操作 | 効果 |
 |------|------|
-| 初期化(files, rule) | `items` = 入力順、選択 = 既定状態（open_question）、`sortMode` = 入力順を表す初期値、`rule` を保持 |
+| 初期化(files, rule) | `items` = 入力順、選択 = 全選択、`sortMode` = 入力順を表す `custom`、`rule` を保持 |
 | `setSortMode(mode)` | `items` を mode の comparator で安定ソートし、`sortMode` を更新（`custom` 指定時は現在の順を保持） |
 | `reorder(oldIndex,newIndex)` | `items` をその移動後の順に並べ替え、`sortMode` を `custom` へ自動切替 |
 | `toggleSelection(item)` | その item の選択を反転 |
 | `selectAll()` / `clearAll()` | 全 item を選択 / 全解除 |
 | `setRule(rule)` | プレビューに使う `RenameRule` を差し替え |
+| `addFiles(entries)` | `entries` のうち**元場所ハンドルが既存に無いもの**を与えられた順で `items` 末尾へ追加し、追加分を選択状態にする。既存ハンドルと一致するものは追加しない。空リストは無変化（004 REQ-004/005 由来） |
+| `removeFile(handle)` | 元場所ハンドルが `handle` に一致する item を `items` と選択から除去する。一致が無ければ無変化（004 REQ-006 由来） |
+| `clearFiles()` | `items` と選択を空にする（004 REQ-006 由来） |
 
 ### 要件
 
 | ID | 優先度 | 要件（外部から観測可能な文で） | 検証 |
 |---|---|---|---|
 | REQ-001 | must | 初期化後、`items` は入力の並び順を保持し、各行の現在名は `FileEntry.name` に等しい。 | VER-001 |
-| REQ-002 | must | `setSortMode(name/createdAt/size)` は該当キーで昇順・安定ソートし、`sortMode` を更新する。 | VER-001 |
+| REQ-002 | must | `setSortMode(name/modifiedAt/size)` は該当キーで昇順・安定ソートし、`sortMode` を更新する。時系列ソートは `modifiedAt`（UI ラベル「更新日時」）で行う（旧 `createdAt`「作成日時」から置換。004 で実データの作成日時を確実に取得できないため）。 | VER-001 |
 | REQ-003 | must | `reorder` は `items` を移動後の順に並べ替え、`sortMode` を `custom` へ自動的に切り替える。 | VER-001, VER-002 |
 | REQ-004 | must | `toggleSelection` は対象の選択を反転し、`selectAll`/`clearAll` は全選択/全解除にする。 | VER-001, VER-002 |
 | REQ-005 | must | `setRule` はプレビューに用いるルールを差し替え、以降の行データに反映される。 | VER-001 |
 | REQ-006 | must | 行データは現在の `items` 順で供給され、選択行の変更後名は 001 の `generatePreview`（選択行を表示順で連番割り当て）に一致する。 | VER-001 |
 | REQ-007 | should | 未選択行は変更後名を持たない（プレビュー対象外として供給する）。 | VER-001 |
+| REQ-008 | must | `addFiles(entries)` は、元場所ハンドルが既存 `items` に無いエントリのみを与えられた順で末尾へ追加し、追加分を選択状態にする。既存ハンドルと一致するものは追加しない（重複しない）。空リストの追加は無変化。（004 REQ-004/005 由来） | VER-001 |
+| REQ-009 | must | `removeFile(handle)` は元場所ハンドルが一致する item を `items` と選択から除去し、`clearFiles()` は両方を空にする。一致が無ければ無変化。（004 REQ-006 由来） | VER-001 |
+| REQ-010 | must | 各行データは、その `FileEntry` の**表示用の場所（元フォルダ）**を保持し、行 UI がサブ情報として表示できる形で供給する（作成/更新日時・サイズと同格の副題）。（004 REQ-009 由来） | VER-001, VER-002 |
 
 ### 代表例
 
@@ -59,6 +65,9 @@
 | 2 | reorder で c を先頭へ | items=[c,...]、sortMode=custom | 自動切替（REQ-003） |
 | 3 | rule=[連番 桁2]、3件選択、b を未選択 | 選択行の変更後名が表示順で 01,02… | 連番は選択行のみ・上から（001 準拠） |
 | 4 | clearAll 後 | 全行が未選択・変更後名なし | REQ-004/007 |
+| 5 | items=[a] のとき addFiles([a(同ハンドル), c]) | items=[a,c]、c は選択、a は重複追加なし | REQ-008 |
+| 6 | removeFile(a のハンドル) → clearFiles() | items=[c] → items=[]（選択も空） | REQ-009 |
+| 7 | フォルダ "写真" の a を行表示 | a の行に場所 "写真" が副題として供給される | REQ-010 |
 
 ## 自由とする点（実装に委ねる）
 
@@ -75,15 +84,15 @@
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_002_file_list/controller_test.dart | REQ-001〜007 |
-| VER-002 | widget | test/spec_002_file_list/file_list_view_test.dart | REQ-003, REQ-004（ウィジェット操作→状態反映） |
+| VER-001 | unit | test/spec_002_file_list/controller_test.dart | REQ-001〜010 |
+| VER-002 | widget | test/spec_002_file_list/file_list_view_test.dart | REQ-003, REQ-004, REQ-010（ウィジェット操作→状態反映・場所サブ情報の表示） |
 
 ## 反証ログ
 
 | 観点 | 結果 |
 |---|---|
 | 仕様を見ずに書いた例との照合 | 代表例4件を状態遷移と照合。例3で「連番は選択行のみ・表示順」を 001 の generatePreview に委ねる形に整理（重複定義を避けた）。 |
-| 弱すぎ（ズルい実装） | REQ-006 を「001 の generatePreview に一致」と接続し、変更後名を空返しする実装を排除。REQ-002 に安定・昇順を明記し空ソートを排除。 |
+| 弱すぎ（ズルい実装） | REQ-006 を「001 の generatePreview に一致」と接続し、変更後名を空返しする実装を排除。REQ-002 に安定・昇順を明記し空ソートを排除。REQ-008 に「既存ハンドルは追加しない・追加分は選択」を明記し、全追加/全無視/未選択追加の実装を排除。 |
 | 強すぎ（過剰な条件） | 内部表現・視覚を「自由とする点」で明示的に解放。ソート方向・名前順の詳細は open_questions に送り固定しすぎない。 |
 | 異常系の網羅 | 空 files（行データ空）、全未選択（プレビュー空）、reorder の端インデックスを VER-001 で扱う。 |
 | 判定不能語 | 「使いやすい」等の判定不能語を排し、操作→観測可能な状態変化で記述。 |
@@ -98,3 +107,12 @@
 - 未チェック行の変更後名表示: **変更後名を供給せず現在名のみ**（プレビュー対象外を示す。REQ-007）。
 - 同値時のソート安定性: **安定**（元の相対順を保持。REQ-002）。
 - 初期 `sortMode`: **入力順を表す `custom`**（読み込んだ順をそのまま表示。開発者確定。デザインは初期を名前順で描いていたが、UI 側の初期表示は後続で名前順チップを既定選択にすれば整合するため、状態層の初期は入力順のままとする）。
+
+### 004 由来の更新（2026-08-04・再承認待ち）
+
+004（ファイル読み込み）の承認済み仕様に伴う更新。実装は 004 T2/T3。
+
+- **作業セット操作**: `addFiles` / `removeFile` / `clearFiles` を追加（REQ-008/009）。複数フォルダの選択を差し替えず蓄積し、元場所ハンドルで重複排除する。
+- **時系列ソートの正直化**: `createdAt`「作成日時」→ `modifiedAt`「更新日時」（REQ-002）。004 で実データの作成日時を確実に取得できないため。撮影日時（不変キー）は後続の写真機能で正直な選択肢として追加。
+- **場所のサブ情報**: 各行に元フォルダを副題として供給（REQ-010）。`FileEntry.sourceLocation`（001 で追加）を用いる。同名・非同名に関わらず常時表示。
+- 依存: `FileEntry` への `sourceHandle` / `sourceLocation` 追加は 001（Strict）側で更新・再承認。

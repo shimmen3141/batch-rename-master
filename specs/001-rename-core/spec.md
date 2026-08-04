@@ -1,6 +1,6 @@
 # コア命名エンジン(rename-core) 振る舞い仕様
 
-- Status: approved(2026-07-26 開発者承認。正本の承認状態は `contracts/behavior-contract.json` の `status`)
+- Status: draft(004 由来の `FileEntry` 更新のため再承認待ち。正本の承認状態は `contracts/behavior-contract.json` の `status`)
 - Level: Strict(**正本は `contracts/behavior-contract.json`**。本ファイルは説明・図解・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的(説明的・正誤判定には使わない)
@@ -12,7 +12,7 @@
 - 対象(in scope): 契約 `scope.in` を正とする。トークン評価・プレビュー生成・ドライラン検証・自動解決。
 - 対象外(out of scope): 契約 `scope.out` を正とする。実ファイルIO・SAF・OS別禁止文字検証・UI・トークン既定値。
 - アクター: 呼び出し側(UI 層 002/003)。
-- 入力: `RenameRule`、`List<FileEntry>`(各 name・作成/更新日時・サイズ・選択フラグ)、`now`(現在日時)。
+- 入力: `RenameRule`、`List<FileEntry>`(各 name・作成/更新日時・サイズ・選択フラグ、任意で元場所ハンドル `sourceHandle`・表示用の場所 `sourceLocation`)、`now`(現在日時)。`sourceHandle`/`sourceLocation` は 004/002/005 のメタデータで命名評価には用いない(INV-005)。
 - 出力: 生成後名、プレビュー、警告リスト、自動解決後の最終名。
 - 永続化される状態: なし(純粋関数群)。
 - 外部副作用: なし(INV-004。ファイルシステムへアクセスしない)。
@@ -66,7 +66,7 @@
 
 ## 不変条件
 
-契約の INV-001〜004 を正とする。要点: RenameRule は任意順・重複可のトークン列(INV-001)、拡張子不変(INV-002)、自動解決後は重複なし(INV-003)、副作用なし(INV-004)。
+契約の INV-001〜005 を正とする。要点: RenameRule は任意順・重複可のトークン列(INV-001)、拡張子不変(INV-002)、自動解決後は重複なし(INV-003)、副作用なし(INV-004)、命名出力は `sourceHandle`/`sourceLocation` に依存しない(INV-005)。
 
 ## 異常系
 
@@ -98,7 +98,7 @@
 | VER-002 | property | test/spec_001_rename_core/preview_test.dart | REQ-006, INV-001, OP-002 |
 | VER-003 | example | test/spec_001_rename_core/validation_test.dart | REQ-007〜009, OP-003 |
 | VER-004 | property | test/spec_001_rename_core/auto_resolve_test.dart | REQ-010〜012, INV-003, OP-004 |
-| VER-005 | property | test/spec_001_rename_core/determinism_test.dart | REQ-013, INV-004, CON-001 |
+| VER-005 | property | test/spec_001_rename_core/determinism_test.dart | REQ-013, INV-004, INV-005, CON-001 |
 
 ## 反証ログ
 
@@ -118,3 +118,7 @@ Step 3(仕様の反証)の実施記録。
 <!-- approved にする前にすべて解消する -->
 
 - なし(2026-07-26 承認時に解消)。自動解決の重複回避接尾辞は ` (n)`(半角スペース + 半角括弧 + 1始まり整数)で確定(REQ-010)。契約 open_questions は空。
+
+### 004 由来の更新(2026-08-04・再承認待ち)
+
+`FileEntry` に**任意フィールド** `sourceHandle`(識別・005 書き戻し用の不透明値)と `sourceLocation`(表示用の元フォルダ文字列)を追加(用語 FileEntry)。**加算的・振る舞い不変**の変更で、命名エンジンの出力は両者に依存しない(INV-005 を追加、VER-005 で被覆)。日時トークン(REQ-004)は変更しない。実装(FileEntry へのフィールド追加)は 004 T2。Strict のため `spec_lint --strict` PASS を確認済み、承認は人間。
