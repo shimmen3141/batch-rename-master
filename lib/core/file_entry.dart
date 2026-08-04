@@ -6,8 +6,13 @@ class FileEntry {
   /// 拡張子込みのフルネーム(例: `photo.jpg`)。
   final String name;
 
-  /// 作成日時(日時トークンの基準の一つ。T3 で使用)。
-  final DateTime createdAt;
+  /// 作成日時。**取得できない場合は `null`(=不明)**。
+  ///
+  /// SAF には作成日時の列が無く、EXIF・コンテナメタデータ・MediaStore・NTFS 等の
+  /// 経路で取得できたときだけ値が入る(004 REQ-003/010)。不明を更新日時などの
+  /// 別の値で代替してはならない(INV-006)。日時トークンの基準が作成日時で、この値が
+  /// `null` のとき、そのトークンは空文字列を出力する(REQ-004)。
+  final DateTime? createdAt;
 
   /// 更新日時(日時トークンの基準の一つ。T3 で使用)。
   final DateTime modifiedAt;
@@ -33,7 +38,7 @@ class FileEntry {
 
   const FileEntry({
     required this.name,
-    required this.createdAt,
+    this.createdAt,
     required this.modifiedAt,
     required this.size,
     this.selected = true,

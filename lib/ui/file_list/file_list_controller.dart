@@ -72,10 +72,29 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 作成日時が不明な item の件数(REQ-011)。
+  ///
+  /// 判定はファイル種別ではなく**取得可否**([FileEntry.createdAt] が `null` か)
+  /// で行う。画像でも EXIF 撮影日時を持たない場合があるため。
+  int get unknownCreatedAtCount =>
+      _items.where((item) => item.createdAt == null).length;
+
+  /// 作成日時ソート時に供給する警告。該当しなければ `null`(REQ-011)。
+  ///
+  /// 現在のソートが [FileSortMode.createdAt] で、作成日時が不明な item が
+  /// 1 件以上あるときだけ供給する(0 件・他のソートでは `null`)。
+  CreatedAtFallbackWarning? get createdAtSortWarning {
+    if (_sortMode != FileSortMode.createdAt) return null;
+    final count = unknownCreatedAtCount;
+    return count == 0 ? null : CreatedAtFallbackWarning(count);
+  }
+
   /// ソート種別を [mode] に更新する(REQ-002 / REQ-003)。
   ///
-  /// [FileSortMode.name] / [FileSortMode.createdAt] / [FileSortMode.size] は
-  /// 対応キーで昇順・安定ソートする。[FileSortMode.custom] は現在順を保持する。
+  /// [FileSortMode.name] / [FileSortMode.createdAt] / [FileSortMode.modifiedAt]
+  /// / [FileSortMode.size] は対応キーで昇順・安定ソートする。作成日時ソートで
+  /// 作成日時が不明な item は、その item の更新日時をキーに代替する
+  /// ([createdAtSortKey]。REQ-002)。[FileSortMode.custom] は現在順を保持する。
   void setSortMode(FileSortMode mode) {
     _sortMode = mode;
     if (mode != FileSortMode.custom) {

@@ -2,9 +2,19 @@ import '../../core/rename_engine.dart';
 
 /// ファイルリストのソート種別(002 spec: sortMode)。
 ///
-/// [name] / [createdAt] / [size] はキーで昇順・安定ソート(REQ-002)。
+/// [name] / [createdAt] / [modifiedAt] / [size] はキーで昇順・安定ソート(REQ-002)。
+/// 時系列は**作成日時と更新日時の2種**を提供する。
 /// [custom] はユーザーが手動で並べ替えた順で、ソートを適用しない(REQ-003)。
-enum FileSortMode { name, createdAt, size, custom }
+enum FileSortMode { name, createdAt, modifiedAt, size, custom }
+
+/// 作成日時ソートの並べ替えキー(REQ-002)。
+///
+/// 作成日時が判明していればその値、**不明なら当該ファイルの更新日時で代替**する。
+/// 未変更のファイルでは両者が一致することが多く、末尾へ隔離するより有用な順序に
+/// なるため。代替は**並べ替えキーの決定にのみ**用い、[FileEntry.createdAt] や
+/// 命名結果は書き換えない(001 INV-006)。代替が起きたことは
+/// [FileListController.createdAtSortWarning] と行の表示で示す(REQ-011/013)。
+DateTime createdAtSortKey(FileEntry file) => file.createdAt ?? file.modifiedAt;
 
 /// [mode] に対応する [FileEntry] の比較関数。[FileSortMode.custom] は比較しない
 /// (常に 0 を返す = 現在順を保持)。
@@ -13,10 +23,25 @@ enum FileSortMode { name, createdAt, size, custom }
 int Function(FileEntry, FileEntry) comparatorFor(FileSortMode mode) {
   return switch (mode) {
     FileSortMode.name => (a, b) => compareNatural(a.name, b.name),
-    FileSortMode.createdAt => (a, b) => a.createdAt.compareTo(b.createdAt),
+    FileSortMode.createdAt => (a, b) => createdAtSortKey(
+      a,
+    ).compareTo(createdAtSortKey(b)),
+    FileSortMode.modifiedAt => (a, b) => a.modifiedAt.compareTo(b.modifiedAt),
     FileSortMode.size => (a, b) => a.size.compareTo(b.size),
     FileSortMode.custom => (_, _) => 0,
   };
+}
+
+/// 作成日時ソート時に供給する警告(REQ-011)。
+///
+/// 「作成日時を取得できなかったファイルが [unknownCount] 件あり、**それらは更新日時
+/// で代替して並べている**」ことを表す。判定はファイル種別ではなく取得可否で行う。
+/// 0 件のときは供給しない(このインスタンスを作らない)。
+class CreatedAtFallbackWarning {
+  /// 作成日時が不明で、更新日時で代替して並べたファイルの件数(1 以上)。
+  final int unknownCount;
+
+  const CreatedAtFallbackWarning(this.unknownCount);
 }
 
 /// [compare] による安定ソートの結果を新しいリストで返す(元リストは変更しない）。

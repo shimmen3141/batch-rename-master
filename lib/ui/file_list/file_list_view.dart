@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
@@ -32,6 +33,9 @@ class FileListView extends StatelessWidget {
             children: [
               _HeaderBar(controller: controller),
               _SortBar(controller: controller),
+              _CreatedAtFallbackBanner(
+                warning: controller.createdAtSortWarning,
+              ),
               Expanded(
                 child: ReorderableListView.builder(
                   // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
@@ -152,6 +156,7 @@ class _SortBar extends StatelessWidget {
   static const List<(FileSortMode, String)> _modes = [
     (FileSortMode.name, '元の名前順'),
     (FileSortMode.createdAt, '作成日時順'),
+    (FileSortMode.modifiedAt, '更新日時順'),
     (FileSortMode.size, 'サイズ順'),
     (FileSortMode.custom, 'カスタム順'),
   ];
@@ -178,6 +183,40 @@ class _SortBar extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 作成日時ソート時に「不明な件数を更新日時で代替した」ことを知らせる帯(REQ-011)。
+///
+/// [warning] が `null`(不明 0 件、または作成日時以外のソート)なら何も表示しない。
+class _CreatedAtFallbackBanner extends StatelessWidget {
+  const _CreatedAtFallbackBanner({required this.warning});
+
+  final CreatedAtFallbackWarning? warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final warning = this.warning;
+    if (warning == null) return const SizedBox.shrink();
+    final colors = context.colors;
+    return Container(
+      key: const Key('created-at-fallback-warning'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: colors.danger.withValues(alpha: 0.12),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 15, color: colors.danger),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '作成日時を取得できないファイルが ${warning.unknownCount} 件あります。'
+              'それらは更新日時で代替して並べています。',
+              style: TextStyle(color: colors.danger, fontSize: 11.5),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -257,10 +296,17 @@ class _FileRow extends StatelessWidget {
             checkColor: colors.onPrimary,
           ),
           Expanded(
-            child: Text(
-              row.currentName,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: colors.textPrimary, fontSize: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  row.currentName,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 13),
+                ),
+                _DateSubInfo(file: row.source),
+              ],
             ),
           ),
           Padding(
@@ -273,6 +319,60 @@ class _FileRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(left: 8),
               child: Icon(Icons.drag_handle, size: 18, color: colors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 行のサブ情報: 作成日時と更新日時の双方(REQ-013)。
+///
+/// 作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで示し、更新日時で
+/// 代替されたことを行レベルで見分けられるようにする。見た目は非規範だが、色は
+/// [AppColors] のセマンティック名から取る(生の色値を書かない)。
+class _DateSubInfo extends StatelessWidget {
+  const _DateSubInfo({required this.file});
+
+  final FileEntry file;
+
+  static String _format(DateTime dt) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${dt.year}/${dt.month}/${dt.day} ${two(dt.hour)}:${two(dt.minute)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final createdAt = file.createdAt;
+    final unknown = createdAt == null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        children: [
+          if (unknown) ...[
+            Icon(Icons.warning_amber_rounded, size: 11, color: colors.danger),
+            const SizedBox(width: 3),
+          ],
+          // 1つの Text にまとめ、狭幅では省略する(行内で溢れさせない)。
+          // 色は span で分け、不明な作成日時だけを危険色にする。
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                    style: TextStyle(
+                      color: unknown ? colors.danger : colors.textMuted,
+                    ),
+                  ),
+                  TextSpan(text: ' / 更新日時: ${_format(file.modifiedAt)}'),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: colors.textMuted, fontSize: 10.5),
             ),
           ),
         ],
