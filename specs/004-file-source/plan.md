@@ -114,3 +114,4 @@
 - 2026-08-04 / T1 完了 / spec.md(Light・draft)作成: REQ-001〜008 / VER-001〜003 / 「波及: 001・002 の再承認が要る更新点」/ 反証ログ5観点 / open_questions OQ-1〜4。verifier PASS(試行1回・6条件すべて充足)。**spec は draft。approved 化は人間。後続 T2 以降は spec approved まで実行不可。**
 - 2026-08-04 / T1 / PR #56 作成(Closes #51)。マージ待ちで停止。
 - 2026-08-04 / T1 / open_questions を開発者回答で解消(D-1〜D-4)。spec を更新: `PickResult`(Picked/Cancelled/Failed)+ Failed 通知(REQ-001/008)、場所のサブ情報表示(REQ-009)、隠しファイル非フィルタ(対象外)、追加順(REQ-007)。REQ-009 追加に伴い波及に「002 RowView 場所副題」「001 FileEntry 表示用の場所」を追記。PR #56 を更新。spec は引き続き draft(approved 化は人間)。
+- 2026-08-04 / T1 / PR #56 マージ。**spec.md を approved に(開発者承認: 「承認します」)。** open_questions ゼロ・全 REQ 確定。次ゲートは T2 前の 001/002 仕様更新→再承認。
