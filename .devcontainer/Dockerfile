@@ -22,7 +22,13 @@ RUN chmod +x /usr/local/bin/init-firewall.sh \
   && echo "dev ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/dev-firewall \
   && chmod 0440 /etc/sudoers.d/dev-firewall
 
-# AI エージェント CLI
+# AI エージェント CLI(バージョンは pin せず、Rebuild のたびに最新を入れる)。
+# 先に npm の latest メタデータを取り込むことでキャッシュを制御する: 新バージョンが公開された
+# ときだけこのファイルの内容が変わり、下の RUN のキャッシュが無効化される(変化が無ければ
+# キャッシュが効くので、毎回 --no-cache でフルリビルドする必要がない)。
+# CLI はコンテナ内(非 root)からは更新できない設計なので、更新はこの Rebuild で行う
+ADD https://registry.npmjs.org/@anthropic-ai/claude-code/latest /tmp/claude-code-latest.json
+ADD https://registry.npmjs.org/@openai/codex/latest /tmp/codex-latest.json
 RUN npm install -g @anthropic-ai/claude-code @openai/codex
 
 # named volume の初期所有者(volume は初回マウント時にイメージ側の内容と所有者を引き継ぐ)
