@@ -1,6 +1,6 @@
 # ファイル読み込み(file-source) 振る舞い仕様
 
-- Status: draft <!-- draft → approved(人間が変更) → deprecated -->
+- Status: approved <!-- draft → approved(人間が変更) → deprecated -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
