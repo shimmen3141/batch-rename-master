@@ -72,6 +72,8 @@
 2. ⚠️ **改名すると URI が変わる**。実測値:
    - 元: `content://com.android.externalstorage.documents/document/primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg`
    - 新: `content://com.android.externalstorage.documents/document/primary%3ADownload%2Frename_test_a%2FIMG_0010_t8.jpg`
+   - ツリー権限側の実測値(**ツリーセグメントは改名後も保持される**。二段構造):
+     `content://com.android.externalstorage.documents/tree/primary%3ADownload%2Frename_test_a/document/primary%3ADownload%2Frename_test_a%2FIMG_0009_t8.jpg`
    - つまり `FileEntry.sourceHandle` は**リネーム後に無効(stale)になる**。005 は改名のたびに**ハンドルを新しい URI へ更新**しなければ、以降の操作(連続実行・**「元に戻す」**)が壊れる。
    - 「元に戻す」は「**新しい URI に対して元の名前で改名し直す**」形になる(元の URI へ戻すのではない)。
 3. ⚠️ **`saf_util.rename` の戻り値の `name` は、ドキュメント URI 経由では空だった**(ツリー権限経由では正しく返る)。
