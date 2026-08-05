@@ -9,13 +9,26 @@
 
 ## エミュレータで起動する
 
+> ⚠️ **起動前に「どのブランチをチェックアウトしているか」を必ず確認する。**
+> コンテナ(AI)とホストは同じ作業ツリーを共有しており、**エージェントが別作業でブランチを切り替えると、
+> 検証したいタスクを含まないコードが動く**。症状は「実装したはずの機能が無い / 古い挙動のまま」で、
+> アプリの不具合と誤認しやすい(2026-08-05 に実際に発生: T4 の実 SAF を検証しようとして、
+> T3 のデモ用フェイクが動いた)。
+>
+> ```bash
+> git branch --show-current   # 検証したいタスクのブランチ、または dev(マージ済みなら)
+> git log --oneline -1        # 対象のコミットが入っているか
+> ```
+>
+> 検証中はエージェントに「ブランチを動かさないで」と伝えるか、エージェントが停止しているタイミングで行う。
+
 ```bash
 # ホスト側・リポジトリのルートで
 flutter --version                          # pin した revision と一致するか
 flutter emulators                          # 使えるエミュレータ一覧
 flutter emulators --launch <emulator_id>   # 起動（または Android Studio の Device Manager で ▶）
 flutter devices                            # エミュレータが認識されているか
-flutter pub get
+flutter pub get                            # 依存が増えた直後は必須(コンテナと .pub-cache が別のため)
 flutter run -d <device_id>                 # 実行。r=ホットリロード / R=ホットリスタート / q=終了
 ```
 
