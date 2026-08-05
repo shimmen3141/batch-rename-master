@@ -76,6 +76,47 @@ void main() {
       expect(entry.size, 0);
     });
 
+    test('document URI から親フォルダ名を取り出す(REQ-009/REQ-012 の前提)', () {
+      // 実機で得た実物の形(T8 のスパイクで確認したもの)。
+      expect(
+        SafFileSource.locationOfDocumentUri(
+          'content://com.android.externalstorage.documents/document/'
+          'primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg',
+        ),
+        'rename_test_a',
+      );
+      expect(
+        SafFileSource.locationOfDocumentUri(
+          'content://com.android.externalstorage.documents/document/'
+          'primary%3APictures%2Fa.jpg',
+        ),
+        'Pictures',
+      );
+    });
+
+    test('親フォルダを導出できない形では null(ルート直下・想定外)', () {
+      expect(
+        SafFileSource.locationOfDocumentUri(
+          'content://com.android.externalstorage.documents/document/'
+          'primary%3Aa.jpg',
+        ),
+        isNull,
+      );
+      expect(SafFileSource.locationOfDocumentUri('nonsense'), isNull);
+    });
+
+    test('別フォルダの同名ファイルは異なる場所になる(REQ-012 の判定材料)', () {
+      final a = SafFileSource.locationOfDocumentUri(
+        'content://x/document/primary%3ADownload%2Fphotos%2FIMG.jpg',
+      );
+      final b = SafFileSource.locationOfDocumentUri(
+        'content://x/document/primary%3ADownload%2Fdocs%2FIMG.jpg',
+      );
+      expect(a, 'photos');
+      expect(b, 'docs');
+      expect(a, isNot(b));
+    });
+
     test('失敗の分類: 権限拒否は permissionDenied、それ以外は io(REQ-008)', () {
       expect(
         SafFileSource.errorOf(Exception('Permission denied by user')).kind,
@@ -206,12 +247,10 @@ void main() {
     test('未対応プラットフォームでは例外を投げず Failed を返す', () async {
       const source = UnsupportedFileSource();
 
-      final folder = await source.pickFolder();
-      final files = await source.pickFiles();
+      final result = await source.pickFiles();
 
-      expect(folder, isA<Failed>());
-      expect(files, isA<Failed>());
-      expect((folder as Failed).error.kind, PickErrorKind.unknown);
+      expect(result, isA<Failed>());
+      expect((result as Failed).error.kind, PickErrorKind.unknown);
     });
   });
 }

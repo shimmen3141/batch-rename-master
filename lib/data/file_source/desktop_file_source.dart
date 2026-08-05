@@ -18,18 +18,6 @@ import 'file_source.dart';
 class DesktopFileSource implements FileSource {
   const DesktopFileSource();
 
-  @override
-  Future<PickResult> pickFolder() async {
-    try {
-      final path = await getDirectoryPath();
-      // ダイアログを閉じただけ = 未選択(REQ-001)。
-      if (path == null) return const Cancelled();
-      return Picked(entriesOfDirectory(Directory(path)));
-    } catch (error) {
-      return Failed(errorOf(error));
-    }
-  }
-
   /// [dir] 直下のファイルを [FileEntry] 列にする(ピッカー無しで検証できるよう公開)。
   ///
   /// サブフォルダは辿らない(004 スコープ外)。並び順は OS の列挙順のままで
@@ -43,9 +31,13 @@ class DesktopFileSource implements FileSource {
   }
 
   @override
-  Future<PickResult> pickFiles() async {
+  Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
     try {
-      final files = await openFiles();
+      final files = await openFiles(
+        acceptedTypeGroups: mimeTypes.isEmpty
+            ? const []
+            : [XTypeGroup(label: '対象の種類', mimeTypes: mimeTypes)],
+      );
       // 空はキャンセル(`file_selector` はキャンセル時に空リストを返す)。
       if (files.isEmpty) return const Cancelled();
       return Picked([

@@ -1,10 +1,11 @@
 // VER-003(T3): UI 入口の検証(REQ-004/005/006/007/008)。
-// 「フォルダを開く」「ファイルを選ぶ」で作業セットへ追加、複数回で蓄積、
+// 種類選択 → ファイル選択 → リスト置き換え、種類ごとの分岐、
 // Cancelled は無変化・通知なし、Failed は無変化のまま理由を通知、除去・全消去。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +21,18 @@ FileEntry _entry(String name, {required String handle, String? location}) =>
       sourceLocation: location,
     );
 
-final _openFolder = find.byKey(const Key('open-folder-button'));
 final _pickFiles = find.byKey(const Key('pick-files-button'));
+
+/// 「ファイルを選ぶ」→ 種類シートで [kind] を選ぶ(新導線。REQ-011)。
+Future<void> _pickKind(WidgetTester tester, FileKind kind) async {
+  await tester.tap(_pickFiles);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(Key('file-kind-${kind.name}')));
+  await tester.pumpAndSettle();
+}
+
+/// 種類「すべて」で読み込む(既定の経路)。
+Future<void> _pickAll(WidgetTester tester) => _pickKind(tester, FileKind.all);
 final _clearFiles = find.byKey(const Key('clear-files-button'));
 
 Future<void> _pump(
@@ -46,10 +57,10 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('「フォルダを開く」で結果が作業セットへ追加される(REQ-007)', (tester) async {
+  testWidgets('種類「すべて」で選んだ結果がリストになる(REQ-007)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         Picked([
           _entry('a.txt', handle: 'h:a'),
           _entry('b.txt', handle: 'h:b'),
@@ -58,14 +69,14 @@ void main() {
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(controller.items.map((e) => e.name), ['a.txt', 'b.txt']);
     expect(controller.selectedCount, 2);
   });
 
-  testWidgets('「ファイルを選ぶ」でも追加される(REQ-007)', (tester) async {
+  testWidgets('選んだファイルが1件でもリストになる(REQ-007)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
@@ -74,18 +85,16 @@ void main() {
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_pickFiles);
-    await tester.pumpAndSettle();
+    await _pickAll(tester);
 
     expect(controller.items.map((e) => e.name), ['c.pdf']);
     expect(source.fileCallCount, 1);
   });
 
-  testWidgets('複数回押すと別フォルダ分が蓄積され、重複は追加されない(REQ-004)', (tester) async {
+  testWidgets('1回の選択に別フォルダのファイルが混ざると、両方載って警告も出る(REQ-004/012)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [
-        Picked([_entry('a.txt', handle: 'h:a', location: '写真')]),
+      fileResults: [
         Picked([
           _entry('a.txt', handle: 'h:a', location: '写真'),
           _entry('b.txt', handle: 'h:b', location: 'ダウンロード'),
@@ -94,41 +103,39 @@ void main() {
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
-    await tester.pumpAndSettle();
-    await tester.tap(_openFolder);
-    await tester.pumpAndSettle();
+    await _pickAll(tester);
 
     expect(controller.items.map((e) => e.name), ['a.txt', 'b.txt']);
     expect(controller.items.map((e) => e.sourceLocation), ['写真', 'ダウンロード']);
+    expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
   });
 
-  testWidgets('Cancelled は作業セット無変化・通知なし(REQ-008)', (tester) async {
+  testWidgets('Cancelled はリスト無変化・通知なし(REQ-008)', (tester) async {
     final controller = FileListController(
       files: [_entry('keep.txt', handle: 'h:keep')],
     );
-    final source = FakeFileSource(folderResults: [const Cancelled()]);
+    final source = FakeFileSource(fileResults: [const Cancelled()]);
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(controller.items.map((e) => e.name), ['keep.txt']);
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('Failed は作業セット無変化のまま理由を通知する(REQ-008)', (tester) async {
+  testWidgets('Failed はリスト無変化のまま理由を通知する(REQ-008)', (tester) async {
     final controller = FileListController(
       files: [_entry('keep.txt', handle: 'h:keep')],
     );
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         const Failed(PickError(PickErrorKind.permissionDenied, 'SAF 拒否')),
       ],
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(controller.items.map((e) => e.name), ['keep.txt']);
@@ -140,11 +147,11 @@ void main() {
   testWidgets('IO 失敗はその理由で通知する(REQ-008)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [const Failed(PickError(PickErrorKind.io))],
+      fileResults: [const Failed(PickError(PickErrorKind.io))],
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('ファイルの読み込みに失敗しました'), findsOneWidget);
@@ -153,11 +160,11 @@ void main() {
   testWidgets('原因不明の失敗もその旨を通知する(REQ-008)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [const Failed(PickError(PickErrorKind.unknown))],
+      fileResults: [const Failed(PickError(PickErrorKind.unknown))],
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('ファイルを読み込めませんでした'), findsOneWidget);
@@ -165,17 +172,17 @@ void main() {
 
   testWidgets('空の Picked(空フォルダ)は無変化でエラーにもならない(REQ-001/007)', (tester) async {
     final controller = FileListController(files: const []);
-    final source = FakeFileSource(folderResults: [const Picked([])]);
+    final source = FakeFileSource(fileResults: [const Picked([])]);
     await _pump(tester, source, controller);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(controller.items, isEmpty);
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('「すべて外す」で作業セットが空になる(REQ-006)', (tester) async {
+  testWidgets('「すべて外す」でリストが空になる(REQ-006)', (tester) async {
     final controller = FileListController(
       files: [
         _entry('a.txt', handle: 'h:a'),
@@ -191,7 +198,7 @@ void main() {
     expect(controller.selectedCount, 0);
   });
 
-  testWidgets('作業セットが空なら「すべて外す」は無効(T4: 件数に追随)', (tester) async {
+  testWidgets('リストが空なら「すべて外す」は無効(T4: 件数に追随)', (tester) async {
     final controller = FileListController(files: const []);
     await _pump(tester, FakeFileSource(), controller);
 
@@ -201,14 +208,14 @@ void main() {
   testWidgets('ファイルが入ると「すべて外す」が有効になり、外すとまた無効に戻る', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         Picked([_entry('a.txt', handle: 'h:a')]),
       ],
     );
     await _pump(tester, source, controller);
     expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
     expect(tester.widget<TextButton>(_clearFiles).onPressed, isNotNull);
 
@@ -219,7 +226,7 @@ void main() {
     expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
   });
 
-  testWidgets('行の×で1件だけ作業セットから外れる(REQ-006)', (tester) async {
+  testWidgets('行の×で1件だけリストから外れる(REQ-006)', (tester) async {
     final controller = FileListController(
       files: [
         _entry('a.txt', handle: 'h:a'),
@@ -234,6 +241,101 @@ void main() {
     expect(controller.items.map((e) => e.name), ['b.txt']);
   });
 
+  testWidgets('種類「画像」「動画」は枠のみで、未実装であることを示す(REQ-011)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      fileResults: [
+        Picked([_entry('a.txt', handle: 'h:a')]),
+      ],
+    );
+    await _pump(tester, source, controller);
+
+    await _pickKind(tester, FileKind.image);
+
+    expect(find.byKey(const Key('file-kind-unimplemented')), findsOneWidget);
+    expect(find.textContaining('写真機能で対応予定'), findsOneWidget);
+    // 読み込みは行われない(ソースも呼ばれない)。
+    expect(controller.items, isEmpty);
+    expect(source.fileCallCount, 0);
+  });
+
+  testWidgets('種類「文書」は MIME フィルタを渡して読み込む(REQ-011)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      fileResults: [
+        Picked([_entry('report.pdf', handle: 'h:r')]),
+      ],
+    );
+    await _pump(tester, source, controller);
+
+    await _pickKind(tester, FileKind.document);
+
+    expect(controller.items.map((e) => e.name), ['report.pdf']);
+    expect(source.lastMimeTypes, contains('application/pdf'));
+  });
+
+  testWidgets('種類「すべて」は絞り込まない(REQ-011)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(fileResults: [const Picked([])]);
+    await _pump(tester, source, controller);
+
+    await _pickAll(tester);
+
+    expect(source.lastMimeTypes, isEmpty);
+  });
+
+  testWidgets('例15: 親フォルダが跨る選択は警告する(REQ-012)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      fileResults: [
+        Picked([
+          _entry('a.txt', handle: 'h:a', location: '写真'),
+          _entry('b.txt', handle: 'h:b', location: 'ダウンロード'),
+        ]),
+      ],
+    );
+    await _pump(tester, source, controller);
+
+    await _pickAll(tester);
+
+    expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+    // 読み込み自体は行う。
+    expect(controller.items, hasLength(2));
+  });
+
+  testWidgets('例16: 親フォルダが1つだけなら警告しない(REQ-012)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      fileResults: [
+        Picked([
+          _entry('a.txt', handle: 'h:a', location: '写真'),
+          _entry('b.txt', handle: 'h:b', location: '写真'),
+        ]),
+      ],
+    );
+    await _pump(tester, source, controller);
+
+    await _pickAll(tester);
+
+    expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+  });
+
+  testWidgets('2回目の選択は前回を残さず置き換える(蓄積しない。REQ-004)', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      fileResults: [
+        Picked([_entry('a.txt', handle: 'h:a')]),
+        Picked([_entry('b.txt', handle: 'h:b')]),
+      ],
+    );
+    await _pump(tester, source, controller);
+
+    await _pickAll(tester);
+    await _pickAll(tester);
+
+    expect(controller.items.map((e) => e.name), ['b.txt']);
+  });
+
   testWidgets('読み込み結果がリストとプレビューに現れる(REQ-007)', (tester) async {
     final controller = FileListController(
       files: const [],
@@ -243,7 +345,7 @@ void main() {
       ]),
     );
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         Picked([
           _entry('one.jpg', handle: 'h:1'),
           _entry('two.jpg', handle: 'h:2'),
@@ -252,7 +354,7 @@ void main() {
     );
     await _pump(tester, source, controller, withList: true);
 
-    await tester.tap(_openFolder);
+    await _pickAll(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('one.jpg'), findsOneWidget);

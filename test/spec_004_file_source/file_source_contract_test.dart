@@ -20,65 +20,62 @@ FileEntry _entry(
 );
 
 void main() {
-  test('pickFolder/pickFiles は Picked を返し、entries を保持する(REQ-001)', () async {
+  test('pickFiles は Picked を返し、entries を保持する(REQ-001)', () async {
     final source = FakeFileSource(
-      folderResults: [
-        Picked([_entry('a.txt'), _entry('b.txt')]),
-      ],
       fileResults: [
+        Picked([_entry('a.txt'), _entry('b.txt')]),
         Picked([_entry('c.txt')]),
       ],
     );
 
-    final folder = await source.pickFolder();
-    final files = await source.pickFiles();
+    final first = await source.pickFiles();
+    final second = await source.pickFiles();
 
-    expect(folder, isA<Picked>());
-    expect((folder as Picked).entries.map((e) => e.name), ['a.txt', 'b.txt']);
-    expect((files as Picked).entries.single.name, 'c.txt');
+    expect(first, isA<Picked>());
+    expect((first as Picked).entries.map((e) => e.name), ['a.txt', 'b.txt']);
+    expect((second as Picked).entries.single.name, 'c.txt');
   });
 
-  test('空フォルダは空の Picked(Cancelled ではない)(REQ-001)', () async {
-    final source = FakeFileSource(folderResults: [const Picked([])]);
-    final result = await source.pickFolder();
+  test('1件も選ばず確定したら空の Picked(Cancelled ではない)(REQ-001)', () async {
+    final source = FakeFileSource(fileResults: [const Picked([])]);
+    final result = await source.pickFiles();
 
     expect(result, isA<Picked>());
     expect((result as Picked).entries, isEmpty);
   });
 
   test('閉じて未選択は Cancelled(REQ-001)', () async {
-    final source = FakeFileSource(folderResults: [const Cancelled()]);
-    expect(await source.pickFolder(), isA<Cancelled>());
+    final source = FakeFileSource(fileResults: [const Cancelled()]);
+    expect(await source.pickFiles(), isA<Cancelled>());
   });
 
   test('権限拒否・IO 失敗は Failed と理由を返す(REQ-001)', () async {
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         const Failed(PickError(PickErrorKind.permissionDenied, '拒否されました')),
+        const Failed(PickError(PickErrorKind.io)),
       ],
-      fileResults: [const Failed(PickError(PickErrorKind.io))],
     );
 
-    final folder = await source.pickFolder() as Failed;
-    final files = await source.pickFiles() as Failed;
+    final denied = await source.pickFiles() as Failed;
+    final io = await source.pickFiles() as Failed;
 
-    expect(folder.error.kind, PickErrorKind.permissionDenied);
-    expect(folder.error.message, '拒否されました');
-    expect(files.error.kind, PickErrorKind.io);
-    expect(files.error.message, isNull);
+    expect(denied.error.kind, PickErrorKind.permissionDenied);
+    expect(denied.error.message, '拒否されました');
+    expect(io.error.kind, PickErrorKind.io);
+    expect(io.error.message, isNull);
   });
 
-  test('いずれの操作も例外を投げない(REQ-001)', () async {
+  test('例外を投げない(REQ-001)', () async {
     final source = FakeFileSource();
-    await expectLater(source.pickFolder(), completes);
     await expectLater(source.pickFiles(), completes);
   });
 
   test('結果が尽きたら exhausted(既定 Cancelled)を返す', () async {
-    final source = FakeFileSource(folderResults: [const Picked([])]);
-    expect(await source.pickFolder(), isA<Picked>());
-    expect(await source.pickFolder(), isA<Cancelled>());
-    expect(source.folderCallCount, 2);
+    final source = FakeFileSource(fileResults: [const Picked([])]);
+    expect(await source.pickFiles(), isA<Picked>());
+    expect(await source.pickFiles(), isA<Cancelled>());
+    expect(source.fileCallCount, 2);
   });
 
   test('各 FileEntry は元場所ハンドルに対応づく(REQ-002)', () async {
