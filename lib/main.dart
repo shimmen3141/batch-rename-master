@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/rename_engine.dart';
 import 'data/file_source/file_source.dart';
+import 'data/file_source/platform_file_source.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
 import 'ui/file_source/file_source_bar.dart';
@@ -11,12 +12,13 @@ import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
 import 'ui/theme/app_theme.dart';
 
-/// デモ/プレビュー用のアプリ入口。
+/// アプリ入口。
 ///
-/// サンプルの [FileEntry] 一覧で 002(ファイルリスト)・003(ルールビルダー)・
-/// リアルタイムプレビューを組み上げる。ルールは 007 の永続化(`shared_preferences`)
-/// と結線し、**前回のルールを次回起動時に復元**する。実ファイルの読み込み(004)・
-/// リネーム実行(005)は未配線のため、扱うのはサンプルデータのみ。
+/// 002(ファイルリスト)・003(ルールビルダー)・リアルタイムプレビューを束ね、
+/// 004 の実 [FileSource](Android=SAF / デスクトップ=OS ピッカー)から実ファイルを
+/// 読み込む。ルールは 007 の永続化(`shared_preferences`)と結線し、**前回のルールを
+/// 次回起動時に復元**する。起動直後はサンプル一覧を表示し、読み込み操作で実データを
+/// 追加できる(リネーム実行=005 は未実装のため、名前を書き換えることはまだできない)。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -66,25 +68,17 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     super.dispose();
   }
 
-  /// 読み込み入口のデモ用ソース。**T4 で実 `FileSource`(SAF / ピッカー)に
-  /// 差し替える**箇所。ここでは押すたびに別フォルダのファイルが増える様子を
-  /// 再現し、キャンセル・失敗の見え方も確認できるようにしている。
-  late final FileSource _demoSource = FakeFileSource(
-    folderResults: [
-      Picked(_demoFolder('ダウンロード', 'dl', 3)),
-      Picked(_demoFolder('スクリーンショット', 'ss', 2)),
-      const Failed(PickError(PickErrorKind.permissionDenied)),
-    ],
-    fileResults: [Picked(_demoFolder('書類', 'doc', 2))],
-  );
+  /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource]
+  /// (Android=SAF / デスクトップ=OS ピッカー)を注入する(T4)。
+  late final FileSource _source = createPlatformFileSource();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('一括リネーム（デモ）')),
+      appBar: AppBar(title: const Text('一括リネーム')),
       body: Column(
         children: [
-          FileSourceBar(source: _demoSource, controller: _files),
+          FileSourceBar(source: _source, controller: _files),
           Expanded(
             child: RuleBuilderWorkspace(fileList: _files, rule: widget.rule),
           ),
@@ -92,23 +86,6 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
       ),
     );
   }
-}
-
-/// デモ用に、あるフォルダから読み込んだ体の [FileEntry] を作る。
-List<FileEntry> _demoFolder(String location, String prefix, int count) {
-  final base = DateTime(2026, 5, 2, 13);
-  return [
-    for (var i = 0; i < count; i++)
-      FileEntry(
-        name: '$prefix-${i + 1}.jpg',
-        // スクリーンショット相当のフォルダは作成日時が取得できない体にする。
-        createdAt: prefix == 'ss' ? null : base.add(Duration(hours: i)),
-        modifiedAt: base.add(Duration(hours: i, minutes: 20)),
-        size: 1_000_000 + i * 1000,
-        sourceHandle: 'demo://$prefix/${i + 1}',
-        sourceLocation: location,
-      ),
-  ];
 }
 
 /// UI 確認用のサンプルファイル（名前・作成日時・サイズを散らしてソート/連番が

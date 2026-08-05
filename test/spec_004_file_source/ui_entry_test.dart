@@ -191,17 +191,32 @@ void main() {
     expect(controller.selectedCount, 0);
   });
 
-  testWidgets('空の作業セットで「すべて外す」を押しても無変化(REQ-006)', (tester) async {
+  testWidgets('作業セットが空なら「すべて外す」は無効(T4: 件数に追随)', (tester) async {
     final controller = FileListController(files: const []);
-    var notified = 0;
-    controller.addListener(() => notified++);
     await _pump(tester, FakeFileSource(), controller);
+
+    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
+  });
+
+  testWidgets('ファイルが入ると「すべて外す」が有効になり、外すとまた無効に戻る', (tester) async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(
+      folderResults: [
+        Picked([_entry('a.txt', handle: 'h:a')]),
+      ],
+    );
+    await _pump(tester, source, controller);
+    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
+
+    await tester.tap(_openFolder);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNotNull);
 
     await tester.tap(_clearFiles);
     await tester.pumpAndSettle();
 
     expect(controller.items, isEmpty);
-    expect(notified, 0);
+    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
   });
 
   testWidgets('行の×で1件だけ作業セットから外れる(REQ-006)', (tester) async {
