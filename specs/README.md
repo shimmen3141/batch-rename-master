@@ -5,9 +5,9 @@
 | 機能 | 計画 | 仕様 | 進捗 | 依存する機能 | 概要 |
 |------|------|------|------|--------------|------|
 | [001-rename-core](001-rename-core/plan.md) | done | approved (Strict) | 6/6 | - | 一括リネームアプリの中核となる**純粋 Dart の命名エンジン**を、UI・ファイルIO・プラットフォーム固有処理から |
-| [002-file-list](002-file-list/plan.md) | done | approved (Light) | 5/5 | 001-rename-core | メインのワークスペース画面。読み込んだファイルを一覧表示し、左に現在名・右に変更後名(001 のプレビュー)を並べる。チ |
+| [002-file-list](002-file-list/plan.md) | done | draft (Light) | 5/5 | 001-rename-core | メインのワークスペース画面。読み込んだファイルを一覧表示し、左に現在名・右に変更後名(001 のプレビュー)を並べる。チ |
 | [003-rule-builder](003-rule-builder/plan.md) | done | approved (Light) | 6/6 | 002-file-list | 命名ルールを組み立てる UI。トークン(元のファイル名 / 自由テキスト / 区切り / 連番 / 日時)を Chip |
-| [004-file-source](004-file-source/plan.md) | in_progress | approved (Light) | 6/9 | 002-file-list | 実ファイルの読み込みを担う。抽象ポート `FileSource` を定義し、(a) フォルダを選んで権限を取得しフォルダ |
+| [004-file-source](004-file-source/plan.md) | in_progress | draft (Light) | 6/9 | 002-file-list | 実ファイルの読み込みを担う。抽象ポート `FileSource` を定義し、(a) フォルダを選んで権限を取得しフォルダ |
 | [007-rule-persistence](007-rule-persistence/plan.md) | done | approved (Light) | 5/5 | 003-rule-builder | 直近に組み立てた「現在のルール」1件を永続化し、次回アプリ起動時にそのルールから始められるようにする。中核は 001 の |
 <!-- 例: | [001-auth](001-auth/plan.md) | in_progress | approved (Strict) | 2/5 | - | 認証基盤 | -->
 <!-- 計画: draft / approved / in_progress / done。進捗: doneタスク数/全タスク数
