@@ -1,6 +1,6 @@
 # ファイル読み込み(file-source) 振る舞い仕様
 
-- Status: draft <!-- T7(読み込み導線の再設計)のため再承認待ち。approved 化は人間 -->
+- Status: approved <!-- draft → approved(人間が変更) → deprecated。2026-08-05: T7(読み込み導線の再設計)を再承認 -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
