@@ -58,7 +58,7 @@
   **`saf_util` の要件は minSdk 24**(`saf_util-3.1.0/android/build.gradle.kts`)。本アプリは
   `android/app/build.gradle.kts` で `flutter.minSdkVersion` を使っており、Flutter 3.44 系の既定は 24 なので一致する。
   **minSdk を 24 未満へ下げるとビルドが壊れる**点に注意。
-- 実権限・実ピッカー・複数フォルダ蓄積の確認は**ホスト側**(`docs/development/emulator-verification.md`)。
+- 実権限・実ピッカー・新導線(種類選択 → ファイル複数選択 → リスト置き換え)の確認は**ホスト側**(`docs/development/emulator-verification.md`)。
   サンドボックスでは、ピッカーを伴わない部分(SAF ドキュメント→`FileEntry` のマッピング、実フォルダの列挙、
   失敗の分類、プラットフォーム選択)を `test/spec_004_file_source/platform_source_test.dart` で検証する。
 - 005 のリネーム実装は、Android では `saf_util.rename`、デスクトップでは `File.rename` を使う前提になる。
