@@ -10,6 +10,7 @@ import 'ui/file_source/file_source_bar.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
+import 'spike_rename_check.dart';
 import 'ui/theme/app_theme.dart';
 
 /// アプリ入口。
@@ -75,7 +76,21 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('一括リネーム')),
+      appBar: AppBar(
+        title: const Text('一括リネーム'),
+        actions: [
+          // ⚠️ 004 T8 の実機スパイク用の入口。**確認が終わったら削除する**。
+          IconButton(
+            tooltip: '[T8] 改名できるかの確認',
+            icon: const Icon(Icons.science_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SpikeRenameCheckPage(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           FileSourceBar(source: _source, controller: _files),
