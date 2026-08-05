@@ -27,8 +27,6 @@ class UnsupportedFileSource implements FileSource {
   );
 
   @override
-  Future<PickResult> pickFolder() async => const Failed(_error);
-
-  @override
-  Future<PickResult> pickFiles() async => const Failed(_error);
+  Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async =>
+      const Failed(_error);
 }

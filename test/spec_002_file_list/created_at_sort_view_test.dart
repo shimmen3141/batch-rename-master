@@ -89,8 +89,11 @@ void main() {
       expect(find.textContaining('更新日時: 2026/8/4 16:00'), findsOneWidget);
     });
 
-    testWidgets('作成日時が不明な行は「不明」と警告色で示す', (tester) async {
-      await _pump(tester, FileListController(files: [_unknown('b.png')]));
+    testWidgets('作成日時ソートのとき、不明な行は「不明」と警告色で示す(REQ-013)', (tester) async {
+      final c = FileListController(files: [_unknown('b.png')]);
+      await _pump(tester, c);
+      c.setSortMode(FileSortMode.createdAt); // 強調はこのときだけ
+      await tester.pump();
 
       // 行のサブ情報(日時)の RichText を特定する(ヘッダ等の別テキストを拾わない)。
       final richText = tester
@@ -110,6 +113,28 @@ void main() {
         (span) => span.text!.contains('不明'),
       );
       expect(unknownSpan.style?.color, AppColors.dark.danger);
+    });
+
+    testWidgets('例14: 名前順のときは「不明」を表示するが強調しない(REQ-013)', (tester) async {
+      final c = FileListController(files: [_unknown('b.png')]);
+      await _pump(tester, c);
+      c.setSortMode(FileSortMode.name);
+      await tester.pump();
+
+      final richText = tester
+          .widgetList<RichText>(find.byType(RichText))
+          .firstWhere((w) => w.text.toPlainText().contains('作成日時: '));
+      expect(richText.text.toPlainText(), contains('作成日時: 不明'));
+
+      final leaves = <TextSpan>[];
+      richText.text.visitChildren((span) {
+        if (span is TextSpan && span.text != null) leaves.add(span);
+        return true;
+      });
+      final unknownSpan = leaves.firstWhere((s) => s.text!.contains('不明'));
+      // 強調しない: 危険色でなく、警告アイコンも出ない。
+      expect(unknownSpan.style?.color, isNot(AppColors.dark.danger));
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
     });
   });
 }

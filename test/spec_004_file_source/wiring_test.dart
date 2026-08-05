@@ -1,5 +1,5 @@
-// VER-003(T2 の範囲): FileSource の結果を作業セットへ反映する結線
-// (REQ-004/005/007/008)。UI 提示(通知の見た目・場所の表示)は T3。
+// VER-003: FileSource の結果でリストを置き換える結線(REQ-004/005/007/008)。
+// UI 提示(種類選択・通知の見た目・場所の表示)は ui_entry_test。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/file_loading.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
@@ -17,10 +17,10 @@ FileEntry _entry(String name, {required String handle, String? location}) =>
     );
 
 void main() {
-  test('Picked の結果が作業セットへ追加され、リストに現れる(REQ-007)', () async {
+  test('Picked の結果でリストが置き換わる(REQ-007)', () async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         Picked([
           _entry('a.txt', handle: 'h:a'),
           _entry('b.txt', handle: 'h:b'),
@@ -28,14 +28,14 @@ void main() {
       ],
     );
 
-    final error = await loadFolderInto(source, controller.addFiles);
+    final error = await loadFilesInto(source, controller.setFiles);
 
     expect(error, isNull);
     expect(controller.items.map((e) => e.name), ['a.txt', 'b.txt']);
     expect(controller.selectedCount, 2);
   });
 
-  test('プレビュー(変更後名)に追加分が現れる(REQ-007)', () async {
+  test('プレビュー(変更後名)に反映される(REQ-007)', () async {
     final controller = FileListController(
       files: const [],
       rule: const RenameRule([
@@ -52,58 +52,68 @@ void main() {
       ],
     );
 
-    await loadFilesInto(source, controller.addFiles);
+    await loadFilesInto(source, controller.setFiles);
 
     expect(controller.rows.map((r) => r.newName), ['IMG_01.jpg', 'IMG_02.jpg']);
   });
 
-  test('複数回の選択で別フォルダ分が蓄積される(REQ-004/007)', () async {
+  test('2回目の選択は前回を残さず置き換える(蓄積しない。REQ-004)', () async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         Picked([_entry('a.txt', handle: 'h:a', location: '写真')]),
-        Picked([
-          _entry('a.txt', handle: 'h:a', location: '写真'), // 重複
-          _entry('b.txt', handle: 'h:b', location: 'ダウンロード'),
-        ]),
+        Picked([_entry('b.txt', handle: 'h:b', location: 'ダウンロード')]),
       ],
     );
 
-    await loadFolderInto(source, controller.addFiles);
-    await loadFolderInto(source, controller.addFiles);
+    await loadFilesInto(source, controller.setFiles);
+    await loadFilesInto(source, controller.setFiles);
 
-    expect(controller.items.map((e) => e.name), ['a.txt', 'b.txt']);
-    expect(controller.items.map((e) => e.sourceLocation), ['写真', 'ダウンロード']);
+    expect(controller.items.map((e) => e.name), ['b.txt']);
+    expect(controller.items.map((e) => e.sourceLocation), ['ダウンロード']);
   });
 
-  test('Cancelled は作業セット無変化・エラーなし(REQ-008)', () async {
+  test('MIME フィルタがソースへ渡る(種類「文書」用。REQ-011)', () async {
+    final controller = FileListController(files: const []);
+    final source = FakeFileSource(fileResults: [const Picked([])]);
+
+    await loadFilesInto(
+      source,
+      controller.setFiles,
+      mimeTypes: const ['application/pdf'],
+    );
+
+    expect(source.lastMimeTypes, ['application/pdf']);
+  });
+
+  test('Cancelled はリスト無変化・エラーなし(前回の選択が保たれる。REQ-008)', () async {
     final controller = FileListController(
       files: [_entry('keep.txt', handle: 'h:keep')],
     );
-    final source = FakeFileSource(folderResults: [const Cancelled()]);
+    final source = FakeFileSource(fileResults: [const Cancelled()]);
     var notified = 0;
     controller.addListener(() => notified++);
 
-    final error = await loadFolderInto(source, controller.addFiles);
+    final error = await loadFilesInto(source, controller.setFiles);
 
     expect(error, isNull);
     expect(controller.items.map((e) => e.name), ['keep.txt']);
     expect(notified, 0);
   });
 
-  test('Failed は作業セット無変化のまま理由を返す(REQ-008)', () async {
+  test('Failed はリスト無変化のまま理由を返す(REQ-008)', () async {
     final controller = FileListController(
       files: [_entry('keep.txt', handle: 'h:keep')],
     );
     final source = FakeFileSource(
-      folderResults: [
+      fileResults: [
         const Failed(PickError(PickErrorKind.permissionDenied, 'アクセスできません')),
       ],
     );
     var notified = 0;
     controller.addListener(() => notified++);
 
-    final error = await loadFolderInto(source, controller.addFiles);
+    final error = await loadFilesInto(source, controller.setFiles);
 
     expect(error, isNotNull);
     expect(error!.kind, PickErrorKind.permissionDenied);
@@ -112,17 +122,19 @@ void main() {
     expect(notified, 0);
   });
 
-  test('空フォルダ(空の Picked)は無変化でエラーにもならない(REQ-001/007)', () async {
-    final controller = FileListController(files: const []);
-    final source = FakeFileSource(folderResults: [const Picked([])]);
+  test('例7: 空の Picked で置き換えるとリストが空になる(REQ-001/004)', () async {
+    final controller = FileListController(
+      files: [_entry('old.txt', handle: 'h:old')],
+    );
+    final source = FakeFileSource(fileResults: [const Picked([])]);
 
-    final error = await loadFolderInto(source, controller.addFiles);
+    final error = await loadFilesInto(source, controller.setFiles);
 
     expect(error, isNull);
     expect(controller.items, isEmpty);
   });
 
-  test('ファイル選択の結線も同じ契約で動く(REQ-007/008)', () async {
+  test('成功の後に失敗しても、直前の結果は保たれる(REQ-008)', () async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
@@ -131,8 +143,8 @@ void main() {
       ],
     );
 
-    final first = await loadFilesInto(source, controller.addFiles);
-    final second = await loadFilesInto(source, controller.addFiles);
+    final first = await loadFilesInto(source, controller.setFiles);
+    final second = await loadFilesInto(source, controller.setFiles);
 
     expect(first, isNull);
     expect(second?.kind, PickErrorKind.io);
@@ -140,7 +152,7 @@ void main() {
     expect(source.fileCallCount, 2);
   });
 
-  test('追加された FileEntry は場所を保持したまま行データへ渡る(REQ-009 の前提)', () async {
+  test('読み込んだ FileEntry は場所を保持したまま行データへ渡る(REQ-009 の前提)', () async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
@@ -148,7 +160,7 @@ void main() {
       ],
     );
 
-    await loadFilesInto(source, controller.addFiles);
+    await loadFilesInto(source, controller.setFiles);
 
     expect(controller.rows.single.source.sourceLocation, 'ダウンロード');
   });

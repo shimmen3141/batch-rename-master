@@ -53,6 +53,9 @@ class FileListView extends StatelessWidget {
                       key: ValueKey(row.source),
                       index: index,
                       row: row,
+                      // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
+                      showDragHandle: controller.manualOrderMatters,
+                      sortMode: controller.sortMode,
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
                       onRemove: handle == null
@@ -158,13 +161,19 @@ class _SortBar extends StatelessWidget {
 
   final FileListController controller;
 
-  static const List<(FileSortMode, String)> _modes = [
+  /// 常に提示するソート(閲覧・確認の用途があるため。REQ-014)。
+  static const List<(FileSortMode, String)> _alwaysModes = [
     (FileSortMode.name, '元の名前順'),
     (FileSortMode.createdAt, '作成日時順'),
     (FileSortMode.modifiedAt, '更新日時順'),
     (FileSortMode.size, 'サイズ順'),
-    (FileSortMode.custom, 'カスタム順'),
   ];
+
+  /// 連番トークンがあるときだけ提示する(並び順が出力に効くのはそのときだけ)。
+  static const (FileSortMode, String) _customMode = (
+    FileSortMode.custom,
+    'カスタム順',
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +187,10 @@ class _SortBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            for (final (mode, label) in _modes) ...[
+            for (final (mode, label) in [
+              ..._alwaysModes,
+              if (controller.manualOrderMatters) _customMode,
+            ]) ...[
               _SortChip(
                 label: label,
                 active: controller.sortMode == mode,
@@ -277,12 +289,20 @@ class _FileRow extends StatelessWidget {
     required this.index,
     required this.row,
     required this.onToggle,
+    required this.showDragHandle,
+    required this.sortMode,
     this.onRemove,
   });
 
   /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
   final int index;
   final RowView row;
+
+  /// 手動並び替えを提示するか(連番トークンがあるときだけ。REQ-014)。
+  final bool showDragHandle;
+
+  /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
+  final FileSortMode sortMode;
   final VoidCallback onToggle;
 
   /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
@@ -314,7 +334,7 @@ class _FileRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.textPrimary, fontSize: 13),
                 ),
-                _DateSubInfo(file: row.source),
+                _DateSubInfo(file: row.source, sortMode: sortMode),
               ],
             ),
           ),
@@ -333,13 +353,18 @@ class _FileRow extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               padding: EdgeInsets.zero,
             ),
-          ReorderableDragStartListener(
-            index: index,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Icon(Icons.drag_handle, size: 18, color: colors.textMuted),
+          if (showDragHandle)
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(
+                  Icons.drag_handle,
+                  size: 18,
+                  color: colors.textMuted,
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -353,9 +378,12 @@ class _FileRow extends StatelessWidget {
 /// 示し、更新日時で代替されたことを行レベルで見分けられるようにする。見た目は
 /// 非規範だが、色は [AppColors] のセマンティック名から取る(生の色値を書かない)。
 class _DateSubInfo extends StatelessWidget {
-  const _DateSubInfo({required this.file});
+  const _DateSubInfo({required this.file, required this.sortMode});
 
   final FileEntry file;
+
+  /// 現在のソート種別。**作成日時ソートのときだけ**不明を強調する(REQ-013)。
+  final FileSortMode sortMode;
 
   static String _format(DateTime dt) {
     String two(int v) => v.toString().padLeft(2, '0');
@@ -367,11 +395,14 @@ class _DateSubInfo extends StatelessWidget {
     final colors = context.colors;
     final createdAt = file.createdAt;
     final unknown = createdAt == null;
+    // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
+    // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
+    final emphasize = unknown && sortMode == FileSortMode.createdAt;
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
         children: [
-          if (unknown) ...[
+          if (emphasize) ...[
             Icon(Icons.warning_amber_rounded, size: 11, color: colors.danger),
             const SizedBox(width: 3),
           ],
@@ -387,7 +418,7 @@ class _DateSubInfo extends StatelessWidget {
                   TextSpan(
                     text: '作成日時: ${unknown ? '不明' : _format(createdAt)}',
                     style: TextStyle(
-                      color: unknown ? colors.danger : colors.textMuted,
+                      color: emphasize ? colors.danger : colors.textMuted,
                     ),
                   ),
                   TextSpan(text: ' / 更新日時: ${_format(file.modifiedAt)}'),

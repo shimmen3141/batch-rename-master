@@ -58,47 +58,44 @@ class Failed extends PickResult {
 /// Android SAF / Windows ピッカー)。いずれの操作も例外を投げず、結果は
 /// [PickResult] で返す(REQ-001)。
 abstract interface class FileSource {
-  /// ユーザーにフォルダを選ばせ、そのフォルダ内のファイルを読み込む(REQ-001)。
-  Future<PickResult> pickFolder();
-
-  /// ユーザーにファイルを個別選択させる(複数可。REQ-001)。
-  Future<PickResult> pickFiles();
+  /// ユーザーに**フォルダを辿ってファイルを複数選択**させる(REQ-001)。
+  ///
+  /// システムのファイル選択画面を開き、確定した集合を返す。フォルダ単位で
+  /// 一括読み込みする経路(ツリー権限)は持たない — 一括選択はシステム画面の
+  /// 「すべて選択」で成立することを実機で確認したため(2026-08-05 / T8)。
+  ///
+  /// [mimeTypes] を渡すとその種類で絞り込む(種類「文書」用。REQ-011)。
+  /// 空なら絞り込まない(種類「すべて」)。絞り込みの効き方はプラットフォーム
+  /// 依存で、効かない環境があっても契約違反ではない。
+  Future<PickResult> pickFiles({List<String> mimeTypes = const []});
 }
 
 /// あらかじめ与えた結果を返す [FileSource] 実装(サンドボックス検証用の fake)。
 ///
-/// [folderResults] / [fileResults] を順に返し、尽きたら [exhausted] を返す
+/// [fileResults] を順に返し、尽きたら [exhausted] を返す
 /// (既定は [Cancelled] = 何も追加されない)。実 IO を伴わないため
 /// unit/widget test で結線を検証できる。
 class FakeFileSource implements FileSource {
   FakeFileSource({
-    List<PickResult> folderResults = const [],
     List<PickResult> fileResults = const [],
     this.exhausted = const Cancelled(),
-  }) : _folderResults = List<PickResult>.of(folderResults),
-       _fileResults = List<PickResult>.of(fileResults);
+  }) : _fileResults = List<PickResult>.of(fileResults);
 
   /// 与えた結果が尽きた後に返す結果。
   final PickResult exhausted;
 
-  final List<PickResult> _folderResults;
   final List<PickResult> _fileResults;
-
-  /// [pickFolder] が呼ばれた回数。
-  int folderCallCount = 0;
 
   /// [pickFiles] が呼ばれた回数。
   int fileCallCount = 0;
 
-  @override
-  Future<PickResult> pickFolder() async {
-    folderCallCount++;
-    return _folderResults.isEmpty ? exhausted : _folderResults.removeAt(0);
-  }
+  /// 直近の [pickFiles] に渡された MIME フィルタ(検証用)。
+  List<String> lastMimeTypes = const [];
 
   @override
-  Future<PickResult> pickFiles() async {
+  Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
     fileCallCount++;
+    lastMimeTypes = mimeTypes;
     return _fileResults.isEmpty ? exhausted : _fileResults.removeAt(0);
   }
 }

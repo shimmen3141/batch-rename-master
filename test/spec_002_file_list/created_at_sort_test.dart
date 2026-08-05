@@ -170,7 +170,7 @@ void main() {
         ..setSortMode(FileSortMode.createdAt);
       expect(c.createdAtSortWarning, isNull);
 
-      c.addFiles([
+      c.setFiles([
         FileEntry(
           name: 'u.txt',
           modifiedAt: DateTime(2026, 1),

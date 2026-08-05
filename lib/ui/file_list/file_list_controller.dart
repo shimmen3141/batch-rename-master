@@ -72,6 +72,16 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 手動並び替え(`reorder`)と [FileSortMode.custom] を提示してよいか(REQ-014)。
+  ///
+  /// 並び順が生成後名に影響するのは**連番トークンがあるときだけ**で、無いときは
+  /// 並べ替えても出力が変わらない。動かしても何も起きない操作を見せないため、
+  /// 現在の [rule] に連番トークンが含まれるかで判定する(ルールの変更に追随する)。
+  /// ソート(名前順・作成日時順・更新日時順・サイズ順)は閲覧・確認の用途で
+  /// 常に提示してよいので、この判定の対象外。
+  bool get manualOrderMatters =>
+      _rule.tokens.any((token) => token is SequenceToken);
+
   /// 作成日時が不明な item の件数(REQ-011)。
   ///
   /// 判定はファイル種別ではなく**取得可否**([FileEntry.createdAt] が `null` か)
@@ -124,28 +134,27 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 作業セットへ [entries] を追加する(REQ-008 / 004 REQ-004・005)。
+  /// 現在のリストと選択を捨てて [entries] で**置き換える**(REQ-008 / 004 REQ-004・005)。
   ///
-  /// 元場所ハンドルが既存に無いものだけを、与えられた順で末尾へ追加し、
-  /// 追加分を選択状態にする。既存ハンドルと一致するものは追加しない
-  /// (同名でも別ハンドルなら別ファイルとして追加される)。空リストは無変化。
+  /// 供給された順を表示順とし、**全件を選択状態**にする。**蓄積しない**
+  /// (前回の読み込み結果は残らない)。空リストで置き換えるとリストは空になる。
+  /// [entries] に**同一ハンドルが複数含まれていた場合は1件にまとめる**
+  /// (ハンドルは同一ファイルの識別子であるため。004 REQ-002/004)。
   ///
-  /// ハンドルを持たない要素([FileEntry.sourceHandle] が `null`)は重複判定の
-  /// 対象にできないため、常に新規として追加する。
-  void addFiles(List<FileEntry> entries) {
-    final existing = <String>{
-      for (final item in _items)
-        if (item.sourceHandle != null) item.sourceHandle!,
-    };
-    final added = <FileEntry>[];
+  /// ハンドルを持たない要素([FileEntry.sourceHandle] が `null`)は同一性を
+  /// 判定できないため、まとめずにそのまま並べる。
+  void setFiles(List<FileEntry> entries) {
+    final seen = <String>{};
+    final next = <FileEntry>[];
     for (final entry in entries) {
       final handle = entry.sourceHandle;
-      if (handle != null && !existing.add(handle)) continue;
-      added.add(entry);
+      if (handle != null && !seen.add(handle)) continue;
+      next.add(entry);
     }
-    if (added.isEmpty) return;
-    _items = <FileEntry>[..._items, ...added];
-    _selected.addAll(added);
+    _items = next;
+    _selected
+      ..clear()
+      ..addAll(next);
     notifyListeners();
   }
 
