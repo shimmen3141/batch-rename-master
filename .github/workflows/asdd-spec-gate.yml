@@ -10,14 +10,17 @@
 #     > .github/workflows/asdd-spec-gate.yml
 #
 # 加えて skills/create-verifiable-spec/scripts/spec_status_gate.py を .github/scripts/ にコピーする。
-# 効かせるには、リポジトリ設定 > Branches でこのチェックを required status check にする
-# (そうしないと赤いだけでマージできてしまう)。
+# 効かせるには、このチェック(context 名 = ジョブ ID の `spec-status`)を required status check
+# にする(そうしないと赤いだけでマージできてしまう)。単独の開発者しかいないリポジトリでは
+# enforce_admins も有効にしないと、管理者は落ちたまま merge できる点に注意。
 name: ASDD spec gate
 
+# paths: で絞らない。required status check にすると、**走らなかったジョブは永久に
+# 「報告待ち」のまま**になり、仕様を触らない PR がマージできなくなる。
+# 仕様の変更が無ければスクリプトは即 PASS で終わるので、常に走らせる方が安い。
 on:
   pull_request:
     branches: [dev]
-    paths: ["specs/**/spec.md", "specs/**/behavior-contract.json"]
 
 permissions:
   contents: read
