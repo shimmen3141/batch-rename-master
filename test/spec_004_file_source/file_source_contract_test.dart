@@ -1,4 +1,4 @@
-// VER-001: FileSource ポート契約(REQ-001/002/003)。
+// VER-001: FileSource ポート契約(REQ-001/REQ-002/REQ-003)。
 // Picked / Cancelled / Failed の区別、元場所ハンドル、メタデータ、no-throw。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';

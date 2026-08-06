@@ -79,9 +79,11 @@
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_007_rule_persistence/serialization_test.dart | REQ-001〜004（round-trip プロパティ + 各種別の例 + 異常入力） |
-| VER-002 | unit | test/spec_007_rule_persistence/persistence_test.dart | REQ-005〜007（fake ストアでの契約・復元/保存） |
-| VER-003 | unit/widget | test/spec_007_rule_persistence/wiring_test.dart | REQ-008（RuleController 配線。T4） |
+| VER-001 | unit | test/spec_007_rule_persistence/serialization_test.dart | REQ-001, REQ-002, REQ-003, REQ-004 |
+| VER-002 | unit | test/spec_007_rule_persistence/persistence_test.dart | REQ-005, REQ-006, REQ-007 |
+| VER-003 | unit | test/spec_007_rule_persistence/wiring_test.dart | REQ-008 |
+
+- 上表の「対象」は照合用の ID 列のみ。観点の説明は各テストファイル冒頭のコメントに置く。
 
 ## 反証ログ
 

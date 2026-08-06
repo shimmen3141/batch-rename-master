@@ -1,4 +1,4 @@
-// VER-003: FileSource の結果でリストを置き換える結線(REQ-004/005/007/008)。
+// VER-003: FileSource の結果でリストを置き換える結線(REQ-004/REQ-005/REQ-007/REQ-008)。
 // UI 提示(種類選択・通知の見た目・場所の表示)は ui_entry_test。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/file_loading.dart';
@@ -122,7 +122,7 @@ void main() {
     expect(notified, 0);
   });
 
-  test('例7: 空の Picked で置き換えるとリストが空になる(REQ-001/004)', () async {
+  test('例7: 空の Picked で置き換えるとリストが空になる(REQ-001/REQ-004)', () async {
     final controller = FileListController(
       files: [_entry('old.txt', handle: 'h:old')],
     );

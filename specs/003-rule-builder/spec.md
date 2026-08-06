@@ -72,8 +72,11 @@
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_003_rule_builder/rule_controller_test.dart | REQ-001〜007 |
-| VER-002 | widget | test/spec_003_rule_builder/rule_builder_view_test.dart | REQ-002〜005（UI操作→状態反映）+ 002 `setRule` 連携でプレビュー反映 |
+| VER-001 | unit | test/spec_003_rule_builder/rule_controller_test.dart | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 |
+| VER-002 | widget | test/spec_003_rule_builder/ | REQ-002, REQ-003, REQ-004, REQ-005 |
+
+- VER-002 は上記 REQ の**UI 操作 → 状態反映**と、002 への `setRule` 連携によるプレビュー反映を見る。
+- 上表の「対象」は照合用の ID 列のみ。観点の説明は各テストファイル冒頭のコメントに置く。
 
 ## 反証ログ
 

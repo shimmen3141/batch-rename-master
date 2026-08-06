@@ -84,8 +84,10 @@ def plan_status(text: str) -> str:
 
 
 def _split_row(line: str) -> list[str]:
-    cells = line.strip().strip("|").split("|")
-    return [c.strip() for c in cells]
+    # エスケープされたパイプ(`\|`)はセル区切りではない。この扱いは run_plan_helper.py と
+    # 同一でなければならない(index が概要をエスケープして書くため。CONTRIBUTING 参照)
+    inner = line.strip().strip("|")
+    return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", inner)]
 
 
 def parse_plan(text: str) -> list[Task]:

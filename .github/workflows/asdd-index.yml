@@ -1,0 +1,45 @@
+# specs/README.md(インデックス)の再生成を統合ブランチ側に集約するワークフロー。
+#
+# なぜ CI か: README は全 plan.md からの生成物なので、各タスクブランチで再生成すると
+# 同じ行が別内容になり、並列 PR の間で必ず衝突する。生成は統合先の1箇所だけで行う。
+#
+# **このファイルは雛形であり、そのままコピーしない。** プレースホルダは設定から埋める:
+#
+#   python <plugin>/skills/asdd-setup/scripts/asdd_config.py render index \
+#     > .github/workflows/asdd-index.yml
+#
+# 手でコピーして書き換える運用にすると、統合ブランチが既定のまま残る事故が起きる。
+# 加えて run_plan_helper.py を .github/scripts/ にコピーする(CI から参照するため)。
+#
+# 前提: Settings > Actions > General > Workflow permissions が "Read and write permissions"。
+name: ASDD index
+
+on:
+  push:
+    branches: [dev]
+    paths: ["specs/**/plan.md", "specs/**/spec.md", "specs/**/behavior-contract.json"]
+
+permissions:
+  contents: write               # 再生成した README をコミットするため
+
+concurrency:                    # 連続 push でも直列化(取り合い防止)
+  group: asdd-index
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate specs index
+        run: python .github/scripts/run_plan_helper.py index
+
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet -- specs/README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(asdd): regenerate specs index [skip ci]" -- specs/README.md
+            git push
+          fi

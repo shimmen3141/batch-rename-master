@@ -73,7 +73,7 @@ void main() {
     });
   });
 
-  group('REQ-002/003: スキーマ(type タグ + パラメータ + version)', () {
+  group('REQ-002/REQ-003: スキーマ(type タグ + パラメータ + version)', () {
     test('version と type タグが確定スキーマどおり', () {
       final json = serializeRule(
         const RenameRule([

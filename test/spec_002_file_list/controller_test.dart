@@ -1,7 +1,7 @@
 // VER-001: FileListController の状態・操作の検証(FEAT-002 / Light)。
 // 対象: REQ-001(初期化・入力順・既定選択), REQ-002(ソート昇順・安定),
 //       REQ-003(reorder → custom 自動切替), REQ-004(選択トグル/全選択/全解除),
-//       REQ-005(setRule)。プレビュー行データ(REQ-006/007)は T3。
+//       REQ-005(setRule)。プレビュー行データ(REQ-006/REQ-007)は T3。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
