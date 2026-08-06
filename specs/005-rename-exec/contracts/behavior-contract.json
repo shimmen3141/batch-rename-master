@@ -1,0 +1,655 @@
+{
+  "schema_version": "1.0",
+  "feature_id": "FEAT-005",
+  "title": "リネーム実行(rename-exec)",
+  "status": "draft",
+  "scope": {
+    "in": [
+      "改名要求の列から、途中で衝突しない実行順序(必要なら一時名)を決める計画立案。",
+      "計画に従って1件ずつ実ファイルを改名する実行と、その結果の観測。",
+      "失敗したときの停止規則と、成功・失敗・未実行の区別。",
+      "実行直後の限られた期間に、成功した改名を元の名前へ戻す操作(単一ステップ)。",
+      "001 の検証が返す警告の提示と、警告がある状態での実行可否の制御。",
+      "改名に成功したファイルの更新日時を、表示順に一定間隔でずらす任意機能。"
+    ],
+    "out": [
+      "生成後名の決定・重複や桁不足の判定・自動解決の規則(001 が正本)。",
+      "ファイルの読み込み・選択・権限の取得(004 が正本)。",
+      "ファイルの移動・コピー・削除・内容の変更。この機能は改名だけを行う。",
+      "セッションを跨いで残る undo 履歴スタック(単一ステップの巻き戻しのみを扱う)。",
+      "警告・確認・結果表示の視覚デザイン(配色・レイアウト・アニメーション)。"
+    ]
+  },
+  "terms": [
+    {
+      "term": "ハンドル",
+      "definition": "004 が供給する不透明な識別子(Android は SAF の document URI、デスクトップは絶対パス)。実体を一意に指すが、**改名すると別の値に変わりうる**。"
+    },
+    {
+      "term": "改名要求",
+      "definition": "1ファイルの改名を表す組。ハンドル・実行前の名前(元の名前)・目標名からなる。目標名は 001 が確定した生成後フルネーム。"
+    },
+    {
+      "term": "実行計画",
+      "definition": "改名要求を実行順に並べた列。途中で既存の名前と衝突しないよう並べ替えられており、循環がある場合は一時名への改名と一時名からの改名が挿入されている。"
+    },
+    {
+      "term": "一時名",
+      "definition": "循環を解くためだけに一時的に付ける名前。利用者が意図した名前ではなく、実行計画の内部手段である。 一時名への改名は実行結果の「成功した改名」に含まれない(記録の対象は改名要求であって内部ステップではない)。"
+    },
+    {
+      "term": "実行結果",
+      "definition": "実行がどこまで進んだかの記録。成功した改名の列(各要素は新しいハンドルと元の名前を含む)、失敗した改名とその理由、未実行として残った改名の列からなる。**「成功した改名」として記録するのは、改名要求が目標名に到達したものだけ**であり、一時名への改名・一時名からの改名は内部ステップとして記録しない。"
+    },
+    {
+      "term": "巻き戻し",
+      "definition": "実行結果に含まれる成功した改名を、元の名前へ戻す操作。**元のハンドルへ戻すのではなく、新しいハンドルに対して元の名前で改名し直す**(改名でハンドルが変わるため)。"
+    },
+    {
+      "term": "巻き戻し期限",
+      "definition": "実行の完了時点から、巻き戻しを提示する期間。期限を過ぎた実行結果は巻き戻せない。"
+    },
+    {
+      "term": "警告",
+      "definition": "001 の検証が返す 4 種(重複・桁不足・空名・基準日時不明)。判定は 001 が行い、この機能は判定を持たない。"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "実行は実行計画の順に1件ずつ行う。1件が成功するたび、その改名要求のハンドルを改名後の新しいハンドルへ更新する。以降の操作(後続の改名・巻き戻し)は更新後のハンドルを用いる。",
+      "observable": true,
+      "verification": [
+        "VER-001",
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "改名が1件でも失敗したら、その時点で実行を停止する。**それまでに成功した改名は元に戻さない**。実行結果は、成功した改名の列と、失敗した改名およびその理由を含む。",
+      "observable": true,
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "停止したとき、実行結果から「成功した改名」「失敗した改名」「未実行のまま残った改名」の3者が区別できる。",
+      "observable": true,
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "実行計画は、各改名を行う時点でその目標名が既存のいずれの名前とも一致しない順序を与える。順序の入れ替えだけでは解けない循環がある場合に限り、一時名への改名を挿入して解く。",
+      "observable": true,
+      "verification": [
+        "VER-002"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "実行が最後まで進んだとき、一時名を持つファイルは残らない。停止によって一時名を持つファイルが残る場合は、そのファイルを元の名前へ戻すことを試み、戻せなかったときはそのファイルの現在の名前を実行結果に含めて報告する。**一時名は成功した改名として記録されていない**ため、この戻し操作は INV-003 を破らず、巻き戻し(REQ-006)の対象にもならない。",
+      "observable": true,
+      "verification": [
+        "VER-002",
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "巻き戻しは、実行結果に含まれる成功した改名だけを対象とし、実行と逆の順序で、各改名の**新しいハンドルに対して元の名前**で改名し直す。",
+      "observable": true,
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "巻き戻しは実行の完了時点から巻き戻し期限の間だけ提示される。期限を過ぎた実行結果に対して巻き戻しは行われない。",
+      "observable": true,
+      "verification": [
+        "VER-003",
+        "VER-004"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "巻き戻しの途中で改名が失敗したら、その時点で停止し、戻せた分は戻ったままにする。戻せた件・戻せなかった件が区別できる形で報告される。",
+      "observable": true,
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "001 の検証が返す警告 4 種すべてについて、どのファイルが対象かを識別できる形で提示する。基準日時不明の警告では、加えてルール内のどのトークンが空になるかを識別できる。",
+      "observable": true,
+      "verification": [
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "警告が 0 件のときは警告を提示しない。",
+      "observable": true,
+      "verification": [
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "警告が 1 件以上あるとき、実行はキャンセルと強制実行の選択を経る。強制実行を選んだ場合、実行する改名要求の目標名は 001 の自動解決が返した名前とする。キャンセルを選んだ場合、実ファイルは1件も変更されない。",
+      "observable": true,
+      "verification": [
+        "VER-004",
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "実行中に新たな実行を開始しない。",
+      "observable": true,
+      "verification": [
+        "VER-004"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "実行の終了後、成功件数と、失敗があった場合はその理由が提示される。",
+      "observable": true,
+      "verification": [
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "kind": "functional",
+      "priority": "should",
+      "statement": "更新日時ずらしは既定で無効。有効なとき、成功した改名に対して、実行計画ではなく**表示順**で一定間隔ずつ増加する更新日時を設定する。",
+      "observable": true,
+      "verification": [
+        "VER-006"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "kind": "functional",
+      "priority": "should",
+      "statement": "更新日時を設定できないプラットフォームでは、更新日時ずらしの設定を提示しない。",
+      "observable": true,
+      "verification": [
+        "VER-006"
+      ]
+    },
+    {
+      "id": "REQ-016",
+      "kind": "functional",
+      "priority": "should",
+      "statement": "更新日時の設定に失敗しても、その改名は成功として扱われ、実行は停止しない。",
+      "observable": true,
+      "verification": [
+        "VER-006"
+      ]
+    },
+    {
+      "id": "REQ-017",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "改名ポートは例外を投げず、成功(新しいハンドルを含む)か失敗(理由を含む)のいずれかを返す。未対応のプラットフォームでは失敗を返す。",
+      "observable": true,
+      "verification": [
+        "VER-001"
+      ]
+    },
+    {
+      "id": "REQ-018",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "改名後の名前は、要求した目標名を正とする。改名ポートの戻り値に含まれる名前は空になりうるため、これを表示や後続処理の入力にしない。",
+      "observable": true,
+      "verification": [
+        "VER-001"
+      ]
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-001",
+      "statement": "実行および巻き戻しは改名だけを行う。ファイルの個数・内容・所在は変化しない。",
+      "owner": "実行オーケストレーション"
+    },
+    {
+      "id": "INV-002",
+      "statement": "実行のいかなる時点においても、既に存在する名前へ改名して既存のファイルを置き換えることはない。",
+      "owner": "実行計画"
+    },
+    {
+      "id": "INV-003",
+      "statement": "実行結果が成功として記録した改名は、実体がその目標名になっている。実行結果と実体は食い違わない。",
+      "owner": "実行オーケストレーション"
+    },
+    {
+      "id": "INV-004",
+      "statement": "巻き戻しが成功として記録した改名は、実体が実行前の名前に戻っている。",
+      "owner": "実行オーケストレーション"
+    },
+    {
+      "id": "INV-005",
+      "statement": "改名要求が保持するハンドルは、常にその要求が指す実体の現在の識別子である(改名のたびに更新される)。",
+      "owner": "改名要求"
+    }
+  ],
+  "operations": [
+    {
+      "id": "OP-001",
+      "name": "planExecution",
+      "interface": "planExecution(requests: List<改名要求>) -> 実行計画",
+      "preconditions": [
+        "各改名要求の目標名は 001 が確定した生成後フルネームである。",
+        "目標名の集合に重複が無い(001 の自動解決を通っているか、警告が 0 件である)。"
+      ],
+      "postconditions": [
+        "返り値の順に実行すると、各改名の時点で目標名が既存の名前と一致しない(REQ-004)。",
+        "循環がある場合に限り一時名への改名が挿入され、最後まで実行すれば一時名は残らない(REQ-005)。",
+        "入力の改名要求はすべて計画に現れ、失われない。"
+      ],
+      "errors": [],
+      "side_effects": [
+        "none"
+      ],
+      "nondeterminism": [
+        "衝突しない順序が複数ある場合、どれを選ぶかは自由。",
+        "一時名の文字列そのものは自由(利用者に見えうるので判別可能であることだけを要求する)。"
+      ],
+      "requirements": [
+        "REQ-004",
+        "REQ-005"
+      ],
+      "verification": [
+        "VER-002"
+      ]
+    },
+    {
+      "id": "OP-002",
+      "name": "execute",
+      "interface": "execute(plan: 実行計画, port: 改名ポート) -> 実行結果",
+      "preconditions": [
+        "同一の実行が進行中でない(REQ-012)。"
+      ],
+      "postconditions": [
+        "計画の順に改名が行われ、成功のたびにハンドルが更新される(REQ-001)。",
+        "失敗が起きた場合、そこで停止し、成功済みの改名は元に戻らない(REQ-002)。",
+        "実行結果から成功・失敗・未実行が区別できる(REQ-003)。",
+        "成功として記録された改名は実体と一致する(INV-003)。",
+        "一時名への改名・一時名からの改名は内部ステップであり、実行結果の「成功した改名」に含まれない(REQ-005)。"
+      ],
+      "errors": [
+        {
+          "when": "改名ポートが失敗を返した",
+          "result": "その要求を失敗として記録し、以降を未実行として停止する"
+        },
+        {
+          "when": "停止時に一時名を持つファイルが残る",
+          "result": "元の名前へ戻すことを試み、戻せなければ現在の名前を実行結果に含める(REQ-005)"
+        }
+      ],
+      "side_effects": [
+        "実ファイルの改名",
+        "更新日時ずらしが有効なときは更新日時の変更"
+      ],
+      "nondeterminism": [
+        "none"
+      ],
+      "requirements": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-005",
+        "REQ-014",
+        "REQ-016"
+      ],
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "OP-003",
+      "name": "undo",
+      "interface": "undo(outcome: 実行結果, port: 改名ポート) -> 巻き戻し結果",
+      "preconditions": [
+        "巻き戻し期限を過ぎていない(REQ-007)。"
+      ],
+      "postconditions": [
+        "成功した改名だけが逆順に、新しいハンドルに対して元の名前で改名される(REQ-006)。",
+        "成功した巻き戻しの実体は実行前の名前に戻っている(INV-004)。"
+      ],
+      "errors": [
+        {
+          "when": "巻き戻しの改名が失敗した",
+          "result": "そこで停止し、戻せた件と戻せなかった件を区別して返す(REQ-008)"
+        },
+        {
+          "when": "巻き戻し期限を過ぎている",
+          "result": "巻き戻しを行わない(提示もされない)"
+        }
+      ],
+      "side_effects": [
+        "実ファイルの改名"
+      ],
+      "nondeterminism": [
+        "none"
+      ],
+      "requirements": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-008"
+      ],
+      "verification": [
+        "VER-003"
+      ]
+    },
+    {
+      "id": "OP-004",
+      "name": "rename",
+      "interface": "rename(handle: ハンドル, newName: String) -> Renamed(newHandle) | RenameFailed(reason)",
+      "preconditions": [
+        "handle はこの実行の中で最後に得られた値である(INV-005)。"
+      ],
+      "postconditions": [
+        "成功時、実体の名前は newName になり、改名後のハンドルが返る(REQ-001)。",
+        "失敗時、実体は変化しない。"
+      ],
+      "errors": [
+        {
+          "when": "権限が無い・失効した",
+          "result": "理由つきの失敗を返す(例外を投げない。REQ-017)"
+        },
+        {
+          "when": "対象が見つからない・同名が既に存在する・入出力に失敗した",
+          "result": "理由つきの失敗を返す(REQ-017)"
+        },
+        {
+          "when": "プラットフォームが未対応",
+          "result": "理由つきの失敗を返す(REQ-017)"
+        }
+      ],
+      "side_effects": [
+        "実ファイルの改名"
+      ],
+      "nondeterminism": [
+        "改名後のハンドルが改名前と等しいかどうかは実装依存(Android では変わり、デスクトップでは絶対パスが変わる)。呼び出し側はどちらでも壊れてはならない。"
+      ],
+      "requirements": [
+        "REQ-017",
+        "REQ-018"
+      ],
+      "verification": [
+        "VER-001"
+      ]
+    }
+  ],
+  "state_machines": [
+    {
+      "id": "SM-001",
+      "initial": "idle",
+      "states": [
+        "idle",
+        "confirming",
+        "running",
+        "settled"
+      ],
+      "events": [
+        "requestExecute",
+        "confirmForce",
+        "cancel",
+        "finished",
+        "stopped",
+        "undoRequested",
+        "undoExpired"
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "requestExecute",
+          "to": "confirming",
+          "guard": "警告が1件以上ある",
+          "effects": [
+            "警告と選択肢を提示する"
+          ],
+          "requirements": [
+            "REQ-009",
+            "REQ-011"
+          ]
+        },
+        {
+          "from": "idle",
+          "event": "requestExecute",
+          "to": "running",
+          "guard": "警告が0件である",
+          "effects": [
+            "実行計画を立てて実行を開始する"
+          ],
+          "requirements": [
+            "REQ-010",
+            "REQ-004"
+          ]
+        },
+        {
+          "from": "confirming",
+          "event": "cancel",
+          "to": "idle",
+          "guard": "常に",
+          "effects": [
+            "実ファイルを1件も変更しない"
+          ],
+          "requirements": [
+            "REQ-011"
+          ]
+        },
+        {
+          "from": "confirming",
+          "event": "confirmForce",
+          "to": "running",
+          "guard": "常に",
+          "effects": [
+            "001 の自動解決が返した名前で実行計画を立てて実行を開始する"
+          ],
+          "requirements": [
+            "REQ-011"
+          ]
+        },
+        {
+          "from": "running",
+          "event": "finished",
+          "to": "settled",
+          "guard": "全件が成功した",
+          "effects": [
+            "成功件数を提示し、巻き戻しを期限つきで提示する"
+          ],
+          "requirements": [
+            "REQ-013",
+            "REQ-007"
+          ]
+        },
+        {
+          "from": "running",
+          "event": "stopped",
+          "to": "settled",
+          "guard": "改名が1件失敗した",
+          "effects": [
+            "そこで停止する",
+            "成功件数と失敗の理由を提示する",
+            "成功分について巻き戻しを期限つきで提示する"
+          ],
+          "requirements": [
+            "REQ-002",
+            "REQ-003",
+            "REQ-013",
+            "REQ-007"
+          ]
+        },
+        {
+          "from": "settled",
+          "event": "undoRequested",
+          "to": "idle",
+          "guard": "巻き戻し期限内である",
+          "effects": [
+            "成功した改名を逆順に元の名前へ戻す"
+          ],
+          "requirements": [
+            "REQ-006",
+            "REQ-008"
+          ]
+        },
+        {
+          "from": "settled",
+          "event": "undoExpired",
+          "to": "idle",
+          "guard": "巻き戻し期限を過ぎた",
+          "effects": [
+            "巻き戻しの提示を取り下げる"
+          ],
+          "requirements": [
+            "REQ-007"
+          ]
+        }
+      ],
+      "forbidden_traces": [
+        "requestExecute → running → requestExecute(実行中の二重開始。REQ-012)",
+        "requestExecute → confirming → cancel の後に実ファイルが1件でも改名される(REQ-011)",
+        "running → stopped の後に、失敗した改名より後ろの改名が実行される(REQ-002)",
+        "settled → undoExpired → undoRequested で巻き戻しが実行される(REQ-007)",
+        "settled → undoRequested → undoRequested で二重に巻き戻される(REQ-006)"
+      ],
+      "liveness": [
+        "running に入ったら、有限回の改名で finished か stopped のいずれかに到達する。",
+        "settled に入ったら、undoRequested か undoExpired のいずれかで必ず idle に戻る(巻き戻しの提示が残り続けない)。"
+      ]
+    }
+  ],
+  "quality_attributes": [],
+  "implementation_constraints": [
+    {
+      "id": "CON-001",
+      "statement": "実行計画の立案と実行オーケストレーションは `package:flutter` および `dart:io` に依存してはならない。実ファイルへの作用は改名ポートの実装だけが持つ。",
+      "rationale": "順序・部分失敗・巻き戻しという最も間違えやすい部分を、実機なしで網羅的に検証できるようにするため。004 が `FileSource` で同じ分離を採り、サンドボックスに Android SDK が無い制約下でも中核を検証できた実績がある。"
+    }
+  ],
+  "verification": [
+    {
+      "id": "VER-001",
+      "type": "contract",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "OP-004",
+        "REQ-017",
+        "REQ-018",
+        "REQ-001"
+      ]
+    },
+    {
+      "id": "VER-002",
+      "type": "property",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "OP-001",
+        "REQ-004",
+        "REQ-005",
+        "INV-002"
+      ]
+    },
+    {
+      "id": "VER-003",
+      "type": "example",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "OP-002",
+        "OP-003",
+        "REQ-002",
+        "REQ-003",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "INV-001",
+        "INV-003",
+        "INV-004",
+        "INV-005",
+        "REQ-001",
+        "REQ-005"
+      ]
+    },
+    {
+      "id": "VER-004",
+      "type": "model",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "SM-001",
+        "REQ-011",
+        "REQ-012",
+        "REQ-007"
+      ]
+    },
+    {
+      "id": "VER-005",
+      "type": "example",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "REQ-009",
+        "REQ-010",
+        "REQ-013",
+        "REQ-011"
+      ]
+    },
+    {
+      "id": "VER-006",
+      "type": "example",
+      "artifact": "test/spec_005_rename_exec/",
+      "covers": [
+        "REQ-014",
+        "REQ-015",
+        "REQ-016"
+      ]
+    },
+    {
+      "id": "VER-007",
+      "type": "manual",
+      "artifact": "docs/development/emulator-verification.md",
+      "covers": [
+        "CON-001",
+        "REQ-013"
+      ]
+    }
+  ],
+  "open_questions": [
+    "巻き戻し期限の長さ(既定の秒数)。承認時に決めて本項目を削除する。",
+    "停止時に一時名が残った場合、その1件だけ元の名前へ戻すことを試みる(REQ-005)扱いでよいか。「巻き戻さない」決定との整合は取れている(一時名は成功した改名ではなく未完了の内部手段)が、明示の確認を求める。"
+  ]
+}
