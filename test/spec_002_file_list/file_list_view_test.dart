@@ -1,6 +1,6 @@
 // VER-002: ファイルリストの描画層(ウィジェット操作 → 状態反映)の検証。
 // 対象: REQ-002(ソート切替)/ REQ-004(チェックボックス・全選択/全解除)/
-//       REQ-006/007(行の現在名・変更後名の表示)。ドラッグ並び替え(REQ-003)は T5。
+//       REQ-006/REQ-007(行の現在名・変更後名の表示)。ドラッグ並び替え(REQ-003)は T5。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
@@ -40,7 +40,9 @@ void main() {
     expect(find.text('02.txt'), findsOneWidget);
   });
 
-  testWidgets('チェックボックスのタップで選択が反転し、未選択行は — 表示(REQ-004/007)', (tester) async {
+  testWidgets('チェックボックスのタップで選択が反転し、未選択行は — 表示(REQ-004/REQ-007)', (
+    tester,
+  ) async {
     final files = [_f('a.txt'), _f('b.txt')];
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);

@@ -1,4 +1,4 @@
-// VER(T5): shared_preferences 実ストアアダプタのモック検証(REQ-005/006/007)。
+// VER(T5): shared_preferences 実ストアアダプタのモック検証(REQ-005/REQ-006/REQ-007)。
 // 実永続化(再起動での復元)はホスト/実機で確認する(emulator-verification.md)。
 import 'package:batch_rename_master/core/rename_rule.dart';
 import 'package:batch_rename_master/core/token.dart';
@@ -33,7 +33,7 @@ void main() {
     expect(await store.read(), 'seeded');
   });
 
-  test('serialize→write→load でルールが往復する(REQ-006/007)', () async {
+  test('serialize→write→load でルールが往復する(REQ-006/REQ-007)', () async {
     final store = await _store({});
     const rule = RenameRule([
       OriginalNameToken(),

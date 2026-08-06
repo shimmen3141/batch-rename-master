@@ -1,17 +1,32 @@
 # ASDD issue運用「あり(自動同期)」= mode B のワークフロー。
 # plan.md への push をトリガーに、計画タスクを GitHub Issue へ投影する(AI 不要・決定的)。
 #
-# 導入時に project-plan-to-issues skill が行うこと:
-#   1. このファイルを .github/workflows/asdd-sync-issues.yml に置く
-#   2. scripts/project_plan_to_issues.py を .github/scripts/ にコピー(CI から参照するため)
+# **このファイルは雛形であり、そのままコピーしない。** プレースホルダは設定から埋める:
 #
-# 前提: リポジトリ設定 > Actions > Workflow permissions を "Read and write" にする
-#       (または下の permissions で contents:write / issues:write が有効なこと)。
+#   python <plugin>/skills/asdd-setup/scripts/asdd_config.py render sync-issues \
+#     > .github/workflows/asdd-sync-issues.yml
+#
+# 統合ブランチと、PR 運用時の --no-close-done は設定(specs/asdd.config.json)から決まる。
+# 手でコピーして書き換える運用にすると、どちらかが既定のまま残る事故が起きる。
+# 加えて scripts/project_plan_to_issues.py を .github/scripts/ にコピーする(CI から参照するため)。
+#
+# 前提(リポジトリ側の権限。GITHUB_TOKEN の上限はリポジトリ設定が決め、下の permissions はその中で絞る):
+#   - Settings > Actions > General > Workflow permissions を "Read and write permissions" にする
+#     (既定の read-only のままだと、下で issues:write を宣言しても 403 Resource not accessible で失敗する)。
+#     gh で設定する場合:
+#       gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow \
+#         -f default_workflow_permissions=write -F can_approve_pull_request_reviews=true
+#   - PR 運用も併用するなら、同じ画面の "Allow GitHub Actions to create and approve pull requests" を有効化する
+#     (これは permissions キーでは上書きできない独立トグル)。
+#   - 組織/Enterprise が read-only を強制していてリポジトリ側で上げられない場合は、GITHUB_TOKEN の代わりに
+#     fine-grained PAT(Issues: RW, Contents: RW)か GitHub App トークンを secret にし、下の env: GH_TOKEN を差し替える。
+#   - fork からの pull_request で起動した場合、GITHUB_TOKEN は設定に関わらず常に読み取り専用(mode B は自リポジトリへの
+#     push トリガーなので通常は問題ない)。
 name: ASDD sync issues
 
 on:
   push:
-    branches: [main, dev]           # 既定ブランチに合わせる
+    branches: [dev]
     paths: ["specs/**/plan.md"]
 
 permissions:
@@ -32,14 +47,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # PR 運用を併用する場合は、done→close を PR の Closes #N に任せるため
-          # 下の python 行に --no-close-done を足す。
           fatal=0
           flagged=0
           for plan in specs/*/plan.md; do
             [ -f "$plan" ] || continue
             echo "::group::$plan"
-            python .github/scripts/project_plan_to_issues.py "$plan" --apply
+            python .github/scripts/project_plan_to_issues.py "$plan" --apply --no-close-done
             rc=$?
             echo "::endgroup::"
             # exit 2 = 要確認の不整合(renumber 疑い等)。それ以外の非ゼロは致命的

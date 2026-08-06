@@ -91,15 +91,18 @@
 
 ## 対象外・未定義とする点
 
-- 視覚デザインの詳細（後日の参考デザインで確定）。
-- ファイルの読み込み・リネーム実行・権限（004/005）。
+- 視覚デザインの詳細（後日の参考デザインで確定）。→ 008-ui-polish
+- ファイルの読み込み・リネーム実行・権限。→ 005-rename-exec（リネーム実行）/ → 004-file-source（読み込み・権限）
 
 ## 検証
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | `test/spec_002_file_list/` 配下の**コントローラ unit テスト**（現在: `controller_test.dart`, `preview_rows_test.dart`, `created_at_sort_test.dart`） | REQ-001〜014 |
-| VER-002 | widget | `test/spec_002_file_list/` 配下の**ウィジェットテスト**（現在: `file_list_view_test.dart`, `reorder_view_test.dart`, `created_at_sort_view_test.dart`, `location_view_test.dart`） | REQ-003, REQ-004, REQ-010, REQ-011, REQ-013, **REQ-014**（ウィジェット操作→状態反映・場所サブ情報・作成日時ソート時の警告表示と行の強調・**連番が無いときに手動並び替えとカスタム順を出さないこと**） |
+| VER-001 | unit | test/spec_002_file_list/ | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-011 |
+| VER-002 | widget | test/spec_002_file_list/ | REQ-003, REQ-004, REQ-010, REQ-012, REQ-013, REQ-014 |
+
+- 検証実体の所在: **REQ-008 / REQ-009**(`setFiles` / `removeFile` / `clearFiles`)のテストは 004 の `test/spec_004_file_source/working_set_test.dart`(004 VER-002)にある。これらの API は 004 が導入したため。
+- 上表の「対象」は照合用の ID 列のみ。観点の説明は各テストファイル冒頭のコメントに置く。
 
 <!-- 成果物は「ディレクトリ + 種別」で指定し、括弧内は現時点の内訳（非規範）。
      テストをファイルへ分割しても VER の宣言が古くならないようにするため

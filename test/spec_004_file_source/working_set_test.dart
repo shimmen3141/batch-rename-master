@@ -1,4 +1,4 @@
-// VER-002: リスト操作の検証(004 REQ-002/004/005/006 = 002 REQ-008/009)。
+// VER-002: リスト操作の検証(004 REQ-002/REQ-004/REQ-005/REQ-006 = 002 REQ-008/REQ-009)。
 // 置き換え・同一ハンドルの集約・全件選択・除去・全消去・順序保持。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
@@ -19,7 +19,7 @@ List<String> _names(FileListController c) =>
     c.items.map((e) => e.name).toList();
 
 void main() {
-  test('setFiles は供給された順で並べ、全件を選択する(REQ-004/005)', () {
+  test('setFiles は供給された順で並べ、全件を選択する(REQ-004/REQ-005)', () {
     final c = FileListController(files: const []);
     final a = _entry('a.txt', handle: 'h:a');
     final b = _entry('b.txt', handle: 'h:b');
@@ -43,7 +43,7 @@ void main() {
     expect(_names(c), ['c.txt', 'd.txt']);
   });
 
-  test('例6b: 同一ハンドルが複数含まれていたら1件にまとめる(REQ-002/004)', () {
+  test('例6b: 同一ハンドルが複数含まれていたら1件にまとめる(REQ-002/REQ-004)', () {
     final c = FileListController(files: const []);
 
     c.setFiles([

@@ -1,0 +1,13 @@
+{
+  "schema_version": "1",
+  "integration_branch": "dev",
+  "test_root": "test",
+  "commit": "per_task",
+  "ai_attribution": false,
+  "pr": {
+    "enabled": true
+  },
+  "issues": {
+    "mode": "auto"
+  }
+}

@@ -26,7 +26,7 @@ SafDocumentFile _doc({
 );
 
 void main() {
-  group('SafFileSource: SAF ドキュメント → FileEntry(REQ-002/003/009)', () {
+  group('SafFileSource: SAF ドキュメント → FileEntry(REQ-002/REQ-003/REQ-009)', () {
     test('URI がハンドル、名前・更新日時・サイズが写る', () {
       final entry = SafFileSource.entryOf(
         _doc(
@@ -138,7 +138,7 @@ void main() {
     });
   });
 
-  group('DesktopFileSource: 実フォルダの列挙(REQ-002/003/009)', () {
+  group('DesktopFileSource: 実フォルダの列挙(REQ-002/REQ-003/REQ-009)', () {
     late Directory dir;
 
     setUp(() {

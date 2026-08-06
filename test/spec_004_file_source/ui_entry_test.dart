@@ -1,4 +1,4 @@
-// VER-003(T3): UI 入口の検証(REQ-004/005/006/007/008)。
+// VER-003(T3): UI 入口の検証(REQ-004/REQ-005/REQ-006/REQ-007/REQ-008)。
 // 種類選択 → ファイル選択 → リスト置き換え、種類ごとの分岐、
 // Cancelled は無変化・通知なし、Failed は無変化のまま理由を通知、除去・全消去。
 import 'package:batch_rename_master/core/rename_engine.dart';
@@ -91,7 +91,9 @@ void main() {
     expect(source.fileCallCount, 1);
   });
 
-  testWidgets('1回の選択に別フォルダのファイルが混ざると、両方載って警告も出る(REQ-004/012)', (tester) async {
+  testWidgets('1回の選択に別フォルダのファイルが混ざると、両方載って警告も出る(REQ-004/REQ-012)', (
+    tester,
+  ) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
@@ -170,7 +172,9 @@ void main() {
     expect(find.textContaining('ファイルを読み込めませんでした'), findsOneWidget);
   });
 
-  testWidgets('空の Picked(空フォルダ)は無変化でエラーにもならない(REQ-001/007)', (tester) async {
+  testWidgets('空の Picked(空フォルダ)は無変化でエラーにもならない(REQ-001/REQ-007)', (
+    tester,
+  ) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(fileResults: [const Picked([])]);
     await _pump(tester, source, controller);

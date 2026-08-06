@@ -65,15 +65,18 @@
 
 ## 対象外・未定義とする点
 
-- 不正インデックス（範囲外の `removeAt`/`reorder`/`replaceAt`）の扱いは未定義（呼び出し側=ウィジェットが有効な index のみ渡す前提。必要なら実装で防御してよいが本仕様は要求しない）。
-- 視覚デザインの詳細（後日の参考デザインで確定）。
+- 不正インデックス（範囲外の `removeAt`/`reorder`/`replaceAt`）の扱いは未定義（呼び出し側=ウィジェットが有効な index のみ渡す前提。必要なら実装で防御してよいが本仕様は要求しない）。意図的に不要
+- 視覚デザインの詳細（後日の参考デザインで確定）。→ 008-ui-polish
 
 ## 検証
 
 | ID | 種別 | 成果物パス | 対象 |
 |---|---|---|---|
-| VER-001 | unit | test/spec_003_rule_builder/rule_controller_test.dart | REQ-001〜007 |
-| VER-002 | widget | test/spec_003_rule_builder/rule_builder_view_test.dart | REQ-002〜005（UI操作→状態反映）+ 002 `setRule` 連携でプレビュー反映 |
+| VER-001 | unit | test/spec_003_rule_builder/rule_controller_test.dart | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 |
+| VER-002 | widget | test/spec_003_rule_builder/ | REQ-002, REQ-003, REQ-004, REQ-005 |
+
+- VER-002 は上記 REQ の**UI 操作 → 状態反映**と、002 への `setRule` 連携によるプレビュー反映を見る。
+- 上表の「対象」は照合用の ID 列のみ。観点の説明は各テストファイル冒頭のコメントに置く。
 
 ## 反証ログ
 
