@@ -56,7 +56,7 @@
 | ID | タスク | 規模 | 依存 | 仕様 | 状態 | issue |
 |----|--------|------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Strict) | M | - | - | done |  |
-| T2 | `RenameExecutor` ポート + fake + 実行オーケストレーション(順序・ハンドル更新・部分失敗) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-017, REQ-018, INV-001, INV-002, INV-003, INV-005, OP-001, OP-002, OP-004, CON-001 | pending | |
+| T2 | `RenameExecutor` ポート + fake + 実行オーケストレーション(順序・ハンドル更新・部分失敗) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-017, REQ-018, INV-001, INV-002, INV-003, INV-005, OP-001, OP-002, OP-004, CON-001 | in_progress |  |
 | T3 | 警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す | M | T1 | REQ-009, REQ-010 | pending | |
 | T4 | 実行導線: 確認ダイアログ(キャンセル / 強制実行=`autoResolve`)+ 結果の提示 | M | T2, T3 | REQ-011, REQ-012, REQ-013, SM-001 | pending | |
 | T5 | 実 `RenameExecutor`(Android `saf_util.rename` / デスクトップ `File.rename`)+ 配線(ホスト検証) | L | T4 | REQ-017, REQ-018 | pending | |
@@ -91,6 +91,8 @@
   - [ ] `a→b, b→c` の入れ替えと、`a→b, b→a` の循環の双方で、既存ファイルを上書きしないことを検証している
   - [ ] 部分失敗時の状態が仕様どおりであることを検証している(成功分・失敗分の区別が観測できる)
 - 参考: `lib/data/file_source/file_source.dart`(結果型 `Picked`/`Cancelled`/`Failed` の作り)、`lib/data/file_source/file_loading.dart`
+- ログ:
+  - 2026-08-07 / 着手 / 担当: shimmen3141
 
 ### T3: 警告表示をプレビューに出す
 
