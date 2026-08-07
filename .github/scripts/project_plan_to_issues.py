@@ -72,6 +72,16 @@ class Plan:
 # --------------------------------------------------------------------------- #
 # パース(純粋)
 # --------------------------------------------------------------------------- #
+def write_lf(path: Path, text: str) -> None:
+    """LF で書き出す。
+
+    既定のテキスト書き込みは Windows で改行を CRLF に変換するため、plan.md や README を
+    1行直すだけで**ファイル全体が差分になる**(git 上は全行が変更に見える)。台帳を
+    スクリプトが書く設計なので、ここで改行を固定しないとプラットフォームごとに履歴が汚れる。
+    """
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
 def feature_slug_from_path(plan_path: Path) -> str:
     """specs/<NNN>-<機能名>/plan.md → <NNN>-<機能名>。"""
     return plan_path.resolve().parent.name
@@ -127,7 +137,7 @@ def parse_plan(text: str) -> list[Task]:
                 tn=tn,
                 name=row.get("タスク", "").strip(),
                 deps=deps,
-                status=row.get("状態", "").strip(),
+                status="",
                 issue_num=issue_num,
             )
             order.append(tn)
@@ -152,6 +162,7 @@ def parse_plan(text: str) -> list[Task]:
         if tn not in tasks_by_tn:
             continue
         task = tasks_by_tn[tn]
+        task.status = _extract_field(body_lines, "状態")
         task.change_target = _extract_field(body_lines, "変更対象")
         task.acceptance = _extract_list(body_lines, "受け入れ条件")
 
@@ -488,7 +499,7 @@ def main() -> int:
 
     # 4) issue 列の書き戻し
     if plan.writebacks:
-        args.plan.write_text(write_back_issue_column(text, plan.writebacks), encoding="utf-8")
+        write_lf(args.plan, write_back_issue_column(text, plan.writebacks))
 
     print(json.dumps(build_report(plan), ensure_ascii=False, indent=2) if args.json else _text_report(plan, dry=False))
     return 2 if plan.flags else 0

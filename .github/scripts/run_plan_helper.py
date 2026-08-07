@@ -39,11 +39,22 @@ ID_ROW_RE = re.compile(r"^\|\s*((?:REQ|INV|OP|SM|NFR|CON|VER)-[0-9A-Za-z_-]+)\s*
 OUTLET_RE = re.compile(r"(?:→|->)\s*([0-9]{3}-[A-Za-z0-9_.-]+)")
 NO_OUTLET_MARK = "意図的に不要"
 OUTLET_SECTIONS = ("対象外・未定義とする点", "この機能だけでは未完成な点")
+TASK_STATUSES = {"pending", "in_progress", "done", "blocked"}
 
 
 # --------------------------------------------------------------------------- #
 # 表の最小パース
 # --------------------------------------------------------------------------- #
+def write_lf(path: Path, text: str) -> None:
+    """LF で書き出す。
+
+    既定のテキスト書き込みは Windows で改行を CRLF に変換するため、plan.md や README を
+    1行直すだけで**ファイル全体が差分になる**(git 上は全行が変更に見える)。台帳を
+    スクリプトが書く設計なので、ここで改行を固定しないとプラットフォームごとに履歴が汚れる。
+    """
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
 def _split_row(line: str) -> list[str]:
     inner = line.strip().strip("|")
     return [p.strip().replace("\\|", "|") for p in re.split(r"(?<!\\)\|", inner)]
@@ -110,7 +121,7 @@ def task_table(lines: list[str]) -> tuple[Optional[int], list[str], list[int]]:
 
 
 def parse_tasks(text: str) -> list[dict]:
-    """タスク表から {tn, name, deps, spec, status} を返す。"""
+    """タスク表と詳細節から {tn, name, deps, spec, status} を返す。"""
     lines = text.splitlines()
     header_idx, header, rows = task_table(lines)
     if header_idx is None:
@@ -127,16 +138,34 @@ def parse_tasks(text: str) -> list[dict]:
             "name": row.get("タスク", "").strip(),
             "deps": deps,
             "spec": specs,
-            "status": row.get("状態", "").strip(),
+            "status": _detail_status(lines, row.get("ID", "").strip()),
         })
     return tasks
 
 
+def _detail_status(lines: list[str], tn: str) -> str:
+    start, end = _task_section(lines, tn)
+    if start is None:
+        return ""
+    for j in range(start + 1, end):
+        m = re.match(r"^\s*[-*]\s*状態\s*[:：]\s*(\w+)\s*$", lines[j])
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
 def header_field(text: str, label: str) -> str:
+    """ヘッダ項目の値を取る。行末のコメントは値に含めない。
+
+    コメントが次の行へ続いている場合、1行だけを見ると閉じタグが無く除去に失敗して
+    値に混ざる。**値が語彙と一致しなくなり、状態判定が静かに狂う**(実運用で、新規計画が
+    approved と表示された)。閉じているかに関わらず `<!--` 以降を捨てる。
+    """
     m = re.search(rf"^-\s*{re.escape(label)}\s*[:：]\s*(.+)$", text, re.MULTILINE)
     if not m:
         return ""
-    return re.sub(r"<!--.*?-->", "", m.group(1)).strip()  # 行末の HTML コメントを除去
+    value = re.sub(r"<!--.*?-->", "", m.group(1))
+    return value.split("<!--")[0].strip()
 
 
 def background_summary(text: str) -> str:
@@ -159,7 +188,9 @@ def derived_plan_status(header_status: str, tasks: list[dict]) -> str:
     人間が持つのは draft → approved の承認ゲートだけで、in_progress / done は導出値。
     (旧書式の in_progress / done ヘッダは approved と同じに扱い、導出結果で上書きする)
     """
-    if header_status == "draft" or not header_status:
+    # approved 以外はそのまま返す。語彙外の値(書式ずれ)を approved 相当に落とすと、
+    # 承認していない計画が承認済みに見える = 承認ゲートの見え方が壊れる
+    if header_status != "approved":
         return header_status or "draft"
     if not tasks:
         return "approved"
@@ -174,23 +205,26 @@ def derived_plan_status(header_status: str, tasks: list[dict]) -> str:
 # plan.md への書き込み
 # --------------------------------------------------------------------------- #
 def set_task_status(text: str, tn: str, status: str) -> tuple[str, str]:
-    """タスク表の状態セルを書き換える。戻り値は (新しい本文, 旧状態)。"""
+    """タスク詳細の状態行を書き換える。戻り値は (新しい本文, 旧状態)。"""
     lines = text.splitlines()
-    header_idx, header, rows = task_table(lines)
-    if header_idx is None:
-        raise ValueError("タスク一覧の表が見つからない")
-    if "状態" not in header or "ID" not in header:
-        raise ValueError("タスク表に ID / 状態 列が無い")
-    id_i, st_i = header.index("ID"), header.index("状態")
-    for r in rows:
-        cells = _split_row(lines[r])
-        if len(cells) <= max(id_i, st_i) or cells[id_i].strip() != tn:
+    start, end = _task_section(lines, tn)
+    if start is None:
+        raise KeyError(f"{tn} のタスク詳細(### {tn})が無い")
+    old = ""
+    for j in range(start + 1, end):
+        m = re.match(r"^(\s*[-*]\s*状態\s*[:：]\s*)(\w+)(\s*)$", lines[j])
+        if not m:
             continue
-        old = cells[st_i].strip()
-        cells[st_i] = status
-        lines[r] = _join_row(cells)
+        old = m.group(2).strip()
+        lines[j] = f"{m.group(1)}{status}{m.group(3)}"
         return "\n".join(lines) + "\n", old
-    raise KeyError(f"{tn} がタスク表に無い")
+    insert_at = end
+    for j in range(start + 1, end):
+        if re.match(r"^\s*[-*]\s*ログ\s*[:：]", lines[j]):
+            insert_at = j
+            break
+    lines.insert(insert_at, f"- 状態: {status}")
+    return "\n".join(lines) + "\n", old
 
 
 def _task_section(lines: list[str], tn: str) -> tuple[Optional[int], int]:
@@ -210,6 +244,40 @@ def _task_section(lines: list[str], tn: str) -> tuple[Optional[int], int]:
     while end > start + 1 and not lines[end - 1].strip():
         end -= 1
     return start, end
+
+
+def _task_details_bounds(lines: list[str]) -> tuple[Optional[int], int]:
+    """`## タスク詳細` 節の範囲を返す。無ければ (None, len(lines))。"""
+    start = next((i for i, line in enumerate(lines)
+                  if line.strip().startswith("## タスク詳細")), None)
+    if start is None:
+        return None, len(lines)
+    end = next((j for j in range(start + 1, len(lines))
+                if lines[j].strip().startswith("## ")), len(lines))
+    while end > start + 1 and not lines[end - 1].strip():
+        end -= 1
+    return start, end
+
+
+def create_task_detail_section(text: str, tn: str, name: str, status: str) -> str:
+    """タスク詳細節が欠けた旧計画でも、状態を落とさないため最小節を作る。"""
+    lines = text.splitlines()
+    detail_start, detail_end = _task_details_bounds(lines)
+    block = [f"### {tn}: {name}", "", f"- 状態: {status}"]
+    if detail_start is None:
+        insert_at = next((i for i, line in enumerate(lines)
+                          if line.strip().startswith("## 作業ログ")), len(lines))
+        prefix = ["## タスク詳細", ""]
+        if insert_at > 0 and lines[insert_at - 1].strip():
+            prefix.insert(0, "")
+        suffix = [""] if insert_at < len(lines) else []
+        lines[insert_at:insert_at] = prefix + block + suffix
+    else:
+        insert_at = detail_end
+        prefix = [""] if insert_at > 0 and lines[insert_at - 1].strip() else []
+        suffix = [""] if insert_at < len(lines) else []
+        lines[insert_at:insert_at] = prefix + block + suffix
+    return "\n".join(lines) + "\n"
 
 
 def append_task_log(text: str, tn: str, entry: str) -> str:
@@ -253,6 +321,9 @@ def eligible_tasks(plan_text: str, status_lookup: Callable[[str], str]) -> tuple
     out: list[dict] = []
     diagnostics: list[str] = []
     for t in tasks:
+        if t["status"] not in TASK_STATUSES:
+            diagnostics.append(f"{t['tn']}: 状態を読めない(タスク詳細節の `- 状態:` を確認)")
+            continue
         if t["status"] != "pending":
             continue
         ok = True
@@ -273,6 +344,30 @@ def eligible_tasks(plan_text: str, status_lookup: Callable[[str], str]) -> tuple
 # --------------------------------------------------------------------------- #
 # 仕様の読み取り(Light: spec.md / Strict: contracts/behavior-contract.json)
 # --------------------------------------------------------------------------- #
+# 検証表のセルは機械照合の入力なので、書式が決まっている。散文を書くと「パスが無い」という
+# 別の症状に化けて原因が分からなくなるため、書式違反として名指しで報告する
+ID_TOKEN_RE = re.compile(r"^(?:REQ|INV|OP|SM|NFR|CON|VER)-[0-9A-Za-z_-]+$")
+PATH_LIKE_RE = re.compile(r"^[A-Za-z0-9_./\\-]+$")
+
+
+def clean_cell(cell: str) -> str:
+    """表セルの装飾(バックティック・引用符・強調)を外す。"""
+    return cell.strip().strip("`").strip("*").strip("'" + chr(34) + "").strip()
+
+
+def artifact_format_error(artifact: str) -> str:
+    """成果物セルが素のパス1つでなければ理由を返す。問題なければ空文字。"""
+    if not artifact:
+        return "空"
+    if not PATH_LIKE_RE.match(artifact):
+        return "素のパス1つではない(説明を書くなら表の外へ)"
+    return ""
+
+
+def covers_format_errors(covers: list[str]) -> list[str]:
+    """ID として読めないトークンを返す(範囲記法 REQ-001〜014、複合記法 REQ-001/002 等)。"""
+    return [c for c in covers if not ID_TOKEN_RE.match(c)]
+
 def parse_light_spec(md: str) -> dict:
     """spec.md の表から ID を拾う。表の列順に依存しすぎない緩いパース。"""
     ids: dict[str, str] = {}          # id -> 原文(行の要旨)
@@ -290,13 +385,13 @@ def parse_light_spec(md: str) -> dict:
             must.add(ident)
         if ident.startswith("VER-"):
             # | ID | 種別 | 成果物パス | 対象 |
-            artifact = rest[1] if len(rest) > 1 else ""
+            artifact = clean_cell(rest[1]) if len(rest) > 1 else ""
             covers_raw = rest[2] if len(rest) > 2 else ""
             verifications.append({
                 "id": ident,
                 "type": rest[0] if rest else "",
                 "artifact": artifact,
-                "covers": [c.strip() for c in re.split(r"[,、/]", covers_raw) if c.strip()],
+                "covers": [clean_cell(c) for c in re.split(r"[,、/]", covers_raw) if c.strip()],
             })
     return {"ids": ids, "must": must, "verifications": verifications, "level": "Light"}
 
@@ -400,8 +495,70 @@ def _artifact_files(root: Path, artifact: str) -> list[Path]:
     return []
 
 
+# 被覆は証明ではなく smell detector。VER が REQ を本当に検査しているかは人間が見る。
+# ここでは、コメントだけにある ID を証拠にする false positive を避けることを優先する。
+def strip_comments(text: str) -> str:
+    """最小限の複数言語コメントを空白に置き換える。
+
+    文字列リテラル内の記号も除去しうるが、偽陰性側なので許容する。
+    """
+    out: list[str] = []
+    i = 0
+    in_block: Optional[str] = None
+    while i < len(text):
+        if in_block:
+            end = text.find(in_block, i)
+            if end < 0:
+                out.append("\n" if text[i] == "\n" else " ")
+                i += 1
+            else:
+                chunk = text[i:end + len(in_block)]
+                out.append("".join("\n" if ch == "\n" else " " for ch in chunk))
+                i = end + len(in_block)
+            continue
+        marker = next((m for m in ('"""', "'''", "/*", "<!--") if text.startswith(m, i)), None)
+        if marker:
+            in_block = {"/*": "*/", "<!--": "-->"}.get(marker, marker)
+            out.append(" " * len(marker))
+            i += len(marker)
+            continue
+        line_marker = next((m for m in ("//", "#", "--") if text.startswith(m, i)), None)
+        if line_marker:
+            end = text.find("\n", i)
+            if end < 0:
+                out.append(" " * (len(text) - i))
+                break
+            out.append(" " * (end - i))
+            out.append("\n")
+            i = end + 1
+            continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
+
+
+def covering_lines(blob: str, ident: str) -> tuple[list[str], list[str]]:
+    """ID を含む行を (本文の行, コメントだけの行) に分ける。"""
+    code = strip_comments(blob).splitlines()
+    original = blob.splitlines()
+    evidence: list[str] = []
+    comment_only: list[str] = []
+    for idx, line in enumerate(original):
+        if ident not in line:
+            continue
+        code_line = code[idx] if idx < len(code) else ""
+        if ident in code_line:
+            evidence.append(line.strip())
+        else:
+            comment_only.append(line.strip())
+    return evidence, comment_only
+
 def coverage_report(plan_path: Path, specs_dir: Path, repo_root: Path) -> dict:
-    """1つの計画について、仕様 ↔ 計画 ↔ 検証実体 の被覆を照合する。"""
+    """1つの計画について、仕様 ↔ 計画 ↔ 検証実体 の被覆を照合する。
+
+    仕様IDがタスクとVERに割り当たっていることは構造的に照合できるが、VERが本当に
+    その要件を検査しているかは機械証明できない。coverage は証明ではなく smell detector。
+    """
     text = plan_path.read_text(encoding="utf-8")
     plan_dir = plan_path.parent
     tasks = parse_tasks(text)
@@ -456,10 +613,22 @@ def coverage_report(plan_path: Path, specs_dir: Path, repo_root: Path) -> dict:
         elif prefix in ("REQ", "NFR"):
             warnings.append(f"{ident}(must ではない)を担当するタスクが無い")
 
+    # 0) 検証表の書式: 散文が入っていると「パスが無い」という別の症状に化けるので先に名指しする
+    for ver in spec["verifications"]:
+        reason = artifact_format_error(ver["artifact"])
+        if reason and ver["type"] != "manual":
+            errors.append(f"{ver['id']} の成果物列が{reason}: '{ver['artifact']}'"
+                          f"(素のパスかディレクトリを1つだけ書く)")
+        bad = covers_format_errors(ver["covers"])
+        if bad:
+            errors.append(f"{ver['id']} の対象列に ID として読めない値がある: {', '.join(bad)}"
+                          f"(範囲記法 REQ-001〜014 や複合記法 REQ-001/002 は不可。"
+                          f"完全な ID をカンマ区切りで並べる)")
+
     # 3) VER → 検証実体: 成果物パスが実在するか / covers の ID がテストから辿れるか。
     #    担当タスクが未完了のうちは未作成が正常なので、note に落として進行中のノイズを避ける
     for ver in spec["verifications"]:
-        if ver["type"] == "manual":
+        if ver["type"] == "manual" or artifact_format_error(ver["artifact"]):
             continue
         owners = ver_owner_map.get(ver["id"]) or []
         pending = [tn for tn in owners if task_status.get(tn) != "done"]
@@ -478,10 +647,16 @@ def coverage_report(plan_path: Path, specs_dir: Path, repo_root: Path) -> dict:
             except OSError as exc:  # 読めないファイルは照合対象から外すだけ
                 warnings.append(f"{ver['id']}: {f} を読めない({exc})")
         for ident in ver["covers"]:
-            if ident in blob:
+            evidence, comment_only = covering_lines(blob, ident)
+            if evidence:
                 continue
-            msg = (f"{ver['id']} は {ident} を覆うと宣言しているが、"
-                   f"{ver['artifact']} に {ident} が現れない(宣言だけで未検証の疑い)")
+            if comment_only:
+                msg = (f"{ver['id']} が覆うはずの {ident} は、{ver['artifact']} では"
+                       f"コメントだけに出現している(証拠にならない): "
+                       f"{comment_only[0][:60]}")
+            else:
+                msg = (f"{ver['id']} は {ident} を覆うと宣言しているが、"
+                       f"{ver['artifact']} に {ident} が現れない(宣言だけで未検証の疑い)")
             if pending:
                 notes.append(msg + " ※担当タスクが未完了")
             else:
@@ -497,7 +672,17 @@ def coverage_report(plan_path: Path, specs_dir: Path, repo_root: Path) -> dict:
             continue
         dest_plan = specs_dir / outlet["dest"] / "plan.md"
         if not dest_plan.is_file():
-            errors.append(f"送り先 {outlet['dest']} の計画が存在しない: {outlet['text'][:40]}")
+            # 送り先は「これから作る機能」であることが多い。ディスカバリに候補として
+            # 記録されていれば宙に浮いていないので、ERROR ではなく未計画として報告する
+            discovery = specs_dir / "discovery.md"
+            listed = (discovery.is_file()
+                      and outlet["dest"] in discovery.read_text(encoding="utf-8"))
+            if listed:
+                notes.append(f"送り先 {outlet['dest']} は未計画(discovery に候補あり): "
+                             f"{outlet['text'][:40]}")
+            else:
+                errors.append(f"送り先 {outlet['dest']} が計画にも discovery にも無い: "
+                              f"{outlet['text'][:40]}")
             continue
         dest_tasks = parse_tasks(dest_plan.read_text(encoding="utf-8"))
         if not dest_tasks or not all(t["status"] == "done" for t in dest_tasks):
@@ -671,6 +856,46 @@ def migrate_plan(text: str) -> tuple[str, list[str]]:
 
     text = "\n".join(lines) + "\n"
 
+    lines = text.splitlines()
+    header_idx, header, rows = task_table(lines)
+    if header_idx is not None and "状態" in header:
+        st_i = header.index("状態")
+        id_i = header.index("ID") if "ID" in header else -1
+        statuses: list[tuple[str, str, str]] = []
+        for r in rows:
+            cells = _split_row(lines[r])
+            if id_i >= 0 and len(cells) > max(id_i, st_i):
+                row = dict(zip(header, cells))
+                statuses.append((
+                    cells[id_i].strip(),
+                    row.get("タスク", "").strip(),
+                    cells[st_i].strip(),
+                ))
+        targets = [header_idx] + rows
+        if header_idx + 1 < len(lines) and _is_separator(_split_row(lines[header_idx + 1])):
+            targets.insert(1, header_idx + 1)
+        for r in targets:
+            cells = _split_row(lines[r])
+            if st_i < len(cells):
+                del cells[st_i]
+            lines[r] = _join_row(cells) if not _is_separator(cells) else "|" + "|".join(cells) + "|"
+        text = "\n".join(lines) + "\n"
+        moved = 0
+        created: list[str] = []
+        for tn, name, status_value in statuses:
+            if not tn or not status_value:
+                continue
+            try:
+                text, _ = set_task_status(text, tn, status_value)
+                moved += 1
+            except KeyError:
+                text = create_task_detail_section(text, tn, name, status_value)
+                created.append(tn)
+                moved += 1
+        changes.append(f"タスク表の「状態」列を削除し、状態 {moved} 件をタスク詳細へ移した")
+        for tn in created:
+            changes.append(f"詳細節を作成した: {tn}")
+
     def _log_section(source: list[str]) -> Optional[int]:
         # 「未移行」に退避済みの節は再処理しない(移行を冪等にする)
         return next((i for i, l in enumerate(source)
@@ -733,12 +958,17 @@ def cmd_index(args: argparse.Namespace) -> int:
     if not readme.is_file():
         print(f"ERROR: {readme} が無い。asdd-setup を先に実行", file=sys.stderr)
         return 1
-    out = regenerate_index(readme.read_text(encoding="utf-8"), collect_features(specs))
+    features = collect_features(specs)
+    for f in features:
+        if f["plan_status"] not in ("draft", "approved", "in_progress", "done"):
+            print(f"WARNING: {f['slug']} の状態 '{f['plan_status']}' が語彙外"
+                  f"(draft / approved)。plan.md のヘッダ行の書式を確認", file=sys.stderr)
+    out = regenerate_index(readme.read_text(encoding="utf-8"), features)
     if args.stdout:
         print(out, end="")
     else:
-        readme.write_text(out, encoding="utf-8")
-        print(f"index 同期: {len(collect_features(specs))} 機能")
+        write_lf(readme, out)
+        print(f"index 同期: {len(features)} 機能")
     return 0
 
 
@@ -800,7 +1030,7 @@ def _write_log(plan: Path, tn: str, status: Optional[str], entry: str) -> None:
     if status:
         text, old = set_task_status(text, tn, status)
         print(f"{tn}: {old} → {status}")
-    plan.write_text(append_task_log(text, tn, entry), encoding="utf-8")
+    write_lf(plan, append_task_log(text, tn, entry))
     print(f"ログ追記: {entry}")
 
 
@@ -831,7 +1061,7 @@ def cmd_migrate(args: argparse.Namespace) -> int:
         print(f"{plan}: 移行不要(現行書式)")
         return 0
     if args.apply:
-        plan.write_text(new_text, encoding="utf-8")
+        write_lf(plan, new_text)
     print(f"{plan}: " + ("適用" if args.apply else "dry-run"))
     for c in changes:
         print(f"  - {c}")
