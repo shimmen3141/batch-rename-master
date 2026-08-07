@@ -78,3 +78,4 @@ GoogleService-Info.plist
 # 隠してしまい、clone 後にダミー差し替えマウントが空になる(隔離が壊れる)のを打ち消す。
 !secrets.example/
 !secrets.example/**
+.worktrees/

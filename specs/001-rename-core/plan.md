@@ -51,14 +51,14 @@
 
 ## タスク一覧
 
-| ID | タスク | 規模 | 依存 | 仕様 | 状態 | issue |
-|----|--------|------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Strict) | M | - | - | done | #2 |
-| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | REQ-001, REQ-002, REQ-005, REQ-013, INV-001, INV-002, INV-004, INV-005, OP-001, CON-001 | done | #3 |
-| T3 | 連番・日時トークンの評価 | M | T2 | REQ-003, REQ-004, INV-006 | done | #4 |
-| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | REQ-006, OP-002 | done | #5 |
-| T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | REQ-007, REQ-008, REQ-009, REQ-014, OP-003 | done | #6 |
-| T6 | 自動解決(強制実行時の名前確定) | M | T5 | REQ-010, REQ-011, REQ-012, INV-003, OP-004 | done | #7 |
+| ID | タスク | 規模 | 依存 | 仕様 | issue |
+|----|--------|------|------|------|-------|
+| T1 | 振る舞い仕様の作成(Strict) | M | - | - | #2 |
+| T2 | ドメインモデル + 単純トークン評価(元名・自由テキスト) | M | T1 | REQ-001, REQ-002, REQ-005, REQ-013, INV-001, INV-002, INV-004, INV-005, OP-001, CON-001 | #3 |
+| T3 | 連番・日時トークンの評価 | M | T2 | REQ-003, REQ-004, INV-006 | #4 |
+| T4 | プレビュー生成(選択・並び順反映、連番の割り当て) | M | T3 | REQ-006, OP-002 | #5 |
+| T5 | ドライラン検証(重複・桁不足の警告生成) | M | T4 | REQ-007, REQ-008, REQ-009, REQ-014, OP-003 | #6 |
+| T6 | 自動解決(強制実行時の名前確定) | M | T5 | REQ-010, REQ-011, REQ-012, INV-003, OP-004 | #7 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変(順序ではなく identity)。実行順は依存列と行順で表す -->
 
@@ -75,6 +75,7 @@
   - [ ] `spec_lint.py --strict` が PASS(出力を作業ログに添付)。
   - [ ] 仕様が `draft` でインデックス登録され、完了報告にレビュー依頼が含まれる(approved 化は人間。**後続タスクは仕様が approved まで実行不可**)。
 - 参考: create-verifiable-spec skill、`docs/proposals/001-PRD.md` §3.1/§4
+- 状態: done
 - ログ:
   - 2026-07-26 / 着手 / 担当: shimmen3141(暫定 claim)。issue運用は mode B 自動同期が Workflow permissions のユーザー導入対応待ちで Issue 未投影のため、claim を plan.md 側に置く(Issue 投影後に整合させる)。
   - 2026-07-26 / done / verifier PASS(試行1) / Strict 契約・spec.md・ADR-001 作成、spec_lint --strict PASS(errors=0/warnings=0)。仕様は draft。**仕様の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。契約 open_questions 1件(接尾辞書式の確認)は承認時に解消。
@@ -89,6 +90,7 @@
   - [ ] 「元ファイル名」「自由テキスト」トークンの評価に対応する REQ を覆う `test/spec_001_rename_core/` が `flutter test` で通る。
   - [ ] `flutter analyze` 0 issue、`dart format` PASS、エンジンは Flutter に非依存。
 - 参考: T1 の spec.md / behavior-contract.json
+- 状態: done
 - ログ:
   - 2026-07-26 / done / verifier PASS(試行1) / lib/core に FileEntry・Token(sealed: 元名/リテラル)・RenameContext・RenameRule・buildName を実装(REQ-001/002/005・INV-001/002・OP-001)。flutter test 15/15、flutter analyze 0 issue、dart format PASS、lib/core は Flutter/dart:io 非依存(CON-001)。claim=Issue #3 assign。
   - 2026-07-26 / PR #8 作成(asdd/001-rename-core/T2 → dev, Closes #3)。マージ待ちで停止。T3 は T2 の PR マージ後に着手可。
@@ -102,6 +104,7 @@
   - [ ] 連番トークン(開始番号・桁数ゼロ埋め・増分)と日時トークン(基準・フォーマット)の評価が、T1 で確定した REQ どおりに動く。
   - [ ] 該当 REQ/VER を覆う `test/spec_001_rename_core/` が通り、`flutter analyze`/`dart format` が PASS。
 - 参考: T1、PRD §3.2
+- 状態: done
 - ログ:
   - 2026-07-26 / done / verifier PASS(試行1) / token.dart に SequenceToken(REQ-003)・DateTimeToken/DateTimeSource・日時整形(REQ-004: 最長一致・大小区別・基準切替・非該当リテラル・INV-004 時計非参照)を追加。flutter test 28/28、analyze 0 issue、format PASS。claim=Issue #4 assign。
   - 2026-07-26 / PR #9 作成(asdd/001-rename-core/T3 → dev, Closes #4)。マージ待ちで停止。T4 は T3 の PR マージ後に着手可。
@@ -114,6 +117,7 @@
   - [ ] 順序付き+選択状態のファイル一覧にルールを適用し、各ファイルの新名(プレビュー)を返す。連番は T1 で確定した単位(選択順/表示順)で割り当てる。
   - [ ] 該当 REQ/INV を覆う `test/spec_001_rename_core/` が通り、`flutter analyze`/`dart format` が PASS。
 - 参考: T1、PRD §4.1
+- 状態: done
 - ログ:
   - 2026-07-26 / done / verifier PASS(試行1) / rename_engine.dart に PreviewEntry・generatePreview(REQ-006/OP-002: 選択のみ・表示順保持・上から連番、i番目=buildName(...,i,...))を追加。flutter test 34/34、analyze 0 issue、format PASS。claim=Issue #5 assign。
   - 2026-07-26 / PR #10 作成(asdd/001-rename-core/T4 → dev, Closes #5)。マージ待ちで停止。T5 は T4 の PR マージ後に着手可。
@@ -126,6 +130,7 @@
   - [ ] プレビュー結果に対し、重複する新名・連番桁不足の箇所を警告として列挙する(実行はしない)。
   - [ ] 該当 REQ/VER(異常系含む)を覆う `test/spec_001_rename_core/` が通り、`flutter analyze`/`dart format` が PASS。
 - 参考: T1、PRD §4.2
+- 状態: done
 - ログ:
   - 2026-07-27 / done / verifier PASS(試行1) / rename_engine.dart に Warning 階層(Duplicate/DigitShortage/EmptyName)と validate(OP-003/REQ-007〜009: 最終名集合ベースの重複、連番桁不足、空名)を追加。flutter test 46/46、analyze 0 issue、format PASS。claim=Issue #6 assign。
   - 2026-07-27 / PR #11 作成(asdd/001-rename-core/T5 → dev, Closes #6)。マージ待ちで停止。T6 は T5 の PR マージ後に着手可(最後のタスク)。
@@ -138,6 +143,7 @@
   - [ ] 警告がある状態で強制実行相当を要求すると、重複には `(1)(2)…` を付与、桁不足は桁を自動拡張して、衝突のない最終名一覧を返す。
   - [ ] 該当 REQ/INV(自動解決後は重複ゼロ)を覆う `test/spec_001_rename_core/` が通り、`flutter analyze`/`dart format` が PASS。
 - 参考: T1、PRD §4.2 選択肢B
+- 状態: done
 - ログ:
   - 2026-07-27 / done / verifier PASS(試行1) / rename_engine.dart に ResolvedEntry・autoResolve・_expandDigits・_withSuffix(OP-004/REQ-010〜012/INV-003: 重複 (n) 付与・連番桁自動拡張・結果は重複/桁不足なし)を追加。flutter test 54/54、analyze 0 issue、format PASS。claim=Issue #7 assign。
   - 2026-07-27 / PR #12 作成(asdd/001-rename-core/T6 → dev, Closes #7)。
