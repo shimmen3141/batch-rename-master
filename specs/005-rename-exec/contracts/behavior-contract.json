@@ -52,6 +52,10 @@
     {
       "term": "警告",
       "definition": "001 の検証が返す 4 種(重複・桁不足・空名・基準日時不明)。判定は 001 が行い、この機能は判定を持たない。"
+    },
+    {
+      "term": "空のルール",
+      "definition": "トークンを1つも含まない RenameRule。利用者から見れば「変更する名前をまだ設定していない」状態であり、この状態では 001 の検証が全選択ファイルに空名の警告を返し、拡張子が同じファイルどうしの重複警告も派生する。"
     }
   ],
   "requirements": [
@@ -142,7 +146,7 @@
       "id": "REQ-009",
       "kind": "functional",
       "priority": "must",
-      "statement": "001 の検証が返す警告 4 種すべてについて、どのファイルが対象かを識別できる形で提示する。基準日時不明の警告では、加えてルール内のどのトークンが空になるかを識別できる。",
+      "statement": "001 の検証が返す警告 4 種すべてについて、どのファイルが対象かを識別できる形で提示する。基準日時不明の警告では、加えてルール内のどのトークンが空になるかを識別できる。ただし**ルールが空のときは REQ-020 が優先し、警告を提示しない**。",
       "observable": true,
       "verification": [
         "VER-005"
@@ -238,6 +242,48 @@
       "verification": [
         "VER-001"
       ]
+    },
+    {
+      "id": "REQ-019",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ルールが空のとき、実行は開始されない。実行を要求する操作は提示されないか、提示されていても実ファイルを1件も変更しない。",
+      "observable": true,
+      "verification": [
+        "VER-004",
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-020",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ルールが空のとき、警告を提示せず、代わりに「命名ルールが未設定である」ことと、ルールを設定すれば進めることを提示する。ルールにトークンが1つでも加わったら、この提示は消え、REQ-009 および REQ-010 が定める警告の提示に戻る。",
+      "observable": true,
+      "verification": [
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-021",
+      "kind": "functional",
+      "priority": "should",
+      "statement": "同一ファイルについて空名の警告と基準日時不明の警告がともに該当する場合、2件を別々に提示せず、結果(名前が空になる)と原因(どのトークンの基準日時が取れないか)を1件にまとめて提示する。文言と体裁は自由。",
+      "observable": true,
+      "verification": [
+        "VER-005"
+      ]
+    },
+    {
+      "id": "REQ-022",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "生成後ベース名が空になるファイルは、強制実行を選んだ場合でも改名の対象にしない。除外した件数と、除外した理由(名前が空になること)を提示する。001 の自動解決は重複と桁不足を解消するが空名は解消しないため、この除外は自動解決の後に適用する。",
+      "observable": true,
+      "verification": [
+        "VER-004",
+        "VER-005"
+      ]
     }
   ],
   "invariants": [
@@ -302,7 +348,8 @@
       "name": "execute",
       "interface": "execute(plan: 実行計画, port: 改名ポート) -> 実行結果",
       "preconditions": [
-        "同一の実行が進行中でない(REQ-012)。"
+        "同一の実行が進行中でない(REQ-012)。",
+        "実行計画に、生成後ベース名が空になる改名要求が含まれていない(REQ-022 で除外済み)。"
       ],
       "postconditions": [
         "計画の順に改名が行われ、成功のたびにハンドルが更新される(REQ-001)。",
@@ -334,7 +381,8 @@
         "REQ-003",
         "REQ-005",
         "REQ-014",
-        "REQ-016"
+        "REQ-016",
+        "REQ-022"
       ],
       "verification": [
         "VER-003"
@@ -433,14 +481,15 @@
         "finished",
         "stopped",
         "undoRequested",
-        "undoExpired"
+        "undoExpired",
+        "ruleChanged"
       ],
       "transitions": [
         {
           "from": "idle",
           "event": "requestExecute",
           "to": "confirming",
-          "guard": "警告が1件以上ある",
+          "guard": "ルールが空でなく、警告が1件以上ある",
           "effects": [
             "警告と選択肢を提示する"
           ],
@@ -453,7 +502,7 @@
           "from": "idle",
           "event": "requestExecute",
           "to": "running",
-          "guard": "警告が0件である",
+          "guard": "ルールが空でなく、警告が0件である",
           "effects": [
             "実行計画を立てて実行を開始する"
           ],
@@ -540,6 +589,46 @@
           "requirements": [
             "REQ-007"
           ]
+        },
+        {
+          "from": "idle",
+          "event": "requestExecute",
+          "to": "idle",
+          "guard": "ルールが空である",
+          "effects": [
+            "実行を開始しない",
+            "命名ルールが未設定であることを提示する"
+          ],
+          "requirements": [
+            "REQ-019",
+            "REQ-020"
+          ]
+        },
+        {
+          "from": "idle",
+          "event": "ruleChanged",
+          "to": "idle",
+          "guard": "ルールが空でなくなった",
+          "effects": [
+            "命名ルールが未設定である旨の提示を取り下げる",
+            "REQ-009 および REQ-010 が定める警告の提示に戻す"
+          ],
+          "requirements": [
+            "REQ-020"
+          ]
+        },
+        {
+          "from": "idle",
+          "event": "ruleChanged",
+          "to": "idle",
+          "guard": "ルールが空になった",
+          "effects": [
+            "警告の提示を取り下げる",
+            "命名ルールが未設定であることを提示する"
+          ],
+          "requirements": [
+            "REQ-020"
+          ]
         }
       ],
       "forbidden_traces": [
@@ -547,7 +636,8 @@
         "requestExecute → confirming → cancel の後に実ファイルが1件でも改名される(REQ-011)",
         "running → stopped の後に、失敗した改名より後ろの改名が実行される(REQ-002)",
         "settled → undoExpired → undoRequested で巻き戻しが実行される(REQ-007)",
-        "settled → undoRequested → undoRequested で二重に巻き戻される(REQ-006)"
+        "settled → undoRequested → undoRequested で二重に巻き戻される(REQ-006)",
+        "ルールが空のまま requestExecute で running に入る(REQ-019)"
       ],
       "liveness": [
         "running に入ったら、有限回の改名で finished か stopped のいずれかに到達する。",
@@ -614,7 +704,9 @@
         "SM-001",
         "REQ-011",
         "REQ-012",
-        "REQ-007"
+        "REQ-007",
+        "REQ-019",
+        "REQ-022"
       ]
     },
     {
@@ -625,7 +717,11 @@
         "REQ-009",
         "REQ-010",
         "REQ-013",
-        "REQ-011"
+        "REQ-011",
+        "REQ-019",
+        "REQ-020",
+        "REQ-021",
+        "REQ-022"
       ]
     },
     {
