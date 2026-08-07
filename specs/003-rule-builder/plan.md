@@ -46,14 +46,14 @@
 
 ## タスク一覧
 
-| ID | タスク | 規模 | 依存 | 仕様 | 状態 | issue |
-|----|--------|------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light) | S | - | - | done | #26 |
-| T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 | done | #27 |
-| T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | REQ-002, REQ-003, REQ-004 | done | #28 |
-| T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | REQ-005 | done | #29 |
-| T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | - | done | #30 |
-| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | - | done | #73 |
+| ID | タスク | 規模 | 依存 | 仕様 | issue |
+|----|--------|------|------|------|-------|
+| T1 | 振る舞い仕様の作成(Light) | S | - | - | #26 |
+| T2 | 状態層 `RuleController`(追加・削除・並び替え・差し替え・RenameRule 公開) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 | #27 |
+| T3 | ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え | M | T2 | REQ-002, REQ-003, REQ-004 | #28 |
+| T4 | ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時) | M | T2 | REQ-005 | #29 |
+| T5 | レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携 | M | T3, T4, 002-file-list.T3 | - | #30 |
+| T6 | 不具合修正: 初期ルール同期がビルド中に `notifyListeners` を呼ぶ | S | T5 | - | #73 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -68,6 +68,7 @@
   - [ ] 反証ログに反証観点と検出・対処が記録されている(0件ならその旨)。
   - [ ] 仕様が draft でインデックス登録され、完了報告にレビュー依頼が含まれる(approved 化は人間。**後続タスクは仕様が approved まで実行不可**)。
 - 参考: create-verifiable-spec skill、PRD §3.2、discovery.md(003)、001 の `token.dart`/`rename_rule.dart`、002 の spec.md(状態層の書き方)
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #26 を assign)。ブランチ asdd/003-rule-builder/T1。
   - 2026-08-02 / done / verifier PASS(試行1)。Light 仕様 spec.md 作成(RuleController の状態・操作 REQ-001〜007/VER-001〜002、反証ログ5観点、open_questions 5件に推奨デフォルト併記)。reorder は 002 と同じ onReorderItem 規約。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
@@ -84,6 +85,7 @@
   - [ ] `RuleController`(ChangeNotifier 等)が、編集中トークン列の保持・追加・削除・並び替え(onReorderItem 規約)・指定位置のトークン差し替えを T1 の REQ どおり提供し、`RenameRule get rule` を公開する。
   - [ ] 該当 REQ/VER を覆う `test/spec_003_rule_builder/` の unit test が通る。`flutter analyze` 0 issue、`dart format` PASS。`Widget` 構築に非依存。
 - 参考: T1 の spec.md、001 の `Token`/`RenameRule`、002 の `FileListController`(reorder 規約・identity 追従の実装)
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #27 を assign)。ブランチ asdd/003-rule-builder/T2。
   - 2026-08-02 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleController`(ChangeNotifier)を実装: addToken/removeAt/reorder(onReorderItem 規約・002 と一致)/replaceAt、`rule` はスナップショット公開。REQ-001〜007 を覆う rule_controller_test.dart 12件通過(全体107)、`flutter analyze` 0 issue、`dart format` PASS。Widget 非依存(foundation のみ)。
@@ -97,6 +99,7 @@
   - [ ] トークンを Chip として横並び表示し、5種の追加ボタン・各 Chip の削除・D&D 並び替えが `RuleController` に反映される。色は `AppColors` を使用。
   - [ ] 該当 REQ/VER を覆う widget test が通り、`flutter analyze`/`dart format` PASS。
 - 参考: T1、T2、002 の `file_list_view.dart`(ReorderableList/ドラッグの実装)、`AppColors`
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #28 を assign)。ブランチ asdd/003-rule-builder/T3。
   - 2026-08-02 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`RuleBuilderView`(薄い描画層)+ `token_presets.dart`(既定トークン・区切り/日時プリセット・ラベルを集約)を追加。トークン Chip の横並び(横 ReorderableListView)・5種の追加ボタン・各 Chip 削除・D&D 並び替え(onReorderItem)を controller へ委譲。色は AppColors。REQ-002/003/004 を widget で被覆(rule_builder_view_test.dart 5件、spec_003 計17件)、`flutter analyze` 0 issue、`dart format` PASS。自由テキストの追加は暫定プレースホルダ(T4 でエディタ確定フローへ)。Chip タップ→編集(onEditToken)配線は T4。
@@ -110,6 +113,7 @@
   - [ ] Chip タップで種別ごとの詳細エディタを開き、自由テキスト(文字列)・区切り(プリセット選択)・連番(start/digits/increment)・日時(source/format)を編集すると、対応する新しい `Token` に差し替わる。元のファイル名は設定項目なし。
   - [ ] 該当 REQ/VER を覆う widget test が通り、`flutter analyze`/`dart format` PASS。
 - 参考: T1、T2、001 の各 `Token` の引数、参考デザインの詳細ダイアログ
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #29 を assign)。ブランチ asdd/003-rule-builder/T4。
   - 2026-08-02 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`token_editors.dart`(ボトムシートの詳細エディタ + `showTokenEditor`)を追加、`rule_builder_view.dart` の Chip タップを既定エディタ→`replaceAt` に配線(REQ-005)。自由テキスト/区切り=空不可ガード付き LiteralToken エディタ(区切りプリセット4種)、連番=ステッパー(start≥0/digits≥1/increment≥1、負を型で排除)、日時=基準選択+プリセット+自由入力、元名=設定なし。token_editors_test.dart 6件(spec_003 計23件)、`flutter analyze` 0 issue、`dart format` PASS。
@@ -124,6 +128,7 @@
   - [ ] `RuleController` の変更が 002 の `FileListController.setRule` に渡り、プレビュー(変更後名)へ反映されることを widget test で確認する。
   - [ ] `flutter analyze`/`dart format` PASS。
 - 参考: T1、002 の `FileListController.setRule`/`FileListView`、PRD §3.2
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #30 を assign)。ブランチ asdd/003-rule-builder/T5。
   - 2026-08-02 / done / verifier PASS(試行1)+レビューパス(初期同期テストを非空ルールで強化)。`RuleBuilderWorkspace`(StatefulWidget)を追加: `RuleController` の変更を listener で `FileListController.setRule` へ同期(初期同期 + 変更同期、dispose/didUpdateWidget で解除)、幅 840dp を境にモバイル(リスト全面+ボトムシートでルール編集)/デスクトップ(左リスト+右ルールの2ペイン)を切替。rule_builder_workspace_test.dart 3件(spec_003 計26件)、`flutter analyze` 0 issue、`dart format` PASS。
@@ -145,6 +150,7 @@
   - [ ] 003 の既存の振る舞い(初期ルールがプレビューに反映される・変更が反映される)が保たれる。反映が1フレーム遅れる場合はテストを適切に待たせる(**アサーションの緩和・削除は不可**)。
   - [ ] 既存テストが緑のまま(退行なし)。`flutter analyze`/`dart format` PASS。
 - 参考: 004 T3 の作業ログと `specs/FINDINGS.md`、`lib/ui/file_source/file_source_bar.dart`(購読しない回避策のコメント)
+- 状態: done
 - ログ:
   - 2026-08-04 / 申し送り(T6 の変更対象外): `lib/ui/file_source/file_source_bar.dart` のコメント「購読すると 003 のワークスペースが『ビルド中の setState』を誘発する」が、原因解消により**事実と異なる説明**になった。同ファイルは 004 の担当なので触らず報告する。あわせて、バーが再びコントローラを購読できるようになったため「作業セットが空なら『すべて外す』を無効化」の UX も復活可能(004 側の任意改善)。
   - 2026-08-04 / PR #75 作成(Closes #73)。マージ待ちで停止。

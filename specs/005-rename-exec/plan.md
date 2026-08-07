@@ -53,17 +53,17 @@
 
 ## タスク一覧
 
-| ID | タスク | 規模 | 依存 | 仕様 | 状態 | issue |
-|----|--------|------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Strict) | M | - | - | done |  |
-| T2 | `RenameExecutor` ポート + fake + 実行オーケストレーション(順序・ハンドル更新・部分失敗) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-017, REQ-018, INV-001, INV-002, INV-003, INV-005, OP-001, OP-002, OP-004, CON-001 | done |  |
-| T3 | 警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す | M | T1 | REQ-009, REQ-010 | done |  |
-| T8 | 空ルール時の扱いの**仕様更新**(実行不可・警告の代わりに未設定を提示)→ 再承認依頼 | S | T1 | - | pending | |
-| T4 | 実行導線: 確認ダイアログ(キャンセル / 強制実行=`autoResolve`)+ 結果の提示 | M | T2, T3 | REQ-011, REQ-012, REQ-013, SM-001 | pending | |
-| T9 | 空ルール時の**実装**(リネームボタンの無効化・トースト・ルール設定ボタンの文言) | M | T8, T4 | - | pending | |
-| T5 | 実 `RenameExecutor`(Android `saf_util.rename` / デスクトップ `File.rename`)+ 配線(ホスト検証) | L | T4 | REQ-017, REQ-018 | pending | |
-| T6 | 元に戻す(セッション内・単一ステップ・時限トースト) | M | T5 | REQ-006, REQ-007, REQ-008, INV-004, OP-003 | pending | |
-| T7 | 更新日時ずらし(オプトイン・デスクトップのみ) | S | T5 | REQ-014, REQ-015, REQ-016 | pending | |
+| ID | タスク | 規模 | 依存 | 仕様 | issue |
+|----|--------|------|------|------|-------|
+| T1 | 振る舞い仕様の作成(Strict) | M | - | - |  |
+| T2 | `RenameExecutor` ポート + fake + 実行オーケストレーション(順序・ハンドル更新・部分失敗) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-017, REQ-018, INV-001, INV-002, INV-003, INV-005, OP-001, OP-002, OP-004, CON-001 |  |
+| T3 | 警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す | M | T1 | REQ-009, REQ-010 |  |
+| T8 | 空ルール時の扱いの**仕様更新**(実行不可・警告の代わりに未設定を提示)→ 再承認依頼 | S | T1 | - |  |
+| T4 | 実行導線: 確認ダイアログ(キャンセル / 強制実行=`autoResolve`)+ 結果の提示 | M | T2, T3 | REQ-011, REQ-012, REQ-013, SM-001 |  |
+| T9 | 空ルール時の**実装**(リネームボタンの無効化・トースト・ルール設定ボタンの文言) | M | T8, T4 | - |  |
+| T5 | 実 `RenameExecutor`(Android `saf_util.rename` / デスクトップ `File.rename`)+ 配線(ホスト検証) | L | T4 | REQ-017, REQ-018 |  |
+| T6 | 元に戻す(セッション内・単一ステップ・時限トースト) | M | T5 | REQ-006, REQ-007, REQ-008, INV-004, OP-003 |  |
+| T7 | 更新日時ずらし(オプトイン・デスクトップのみ) | S | T5 | REQ-014, REQ-015, REQ-016 |  |
 
 ## タスク詳細
 
@@ -78,6 +78,7 @@
   - [ ] 「この機能だけでは未完成な点」に、警告の見た目(008)と作成日時の取得経路(010)が送り先つきで書かれている
   - [ ] 仕様が `draft` 状態で作成され、完了報告にレビュー依頼が含まれている(approved 化は人間が行う。**後続タスクは仕様が approved になるまで実行不可**)
 - 参考: create-verifiable-spec skill、`specs/004-file-source/decisions/ADR-001-file-source-plugins.md` の「実機で確認した事実」、001 の `contracts/behavior-contract.json`(REQ-007〜009 / REQ-014 / OP-004)
+- 状態: done
 - ログ:
   - 2026-08-06 / 着手 / 担当: shimmen3141
   - 2026-08-06 / done / verifier PASS(試行1) / verifier 所見: REQ-005 と INV-003/REQ-006 の相互作用が未定義だった点を、一時名は成功として記録しないと定めて解消。仕様は draft で人間の承認待ち
@@ -93,6 +94,7 @@
   - [ ] `a→b, b→c` の入れ替えと、`a→b, b→a` の循環の双方で、既存ファイルを上書きしないことを検証している
   - [ ] 部分失敗時の状態が仕様どおりであることを検証している(成功分・失敗分の区別が観測できる)
 - 参考: `lib/data/file_source/file_source.dart`(結果型 `Picked`/`Cancelled`/`Failed` の作り)、`lib/data/file_source/file_loading.dart`
+- 状態: done
 - ログ:
   - 2026-08-07 / 着手 / 担当: shimmen3141
   - 2026-08-07 / done / verifier PASS(試行1) / ミューテーション試験5種すべて検出。verifier 申し送り: notExecuted と stranded は同一要求を重複して含みうるので T4 の結果表示で二重に見せない
@@ -106,6 +108,7 @@
   - [ ] 警告が 0 件のときは何も表示しない
   - [ ] 色は `AppColors` のセマンティック色を用いる(直書きしない)
 - 参考: `lib/core/rename_engine.dart` の `validate` と `Warning` 4種、`lib/ui/file_list/file_list_view.dart` の警告帯(004 T6 で作った `created-at-fallback-warning`)
+- 状態: done
 - ログ:
   - 2026-08-07 / 着手 / 担当: shimmen3141
   - 2026-08-07 / done / verifier PASS(試行1) / ミューテーション試験4種すべて検出。警告帯は既定で折りたたみ(件数と種別内訳は常時表示)。P2: warnings getter は build ごとに validate を再評価
@@ -120,6 +123,7 @@
   - [ ] 実行後、成功件数・失敗件数と失敗の理由が提示される
   - [ ] 実行中に二重で開始できない
 - 参考: 001 の `autoResolve`(OP-004)、`lib/ui/file_source/file_source_bar.dart`(SnackBar の出し方)
+- 状態: pending
 
 ### T8: 空ルール時の扱いの仕様更新 → 再承認依頼
 
@@ -131,6 +135,7 @@
   - [ ] `spec_lint.py --strict` が PASS。反証ログに今回の更新分の観点が追記されている
   - [ ] 仕様が `draft` に戻され、完了報告に**再承認の依頼**が含まれている(**T9 は再承認まで実行不可**)
 - 参考: 001 の `validate`(空ルールでは空名と重複の警告が正当に出る)、`docs/design/Bulk Renamer.html`
+- 状態: pending
 
 ### T9: 空ルール時の実装
 
@@ -144,6 +149,7 @@
   - [ ] ルールにトークンを1つ足すと、上のすべてが通常状態へ戻る(**両方向を検証する**)
   - [ ] 色は `AppColors`。既存テストが緑のまま
 - 参考: `docs/design/Bulk Renamer.html`、`lib/ui/file_list/rename_warning_view.dart`(T3)、`lib/ui/rule_builder/`
+- 状態: pending
 
 ### T5: 実 `RenameExecutor` + 配線(ホスト検証)
 
@@ -155,6 +161,7 @@
   - [ ] 改名後に `sourceHandle` が新しい URI/パスへ更新され、リストの表示と一致する
   - [ ] 実機での確認手順が `docs/development/emulator-verification.md` に追記されている(**確認はホスト側**)
 - 参考: `lib/data/file_source/saf_file_source.dart`、`lib/data/file_source/desktop_file_source.dart`、ADR-001
+- 状態: pending
 
 ### T6: 元に戻す(セッション内・単一ステップ・時限トースト)
 
@@ -166,6 +173,7 @@
   - [ ] 戻す操作自体が失敗したときの提示が仕様どおり
   - [ ] 実機での確認手順が追記されている(**確認はホスト側**)
 - 参考: ADR-001 の「実機で確認した事実」2番、`docs/design/Bulk Renamer.html`(トーストの位置づけ)
+- 状態: pending
 
 ### T7: 更新日時ずらし(オプトイン・デスクトップのみ)
 
@@ -175,3 +183,4 @@
   - [ ] **Android では設定自体を提示しない**(SAF に API が無いため。「効かない設定」を見せない)
   - [ ] ずらしに失敗しても改名自体は成功として扱われる(副次的な処理であることが観測できる)
 - 参考: `File.setLastModifiedSync`、discovery.md の 005 節(刻み幅はファイルシステムの mtime 解像度に依存)
+- 状態: pending

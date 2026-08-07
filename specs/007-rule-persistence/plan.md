@@ -44,13 +44,13 @@
 
 ## タスク一覧
 
-| ID | タスク | 規模 | 依存 | 仕様 | 状態 | issue |
-|----|--------|------|------|------|------|-------|
-| T1 | 振る舞い仕様の作成(Light) | S | - | - | done | #38 |
-| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004 | done | #39 |
-| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | REQ-005, REQ-006, REQ-007 | done | #40 |
-| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | REQ-008 | done | #41 |
-| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | REQ-005 | done | #42 |
+| ID | タスク | 規模 | 依存 | 仕様 | issue |
+|----|--------|------|------|------|-------|
+| T1 | 振る舞い仕様の作成(Light) | S | - | - | #38 |
+| T2 | シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004 | #39 |
+| T3 | ストレージポート + in-memory fake + 復元/保存オーケストレーション | M | T2 | REQ-005, REQ-006, REQ-007 | #40 |
+| T4 | RuleController への配線(初期復元 + 変更保存) | S | T3, 003-rule-builder.T2 | REQ-008 | #41 |
+| T5 | 実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証) | M | T4 | REQ-005 | #42 |
 
 <!-- 状態: pending / in_progress / done / blocked。Tn は不変。実行順は依存列と行順で表す -->
 
@@ -65,6 +65,7 @@
   - [ ] 反証ログに反証観点と検出・対処が記録されている(0件ならその旨)。
   - [ ] 仕様が draft でインデックス登録され、完了報告にレビュー依頼が含まれる(approved 化は人間。**後続タスクは仕様が approved まで実行不可**)。
 - 参考: create-verifiable-spec skill、001 の `token.dart`/`rename_rule.dart`、003 の `rule_controller.dart`、002 の spec.md(書き方)
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #38 を assign)。ブランチ asdd/007-rule-persistence/T1。
   - 2026-08-02 / done / verifier PASS(試行1)。Light 仕様 spec.md 作成(シリアライズ round-trip/異常系 REQ-001〜004、RuleStore 契約と復元/保存 REQ-005〜007、配線 REQ-008、VER-001〜003、反証ログ5観点、open_questions 5件に推奨デフォルト併記)。**spec.md の approved(人間)待ち。後続 T2 は仕様承認まで実行不可**。
@@ -82,6 +83,7 @@
   - [ ] 全 Token 種別(元名/リテラル/連番/日時)と `RenameRule` の JSON 往復が可逆(round-trip)で、未知 type・壊れた JSON は `null` を返す(T1 の REQ どおり)。純粋 Dart(`package:flutter`/`dart:io` 非依存)。
   - [ ] 該当 REQ/VER を覆う unit test(各種別の例 + round-trip + 異常入力)が通る。`flutter analyze` 0 issue、`dart format` PASS。
 - 参考: T1、001 の各 `Token` の引数・sealed 構造
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #39 を assign)。ブランチ asdd/007-rule-persistence/T2。
   - 2026-08-02 / done / verifier PASS(試行1・独自プローブ含む)+レビューパス(P0/P1 なし)。`lib/core/rule_serialization.dart`(純粋 Dart, `dart:convert` のみ)を追加: 確定スキーマ(`{"version":1,"tokens":[...]}`、type=original_name/text/sequence_number/datetime)で serializeRule/deserializeRule。異常系(不正JSON/未知type/欠損/型不一致/非対応バージョン)は例外を投げず null。REQ-001〜004 を覆う serialization_test.dart 12件通過(全体133)、`flutter analyze` 0 issue、`dart format` PASS。
@@ -95,6 +97,7 @@
   - [ ] `RuleStore` ポートと in-memory fake を定義し、`save(rule)`→`load()` が現在ルールを往復する。空ストア/壊れたデータ時は空ルールを返す(T1 の REQ どおり)。
   - [ ] 該当 REQ/VER を覆う unit test が fake ストアで通り、`flutter analyze`/`dart format` PASS。実ストア不要で検証できる。
 - 参考: T1、T2 のシリアライズ
+- 状態: done
 - ログ:
   - 2026-08-02 / 着手 / 担当: shimmen3141(Issue #40 を assign)。ブランチ asdd/007-rule-persistence/T3。
   - 2026-08-02 / done / verifier PASS(試行1)+レビューパス(P0/P1 なし)。`lib/data/rule_store/rule_store.dart`(抽象 `RuleStore` + `InMemoryRuleStore` fake)と `rule_persistence.dart`(`loadLastRule`/`saveCurrentRule`)を追加。両フォールバック経路(read null / deserialize null)で空ルール、store 経由 round-trip、fake のみで完結(実ストア不要)。flutter/dart:io 非依存。REQ-005〜007 を覆う persistence_test.dart 10件通過(spec_007 計22件、全体143)、`flutter analyze` 0 issue、`dart format` PASS。
@@ -108,6 +111,7 @@
   - [ ] 起動時に `load()` の結果で `RuleController` を初期化し、`RuleController` の変更で `save()` される(fake ストアで検証)。復元失敗時は空ルールで開始。
   - [ ] 該当 REQ/VER を覆う unit/widget test が通り、`flutter analyze`/`dart format` PASS。
 - 参考: T1、T3、003 の `RuleController`
+- 状態: done
 - ログ:
   - 2026-08-03 / 着手 / 担当: shimmen3141(Issue #41 を assign)。ブランチ asdd/007-rule-persistence/T4。
   - 2026-08-03 / done / verifier PASS(試行1・dispose 追試含む)。`lib/ui/rule_builder/persistent_rule_controller.dart`(`PersistentRuleController.restore` = 前回ルール復元で RuleController 初期化 + 変更購読で saveCurrentRule、dispose でリスナー解除+破棄)を追加。空ストア/壊れデータは空ルールで開始。REQ-008 を覆う wiring_test.dart 6件通過(spec_007 計28件、全体149)、`flutter analyze` 0 issue、`dart format` PASS。fake ストアで完結(実ストア不要)。
@@ -122,6 +126,7 @@
   - [ ] アプリ入口で実ストアを注入して復元/保存が働くよう配線する。
   - [ ] `flutter analyze`/`dart format`/`flutter test`(モック)PASS。**実機/エミュレータでの永続化(再起動で復元)確認はホスト側**(手順は emulator-verification.md)。
 - 参考: T1、T4、`shared_preferences` パッケージ、`docs/development/emulator-verification.md`
+- 状態: done
 - ログ:
   - 2026-08-03 / 着手 / 担当: shimmen3141(Issue #42 を assign)。ブランチ asdd/007-rule-persistence/T5。
   - 2026-08-03 / done / verifier PASS(試行1)。`shared_preferences` を pubspec に追加(pub get 成功)。`lib/data/rule_store/shared_preferences_rule_store.dart`(実 `RuleStore` アダプタ)を追加、`lib/main.dart` を `SharedPreferences.getInstance → 実ストア → PersistentRuleController.restore → DemoApp` に配線(前回ルール復元 + 変更自動保存)。widget_test は RuleController 注入に追随。モックテスト shared_preferences_rule_store_test.dart 5件(公式 setMockInitialValues)通過。spec_007 計33件・全体154件通過、`flutter analyze` 0 issue、`dart format` PASS。**実永続化(再起動で復元)の実機/エミュレータ確認はホスト側の残作業**(emulator-verification.md)。
