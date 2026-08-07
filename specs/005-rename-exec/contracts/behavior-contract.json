@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-005",
   "title": "リネーム実行(rename-exec)",
-  "status": "draft",
+  "status": "approved",
   "scope": {
     "in": [
       "改名要求の列から、途中で衝突しない実行順序(必要なら一時名)を決める計画立案。",
