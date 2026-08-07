@@ -1,0 +1,234 @@
+/// 改名失敗の理由(005 spec: OP-004 の `errors`)。
+enum RenameErrorKind {
+  /// 権限が無い・失効した。
+  permissionDenied,
+
+  /// 対象が見つからない(古い=stale なハンドルを渡した場合を含む)。
+  notFound,
+
+  /// 同名のファイルが既に存在する。
+  nameConflict,
+
+  /// 入出力に失敗した。
+  io,
+
+  /// プラットフォームが未対応。
+  unsupportedPlatform,
+
+  /// 上記に分類できない失敗。
+  unknown,
+}
+
+/// 改名失敗の理由と任意のメッセージ(005 REQ-002 が実行結果に含める「理由」)。
+class RenameError {
+  const RenameError(this.kind, [this.message]);
+
+  /// 失敗の分類。
+  final RenameErrorKind kind;
+
+  /// 補足メッセージ(実装が提供できる場合)。
+  final String? message;
+
+  @override
+  String toString() =>
+      'RenameError($kind${message == null ? '' : ', $message'})';
+}
+
+/// [RenameExecutor.rename] の結果(005 spec: OP-004)。
+///
+/// 例外を投げず、成功か失敗を型で区別する(REQ-017)。004 の `PickResult` と
+/// 同じ作りにしてあり、呼び出し側は `switch` で網羅的に分岐できる。
+sealed class RenameResult {
+  const RenameResult();
+}
+
+/// 改名に成功した。実体の名前は要求した目標名になっている。
+class Renamed extends RenameResult {
+  const Renamed(this.newHandle, {this.name = ''});
+
+  /// 改名後のハンドル。**改名前とは別の値になりうる**(REQ-001 / INV-005)。
+  ///
+  /// Android(SAF)は改名で document URI が変わり、デスクトップはハンドルが
+  /// 絶対パスなので名前の変更に伴って変わる(ADR-001「実機で確認した事実」2)。
+  /// 呼び出し側は以降の操作でこの値を使う。
+  final String newHandle;
+
+  /// ポートが返した改名後の名前。**空になりうる**。
+  ///
+  /// `saf_util.rename` はドキュメント URI 経由では空文字列を返す
+  /// (ADR-001「実機で確認した事実」3)。したがってこの値を表示や後続処理の
+  /// 入力にしてはならない — 改名後の名前は要求した目標名を正とする(REQ-018)。
+  final String name;
+}
+
+/// 改名に失敗した。実体は変化していない(OP-004 の事後条件)。
+class RenameFailed extends RenameResult {
+  const RenameFailed(this.error);
+
+  /// 失敗の理由。
+  final RenameError error;
+}
+
+/// 実ファイルを1件改名する抽象ポート(FEAT-005 / OP-004)。
+///
+/// プラットフォーム固有の手段(Android は `saf_util.rename`、デスクトップは
+/// `File.rename`)は実装の内側に隠す。**例外は投げず**、結果は [RenameResult] で
+/// 返す(REQ-017)。004 の `FileSource` と同じ分離で、実ファイルへの作用を
+/// この実装だけが持つ(CON-001)。
+abstract interface class RenameExecutor {
+  /// [handle] が指す実体を [newName] へ改名する。
+  ///
+  /// [handle] はこの実行の中で最後に得られた値でなければならない(INV-005)。
+  /// 成功時は改名後のハンドルを含む [Renamed] を、失敗時は理由を含む
+  /// [RenameFailed] を返す(REQ-017)。
+  Future<RenameResult> rename(String handle, String newName);
+}
+
+/// 未対応プラットフォーム用の [RenameExecutor]。常に失敗を返す(REQ-017)。
+class UnsupportedRenameExecutor implements RenameExecutor {
+  const UnsupportedRenameExecutor();
+
+  static const _error = RenameError(
+    RenameErrorKind.unsupportedPlatform,
+    'このプラットフォームではファイルの改名に対応していません',
+  );
+
+  @override
+  Future<RenameResult> rename(String handle, String newName) async =>
+      const RenameFailed(_error);
+}
+
+/// 改名後のハンドルの作り方(プラットフォームごとに異なる)。
+typedef RenamedHandleBuilder = String Function(String handle, String newName);
+
+/// 失敗の注入(`null` を返すと通常どおり改名する)。
+typedef RenameFailureInjector =
+    RenameError? Function(String handle, String newName);
+
+/// パス風ハンドル(デスクトップの絶対パス)の改名後ハンドル。
+///
+/// 最後の `/` 以降を [newName] で置き換える。区切りが無ければ [newName] 自体。
+String pathRenamedHandle(String handle, String newName) {
+  final i = handle.lastIndexOf('/');
+  return i < 0 ? newName : '${handle.substring(0, i + 1)}$newName';
+}
+
+/// SAF の document URI の改名後ハンドル(ADR-001「実機で確認した事実」2)。
+///
+/// URI の最後のパスセグメントはフォルダ区切りが `%2F` に符号化されているため、
+/// 最後の `%2F` 以降を符号化した [newName] で置き換える。実測値:
+/// `.../document/primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg` を
+/// `IMG_0010_t8.jpg` へ改名すると `...%2FIMG_0010_t8.jpg` になる。
+String safDocumentRenamedHandle(String handle, String newName) {
+  final i = handle.lastIndexOf('%2F');
+  if (i < 0) return pathRenamedHandle(handle, newName);
+  return '${handle.substring(0, i + 3)}${Uri.encodeComponent(newName)}';
+}
+
+/// [FakeRenameExecutor] が保持する1ファイルの状態。
+///
+/// [id] と [content] は改名で変化しない(INV-001 の観測点: 実体の個数・内容が
+/// 変わらないことを、ハンドルと名前の変化と切り離して確認できる)。
+class FakeFileState {
+  const FakeFileState({
+    required this.id,
+    required this.name,
+    required this.content,
+  });
+
+  /// 実体の同一性。改名しても変わらない。
+  final String id;
+
+  /// 現在の名前。
+  final String name;
+
+  /// 内容。改名しても変わらない。
+  final String content;
+
+  /// [newName] へ改名した後の状態。
+  FakeFileState renamedTo(String newName) =>
+      FakeFileState(id: id, name: newName, content: content);
+
+  @override
+  String toString() => 'FakeFileState($id, $name)';
+}
+
+/// 1フォルダぶんの実体を模した [RenameExecutor] 実装(サンドボックス検証用の fake)。
+///
+/// **本物より親切にしない**ことを設計方針とする(仕様「境界 > 外部依存が実際に
+/// 供給できる値」):
+///
+/// - 改名すると**ハンドルが変わる**([renamedHandle] が作る)。古いハンドルで
+///   呼ぶと [RenameErrorKind.notFound] を返す(実機の stale URI と同じ)。
+/// - 戻り値の [Renamed.name] は既定で**空文字列**([returnedName])。
+///   ドキュメント URI 経由の `saf_util.rename` と同じ振る舞い。
+/// - 同名のファイルが既にあれば [RenameErrorKind.nameConflict] を返し、
+///   **既存を上書きしない**(INV-002 を実体側でも守る)。
+class FakeRenameExecutor implements RenameExecutor {
+  /// [files] は「ハンドル → 現在の名前」。同一フォルダ内のファイルとして扱う。
+  FakeRenameExecutor({
+    required Map<String, String> files,
+    this.renamedHandle = pathRenamedHandle,
+    this.returnedName = '',
+    this.failWhen,
+  }) : _files = {
+         for (final e in files.entries)
+           e.key: FakeFileState(
+             id: e.key,
+             name: e.value,
+             content: 'content-of:${e.key}',
+           ),
+       };
+
+  final Map<String, FakeFileState> _files;
+
+  /// 改名後のハンドルの作り方(既定はパス風)。
+  final RenamedHandleBuilder renamedHandle;
+
+  /// 成功時に返す名前。既定は空文字列(実機の最悪ケース。REQ-018)。
+  final String returnedName;
+
+  /// 失敗の注入。`null` を返した呼び出しは通常どおり改名される。
+  final RenameFailureInjector? failWhen;
+
+  /// 実行された改名の記録(`ハンドル -> 新しい名前`)。
+  ///
+  /// 改名以外の操作をこの fake は持たないため、この記録が実行の全副作用にあたる
+  /// (INV-001)。
+  final List<String> calls = [];
+
+  /// 現在の実体(ハンドル → 状態)。
+  Map<String, FakeFileState> get files => Map.unmodifiable(_files);
+
+  /// 現在の名前の一覧(登録順)。
+  List<String> get names => [for (final f in _files.values) f.name];
+
+  @override
+  Future<RenameResult> rename(String handle, String newName) async {
+    calls.add('$handle -> $newName');
+
+    final injected = failWhen?.call(handle, newName);
+    if (injected != null) return RenameFailed(injected);
+
+    final target = _files[handle];
+    if (target == null) {
+      return const RenameFailed(
+        RenameError(RenameErrorKind.notFound, '対象が見つかりません(古いハンドル)'),
+      );
+    }
+
+    final occupied = _files.entries.any(
+      (e) => e.key != handle && e.value.name == newName,
+    );
+    if (occupied) {
+      return const RenameFailed(
+        RenameError(RenameErrorKind.nameConflict, '同名のファイルが既に存在します'),
+      );
+    }
+
+    final next = renamedHandle(handle, newName);
+    _files.remove(handle);
+    _files[next] = target.renamedTo(newName);
+    return Renamed(next, name: returnedName);
+  }
+}
