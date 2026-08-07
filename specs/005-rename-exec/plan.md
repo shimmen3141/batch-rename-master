@@ -57,7 +57,7 @@
 |----|--------|------|------|------|------|-------|
 | T1 | 振る舞い仕様の作成(Strict) | M | - | - | done |  |
 | T2 | `RenameExecutor` ポート + fake + 実行オーケストレーション(順序・ハンドル更新・部分失敗) | M | T1 | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-017, REQ-018, INV-001, INV-002, INV-003, INV-005, OP-001, OP-002, OP-004, CON-001 | pending | |
-| T3 | 警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す | M | T1 | REQ-009, REQ-010 | pending | |
+| T3 | 警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す | M | T1 | REQ-009, REQ-010 | in_progress |  |
 | T4 | 実行導線: 確認ダイアログ(キャンセル / 強制実行=`autoResolve`)+ 結果の提示 | M | T2, T3 | REQ-011, REQ-012, REQ-013, SM-001 | pending | |
 | T5 | 実 `RenameExecutor`(Android `saf_util.rename` / デスクトップ `File.rename`)+ 配線(ホスト検証) | L | T4 | REQ-017, REQ-018 | pending | |
 | T6 | 元に戻す(セッション内・単一ステップ・時限トースト) | M | T5 | REQ-006, REQ-007, REQ-008, INV-004, OP-003 | pending | |
@@ -101,6 +101,8 @@
   - [ ] 警告が 0 件のときは何も表示しない
   - [ ] 色は `AppColors` のセマンティック色を用いる(直書きしない)
 - 参考: `lib/core/rename_engine.dart` の `validate` と `Warning` 4種、`lib/ui/file_list/file_list_view.dart` の警告帯(004 T6 で作った `created-at-fallback-warning`)
+- ログ:
+  - 2026-08-07 / 着手 / 担当: shimmen3141
 
 ### T4: 実行導線: 確認ダイアログと結果の提示
 
