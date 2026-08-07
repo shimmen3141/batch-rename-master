@@ -10,6 +10,10 @@
 # 手でコピーして書き換える運用にすると、どちらかが既定のまま残る事故が起きる。
 # 加えて scripts/project_plan_to_issues.py を .github/scripts/ にコピーする(CI から参照するため)。
 #
+# **このワークフローは統合ブランチへ直接 push する。** そのブランチに必須ステータスチェックを
+# 付けると bot の push も拒否されうるので、保護は Ruleset で行い bypass list に
+# GitHub Actions を入れること(classic の branch protection には bypass が無い)。
+#
 # 前提(リポジトリ側の権限。GITHUB_TOKEN の上限はリポジトリ設定が決め、下の permissions はその中で絞る):
 #   - Settings > Actions > General > Workflow permissions を "Read and write permissions" にする
 #     (既定の read-only のままだと、下で issues:write を宣言しても 403 Resource not accessible で失敗する)。
@@ -34,7 +38,9 @@ permissions:
   issues: write                # Issue の作成・更新・close のため
 
 concurrency:                   # 連続 push でも同期を直列化(取り合い防止)
-  group: asdd-sync-issues
+  # index 同期と Issue 投影は同じ push で起動し、どちらも統合ブランチへ書き戻すため
+  # **同じグループで直列化する**(別グループだと同時に push して片方が弾かれる)
+  group: asdd-writeback
   cancel-in-progress: false
 
 jobs:
@@ -69,5 +75,6 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -am "chore(asdd): sync issue numbers into plan.md [skip ci]"
-            git push
+            # 相手の書き戻しと競合しても落とさない(直列化していても、他の push と重なりうる)
+            git pull --rebase --quiet && git push
           fi

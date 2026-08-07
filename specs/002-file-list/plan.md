@@ -1,6 +1,7 @@
 # 計画: ファイル選択・リストUI(file-list)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-07-27
 - 元情報: `specs/discovery.md`(002)、`docs/proposals/001-PRD.md` §3.1/§4.1
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)

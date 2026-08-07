@@ -120,8 +120,53 @@ def task_table(lines: list[str]) -> tuple[Optional[int], list[str], list[int]]:
     return header_idx, header, rows
 
 
-def parse_tasks(text: str) -> list[dict]:
+# plan.md の書式バージョン。**書式を変えたらここを上げる。**
+#
+# なぜ要るか: 書式を変えたとき、古いスクリプト(CI へコピーした複製など)はエラーを
+# 出さずに「読めたが空」を返し、下流はそれを意味のある値として扱う。実運用で、0.6 の
+# ままの複製が 0.7 の plan.md を読み、全タスクの状態を空文字と解釈した結果、
+# **閉じていた Issue 34 件が一括で reopen された**。印を見て「知らない書式なら読まずに
+# 落ちる」ようにすれば、この事故の型ごと消える。
+PLAN_FORMAT_VERSION = 2
+
+
+class PlanFormatError(RuntimeError):
+    """plan.md の書式が、このスクリプトの知っている版と食い違う。"""
+
+
+def plan_format_version(text: str) -> Optional[int]:
+    """ヘッダの `- 書式: N` を返す。印が無ければ None(0.7 未満の書式)。"""
+    raw = header_field(text, "書式")
+    if not raw:
+        return None
+    m = re.match(r"(\d+)", raw)
+    return int(m.group(1)) if m else None
+
+
+def require_known_format(text: str, where: str = "plan.md") -> None:
+    """知らない書式なら読まずに落ちる(fail-closed)。"""
+    version = plan_format_version(text)
+    if version is None:
+        raise PlanFormatError(
+            f"{where}: 書式の印(`- 書式: N`)が無い。0.7 未満の書式なので "
+            f"`run_plan_helper.py migrate` で移行すること"
+        )
+    if version > PLAN_FORMAT_VERSION:
+        raise PlanFormatError(
+            f"{where}: 書式 {version} は、このスクリプト(対応 {PLAN_FORMAT_VERSION})より新しい。"
+            f"スクリプトが古い — プラグインを更新し、CI へコピーした複製も貼り直すこと"
+        )
+
+
+def parse_tasks_legacy(text: str) -> list[dict]:
+    """書式の印を要求せずに読む。**migrate 専用**(旧書式を読めなければ移行できない)。"""
+    return parse_tasks(text, allow_legacy=True)
+
+
+def parse_tasks(text: str, *, allow_legacy: bool = False) -> list[dict]:
     """タスク表と詳細節から {tn, name, deps, spec, status} を返す。"""
+    if not allow_legacy:
+        require_known_format(text)
     lines = text.splitlines()
     header_idx, header, rows = task_table(lines)
     if header_idx is None:
@@ -930,6 +975,13 @@ def migrate_plan(text: str) -> tuple[str, list[str]]:
         ) + lines[log_end:]
         text = "\n".join(remainder).rstrip("\n") + "\n"
         changes.append(f"作業ログ {moved} 行をタスク詳細へ移した" + (f"(未移行 {len(kept)} 行)" if kept else ""))
+
+    if plan_format_version(text) != PLAN_FORMAT_VERSION:
+        # 印は「このスクリプトが読める形になった」ことの宣言なので、他の移行が済んだ後に付ける
+        marker = f"\n- 書式: {PLAN_FORMAT_VERSION}"
+        text = re.sub(r"^(-\s*状態\s*[:：][^\n]*)$",
+                      lambda m: m.group(1) + marker, text, count=1, flags=re.MULTILINE)
+        changes.append(f"書式の印(`- 書式: {PLAN_FORMAT_VERSION}`)を付けた")
 
     status = header_field(text, "状態")
     if status in ("in_progress", "done"):

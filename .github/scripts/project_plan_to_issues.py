@@ -87,6 +87,31 @@ def feature_slug_from_path(plan_path: Path) -> str:
     return plan_path.resolve().parent.name
 
 
+# plan.md の書式バージョン。run_plan_helper.py と同じ値を保つこと(CONTRIBUTING)。
+#
+# 書式を変えたとき、古い複製はエラーを出さずに「読めたが空」を返し、下流はそれを
+# 意味のある値として扱う。実運用で、0.6 のままの複製が 0.7 の plan.md を読んで
+# 全タスクの状態を空文字と解釈し、**閉じていた Issue 34 件を一括で reopen した**。
+# 知らない書式なら読まずに落ちる。
+PLAN_FORMAT_VERSION = 2
+VALID_TASK_STATUSES = ("pending", "in_progress", "done", "blocked")
+
+
+def require_known_format(text: str, where: str) -> None:
+    raw = re.search(r"^-\s*書式\s*[:：]\s*(\d+)", text, re.MULTILINE)
+    if not raw:
+        raise SystemExit(
+            f"ERROR: {where}: 書式の印(`- 書式: N`)が無い。0.7 未満の書式なので "
+            f"run_plan_helper.py migrate で移行すること"
+        )
+    version = int(raw.group(1))
+    if version > PLAN_FORMAT_VERSION:
+        raise SystemExit(
+            f"ERROR: {where}: 書式 {version} は、このスクリプト(対応 {PLAN_FORMAT_VERSION})より新しい。"
+            f"スクリプトが古い — .github/scripts/ の複製を貼り直すこと"
+        )
+
+
 def plan_status(text: str) -> str:
     """plan.md ヘッダの `- 状態: <status>` を返す(承認ゲート用)。"""
     m = re.search(r"^-\s*状態\s*[:：]\s*(\w+)", text, re.MULTILINE)
@@ -100,7 +125,8 @@ def _split_row(line: str) -> list[str]:
     return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", inner)]
 
 
-def parse_plan(text: str) -> list[Task]:
+def parse_plan(text: str, where: str = "plan.md") -> list[Task]:
+    require_known_format(text, where)
     lines = text.splitlines()
     tasks_by_tn: dict[str, Task] = {}
     order: list[str] = []
@@ -166,6 +192,16 @@ def parse_plan(text: str) -> list[Task]:
         task.change_target = _extract_field(body_lines, "変更対象")
         task.acceptance = _extract_list(body_lines, "受け入れ条件")
 
+    # 状態が語彙外なら**投影せずに落ちる**。空文字を「未完了」と解釈して open/close を
+    # 判断すると、書式ずれがそのまま Issue の一括操作という外部の副作用になる
+    unreadable = [t.tn for t in tasks_by_tn.values() if t.status not in VALID_TASK_STATUSES]
+    if unreadable:
+        raise SystemExit(
+            f"ERROR: {', '.join(sorted(unreadable))} の状態を読めない"
+            f"(語彙: {', '.join(VALID_TASK_STATUSES)})。plan.md のタスク詳細節の "
+            f"`- 状態:` を確認すること。状態が読めないまま投影すると Issue を誤って "
+            f"open/close する"
+        )
     return [tasks_by_tn[tn] for tn in order]
 
 

@@ -1,6 +1,7 @@
 # 計画: ルール永続化(前回ルールの復元)(rule-persistence)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`「追加の機能候補」、`lib/core/token.dart`、`lib/ui/rule_builder/rule_controller.dart`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)

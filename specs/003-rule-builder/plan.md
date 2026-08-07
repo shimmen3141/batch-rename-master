@@ -1,6 +1,7 @@
 # 計画: ルール構築UI(トークンビルダー)(rule-builder)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-08-02
 - 元情報: `specs/discovery.md`(003)、`docs/proposals/001-PRD.md` §3.2、`docs/design/Bulk Renamer.html`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)
