@@ -211,6 +211,20 @@ class FileListController extends ChangeNotifier {
     ];
   }
 
+  /// 現在のルール・選択・並び順に対する 001 の検証警告(005 REQ-009 / REQ-010)。
+  ///
+  /// 判定は 001 の [validate] が持ち、UI は結果を表示するだけ(005 契約の用語
+  /// 「警告」)。該当が無ければ空リストを返す(そのとき警告は提示されない)。
+  /// [rows] と同じく、選択の正本であるこのコントローラの選択状態を各 item へ
+  /// 写した複製を表示順で渡し、「現在日時」用に時計を一度だけ評価する。
+  List<Warning> get warnings {
+    final now = _clock();
+    final ordered = <FileEntry>[
+      for (final item in _items) _withSelection(item, _selected.contains(item)),
+    ];
+    return validate(_rule, ordered, now);
+  }
+
   /// [item] の値を保ちつつ選択状態だけを [selected] にした複製。
   static FileEntry _withSelection(FileEntry item, bool selected) => FileEntry(
     name: item.name,

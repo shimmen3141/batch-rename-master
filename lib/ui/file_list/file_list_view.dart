@@ -4,6 +4,7 @@ import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
+import 'rename_warning_view.dart';
 import 'row_view.dart';
 
 /// メイン画面のファイルリスト(002 spec の描画層)。
@@ -36,6 +37,8 @@ class FileListView extends StatelessWidget {
               _CreatedAtFallbackBanner(
                 warning: controller.createdAtSortWarning,
               ),
+              // 001 の検証が返す警告(005 REQ-009 / REQ-010)。0 件なら出ない。
+              RenameWarningPanel(warnings: controller.warnings),
               Expanded(
                 child: ReorderableListView.builder(
                   // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
