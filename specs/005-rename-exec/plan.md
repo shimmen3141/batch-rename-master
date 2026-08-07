@@ -1,6 +1,7 @@
 # 計画: リネーム実行(実ファイルIO)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-08-06
 - 元情報: `specs/discovery.md` の 005 節、`specs/004-file-source/decisions/ADR-001-file-source-plugins.md`(T8 実機スパイクの制約)、PRD §4.2
 - 仕様: Strict: contracts/behavior-contract.json <!-- 正しさの定義はそちらが正本 -->

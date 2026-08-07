@@ -1,6 +1,7 @@
 # 計画: ファイル読み込み(SAF / ピッカー)(file-source)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-08-03
 - 元情報: `specs/discovery.md`(004)、`docs/proposals/001-PRD.md` §2/§5、`lib/core/file_entry.dart`、`lib/ui/file_list/file_list_controller.dart`
 - 仕様: Light: spec.md(正しさの定義はそちらが正本)

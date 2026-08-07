@@ -72,9 +72,44 @@ class Plan:
 # --------------------------------------------------------------------------- #
 # パース(純粋)
 # --------------------------------------------------------------------------- #
+def write_lf(path: Path, text: str) -> None:
+    """LF で書き出す。
+
+    既定のテキスト書き込みは Windows で改行を CRLF に変換するため、plan.md や README を
+    1行直すだけで**ファイル全体が差分になる**(git 上は全行が変更に見える)。台帳を
+    スクリプトが書く設計なので、ここで改行を固定しないとプラットフォームごとに履歴が汚れる。
+    """
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
 def feature_slug_from_path(plan_path: Path) -> str:
     """specs/<NNN>-<機能名>/plan.md → <NNN>-<機能名>。"""
     return plan_path.resolve().parent.name
+
+
+# plan.md の書式バージョン。run_plan_helper.py と同じ値を保つこと(CONTRIBUTING)。
+#
+# 書式を変えたとき、古い複製はエラーを出さずに「読めたが空」を返し、下流はそれを
+# 意味のある値として扱う。実運用で、0.6 のままの複製が 0.7 の plan.md を読んで
+# 全タスクの状態を空文字と解釈し、**閉じていた Issue 34 件を一括で reopen した**。
+# 知らない書式なら読まずに落ちる。
+PLAN_FORMAT_VERSION = 2
+VALID_TASK_STATUSES = ("pending", "in_progress", "done", "blocked")
+
+
+def require_known_format(text: str, where: str) -> None:
+    raw = re.search(r"^-\s*書式\s*[:：]\s*(\d+)", text, re.MULTILINE)
+    if not raw:
+        raise SystemExit(
+            f"ERROR: {where}: 書式の印(`- 書式: N`)が無い。0.7 未満の書式なので "
+            f"run_plan_helper.py migrate で移行すること"
+        )
+    version = int(raw.group(1))
+    if version > PLAN_FORMAT_VERSION:
+        raise SystemExit(
+            f"ERROR: {where}: 書式 {version} は、このスクリプト(対応 {PLAN_FORMAT_VERSION})より新しい。"
+            f"スクリプトが古い — .github/scripts/ の複製を貼り直すこと"
+        )
 
 
 def plan_status(text: str) -> str:
@@ -90,7 +125,8 @@ def _split_row(line: str) -> list[str]:
     return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", inner)]
 
 
-def parse_plan(text: str) -> list[Task]:
+def parse_plan(text: str, where: str = "plan.md") -> list[Task]:
+    require_known_format(text, where)
     lines = text.splitlines()
     tasks_by_tn: dict[str, Task] = {}
     order: list[str] = []
@@ -127,7 +163,7 @@ def parse_plan(text: str) -> list[Task]:
                 tn=tn,
                 name=row.get("タスク", "").strip(),
                 deps=deps,
-                status=row.get("状態", "").strip(),
+                status="",
                 issue_num=issue_num,
             )
             order.append(tn)
@@ -152,9 +188,20 @@ def parse_plan(text: str) -> list[Task]:
         if tn not in tasks_by_tn:
             continue
         task = tasks_by_tn[tn]
+        task.status = _extract_field(body_lines, "状態")
         task.change_target = _extract_field(body_lines, "変更対象")
         task.acceptance = _extract_list(body_lines, "受け入れ条件")
 
+    # 状態が語彙外なら**投影せずに落ちる**。空文字を「未完了」と解釈して open/close を
+    # 判断すると、書式ずれがそのまま Issue の一括操作という外部の副作用になる
+    unreadable = [t.tn for t in tasks_by_tn.values() if t.status not in VALID_TASK_STATUSES]
+    if unreadable:
+        raise SystemExit(
+            f"ERROR: {', '.join(sorted(unreadable))} の状態を読めない"
+            f"(語彙: {', '.join(VALID_TASK_STATUSES)})。plan.md のタスク詳細節の "
+            f"`- 状態:` を確認すること。状態が読めないまま投影すると Issue を誤って "
+            f"open/close する"
+        )
     return [tasks_by_tn[tn] for tn in order]
 
 
@@ -488,7 +535,7 @@ def main() -> int:
 
     # 4) issue 列の書き戻し
     if plan.writebacks:
-        args.plan.write_text(write_back_issue_column(text, plan.writebacks), encoding="utf-8")
+        write_lf(args.plan, write_back_issue_column(text, plan.writebacks))
 
     print(json.dumps(build_report(plan), ensure_ascii=False, indent=2) if args.json else _text_report(plan, dry=False))
     return 2 if plan.flags else 0

@@ -1,6 +1,7 @@
 # 計画: コア命名エンジン(rename-core)
 
 - 状態: approved <!-- draft → approved(人間が変更)。進行状態はタスクから導出される -->
+- 書式: 2
 - 作成日: 2026-07-26
 - 元情報: `specs/discovery.md`(機能横断ディスカバリ)、`docs/proposals/001-PRD.md`
 - 仕様: Strict: contracts/behavior-contract.json(正しさの定義はそちらが正本)
