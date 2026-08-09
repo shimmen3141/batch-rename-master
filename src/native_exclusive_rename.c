@@ -1,8 +1,10 @@
+#if !defined(_WIN32)
+#define _GNU_SOURCE
+#endif
 #include <stdint.h>
 #if defined(_WIN32)
 #include <windows.h>
 #else
-#define _GNU_SOURCE
 #include <errno.h>
 #include <stdio.h>
 #if defined(__APPLE__)
