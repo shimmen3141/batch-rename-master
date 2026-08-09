@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../file_list/file_list_controller.dart';
 import '../file_list/file_list_view.dart';
+import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
 import 'rule_controller.dart';
@@ -17,11 +18,13 @@ class RuleBuilderWorkspace extends StatefulWidget {
     super.key,
     required this.fileList,
     required this.rule,
+    this.renameExecution,
     this.breakpoint = 840,
   });
 
   final FileListController fileList;
   final RuleController rule;
+  final RenameExecutionController? renameExecution;
 
   /// モバイル/デスクトップの境界幅(dp)。既定 840(003 spec 決定済み)。
   final double breakpoint;
@@ -94,7 +97,12 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: FileListView(controller: widget.fileList)),
+        Expanded(
+          child: FileListView(
+            controller: widget.fileList,
+            renameExecution: widget.renameExecution,
+          ),
+        ),
         Container(
           width: 360,
           decoration: BoxDecoration(
@@ -113,7 +121,12 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: FileListView(controller: widget.fileList)),
+        Expanded(
+          child: FileListView(
+            controller: widget.fileList,
+            renameExecution: widget.renameExecution,
+          ),
+        ),
         Material(
           color: colors.surface,
           child: SafeArea(
