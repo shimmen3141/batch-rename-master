@@ -14,7 +14,8 @@ void main() {
 
     // ファイルリストとサンプルファイル、ルール編集導線が出る。
     expect(find.byType(FileListView), findsOneWidget);
-    expect(find.text('memo.txt'), findsOneWidget);
+    // 実行操作が加わった後も、先頭のサンプル行は表示される。
+    expect(find.text('IMG_0009.jpg'), findsOneWidget);
     // 既定サイズ(800x600)はモバイル幅なのでルール編集ボタンが出る。
     expect(find.text('ルールを編集'), findsOneWidget);
   });

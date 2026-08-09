@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
@@ -14,15 +15,20 @@ import 'row_view.dart';
 /// 2カラム、各行にチェックボックス、上部にソート切替チップを置く(PRD §3.1)。
 /// 視覚は参考デザインに準拠し、色は [AppColors] のセマンティック名で参照する。
 class FileListView extends StatelessWidget {
-  const FileListView({super.key, required this.controller});
+  const FileListView({
+    super.key,
+    required this.controller,
+    this.renameExecution,
+  });
 
   final FileListController controller;
+  final RenameExecutionController? renameExecution;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return ListenableBuilder(
-      listenable: controller,
+      listenable: Listenable.merge([controller, ?renameExecution]),
       builder: (context, _) {
         // rows ゲッターは呼ぶたびプレビューを再計算するため、ビルド1回につき
         // 一度だけ評価して使い回す(行ごとの再計算を避ける)。
@@ -37,6 +43,11 @@ class FileListView extends StatelessWidget {
               _CreatedAtFallbackBanner(
                 warning: controller.createdAtSortWarning,
               ),
+              if (renameExecution != null)
+                _RenameActionBar(
+                  controller: controller,
+                  execution: renameExecution!,
+                ),
               // 001 の検証が返す警告(005 REQ-009 / REQ-010)。0 件なら出ない。
               RenameWarningPanel(warnings: controller.warnings),
               Expanded(
@@ -72,6 +83,95 @@ class FileListView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _RenameActionBar extends StatelessWidget {
+  const _RenameActionBar({required this.controller, required this.execution});
+
+  final FileListController controller;
+  final RenameExecutionController execution;
+
+  Future<void> _request(BuildContext context) async {
+    if (execution.isRunning) return;
+    final warnings = controller.warnings;
+    if (warnings.isNotEmpty) {
+      final force = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const Key('rename-confirmation-dialog'),
+          title: const Text('警告を確認してください'),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final warning in warnings)
+                    Text('• ${describeWarning(warning)}'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              key: const Key('rename-cancel'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('キャンセル'),
+            ),
+            FilledButton(
+              key: const Key('rename-force'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('強制実行'),
+            ),
+          ],
+        ),
+      );
+      if (force != true || !context.mounted) return;
+      await _run(context, force: true);
+      return;
+    }
+    await _run(context, force: false);
+  }
+
+  Future<void> _run(BuildContext context, {required bool force}) async {
+    final outcome = await execution.execute(force: force);
+    if (outcome == null || !context.mounted) return;
+    final message = StringBuffer('${outcome.successes.length} 件を改名しました');
+    final excluded = execution.excludedEmptyNames.length;
+    if (excluded > 0) message.write('。名前が空になるため $excluded 件を除外しました');
+    final failure = outcome.failure;
+    if (failure != null) {
+      message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message.toString())));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: FilledButton.icon(
+        key: const Key('rename-action'),
+        onPressed: execution.isRunning ? null : () => _request(context),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+        ),
+        icon: execution.isRunning
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.drive_file_rename_outline),
+        label: Text(execution.isRunning ? '改名中…' : '名前を変更'),
+      ),
     );
   }
 }

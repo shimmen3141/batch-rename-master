@@ -4,12 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/rename_engine.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
+import 'data/rename_exec/rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
 import 'ui/file_source/file_source_bar.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
+import 'ui/rename_exec/rename_execution_controller.dart';
 import 'ui/theme/app_theme.dart';
 
 /// アプリ入口。
@@ -18,7 +20,8 @@ import 'ui/theme/app_theme.dart';
 /// 004 の実 [FileSource](Android=SAF / デスクトップ=OS ピッカー)から実ファイルを
 /// 読み込む。ルールは 007 の永続化(`shared_preferences`)と結線し、**前回のルールを
 /// 次回起動時に復元**する。起動直後はサンプル一覧を表示し、読み込み操作で実データを
-/// 追加できる(リネーム実行=005 は未実装のため、名前を書き換えることはまだできない)。
+/// 追加できる。実 platform の rename adapter は 005 の後続 package で接続するため、
+/// 現時点の実行操作は未対応として安全に失敗する。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -63,6 +66,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   @override
   void dispose() {
+    _renameExecution.dispose();
     _files.dispose();
     // widget.rule は永続化セッションの所有物なのでここでは破棄しない。
     super.dispose();
@@ -71,6 +75,12 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource]
   /// (Android=SAF / デスクトップ=OS ピッカー)を注入する(T4)。
   late final FileSource _source = createPlatformFileSource();
+  late final RenameExecutionController _renameExecution =
+      RenameExecutionController(
+        files: _files,
+        // T5 が platform 実装へ置換するまで、成功を偽装しない。
+        executor: const UnsupportedRenameExecutor(),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +90,11 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
         children: [
           FileSourceBar(source: _source, controller: _files),
           Expanded(
-            child: RuleBuilderWorkspace(fileList: _files, rule: widget.rule),
+            child: RuleBuilderWorkspace(
+              fileList: _files,
+              rule: widget.rule,
+              renameExecution: _renameExecution,
+            ),
           ),
         ],
       ),

@@ -1,0 +1,153 @@
+// VER-004 / VER-005: 警告確認、直接実行、二重開始防止、空名除外と結果提示。
+import 'dart:async';
+
+import 'package:batch_rename_master/core/rename_engine.dart';
+import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
+import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
+import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
+import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+FileEntry _file(String name) => FileEntry(
+  name: name,
+  modifiedAt: DateTime(2026, 8, 9),
+  size: 1,
+  sourceHandle: '/files/$name',
+);
+
+Future<void> _pump(
+  WidgetTester tester,
+  FileListController files,
+  RenameExecutionController execution,
+) => tester.pumpWidget(
+  MaterialApp(
+    theme: appDarkTheme(),
+    home: Scaffold(
+      body: FileListView(controller: files, renameExecution: execution),
+    ),
+  ),
+);
+
+void main() {
+  test('強制実行は autoResolve 後に空名を除外する(REQ-022)', () async {
+    final files = FileListController(
+      files: [_file('empty.txt')],
+      rule: const RenameRule([LiteralToken('')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/empty.txt': 'empty.txt'},
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+
+    final outcome = await execution.execute(force: true);
+
+    expect(outcome!.successes, isEmpty);
+    expect(execution.excludedEmptyNames.map((file) => file.name), [
+      'empty.txt',
+    ]);
+    expect(executor.calls, isEmpty);
+  });
+
+  testWidgets('警告時は全件を確認してから、キャンセルでは改名しない(REQ-011)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt'), _file('b.txt')],
+      rule: const RenameRule([LiteralToken('same')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt', '/files/b.txt': 'b.txt'},
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    final dialog = find.byKey(const Key('rename-confirmation-dialog'));
+    expect(dialog, findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('a.txt')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('b.txt')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('rename-cancel')));
+    await tester.pumpAndSettle();
+    expect(executor.calls, isEmpty);
+  });
+
+  testWidgets('警告なしは直ちに実行し、成功件数を提示する(REQ-013)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    expect(executor.calls, ['/files/a.txt -> renamed.txt']);
+    expect(find.textContaining('1 件を改名しました'), findsOneWidget);
+  });
+
+  testWidgets('失敗時は成功件数と理由を提示する(REQ-013)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt'},
+      failWhen: (_, _) =>
+          const RenameError(RenameErrorKind.permissionDenied, '権限がありません'),
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('0 件を改名しました'), findsOneWidget);
+    expect(find.textContaining('権限がありません'), findsOneWidget);
+  });
+
+  test('実行中は二重に開始しない(REQ-012)', () async {
+    final gate = Completer<RenameResult>();
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: _DelayedExecutor(gate.future),
+    );
+
+    final first = execution.execute(force: false);
+    final second = await execution.execute(force: false);
+    expect(second, isNull);
+    gate.complete(const Renamed('/files/renamed.txt'));
+    await first;
+  });
+}
+
+class _DelayedExecutor implements RenameExecutor {
+  _DelayedExecutor(this.result);
+  final Future<RenameResult> result;
+
+  @override
+  Future<RenameResult> rename(String handle, String newName) => result;
+}
