@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+if [ "${AI_SANDBOX:-}" != "1" ]; then
+  echo "codex-container: AI_SANDBOX=1 の隔離container内でだけ実行できます。" >&2
+  exit 1
+fi
+
+if ! grep -q "AI_SANDBOX_DUMMY_MARKER v1" /workspace/secrets/.dummy-marker 2>/dev/null; then
+  echo "codex-container: dummy secret shadowを確認できないため起動を拒否しました。" >&2
+  exit 1
+fi
+
+# Linux container内ではCodexのbubblewrapがuser namespaceを作れない。
+# secrets shadow・非root・egress allowlistを外側のcontainerで検証してから、内側だけ無効化する。
+exec codex --dangerously-bypass-approvals-and-sandbox "$@"

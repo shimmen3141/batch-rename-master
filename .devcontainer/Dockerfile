@@ -31,6 +31,11 @@ ADD https://registry.npmjs.org/@anthropic-ai/claude-code/latest /tmp/claude-code
 ADD https://registry.npmjs.org/@openai/codex/latest /tmp/codex-latest.json
 RUN npm install -g @anthropic-ai/claude-code @openai/codex
 
+# Windows hostからbind mountしたrepositoryはcontainer内のdev userと所有者が異なる。
+# 対象をworkspace rootだけに限定し、compose runでもGitの所有者保護を満たす。
+# devcontainer.jsonのpostCreateCommandはVS Code経由でしか実行されないため、imageにも設定する。
+RUN git config --system --add safe.directory /workspace
+
 # named volume の初期所有者(volume は初回マウント時にイメージ側の内容と所有者を引き継ぐ)
 RUN mkdir -p /workspace/.dart_tool /workspace/build /workspace/.pub-cache /home/dev/.claude /home/dev/.codex && chown -R dev:dev /workspace /home/dev
 
@@ -54,3 +59,7 @@ RUN flutter --version
 # これが無いと VS Code の Flutter 拡張が daemon 起動時に毎回ダウンロードを始め、
 # タイムアウトして「The Flutter Daemon failed to start」になる(実機で確認)
 RUN flutter precache
+
+# container自体をsecurity boundaryにしたCodex起動wrapper。
+# 最後のlayerに置き、wrapperだけの変更でFlutter SDKを再取得しない。
+COPY --chmod=0755 codex-container /usr/local/bin/codex-container
