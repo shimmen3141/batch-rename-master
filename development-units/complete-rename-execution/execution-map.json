@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "1.0",
+  "developmentUnit": "complete-rename-execution",
+  "workPackages": [
+    {
+      "id": "warning-confirmation-and-results",
+      "outcome": "警告の有無に応じて確認または直接実行し、cancel・二重実行防止・空名除外・結果提示が仕様どおり観測できる",
+      "dependsOn": [],
+      "produces": [
+        "UIから既存rename orchestrationを一度だけ開始する境界",
+        "成功・失敗・未実行・除外を重複なく提示する結果model"
+      ],
+      "acceptanceEvidence": [
+        "REQ-011",
+        "REQ-012",
+        "REQ-013",
+        "REQ-022",
+        "SM-001",
+        "VER-004",
+        "VER-005",
+        "test/spec_005_rename_exec/"
+      ],
+      "parallelConstraints": [
+        "rule-not-configured-uiと同じrename action・warning UIを変更するため並列編集しない"
+      ]
+    },
+    {
+      "id": "rule-not-configured-ui",
+      "outcome": "ruleが空ならrenameを開始せず設定案内を表示し、token追加で通常状態へ戻る",
+      "dependsOn": [
+        "warning-confirmation-and-results"
+      ],
+      "produces": [
+        "rule未設定と通常状態を双方向に切り替えるUI境界"
+      ],
+      "acceptanceEvidence": [
+        "REQ-019",
+        "REQ-020",
+        "REQ-021",
+        "REQ-022",
+        "VER-004",
+        "VER-005",
+        "test/spec_005_rename_exec/"
+      ],
+      "parallelConstraints": [
+        "warning-confirmation-and-resultsの統合後に同じUIへ変更する"
+      ]
+    },
+    {
+      "id": "platform-rename-adapters",
+      "outcome": "Android SAFとdesktop file systemで実renameを行い、新しいhandleと表示名を仕様の値域内で返す",
+      "dependsOn": [
+        "warning-confirmation-and-results"
+      ],
+      "produces": [
+        "Android SAF RenameExecutor adapter",
+        "desktop RenameExecutor adapter",
+        "application compositionへの実adapter配線",
+        "host検証手順"
+      ],
+      "acceptanceEvidence": [
+        "REQ-001",
+        "REQ-017",
+        "REQ-018",
+        "CON-001",
+        "VER-001",
+        "VER-007",
+        "test/spec_005_rename_exec/",
+        "docs/development/emulator-verification.md"
+      ],
+      "parallelConstraints": [
+        "undoとmodified-timeはこのadapter contractを入力にするため先に統合する"
+      ]
+    },
+    {
+      "id": "session-undo",
+      "outcome": "実行直後の期限内だけ、成功したrenameを新しいhandleから逆順に戻し、undo失敗も提示できる",
+      "dependsOn": [
+        "platform-rename-adapters"
+      ],
+      "produces": [
+        "期限付き単一step undo orchestration",
+        "部分成功に対応するundo結果提示",
+        "host検証手順"
+      ],
+      "acceptanceEvidence": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "INV-004",
+        "OP-003",
+        "SM-001",
+        "VER-003",
+        "VER-004",
+        "VER-007",
+        "test/spec_005_rename_exec/",
+        "docs/development/emulator-verification.md"
+      ],
+      "parallelConstraints": [
+        "desktop-modified-timeとadapter実装を共有する場合は変更fileを分離する"
+      ]
+    },
+    {
+      "id": "desktop-modified-time",
+      "outcome": "desktopでだけ表示される既定OFFの設定により、rename成功後の更新日時を表示順にずらし、失敗してもrename成功を維持する",
+      "dependsOn": [
+        "platform-rename-adapters"
+      ],
+      "produces": [
+        "desktop限定modified-time option",
+        "副次処理失敗をrename結果から分離するadapter境界"
+      ],
+      "acceptanceEvidence": [
+        "REQ-014",
+        "REQ-015",
+        "REQ-016",
+        "VER-006",
+        "test/spec_005_rename_exec/"
+      ],
+      "parallelConstraints": [
+        "session-undoとadapter実装を共有する場合は変更fileを分離する"
+      ]
+    }
+  ],
+  "integrationEvidence": [
+    "flutter test test/spec_005_rename_exec/",
+    "dart format --output=none --set-exit-if-changed .",
+    "flutter analyze",
+    "flutter test",
+    "Android SAF host verification",
+    "desktop file-system host verification"
+  ],
+  "externalDependencies": []
+}
