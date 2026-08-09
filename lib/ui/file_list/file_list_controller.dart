@@ -158,6 +158,30 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 実ファイル操作後に [replacements] の項目だけを差し替える。
+  ///
+  /// 表示順、ソート種別、選択状態は保つ。改名で [FileEntry.sourceHandle] が変わる
+  /// ため、古い項目を不変値のまま残さず、新しいハンドルを持つ項目へ置き換える
+  /// (005 REQ-001 / REQ-018)。キーはオブジェクト同一性で照合する。
+  void replaceItems(Map<FileEntry, FileEntry> replacements) {
+    if (replacements.isEmpty) return;
+    var changed = false;
+    final next = <FileEntry>[];
+    for (final item in _items) {
+      final replacement = replacements[item];
+      if (replacement == null) {
+        next.add(item);
+        continue;
+      }
+      changed = true;
+      next.add(replacement);
+      if (_selected.remove(item)) _selected.add(replacement);
+    }
+    if (!changed) return;
+    _items = next;
+    notifyListeners();
+  }
+
   /// 元場所ハンドルが [handle] に一致する item を除去する(REQ-009)。
   ///
   /// 一致が無ければ無変化(通知もしない)。
