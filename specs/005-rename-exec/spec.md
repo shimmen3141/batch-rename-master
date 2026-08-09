@@ -96,7 +96,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
 
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
-- **VER-001 には、実機で得た実物の URI 断片を使う検証を最低1本置く**(改名後に URI が変わること・`name` が空で返ることを、fake が本物より親切にならない形で固定するため)。
+- revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
 
 ## 反証ログ
 
