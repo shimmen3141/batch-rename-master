@@ -1,141 +1,116 @@
 # エージェント共通の規約
 
-このファイルが**規約の実体**で、Claude Code(`CLAUDE.md` の `@AGENTS.md` インポート経由)と
-Codex(`AGENTS.md` を直接読む)の両方が同じ内容を読む。**内容を `CLAUDE.md` に複製しないこと。**
+このファイルが規約の正本である。Claude Codeは`CLAUDE.md`の`@AGENTS.md`経由、Codexはこのファイルを直接読む。同じ規約本文を別ファイルへ複製しない。
 
-> **Codex など asdd-suite のフックが効かないエージェントへ**: 承認済み仕様(`specs/*/spec.md`・
-> `contracts/behavior-contract.json`)の編集を止めるフックは Claude Code プラグインの機能で、
-> あなたの環境では働かない。CI の `spec-status` は PR の時点でしか止めないので、
-> **承認済み仕様には触らず、必要なら人間に依頼すること。**
+## AI sandbox前提
 
-## AI sandbox 前提(ai-sandbox-setup 導入済み)
+AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`printenv AI_SANDBOX`が`1`か確認する。
 
-このリポジトリの AI エージェント作業は Dev Container(compose.ai.yml)内で行う。サンドボックス内かは `printenv AI_SANDBOX`(=1)で判定できる。Flutter/Dart プロジェクト向け構成(ai-sandbox-setup の `--lang flutter` で生成): ベースは `debian:bookworm-slim` に Flutter SDK をホストと同じ revision で pin して導入したもので、非 root ユーザー `dev` で動作する。Claude Code / Codex の CLI はイメージに導入済みで、ログインは volume に永続化される。
+- `secrets/`、環境変数、慣習的な`.env`の値はダミーである。本物の値を探索・表示しない。
+- `compose.ai.yml`と`.devcontainer/`はread-only。変更は人間へ依頼する。
+- push / PRは`gh`で行えるが、`.github/workflows`を含むpushは人間が行う。
+- クラウド認証や広権限tokenを持ち込まない。infra/deployは人間監督下で行う。
+- 新しい秘密を移動・生成する必要があれば人間へ依頼する。
+- Android SDK / Xcodeは無い。`flutter analyze`と`flutter test`は実行できるが、実機・emulator buildはホスト側の人間が行う。
 
-- コンテナ内の `secrets/` はダミー実体(secrets.example の read-only マウント)。環境変数も、`.env` 等の慣習パスの中身もすべてダミー値になる。本物が見えないのは故障ではなく仕様。本物の env で動かすのは人間の実行時のみ
-- `compose.ai.yml` と `.devcontainer/` は read-only。変更が必要なら人間に依頼する
-- push / PR: gh で可。ただし `.github/workflows` を含む push は拒否される(仕様。ユーザーが push する)
-- クラウド認証(gcloud / aws)や広権限トークンをこの環境に持ち込まない。インフラ・デプロイ設定の作業(infra-setup / cd-setup 相当)はホスト側の人間監督下セッションで行う
-- 新しい秘密(Firebase 設定・署名鍵・実値 tfvars 等)は `secrets/` に置く。ツールがルート等に生成した場合、逃がし方の調査と手順の提案までは自分で行ってよい(ファイルの中身は開かない)が、**移動の実行と compose の変更は人間に依頼する** — コンテナ内の `secrets/` は read-only のダミーで、ホストの `secrets/` へは書き込めないため(起動時の check-secrets.sh も警告する)
-- このコンテナには Android SDK / Xcode が無い。実機・エミュレータ向けビルド(`flutter run`, `flutter build apk` 等)はできない。コード編集・`flutter analyze` / `flutter test` が主目的
+# ASDD 1.0
 
-## ループ規約(自己検証ループ)
+- Protocol revision: 1.0.5
+- Execution map schema: 1.0（protocol revisionとは独立）
+- Integration branch: `dev`
 
-各タスクは「直線」ではなく「ループ」として実行する:
+複数ステップの開発は、必要最小限のdevelopment unitとして定義し、実際に観測した証拠で完了を判定する。小さく明白な修正に文書を作らない。
 
-1. 変更を書く
-2. チェックを実行する: `flutter test` / `flutter analyze`(`dart format --output=none --set-exit-if-changed .` も CI で見ているため、フォーマット崩れがあれば併せて確認する)
-3. 失敗したら: エラー全文を読み、原因を特定し、修正して 2 に戻る
-4. ループは最大 5 回まで(Stop フックの `MAX_BLOCKS` は完了ブロック回数の上限で、これとは別の値)
+## 0.xからの移行境界
 
-### 停止条件
+- Cutoff commit: `8d950ca173e2d0f22a6dad1432dd2b2e285cd2ec`
+- 凍結済み旧配置: `specs/**/plan.md`、`specs/discovery.md`、`specs/findings/`
+- 停止済み旧自動化: plan parser、Stop hook、Issue投影、specs index書き戻し、spec status gate
+- 継続利用する仕様正本・検証: `specs/**/spec.md`、`specs/**/contracts/`、`specs/**/decisions/`、`test/spec_*/`
+- Cutover外部監査（2026-08-09）: open PR 0、running/queued Actions 0。`dev`対象ruleset `20491071`はnon-fast-forwardとbranch deletionの禁止だけで、停止workflowのrequired status checkは無い
 
-- 全チェック通過 → チェック出力を証拠として添えて完了報告
-- 5 回使い切った → 停止し、未完了の内容と試行の経緯を報告
-- **同じエラーが 2 回連続**(Stop フックも機械的に検出して通知する)→ 自力での修正をやめ、`fixer` サブエージェントに委譲する。委譲時はエラー出力・再現コマンドなどの事実だけを渡し、自分の仮説や試行の経緯は渡さない(まっさらな視点で診断させるため)
+cutoff後は旧planのstatus、claim、log、Issue番号をlive stateや次作業の正本として読まない。既存REQ/VER ID、approved Strict contract、ADR、仕様由来testは改名・複製せず参照する。
 
-### 完了の定義
+## 配置と正本
 
-- 完了報告の前に `verifier` サブエージェントで独立判定を受ける(受け入れ条件を明示して渡す)
-- チェック出力の実物なしに「完了」と報告しない
-
-### 禁止事項
-
-- テストの削除・skip・アサーションの緩和によってチェックを通すこと
-- エラーの握りつぶし(try/catch で包むだけの「修正」)
-- チェックを実行せずに完了を宣言すること
-
-# ASDD(Agent Spec 駆動開発)の規約
-
-複数タスクにまたがる機能開発は「計画」と「仕様」で管理する。単発の小さな修正(PRが1つで済む規模)にはどちらも作らない。
-
-## 用語と成果物の配置
-
-3フェーズは掘る対象が違う(何を / どう / 正しさ)ので、質問が段階に分かれるのは重複ではない。
-
-- **要求(requirements)** = 何を作るか。機能候補・スコープ・制約を固めた「要求ブリーフ」(`/discover-requirements`)。**非規範**で要求の高度に留める(正しさ=REQ/INV は仕様の仕事)。計画に吸収されたら正本は計画・仕様へ移るので、ブリーフは削除してよい(残すなら入口の記録であって参照先ではない)
-- **計画(plan)** = どう進めるか。タスク分割・依存・状態・ログ。`/create-plan` で作成、`/run-plan` で実行
-- **仕様(spec)** = 何が正解か。振る舞い・契約・検証。create-verifiable-spec skill が担当
-- **順番**: discover-requirements → create-plan →〔人間が計画承認〕→ run-plan(T1 が仕様作成のことがある →〔人間が仕様承認〕)→ 実装。project-plan-to-issues は計画承認後の任意の投影
-- 「specを作って」が計画か仕様か曖昧なときは確認する(タスク分割→計画、振る舞い・契約の定義→仕様)。出発点が曖昧なら先に discover-requirements を提案する
-
-```
-specs/
-├── asdd.config.json        # 運用設定の正本(統合ブランチ・テストルート・コミット/PR/issue 運用)
-├── README.md               # インデックス(**全体が生成物**。統合ブランチ側でのみ再生成する)
-├── discovery.md            # 機能横断のディスカバリ(discover-requirements、多機能を仕分けた場合。非規範)
-├── findings/               # asdd-suite への気づき(1件1ファイル。下記「作業ルール」参照)
-└── <NNN>-<機能名>/          # 機能ごとに1ディレクトリ。NNN は3桁の連番
-    ├── brief.md            # 単一機能の要求ブリーフ(掘った場合のみ。非規範・計画作成後は削除してよい)
-    ├── plan.md             # 計画
-    ├── spec.md             # 振る舞い仕様(仕様を作る機能のみ)
-    ├── contracts/          # JSON契約 behavior-contract.json(Strict のみ)
-    └── decisions/          # ADR(Why / Why not・実装制約)
-test/spec_<NNN>_<機能名>/       # 仕様由来テスト(test_root は設定の値)
+```text
+development-units/<短く具体的な名前>/
+├── definition.md       # unit全体の目的、境界、決定、受け入れ証拠
+├── spec.md             # 既存の仕様正本がなく、高リスクまたは解釈差が重要な場合だけ
+├── execution-map.md または .json # stableな依存と安全な並列境界が必要な場合だけ
+└── decisions/          # 複数unitへ長く影響するWhy / Why notだけ
 ```
 
-- 状態語彙 — 計画: `draft`(レビュー待ち・**実行禁止**)→`approved`(人間が承認)。**進行状態(`in_progress`/`done`)はタスクから導出**されるので plan.md のヘッダには書かない / タスク: `pending`/`in_progress`/`done`/`blocked` / 仕様: `draft`/`approved`/`deprecated`
-- **plan.md の台帳部分(タスクの状態・ログ)は手で書かない。** 書き込みは `run-plan/scripts/run_plan_helper.py` の `claim` / `done` / `log` が行う(書式がドリフトすると投影・index・被覆照合が壊れるため)
-- 計画と仕様の `approved` は別の承認(進め方の合意 vs 正しさの合意)。同期させず、それぞれ人間が承認する。承認の**判断**は人間のみが行うが、明示的な承認の言葉(未解決事項への個別回答を含む)を受けたらエージェントが status 更新を代筆してよい(ログに `開発者承認` と記録し、回答は plan.md の「決定事項」表へ)。「たぶん大丈夫」「読んだよ」は承認として扱わない
-- **仕様の承認状態の正本**: Light は `spec.md` の Status、Strict は `contracts/behavior-contract.json` の `status`。**Strict の spec.md には Status の値を書かない**(`(契約に従う)` と書く)。両方に値があると、どちらが正か読む側ごとに判断が割れる
-- ID語彙 — タスク: `Tn`(計画内) / 仕様: `REQ-`(要件)・`INV-`(不変条件)・`OP-`(操作)・`SM-`(状態機械)・`NFR-`(品質)・`CON-`(実装制約)・`VER-`(検証)
-- **Tn は不変**: 一度付けた ID は付け替えない(新タスクは次の空き番号、削除後も再利用せず歯抜けでよい)。**実行順は Tn の数値ではなく依存列と行順で表す** — 途中への挿入も「次の空き番号 + 依存を張る + 行を動かす」で行う。renumber は Issue リンク・依存・履歴を壊すので禁止(投影時に検出・報告される)。Tn は計画ごとの番号なので、横断参照は `<機能ディレクトリ名>.Tn`(例 `001-auth.T3`)で一意にする
+- `definition.md`: unit全体で観測する成果と境界の正本。
+- 既存の`specs/**/spec.md`・contract: normativeな振る舞いと検証接続の正本。
+- execution map: work packageのstableな依存、成果、既存のREQ/VER ID・test pathへの参照。status・担当・ログを置かない。
+- GitHub Issues: 共有時のlive status、担当、外部待ち、branch/worktree、実際のcommit/rangeとreview結果の正本。
 
-## 自動で効く強制(asdd-suite プラグイン / CI)
+同じ意味や状態を複数へ書き写さない。新しいunitやbranchへASDD独自の`001`等を採番せず、成果を表す名前を使う。既存Issue IDは検索性のため名前へ含めてよい。
 
-迂回しない。差し戻されたら理由を読んで直す:
+## Development unitを作る判断
 
-- **承認済み仕様(spec.md / behavior-contract.json)の編集**は人間の確認にかかる(PreToolUse)
-- **契約の編集ごとに `spec_lint --strict`** が走り、失敗は差し戻される(PostToolUse)
-- **PR が触った仕様が draft のまま**なら CI が落ちる。PR のマージは進め方の合意であって仕様の承認ではない
+- 1〜2手で終わり受け入れ条件が明白: 作らない。
+- 複数ステップ、sessionをまたぐ、境界の合意が必要: `definition.md`を作る。
+- データ損失、お金、権限、security、公開API互換性、並行性、不可逆操作: 既存仕様正本を使い、なければ`spec.md`を作り、実装前に人間判断を得る。
+- 正解がまだ分からない探索: 安全なspikeで学んでから定義する。
+- 問題・利用者・作るunit自体が曖昧: `discover-requirements`で一問ずつ掘り下げる。
 
-## 計画と仕様の接続
+## 実行規律
 
-- お金・権限・データ整合性・並行性が絡む機能、実装の再生成を前提とする機能では、仕様(Strict)を作るタスクを計画の先頭(T1)に置く。通常の機能は Light(spec.md のみ)か仕様なしでよい
-- **接続点はタスク表の「仕様」列**(そのタスクが担う REQ/INV/OP/SM/NFR/CON の ID)。受け入れ条件には検証コマンドだけを書き、同じ規範文や ID を書き写さない。正しさの定義の正本は常に仕様側
-- 接続の検査は決定的スクリプトが行う: `run_plan_helper.py coverage` が、担当タスクの無い要件・存在しない ID・実体の無い検証・宙に浮いた「対象外」を検出する
-- `draft` の仕様に依存するタスクは実行しない(仕様の承認待ちとして報告する)
-- 意図した外部振る舞いの変更は 仕様 → 検証 → 実装 の順で行う。実装が仕様に違反していた場合は仕様を変えず実装を直す
+1. project instructions、definition、仕様正本、execution map、code、test、git差分、利用可能なIssue/PRを読む。
+2. 依存を満たしたwork packageを実物から選ぶ。複数Agentなら編集前にIssue、担当、branch/worktreeをclaimする。
+3. 直近1〜3個の検証可能なcheckpointだけ具体化する。
+4. 実装後、関連checkと全体checkの実出力を確認する。
+5. 対象scopeを実装文脈から分離したAgentでreviewする。work-package PASSはunit PASSではない。
+6. FAILの根拠を次の実装passへ返し、修正・再検証する。
 
-## コミット・PR・issue 運用
+同じ根本原因が修正後も2回続いたら類似修正を止めて仮定を洗い直す。同じwork packageで独立verifierが3回FAILしたら自動修正を止め、diff、各回の実出力、未解決指摘、否定された仮定を報告する。回数をdevelopment unitへ書き戻さない。
 
-**設定値の正本は `specs/asdd.config.json`**(統合ブランチ・テストルート・コミット/PR/issue 運用・AI 帰属)。散文に書き写さない。値は `asdd-setup/scripts/asdd_config.py show`、1つだけなら `get <キー>`(例 `get issues.mode`)で読む。ここに書くのは値ではなく**規則**:
+高リスク、共有作業、PRのready化、merge、unit完了は独立reviewが利用できなければBLOCKEDとする。低リスクのlocal作業では`SELF-REVIEW ONLY`を残せるが、独立PASS、Issue done、merge、unit完了の代用にしない。
 
-- `integration_branch`: PR のベース、タスクブランチの分岐元、CI(index 同期・Issue 投影)のトリガ。すべて同じ1つの値を使う
-- `commit`: **PR 運用なしのときの扱い**。`propose`(提案まで)/ `per_task`(タスク単位で自動)。PR 運用時はコミットと push が手順に含まれるので、この値は参照しない
-- `ai_attribution`: false のとき、コミットにも PR 本文にも AI の co-author 行・生成フッタを入れない
-- `pr.enabled`: true のときの手順(タスクブランチ・PR 作成後の停止・レビュー指摘の回収と扱い)は `/run-plan` が定義する
-- **このリポジトリ固有**: push / PR は `gh` 経由で行う。AI サンドボックスの制約により **`.github/workflows` を含む push は拒否される**ため、ワークフローの変更が要るタスク(生成物の再 render を含む)は人間に push を依頼する
-- `issues.mode`: タスクを GitHub Issue に投影するか(1タスク=1 Issue、正本は plan.md、GitHub リモートが前提)。投影の実体は決定的スクリプト(手順は `/project-plan-to-issues`)。`none`=投影しない / `manual`=`/project-plan-to-issues` の明示実行 / `auto`=plan.md への push で Actions が投影する(**エージェントは投影を走らせず push するだけ**。二重実行を避ける)
-  - **責務の分界**: Issue の作成・本文・open/close・破棄は投影スクリプトが正本。**claim(assign)だけは run-plan の管轄**で、スクリプトは assignee を触らない。done→close も PR 運用時は PR の `Closes #N` に委ねる(この分岐は設定から生成物へ自動で反映される)
+## 検証
 
-## 計画タスクの作業ルール(サブエージェント含む全エージェント共通)
+- 関連check: 変更に対応する`flutter test <test-path>`
+- 全体check:
+  - `dart format --output=none --set-exit-if-changed .`
+  - `flutter analyze`
+  - `flutter test`
+- 手動・実機確認: `docs/development/emulator-verification.md`に従いホスト側で行う。
 
-- **計画のタスクは必ず `/run-plan` 経由で実行する。手動でタスクを進めない。**「続きをやって」「実装を進めて」の対象が計画のタスクなら `/run-plan` の呼び出しを意味する(1回1タスク・verifier 判定・blocked 化などの保護が skill 側にあるため)
-- 担当タスクの「変更対象」に書かれたファイル以外に手を出さない。スコープ外の問題は直さずに報告する
-- 完了主張には受け入れ条件のチェック実行の実物出力を添える
-- 計画の受け入れ条件・タスク構成・スコープ、および仕様の規範内容を**自分の判断で**書き換えない。変更が必要なら人間に提案する
-- `draft` の計画のタスクは実行しない
-- ユーザーへの質問(質問の規律): スコープ・検証・データの扱い・権限・ユーザーから見える振る舞いを変えうる不確実性(material ambiguity)に絞り、現実的な選択肢(最大3つ・推奨案を明示・明らかに選ばれない案は混ぜない)を付けて出す。コード・テスト・規約を調べれば分かることは質問しない
-- asdd-suite の skill・規約・フック自体の不具合や改善点に気づいたり、自身が規約の誤解や読むファイルを間違えたりしたら、その場で skill を**修正せず**、`specs/findings/<YYYY-MM-DD>-<短い英小文字スラグ>.md` を**新規作成**して作業を続ける(修正は専用セッションが検証込みで行う。1件1ファイルにするのは、並列ブランチの追記どうしが衝突しないようにするため)。中身は「症状 / どの skill のどの手順で起きたか / その場でどう回避したか」の3点
+完了前にworking-treeの実差分、test/analyze/formatの実出力、仕様差分、受け入れシナリオ、必要なUI・実機証拠を確認する。実行不能な確認を実施済みと報告しない。testの削除・skip・assertion緩和、エラーの握りつぶしでPASSさせない。
 
-## 計画・仕様に無い指示を受けたとき
+## 人間が決めること
 
-開発者の指示は計画・仕様より優先する(どちらも合意の記録であって檻ではない)。ただしドリフトを作らないため:
+人間判断が必要なのは、利用者から見える振る舞い、scope、データ・権限・互換性、不可逆操作、受け入れるriskである。実装手段や低影響の内部詳細は既存規約に従ってAgentが決める。approvedな仕様正本の意味を変える場合は、対象revisionと意味差分を示して再判断を求める。
 
-- **計画・仕様の内容に影響する指示**: 開発者は全内容を覚えていない前提で動く。指示を既存の合意と突き合わせ、矛盾する場合は**実装前に**該当記述を原文引用で提示し、「文書を変更するか、指示を見直すか」の確認を取る。黙って書き換えない。確認後は実装とあわせて文書を更新しログに記録する。矛盾のない単純な追加・詳細化は確認なしで進めてよいが、文書更新とログ記録は必ず行う。**ただし `approved` 済み仕様の外部振る舞いに影響する追加は「矛盾のない追加」とみなさない** — 仕様更新 →(Strict なら lint)→ 人間の再承認 → 実装の順で行う
-- **無関係な小さな作業**(typo 修正等): 計画に入れず通常どおり実施(内側の検証ループは適用)。`in_progress` タスクの「変更対象」と重なる場合は競合の可能性を警告してから進める
-- **計画規模の新しい機能**: その場で実装せず、既存計画へのタスク追加または新しい計画の作成(`/create-plan`)を提案する(承認ゲートの維持)
+## PRとIssue
 
-## 複数開発者・並列実行(委譲・worktree・ブランチの手順は `/run-plan`)
+PRは一律1タスクごとではなく、独立して検証・統合・rollbackできるunitまたはwork package単位にする。draft PRは早期CIに使えるが、ready化とmergeには対象scopeの独立PASSが必要である。
 
-- タスク着手時は claim を記録する。**着手ログは issue運用の有無に関わらず常に書く**(ログは追記専用の履歴であって live な状態ではない)。live な担当の**正本**だけが issue運用で変わる: なしでは plan.md のタスク状態、ありでは Issue の assignee
-- **他の開発者が claim しているタスクに手を出さない。**担当不明のものも勝手に再開せずユーザーに確認する(Issue は状態を見せるだけで横取りを止めない)
-- **「変更対象」が重なるタスクは同時に走らせない**(Issue はファイル衝突を検知しないので、この判断は依存として plan.md 側で持つ)。並列にできるのは依存関係のないタスク同士だけで、**1 worktree = 1 タスク = 1 ブランチ**
-- 並列作業者(サブエージェント)は**計画・仕様ファイルを直接編集しない**(競合防止)。状態・ログの更新と verifier 判定は調整役(メインエージェント)だけが行う
+work packageは`execution-map.*`に定義する永続的な成果・依存・検証境界であり、Issueそのものではない。このunitでは複数Agent/session間の調整が必要なため、各work packageへliveな子Issueを一つだけ対応させる。親Issueは任意のタスク束ではなくdevelopment unit一つに対応し、unit全体の観測可能な成果、最終受け入れ、統合、rollbackを調整する。独立して受け入れ・延期できる成果へ広がる場合は別unitと親Issueへ分ける。
 
-## 中断からの再開
+外部操作の既定権限:
 
-- 「続きをやって」「作業を再開して」は、対象が計画のタスクなら `/run-plan` の呼び出しを意味する(手動で進めない)。現在地の特定手順は run-plan が定義する
-- 進捗は**記述を鵜呑みにせず** `git status` / `git diff` とチェック実行で実際に確かめてから続ける(作業ログや Issue の状態が実態と食い違うことがある)
-- 計画管理外の作業の中断は ASDD では追跡されない。対象が計画のタスクか不明なら `run_plan_helper.py index --stdout` とタスク一覧を確認した上でユーザーに尋ねる
+| 指示・操作 | 許可範囲 |
+|---|---|
+| 「Issueを作って」 | 対象Issueのcreateだけ |
+| 「IssueでW1を管理・実装して」 | 必要な親IssueとW1子Issueのcreate/reuse、assign、comment、gate後のdoneまでのstatus更新。親doneはunit全体も依頼scopeの場合だけ |
+| Issue close/reopen/delete/担当移譲 | 個別の明示依頼が必要 |
+| 通常push / PR作成・ready化 | 明示依頼が必要 |
+| merge / auto-merge | 対象と条件を指定した明示依頼が必要。merge依頼はgate通過後のdraft→readyを含む |
+| force push | 履歴改変を明示した依頼が必要 |
+
+実装依頼や「続けて」だけでは外部操作権限を追加しない。権限がなければbranch、commit/range、検証結果、Issue/PR案まで準備して止める。
+
+## Development findings
+
+実際に観測したskillの曖昧さ、検証漏れ、二重管理、handoff失敗、再利用価値のある手戻りは`record-development-finding`で`development-findings/YYYY-MM-DD-<具体的なslug>.md`へ一件一ファイルで残す。これは改善入力であり、仕様、一般的TODO、live status、担当、優先度を置かない。追跡が必要ならIssueを正本にし、改善後は変更先と検証・forward-test結果だけを追記する。
+
+既存の`specs/findings/`は0.xの履歴として保持し、新規findingを追加しない。
+
+## 中断から再開
+
+「続けて」と言われたら、current branch/worktree、`git status --short`、staged/unstaged diff、未追跡file、変更されたdefinition/spec/test、利用可能なIssue/PRを調べる。候補が一つなら次の検証可能なcheckpointへ進み、複数なら候補と根拠を示して一問だけ確認する。旧planや古い完了報告だけを信じない。
+
+意図的な中断・担当交代では、Issueへwork package、branch/worktree、完了済み成果、失敗中の証拠、最後の検証出力、次のcheckpoint、blocker、無関係なdirty変更をhandoffとして残す。予期しない中断では最後に観測可能なcheckpointから再開する。
