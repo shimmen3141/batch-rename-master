@@ -32,6 +32,23 @@ flutter pub get                            # 依存が増えた直後は必須(�
 flutter run -d <device_id>                 # 実行。r=ホットリロード / R=ホットリスタート / q=終了
 ```
 
+### `flutter devices` がADBサーバーへ接続できない場合
+
+`could not read ok from ADB Server` や `cannot connect to daemon` が出たら、SDKの再インストールより先にADBサーバーを再起動する。
+
+```powershell
+$adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+& $adbPath kill-server
+& $adbPath start-server
+& $adbPath devices -l
+```
+
+- 端末が `device` なら、もう一度 `flutter devices` を実行する。
+- `offline` のままなら、Device Managerで対象AVDを停止して起動し直し、上の3コマンドを再実行する。長期間起動したままのAVDでは、ADBサーバーだけの再起動では戻らないことがある。
+- `adb.exe` が異常に多数残っている場合は、Android Studio・Flutter・ADBを使うターミナルをいったん閉じ、タスクマネージャーで **`%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` と確認できるプロセスだけ**を終了してから再実行する。名前だけで無関係なプロセスを一括終了しない。
+
+ADBはローカルTCP 5037番のサーバー1つを複数クライアントで共有する。したがって、このエラーは通常 `ANDROID_HOME` の値そのものではなく、残留サーバー・競合・オフラインのエミュレータを先に疑う。
+
 ## エージェント（AI）の変更を反映する
 
 `compose.ai.yml` は `- ./:/workspace` でホストのリポジトリを**バインドマウント**している。つまりコンテナ（AI サンドボックス）とホストは**同じ作業ツリー（1つの git チェックアウト）を共有**する。エージェントの編集はホストのファイルにも即現れる（ファイル自体は git pull 不要）。ただし「自動で画面に反映」にはならない:
