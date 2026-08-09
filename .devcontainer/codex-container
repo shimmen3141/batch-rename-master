@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+fail() {
+  echo "codex-container: $*" >&2
+  exit 1
+}
+
+[ "${AI_SANDBOX:-}" = "1" ] \
+  || fail "AI_SANDBOX=1 の隔離container内でだけ実行できます。"
+
+grep -q "AI_SANDBOX_DUMMY_MARKER v1" /workspace/secrets/.dummy-marker 2>/dev/null \
+  || fail "dummy secret shadowを確認できないため起動を拒否しました。"
+
+[ "$(id -u)" -ne 0 ] \
+  || fail "root userでは起動できません。"
+
+[ ! -S /var/run/docker.sock ] \
+  || fail "docker.sockが見えるcontainerでは起動できません。"
+
+firewall_marker_valid() {
+  [ -f /run/ai-firewall-ready ] \
+    && [ ! -L /run/ai-firewall-ready ] \
+    && [ "$(stat -c %u /run/ai-firewall-ready 2>/dev/null)" = "0" ] \
+    && [ "$(cat /run/ai-firewall-ready 2>/dev/null)" = "AI_FIREWALL_READY v1" ]
+}
+
+firewall_mode="on"
+case "$firewall_mode" in
+  on)
+    if ! firewall_marker_valid; then
+      sudo /usr/local/bin/init-firewall.sh >/dev/null \
+        || fail "egress firewallを初期化できませんでした。"
+    fi
+    firewall_marker_valid \
+      || fail "egress firewallの成功markerを確認できません。"
+    ;;
+  off) ;;
+  *) fail "wrapperのfirewall modeが不正です。" ;;
+esac
+
+# Linux container内ではCodexのbubblewrapがuser namespaceを作れない。
+# secrets shadow・非root・egress allowlistを外側のcontainerで検証してから、内側だけ無効化する。
+# approval policyは上書きしない。hostのcodexへこの設定を直接指定しないこと。
+exec codex --sandbox danger-full-access "$@"
