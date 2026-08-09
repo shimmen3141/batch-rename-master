@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/rename_engine.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
-import 'data/rename_exec/rename_executor.dart';
+import 'data/rename_exec/platform_rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
 import 'ui/file_source/file_source_bar.dart';
@@ -20,8 +20,8 @@ import 'ui/theme/app_theme.dart';
 /// 004 の実 [FileSource](Android=SAF / デスクトップ=OS ピッカー)から実ファイルを
 /// 読み込む。ルールは 007 の永続化(`shared_preferences`)と結線し、**前回のルールを
 /// 次回起動時に復元**する。起動直後はサンプル一覧を表示し、読み込み操作で実データを
-/// 追加できる。実 platform の rename adapter は 005 の後続 package で接続するため、
-/// 現時点の実行操作は未対応として安全に失敗する。
+/// 追加できる。005 の platform rename adapter を接続し、成功後の新しいハンドルを
+/// 次の操作へ引き継ぐ。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -78,8 +78,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   late final RenameExecutionController _renameExecution =
       RenameExecutionController(
         files: _files,
-        // T5 が platform 実装へ置換するまで、成功を偽装しない。
-        executor: const UnsupportedRenameExecutor(),
+        executor: createPlatformRenameExecutor(),
       );
 
   @override

@@ -18,7 +18,8 @@
         "SM-001",
         "VER-004",
         "VER-005",
-        "test/spec_005_rename_exec/"
+        "test/spec_005_rename_exec/",
+        "development-units/complete-rename-execution/manual-verification.md#warning-confirmation-and-results"
       ],
       "parallelConstraints": [
         "rule-not-configured-uiと同じrename action・warning UIを変更するため並列編集しない"
@@ -40,7 +41,8 @@
         "REQ-022",
         "VER-004",
         "VER-005",
-        "test/spec_005_rename_exec/"
+        "test/spec_005_rename_exec/",
+        "development-units/complete-rename-execution/manual-verification.md#rule-not-configured-ui"
       ],
       "parallelConstraints": [
         "warning-confirmation-and-resultsの統合後に同じUIへ変更する"
@@ -66,7 +68,7 @@
         "VER-001",
         "VER-007",
         "test/spec_005_rename_exec/",
-        "docs/development/emulator-verification.md"
+        "development-units/complete-rename-execution/manual-verification.md#platform-rename-adapters"
       ],
       "parallelConstraints": [
         "undoとmodified-timeはこのadapter contractを入力にするため先に統合する"
@@ -94,7 +96,7 @@
         "VER-004",
         "VER-007",
         "test/spec_005_rename_exec/",
-        "docs/development/emulator-verification.md"
+        "development-units/complete-rename-execution/manual-verification.md#session-undo"
       ],
       "parallelConstraints": [
         "desktop-modified-timeとadapter実装を共有する場合は変更fileを分離する"
@@ -115,7 +117,8 @@
         "REQ-015",
         "REQ-016",
         "VER-006",
-        "test/spec_005_rename_exec/"
+        "test/spec_005_rename_exec/",
+        "development-units/complete-rename-execution/manual-verification.md#desktop-modified-time"
       ],
       "parallelConstraints": [
         "session-undoとadapter実装を共有する場合は変更fileを分離する"
@@ -127,8 +130,7 @@
     "dart format --output=none --set-exit-if-changed .",
     "flutter analyze",
     "flutter test",
-    "Android SAF host verification",
-    "desktop file-system host verification"
+    "development-units/complete-rename-execution/manual-verification.md#unit-integration"
   ],
   "externalDependencies": []
 }

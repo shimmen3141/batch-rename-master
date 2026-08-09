@@ -11,7 +11,8 @@
 - 説明・反証記録: `specs/005-rename-exec/spec.md`
 - 外部I/O判断: `specs/004-file-source/decisions/ADR-001-file-source-plugins.md`
 - 仕様由来test: `test/spec_005_rename_exec/`
-- 手動確認: `docs/development/emulator-verification.md`
+- 共通のhost環境手順: `docs/development/emulator-verification.md`
+- unit固有の手動確認: `development-units/complete-rename-execution/manual-verification.md`
 
 ## 境界
 
@@ -46,8 +47,8 @@
 |---|---|
 | approved contractの必須振る舞いが仕様由来testで通る | `flutter test test/spec_005_rename_exec/` |
 | project全体にformat・静的解析・回帰不適合がない | `dart format --output=none --set-exit-if-changed .`、`flutter analyze`、`flutter test` |
-| Android SAFでrename・handle更新・undoが実データに対して成立する | `docs/development/emulator-verification.md`の対象build・操作・観測結果 |
-| desktopで実rename・undo・更新日時ずらしが成立する | host側の対象build・fixture・操作・観測結果 |
+| Android SAFでrename・handle更新・undoが実データに対して成立する | `manual-verification.md`のAndroid SAF手順を同じcommit/buildで実施した記録 |
+| desktopで実rename・undo・更新日時ずらしが成立する | `manual-verification.md`のdesktop手順を同じcommit/buildで実施した記録 |
 | working treeまたは対象commit rangeがこのunitの境界内である | `git status --short`と正確な`git diff`の独立review |
 
 ## リスクと進め方

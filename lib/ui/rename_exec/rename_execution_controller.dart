@@ -44,26 +44,80 @@ class RenameExecutionController extends ChangeNotifier {
                 .toList();
       final excluded = <FileEntry>[];
       final requests = <RenameRequest>[];
+      final sources = <RenameRequest, FileEntry>{};
+      final actualByHandle = <String, FileEntry>{
+        for (final item in files.items)
+          if (item.sourceHandle != null) item.sourceHandle!: item,
+      };
       for (final entry in resolved) {
         if (_hasEmptyBase(entry.source, entry.resultName)) {
           excluded.add(entry.source);
           continue;
         }
-        requests.add(
-          RenameRequest(
-            handle: entry.source.sourceHandle ?? entry.source.name,
-            originalName: entry.source.name,
-            targetName: entry.resultName,
-          ),
+        final request = RenameRequest(
+          handle: entry.source.sourceHandle ?? entry.source.name,
+          originalName: entry.source.name,
+          targetName: entry.resultName,
         );
+        requests.add(request);
+        final actual = entry.source.sourceHandle == null
+            ? files.items.firstWhere(
+                (item) => item.name == entry.source.name,
+                orElse: () => entry.source,
+              )
+            : actualByHandle[entry.source.sourceHandle];
+        if (actual != null) sources[request] = actual;
       }
       _excludedEmptyNames = List.unmodifiable(excluded);
-      return await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(planExecution(requests), executor);
+      _applyOutcome(outcome, sources);
+      return outcome;
     } finally {
       _running = false;
       notifyListeners();
     }
   }
+
+  /// 成功した改名と、復元できず一時名のまま残った実体だけを一覧へ反映する。
+  void _applyOutcome(
+    RenameOutcome outcome,
+    Map<RenameRequest, FileEntry> sources,
+  ) {
+    final replacements = <FileEntry, FileEntry>{};
+    for (final success in outcome.successes) {
+      final source = sources[success.request];
+      if (source == null) continue;
+      replacements[source] = _renamedEntry(
+        source,
+        name: success.newName,
+        handle: success.handle,
+      );
+    }
+    for (final stranded in outcome.stranded) {
+      final source = sources[stranded.request];
+      if (source == null) continue;
+      replacements[source] = _renamedEntry(
+        source,
+        name: stranded.currentName,
+        handle: stranded.request.handle,
+      );
+    }
+    files.replaceItems(replacements);
+  }
+
+  static FileEntry _renamedEntry(
+    FileEntry source, {
+    required String name,
+    required String handle,
+  }) => FileEntry(
+    name: name,
+    createdAt: source.createdAt,
+    modifiedAt: source.modifiedAt,
+    size: source.size,
+    selected: source.selected,
+    sourceHandle: handle,
+    sourceLocation: source.sourceLocation,
+  );
 
   List<FileEntry> _entriesWithSelection() => [
     for (final item in files.items)
