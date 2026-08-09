@@ -8,10 +8,13 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 
 - `secrets/`、環境変数、慣習的な`.env`の値はダミーである。本物の値を探索・表示しない。
 - `compose.ai.yml`と`.devcontainer/`はread-only。変更は人間へ依頼する。
+- 各worktreeではignoredな`secrets/ai.env`が存在しないことがある。これはComposeの構文上必要なだけで値は不要なので、Agentはコメントだけの空相当fileをそのworktreeへ作成してよい。別worktreeやhostから同名fileをcopyせず、credentialや環境変数代入を追加しない。これは「新しい秘密の生成」には含めない。
 - push / PRは`gh`で行えるが、`.github/workflows`を含むpushは人間が行う。
 - クラウド認証や広権限tokenを持ち込まない。infra/deployは人間監督下で行う。
 - 新しい秘密を移動・生成する必要があれば人間へ依頼する。
 - Android SDK / Xcodeは無い。`flutter analyze`と`flutter test`は実行できるが、実機・emulator buildはホスト側の人間が行う。
+
+非対話の検証は既定で`docker compose -f compose.ai.yml run --rm ai-dev <command>`を使い、container内で`AI_SANDBOX=1`を確認する。既に同じworktree用containerが起動している場合だけ`exec`を使う。
 
 # ASDD 1.0
 
