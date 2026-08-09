@@ -21,4 +21,4 @@ fresh Agentはbranch、execution map、approved contract、clean diffから次pa
 
 ## 改善結果
 
-`AGENTS.md`へproject固有のbootstrap規則を追加した。ASDD plugin側の変更と再forward-test結果は、検証後に追記する。
+`AGENTS.md`へproject固有のbootstrap規則を追加し、ASDD plugin v1.0.6のsetup templateとresume guideへ一般化した。同じfresh Terraが隔離container内で実装を再開し、005仕様テスト43件、全体テスト318件、analyze、formatをPASS。別のfresh Terraによる`warning-confirmation-and-results` scopeの独立reviewもPASSした。

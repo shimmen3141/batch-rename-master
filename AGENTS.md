@@ -18,7 +18,7 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 
 # ASDD 1.0
 
-- Protocol revision: 1.0.5
+- Protocol revision: 1.0.6
 - Execution map schema: 1.0（protocol revisionとは独立）
 - Integration branch: `dev`
 
