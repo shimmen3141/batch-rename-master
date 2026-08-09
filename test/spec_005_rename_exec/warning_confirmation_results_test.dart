@@ -22,14 +22,17 @@ Future<void> _pump(
   WidgetTester tester,
   FileListController files,
   RenameExecutionController execution,
-) => tester.pumpWidget(
-  MaterialApp(
-    theme: appDarkTheme(),
-    home: Scaffold(
-      body: FileListView(controller: files, renameExecution: execution),
+) {
+  addTearDown(execution.dispose);
+  return tester.pumpWidget(
+    MaterialApp(
+      theme: appDarkTheme(),
+      home: Scaffold(
+        body: FileListView(controller: files, renameExecution: execution),
+      ),
     ),
-  ),
-);
+  );
+}
 
 void main() {
   test('強制実行は autoResolve 後に空名を除外する(REQ-022)', () async {

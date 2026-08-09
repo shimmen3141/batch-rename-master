@@ -159,9 +159,10 @@ class _RenameActionBar extends StatelessWidget {
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message.toString())));
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message.toString())));
   }
 
   @override
