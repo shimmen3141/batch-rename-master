@@ -112,18 +112,6 @@ String pathRenamedHandle(String handle, String newName) {
   return i < 0 ? newName : '${handle.substring(0, i + 1)}$newName';
 }
 
-/// SAF の document URI の改名後ハンドル(ADR-001「実機で確認した事実」2)。
-///
-/// URI の最後のパスセグメントはフォルダ区切りが `%2F` に符号化されているため、
-/// 最後の `%2F` 以降を符号化した [newName] で置き換える。実測値:
-/// `.../document/primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg` を
-/// `IMG_0010_t8.jpg` へ改名すると `...%2FIMG_0010_t8.jpg` になる。
-String safDocumentRenamedHandle(String handle, String newName) {
-  final i = handle.lastIndexOf('%2F');
-  if (i < 0) return pathRenamedHandle(handle, newName);
-  return '${handle.substring(0, i + 3)}${Uri.encodeComponent(newName)}';
-}
-
 /// [FakeRenameExecutor] が保持する1ファイルの状態。
 ///
 /// [id] と [content] は改名で変化しない(INV-001 の観測点: 実体の個数・内容が
@@ -158,9 +146,9 @@ class FakeFileState {
 /// 供給できる値」):
 ///
 /// - 改名すると**ハンドルが変わる**([renamedHandle] が作る)。古いハンドルで
-///   呼ぶと [RenameErrorKind.notFound] を返す(実機の stale URI と同じ)。
+///   呼ぶと [RenameErrorKind.notFound] を返す。
 /// - 戻り値の [Renamed.name] は既定で**空文字列**([returnedName])。
-///   ドキュメント URI 経由の `saf_util.rename` と同じ振る舞い。
+///   portの最小値域を検査するため、名前情報を提供しない実装を模す。
 /// - 同名のファイルが既にあれば [RenameErrorKind.nameConflict] を返し、
 ///   **既存を上書きしない**(INV-002 を実体側でも守る)。
 class FakeRenameExecutor implements RenameExecutor {

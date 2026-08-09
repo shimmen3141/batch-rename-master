@@ -2,22 +2,17 @@
 //
 // 観点: 例外を投げず結果型で返すこと、改名のたびにハンドルが変わり古いハンドルが
 // 使えなくなること、戻り値の名前が空になりうるので目標名を正とすること。
-// fake が本物より親切にならないことを、T8(2026-08-05)の実機スパイクで得た
-// 実物の URI 断片で固定する(ADR-001「実機で確認した事実」2・3)。
+// Android SAF productionはrevision 2で安全な未対応となる。ここではdesktopや
+// 将来の安全な境界を含むport一般の許容値域として、opaque handleの変化と空名を扱う。
 import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// T8 の実機スパイクで実測したドキュメント URI(ADR-001)。
-const _realUri =
-    'content://com.android.externalstorage.documents/document/'
-    'primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg';
+const _opaqueHandle = 'opaque://provider/item/42';
+const _opaqueHandleAfterRename = 'opaque://provider/item/84';
 
-/// 同じフォルダで `IMG_0010_t8.jpg` へ改名したときの実測値(ADR-001)。
-const _realUriAfterRename =
-    'content://com.android.externalstorage.documents/document/'
-    'primary%3ADownload%2Frename_test_a%2FIMG_0010_t8.jpg';
+String _changedOpaqueHandle(String _, String _) => _opaqueHandleAfterRename;
 
 void main() {
   test('rename は成功時に改名後のハンドルを返す(OP-004)', () async {
@@ -77,44 +72,42 @@ void main() {
     expect(executor.names, ['c.jpg']);
   });
 
-  test('実機の SAF ドキュメント URI は改名で変わる(REQ-001)', () async {
+  test('成功可能なportではopaque handleが改名で変わりうる(REQ-001)', () async {
     final executor = FakeRenameExecutor(
-      files: {_realUri: 'IMG_0010.jpg'},
-      renamedHandle: safDocumentRenamedHandle,
+      files: {_opaqueHandle: 'IMG_0010.jpg'},
+      renamedHandle: _changedOpaqueHandle,
     );
 
     final result =
-        await executor.rename(_realUri, 'IMG_0010_t8.jpg') as Renamed;
+        await executor.rename(_opaqueHandle, 'IMG_0010_t8.jpg') as Renamed;
 
-    expect(result.newHandle, _realUriAfterRename);
-    expect(result.newHandle, isNot(_realUri));
-    // 元の URI は stale になる(ADR-001「実機で確認した事実」2)。
-    final stale = await executor.rename(_realUri, 'IMG_0011.jpg');
+    expect(result.newHandle, _opaqueHandleAfterRename);
+    expect(result.newHandle, isNot(_opaqueHandle));
+    final stale = await executor.rename(_opaqueHandle, 'IMG_0011.jpg');
     expect((stale as RenameFailed).error.kind, RenameErrorKind.notFound);
   });
 
-  test('実機のドキュメント URI 経由では戻り値の名前が空で返る(REQ-018)', () async {
+  test('成功可能なportの戻り値名は空でもよい(REQ-018)', () async {
     final executor = FakeRenameExecutor(
-      files: {_realUri: 'IMG_0010.jpg'},
-      renamedHandle: safDocumentRenamedHandle,
+      files: {_opaqueHandle: 'IMG_0010.jpg'},
+      renamedHandle: _changedOpaqueHandle,
     );
 
     final result =
-        await executor.rename(_realUri, 'IMG_0010_t8.jpg') as Renamed;
+        await executor.rename(_opaqueHandle, 'IMG_0010_t8.jpg') as Renamed;
 
-    // fake は本物より親切にしない: name は空文字列のまま返る(ADR-001 の 3)。
     expect(result.name, isEmpty);
   });
 
   test('改名後の名前は戻り値ではなく目標名を正とする(REQ-018)', () async {
     final request = RenameRequest(
-      handle: _realUri,
+      handle: _opaqueHandle,
       originalName: 'IMG_0010.jpg',
       targetName: 'IMG_0010_t8.jpg',
     );
     final executor = FakeRenameExecutor(
-      files: {_realUri: 'IMG_0010.jpg'},
-      renamedHandle: safDocumentRenamedHandle,
+      files: {_opaqueHandle: 'IMG_0010.jpg'},
+      renamedHandle: _changedOpaqueHandle,
     );
 
     final outcome = await executePlan(planExecution([request]), executor);
@@ -123,8 +116,7 @@ void main() {
     expect(success.newName, 'IMG_0010_t8.jpg');
     expect(success.newName, isNotEmpty);
     expect(success.originalName, 'IMG_0010.jpg');
-    // ハンドルは改名後の URI へ更新される(REQ-001 / INV-005)。
-    expect(success.handle, _realUriAfterRename);
-    expect(request.handle, _realUriAfterRename);
+    expect(success.handle, _opaqueHandleAfterRename);
+    expect(request.handle, _opaqueHandleAfterRename);
   });
 }

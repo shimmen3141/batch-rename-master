@@ -1,8 +1,9 @@
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(BRM_UNSUPPORTED_PLATFORM)
 #define _GNU_SOURCE
 #endif
 #include <stdint.h>
-#if defined(_WIN32)
+#if defined(BRM_UNSUPPORTED_PLATFORM)
+#elif defined(_WIN32)
 #include <windows.h>
 #else
 #include <errno.h>
@@ -29,7 +30,14 @@ enum brm_rename_result {
   BRM_RENAME_IO = 5
 };
 
-#if defined(_WIN32)
+#if defined(BRM_UNSUPPORTED_PLATFORM)
+BRM_EXPORT int32_t brm_rename_no_replace_utf8(const char *source,
+                                               const char *destination) {
+  (void)source;
+  (void)destination;
+  return BRM_RENAME_UNSUPPORTED;
+}
+#elif defined(_WIN32)
 static int32_t brm_result_from_windows_error(DWORD error) {
   switch (error) {
     case ERROR_FILE_EXISTS:
