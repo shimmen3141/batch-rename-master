@@ -13,7 +13,7 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 - クラウド認証や広権限tokenを持ち込まない。infra/deployは人間監督下で行う。
 - 新しい秘密を移動・生成する必要があれば人間へ依頼する。
 - Android SDK / Xcodeは無い。`flutter analyze`と`flutter test`は実行できるが、実機・emulator buildはホスト側の人間が行う。
-- container内でCodexを起動するときは`codex-container`を使う。Linuxの内側sandboxはbubblewrapのuser namespaceを作れないため、このwrapperが`AI_SANDBOX=1`とdummy secret shadowを確認してから内側だけを無効化する。host側で同等の危険flagを直接使わない。
+- container内でCodexを起動するときは`codex-container`を使う。Linuxの内側sandboxはこのDocker構成でuser namespaceを作れないため、このwrapperが`AI_SANDBOX=1`、dummy secret shadow、非root、docker.sock不在を確認する。firewall modeはwrapperへ`on`で焼き込み済みで、`docker compose run`でもfirewallを自己初期化し、root所有・固定内容の成功markerを要求してから内側だけを無効化する。approval policyは上書きしない。host側で`--sandbox danger-full-access`を直接使わない。
 
 非対話の検証は既定で`docker compose -f compose.ai.yml run --rm ai-dev <command>`を使い、container内で`AI_SANDBOX=1`を確認する。既に同じworktree用containerが起動している場合だけ`exec`を使う。
 

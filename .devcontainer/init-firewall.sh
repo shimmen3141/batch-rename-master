@@ -11,6 +11,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# 過去の成功markerを初期化開始前に無効化する。途中失敗時にstale markerを残さない。
+rm -f /run/ai-firewall-ready
+
 # ============================================================
 # 許可ドメイン(scaffold.mjs が言語・エージェント選択に応じてこの配列を書き換える。
 # 手動配置の場合は使うものだけ残して編集する。プロジェクト固有ドメインは随時追記)
@@ -101,4 +104,9 @@ if ! curl --connect-timeout 10 -fsS -o /dev/null https://github.com; then
   echo "NG: github.com に到達できない(allowlist が効いていない)" >&2
   exit 1
 fi
+marker_tmp=$(mktemp /run/.ai-firewall-ready.XXXXXX)
+printf '%s\n' 'AI_FIREWALL_READY v1' > "$marker_tmp"
+chown root:root "$marker_tmp"
+chmod 0444 "$marker_tmp"
+mv -f "$marker_tmp" /run/ai-firewall-ready
 echo "OK: egress firewall configured"

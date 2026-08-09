@@ -68,7 +68,7 @@
 このコンテナには以下の AI エージェント CLI が入っています。ログイン状態は named volume に保存され、**Rebuild してもログインは保持されます**(初回だけログインが必要)。
 
 - **Claude Code**: ターミナルで `claude` を起動。初回は `/login` → 表示された URL を**ホスト側のブラウザ**で開いて認証し、コードをターミナルに貼り戻します。
-- **Codex CLI**: 初回は`codex login`を実行し、表示されたURLをホスト側のブラウザで開いて認証します(ChatGPTアカウント)。普段の作業は`codex-container`で起動します。Linux container内ではCodex自身のbubblewrap sandboxを重ねられないため、このwrapperが`AI_SANDBOX=1`とdummy secret shadowを検査してから内側sandboxだけを無効化します。wrapperをhost側で使ったり、同等の危険flagをhostの`codex`へ直接指定したりしないでください。APIキーで使う場合はキーをAIやチャットに貼らず、自分で入力してください。
+- **Codex CLI**: 初回は`codex login`を実行し、表示されたURLをホスト側のブラウザで開いて認証します(ChatGPTアカウント)。普段の作業は`codex-container`で起動します。すべてのDev Containerで必ずではありませんが、このDocker構成ではCodex自身のLinux sandboxがuser namespaceを作れません。wrapperは`AI_SANDBOX=1`、dummy secret shadow、非root、docker.sock不在を検査し、firewall有効時は`docker compose run`でも自己初期化の成功markerを要求してから内側sandboxだけを無効化します。approval policyは変更しません。wrapperをhost側で使ったり、`--sandbox danger-full-access`をhostの`codex`へ直接指定したりしないでください。APIキーで使う場合はキーをAIやチャットに貼らず、自分で入力してください。
 
 ### このコンテナでできること(Flutter)
 
