@@ -101,8 +101,22 @@ work packageは`execution-map.*`に定義する永続的な成果・依存・検
 | 「IssueでW1を管理・実装して」 | 必要な親IssueとW1子Issueのcreate/reuse、assign、comment、gate後のdoneまでのstatus更新。親doneはunit全体も依頼scopeの場合だけ |
 | Issue close/reopen/delete/担当移譲 | 個別の明示依頼が必要 |
 | 通常push / PR作成・ready化 | 明示依頼が必要 |
-| merge / auto-merge | 対象と条件を指定した明示依頼が必要。merge依頼はgate通過後のdraft→readyを含む |
+| merge / auto-merge | 下記の条件付き事前許可を満たすwork-package PRだけ追加確認不要。それ以外は対象と条件を指定した明示依頼が必要 |
 | force push | 履歴改変を明示した依頼が必要 |
+
+### Work-package PRの条件付き自動merge
+
+このprojectでは、execution mapの一つのwork packageへ対応するPRに限り、次の条件を**すべて**満たしたAgentは、追加の人間確認なしでGitHubのauto-mergeを有効化するか、PRをmergeしてよい。これは通常pushやPR作成の事前許可を追加せず、unit全体の最終PR、別unit、別repositoryへも拡張しない。
+
+1. PRがdraftではなく、対象development unit、work package、子Issue、base/headが一意に特定されている。
+2. exact `base..head` rangeについて、実装文脈から分離した独立reviewがPASSしている。`SELF-REVIEW ONLY`や、手動証拠待ちの`BLOCKED`は代用にならない。
+3. required CI、required review、branch protectionがすべて成功し、未解決のreview threadがない。
+4. execution mapが示す依存work packageが統合済みで、最新baseとの競合がなく、必要な関連checkと回帰checkが最新headでPASSしている。
+5. scopeで必須のUI・実機・host確認がある場合、同じcommit/buildの観測結果がIssueまたはPRに記録され、独立reviewがその証拠を含めて最終PASSしている。
+6. 未解決P0/P1、仕様・scope・risk判断待ち、data loss・permission・compatibilityに関する未受容のriskがない。
+7. PRが`.github/workflows/`、AI sandbox・secret境界、infra/deploy、権限規約、この`AGENTS.md`自身を変更していない。これらは個別の明示merge依頼を必要とする。
+
+一条件でも確認不能または不成立ならmergeせず、欠けている証拠を報告する。merge methodはrepositoryで許可された通常方式を使い、force push・履歴改変でgateを迂回しない。merge後は統合commitを取得して必要な検査をintegration branch上で再実行し、その結果を報告してからIssueを`done`にする。Issueのcloseは引き続き個別の明示依頼を必要とする。
 
 実装依頼や「続けて」だけでは外部操作権限を追加しない。権限がなければbranch、commit/range、検証結果、Issue/PR案まで準備して止める。
 
