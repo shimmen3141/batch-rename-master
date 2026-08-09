@@ -1,5 +1,5 @@
-#if defined(_WIN32)
 #include <stdint.h>
+#if defined(_WIN32)
 #include <windows.h>
 #else
 #define _GNU_SOURCE
