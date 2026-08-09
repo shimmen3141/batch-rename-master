@@ -52,24 +52,13 @@ flutter run -d <device_id>                 # 実行。r=ホットリロード / 
 
 ## 機能別の実機確認（実装後）
 
-- **004 ファイル読み込み（新導線）**: エミュレータに事前にテスト用ファイルを置く（`adb shell "mkdir -p /sdcard/Download/rename_test_a"` → `adb shell "echo demo > /sdcard/Download/rename_test_a/IMG_0009.jpg"` など。2フォルダに置くと跨ぎ警告も試せる）。上部の「**ファイルを選ぶ**」から確認する:
-  1. **種類のシートが出る**（画像 / 動画 / 文書 / すべて）。**「画像」「動画」を選ぶと「写真機能で対応予定です」**と出るだけで読み込まれない（枠のみ。仕様どおり）。
-  2. **「すべて」** → システムのファイル選択画面 → フォルダを辿ってファイルを複数選択 → 確定 → 一覧に載る（各行に**場所**の副題）。**右上のケバブメニューの「すべて選択」**でフォルダ内を一括選択できる。
-  3. **もう一度選び直すと、前回の結果は残らず置き換わる**（蓄積しない）。
-  4. **「文書」** → 文書系のファイルに絞り込まれた選択画面が開く。
-  5. **キャンセル**（戻る）→ 一覧は**変化せず、通知も出ない**。**権限拒否** → 変化せず**赤い通知**。
-  6. **複数フォルダのファイルを1回の選択に混ぜる**と、読み込みはされたうえで**跨ぎの警告**が出る。
-  7. 行の **×** で1件除去 / 「すべて外す」（空では無効）。
-  8. **「作成日時順」** → 警告帯（更新日時で代替）+ 各行「**作成日時: 不明**」が**警告色**に。**「元の名前順」に切り替えると、不明の表示は残るが強調は消える**。
-  9. **ルールに連番トークンが無いとき**は、**ドラッグハンドルと「カスタム順」チップが出ない**。連番を足すと現れる（並び順が効くのは連番のときだけ）。
-  - 補足: `sortMode` が「カスタム順」のときにルールから連番トークンを外すと、カスタム順チップが消えてどのチップも選択表示にならない（並び自体は保たれる）。仕様上の規定は無く、気になる場合は報告してほしい。
-  - **起動直後に並ぶ 9 件は UI 確認用のサンプル**（`lib/main.dart` の `_sampleFiles()`）で実ファイルではない。読み込むと置き換わる。
-  - 追加の権限設定は不要（SAF の権限は選んだ URI 単位で付与される）。`MANAGE_EXTERNAL_STORAGE` は要求しない。
-  - **Windows** で確認する場合は `flutter run -d windows`。同じ手順で OS のファイルピッカーが開き、行のハンドルは絶対パスになる。
-- **005 リネーム実行**: 実行後に `adb shell ls /sdcard/Download/` 等で実ファイル名の変化・重複回避（`(1)` 付与）・桁拡張を確認。実行前の警告表示、実行後の「元に戻す」トーストも確認。
-- **007 ルール永続化(前回ルールの復元)**: トークンをいくつか足す(変更ごとに自動保存される)→ **アプリを再起動** → ルールが空でなく前回のまま復元されるか。「再起動」は2段階で使い分ける:
-  - **`R`(大文字=ホットリスタート)**: `main()` を再実行し `restore()` が再び走る。プロセスは同じだが、復元(読み込み)経路の手早い機能確認になる。※`r`(小文字=ホットリロード)は `main()` を再実行しないのでこの確認には使えない。
-  - **コールドスタート(本来の「次回起動」)**: プロセスを完全に終了してから起動。`flutter run` を `q` で終了 → 再度 `flutter run`、または エミュレータでアプリを最近履歴からスワイプで消す(もしくは 設定 > アプリ > 強制停止)→ ランチャーのアイコンから開き直す。値がディスクに永続化され、プロセス死をまたいで残るかを忠実に確認できる。
+この文書には複数unitで共通するhost起動・接続手順だけを置く。機能固有のfixture、操作、期待結果、記録する証拠は次を正本とする。
+
+- **004 ファイル読み込み**: [`development-units/verify-file-selection-on-target-platforms/manual-verification.md`](../../development-units/verify-file-selection-on-target-platforms/manual-verification.md)
+- **005 リネーム実行**: [`development-units/complete-rename-execution/manual-verification.md`](../../development-units/complete-rename-execution/manual-verification.md)
+- **007 ルール永続化**: [`development-units/verify-rule-persistence-across-restart/manual-verification.md`](../../development-units/verify-rule-persistence-across-restart/manual-verification.md)
+
+起動直後に並ぶsampleはUI確認用で実fileではない。実fileを選ぶと一覧は置き換わる。
 - **APK ビルド**: `flutter build apk --debug`（成果物 `build/app/outputs/flutter-apk/`）。署名済みリリースは `--release`（署名鍵の扱いは別途）。
 
 ## 注意

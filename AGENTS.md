@@ -18,7 +18,7 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 
 # ASDD 1.0
 
-- Protocol revision: 1.0.6
+- Protocol revision: 1.0.8
 - Execution map schema: 1.0（protocol revisionとは独立）
 - Integration branch: `dev`
 
@@ -30,9 +30,12 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 - 凍結済み旧配置: `specs/**/plan.md`、`specs/discovery.md`、`specs/findings/`
 - 停止済み旧自動化: plan parser、Stop hook、Issue投影、specs index書き戻し、spec status gate
 - 継続利用する仕様正本・検証: `specs/**/spec.md`、`specs/**/contracts/`、`specs/**/decisions/`、`test/spec_*/`
+- 旧全体像の移行カバレッジ: `docs/development/project-development-map.md`
 - Cutover外部監査（2026-08-09）: open PR 0、running/queued Actions 0。`dev`対象ruleset `20491071`はnon-fast-forwardとbranch deletionの禁止だけで、停止workflowのrequired status checkは無い
 
 cutoff後は旧planのstatus、claim、log、Issue番号をlive stateや次作業の正本として読まない。既存REQ/VER ID、approved Strict contract、ADR、仕様由来testは改名・複製せず参照する。
+
+旧`specs/discovery.md`と全旧planにあった能力、未完了受け入れ、将来候補、対象外は`docs/development/project-development-map.md`へ分類済みである。プロジェクト全体から次のunitを選ぶときは旧資料でなくこのmapを入口にする。mapはlive statusを持たず、実行中の状態はIssueから読む。
 
 ## 配置と正本
 
@@ -41,6 +44,7 @@ development-units/<短く具体的な名前>/
 ├── definition.md       # unit全体の目的、境界、決定、受け入れ証拠
 ├── spec.md             # 既存の仕様正本がなく、高リスクまたは解釈差が重要な場合だけ
 ├── execution-map.md または .json # stableな依存と安全な並列境界が必要な場合だけ
+├── manual-verification.md # unit固有の手動・実機確認が必要な場合だけ
 └── decisions/          # 複数unitへ長く影響するWhy / Why notだけ
 ```
 
@@ -61,7 +65,7 @@ development-units/<短く具体的な名前>/
 
 ## 実行規律
 
-1. project instructions、definition、仕様正本、execution map、code、test、git差分、利用可能なIssue/PRを読む。
+1. project instructions、`docs/development/project-development-map.md`、definition、仕様正本、execution map、code、test、git差分、利用可能なIssue/PRを読む。
 2. 依存を満たしたwork packageを実物から選ぶ。複数Agentなら編集前にIssue、担当、branch/worktreeをclaimする。
 3. 直近1〜3個の検証可能なcheckpointだけ具体化する。
 4. 実装後、関連checkと全体checkの実出力を確認する。
@@ -80,6 +84,8 @@ development-units/<短く具体的な名前>/
   - `flutter analyze`
   - `flutter test`
 - 手動・実機確認: `docs/development/emulator-verification.md`に従いホスト側で行う。
+
+project共通の起動・接続は上記共通docs、unit固有のfixture・操作・期待結果は各`development-units/*/manual-verification.md`を正本とする。
 
 完了前にworking-treeの実差分、test/analyze/formatの実出力、仕様差分、受け入れシナリオ、必要なUI・実機証拠を確認する。実行不能な確認を実施済みと報告しない。testの削除・skip・assertion緩和、エラーの握りつぶしでPASSさせない。
 
@@ -131,3 +137,5 @@ work packageは`execution-map.*`に定義する永続的な成果・依存・検
 「続けて」と言われたら、current branch/worktree、`git status --short`、staged/unstaged diff、未追跡file、変更されたdefinition/spec/test、利用可能なIssue/PRを調べる。候補が一つなら次の検証可能なcheckpointへ進み、複数なら候補と根拠を示して一問だけ確認する。旧planや古い完了報告だけを信じない。
 
 意図的な中断・担当交代では、Issueへwork package、branch/worktree、完了済み成果、失敗中の証拠、最後の検証出力、次のcheckpoint、blocker、無関係なdirty変更をhandoffとして残す。予期しない中断では最後に観測可能なcheckpointから再開する。
+
+activeなbranch・diff・Issueが無く、プロジェクト全体の次を求められた場合は`docs/development/project-development-map.md`から依存を満たす定義済みunitまたは将来候補を列挙する。候補が複数なら製品優先度を推測せず、一問だけ選択を求める。将来候補のIssueはあらかじめ一括作成せず、選ばれた候補をdefinitionへ具体化して共有調整を始めるときだけ作成または再利用する。
