@@ -2,6 +2,19 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-005",
   "title": "リネーム実行(rename-exec)",
+  "revision": "2",
+  "revision_history": [
+    {
+      "revision": "1",
+      "approved_commit": "bd1fc46750284baa229eb7338d6779b9547cc80f",
+      "meaning": "Android SAFとdesktopの改名ポートが成功または理由付き失敗を返すStrict契約。Android SAF providerの原子的no-replace可否は未検証だった。"
+    },
+    {
+      "revision": "2",
+      "approved_date": "2026-08-09",
+      "meaning": "INV-002をplatform例外なく維持する。Android SAF production renameはprovider APIを呼ぶ前にunsupportedPlatformを返し、実体を変更しない。desktopは排他的renameを提供する。"
+    }
+  ],
   "status": "approved",
   "scope": {
     "in": [
@@ -10,7 +23,8 @@
       "失敗したときの停止規則と、成功・失敗・未実行の区別。",
       "実行直後の限られた期間に、成功した改名を元の名前へ戻す操作(単一ステップ)。",
       "001 の検証が返す警告の提示と、警告がある状態での実行可否の制御。",
-      "改名に成功したファイルの更新日時を、表示順に一定間隔でずらす任意機能。"
+      "改名に成功したファイルの更新日時を、表示順に一定間隔でずらす任意機能。",
+      "原子的no-replaceを保証できないAndroid SAF production経路を、実体を変更せず理由付きの未対応として扱う。"
     ],
     "out": [
       "生成後名の決定・重複や桁不足の判定・自動解決の規則(001 が正本)。",
@@ -23,7 +37,7 @@
   "terms": [
     {
       "term": "ハンドル",
-      "definition": "004 が供給する不透明な識別子(Android は SAF の document URI、デスクトップは絶対パス)。実体を一意に指すが、**改名すると別の値に変わりうる**。"
+      "definition": "004 が供給する不透明な識別子(Android は SAF の document URI、デスクトップは絶対パス)。実体を一意に指す。revision 2ではAndroid SAF production renameは未対応であり、成功してハンドルが変わりうる実装はdesktopまたは将来の安全なAndroid境界に限る。"
     },
     {
       "term": "改名要求",
@@ -227,7 +241,7 @@
       "id": "REQ-017",
       "kind": "functional",
       "priority": "must",
-      "statement": "改名ポートは例外を投げず、成功(新しいハンドルを含む)か失敗(理由を含む)のいずれかを返す。未対応のプラットフォームでは失敗を返す。",
+      "statement": "改名ポートは例外を投げず、成功(新しいハンドルを含む)か失敗(理由を含む)のいずれかを返す。未対応のプラットフォームでは失敗を返す。Android SAF production経路は原子的no-replaceを保証できないため、providerのrename APIを呼ぶ前にunsupportedPlatformを返し、実体を一切変更しない。",
       "observable": true,
       "verification": [
         "VER-001"
@@ -445,7 +459,7 @@
           "result": "理由つきの失敗を返す(REQ-017)"
         },
         {
-          "when": "プラットフォームが未対応",
+          "when": "プラットフォームが未対応、またはAndroid SAFのようにINV-002を保証できる改名境界が無い",
           "result": "理由つきの失敗を返す(REQ-017)"
         }
       ],
@@ -453,7 +467,7 @@
         "実ファイルの改名"
       ],
       "nondeterminism": [
-        "改名後のハンドルが改名前と等しいかどうかは実装依存(Android では変わり、デスクトップでは絶対パスが変わる)。呼び出し側はどちらでも壊れてはならない。"
+        "成功可能な実装で、改名後のハンドルが改名前と等しいかどうかは実装依存である。呼び出し側はどちらでも壊れてはならない。Android SAF production経路はrevision 2では成功を返さない。"
       ],
       "requirements": [
         "REQ-017",

@@ -48,15 +48,14 @@ class Renamed extends RenameResult {
 
   /// 改名後のハンドル。**改名前とは別の値になりうる**(REQ-001 / INV-005)。
   ///
-  /// Android(SAF)は改名で document URI が変わり、デスクトップはハンドルが
-  /// 絶対パスなので名前の変更に伴って変わる(ADR-001「実機で確認した事実」2)。
-  /// 呼び出し側は以降の操作でこの値を使う。
+  /// デスクトップはハンドルが絶対パスなので名前の変更に伴って変わる。
+  /// Android SAF production renameはrevision 2で安全な未対応となる。将来の
+  /// Android境界が別のハンドルを返す場合にも、呼び出し側は以降の操作でこの値を使う。
   final String newHandle;
 
   /// ポートが返した改名後の名前。**空になりうる**。
   ///
-  /// `saf_util.rename` はドキュメント URI 経由では空文字列を返す
-  /// (ADR-001「実機で確認した事実」3)。したがってこの値を表示や後続処理の
+  /// platform portは空文字列を返しうる。したがってこの値を表示や後続処理の
   /// 入力にしてはならない — 改名後の名前は要求した目標名を正とする(REQ-018)。
   final String name;
 }
@@ -71,8 +70,8 @@ class RenameFailed extends RenameResult {
 
 /// 実ファイルを1件改名する抽象ポート(FEAT-005 / OP-004)。
 ///
-/// プラットフォーム固有の手段(Android は `saf_util.rename`、デスクトップは
-/// `File.rename`)は実装の内側に隠す。**例外は投げず**、結果は [RenameResult] で
+/// プラットフォーム固有の手段(Android SAFは安全な未対応、デスクトップは
+/// 排他的native rename)は実装の内側に隠す。**例外は投げず**、結果は [RenameResult] で
 /// 返す(REQ-017)。004 の `FileSource` と同じ分離で、実ファイルへの作用を
 /// この実装だけが持つ(CON-001)。
 abstract interface class RenameExecutor {

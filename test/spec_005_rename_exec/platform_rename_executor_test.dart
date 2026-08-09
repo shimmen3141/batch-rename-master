@@ -8,7 +8,6 @@ import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:saf_util/saf_util_platform_interface.dart';
 
 void main() {
   group('DesktopRenameExecutor', () {
@@ -148,39 +147,20 @@ void main() {
   });
 
   group('SafRenameExecutor', () {
-    test('プラグインが返した URI を新しいハンドルとして返す(REQ-001)', () async {
-      late (String, bool, String) call;
-      final executor = SafRenameExecutor(
-        rename: (uri, isDir, newName) async {
-          call = (uri, isDir, newName);
-          return SafDocumentFile(
-            uri: '$uri-renamed',
-            name: '',
-            isDir: false,
-            length: 1,
-            lastModified: 0,
-          );
-        },
-      );
+    test('providerを呼ばず理由付きunsupportedを返す(REQ-017 / INV-002)', () async {
+      const executor = SafRenameExecutor();
+      const handle = 'content://provider/document/source';
 
-      final result = await executor.rename('content://old', 'target.txt');
-
-      expect(call, ('content://old', false, 'target.txt'));
-      expect((result as Renamed).newHandle, 'content://old-renamed');
-      expect(result.name, isEmpty, reason: '空の戻り名も契約上有効(REQ-018)');
-    });
-
-    test('プラットフォーム例外は理由付き失敗へ変換する(REQ-017)', () async {
-      final executor = SafRenameExecutor(
-        rename: (_, _, _) async => throw Exception('Permission denied'),
-      );
-
-      final result = await executor.rename('content://old', 'target.txt');
+      final first = await executor.rename(handle, 'target.txt');
+      final second = await executor.rename(handle, 'target.txt');
 
       expect(
-        (result as RenameFailed).error.kind,
-        RenameErrorKind.permissionDenied,
+        (first as RenameFailed).error.kind,
+        RenameErrorKind.unsupportedPlatform,
       );
+      expect(first.error.message, contains('既存ファイルを置換しない'));
+      expect((second as RenameFailed).error.kind, first.error.kind);
+      expect(second.error.message, first.error.message);
     });
   });
 

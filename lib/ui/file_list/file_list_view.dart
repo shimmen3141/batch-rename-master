@@ -151,26 +151,54 @@ class _RenameActionBar extends StatelessWidget {
     ).showSnackBar(SnackBar(content: Text(message.toString())));
   }
 
+  Future<void> _undo(BuildContext context) async {
+    final outcome = await execution.undo();
+    if (outcome == null || !context.mounted) return;
+    final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');
+    final failure = outcome.failure;
+    if (failure != null) {
+      message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message.toString())));
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: FilledButton.icon(
-        key: const Key('rename-action'),
-        onPressed: execution.isRunning ? null : () => _request(context),
-        style: FilledButton.styleFrom(
-          backgroundColor: colors.primary,
-          foregroundColor: colors.onPrimary,
-        ),
-        icon: execution.isRunning
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.drive_file_rename_outline),
-        label: Text(execution.isRunning ? '改名中…' : '名前を変更'),
+      child: Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              key: const Key('rename-action'),
+              onPressed: execution.isRunning ? null : () => _request(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+              ),
+              icon: execution.isRunning
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.drive_file_rename_outline),
+              label: Text(execution.isRunning ? '処理中…' : '名前を変更'),
+            ),
+          ),
+          if (execution.canUndo) ...[
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              key: const Key('rename-undo'),
+              onPressed: () => _undo(context),
+              icon: const Icon(Icons.undo),
+              label: const Text('元に戻す'),
+            ),
+          ],
+        ],
       ),
     );
   }

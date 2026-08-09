@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
+import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
@@ -123,6 +124,79 @@ void main() {
 
     expect(find.textContaining('0 件を改名しました'), findsOneWidget);
     expect(find.textContaining('権限がありません'), findsOneWidget);
+  });
+
+  testWidgets('Android SAFの安全な未対応理由を表示する(REQ-017)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: const SafRenameExecutor(),
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('0 件を改名しました'), findsOneWidget);
+    expect(find.textContaining('安全な改名を保証できない'), findsOneWidget);
+    expect(files.items.single.name, 'a.txt');
+    expect(files.items.single.sourceHandle, '/files/a.txt');
+  });
+
+  testWidgets('期限内は成功したrenameを元に戻せる(REQ-006 / REQ-007)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rename-undo')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('rename-undo')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('1 件を元に戻しました'), findsOneWidget);
+    expect(files.items.single.name, 'a.txt');
+    expect(files.items.single.sourceHandle, '/files/a.txt');
+    expect(executor.calls, [
+      '/files/a.txt -> renamed.txt',
+      '/files/renamed.txt -> a.txt',
+    ]);
+    expect(find.byKey(const Key('rename-undo')), findsNothing);
+  });
+
+  testWidgets('5秒後はundoを提示せず実体を変更しない(REQ-007)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rename-undo')), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 6));
+
+    expect(find.byKey(const Key('rename-undo')), findsNothing);
+    expect(await execution.undo(), isNull);
+    expect(files.items.single.name, 'renamed.txt');
+    expect(executor.calls, ['/files/a.txt -> renamed.txt']);
   });
 
   test('実行中は二重に開始しない(REQ-012)', () async {

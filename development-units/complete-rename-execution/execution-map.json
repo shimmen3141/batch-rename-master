@@ -18,8 +18,7 @@
         "SM-001",
         "VER-004",
         "VER-005",
-        "test/spec_005_rename_exec/",
-        "development-units/complete-rename-execution/manual-verification.md#warning-confirmation-and-results"
+        "test/spec_005_rename_exec/"
       ],
       "parallelConstraints": [
         "rule-not-configured-uiと同じrename action・warning UIを変更するため並列編集しない"
@@ -41,8 +40,7 @@
         "REQ-022",
         "VER-004",
         "VER-005",
-        "test/spec_005_rename_exec/",
-        "development-units/complete-rename-execution/manual-verification.md#rule-not-configured-ui"
+        "test/spec_005_rename_exec/"
       ],
       "parallelConstraints": [
         "warning-confirmation-and-resultsの統合後に同じUIへ変更する"
@@ -50,15 +48,15 @@
     },
     {
       "id": "platform-rename-adapters",
-      "outcome": "Android SAFとdesktop file systemで実renameを行い、新しいhandleと表示名を仕様の値域内で返す",
+      "outcome": "desktopは排他的実renameとstableな失敗理由を返し、Android SAFはprovider rename前に理由付きunsupportedを返して実体を変更しない",
       "dependsOn": [
         "warning-confirmation-and-results"
       ],
       "produces": [
-        "Android SAF RenameExecutor adapter",
+        "Android SAFの副作用なしUnsupported RenameExecutor adapter",
         "desktop RenameExecutor adapter",
         "application compositionへの実adapter配線",
-        "host検証手順"
+        "desktop実renameとAndroid不変のhost検証手順"
       ],
       "acceptanceEvidence": [
         "REQ-001",
@@ -95,8 +93,7 @@
         "VER-003",
         "VER-004",
         "VER-007",
-        "test/spec_005_rename_exec/",
-        "development-units/complete-rename-execution/manual-verification.md#session-undo"
+        "test/spec_005_rename_exec/"
       ],
       "parallelConstraints": [
         "desktop-modified-timeとadapter実装を共有する場合は変更fileを分離する"
@@ -117,8 +114,7 @@
         "REQ-015",
         "REQ-016",
         "VER-006",
-        "test/spec_005_rename_exec/",
-        "development-units/complete-rename-execution/manual-verification.md#desktop-modified-time"
+        "test/spec_005_rename_exec/"
       ],
       "parallelConstraints": [
         "session-undoとadapter実装を共有する場合は変更fileを分離する"
@@ -129,8 +125,7 @@
     "flutter test test/spec_005_rename_exec/",
     "dart format --output=none --set-exit-if-changed .",
     "flutter analyze",
-    "flutter test",
-    "development-units/complete-rename-execution/manual-verification.md#unit-integration"
+    "flutter test"
   ],
   "externalDependencies": []
 }

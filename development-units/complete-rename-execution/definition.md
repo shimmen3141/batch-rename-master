@@ -2,7 +2,7 @@
 
 ## 目的
 
-利用者がプレビュー済みの名前を確認して実ファイルへ安全に適用でき、部分失敗の結果、単一session内のundo、desktopで任意の更新日時ずらしまでを観測できるようにする。Androidとdesktopの実I/Oは、それぞれのplatformが実際に返すhandleと制約の範囲で動作する。
+利用者がプレビュー済みの名前を確認して、安全性を証明できるplatformでは実ファイルへ適用できるようにする。desktopでは排他的rename、部分失敗、単一session内のundo、任意の更新日時ずらしを観測できる。Android SAFでは原子的no-replaceを保証できないため、実体を変更せず理由付きの未対応を返す。
 
 ## 根拠
 
@@ -20,7 +20,8 @@
 
 - 警告確認、cancel、強制実行、二重実行防止、実行結果の提示。
 - rule未設定時の実行防止と案内。
-- Android SAF / desktop file systemによる実renameと、新しいhandleの反映。
+- desktop file systemによる排他的な実renameと、新しいhandleの反映。
+- Android SAF production経路で、provider renameを呼ばず理由付きの安全な未対応を返すこと。
 - 成功したrenameだけを対象にした、期限付き単一step undo。
 - desktop限定・既定OFFの更新日時ずらし。
 
@@ -30,6 +31,7 @@
 - file選択とpermission取得。既存の004成果を使う。
 - sessionをまたぐundo履歴、file移動・copy・delete。
 - Androidでの更新日時書き換え。
+- Androidで成功可能なrename storage境界の設計・実装。調査は`design-safe-android-rename-boundary`へ分離する。
 - 最終的なvisual polish。別unitで扱う。
 
 ## 重要な決定
@@ -38,6 +40,8 @@
 |---|---|---|---|
 | 2026-08-09 | 旧005のapproved Strict contractとREQ/VER IDを仕様正本として継続利用する | `specs/005-rename-exec/contracts/behavior-contract.json` at cutoff `8d950ca` | 0.xから1.0への移行で意味と検証資産を失わないため / 開発者の移行依頼 |
 | 2026-08-09 | 旧T4以降の未実装成果だけを新execution mapへ移す | 旧T4/T9/T5/T6/T7の成果と依存。旧status・claim・logは移さない | 実装diffのないT4直前が安全なcutover境界のため / 開発者の移行依頼 |
+| 2026-08-09 | INV-002をplatform例外なく維持し、Android SAF production renameを副作用なしunsupportedとする | `specs/005-rename-exec/contracts/behavior-contract.json` revision 2、`specs/005-rename-exec/decisions/ADR-001-android-saf-rename-safety.md` | SAF provider境界は原子的no-replaceと失敗理由を保証できず、provider依存raceを受容しないため / 開発者 |
+| 2026-08-09 | Android成功経路の調査を別unitへ分離する | `development-units/design-safe-android-rename-boundary/definition.md` | storage方式・provider制限・追加権限・配布riskを実装前に判断するため / 開発者 |
 
 ## 受け入れ証拠
 
@@ -47,7 +51,7 @@
 |---|---|
 | approved contractの必須振る舞いが仕様由来testで通る | `flutter test test/spec_005_rename_exec/` |
 | project全体にformat・静的解析・回帰不適合がない | `dart format --output=none --set-exit-if-changed .`、`flutter analyze`、`flutter test` |
-| Android SAFでrename・handle更新・undoが実データに対して成立する | `manual-verification.md`のAndroid SAF手順を同じcommit/buildで実施した記録 |
+| Android SAFでrename APIが呼ばれず、未対応理由が表示され、実データが不変である | `manual-verification.md`のAndroid SAF安全未対応手順を同じcommit/buildで実施した記録 |
 | desktopで実rename・undo・更新日時ずらしが成立する | `manual-verification.md`のdesktop手順を同じcommit/buildで実施した記録 |
 | working treeまたは対象commit rangeがこのunitの境界内である | `git status --short`と正確な`git diff`の独立review |
 

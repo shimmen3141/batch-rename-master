@@ -14,6 +14,33 @@ FileEntry _file(String name) => FileEntry(
 );
 
 void main() {
+  test('実体handleがないUI sampleはadapterへ渡さない', () async {
+    final sample = FileEntry(
+      name: 'IMG_0009.jpg',
+      modifiedAt: DateTime(2026, 8, 9),
+      size: 1,
+    );
+    final files = FileListController(
+      files: [sample],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'IMG_0009.jpg': 'IMG_0009.jpg'},
+    );
+    final controller = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+
+    final outcome = await controller.execute(force: false);
+
+    expect(outcome!.successes, isEmpty);
+    expect(outcome.failure, isNull);
+    expect(executor.calls, isEmpty);
+    expect(files.items.single.name, 'IMG_0009.jpg');
+    expect(files.items.single.sourceHandle, isNull);
+  });
+
   test('成功後は目標名と新ハンドルを一覧へ反映し、次回実行で使用する', () async {
     final original = _file('a.txt');
     final files = FileListController(

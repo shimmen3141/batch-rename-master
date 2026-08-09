@@ -5,6 +5,8 @@
 - Related requirements: REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010
 - Related tasks: 004 T4
 
+> 2026-08-09 revision note: FileSourceとして`saf_util`を使う決定は維持する。一方、005が`saf_util.rename`をproduction利用するという帰結は、`specs/005-rename-exec/decisions/ADR-001-android-saf-rename-safety.md`により撤回された。SAF provider境界で原子的no-replaceを保証できないため、Android renameは安全な未対応とする。
+
 ## Context
 
 004 は抽象ポート `FileSource` の実装を、Android(主目標)と Windows に用意する必要がある。
@@ -61,7 +63,7 @@
 - 実権限・実ピッカー・新導線(種類選択 → ファイル複数選択 → リスト置き換え)の確認は**ホスト側**(`docs/development/emulator-verification.md`)。
   サンドボックスでは、ピッカーを伴わない部分(SAF ドキュメント→`FileEntry` のマッピング、実フォルダの列挙、
   失敗の分類、プラットフォーム選択)を `test/spec_004_file_source/platform_source_test.dart` で検証する。
-- 005 のリネーム実装は、Android では `saf_util.rename`、デスクトップでは `File.rename` を使う前提になる。
+- 005 のリネーム実装は、当初Androidで`saf_util.rename`を使う前提だったが、005 contract revision 2で撤回された。desktopは排他的native renameを使い、Android SAFはprovider APIを呼ぶ前に安全な未対応を返す。
 
 ## 実機で確認した事実(2026-08-05・004 T8 のスパイク)
 

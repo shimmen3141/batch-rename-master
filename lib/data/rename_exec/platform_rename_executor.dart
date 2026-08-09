@@ -6,7 +6,7 @@ import 'saf_rename_executor.dart';
 
 /// 現在の OS に対応する実リネーム adapter を選ぶ composition root。
 RenameExecutor createPlatformRenameExecutor() {
-  if (Platform.isAndroid) return SafRenameExecutor();
+  if (Platform.isAndroid) return const SafRenameExecutor();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     return DesktopRenameExecutor();
   }
