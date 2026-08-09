@@ -23,7 +23,6 @@ Future<void> _pump(
   FileListController files,
   RenameExecutionController execution,
 ) {
-  addTearDown(execution.dispose);
   return tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
@@ -104,6 +103,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(executor.calls, ['/files/a.txt -> renamed.txt']);
     expect(find.textContaining('1 件を改名しました'), findsOneWidget);
+    // このtestがcontrollerの所有者。5秒timerをbindingのinvariant検査前に破棄する。
+    execution.dispose();
   });
 
   testWidgets('失敗時は成功件数と理由を提示する(REQ-013)', (tester) async {
