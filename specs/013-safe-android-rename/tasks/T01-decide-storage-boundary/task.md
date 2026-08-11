@@ -25,12 +25,13 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 - 2026-08-09 / PR #116の独立reviewで、DocumentsContract.renameDocumentに原子的no-replace契約が無いことをP0として検出。
 - 2026-08-09 / 開発者判断により、provider依存raceを許容せずAndroid成功経路を別の設計成果へ分離。
+- 2026-08-12 / PR #116を`dev`へmerge（merge commit `425c30a`）。005:T05の安全unsupported、Android manual、Desktop manual、CI、独立reviewがPASSし、依存を解消。
 
 ## Current state / handoff
 
-- Last checkpoint: PR #116内の調査定義をASDD 2.0移行で013へ統合し、旧development-unitsは廃止
-- Blocker category: dependency
-- Waiting for: 005:T05のcontract revision 2と安全unsupportedがdevへ統合されること
+- Last checkpoint: 005:T05/T06をPR #116で`dev`へ統合し、013:T01の開始依存を解消
+- Blocker category: none
+- Waiting for: none
 - Requested action: none
-- Evidence revision: PR #116 head b866e35（未merge。統合後commitを再確認する）
-- Next Agent action: 005:T05統合後、Issueをclaimし、候補ごとの検証可能な調査matrixを作る
+- Evidence revision: `origin/dev@425c30a`（PR #116 merge commit）
+- Next Agent action: Issue運用が有効ならT01のIssueを作成・claimし、候補ごとの検証可能な調査matrixを作る。production実装は人間の設計判断後に別taskまたは別planへ定義する
