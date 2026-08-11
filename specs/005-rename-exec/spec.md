@@ -1,6 +1,6 @@
 # リネーム実行(rename-exec) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）
@@ -19,14 +19,13 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 
 | 供給元 | 実際に供給できる値 | 出典 |
 |---|---|---|
-| `saf_util.rename`(Android) | 成功時、**改名後の URI**。**改名すると URI が変わる**(元の URI は stale になる) | 2026-08-05 実機スパイク(004 T8)。`specs/004-file-source/decisions/ADR-001-file-source-plugins.md` の「実機で確認した事実」2 |
-| `saf_util.rename`(Android) | 戻り値の `name` は、**ドキュメント URI 経由では空文字列**(ツリー権限経由では正しく返る) | 同上、3 |
-| `saf_util.rename`(Android) | `OPEN_DOCUMENT` / `OPEN_DOCUMENT_TREE` の**どちらの URI でも改名できる** | 同上、1 |
+| `saf_util.rename`(Android) | 成功時にURIが変わり、戻り名が空になりうることは観測済み。ただし`DocumentsContract.renameDocument`はproviderによる別名を許し、原子的no-replaceを保証しないため、revision 2のproduction renameには使わない | 2026-08-05 実機スパイク、`decisions/ADR-001-android-saf-rename-safety.md` |
+| Android SAF production rename | provider APIを呼ぶ前に`unsupportedPlatform`を返す。URIが指す実体は変化しない | revision 2 / REQ-017 / OP-004 |
 | `File.rename`(デスクトップ) | 成功時、改名後の `File`。ハンドルは絶対パスなので**名前の変更に伴って変わる** | `dart:io` の API。パスがファイル名を含むことによる |
 | SAF(Android) | **更新日時を設定する API が無い**(`File.setLastModified` はスコープドストレージ非対応) | discovery.md 005 節の技術制約 |
 | 004 の `FileEntry.createdAt` | **常に不明(null)**。SAF に列が無く、デスクトップ実装も設定していない | `ADR-001` の**決定** 4、`lib/data/file_source/*_file_source.dart` |
 
-この表から導かれる契約上の帰結は 2 つで、いずれも規範は契約側にある: 改名のたびにハンドルを更新すること(REQ-001 / INV-005)と、改名後の名前を戻り値から取らないこと(REQ-018)。
+revision 1ではSAFの成功値域から、改名のたびのハンドル更新(REQ-001 / INV-005)と要求名の使用(REQ-018)を導いた。しかしproviderの競合意味論は本物より強いfakeで隠れていた。revision 2ではINV-002を優先し、Android SAF production renameを副作用のない未対応とする。将来のAndroid成功経路は、新しい安全なstorage境界が原子的no-replaceを証明したrevisionでだけ追加できる。
 
 ## 代表例
 
@@ -56,6 +55,8 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 | 20 | 作成日時が不明なファイルに、作成日時トークンだけのルール | 空名と基準日時不明を**1件にまとめて**提示する(結果と原因を1行で) | REQ-021 |
 | 21 | 例20 の状態で強制実行 | そのファイルは**改名されず**、除外した件数と理由が出る | REQ-022 |
 | 22 | 9件中1件だけ空名になる状態で強制実行 | 残り8件は改名され、1件が除外される | REQ-022 |
+| 23 | Android SAFで改名を要求 | provider renameを呼ばず`unsupportedPlatform`で停止し、URIが指す全fileの名前・内容・個数は変わらない | REQ-017, OP-004, INV-001, INV-002 |
+| 24 | desktopで既存名との競合中に別processが目標を作成 | 排他的renameが`nameConflict`で失敗し、sourceと既存targetの内容は変わらない | OP-004, INV-002 |
 
 ## 自由とする点（実装に委ねる）
 
@@ -76,6 +77,7 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 
 ## この機能だけでは未完成な点
 
+- **Android SAFによる実renameは安全な未対応**。SAF以外のstorage方式、provider制限、配布上の権限制約は`013-safe-android-rename:T01`で調査し、実装を約束せず設計判断を出す。
 - **作成日時トークンは、実データでは常に空になる**。005 は「なぜ空か」を警告として説明できるようにするが(REQ-009)、**値そのものを供給できるようにはしない**。取得経路が入るまで、利用者から見た「作成日時での命名」は使えないままである。→ 010-photo-source
 - **警告・確認・結果の見た目は素のまま**。参考デザインへの追い込みは行わない。→ 008-ui-polish
 - **Windows の D&D からの読み込みは無い**ため、デスクトップでの実行はファイル選択画面からの経路に限られる。→ 006-windows-dnd
@@ -94,7 +96,7 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
 
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
-- **VER-001 には、実機で得た実物の URI 断片を使う検証を最低1本置く**(改名後に URI が変わること・`name` が空で返ることを、fake が本物より親切にならない形で固定するため)。
+- revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
 
 ## 反証ログ
 
@@ -108,6 +110,7 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 | 弱すぎ（ズルい実装） | REQ-002 に「成功した改名は元に戻さない」を明記し、失敗時に全部巻き戻す実装を排除。REQ-003 で成功・失敗・未実行の3分類を要求し、「失敗した」だけ返す実装を排除。REQ-004 を「各改名の**時点**で衝突しない」と書き、最終状態だけ見る実装(001 の自動解決と同じ穴)を排除。REQ-006 を「新しいハンドルに対して元の名前で」と特定し、元の URI へ戻そうとして必ず失敗する実装を排除。REQ-018 で「戻り値の名前を使わない」を明示し、空文字列を表示する実装を排除。REQ-010・REQ-016・REQ-015 で「出さない/止めない/提示しない」側を書き、常に警告を出す・常に止める実装を排除。SM-001 の `forbidden_traces` で二重実行・キャンセル後の改名・停止後の続行・期限切れ後の巻き戻しを禁止。 |
 | 強すぎ（過剰な条件） | 実行順序は「衝突しない順序のひとつ」で足り、特定の順序を強制しない(OP-001 の `nondeterminism`)。一時名の文字列・結果の型表現・進捗の刻み方・提示方法は「自由とする点」で明示的に解放。改名後のハンドルが変わるかどうかもプラットフォーム差として許容し、呼び出し側がどちらでも壊れないことだけを要求(OP-004)。 |
 | 異常系の網羅 | 権限失効・対象なし・同名衝突・入出力失敗・未対応プラットフォームを OP-004 の `errors` に列挙(すべて例外ではなく失敗値)。停止時の一時名残り(REQ-005)、巻き戻し自体の失敗(REQ-008)、更新日時設定の失敗(REQ-016)、期限切れ(REQ-007)を個別に規定。 |
+| revision 2の反証 | Android SAFへ事前存在確認を足すだけでは、確認後に別process/providerが同名を作るraceを防げない。providerが別名を返した後に失敗扱い・巻き戻ししても「失敗時は実体不変」を保証できない。copy/delete、raw path推測、広域storage権限はそれぞれrename-only、SAF URIの不透明性、配布・権限境界を破る。したがって現production経路を副作用なしunsupportedとする以外に、revision 2を満たすSAF adapter実装はない。 |
 | 発散・到達不能状態 | SM-001 の `liveness` に「running は有限回で finished か stopped に至る」「settled は必ず idle へ戻る」を置き、巻き戻しの提示が残り続ける状態と、実行が終わらない状態を排除。到達不能な状態は無い(4状態すべてに入る遷移がある)。 |
 | 判定不能語 | 「適切に」「必要に応じて」「可能な限り」を規範部分から排除。唯一残っていた量的な未定(巻き戻し期限)も 2026-08-07 に 5 秒で確定し、規範に量の未定が無い状態になった。 |
 

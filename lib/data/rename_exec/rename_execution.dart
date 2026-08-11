@@ -99,6 +99,32 @@ class RenameOutcome {
   bool get stopped => failure != null;
 }
 
+/// 巻き戻しに成功した1件。実体は[rename]の[SuccessfulRename.originalName]へ戻り、
+/// [handle]は戻した後の最新ハンドルである(REQ-006 / INV-004)。
+class SuccessfulUndo {
+  const SuccessfulUndo({required this.rename, required this.handle});
+
+  final SuccessfulRename rename;
+  final String handle;
+}
+
+/// 巻き戻しが停止した1件と理由(REQ-008)。
+class FailedUndo {
+  const FailedUndo({required this.rename, required this.error});
+
+  final SuccessfulRename rename;
+  final RenameError error;
+}
+
+/// 期限内の単一step巻き戻し結果。
+class UndoOutcome {
+  UndoOutcome({required List<SuccessfulUndo> successes, required this.failure})
+    : successes = List.unmodifiable(successes);
+
+  final List<SuccessfulUndo> successes;
+  final FailedUndo? failure;
+}
+
 /// 実行計画に従って1件ずつ改名する(OP-002)。
 ///
 /// - 計画の順に1件ずつ行い、成功のたびに改名要求のハンドルを更新する
@@ -201,4 +227,27 @@ Future<RenameOutcome> executePlan(
     notExecuted: notExecuted,
     stranded: stranded,
   );
+}
+
+/// 成功した改名だけを実行と逆順に、新しいハンドルから元名へ戻す(REQ-006)。
+///
+/// 1件失敗したら停止し、既に戻した分は戻ったままにする(REQ-008)。期限の判定と
+/// 単一step状態はUI controllerが所有し、この純粋なorchestrationはI/O順だけを扱う。
+Future<UndoOutcome> undoSuccessfulRenames(
+  List<SuccessfulRename> renames,
+  RenameExecutor executor,
+) async {
+  final undone = <SuccessfulUndo>[];
+  FailedUndo? failure;
+  for (final rename in renames.reversed) {
+    final result = await executor.rename(rename.handle, rename.originalName);
+    switch (result) {
+      case Renamed(:final newHandle):
+        undone.add(SuccessfulUndo(rename: rename, handle: newHandle));
+      case RenameFailed(:final error):
+        failure = FailedUndo(rename: rename, error: error);
+    }
+    if (failure != null) break;
+  }
+  return UndoOutcome(successes: undone, failure: failure);
 }

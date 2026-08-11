@@ -48,15 +48,14 @@ class Renamed extends RenameResult {
 
   /// 改名後のハンドル。**改名前とは別の値になりうる**(REQ-001 / INV-005)。
   ///
-  /// Android(SAF)は改名で document URI が変わり、デスクトップはハンドルが
-  /// 絶対パスなので名前の変更に伴って変わる(ADR-001「実機で確認した事実」2)。
-  /// 呼び出し側は以降の操作でこの値を使う。
+  /// デスクトップはハンドルが絶対パスなので名前の変更に伴って変わる。
+  /// Android SAF production renameはrevision 2で安全な未対応となる。将来の
+  /// Android境界が別のハンドルを返す場合にも、呼び出し側は以降の操作でこの値を使う。
   final String newHandle;
 
   /// ポートが返した改名後の名前。**空になりうる**。
   ///
-  /// `saf_util.rename` はドキュメント URI 経由では空文字列を返す
-  /// (ADR-001「実機で確認した事実」3)。したがってこの値を表示や後続処理の
+  /// platform portは空文字列を返しうる。したがってこの値を表示や後続処理の
   /// 入力にしてはならない — 改名後の名前は要求した目標名を正とする(REQ-018)。
   final String name;
 }
@@ -71,8 +70,8 @@ class RenameFailed extends RenameResult {
 
 /// 実ファイルを1件改名する抽象ポート(FEAT-005 / OP-004)。
 ///
-/// プラットフォーム固有の手段(Android は `saf_util.rename`、デスクトップは
-/// `File.rename`)は実装の内側に隠す。**例外は投げず**、結果は [RenameResult] で
+/// プラットフォーム固有の手段(Android SAFは安全な未対応、デスクトップは
+/// 排他的native rename)は実装の内側に隠す。**例外は投げず**、結果は [RenameResult] で
 /// 返す(REQ-017)。004 の `FileSource` と同じ分離で、実ファイルへの作用を
 /// この実装だけが持つ(CON-001)。
 abstract interface class RenameExecutor {
@@ -113,18 +112,6 @@ String pathRenamedHandle(String handle, String newName) {
   return i < 0 ? newName : '${handle.substring(0, i + 1)}$newName';
 }
 
-/// SAF の document URI の改名後ハンドル(ADR-001「実機で確認した事実」2)。
-///
-/// URI の最後のパスセグメントはフォルダ区切りが `%2F` に符号化されているため、
-/// 最後の `%2F` 以降を符号化した [newName] で置き換える。実測値:
-/// `.../document/primary%3ADownload%2Frename_test_a%2FIMG_0010.jpg` を
-/// `IMG_0010_t8.jpg` へ改名すると `...%2FIMG_0010_t8.jpg` になる。
-String safDocumentRenamedHandle(String handle, String newName) {
-  final i = handle.lastIndexOf('%2F');
-  if (i < 0) return pathRenamedHandle(handle, newName);
-  return '${handle.substring(0, i + 3)}${Uri.encodeComponent(newName)}';
-}
-
 /// [FakeRenameExecutor] が保持する1ファイルの状態。
 ///
 /// [id] と [content] は改名で変化しない(INV-001 の観測点: 実体の個数・内容が
@@ -159,9 +146,9 @@ class FakeFileState {
 /// 供給できる値」):
 ///
 /// - 改名すると**ハンドルが変わる**([renamedHandle] が作る)。古いハンドルで
-///   呼ぶと [RenameErrorKind.notFound] を返す(実機の stale URI と同じ)。
+///   呼ぶと [RenameErrorKind.notFound] を返す。
 /// - 戻り値の [Renamed.name] は既定で**空文字列**([returnedName])。
-///   ドキュメント URI 経由の `saf_util.rename` と同じ振る舞い。
+///   portの最小値域を検査するため、名前情報を提供しない実装を模す。
 /// - 同名のファイルが既にあれば [RenameErrorKind.nameConflict] を返し、
 ///   **既存を上書きしない**(INV-002 を実体側でも守る)。
 class FakeRenameExecutor implements RenameExecutor {

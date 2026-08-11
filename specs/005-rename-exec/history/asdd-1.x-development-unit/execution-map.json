@@ -48,15 +48,15 @@
     },
     {
       "id": "platform-rename-adapters",
-      "outcome": "Android SAFとdesktop file systemで実renameを行い、新しいhandleと表示名を仕様の値域内で返す",
+      "outcome": "desktopは排他的実renameとstableな失敗理由を返し、Android SAFはprovider rename前に理由付きunsupportedを返して実体を変更しない",
       "dependsOn": [
         "warning-confirmation-and-results"
       ],
       "produces": [
-        "Android SAF RenameExecutor adapter",
+        "Android SAFの副作用なしUnsupported RenameExecutor adapter",
         "desktop RenameExecutor adapter",
         "application compositionへの実adapter配線",
-        "host検証手順"
+        "desktop実renameとAndroid不変のhost検証手順"
       ],
       "acceptanceEvidence": [
         "REQ-001",
@@ -66,7 +66,7 @@
         "VER-001",
         "VER-007",
         "test/spec_005_rename_exec/",
-        "docs/development/emulator-verification.md"
+        "development-units/complete-rename-execution/manual-verification.md#platform-rename-adapters"
       ],
       "parallelConstraints": [
         "undoとmodified-timeはこのadapter contractを入力にするため先に統合する"
@@ -93,8 +93,7 @@
         "VER-003",
         "VER-004",
         "VER-007",
-        "test/spec_005_rename_exec/",
-        "docs/development/emulator-verification.md"
+        "test/spec_005_rename_exec/"
       ],
       "parallelConstraints": [
         "desktop-modified-timeとadapter実装を共有する場合は変更fileを分離する"
@@ -126,9 +125,7 @@
     "flutter test test/spec_005_rename_exec/",
     "dart format --output=none --set-exit-if-changed .",
     "flutter analyze",
-    "flutter test",
-    "Android SAF host verification",
-    "desktop file-system host verification"
+    "flutter test"
   ],
   "externalDependencies": []
 }

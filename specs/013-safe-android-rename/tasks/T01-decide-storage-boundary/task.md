@@ -7,7 +7,7 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 ## 入力と依存
 
 - `005:T05`で統合されるcontract revision 2とAndroid安全unsupported。
-- PR #116の`design-safe-android-rename-boundary`定義とADR。
+- PR #116で作成された旧`design-safe-android-rename-boundary`定義の移行内容と005のADR。
 
 ## 変更範囲
 
@@ -28,7 +28,7 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 ## Current state / handoff
 
-- Last checkpoint: PR #116内で調査plan相当のdevelopment unitを定義し、ASDD移行で013へ統合
+- Last checkpoint: PR #116内の調査定義をASDD 2.0移行で013へ統合し、旧development-unitsは廃止
 - Blocker category: dependency
 - Waiting for: 005:T05のcontract revision 2と安全unsupportedがdevへ統合されること
 - Requested action: none

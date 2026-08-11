@@ -5,8 +5,7 @@
 // 成功済みを巻き戻さないこと、成功・失敗・未実行の3者が区別できること、停止で
 // 残った一時名の扱い、実行結果と実体が食い違わないこと。
 //
-// 巻き戻し(undo)は T6 の範囲で、このファイルでは扱わない(ID を書くと
-// 被覆照合の文字列一致を素通りさせてしまうため、ここでは挙げない)。
+// 巻き戻しは成功済みだけを逆順・最新handleから戻し、失敗時に停止する。
 import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_plan.dart';
@@ -229,5 +228,50 @@ void main() {
     expect(outcome.stranded, isEmpty);
     // 実体は1件も変わっていない。
     expect(executor.names, unorderedEquals(['a.jpg', 'b.jpg']));
+  });
+
+  test('成功したrenameだけを新handleから逆順に元へ戻す(REQ-006 / INV-004)', () async {
+    final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'y.jpg'});
+    final executor = _folder(['a.jpg', 'b.jpg']);
+    final outcome = await executePlan(planExecution(requests), executor);
+
+    final undo = await undoSuccessfulRenames(outcome.successes, executor);
+
+    expect(undo.failure, isNull);
+    expect(undo.successes.map((item) => item.rename.originalName), [
+      'b.jpg',
+      'a.jpg',
+    ]);
+    expect(undo.successes.map((item) => item.handle), [
+      '$_dir/b.jpg',
+      '$_dir/a.jpg',
+    ]);
+    expect(executor.names, unorderedEquals(['a.jpg', 'b.jpg']));
+    expect(executor.calls, [
+      '$_dir/a.jpg -> x.jpg',
+      '$_dir/b.jpg -> y.jpg',
+      '$_dir/y.jpg -> b.jpg',
+      '$_dir/x.jpg -> a.jpg',
+    ]);
+  });
+
+  test('undo失敗時は停止し、戻せた分を維持する(REQ-008)', () async {
+    var undoPhase = false;
+    final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'y.jpg'});
+    final executor = _folder(
+      ['a.jpg', 'b.jpg'],
+      failWhen: (_, newName) => undoPhase && newName == 'a.jpg'
+          ? const RenameError(RenameErrorKind.permissionDenied, '権限がありません')
+          : null,
+    );
+    final outcome = await executePlan(planExecution(requests), executor);
+    undoPhase = true;
+
+    final undo = await undoSuccessfulRenames(outcome.successes, executor);
+
+    expect(undo.successes.map((item) => item.rename.originalName), ['b.jpg']);
+    expect(undo.failure!.rename.originalName, 'a.jpg');
+    expect(undo.failure!.error.kind, RenameErrorKind.permissionDenied);
+    expect(executor.names, unorderedEquals(['x.jpg', 'b.jpg']));
   });
 }
