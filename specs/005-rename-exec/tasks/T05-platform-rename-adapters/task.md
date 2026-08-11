@@ -32,6 +32,7 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 - 2026-08-12 / 保存された同じinputで修正前は例外を再現し、`buildCodeAssets` guard追加後は`dart ... hook/build.dart --config=...`がexit 0。Dev ContainerのFlutter testは今回と別の既知制約（C compilerなし）で開始前に停止。
 - 2026-08-12 / manualを人間向けに再構成。開始状態、専用fixture、画面上のボタン、期待する文言、実file確認、結果の返し方を順番化し、内部用語と不可視な「providerを呼ばない」確認を除いた。
 - 2026-08-12 / hostで`flutter build apk --debug --no-pub`がexit 0（`app-debug.apk`生成）、`flutter run -d emulator-5554 --no-resident --no-pub`がexit 0（build・install・launch成功）。元のnative asset errorは再発しなかった。
+- 2026-08-12 / CI run 31522320234は337 tests PASS後、hook実装文字列を旧形で固定した1 testだけFAIL。guardとlocal `targetOS`を確認する期待へ更新し、振る舞い条件は維持。
 
 ## Current state / handoff
 

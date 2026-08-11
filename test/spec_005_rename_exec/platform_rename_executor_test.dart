@@ -174,8 +174,10 @@ void main() {
     final hook = await File('hook/build.dart').readAsString();
     final source = await File('src/native_exclusive_rename.c').readAsString();
 
-    expect(hook, contains('input.config.code.targetOS == OS.android'));
-    expect(hook, contains('input.config.code.targetOS == OS.iOS'));
+    expect(hook, contains('if (!input.config.buildCodeAssets)'));
+    expect(hook, contains('final targetOS = input.config.code.targetOS'));
+    expect(hook, contains('targetOS == OS.android'));
+    expect(hook, contains('targetOS == OS.iOS'));
     expect(hook, contains("'BRM_UNSUPPORTED_PLATFORM': null"));
     expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
     expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
