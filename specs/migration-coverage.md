@@ -45,3 +45,12 @@
 ## 停止した旧自動化
 
 plan Markdown parser、Issue一方向投影、Stop verifier、spec status gate、index書き戻し、projectへcopyしたASDD scriptは再導入しない。ASDD 2.0の構造検査はplugin側の`workspace.py`を明示実行し、hookが無くても同じ手順で成立させる。
+
+## 移行時にopenなPRの合流
+
+PR #116は移行前baseから`development-units/complete-rename-execution/`を変更し、`development-units/design-safe-android-rename-boundary/`を追加している。移行後にそのbranchをそのままmergeすると旧正本が復活するため、ready化前に最新`dev`を#116 branchへ取り込み、次の境界で解決する。
+
+- product code、test、005 contract revision 2、`spec.md`、ADR、development findingは保持する。
+- `development-units/complete-rename-execution/`の変更は005:T05/T06のtask・manual・handoffへ反映済みなので再導入しない。
+- `development-units/design-safe-android-rename-boundary/definition.md`は013 planへ反映済みなので再導入しない。
+- conflict解決後のexact rangeで`workspace.py check specs`、project-native検査、独立review、同一build manual証拠を取り直す。code/dependency/buildが`b866e35`から変わる場合、既存manual依頼のcommitを更新して古い証拠を流用しない。

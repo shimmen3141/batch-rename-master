@@ -36,4 +36,4 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 - Waiting for: b866e35から作成したAndroid・desktop buildの手動結果
 - Requested action: Agentが検証workspaceをb866e35で維持し、manual-verification.mdのchecklistを人間へ依頼する
 - Evidence revision: 53acc33b..b866e35 / CI run 31330970689
-- Next Agent action: 証拠受領後、同じheadの最終独立reviewを行い、PR #116のready可否を判定する
+- Next Agent action: ASDD移行がdevへ入ったら最新devをPR #116へ取り込み、旧development-unitsを再導入せずcode・contract・ADRを統合する。対象head/buildを確定してmanual証拠と最終独立reviewを行う

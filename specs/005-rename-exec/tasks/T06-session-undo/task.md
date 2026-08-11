@@ -32,4 +32,4 @@
 - Waiting for: T05と同じdesktop buildの期限内・期限後undo結果
 - Requested action: T05のdesktop checklistと連続してundo checklistを実施する
 - Evidence revision: 53acc33b..b866e35 / CI run 31330970689
-- Next Agent action: 証拠受領後、T05と同じexact rangeの最終独立reviewへ含める
+- Next Agent action: T05と同じPR #116合流・manual buildへ含め、移行後のexact rangeで最終独立reviewする
