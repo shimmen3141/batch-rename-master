@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T05",
+  "title": "ウィジェット: ドラッグ並び替え + カスタム順への自動切替",
+  "status": "done",
+  "dependsOn": [
+    "T04"
+  ],
+  "covers": [
+    "REQ-014"
+  ],
+  "issue": 19,
+  "pullRequest": 24,
+  "manualVerification": null
+}

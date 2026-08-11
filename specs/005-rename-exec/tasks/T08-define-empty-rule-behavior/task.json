@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T08",
+  "title": "空ルール時の扱いの仕様更新(実行不可・警告の代わりに未設定を提示)→ 再承認依頼",
+  "status": "done",
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [],
+  "issue": 101,
+  "pullRequest": null,
+  "manualVerification": null
+}

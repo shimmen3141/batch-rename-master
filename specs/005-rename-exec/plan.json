@@ -1,0 +1,19 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "005",
+  "title": "安全なリネーム実行",
+  "risk": "strict",
+  "issue": 108,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-rename-orchestration",
+    "tasks/T03-preview-warnings",
+    "tasks/T04-confirmation-and-results",
+    "tasks/T05-platform-rename-adapters",
+    "tasks/T06-session-undo",
+    "tasks/T07-desktop-modified-time",
+    "tasks/T08-define-empty-rule-behavior",
+    "tasks/T09-empty-rule-ui"
+  ]
+}

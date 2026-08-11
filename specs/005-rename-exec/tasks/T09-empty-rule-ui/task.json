@@ -1,0 +1,18 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T09",
+  "title": "空ルール時の実行防止UIを実装する",
+  "status": "pending",
+  "dependsOn": [
+    "T08",
+    "T04"
+  ],
+  "covers": [
+    "REQ-019",
+    "REQ-020",
+    "REQ-021"
+  ],
+  "issue": 102,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

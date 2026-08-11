@@ -1,0 +1,9 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "013",
+  "title": "Androidの安全なrename境界",
+  "risk": "strict",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": ["tasks/T01-decide-storage-boundary"]
+}

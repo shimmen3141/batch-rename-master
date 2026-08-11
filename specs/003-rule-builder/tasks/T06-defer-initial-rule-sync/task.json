@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T06",
+  "title": "不具合修正: 初期ルール同期がビルド中に notifyListeners を呼ぶ",
+  "status": "done",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [],
+  "issue": 73,
+  "pullRequest": 75,
+  "manualVerification": null
+}

@@ -79,3 +79,4 @@ GoogleService-Info.plist
 !secrets.example/
 !secrets.example/**
 .worktrees/
+.asdd-view/

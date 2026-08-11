@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T01",
+  "title": "振る舞い仕様の作成(Strict)",
+  "status": "done",
+  "dependsOn": [],
+  "covers": [],
+  "issue": 2,
+  "pullRequest": 1,
+  "manualVerification": null
+}

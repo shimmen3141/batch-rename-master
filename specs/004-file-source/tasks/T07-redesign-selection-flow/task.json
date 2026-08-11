@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T07",
+  "title": "読み込み導線の再設計(蓄積の取り消し・単一導線・種類選択)の仕様更新 → 再承認依頼",
+  "status": "done",
+  "dependsOn": [
+    "T04"
+  ],
+  "covers": [],
+  "issue": 81,
+  "pullRequest": null,
+  "manualVerification": null
+}

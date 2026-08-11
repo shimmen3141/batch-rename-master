@@ -1,0 +1,20 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "実行導線: 確認ダイアログ(キャンセル / 強制実行=autoResolve)+ 結果の提示",
+  "status": "done",
+  "dependsOn": [
+    "T02",
+    "T03"
+  ],
+  "covers": [
+    "REQ-011",
+    "REQ-012",
+    "REQ-013",
+    "REQ-022",
+    "SM-001"
+  ],
+  "issue": 95,
+  "pullRequest": 110,
+  "manualVerification": null
+}

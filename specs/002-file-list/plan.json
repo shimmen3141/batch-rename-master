@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "002",
+  "title": "ファイル一覧・選択・プレビュー",
+  "risk": "light",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-selection-and-order-state",
+    "tasks/T03-connect-preview",
+    "tasks/T04-render-file-list",
+    "tasks/T05-drag-custom-order"
+  ]
+}

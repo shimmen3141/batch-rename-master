@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T05",
+  "title": "実ストア(shared_preferences アダプタ)+ アプリ入口配線(ホスト検証)",
+  "status": "done",
+  "dependsOn": [
+    "T04"
+  ],
+  "covers": [
+    "REQ-005"
+  ],
+  "issue": 42,
+  "pullRequest": 49,
+  "manualVerification": null
+}

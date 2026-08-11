@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T07",
+  "title": "desktopの更新日時ずらしを実装する",
+  "status": "pending",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [
+    "REQ-014",
+    "REQ-015",
+    "REQ-016"
+  ],
+  "issue": 98,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

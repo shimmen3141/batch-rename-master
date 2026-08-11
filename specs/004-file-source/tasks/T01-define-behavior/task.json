@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T01",
+  "title": "振る舞い仕様の作成(Light)+ 001/002 仕様更新の洗い出し",
+  "status": "done",
+  "dependsOn": [],
+  "covers": [],
+  "issue": 51,
+  "pullRequest": 56,
+  "manualVerification": null
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "ウィジェット: トークン Chip 列 + 追加ボタン + 削除 + D&D 並び替え",
+  "status": "done",
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "REQ-002",
+    "REQ-003",
+    "REQ-004"
+  ],
+  "issue": 28,
+  "pullRequest": 33,
+  "manualVerification": null
+}

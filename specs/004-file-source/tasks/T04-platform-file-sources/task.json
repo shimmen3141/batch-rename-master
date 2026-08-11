@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "実 FileSource(Android SAF + Windows ピッカー)+ 実データ入口配線(ホスト検証)",
+  "status": "done",
+  "dependsOn": [
+    "T03"
+  ],
+  "covers": [
+    "REQ-002",
+    "REQ-003"
+  ],
+  "issue": 54,
+  "pullRequest": 76,
+  "manualVerification": null
+}

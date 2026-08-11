@@ -1,0 +1,18 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T02",
+  "title": "シリアライズ: RenameRule/Token ⇔ JSON(純粋 Dart)",
+  "status": "done",
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004"
+  ],
+  "issue": 39,
+  "pullRequest": 45,
+  "manualVerification": null
+}

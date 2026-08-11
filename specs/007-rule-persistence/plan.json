@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "007",
+  "title": "前回ルールの保存と復元",
+  "risk": "standard",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-serialize-rules",
+    "tasks/T03-rule-store-port",
+    "tasks/T04-connect-rule-controller",
+    "tasks/T05-shared-preferences-adapter",
+    "tasks/T06-verify-restart-persistence"
+  ]
+}
