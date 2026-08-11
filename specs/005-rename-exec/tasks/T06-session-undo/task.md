@@ -27,9 +27,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: product code baseline b866e35で自動testと独立reviewのP0/P1なし。ASDD 2.0合流後も同じ実装を維持
+- Last checkpoint: code/build d6a4e18をAndroidへbuild済み、PR head dc04019のCIでundoを含む338 tests PASS
 - Blocker category: manual evidence
 - Waiting for: T05と同じdesktop buildの期限内・期限後undo結果
 - Requested action: T05のdesktop checklistと連続してundo checklistを実施する
-- Evidence revision: product code `b866e35`; ASDD合流後のhead・CI runはPR #116とIssue #96に記録する
+- Evidence revision: code/build `d6a4e18`; PR head `dc04019`; CI run 31522657379
 - Next Agent action: T05と同じlatest headのmanual buildへ含め、移行後のexact rangeで最終独立reviewする
