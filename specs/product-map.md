@@ -12,9 +12,9 @@
 | 002 ファイル一覧 | 選択、sort、custom順、preview表示を実装済み | [`002-file-list/`](002-file-list/) |
 | 003 ルール構築 | token追加・編集・並び替えとresponsive UIを実装済み | [`003-rule-builder/`](003-rule-builder/) |
 | 004 ファイルsource | Android SAF・desktop pickerと選択導線を実装済み。target platformの手動受け入れが未完 | [`004-file-source/`](004-file-source/) |
-| 005 リネーム実行 | 警告確認・結果表示は統合済み。desktop安全rename・undoはPR #116の手動証拠待ち。Androidは安全にunsupported。空ルールUIと更新日時ずらしは未完 | [`005-rename-exec/`](005-rename-exec/) |
+| 005 リネーム実行 | 警告確認・結果表示、desktop安全rename・5秒以内undoは統合・手動確認済み。Androidは安全にunsupported。空ルールUIと更新日時ずらしは未完 | [`005-rename-exec/`](005-rename-exec/) |
 | 007 ルール永続化 | serialization・保存・復元を実装済み。process再起動をまたぐ手動受け入れが未完 | [`007-rule-persistence/`](007-rule-persistence/) |
-| 013 Android安全rename | 原子的no-replaceを満たすstorage・permission境界の設計判断が未着手 | [`013-safe-android-rename/`](013-safe-android-rename/) |
+| 013 Android安全rename | 005の安全なunsupportedが統合済み。原子的no-replaceを満たすstorage・permission境界の設計判断`T01`が着手可能 | [`013-safe-android-rename/`](013-safe-android-rename/) |
 
 ## 主な依存
 
