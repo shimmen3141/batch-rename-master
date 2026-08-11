@@ -4,7 +4,7 @@
 - Date: 2026-08-09
 - Related contract: `contracts/behavior-contract.json` revision 2
 - Related requirements: REQ-017, OP-004, INV-001, INV-002, INV-003
-- Related development units: `complete-rename-execution`, `design-safe-android-rename-boundary`
+- Related tasks: `005:T05`, `005:T06`, `013:T01`
 
 ## Context
 
@@ -52,5 +52,5 @@ Androidの`DocumentsContract.renameDocument`は、providerが要求名と異な�
 
 - Android利用者には実renameを行わず、未対応理由を表示する。選択済みfileは不変である。
 - Issue #96の完了は「Android実rename成功」を意味しない。desktopの安全な実renameとAndroidの安全な未対応処理を意味する。
-- Android成功経路の設計判断は`development-units/design-safe-android-rename-boundary/`が所有する。
+- Android成功経路の設計判断は`013-safe-android-rename:T01`が所有する。
 - #116はこのrevisionとscopeが独立reviewされ、desktopとAndroid未対応の同一commit/build手動証拠が揃うまでDraftを維持する。

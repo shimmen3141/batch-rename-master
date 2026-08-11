@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "ウィジェット: 各トークンの詳細エディタ(自由テキスト/区切り/連番/日時)",
+  "status": "done",
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "REQ-005"
+  ],
+  "issue": 29,
+  "pullRequest": 34,
+  "manualVerification": null
+}

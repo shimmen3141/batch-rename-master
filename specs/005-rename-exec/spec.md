@@ -77,7 +77,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 
 ## この機能だけでは未完成な点
 
-- **Android SAFによる実renameは安全な未対応**。SAF以外のstorage方式、provider制限、配布上の権限制約を`development-units/design-safe-android-rename-boundary/`で調査し、実装を約束せず設計判断を出す。
+- **Android SAFによる実renameは安全な未対応**。SAF以外のstorage方式、provider制限、配布上の権限制約は`013-safe-android-rename:T01`で調査し、実装を約束せず設計判断を出す。
 - **作成日時トークンは、実データでは常に空になる**。005 は「なぜ空か」を警告として説明できるようにするが(REQ-009)、**値そのものを供給できるようにはしない**。取得経路が入るまで、利用者から見た「作成日時での命名」は使えないままである。→ 010-photo-source
 - **警告・確認・結果の見た目は素のまま**。参考デザインへの追い込みは行わない。→ 008-ui-polish
 - **Windows の D&D からの読み込みは無い**ため、デスクトップでの実行はファイル選択画面からの経路に限られる。→ 006-windows-dnd

@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "プレビュー連携(001 の generatePreview で行データ供給)",
+  "status": "done",
+  "dependsOn": [
+    "T02",
+    "001:T04"
+  ],
+  "covers": [
+    "REQ-006",
+    "REQ-007"
+  ],
+  "issue": 17,
+  "pullRequest": 22,
+  "manualVerification": null
+}

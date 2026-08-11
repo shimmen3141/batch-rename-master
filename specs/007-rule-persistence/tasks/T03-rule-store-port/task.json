@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "ストレージポート + in-memory fake + 復元/保存オーケストレーション",
+  "status": "done",
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "REQ-005",
+    "REQ-006",
+    "REQ-007"
+  ],
+  "issue": 40,
+  "pullRequest": 47,
+  "manualVerification": null
+}

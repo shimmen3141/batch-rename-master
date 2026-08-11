@@ -1,0 +1,19 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T05",
+  "title": "ドライラン検証(重複・桁不足の警告生成)",
+  "status": "done",
+  "dependsOn": [
+    "T04"
+  ],
+  "covers": [
+    "REQ-007",
+    "REQ-008",
+    "REQ-009",
+    "REQ-014",
+    "OP-003"
+  ],
+  "issue": 6,
+  "pullRequest": 11,
+  "manualVerification": null
+}

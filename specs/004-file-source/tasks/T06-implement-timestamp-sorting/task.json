@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T06",
+  "title": "時系列ソート2種+警告の実装(取得可否・ソート・警告表示)",
+  "status": "done",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [
+    "REQ-010"
+  ],
+  "issue": 64,
+  "pullRequest": 67,
+  "manualVerification": null
+}

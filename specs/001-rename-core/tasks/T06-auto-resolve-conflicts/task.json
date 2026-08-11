@@ -1,0 +1,19 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T06",
+  "title": "自動解決(強制実行時の名前確定)",
+  "status": "done",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [
+    "REQ-010",
+    "REQ-011",
+    "REQ-012",
+    "INV-003",
+    "OP-004"
+  ],
+  "issue": 7,
+  "pullRequest": 12,
+  "manualVerification": null
+}

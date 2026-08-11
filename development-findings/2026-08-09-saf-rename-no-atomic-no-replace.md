@@ -23,4 +23,4 @@
 
 ## 改善結果
 
-`behavior-contract.json` revision 2、ADR、production SAF adapterのnegative test、同一buildのAndroid無変更手動確認へ接続した。将来設計は`development-units/design-safe-android-rename-boundary/`で調査する。
+`behavior-contract.json` revision 2、ADR、production SAF adapterのnegative test、同一buildのAndroid無変更手動確認へ接続した。将来設計は`specs/013-safe-android-rename/tasks/T01-decide-storage-boundary/`で調査する。

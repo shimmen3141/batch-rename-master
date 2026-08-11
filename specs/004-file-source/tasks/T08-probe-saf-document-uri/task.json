@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T08",
+  "title": "実機スパイク: SAF ドキュメント URI でリネームできるかの確認(ホスト検証)",
+  "status": "done",
+  "dependsOn": [
+    "T04"
+  ],
+  "covers": [],
+  "issue": 82,
+  "pullRequest": 80,
+  "manualVerification": null
+}

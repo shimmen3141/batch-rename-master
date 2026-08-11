@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "001",
+  "title": "コア命名エンジン",
+  "risk": "strict",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-model-and-basic-tokens",
+    "tasks/T03-sequence-and-datetime-tokens",
+    "tasks/T04-generate-preview",
+    "tasks/T05-validate-dry-run",
+    "tasks/T06-auto-resolve-conflicts"
+  ]
+}

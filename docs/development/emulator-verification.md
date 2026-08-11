@@ -61,7 +61,7 @@ ADBはローカルTCP 5037番のサーバー1つを複数クライアントで�
 
 ## 画面別の見どころ（現状のデモ入口）
 
-`lib/main.dart` はサンプルデータで 002/003 を束ねた**デモ入口**（実ファイル読み込み=004・リネーム実行=005 は未配線）。
+`lib/main.dart` は002〜004と005の警告確認・結果表示を束ねる。起動直後のsampleはUI確認用で実fileではなく、実fileを選ぶと一覧が置き換わる。005のplatform adapterは所有taskとPRのrevisionを確認してから検証する。
 
 - **モバイル幅（スマホ）**: ファイルリスト全面 + 下部「ルールを編集」→ ボトムシートでトークン編集。
 - **デスクトップ幅（≥840dp・タブレット/横向き）**: 左にリスト、右にルールビルダーの 2 ペイン。
@@ -69,13 +69,14 @@ ADBはローカルTCP 5037番のサーバー1つを複数クライアントで�
 
 ## 機能別の実機確認（実装後）
 
-この文書には複数unitで共通するhost起動・接続手順だけを置く。機能固有のfixture、操作、期待結果、記録する証拠は次を正本とする。
+この文書には複数taskで共通するhost起動・接続手順だけを置く。機能固有のfixture、操作、期待結果、記録する証拠は所有taskを正本とする。
 
-- **004 ファイル読み込み**: [`development-units/verify-file-selection-on-target-platforms/manual-verification.md`](../../development-units/verify-file-selection-on-target-platforms/manual-verification.md)
-- **005 リネーム実行**: [`development-units/complete-rename-execution/manual-verification.md`](../../development-units/complete-rename-execution/manual-verification.md)
-- **007 ルール永続化**: [`development-units/verify-rule-persistence-across-restart/manual-verification.md`](../../development-units/verify-rule-persistence-across-restart/manual-verification.md)
+- **004 ファイル読み込み**: [`specs/004-file-source/tasks/T10-verify-target-platforms/manual-verification.md`](../../specs/004-file-source/tasks/T10-verify-target-platforms/manual-verification.md)
+- **005 platform rename**: [`specs/005-rename-exec/tasks/T05-platform-rename-adapters/manual-verification.md`](../../specs/005-rename-exec/tasks/T05-platform-rename-adapters/manual-verification.md)
+- **005 session undo**: [`specs/005-rename-exec/tasks/T06-session-undo/manual-verification.md`](../../specs/005-rename-exec/tasks/T06-session-undo/manual-verification.md)
+- **005 empty rule UI**: [`specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md`](../../specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md)
+- **007 ルール永続化**: [`specs/007-rule-persistence/tasks/T06-verify-restart-persistence/manual-verification.md`](../../specs/007-rule-persistence/tasks/T06-verify-restart-persistence/manual-verification.md)
 
-起動直後に並ぶsampleはUI確認用で実fileではない。実fileを選ぶと一覧は置き換わる。
 - **APK ビルド**: `flutter build apk --debug`（成果物 `build/app/outputs/flutter-apk/`）。署名済みリリースは `--release`（署名鍵の扱いは別途）。
 
 ## 注意

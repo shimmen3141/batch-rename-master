@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "警告表示(重複・桁不足・空名・基準日時不明)をプレビューに出す",
+  "status": "done",
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [
+    "REQ-009",
+    "REQ-010"
+  ],
+  "issue": 94,
+  "pullRequest": null,
+  "manualVerification": null
+}
