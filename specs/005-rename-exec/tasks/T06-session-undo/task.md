@@ -32,5 +32,5 @@
 - Blocker category: manual evidence
 - Waiting for: T05と同じdesktop buildの期限内・期限後undo結果
 - Requested action: T05のdesktop checklistと連続してundo checklistを実施する
-- Evidence revision: code/build `d6a4e18`; PR head `126e67b`; CI run 31522877366
+- Evidence revision: code/build `d6a4e18`; Android evidence `346797c`; CI run `31534761434`; Desktop undo evidence pending
 - Next Agent action: Desktop manual結果をT05と同時に記録し、移行後のexact rangeで最終独立reviewする。PASSならT05/T06を完了可能にする
