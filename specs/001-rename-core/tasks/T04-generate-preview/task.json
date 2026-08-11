@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "プレビュー生成(選択・並び順反映、連番の割り当て)",
+  "status": "done",
+  "dependsOn": [
+    "T03"
+  ],
+  "covers": [
+    "REQ-006",
+    "OP-002"
+  ],
+  "issue": 5,
+  "pullRequest": 10,
+  "manualVerification": null
+}

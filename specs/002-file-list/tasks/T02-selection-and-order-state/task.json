@@ -1,0 +1,22 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T02",
+  "title": "状態コントローラ(選択・ソート・カスタム順)",
+  "status": "done",
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-008",
+    "REQ-009",
+    "REQ-011"
+  ],
+  "issue": 16,
+  "pullRequest": 20,
+  "manualVerification": null
+}

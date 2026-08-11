@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "UI 入口: フォルダを開く / ファイルを選ぶ(追加・除去、fake で結線・widget test)",
+  "status": "done",
+  "dependsOn": [
+    "T02",
+    "002:T02"
+  ],
+  "covers": [
+    "REQ-007",
+    "REQ-008"
+  ],
+  "issue": 53,
+  "pullRequest": 71,
+  "manualVerification": null
+}

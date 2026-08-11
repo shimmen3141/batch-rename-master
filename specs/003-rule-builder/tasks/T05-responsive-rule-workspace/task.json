@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T05",
+  "title": "レスポンシブ外殻(モバイル=ボトムシート/デスクトップ=2ペイン)+ 002 setRule 連携",
+  "status": "done",
+  "dependsOn": [
+    "T03",
+    "T04",
+    "002:T03"
+  ],
+  "covers": [],
+  "issue": 30,
+  "pullRequest": 35,
+  "manualVerification": null
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "003",
+  "title": "ルール構築UI",
+  "risk": "light",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-rule-controller",
+    "tasks/T03-token-chip-editor",
+    "tasks/T04-token-detail-editor",
+    "tasks/T05-responsive-rule-workspace",
+    "tasks/T06-defer-initial-rule-sync"
+  ]
+}

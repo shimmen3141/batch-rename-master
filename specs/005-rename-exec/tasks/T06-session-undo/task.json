@@ -1,0 +1,19 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T06",
+  "title": "期限付き単一step undoを統合する",
+  "status": "blocked",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [
+    "REQ-006",
+    "REQ-007",
+    "REQ-008",
+    "INV-004",
+    "OP-003"
+  ],
+  "issue": 97,
+  "pullRequest": 116,
+  "manualVerification": "manual-verification.md"
+}

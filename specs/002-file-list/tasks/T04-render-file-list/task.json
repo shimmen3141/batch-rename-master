@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "ウィジェット: 2カラムリスト + チェックボックス + ソート切替",
+  "status": "done",
+  "dependsOn": [
+    "T03"
+  ],
+  "covers": [
+    "REQ-010",
+    "REQ-012",
+    "REQ-013"
+  ],
+  "issue": 18,
+  "pullRequest": 23,
+  "manualVerification": null
+}

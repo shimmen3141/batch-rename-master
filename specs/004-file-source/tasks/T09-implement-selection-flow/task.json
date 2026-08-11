@@ -1,0 +1,20 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T09",
+  "title": "読み込み導線の再設計の実装(種類選択 → 選択 UI → リスト画面)",
+  "status": "done",
+  "dependsOn": [
+    "T07",
+    "T08"
+  ],
+  "covers": [
+    "REQ-004",
+    "REQ-005",
+    "REQ-009",
+    "REQ-011",
+    "REQ-012"
+  ],
+  "issue": 83,
+  "pullRequest": null,
+  "manualVerification": null
+}

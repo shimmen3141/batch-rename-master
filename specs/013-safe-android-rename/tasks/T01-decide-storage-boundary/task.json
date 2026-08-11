@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T01",
+  "title": "storage・permission境界を設計判断する",
+  "status": "pending",
+  "dependsOn": ["005:T05"],
+  "covers": ["INV-002", "OP-004"],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

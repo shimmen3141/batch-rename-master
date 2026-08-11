@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "連番・日時トークンの評価",
+  "status": "done",
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "REQ-003",
+    "REQ-004",
+    "INV-006"
+  ],
+  "issue": 4,
+  "pullRequest": 9,
+  "manualVerification": null
+}

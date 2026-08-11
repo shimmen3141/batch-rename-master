@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "RuleController への配線(初期復元 + 変更保存)",
+  "status": "done",
+  "dependsOn": [
+    "T03",
+    "003:T02"
+  ],
+  "covers": [
+    "REQ-008"
+  ],
+  "issue": 41,
+  "pullRequest": 48,
+  "manualVerification": null
+}

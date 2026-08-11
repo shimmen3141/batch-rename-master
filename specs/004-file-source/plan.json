@@ -1,0 +1,20 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "004",
+  "title": "対象ファイルの選択と読み込み",
+  "risk": "standard",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-file-source-port",
+    "tasks/T03-file-source-entry-ui",
+    "tasks/T04-platform-file-sources",
+    "tasks/T05-define-timestamp-sorting",
+    "tasks/T06-implement-timestamp-sorting",
+    "tasks/T07-redesign-selection-flow",
+    "tasks/T08-probe-saf-document-uri",
+    "tasks/T09-implement-selection-flow",
+    "tasks/T10-verify-target-platforms"
+  ]
+}
