@@ -42,8 +42,12 @@ class RenameExecutionController extends ChangeNotifier {
   List<FileEntry> get excludedEmptyNames => _excludedEmptyNames;
 
   /// [force] では 001 の自動解決後に空名を除外する(REQ-022)。
+  ///
+  /// ルールが空のときは、どの経路から呼ばれても実行を開始しない(REQ-019)。
+  /// ボタンの無効化だけに頼ると、別経路から実体を変更できてしまうため、
+  /// 状態境界のここでも止める。
   Future<RenameOutcome?> execute({required bool force}) async {
-    if (_running) return null;
+    if (_running || files.isRuleEmpty) return null;
     _clearUndo();
     _running = true;
     _excludedEmptyNames = const [];

@@ -19,10 +19,17 @@ class FileListView extends StatelessWidget {
     super.key,
     required this.controller,
     this.renameExecution,
+    this.onEditRule,
   });
 
   final FileListController controller;
   final RenameExecutionController? renameExecution;
+
+  /// ルール編集を開く導線(REQ-020 の「ルールを設定すれば進める」)。
+  ///
+  /// ルールビルダーが常時見えているレイアウト(デスクトップの 2 ペイン)では
+  /// `null` を渡し、下部バーには実行だけを置く。
+  final VoidCallback? onEditRule;
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +50,13 @@ class FileListView extends StatelessWidget {
               _CreatedAtFallbackBanner(
                 warning: controller.createdAtSortWarning,
               ),
-              if (renameExecution != null)
-                _RenameActionBar(
-                  controller: controller,
-                  execution: renameExecution!,
-                ),
-              // 001 の検証が返す警告(005 REQ-009 / REQ-010)。0 件なら出ない。
-              RenameWarningPanel(warnings: controller.warnings),
+              // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
+              // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
+              if (controller.isRuleEmpty)
+                const RuleNotConfiguredBanner()
+              else
+                // 001 の検証が返す警告(005 REQ-009 / REQ-010)。0 件なら出ない。
+                RenameWarningPanel(warnings: controller.warnings),
               Expanded(
                 child: ReorderableListView.builder(
                   // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
@@ -79,6 +86,14 @@ class FileListView extends StatelessWidget {
                   },
                 ),
               ),
+              // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
+              // まとめる(T09 で T04 の上部配置から移設)。
+              if (renameExecution != null || onEditRule != null)
+                _RenameActionBar(
+                  controller: controller,
+                  execution: renameExecution,
+                  onEditRule: onEditRule,
+                ),
             ],
           ),
         );
@@ -87,15 +102,31 @@ class FileListView extends StatelessWidget {
   }
 }
 
+/// リストの下に固定するアクションバー(参考デザインの下部バー)。
+///
+/// 上段にルール設定への導線、下段に実行を置く。ルールが空のときは実行を無効に
+/// したうえで、ルール設定ボタンを主役の表示へ入れ替える(005 REQ-019 / REQ-020)。
 class _RenameActionBar extends StatelessWidget {
-  const _RenameActionBar({required this.controller, required this.execution});
+  const _RenameActionBar({
+    required this.controller,
+    required this.execution,
+    required this.onEditRule,
+  });
 
   final FileListController controller;
-  final RenameExecutionController execution;
+
+  /// 実行境界。デモやリスト単体の描画では `null`(実行ボタンを出さない)。
+  final RenameExecutionController? execution;
+  final VoidCallback? onEditRule;
 
   Future<void> _request(BuildContext context) async {
-    if (execution.isRunning) return;
-    final warnings = controller.warnings;
+    final execution = this.execution;
+    // REQ-019: 空ルールでは実行を要求しても開始しない(controller 側でも止める)。
+    if (execution == null || execution.isRunning || controller.isRuleEmpty) {
+      return;
+    }
+    // 確認ダイアログも帯と同じ提示単位を使う(REQ-021 のまとめを両方へ効かせる)。
+    final warnings = presentWarnings(controller.warnings);
     if (warnings.isNotEmpty) {
       final force = await showDialog<bool>(
         context: context,
@@ -109,8 +140,7 @@ class _RenameActionBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final warning in warnings)
-                    Text('• ${describeWarning(warning)}'),
+                  for (final warning in warnings) Text('• ${warning.message}'),
                 ],
               ),
             ),
@@ -137,6 +167,7 @@ class _RenameActionBar extends StatelessWidget {
   }
 
   Future<void> _run(BuildContext context, {required bool force}) async {
+    final execution = this.execution!;
     final outcome = await execution.execute(force: force);
     if (outcome == null || !context.mounted) return;
     final message = StringBuffer('${outcome.successes.length} 件を改名しました');
@@ -152,7 +183,7 @@ class _RenameActionBar extends StatelessWidget {
   }
 
   Future<void> _undo(BuildContext context) async {
-    final outcome = await execution.undo();
+    final outcome = await execution!.undo();
     if (outcome == null || !context.mounted) return;
     final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');
     final failure = outcome.failure;
@@ -168,39 +199,101 @@ class _RenameActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Expanded(
-            child: FilledButton.icon(
-              key: const Key('rename-action'),
-              onPressed: execution.isRunning ? null : () => _request(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: colors.primary,
-                foregroundColor: colors.onPrimary,
-              ),
-              icon: execution.isRunning
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.drive_file_rename_outline),
-              label: Text(execution.isRunning ? '処理中…' : '名前を変更'),
-            ),
+    final execution = this.execution;
+    final empty = controller.isRuleEmpty;
+    final running = execution?.isRunning ?? false;
+    return Material(
+      color: colors.surface,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (onEditRule != null) ...[
+                _RuleButton(empty: empty, onPressed: onEditRule!),
+                const SizedBox(height: 10),
+              ],
+              if (execution != null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        key: const Key('rename-action'),
+                        // REQ-019: ルールが空の間は実行を提示しない(押せない)。
+                        onPressed: running || empty
+                            ? null
+                            : () => _request(context),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.onPrimary,
+                        ),
+                        icon: running
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.drive_file_rename_outline),
+                        label: Text(
+                          running
+                              ? '処理中…'
+                              : empty
+                              ? 'ルールを設定してください'
+                              : '名前を変更',
+                        ),
+                      ),
+                    ),
+                    if (execution.canUndo) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        key: const Key('rename-undo'),
+                        onPressed: () => _undo(context),
+                        icon: const Icon(Icons.undo),
+                        label: const Text('元に戻す'),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
           ),
-          if (execution.canUndo) ...[
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              key: const Key('rename-undo'),
-              onPressed: () => _undo(context),
-              icon: const Icon(Icons.undo),
-              label: const Text('元に戻す'),
-            ),
-          ],
-        ],
+        ),
       ),
+    );
+  }
+}
+
+/// ルール編集への導線。未設定のときだけ主役の表示へ入れ替える(REQ-020)。
+class _RuleButton extends StatelessWidget {
+  const _RuleButton({required this.empty, required this.onPressed});
+
+  final bool empty;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    if (empty) {
+      return FilledButton.icon(
+        key: const Key('configure-rule'),
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+        ),
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('変更する名前を設定する'),
+      );
+    }
+    return OutlinedButton.icon(
+      key: const Key('configure-rule'),
+      onPressed: onPressed,
+      icon: const Icon(Icons.tune, size: 18),
+      label: const Text('ルールを編集'),
     );
   }
 }

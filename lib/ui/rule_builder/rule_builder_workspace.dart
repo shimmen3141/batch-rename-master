@@ -101,6 +101,8 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
           child: FileListView(
             controller: widget.fileList,
             renameExecution: widget.renameExecution,
+            // ルールビルダーが右ペインに常時見えているので、下部バーには
+            // 実行だけを置く(ルール設定への導線は重複させない)。
           ),
         ),
         Container(
@@ -115,37 +117,16 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     );
   }
 
-  /// モバイル: リスト全面 + 下部の「ルールを編集」でボトムシートを開く。
+  /// モバイル: リスト全面 + 下部バー(ルール設定 + 実行)。
+  ///
+  /// ルール編集と実行は参考デザインどおり同じ下部バーへ集約し、[FileListView] が
+  /// リストの下に描画する。ここで別のバーを持つと、未設定の案内と実行が上下に
+  /// 分かれてしまう。
   Widget _buildNarrow(BuildContext context) {
-    final colors = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: FileListView(
-            controller: widget.fileList,
-            renameExecution: widget.renameExecution,
-          ),
-        ),
-        Material(
-          color: colors.surface,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: FilledButton.icon(
-                onPressed: _openRuleSheet,
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                ),
-                icon: const Icon(Icons.tune, size: 18),
-                label: const Text('ルールを編集'),
-              ),
-            ),
-          ),
-        ),
-      ],
+    return FileListView(
+      controller: widget.fileList,
+      renameExecution: widget.renameExecution,
+      onEditRule: _openRuleSheet,
     );
   }
 }
