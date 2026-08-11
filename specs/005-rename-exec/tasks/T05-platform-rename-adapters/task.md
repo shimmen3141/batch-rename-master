@@ -34,12 +34,14 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 - 2026-08-12 / hostで`flutter build apk --debug --no-pub`がexit 0（`app-debug.apk`生成）、`flutter run -d emulator-5554 --no-resident --no-pub`がexit 0（build・install・launch成功）。元のnative asset errorは再発しなかった。
 - 2026-08-12 / CI run 31522320234は337 tests PASS後、hook実装文字列を旧形で固定した1 testだけFAIL。guardとlocal `targetOS`を確認する期待へ更新し、振る舞い条件は維持。
 - 2026-08-12 / CI run 31522657379 PASS: analyze 0、338 tests。build hook回帰testを含むcurrent headをmanual evidence待ちへ戻した。
+- 2026-08-12 / 人間がcode/build `d6a4e18`を起動したAndroid emulatorでT05 Android手順を確認し、準備と2件一覧、2回とも0件・未対応理由表示、`alpha.txt` / `beta.txt` / `alpha_checked.txt`の名前・内容不変をPASSとして報告。起動エラーの追加報告なし。
+- Review attempt unknown: `c68322aa..126e67b` + Android manual evidence — BLOCKED — P0/P1 none、Desktop実rename・連続rename・競合時不変とT06 undoのmanual evidence pending。
 
 ## Current state / handoff
 
-- Last checkpoint: code/build `d6a4e18`をAndroid emulatorへbuild・install・launchし、current PR head `dc04019`のCIがanalyze 0・338 testsでPASS
+- Last checkpoint: code/build `d6a4e18`のAndroid T05 manualがPASS。current PR head `126e67b`のCIもanalyze 0・338 testsでPASS
 - Blocker category: manual evidence
-- Waiting for: 人間によるT05 Android/DesktopとT06 Desktop undoの番号付き結果
-- Requested action: Agent準備済みworkspaceでT05/T06 manualを実施し、各項目を`PASS / FAIL / 確認不能`で返す
-- Evidence revision: code/build `d6a4e18`; PR head `dc04019`; CI run 31522657379
-- Next Agent action: manual結果を正本へ記録し、code/build以後の差分を照合してcurrent rangeの最終独立reviewを行う
+- Waiting for: 人間によるT05 DesktopとT06 Desktop undoの番号付き結果
+- Requested action: 同じcode/buildのDesktopアプリでT05の正常・連続・競合確認と、T06の5秒以内undo・6秒後期限切れを実施する
+- Evidence revision: code/build `d6a4e18`; Android manual PASS reported 2026-08-12; PR head `126e67b`; CI run 31522877366
+- Next Agent action: Desktop結果を正本へ記録し、code/build以後の差分を照合してcurrent rangeの最終独立reviewを行う。PASSならPR #116をready化し、merge gateを再確認する
