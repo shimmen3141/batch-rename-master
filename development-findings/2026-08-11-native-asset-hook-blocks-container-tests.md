@@ -31,7 +31,7 @@ T05の作業記録には「Dev ContainerのFlutter testは今回と別の既知�
 
 - 本命: `.devcontainer/Dockerfile`へclangを追加する(read-onlyなので人間へ依頼する)。Linux hostのcode asset buildが通れば制約が消える。
 - 代案: `hook/build.dart`で、targetOSがWindows/macOS/Linuxでも該当compilerが解決できない場合はcode assetを出さずに終了し、Dart側は`unsupportedPlatform`へ落ちる。ただし「desktopでは必ずnative renameを使う」というT05の受け入れを緩めるため、仕様判断が要る。
-- 代案: containerのfull regressionを`flutter test --no-...`相当で回避する方法は現状のFlutterには無い。回避策を探すより、compilerを入れるかCI依存を正本へ明記するかを選ぶ。
+- 代案: containerのfull regressionをflagで回避する方法は無い。`flutter config --no-enable-native-assets`を試すと、testは`Package(s) batch_rename_master require the dart assets feature to be enabled.`で拒否される(検証済み。設定は元へ戻した)。回避策を探すより、compilerを入れるかCI依存を正本へ明記するかを選ぶ。
 - どの案でも、AGENTS.mdの「検証とreview」節へ「AI containerで実行不能な検証と、その代わりに使う証拠」を一度だけ書く。
 
 ## 改善結果
