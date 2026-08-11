@@ -26,12 +26,13 @@
 - 2026-08-09 / PR #116で成功済みrenameを最新handleから逆順に戻す単一step undo、5秒期限、途中失敗停止を実装。
 - 2026-08-12 / T05 Android manualはPASS。T06はDesktop専用のため、同じcode/buildでの期限内・期限後undo結果を引き続き待つ。
 - 2026-08-12 / 人間がWindows DesktopでT06 manualを確認し、rename後5秒以内のundoで元file名・内容へ戻ることと、6秒後にundoが消えてrename後fileが残ることをPASSとして報告。確認時checkoutは`5a13d85`で、app code・dependency・build設定はcode/build checkpoint `d6a4e18`と同一。
+- Review attempt final: `origin/dev@c68322aa..4547a4c` — PASS — P0/P1/P2なし。Desktop manual証拠、CI run `31540249326`、PR/Issue/正本の整合を確認。
 
 ## Current state / handoff
 
-- Last checkpoint: Windows Desktopで5秒以内undoと6秒後期限切れがPASS。CIでundoを含む338 tests PASS
-- Blocker category: review
-- Waiting for: T05/T06を含むexact rangeの最終独立review
+- Last checkpoint: Windows Desktopで5秒以内undoと6秒後期限切れ、CI、exact range独立reviewがPASS
+- Blocker category: none
+- Waiting for: none
 - Requested action: none
-- Evidence revision: code/build `d6a4e18`; Desktop manual PASS reported 2026-08-12 on checkout `5a13d85`; CI run `31534938266`
-- Next Agent action: 最終独立review PASS後、T05と同じintegration commitでdoneへ更新する
+- Evidence revision: code/build `d6a4e18`; Desktop manual PASS reported 2026-08-12 on checkout `5a13d85`; reviewed head `4547a4c`; CI run `31540249326`
+- Next Agent action: PR #116をready化し、T05と同じintegration commitで`dev`へmergeする

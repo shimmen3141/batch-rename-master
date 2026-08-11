@@ -38,12 +38,13 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 - Review attempt unknown: `c68322aa..126e67b` + Android manual evidence — BLOCKED — P0/P1 none、Desktop実rename・連続rename・競合時不変とT06 undoのmanual evidence pending。
 - 2026-08-12 / Android evidence commit `346797c`のCI run `31534761434` PASS。Issue #96/#97とPR #116を、Android再確認不要・Desktop結果受領から再開するhandoffへ更新。
 - 2026-08-12 / 人間がWindows DesktopでT05 manualを確認し、正常rename、更新後pathを使う連続rename、同名file競合時にsource/targetの名前・内容を変えず停止する3項目をPASSとして報告。確認時checkoutは`5a13d85`で、app code・dependency・build設定はcode/build checkpoint `d6a4e18`と同一。
+- Review attempt final: `origin/dev@c68322aa..4547a4c` — PASS — P0/P1/P2なし。Android/Desktopのmanual証拠、CI run `31540249326`、PR/Issue/正本の整合を確認。
 
 ## Current state / handoff
 
-- Last checkpoint: Android T05とWindows Desktop T05/T06の全manual項目がPASS。current head以前のCIもanalyze 0・338 testsでPASS
-- Blocker category: review
-- Waiting for: T05/T06とmanual証拠を含むexact rangeの最終独立review
+- Last checkpoint: Android T05とWindows Desktop T05/T06の全manual項目、CI、exact range独立reviewがPASS
+- Blocker category: none
+- Waiting for: none
 - Requested action: none
-- Evidence revision: code/build `d6a4e18`; Android manual PASS `346797c`; Desktop manual PASS reported 2026-08-12 on checkout `5a13d85`; CI run `31534938266`
-- Next Agent action: evidence commitのCIと独立reviewを確認し、PASSならT05/T06をdoneへ更新してPR #116をready化・mergeする
+- Evidence revision: code/build `d6a4e18`; Android manual PASS `346797c`; Desktop manual PASS reported 2026-08-12 on checkout `5a13d85`; reviewed head `4547a4c`; CI run `31540249326`
+- Next Agent action: PR #116をready化し、merge gateを再確認して`dev`へmergeする。次のAndroid検討は`013:T01`

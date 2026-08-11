@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T05",
   "title": "desktop安全renameとAndroid安全未対応を統合する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T04"
   ],

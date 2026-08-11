@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T06",
   "title": "期限付き単一step undoを統合する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T05"
   ],
