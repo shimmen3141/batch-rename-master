@@ -18,7 +18,7 @@
 ## 受け入れ証拠
 
 - PR #116 product code baseline `b866e35`の仕様由来testと、ASDD 2.0合流後latest headのCI。
-- [`manual-verification.md`](manual-verification.md)で期限内undoと期限後の不変を同じdesktop buildで確認する。
+- [`manual-verification.md`](manual-verification.md)で、画面の「元に戻す」を5秒以内に押した場合の実file復元と、6秒待った場合のボタン消失・改名後file維持を同じdesktop buildで確認する。
 - T05のmanual証拠を含むexact range最終reviewがPASSする。
 
 ## 作業記録

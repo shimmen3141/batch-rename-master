@@ -21,7 +21,7 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 
 - PR #116 product code baseline `b866e35`でCI成功: format 73 files/0 changed、analyze 0、337 tests。ASDD 2.0合流後のlatest headでもCIが成功する。
 - exact range独立review: P0 0 / P1 0、`BLOCKED (manual evidence pending)`。
-- [`manual-verification.md`](manual-verification.md)でdesktop実rename・競合・permission拒否とAndroid不変を同一commit/buildで確認する。
+- [`manual-verification.md`](manual-verification.md)でdesktop実rename・連続rename・競合時の無変更とAndroid不変を同一code revisionのbuildで確認する。permission拒否の分類は人間にOS権限を変更させず、native wrapper testとCIで確認する。
 - 手動証拠を含む最終独立reviewがPASSする。
 
 ## 作業記録
@@ -30,12 +30,14 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 - 2026-08-09 / desktopを排他的native renameへ変更し、Android SAFを安全なunsupportedへ改訂。PR #116をDraftで保持。
 - 2026-08-12 / hostの`flutter run -d emulator-5554`で、code assetを要求しないhook invocationが`input.config.code`へ先にアクセスして終了コード255になった。アプリ画面が残っていても検証buildは失敗として修正を再開。
 - 2026-08-12 / 保存された同じinputで修正前は例外を再現し、`buildCodeAssets` guard追加後は`dart ... hook/build.dart --config=...`がexit 0。Dev ContainerのFlutter testは今回と別の既知制約（C compilerなし）で開始前に停止。
+- 2026-08-12 / manualを人間向けに再構成。開始状態、専用fixture、画面上のボタン、期待する文言、実file確認、結果の返し方を順番化し、内部用語と不可視な「providerを呼ばない」確認を除いた。
+- 2026-08-12 / hostで`flutter build apk --debug --no-pub`がexit 0（`app-debug.apk`生成）、`flutter run -d emulator-5554 --no-resident --no-pub`がexit 0（build・install・launch成功）。元のnative asset errorは再発しなかった。
 
 ## Current state / handoff
 
-- Last checkpoint: `79e4c45`のAndroid手動確認開始時にnative asset hookの未guard accessを再現
-- Blocker category: none（実装修正中）
+- Last checkpoint: code checkpoint `d6a4e18`をAndroid emulatorへbuild・install・launchし、manualを人間が単独実行できる手順へ改訂
+- Blocker category: review / CI
 - Waiting for: none
 - Requested action: none
-- Evidence revision: failing hook inputは`build_asset_types: []`、`hook/build.dart:12`で`Bad state: HookConfig.code should only be accessed when building code assets`
-- Next Agent action: hookを修正してhost/container検査を通し、人間が操作だけで判定できるmanualへ改訂して新しいexact headを用意する
+- Evidence revision: code `d6a4e18`; hook no-code input exit 0; Android debug APK build exit 0; emulator install/launch exit 0
+- Next Agent action: manual・diffのself-reviewとremote CIを確認し、問題がなければmanual evidence待ちへ戻してIssue #96 / PR #116を更新する

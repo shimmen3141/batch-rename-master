@@ -1,3 +1,4 @@
+import 'package:code_assets/code_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks/src/test.dart';
 
