@@ -28,12 +28,14 @@ desktopで既存targetを置換しない実renameを行い、Android SAFでは�
 
 - 2026-08-09 / Android `DocumentsContract.renameDocument`に原子的no-replace契約が無いことを独立reviewで検出。provider依存raceの受容は不採用。
 - 2026-08-09 / desktopを排他的native renameへ変更し、Android SAFを安全なunsupportedへ改訂。PR #116をDraftで保持。
+- 2026-08-12 / hostの`flutter run -d emulator-5554`で、code assetを要求しないhook invocationが`input.config.code`へ先にアクセスして終了コード255になった。アプリ画面が残っていても検証buildは失敗として修正を再開。
+- 2026-08-12 / 保存された同じinputで修正前は例外を再現し、`buildCodeAssets` guard追加後は`dart ... hook/build.dart --config=...`がexit 0。Dev ContainerのFlutter testは今回と別の既知制約（C compilerなし）で開始前に停止。
 
 ## Current state / handoff
 
-- Last checkpoint: PR #116へASDD 2.0のdevを履歴改変なしで合流し、旧development-unitsを再導入しない境界へ移行
-- Blocker category: manual evidence
-- Waiting for: PR #116 latest headから作成したAndroid・desktop buildの手動結果
-- Requested action: AgentがPR #116専用workspaceとlatest headを維持し、manual-verification.mdのchecklistを人間へ依頼する
-- Evidence revision: product code `b866e35`; ASDD合流後のhead・CI runはPR #116とIssue #96に記録する
-- Next Agent action: latest headのCI成功を確認し、対象head/buildを確定してmanual証拠を受領後、最終独立reviewを行う
+- Last checkpoint: `79e4c45`のAndroid手動確認開始時にnative asset hookの未guard accessを再現
+- Blocker category: none（実装修正中）
+- Waiting for: none
+- Requested action: none
+- Evidence revision: failing hook inputは`build_asset_types: []`、`hook/build.dart:12`で`Bad state: HookConfig.code should only be accessed when building code assets`
+- Next Agent action: hookを修正してhost/container検査を通し、人間が操作だけで判定できるmanualへ改訂して新しいexact headを用意する
