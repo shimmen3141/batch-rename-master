@@ -1,20 +1,8 @@
 # 手動確認: Desktopで5秒以内だけ名前を元に戻せること
 
-## この文書の対象者と目的
+## 確認すること
 
-この文書はアプリを操作する人向けです。確認するのは、名前変更直後の「元に戻す」が5秒以内だけ使え、押すと実ファイル名も元へ戻ることです。
-
-## Agentが準備した検証対象
-
-- Workspace: `C:\Users\yshin\Development\spec-skill-verification\migration-worktrees\batch-pr116-asdd2`
-- Branch: `feat/96-platform-rename-adapters-clean`
-- Commit: `d6a4e18`
-- Build/artifact: T05と同じcommitから起動したDesktopアプリ
-- Environment/device: 確認に使うDesktop OS
-- Observer: 未記入
-- Observed at: 未記入
-
-branch移動は不要です。T05のDesktop確認が成功してから、同じアプリで実施してください。
+名前変更直後の「元に戻す」が5秒以内だけ使え、押すと実ファイル名も元へ戻ることを確認します。T05のDesktop確認が成功してから、同じアプリで実施してください。
 
 ## 事前準備
 
@@ -78,9 +66,3 @@ Remove-Item -LiteralPath $undoFixture -Recurse -ErrorAction SilentlyContinue
 ```
 
 各行を`PASS`、`FAIL`、`確認不能`で返してください。FAIL時は画面の文言とPowerShell出力を添えてください。
-
-## Agent記録欄
-
-- Fixture/data: Desktop `%TEMP%/asdd-desktop-undo-check`
-- Status: pending
-- Notes: なし

@@ -1,26 +1,12 @@
 # 手動確認: Androidでファイルを変更せず停止し、Desktopで安全に名前を変更できること
 
-## この文書の対象者と目的
-
-この文書は、アプリを操作する人向けです。内部APIや仕様用語を理解する必要はありません。
+## 確認すること
 
 確認するのは次の3点です。
 
 1. Androidでは、現在未対応である理由が画面に表示され、選んだファイルが一切変わらないこと。
 2. Desktopでは、実際のファイル名が変更され、続けてもう一度変更できること。
 3. Desktopで変更後と同じ名前のファイルが既にある場合、そのファイルを上書きせず停止すること。
-
-## Agentが準備した検証対象
-
-- Workspace: `C:\Users\yshin\Development\spec-skill-verification\migration-worktrees\batch-pr116-asdd2`
-- Branch: `feat/96-platform-rename-adapters-clean`
-- Commit: `d6a4e18`
-- Build/artifact: このcommitから起動したAndroid / Desktopアプリ
-- Environment/device: Android emulator `emulator-5554`、確認に使うDesktop OS
-- Observer: 未記入
-- Observed at: 未記入
-
-branch移動は不要です。上記workspaceはAgentが対象branchに準備済みです。
 
 ## 起動できたと判断する条件
 
@@ -156,9 +142,3 @@ Desktop 同名時の無変更:
 起動時のエラー:
 補足:
 ```
-
-## Agent記録欄
-
-- Fixture/data: Android `/sdcard/Download/asdd-rename-check`、Desktop `%TEMP%/asdd-desktop-rename-check`
-- Status: pending
-- Notes: なし
