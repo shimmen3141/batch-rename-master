@@ -1,0 +1,17 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "008",
+  "title": "UIと主要操作の整合",
+  "risk": "standard",
+  "issue": null,
+  "dependsOn": [],
+  "tasks": [
+    "tasks/T01-define-sort-control",
+    "tasks/T02-implement-sort-control",
+    "tasks/T03-define-selection-flow",
+    "tasks/T04-implement-selection-flow",
+    "tasks/T05-define-token-add-modal",
+    "tasks/T06-implement-token-add-modal",
+    "tasks/T07-row-and-warning-presentation"
+  ]
+}
