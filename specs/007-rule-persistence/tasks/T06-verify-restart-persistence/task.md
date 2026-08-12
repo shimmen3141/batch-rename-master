@@ -34,12 +34,20 @@ Androidとdesktopで、保存したruleがアプリprocess終了後も実storage
 
 - 2026-08-12 / PR #121が`dev`へmerge済み(`7154ce3`)。復元したchecklistで実機確認を依頼する段階になったため、statusを`blocked`(manual待ち)へ変更した。
 
+- 2026-08-12 / **manual verification実施 / 全項目を確認**。開発者が`dev@7154ce3`のAndroid buildとWindows desktop buildでchecklistを実施し、全項目が確認事項どおりだったと会話で報告。
+  - 復元: ルールA(元の名前 / 文字列`_v` / 連番 開始番号7・桁数3 / 日時 作成日時`YYYYMMDD`)を組み、Android節の再読み込み(`R`)でも、AndroidとWindows双方のprocess完全終了後の起動でも、token種別・**順序**・設定値が一致した。
+  - **上書き**: ルールBへ作り替えてからもう一度完全終了して起動すると、**ルールBが出てルールAは復活しなかった**(Android・Windowsとも)。
+  - 実施環境: Android(emulatorか実機かは報告に無く未確定)、Windows desktop build。checklistはどちらも許容しており、受け入れ判定は変わらない。
+  - 証拠のidentity: `dev@7154ce3`で実施。以後`dev@b7f1e1b`までの差分は記録のみで、`lib/` `test/` `pubspec.*` `android/` `windows/`の差分はゼロ(`git diff 7154ce3..HEAD`で確認)。
+- 2026-08-12 / 考察(観測ではない): 上書きのstepは今回不具合を検出しなかったが、**検出できる状態になった**ことに意味がある。移行後の要約版はREQ-005/007とREQ-008の保存側を実storageで一度も観測しておらず、「初回だけ書いて以後更新しない」実装がmanualを通過できた。PR #121での復元がこのPASSに必要だったことを、独立reviewも確認している。
+- Review attempt 5: PR #123 `dev@b7f1e1b...838b694` — PASS — 残るP0/P1: none(manual結果を対象とした初回review。P2 4件はこの後のcommitで解消)
+
 ## Current state / handoff
 
-- Last checkpoint: manual checklistの復元がPR #121で`dev`へ統合済み。実機確認の依頼を出した
-- Blocker category: manual
-- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。Android(emulatorまたは実機)とWindows desktop buildの両方が要る
-- Requested action: 人間が`dev@7154ce3`のbuildでchecklistを実施し、結果を会話で返す
-- Evidence revision: `dev@7154ce3`。Agentはこのcommitでcheckoutを維持し、実施中はcode/dependency/build設定を変更しない
-- Evidence: 復元内容の独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)。**manual自体は未実施**
-- Next Agent action: 結果を受け取って作業記録へ要約し、受け入れ条件を満たしたか判定する。満たせば独立reviewへ回す
+- Last checkpoint: manual verificationがPASSし、それを対象とした独立reviewもPASS。受け入れ条件を満たしたので`done`
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@7154ce3`で実施。`dev@b7f1e1b`まででcode / dependency / build設定の差分はゼロ(reviewerが実diffで確認)
+- Evidence: manual verification=PASS(`dev@7154ce3`、2026-08-12、開発者、Android + Windows desktop)、独立review=PASS(P0/P1なし)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346、うち`test/spec_007_rule_persistence`は33件)
+- Next Agent action: なし(完了)。PR #123のmergeは人間が行う
