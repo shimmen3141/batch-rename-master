@@ -8,21 +8,49 @@ import 'rename_executor.dart';
 typedef DesktopRenameOperation =
     Future<NativeRenameResult> Function(String source, String destination);
 
+/// 更新日時の書き込み(test で差し替えるために外へ出す)。
+typedef DesktopSetModifiedAt =
+    Future<void> Function(String path, DateTime value);
+
 /// Windows / Linux / macOS の実ファイル用リネーム adapter。
 ///
 /// 通常の`File.rename`はOSによって既存fileを置換しうるため、排他的なnative rename
 /// を使って既存fileを原子的に上書きしない(INV-002)。成功時は絶対pathを新しい
 /// handleとして返す(REQ-001)。
-class DesktopRenameExecutor implements RenameExecutor {
-  DesktopRenameExecutor({DesktopRenameOperation? rename})
-    : _rename = rename ?? _exclusiveRename;
+class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
+  DesktopRenameExecutor({
+    DesktopRenameOperation? rename,
+    DesktopSetModifiedAt? setModifiedAt,
+  }) : _rename = rename ?? _exclusiveRename,
+       _setModifiedAt = setModifiedAt ?? _setLastModified;
 
   final DesktopRenameOperation _rename;
+  final DesktopSetModifiedAt _setModifiedAt;
 
   static Future<NativeRenameResult> _exclusiveRename(
     String source,
     String destination,
   ) async => renameFileWithoutOverwrite(source, destination);
+
+  static Future<void> _setLastModified(String path, DateTime value) =>
+      File(path).setLastModified(value);
+
+  /// 更新日時ずらし(005 REQ-014)。改名の副次処理なので、失敗しても理由を
+  /// 返すだけで実体の名前には触れない(REQ-016 は呼び出し側で保証する)。
+  @override
+  Future<RenameError?> setModifiedAt(String handle, DateTime value) async {
+    try {
+      await _setModifiedAt(handle, value);
+      return null;
+    } on FileSystemException catch (e) {
+      return RenameError(
+        e.osError?.errorCode == 13 || e.osError?.errorCode == 5
+            ? RenameErrorKind.permissionDenied
+            : RenameErrorKind.io,
+        '更新日時を設定できません: ${e.message}',
+      );
+    }
+  }
 
   @override
   Future<RenameResult> rename(String handle, String newName) async {

@@ -8,6 +8,9 @@ import 'file_sort.dart';
 import 'rename_warning_view.dart';
 import 'row_view.dart';
 
+/// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
+const Key shiftModifiedAtKey = Key('shift-modified-at');
+
 /// メイン画面のファイルリスト(002 spec の描画層)。
 ///
 /// [FileListController] を購読して描画するだけの薄いウィジェット。ロジックは
@@ -177,6 +180,12 @@ class _RenameActionBar extends StatelessWidget {
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
     }
+    // 更新日時の設定失敗は改名の失敗と分けて書く。混ぜると「改名できたのか」が
+    // 読めなくなる(REQ-016)。
+    final shiftFailures = execution.modifiedAtFailures.length;
+    if (shiftFailures > 0) {
+      message.write('。改名は成功しましたが、$shiftFailures 件の更新日時は変更できませんでした');
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message.toString()),
@@ -231,6 +240,11 @@ class _RenameActionBar extends StatelessWidget {
                 _RuleButton(empty: empty, onPressed: onEditRule!),
                 const SizedBox(height: 10),
               ],
+              // 更新日時ずらし。設定できない端末では出さない(REQ-015)。
+              if (execution != null && execution.canShiftModifiedAt) ...[
+                _ShiftModifiedAtToggle(execution: execution),
+                const SizedBox(height: 6),
+              ],
               if (execution != null)
                 FilledButton.icon(
                   key: const Key('rename-action'),
@@ -257,6 +271,50 @@ class _RenameActionBar extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 更新日時ずらしの入切(005 REQ-014)。
+///
+/// 設定できる端末でだけ [_RenameActionBar] が描画する(REQ-015)。既定は OFF で、
+/// 入れると改名成功後に一覧の並び順で更新日時をずらす。
+class _ShiftModifiedAtToggle extends StatelessWidget {
+  const _ShiftModifiedAtToggle({required this.execution});
+
+  final RenameExecutionController execution;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return InkWell(
+      key: shiftModifiedAtKey,
+      onTap: () => execution.setShiftModifiedAt(!execution.shiftModifiedAt),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: Checkbox(
+                value: execution.shiftModifiedAt,
+                onChanged: (value) =>
+                    execution.setShiftModifiedAt(value ?? false),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '更新日時を一覧の並び順にずらす',
+                style: TextStyle(color: colors.textMuted, fontSize: 11.5),
+              ),
+            ),
+          ],
         ),
       ),
     );

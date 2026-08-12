@@ -34,9 +34,10 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 ## Current state / handoff
 
-- Last checkpoint: 依存が解けて着手可能。実装branchは未claim
+- 2026-08-12 / 着手。branch `asdd/005-rename-exec/T07-desktop-modified-time`(base `dev@b7f1e1b`)、Issue #98をclaim。
+- Last checkpoint: branchをclaimし、契約(REQ-014〜016 / VER-006)と既存のexecutor境界を読み終えた
 - Blocker category: なし
-- Waiting for: なし。依存していた005:T05はPR #116で`dev`へ統合済み(`425c30a`)で、T05/T06ともstatusは`done`
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@abc8007`(依存の統合を確認した時点)
-- Next Agent action: Issue #98をclaimし、optionとmtime失敗境界をtest-firstで実装する。実装と同時に`manual-verification.md`の観点6件を実行手順へ具体化する
+- Evidence revision: `dev@b7f1e1b`
+- Next Agent action: 能力interfaceでmtime書き込みを分離し、test-firstでREQ-014〜016を実装する。実装が固まったら`manual-verification.md`の観点6件を実行手順へ具体化する
