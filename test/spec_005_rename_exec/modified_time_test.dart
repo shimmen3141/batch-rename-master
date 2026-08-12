@@ -6,8 +6,10 @@
 //   15: ON でも更新日時の設定に失敗したら、改名は成功のまま実行は止まらない
 //   16: 更新日時を設定できないプラットフォームでは設定を提示しない
 //
-// 「表示順」は実行計画の順ではない。planExecution は衝突を避けるために順序を
-// 変えるので、両者が食い違う入力でこの区別を検査する。
+// REQ-014 の核心は「実行計画ではなく**表示順**」。planExecution は中間状態の
+// 衝突を避けるときだけ順序を変えるので、衝突しない入力では実行順と表示順が
+// 一致してしまい、両者を取り違えた実装を落とせない。判別は「計画順 ≠ 表示順」に
+// なる入力(下の『実行計画が並べ替える入力でも』)が担う。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
@@ -81,8 +83,9 @@ void main() {
     });
 
     test('例14: ONなら成功分へ表示順で一定間隔ずつ増える更新日時を設定する', () async {
-      // a→b, b→c の入れ替えを含むので、planExecution は衝突を避けるために
-      // 表示順(a, b, c)とは違う順序で実行する。ここで「表示順」を検査する。
+      // この入力は目標名が既存名と衝突しないので、実行順と表示順は一致する。
+      // ここで見るのは「間隔・単調増加・成功分だけ」であって、順序の出どころの
+      // 判別ではない。判別は別の test が持つ。
       final files = FileListController(
         files: [_file('a.txt'), _file('b.txt'), _file('c.txt')],
         rule: const RenameRule([OriginalNameToken(), LiteralToken('_1')]),
@@ -118,6 +121,39 @@ void main() {
         base,
         base.add(interval),
         base.add(interval * 2),
+      ]);
+    });
+
+    test('実行計画が並べ替える入力でも、ずらす順序は表示順になる', () async {
+      // f1→f2, f2→f3。f1 の目標名 f2 は既存の f2 と衝突するので、planExecution は
+      // 表示順(f1, f2)とは逆の f2→f3 を先に実行する。実装が outcome.successes や
+      // 実行計画の順を辿っていると、この test だけが落ちる。
+      final files = FileListController(
+        files: [_file('f1.txt'), _file('f2.txt')],
+        rule: const RenameRule([
+          LiteralToken('f'),
+          SequenceToken(start: 2, digits: 1),
+        ]),
+      );
+      final executor = _WritableExecutor(
+        files: {'/files/f1.txt': 'f1.txt', '/files/f2.txt': 'f2.txt'},
+      );
+      final base = DateTime(2026, 5, 6, 7, 8);
+      final execution = _controller(files, executor, clock: () => base);
+      execution.setShiftModifiedAt(true);
+
+      final outcome = await execution.execute(force: false);
+      expect(outcome!.successes, hasLength(2));
+
+      // 実行順は表示順と逆であることを、この test の前提として押さえておく。
+      expect(executor.calls, [
+        '/files/f2.txt -> f3.txt',
+        '/files/f1.txt -> f2.txt',
+      ]);
+      // それでも更新日時は表示順(f1 由来 → f2 由来)に増える。
+      expect(executor.written, [
+        ('/files/f2.txt', base), // 表示 1 番目だった f1.txt の改名後
+        ('/files/f3.txt', base.add(execution.modifiedAtInterval)),
       ]);
     });
 

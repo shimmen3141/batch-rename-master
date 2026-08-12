@@ -42,12 +42,16 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     try {
       await _setModifiedAt(handle, value);
       return null;
-    } on FileSystemException catch (e) {
+    } catch (error) {
+      // 分類は rename と同じ [errorOf] に任せる。errorCode の数値は OS で意味が
+      // 違う(POSIX の 5 は EIO、Win32 の 5 は ACCESS_DENIED)ので独自に読まない。
+      // ここで捕らえるのは FileSystemException だけではない — この port は
+      // 「例外を投げない」と約束しており(REQ-017)、想定外の例外を通すと
+      // REQ-016(更新日時の失敗で実行を止めない)が破れる。
+      final classified = errorOf(error);
       return RenameError(
-        e.osError?.errorCode == 13 || e.osError?.errorCode == 5
-            ? RenameErrorKind.permissionDenied
-            : RenameErrorKind.io,
-        '更新日時を設定できません: ${e.message}',
+        classified.kind,
+        '更新日時を設定できません: ${classified.message ?? error}',
       );
     }
   }

@@ -10,6 +10,69 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  group('DesktopRenameExecutor.setModifiedAt (VER-006 / REQ-016)', () {
+    late Directory directory;
+
+    setUp(() async {
+      directory = await Directory.systemTemp.createTemp('desktop-mtime-');
+    });
+
+    tearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+
+    test('実ファイルの更新日時を書き換え、成功なら null を返す', () async {
+      final file = File(p.join(directory.path, 'a.txt'));
+      await file.writeAsString('x');
+      final target = DateTime(2021, 2, 3, 4, 5, 6);
+
+      final error = await DesktopRenameExecutor().setModifiedAt(
+        file.path,
+        target,
+      );
+
+      expect(error, isNull);
+      expect(await file.lastModified(), target);
+    });
+
+    test('対象が無ければ例外を投げず、理由つきの失敗を返す(REQ-017)', () async {
+      final missing = p.join(directory.path, 'missing.txt');
+
+      final error = await DesktopRenameExecutor().setModifiedAt(
+        missing,
+        DateTime(2021),
+      );
+
+      expect(error, isNotNull);
+      expect(error!.kind, RenameErrorKind.notFound);
+      expect(error.message, contains('更新日時を設定できません'));
+    });
+
+    test('FileSystemException 以外の例外も外へ出さない(REQ-016)', () async {
+      // port は「例外を投げない」と約束している。想定外の例外が漏れると、
+      // 呼び出し側の更新日時ずらしが実行ごと止まる。
+      final executor = DesktopRenameExecutor(
+        setModifiedAt: (path, value) async => throw StateError('想定外'),
+      );
+
+      final error = await executor.setModifiedAt('/any/path', DateTime(2021));
+
+      expect(error, isNotNull);
+      expect(error!.kind, RenameErrorKind.unknown);
+    });
+
+    test('権限の失敗は permissionDenied として分類する', () async {
+      final executor = DesktopRenameExecutor(
+        setModifiedAt: (path, value) async =>
+            throw PathAccessException(path, const OSError('denied', 13)),
+      );
+
+      final error = await executor.setModifiedAt('/any/path', DateTime(2021));
+
+      expect(error!.kind, RenameErrorKind.permissionDenied);
+    });
+  });
+
   group('DesktopRenameExecutor', () {
     late Directory directory;
 
