@@ -40,12 +40,18 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
   - 手順4の原因はPowerShellの変数依存。`$dir`が別windowでは残らず`LiteralPath`にnullがbindされて失敗した。**005:T09で同じ失敗があり注意書きで対処したが、再発した**(`development-findings/2026-08-12-powershell-variables-break-manual-steps.md`)。
 - 2026-08-12 / 手順を書き直した。変数を全廃してliteral pathにし、各stepの先頭でfixtureを作り直す形にした。ドラッグの取っ手が連番に依存する理由も明記した。**手順3と手順4の再実施が要る。**
 
+- 2026-08-12 / **manual verification 2回目 / 残りの手順3・4もPASS**。書き直した手順で開発者が実施し、全項目を確認した。
+  - 手順3(並び替えへの追随): 画面で c, b, a に入れ替えた順で更新日時がずれることを確認。REQ-014の「実行計画ではなく表示順」が実機で観測できた。
+  - 手順4(更新日時だけ失敗しても改名は成功): 「**改名は成功しましたが、1 件の更新日時は変更できませんでした**」が表示され、改名の失敗としては出ないことを確認。REQ-016の実機受け入れが取れた。
+  - あわせて1回目の手順1・2・Android(REQ-015)がPASS済みで、code差分が無いため再利用できる。これでREQ-014 / REQ-015 / REQ-016の実機確認がすべて揃った。
+  - 変数依存が再発した原因も判明した(開発者の報告): 手順を上から実行すると`$dir`を定義したterminalでemulatorを起動することになり、起動したまま確認するには**必然的に別のterminalを使うことになる**。「同じwindowで実行」という前提自体が、この手順では成立しない。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と仕様由来testは通っている。manualは手順1・2・AndroidがPASS、手順3・4は手順書の不備で未実施
-- Blocker category: manual
-- Waiting for: 書き直した[`manual-verification.md`](manual-verification.md)の**手順3(並び替えへの追随)と手順4(更新日時だけ失敗しても改名は成功)**の実施
-- Requested action: 人間が手順3と手順4だけを実施し、結果を会話で返す(手順1・2・Androidは再実施不要。code差分が無いため前回の結果を再利用できる)
-- Evidence revision: branch `asdd/005-rename-exec/T07-desktop-modified-time`。手順書の書き直し以後、`lib/`と`test/`の差分はゼロ
-- Evidence: `flutter test`=PASS(354、うち`modified_time_test.dart` 8件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)。manual=**部分的**(手順1・2・AndroidのみPASS)
-- Next Agent action: 手順3・4の結果を受け取って記録し、揃ったら独立reviewへ回す
+- Last checkpoint: 実装・仕様由来test・manual verificationがすべて揃った
+- Blocker category: review
+- Waiting for: exact revisionと証拠を対象にした独立review
+- Requested action: なし(Agentがreviewを起動する)
+- Evidence revision: branch `asdd/005-rename-exec/T07-desktop-modified-time`。手順1・2・Androidは1回目、手順3・4は2回目に実施。両者の間に`lib/`と`test/`の差分はゼロ(手順書の書き直しのみ)
+- Evidence: manual verification=PASS(全手順。Windows desktop + Android、2026-08-12、開発者)、`flutter test`=PASS(354、うち`modified_time_test.dart` 8件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)
+- Next Agent action: 独立reviewを起動し、PASSならPRを出して人間へmergeを依頼する
