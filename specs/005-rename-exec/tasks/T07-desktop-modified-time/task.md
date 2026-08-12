@@ -32,14 +32,20 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(このtaskへの指摘なし)
 
+- 2026-08-12 / **manual verification 1回目 / 一部のみ確認**。開発者がbranch headのWindows desktop buildとAndroid buildで実施。
+  - **確認できた**: 設定が既定OFFでOFFのままなら更新日時が変わらない(手順1)。ONにすると一覧の並び順に更新日時がずれる(手順2)。Androidでは設定そのものが出ない(REQ-015)。
+  - 更新日時は秒まで表示されなかったため、値の比較ではなく**更新日時順に並べ替えても順番が変わらない**ことで順序を確認した。REQ-014の観測としては成立している。
+  - **確認できなかった**: 手順3(並び替えへの追随)と手順4(更新日時だけ失敗しても改名は成功)。
+  - 手順3の原因は手順書の不備。ドラッグの取っ手は連番トークンがあるときだけ出る(002 REQ-014)のに、その理由を書かずに「取っ手が出ない場合は連番を足してください」とだけ書いたため、実施者に「連番で順序が変わるわけではない」と受け取られた。あわせて、改名を重ねると`a_m_n_o.txt`のように名前が伸びる点を手順が考慮していなかった。
+  - 手順4の原因はPowerShellの変数依存。`$dir`が別windowでは残らず`LiteralPath`にnullがbindされて失敗した。**005:T09で同じ失敗があり注意書きで対処したが、再発した**(`development-findings/2026-08-12-powershell-variables-break-manual-steps.md`)。
+- 2026-08-12 / 手順を書き直した。変数を全廃してliteral pathにし、各stepの先頭でfixtureを作り直す形にした。ドラッグの取っ手が連番に依存する理由も明記した。**手順3と手順4の再実施が要る。**
+
 ## Current state / handoff
 
-- 2026-08-12 / 実装完了。`ModifiedAtWriter`能力interfaceで更新日時の書き込みを`RenameExecutor`本体から分離し、desktop executorだけが実装する形にした。これで`executor is ModifiedAtWriter`がそのまま「この端末でずらせるか」になり、REQ-015が実装の形から出る。順序はREQ-014の文言どおり実行計画ではなく表示順(`files.items`)を基準にし、実行計画と食い違う入力でtestを置いた。REQ-016は失敗しても後続を続け、`modifiedAtFailures`へ改名の失敗と分けて集める。
-- 2026-08-12 / `manual-verification.md`を実UIに合わせて具体化した。書いた画面文言6件を`git grep`でrepository内の出所と突き合わせ済み(dry-run)。
-- Last checkpoint: 実装と仕様由来testが通り、manual手順を具体化した
+- Last checkpoint: 実装と仕様由来testは通っている。manualは手順1・2・AndroidがPASS、手順3・4は手順書の不備で未実施
 - Blocker category: manual
-- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。実filesystemの更新日時が実際に書き換わること、Androidで設定が出ないこと、更新日時だけ失敗しても改名が成功として残ることは実機でしか観測できない
-- Requested action: 人間がWindows desktop buildとAndroid buildでchecklistを実施し、結果を会話で返す
-- Evidence revision: branch `asdd/005-rename-exec/T07-desktop-modified-time`(base `dev@b7f1e1b`)
-- Evidence: `flutter test`=PASS(354、うち`modified_time_test.dart` 8件)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(76 files / 0 changed)、manual dry-run=PASS(画面文言6件の出所確認)
-- Next Agent action: Draft PRを出し、manual結果を受け取ってから独立reviewへ回す
+- Waiting for: 書き直した[`manual-verification.md`](manual-verification.md)の**手順3(並び替えへの追随)と手順4(更新日時だけ失敗しても改名は成功)**の実施
+- Requested action: 人間が手順3と手順4だけを実施し、結果を会話で返す(手順1・2・Androidは再実施不要。code差分が無いため前回の結果を再利用できる)
+- Evidence revision: branch `asdd/005-rename-exec/T07-desktop-modified-time`。手順書の書き直し以後、`lib/`と`test/`の差分はゼロ
+- Evidence: `flutter test`=PASS(354、うち`modified_time_test.dart` 8件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)。manual=**部分的**(手順1・2・AndroidのみPASS)
+- Next Agent action: 手順3・4の結果を受け取って記録し、揃ったら独立reviewへ回す
