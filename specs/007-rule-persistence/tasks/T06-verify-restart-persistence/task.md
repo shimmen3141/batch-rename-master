@@ -34,12 +34,18 @@ Androidとdesktopで、保存したruleがアプリprocess終了後も実storage
 
 - 2026-08-12 / PR #121が`dev`へmerge済み(`7154ce3`)。復元したchecklistで実機確認を依頼する段階になったため、statusを`blocked`(manual待ち)へ変更した。
 
+- 2026-08-12 / **manual verification実施 / 全項目を確認**。開発者が`dev@7154ce3`のAndroid(emulator)とWindows desktop buildでchecklistを実施し、全項目が確認事項どおりだったと会話で報告。
+  - 復元: ルールA(元の名前 / 文字列`_v` / 連番 開始番号7・桁数3 / 日時 作成日時`YYYYMMDD`)を組み、再読み込み(`R`)でもprocess完全終了後のcold startでも、token種別・**順序**・設定値が一致した。
+  - **上書き**: ルールBへ作り替えてからもう一度完全終了して起動すると、**ルールBが出てルールAは復活しなかった**。移行で落ちていた2回目のcold startを復元した効果がここで効いている。
+  - AndroidとWindows desktopの双方で同じ結果。
+  - 証拠のidentity: `dev@7154ce3`で実施。以後`dev@b7f1e1b`までの差分は記録のみで、`lib/` `test/` `pubspec.*` `android/` `windows/`の差分はゼロ(`git diff 7154ce3..HEAD`で確認)。
+
 ## Current state / handoff
 
-- Last checkpoint: manual checklistの復元がPR #121で`dev`へ統合済み。実機確認の依頼を出した
-- Blocker category: manual
-- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。Android(emulatorまたは実機)とWindows desktop buildの両方が要る
-- Requested action: 人間が`dev@7154ce3`のbuildでchecklistを実施し、結果を会話で返す
-- Evidence revision: `dev@7154ce3`。Agentはこのcommitでcheckoutを維持し、実施中はcode/dependency/build設定を変更しない
-- Evidence: 復元内容の独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)。**manual自体は未実施**
-- Next Agent action: 結果を受け取って作業記録へ要約し、受け入れ条件を満たしたか判定する。満たせば独立reviewへ回す
+- Last checkpoint: manual verificationを`dev@7154ce3`で実施し全項目PASS。作業記録へ要約した
+- Blocker category: review
+- Waiting for: exact revisionと証拠を対象にした独立review
+- Requested action: なし(Agentがreviewを起動する)
+- Evidence revision: `dev@7154ce3`で実施。`dev@b7f1e1b`まででcode / dependency / build設定の差分はゼロ
+- Evidence: manual verification=PASS(`dev@7154ce3`、2026-08-12、開発者、Android emulator + Windows desktop)、復元内容の独立review(PR #121 attempt 4)=PASS、`workspace.py check specs`=PASS、`flutter test`=PASS(346)
+- Next Agent action: 独立reviewを起動し、PASSなら`done`にする
