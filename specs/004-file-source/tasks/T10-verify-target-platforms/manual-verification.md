@@ -1,28 +1,148 @@
-# Manual verification — target platform file selection
+# 手動確認: Android SAFとdesktopでファイル選択が仕様どおり動くこと
 
-## Evidence identity
+## 確認すること
 
-- Commit: pending
-- Build/artifact: pending
-- Environment/device: Android SAF and desktop OS
-- Fixture/data: 種類・日時・親directoryの異なる複数file
-- Observer: pending
-- Observed at: pending
+読み込み導線を、実際のAndroidとWindowsで確認します。開発側のテストでは確認できないもの——**OSのファイル選択画面が実際に返してくるもの**、**種類ごとの入口**、**Androidがアプリに要求する権限**——が対象です。
 
-## Checklist
+特に次の2つは、この確認以外に見る場所がありません。
 
-### Android SAF
+- 「画像」「動画」を選んでも読み込みを始めず、未実装であることを示す。
+- **アプリが「すべてのファイルへのアクセス」を要求しない。** このアプリは、ユーザーが選んだファイルだけを扱う方針です。
 
-1. 種類を選び、複数fileを確定すると既存一覧が選択集合で置き換わる。cancel時は一覧が不変。
-2. 同じfileを重複選択しても同一handleは一件だけになり、別directoryの同名fileは別件として残る。
-3. 種類跨ぎ・作成日時不明のwarningが仕様どおり表示され、取得不能値を更新日時で代用しない。
+## 事前準備
 
-### Desktop
+起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従ってください。**branchの移動は不要です。**Agentが対象のbranchとcommitを用意した状態で待ちます。
 
-1. 複数fileの選択、一覧の置換、cancel時の不変を確認する。
-2. 各entryが元のabsolute pathを保持し、同一pathを重複させない。
+必要なもの: Android(エミュレータまたは実機)と、Windows desktop build。両方を1回ずつ確認します。
 
-## Result
+消えてよい確認用ファイルを、**2つのフォルダに分けて**作ります。片方に同名ファイルを置くのが要点です。
 
-- Status: pending
-- Notes: branch移動は原則不要。Agentが対象branch、exact commit/build、検証workspaceを準備してから依頼する。
+```powershell
+$a = 'C:\asdd-fixtures\src-a'
+$b = 'C:\asdd-fixtures\src-b'
+Remove-Item -LiteralPath $a,$b -Recurse -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $a,$b
+Set-Content -LiteralPath (Join-Path $a 'doc1.txt')  -Value 'a-doc1'
+Set-Content -LiteralPath (Join-Path $a 'same.txt')  -Value 'a-same'
+Set-Content -LiteralPath (Join-Path $b 'same.txt')  -Value 'b-same'
+Set-Content -LiteralPath (Join-Path $a 'photo.jpg') -Value 'a-photo'
+```
+
+置き場所は `C:\asdd-fixtures\src-a` と `C:\asdd-fixtures\src-b` です(ファイル選択画面でここへ辿ってください)。
+
+Androidのエミュレータにも同じものを置きます。
+
+```powershell
+# PATHに adb があればそれを、無ければ既定のSDK配置を使う。
+$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+if (-not $adb) { $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe' }
+if (-not (Test-Path -LiteralPath $adb)) { Write-Host "adb が見つかりません。SDKの場所を確認してください: $adb" }
+& $adb shell mkdir -p /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
+& $adb push C:\asdd-fixtures\src-a\doc1.txt  /sdcard/Download/asdd-src-a/
+& $adb push C:\asdd-fixtures\src-a\same.txt  /sdcard/Download/asdd-src-a/
+& $adb push C:\asdd-fixtures\src-b\same.txt  /sdcard/Download/asdd-src-b/
+& $adb push C:\asdd-fixtures\src-a\photo.jpg /sdcard/Download/asdd-src-a/
+```
+
+Android側は `内部ストレージ > Download > asdd-src-a` と `asdd-src-b` に入ります。
+
+## Android
+
+### 1. 種類の選択から始まる
+
+1. 「ファイルを選ぶ」を押します。
+   - 確認: 種類を選ぶ画面が出て、「画像」「動画」「文書」「すべて」の**4つ**がある。
+
+2. 「画像」を選びます。
+   - 確認: **ファイル選択画面が開かない**。一覧も変化しない。
+   - 確認: まだ用意できていない旨(写真機能で対応予定)が表示される。
+
+3. 「動画」でも同じことを確認します。
+
+4. 「文書」を選びます。
+   - 確認: ファイル選択画面が開き、`photo.jpg` が選べない(表示されないか、押しても選択できない)。
+   - 戻ります。
+
+### 2. 選ぶとリストが入れ替わる
+
+1. 「すべて」から `asdd-src-a` の `doc1.txt` と `same.txt` を選んで確定します。
+   - 確認: 一覧が**選んだ2件だけ**になる。
+   - 確認: 2件ともチェックが入っている。
+   - 確認: 各行に**どのフォルダのファイルか**が小さく表示される。
+
+2. もう一度「すべて」から、今度は `asdd-src-b` の `same.txt` **だけ**を選んで確定します。
+   - 確認: 一覧が**1件だけ**になる。前回の2件は**残らない**(足し算ではなく入れ替え)。
+
+### 3. 同じファイルを2回選んだとき
+
+1. 「すべて」から `asdd-src-a` の `doc1.txt` を選びます。同じファイルを2回選べる場合は2回選んでから確定します。
+   - 確認: 一覧に入るのは**1件だけ**。
+   - 2回選べない画面なら、その旨だけ教えてください。
+
+### 4. 選ばずに戻ったとき
+
+1. 「すべて」を選び、**ファイルを選ばずに**戻る/キャンセルします。
+   - 確認: 一覧が**まったく変化しない**(直前の選択がそのまま残る)。
+   - 確認: エラーやお知らせも**出ない**。
+
+### 5. フォルダをまたいで選んだとき(できる場合のみ)
+
+> このstepは**できなくても構いません。** Androidの標準のファイル選択画面は、フォルダを移動すると選択が解除される作りで、1回の選択で2つのフォルダから選べないことがあります(2026-08-05に確認済み)。その場合は次のstepへ進んでください。同じ内容は開発側のテストでも検査しています。
+
+1. 1回の選択で `asdd-src-a` の `same.txt` と `asdd-src-b` の `same.txt` を**両方**選べるか試します。ファイル選択画面の「最近」タブや検索から、フォルダを移動せずに両方を選べる場合があります。
+2. 両方選べて確定できたら:
+   - 確認: 読み込みは**成功する**。
+   - 確認: 同名だが**2件**として残り、行の表示でどちらのフォルダか区別できる。
+   - 確認: **複数のフォルダのファイルが混ざっている旨の警告**が出る。
+3. 選べなければ、その旨だけ教えてください。
+
+### 6. 作成日時が分からないファイルの扱い
+
+Androidでは作成日時が取れないため、通常はすべて「不明」になります。
+
+1. 並び順を「**作成日時順**」にします。
+   - 確認: 作成日時が分からない件数と、更新日時で代わりに並べている旨の警告が出る。
+   - 確認: 各行の「作成日時: 不明」が**警告色・警告マークで強調**される。
+
+2. 並び順を「**元の名前順**」に戻します。
+   - 確認: 「不明」の表示自体は残るが、**強調は外れる**(警告色・警告マークが消える)。
+
+### 7. 権限
+
+1. ここまでの操作で、アプリから権限の許可を求められたか思い出してください。
+   - 確認: **「すべてのファイルへのアクセス」やストレージ全体の許可を求められていない。**
+2. 設定 → アプリ → 「**batch_rename_master**」 → 権限 を開きます(アプリ一覧にはこの名前で出ます。最近使ったアプリの画面では「一括リネーム（デモ）」、アプリ内の見出しは「一括リネーム」で、3つとも別の場所の名前です)。
+   - 確認: ストレージ関連の権限が**付与されていない**(ファイル選択画面を経由するので、許可が要らない作りです)。
+
+## Windows desktop
+
+1. 「ファイルを選ぶ」→「**すべて**」を選び、`C:\asdd-fixtures\src-a` の `doc1.txt` と `same.txt` を選びます。
+   - 確認: 一覧が選んだ2件で置き換わり、各行にフォルダが表示される。
+
+2. 同じファイルを2回選べる場合は `doc1.txt` を重複させて選びます。
+   - 確認: 一覧に入るのは1件だけ。2回選べなければ、その旨だけ教えてください。
+
+3. 「すべて」から `C:\asdd-fixtures\src-b` の `same.txt` **だけ**を選び直します。
+   - 確認: 1件だけになり、前回分は残らない(Androidと同じ)。
+
+4. ファイル選択画面をキャンセルします。
+   - 確認: 一覧が変化せず、エラーや通知も出ない(Androidと同じ)。
+
+5. 1回の選択で両フォルダの `same.txt` を選べるか試します(Windowsの選択画面も通常は同一フォルダ内に限られるため、**できなければ、その旨だけ教えてください**)。
+   - 選べた場合の確認: 2件として残り、フォルダをまたいでいる旨の警告が出る。行の表示で `src-a` と `src-b` が区別できる。
+
+## 後片付け
+
+```powershell
+Remove-Item -LiteralPath 'C:\asdd-fixtures\src-a','C:\asdd-fixtures\src-b' -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'C:\asdd-fixtures' -Force -ErrorAction SilentlyContinue
+$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+if (-not $adb) { $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe' }
+& $adb shell rm -rf /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
+```
+
+## 結果の伝え方
+
+会話でそのまま教えてください。書式は問いません。うまくいかなかった箇所は、画面に出た文言と、必要なら`adb`やPowerShellの出力を添えてください。できなかったstepは「できなかった」と書いていただければ十分です。
+
+結果を受け取ったらAgentが`task.md`へ記録し、受け入れ条件を満たしたかreviewします。

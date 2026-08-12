@@ -44,6 +44,12 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 - 2026-08-12 / manual verificationを開発者が`d707e6d`のWindows desktop buildで実施し、全項目PASS(会話で報告)。最重要だった「結果toast上のundoが実機で押せる」も確認できた。手順のPowerShellが`$emptyRuleFixture`のwindowまたぎで落ちる不備を見つけ、注意書きを追加した(UI確認結果には影響なし)。
 - 2026-08-12 / `origin/dev`をmerge。人間が`docs/design/Bulk Renamer.html`を005 UIの配置・導線・情報階層の正本としてAGENTS.mdへ明記した(`e7ccfaa`)ため、このtaskが適用するdesign画面範囲を変更範囲へ明記した。merge後も`flutter test`=PASS(346)、`workspace.py check specs`=PASS。
 
+- Review attempt 1: `origin/dev@28eb772...aabe8f5` — PASS — 残るP0/P1: none(P2 8件は下記で処理)
+- 以下はPR #121(このtaskの`done`化を含むdocs PR)のreviewで、上のattempt 1とはscopeもrangeも別。番号はPR #121側の通し。
+- Review attempt 1 (PR #121): `dev@abc8007...7cb943b` — FAIL — 残るP0/P1: none(このtaskへの指摘なし)
+- Review attempt 2 (PR #121): `dev@abc8007...aaacf5d` — FAIL — 残るP0/P1: none(同上)
+- Review attempt 3 (PR #121): `dev@abc8007...6432da8` — FAIL — 残るP0/P1: none(同上)
+- Review attempt 4 (PR #121): `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(4回とも`done`化の妥当性が個別に確認された)
 - 2026-08-12 / **Review attempt 1 / PASS**(task level)。range `origin/dev(28eb772)...aabe8f5`を実装文脈から分離したAgentがreviewし、`flutter test`=346 PASS、`analyze`=0、`format`=0 changed、`workspace.py check specs`=PASSを独立に再実行して報告値と一致を確認。P0/P1なし、P2が8件。反証された論点は、既存test 4件の書き換えが緩和でないこと(assertion本体は無傷で`widget_test`はむしろ強化)、undoのtoast移設がREQ-006/007の窓を変えないこと(`persist: false`は必要指定)、`presentWarnings`のインスタンス同一性依存が現行の全呼び出し経路で破れないこと、manual証拠`d707e6d`以後にcode/dependency/build差分が無いこと。
   - このtaskで対処したP2: 手順のcommitプレースホルダ未記入(P2-3)、`warning_display_test`の古いコメント(P2-7)、manualへ返信templateとstatus欄を作っていた点(P2-4。skillの`manual-verification.md`が「返信template、結果欄、別のstatus欄を作らない」と定めているため削除し、状態の正本を`task.json`へ一本化)。
   - 他taskへ接続したP2: `spec.md`の検証表が契約とdriftしている(P2-2。VER-004/005の被覆にREQ-019〜022が写されていない。T08由来の既存driftで、T09のdiffに`spec.md`は含まれない)。005 plan完了ゲートまでに解消する。`plan.md`の未解決事項へ記録した。
@@ -53,10 +59,11 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 
 ## Current state / handoff
 
-- Last checkpoint: PR #120がready、CI SUCCESS。受け入れゲートはすべて通過し、残るのは人間によるmergeのみ
-- Blocker category: human-decision
-- Waiting for: 人間によるPR #120のmerge。branchに`.devcontainer/Dockerfile`(C toolchain追加、作者は人間)が含まれるため、AGENTS.mdのAgent auto-merge条件7(AI sandbox・secret境界を変更しない)に触れ、Agentはauto-mergeを有効化しない
-- Requested action: 人間がPR #120をmergeする(2026-08-12にこの方針を選択済み。Dockerfileを別PRへ分離しないのは、T09の346 PASSがこのtoolchainを含むbuildで取られており、分離すると証拠のidentityが崩れるため)
-- Evidence revision: PR #120 head(base `origin/dev@28eb772`)
-- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)、独立review=PASS(attempt 1)、CI `check`=SUCCESS
-- Next Agent action: merge後に`dev`上の結果とtask可視性を確認し、statusを`done`にしてworktree/branchを整理する
+- 2026-08-12 / PR #120が人間により`dev`へmerge済み(`abc8007`)。merge後の`dev`で`flutter test`=PASS(346)、`workspace.py check specs`=PASSを再確認し、statusを`done`にした。
+- Last checkpoint: PR #120がmergeされ、merge後の`dev`で回帰と構造checkがPASS
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@abc8007`
+- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)、独立review=PASS(attempt 1)、CI `check`=SUCCESS、merge後の`dev`で回帰PASS
+- Next Agent action: なし(完了)

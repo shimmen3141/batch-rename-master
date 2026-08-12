@@ -1,21 +1,22 @@
-# Manual verification — desktop modified time
+# 手動確認: desktopの更新日時ずらし
 
-## Evidence identity
+## この文書の状態
 
-- Commit: pending
-- Build/artifact: pending
-- Environment/device: desktop OS
-- Fixture/data: mtimeを比較できる複数fileと、mtime更新を拒否できるfixture
-- Observer: pending
-- Observed at: pending
+**T07はまだ実装されていません。人間へ依頼できる手順はまだありません。**
 
-## Checklist
+設定の置き場所、ずらす間隔、失敗時の表示が決まっていないため、いま手順を書くと実際の画面と食い違うものが残ります。実行できるchecklistは実装時に書きます。
 
-1. optionはdesktopだけに表示され、既定OFFではmtimeを変更しない。
-2. ONではrename成功fileのmtimeが表示順にずれる。
-3. mtime更新に失敗してもrename成功と新しいhandleは維持され、副次失敗が区別して表示される。
+以下は**実装するAgent向けのmemo**です。checklistへ必ず落とす観点を、`task.md`の受け入れ証拠と`history/asdd-0.x-plan.md`のT7受け入れ条件から引き継いでいます。
 
-## Result
+## 実装時にchecklistへ落とす観点
 
-- Status: pending
-- Notes: Agentが対象branch、exact commit/build、検証workspaceを準備してから依頼する。人間によるbranch移動は原則不要。
+1. **設定は既定でOFF** — 初回起動時にOFFで、OFFのまま改名してもファイルの更新日時が変わらない。実際のファイルの更新日時で確認する(Windowsなら`Get-ChildItem | Select-Object Name, LastWriteTime`)。
+2. **Androidでは設定を出さない** — Androidには更新日時を書き換える手段が無いため、設定自体を表示しない。「効かない設定」を見せていないことをAndroidで確認する。
+3. **ONのとき一覧の並び順にずれる** — 改名に成功したファイルの更新日時が、**画面に並んでいる順**で一定間隔ずつ後ろへずれる。並び替えてから実行し、ソートの種類ではなく**表示順**に対応することを確認する。
+4. **間隔はディスクの精度で丸められる** — FAT系のUSBメモリなどは2秒単位でしか記録できず、指定した間隔が丸められる。丸められても**順序が保たれる**ことを確認する(等間隔であることは求めない)。
+5. **日時の更新に失敗しても改名は取り消さない** — 更新日時のずらしに失敗しても、改名そのものは成功として残り、続けて操作できる。読み取り専用のファイルなど、日時の更新だけが失敗する状況で確認する。
+6. **失敗の見分けがつく** — 日時の更新に失敗したことが、改名の失敗と**区別して**表示される。「改名はできたが日時だけずれなかった」と読み取れる。
+
+## 事前準備(実装時に具体化する)
+
+起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従う。確認用ファイルは、更新日時を見比べられる複数ファイルと、日時の更新だけが失敗するファイル(読み取り専用など)を用意する。

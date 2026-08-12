@@ -24,11 +24,22 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 - 旧004 T04/T09では自動検査まで完了した一方、target platformの最終受け入れが旧plan全体に残っていたため、移行時に独立taskとして抽出した。
 
+- 2026-08-12 / manual checklistを復元した。ASDD移行で凍結側の9 stepが3 stepへ要約され、**REQ-011(「画像」「動画」は読み込まず未実装を示す / 「文書」はMIME絞り込み)**と、**追加の全file access権限を要求しないこと**の確認が落ちていた(`development-findings/2026-08-12-manual-checklists-lost-steps-in-migration.md`)。凍結側`history/asdd-1.x-development-unit/manual-verification.md`と突き合わせ、落ちた項目を戻したうえで、fixture作成commandと期待結果を人間が番号順に実行できる形にした。skillの規定に従い返信templateとstatus欄は置かない。未実施のため手戻りは無い。
+
+- Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — P1: folder跨ぎstepが実行不能(`fb6f7d7`で解消)
+- Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — P1: attempt 1の修正commitがAndroidのcancel確認stepを削除していた(復元前live版にも凍結側にもあった項目。この修正で復帰)
+
+- Review attempt 3: PR #121 `dev@abc8007...6432da8` — FAIL — P1: 設定画面のアプリ表示名が実在しない値(`一括リネーム（デモ）`は`MaterialApp.title`=Recents用。設定→アプリに出るのは`AndroidManifest.xml:3`の`android:label="batch_rename_master"`)
+- 2026-08-12 / **3回連続FAILのため自動修正を停止した**(AGENTS.md「同じtaskで独立verifierが3回FAILしたら自動修正を止め、diff、各回の実出力、未解決指摘、否定された仮定を報告する」)。statusを`blocked`にし、人間の判断を待つ。P1-1自体は1語の置換で仕様・scope・riskの判断を含まないが、規約は回数で止めることを求めているため、Agent判断で続行しない。
+
+- Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2 8件。実害のある007 manualの例示・label表記と、記録の不整合をこの後の commit で処理)
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動testは既存taskで完了。manual手順をT10へ移行
-- Blocker category: none
-- Waiting for: none
-- Requested action: Agentが検証branch・exact buildを準備してから人間へchecklistを依頼する
-- Evidence revision: 未確定。code/build変更後の古い観測は再利用しない
-- Next Agent action: 現在のmanual待ちtaskと同じbuildで併行確認できるかを確認し、検証workspaceを準備する
+- Last checkpoint: 独立reviewのattempt 4がPASS(P0/P1なし)。残りのP2を解消し、mergeを人間へ依頼する段階
+- Blocker category: human-decision
+- Waiting for: 人間によるPR #121のmerge。このPRは`004:T10`・`005:T07`・`005:T09`・`007:T06`の4 taskにまたがるため、AGENTS.mdのAgent auto-merge条件1「plan/task、Issue、base/headが一意」を満たさない
+- Requested action: 人間がPR #121をmergeする
+- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
+- Evidence: 独立review attempt 4=PASS、dry-run=PASS(004の画面文言・path・command全件と007の文言をrepository内の出所と突き合わせ)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)、CI `check`=SUCCESS
+- Next Agent action: merge後、このtaskを`blocked`(manual待ち)へ戻し、対象commitを固定したうえで人間へchecklistを依頼する。**このreviewがPASSしてもmanual自体は未実施**であり、T10の成果は人間の実機確認である
