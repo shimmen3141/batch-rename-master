@@ -15,6 +15,9 @@ const Key renameWarningToggleKey = Key('rename-warning-toggle');
 /// [index] 番目(0 始まり)の警告行(展開時のみ存在する)。
 Key renameWarningRowKey(int index) => Key('rename-warning-$index');
 
+/// ルール未設定の案内帯(警告帯の代わりに出る)。
+const Key ruleNotConfiguredKey = Key('rule-not-configured');
+
 /// 001 の検証([validate])が返した警告をプレビュー上に提示する帯(005 REQ-009)。
 ///
 /// **判定は 001 が持ち、005 は表示だけを担う**(契約 `terms` の「警告」)。
@@ -49,8 +52,10 @@ class _RenameWarningPanelState extends State<RenameWarningPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // REQ-021: 同一ファイルの空名 + 基準日時不明は 1 行にまとめてから数える。
+    final presented = presentWarnings(widget.warnings);
     // REQ-010: 0 件のときは提示しない(空の帯も見出しも出さない)。
-    if (widget.warnings.isEmpty) return const SizedBox.shrink();
+    if (presented.isEmpty) return const SizedBox.shrink();
     final colors = context.colors;
     return Container(
       key: renameWarningsKey,
@@ -72,7 +77,7 @@ class _RenameWarningPanelState extends State<RenameWarningPanel> {
                 Expanded(
                   child: Text(
                     key: renameWarningSummaryKey,
-                    describeWarningSummary(widget.warnings),
+                    describeWarningSummary(presented),
                     style: TextStyle(
                       color: colors.danger,
                       fontSize: 11.5,
@@ -98,10 +103,10 @@ class _RenameWarningPanelState extends State<RenameWarningPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (var i = 0; i < widget.warnings.length; i++)
+                    for (var i = 0; i < presented.length; i++)
                       _WarningRow(
                         key: renameWarningRowKey(i),
-                        message: describeWarning(widget.warnings[i]),
+                        message: presented[i].message,
                       ),
                   ],
                 ),
@@ -144,19 +149,133 @@ class _WarningRow extends StatelessWidget {
   }
 }
 
+/// 提示 1 件分(種別名と本文)。001 の警告と 1 対 1 とは限らない(REQ-021)。
+class WarningPresentation {
+  const WarningPresentation({required this.kindLabel, required this.message});
+
+  final String kindLabel;
+  final String message;
+}
+
+/// 001 が返した警告を、利用者へ見せる単位へまとめる(REQ-021)。
+///
+/// 同じファイルに空名警告と基準日時不明警告がともに該当する場合、001 は判定として
+/// 2 件を返すが、利用者から見れば「その日時が取れないから名前が空になる」という
+/// 1 つの出来事なので、結果(名前が空になる)と原因(どのトークンの基準日時か)を
+/// 1 行にまとめ、基準日時不明の側は別行に出さない。
+///
+/// それ以外は 001 が返した順序と件数のまま並べる。まとめる対象かどうかは
+/// **ファイルの同一性**で判断する。1 回の [validate] が返す警告は同じ
+/// [FileEntry] インスタンスを指すため、これで同じファイルの警告だけが揃う。
+List<WarningPresentation> presentWarnings(List<Warning> warnings) {
+  final causesByFile = <FileEntry, List<MissingSourceDateWarning>>{};
+  for (final warning in warnings) {
+    if (warning is MissingSourceDateWarning) {
+      (causesByFile[warning.file] ??= <MissingSourceDateWarning>[]).add(
+        warning,
+      );
+    }
+  }
+  // 空名と基準日時不明の両方が該当するファイルだけをまとめる。
+  final merged = <FileEntry>{
+    for (final warning in warnings)
+      if (warning is EmptyNameWarning && causesByFile.containsKey(warning.file))
+        warning.file,
+  };
+
+  final presented = <WarningPresentation>[];
+  for (final warning in warnings) {
+    if (warning is MissingSourceDateWarning && merged.contains(warning.file)) {
+      continue; // 空名の行へまとめ済み。
+    }
+    if (warning is EmptyNameWarning && merged.contains(warning.file)) {
+      presented.add(
+        WarningPresentation(
+          kindLabel: warningKindLabel(warning),
+          message: _describeEmptyNameWithCause(
+            warning.file,
+            causesByFile[warning.file]!,
+          ),
+        ),
+      );
+      continue;
+    }
+    presented.add(
+      WarningPresentation(
+        kindLabel: warningKindLabel(warning),
+        message: describeWarning(warning),
+      ),
+    );
+  }
+  return presented;
+}
+
+/// 空名の結果と、その原因になった日時トークンを 1 行にまとめた文言(REQ-021)。
+String _describeEmptyNameWithCause(
+  FileEntry file,
+  List<MissingSourceDateWarning> causes,
+) {
+  final tokens = causes
+      .map(
+        (cause) =>
+            '${cause.tokenIndex + 1} 番目のトークン(${describeToken(cause.token)})',
+      )
+      .join('、');
+  return '空の名前: 「${file.name}」${_locationSuffix(file)}は$tokensの'
+      '基準日時が取れないため、変更後の名前が空になります';
+}
+
 /// 件数と種別内訳の見出し(例: `警告 3 件(重複 2・桁不足 1)`)。
 ///
+/// 数えるのは 001 が返した警告そのものではなく、[presentWarnings] がまとめた
+/// **提示単位**なので、見出しの件数と展開した行数が必ず一致する。
+///
 /// 内訳を畳んでいる間も「何がいくつ起きているか」は常に見える。
-String describeWarningSummary(List<Warning> warnings) {
+String describeWarningSummary(List<WarningPresentation> presented) {
   final counts = <String, int>{};
-  for (final warning in warnings) {
-    final label = warningKindLabel(warning);
-    counts[label] = (counts[label] ?? 0) + 1;
+  for (final item in presented) {
+    counts[item.kindLabel] = (counts[item.kindLabel] ?? 0) + 1;
   }
   final breakdown = counts.entries
       .map((entry) => '${entry.key} ${entry.value}')
       .join('・');
-  return '警告 ${warnings.length} 件($breakdown)';
+  return '警告 ${presented.length} 件($breakdown)';
+}
+
+/// ルールが空のとき、警告帯の代わりに出す案内(005 REQ-020)。
+///
+/// 「何が起きているか(命名ルールが未設定)」と「どうすれば進めるか(ルールを
+/// 設定する)」を伝えるだけの帯で、操作そのものは下部アクションバーのルール
+/// 設定ボタンが担う。警告帯とは意味が違う(不具合ではなく未着手)ので、色は
+/// [AppColors.danger] ではなく通常の情報色を使う。
+class RuleNotConfiguredBanner extends StatelessWidget {
+  const RuleNotConfiguredBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      key: ruleNotConfiguredKey,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: colors.primary.withValues(alpha: 0.10),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 14, color: colors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '命名ルールが未設定です。ルールを設定すると変更後の名前を確認できます',
+              style: TextStyle(
+                color: colors.primary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 警告の種別名(見出しの内訳と各行の頭に使う)。

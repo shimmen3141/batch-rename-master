@@ -99,10 +99,13 @@ void main() {
     });
 
     testWidgets('空名(EmptyNameWarning): 名前が空になるファイルが分かる', (tester) async {
-      // トークンなし = ベース名が空。拡張子だけが残る。
+      // 空リテラル1個 = ベース名が空になり拡張子だけが残るが、ルール自体は
+      // 未設定ではない。
+      // ルールが空のときは警告帯ではなく未設定の案内が出る(005 REQ-020)ので、
+      // 空名警告の提示を見るにはトークンが1つ以上あるルールを使う。
       final c = FileListController(
         files: [_f('only.txt')],
-        rule: RenameRule.empty,
+        rule: const RenameRule([LiteralToken('')]),
       );
       await _pumpExpanded(tester, c);
 
@@ -220,9 +223,12 @@ void main() {
     });
 
     testWidgets('警告の文字色・アイコン・背景は AppColors のセマンティック色を使う', (tester) async {
+      // 空リテラル1個 = ベース名が空になるが、ルール自体は未設定ではない。
+      // ルールが空のときは警告帯ではなく未設定の案内が出る(005 REQ-020)ので、
+      // 空名警告の提示を見るにはトークンが1つ以上あるルールを使う。
       final c = FileListController(
         files: [_f('only.txt')],
-        rule: RenameRule.empty,
+        rule: const RenameRule([LiteralToken('')]),
       );
       await _pumpExpanded(tester, c);
 
