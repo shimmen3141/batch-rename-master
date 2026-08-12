@@ -1,8 +1,9 @@
 FROM debian:bookworm-slim
 
-# 基本ツール(firewall 用 iptables 類を含む)
+# 基本ツール(firewall 用 iptables 類と、Dart code asset ビルド用の C ツールチェーンを含む)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       git curl ca-certificates unzip xz-utils zip iptables ipset iproute2 dnsutils jq sudo nodejs npm \
+      clang build-essential \
   && rm -rf /var/lib/apt/lists/*
 
 # 非 root ユーザー。root で動かすと AI 自身が iptables を書き換えて firewall を解除できてしまう
