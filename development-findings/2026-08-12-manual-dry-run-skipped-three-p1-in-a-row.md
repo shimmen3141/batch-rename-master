@@ -7,7 +7,7 @@
 
 ## 観測した事実
 
-`004:T10`のmanual checklistについて、独立reviewが3回連続でFAILした。3回とものP1が、**containerからは観測できない実環境の事実に関する誤り**だった。
+`004:T10`のmanual checklistについて、独立reviewが3回連続でFAILした。3件のP1は種類が違うが、**いずれもrepository内の情報だけで防げた**。
 
 | attempt | P1 | 種類 |
 |---|---|---|
@@ -25,9 +25,23 @@ skillの`manual-verification.md`は「依頼前のdry-run」として次を求�
 
 > 記載したボタン名、画面文言、path、commandがcurrent revisionに存在する。
 
-**筆者はこれを実行していなかった。** 実行していれば、attempt 3のP1は`git grep -n 'android:label' android/`の1行で防げた。attempt 1も、`specs/004-file-source/tasks/T07-redesign-selection-flow/task.md`にDocumentsUIの挙動が記録されていたので、「このmanualが依存するplatform挙動について、projectが既に記録した事実があるか」を探せば防げた。
+**筆者はこれを実行していなかった。これが原因である。**
 
-より根の深い事情として、**筆者はAndroid実機もdesktop appも起動できない**(container にAndroid SDKもXcodeも無く、`flutter run`もできない)。人間向けmanualは、筆者が一度も見たことのない画面についての記述であり、唯一の検証手段はrepository内の文字列との突き合わせである。にもかかわらず、その突き合わせを省いて自然な日本語を書くことを優先した。
+3件のP1は、いずれも**repository内の情報だけで防げた**。
+
+- attempt 3(アプリ表示名): `git grep -n 'android:label' android/` の1行。
+- attempt 1(folder跨ぎ選択): `specs/004-file-source/tasks/T07-redesign-selection-flow/task.md`に、DocumentsUIはフォルダ移動で選択が解除されるとprojectが既に記録していた。
+- attempt 2(cancel step削除): 編集前後のstepを突き合わせるだけ。外部情報は不要。
+
+### 実行環境が無いことは原因ではない(当初の記述の訂正)
+
+筆者は当初、「Android実機もdesktop appも起動できないため、唯一の事実源がrepositoryである」ことを**より根深い原因**として書いた。これは不正確なので訂正する。
+
+上記のとおり、**3件ともrepositoryで足りた**。実機を起動していたとしても、`android:label`は設定アプリを開いて確かめるより`git grep`の方が速く確実である。skillのdry-runは、実行環境を持たないAgentのために「repositoryを事実源にせよ」と定めた条文であり、環境の欠如を前提に**すでに設計されている**。したがって環境の欠如は言い訳にならず、原因でもない。
+
+環境の欠如が実際に効くのは別の点である。**偶発的なfeedbackが無くなること。** appを起動できる書き手なら、手順を書きながら画面を見るので、実在しないアプリ名や実行できない操作にその場で気づく。筆者にはそれが無いため、**dry-runが唯一の安全網**になる。つまり環境の欠如は、誤りを不可避にするのではなく、**dry-runを省いたときの回復手段を奪う**。省略のコストが他の書き手より高い、というだけである。
+
+今回はその安全網を外したまま人間へ渡そうとし、独立reviewをdry-runの代わりに3回消費した。
 
 ## 期待していた動きと実際の動き
 
@@ -49,8 +63,10 @@ skillの`manual-verification.md`は「依頼前のdry-run」として次を求�
   - manualが依存するplatform挙動(pickerの選択保持、権限モデル等)について、`specs/`と`development-findings/`に既存の観測記録が無いかを検索する。
 - **書き直し時の突き合わせ。** section単位で書き直す編集は、追記と違って項目を落とす。編集前後のstepを機械的に対応付ける手順を、dry-runへ加える。attempt 2はこれで防げた。
 - **是正commitもdry-runの対象**である。3回のうち2回が是正由来だった。「指摘を直す」作業は小さく見えるため、dry-runが省かれやすい。
-- 一般化: 実行環境を持たないAgentが人間向けmanualを書くとき、**repository内の文字列だけが唯一の事実源**である。自然さより出所の確認を優先する規律が要る。
+- 一般化: 実行環境を持たないAgentが人間向けmanualを書くとき、repositoryが事実源であると同時に**唯一の安全網**でもある。自然な文章を書くことより、各記述の出所を確認することを優先する。
 
 ## 改善結果
 
-未対応。`004:T10`は`blocked`とし、P1-1の扱いを人間へ返した。以後、manualを書く・直すときは上記のgrep突き合わせを先に行う。
+2026-08-12、人間が「(a) Agentが直して続行」を選んだ(3回FAIL規律の解除)。P1-1を`android:label`の値へ直し、**今回は先にdry-runを実行した**。004 manualの画面文言9件(「ファイルを選ぶ」「画像」「動画」「文書」「すべて」「元の名前順」「作成日時順」「作成日時: 不明」「batch_rename_master」)と007 manualの5件を`git grep`でrepository内の出所と突き合わせ、全件一致を確認してからcommitした。
+
+以後、manualを書く・直すときは、是正commitであってもこのgrep突き合わせを先に行う。ASDD plugin側へのdry-run条文の具体化は未対応。
