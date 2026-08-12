@@ -29,11 +29,15 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 - Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — P1: folder跨ぎstepが実行不能(`fb6f7d7`で解消)
 - Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — P1: attempt 1の修正commitがAndroidのcancel確認stepを削除していた(復元前live版にも凍結側にもあった項目。この修正で復帰)
 
+- Review attempt 3: PR #121 `dev@abc8007...6432da8` — FAIL — P1: 設定画面のアプリ表示名が実在しない値(`一括リネーム（デモ）`は`MaterialApp.title`=Recents用。設定→アプリに出るのは`AndroidManifest.xml:3`の`android:label="batch_rename_master"`)
+- 2026-08-12 / **3回連続FAILのため自動修正を停止した**(AGENTS.md「同じtaskで独立verifierが3回FAILしたら自動修正を止め、diff、各回の実出力、未解決指摘、否定された仮定を報告する」)。statusを`blocked`にし、人間の判断を待つ。P1-1自体は1語の置換で仕様・scope・riskの判断を含まないが、規約は回数で止めることを求めているため、Agent判断で続行しない。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動testは既存taskで完了。manual手順をT10へ移行
-- Blocker category: none
-- Waiting for: none
-- Requested action: Agentが検証branch・exact buildを準備してから人間へchecklistを依頼する
-- Evidence revision: 未確定。code/build変更後の古い観測は再利用しない
-- Next Agent action: 現在のmanual待ちtaskと同じbuildで併行確認できるかを確認し、検証workspaceを準備する
+- Last checkpoint: manual checklistの復元をPR #121で実施。独立reviewが3回連続FAILし、自動修正を停止
+- Blocker category: review(3回FAIL規律)
+- Waiting for: 人間の判断。(a) P1-1の1語をAgentが直して続行、(b) 人間が直す、(c) 別の扱い
+- Requested action: 上記(a)〜(c)を選ぶ。選択後、必要ならattempt 4を取る
+- Evidence revision: PR #121 head `6432da8`(base `dev@abc8007`)
+- Evidence: `workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)。いずれもattempt 3のreviewerが独立に再実行して一致
+- Next Agent action: 人間の判断を待つ。manual自体の実施依頼はP1-1解消後

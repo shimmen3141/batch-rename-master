@@ -2,9 +2,20 @@
   "schema": "asdd.task/v1",
   "id": "T10",
   "title": "target platformでファイル選択を受け入れ確認する",
-  "status": "pending",
-  "dependsOn": ["T09"],
-  "covers": ["REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-009", "REQ-010", "REQ-011", "REQ-012"],
+  "status": "blocked",
+  "dependsOn": [
+    "T09"
+  ],
+  "covers": [
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "REQ-005",
+    "REQ-009",
+    "REQ-010",
+    "REQ-011",
+    "REQ-012"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"
