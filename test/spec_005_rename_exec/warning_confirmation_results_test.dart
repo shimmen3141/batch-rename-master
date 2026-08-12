@@ -196,6 +196,7 @@ void main() {
     expect(find.byKey(const Key('rename-undo')), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle(); // undo を載せたトーストが閉じきるまで進める。
 
     expect(find.byKey(const Key('rename-undo')), findsNothing);
     expect(await execution.undo(), isNull);

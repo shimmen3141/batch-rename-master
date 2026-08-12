@@ -177,9 +177,24 @@ class _RenameActionBar extends StatelessWidget {
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message.toString())));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message.toString()),
+        // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
+        // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
+        duration: execution.undoWindow,
+        // action があると既定で消えなくなる(persist)。undo は 5 秒で期限切れ
+        // (REQ-007)なので、押せなくなった undo を残さないよう明示的に消す。
+        persist: false,
+        action: execution.canUndo
+            ? SnackBarAction(
+                key: const Key('rename-undo'),
+                label: '元に戻す',
+                onPressed: () => _undo(context),
+              )
+            : null,
+      ),
+    );
   }
 
   Future<void> _undo(BuildContext context) async {
@@ -217,47 +232,28 @@ class _RenameActionBar extends StatelessWidget {
                 const SizedBox(height: 10),
               ],
               if (execution != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        key: const Key('rename-action'),
-                        // REQ-019: ルールが空の間は実行を提示しない(押せない)。
-                        onPressed: running || empty
-                            ? null
-                            : () => _request(context),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                        ),
-                        icon: running
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.drive_file_rename_outline),
-                        label: Text(
-                          running
-                              ? '処理中…'
-                              : empty
-                              ? 'ルールを設定してください'
-                              : '名前を変更',
-                        ),
-                      ),
-                    ),
-                    if (execution.canUndo) ...[
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        key: const Key('rename-undo'),
-                        onPressed: () => _undo(context),
-                        icon: const Icon(Icons.undo),
-                        label: const Text('元に戻す'),
-                      ),
-                    ],
-                  ],
+                FilledButton.icon(
+                  key: const Key('rename-action'),
+                  // REQ-019: ルールが空の間は実行を提示しない(押せない)。
+                  onPressed: running || empty ? null : () => _request(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                  ),
+                  icon: running
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.drive_file_rename_outline),
+                  label: Text(
+                    running
+                        ? '処理中…'
+                        : empty
+                        ? 'ルールを設定してください'
+                        : '名前を変更',
+                  ),
                 ),
             ],
           ),

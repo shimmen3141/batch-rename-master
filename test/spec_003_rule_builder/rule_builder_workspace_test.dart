@@ -79,9 +79,10 @@ void main() {
 
     expect(find.byType(FileListView), findsOneWidget);
     expect(find.byType(RuleBuilderView), findsNothing); // インラインには出ない
-    expect(find.text('ルールを編集'), findsOneWidget);
+    // 初期ルールは空なので未設定向けの表示になる(005 REQ-020)。導線自体は同じ。
+    expect(find.byKey(const Key('configure-rule')), findsOneWidget);
 
-    await tester.tap(find.text('ルールを編集'));
+    await tester.tap(find.byKey(const Key('configure-rule')));
     await tester.pumpAndSettle();
 
     expect(find.byType(RuleBuilderView), findsOneWidget); // シートで開く
