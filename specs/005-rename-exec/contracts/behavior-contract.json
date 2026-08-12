@@ -13,6 +13,11 @@
       "revision": "2",
       "approved_date": "2026-08-09",
       "meaning": "INV-002をplatform例外なく維持する。Android SAF production renameはprovider APIを呼ぶ前にunsupportedPlatformを返し、実体を変更しない。desktopは排他的renameを提供する。"
+    },
+    {
+      "revision": "3",
+      "approved_date": "2026-08-12",
+      "meaning": "巻き戻しは名前だけを戻す。更新日時ずらしを有効にして実行したあと巻き戻すと、名前は戻るが更新日時はずらした値のまま残る。既存の振る舞いを対象外として明記したもので、要求は変えていない。"
     }
   ],
   "status": "approved",
