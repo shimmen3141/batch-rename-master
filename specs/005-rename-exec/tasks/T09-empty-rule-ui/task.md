@@ -49,12 +49,14 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
   - 他taskへ接続したP2: `spec.md`の検証表が契約とdriftしている(P2-2。VER-004/005の被覆にREQ-019〜022が写されていない。T08由来の既存driftで、T09のdiffに`spec.md`は含まれない)。005 plan完了ゲートまでに解消する。`plan.md`の未解決事項へ記録した。
   - 受容したP2: toastのdurationが表示開始起点、undo deadlineがexecute完了起点のため入場animation分(〜250ms)だけ死んだundoが見えうる(P2-5。`undo()`の`canUndo`ガードで実体は変化しないためcosmetic)。`action`の有無がshowSnackBar時点の`canUndo`で固定される(P2-6。先行toastが出る経路は現状無い)。`product-map.md`と`migration-coverage.md`の編集が変更範囲外(P2-8。凍結historyからの人間決定の救出で、対応するfindingが動機付けている)。
 
+- 2026-08-12 / PR #120をready for reviewで作成し、Issue #102へ状況を記録した。required CI(`check`)=SUCCESS、mergeable=MERGEABLE、未解決threadなし。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・full regression・manual verificationまで完了し、残るゲートは独立reviewのみ
-- Blocker category: review
-- Waiting for: 対象rangeの独立review(`dev`..branch head)
-- Requested action: 独立reviewを実施し、PASSならpush / PRを人間へ確認する
-- Evidence revision: branch `asdd/005-rename-exec/T09-empty-rule-ui`(latest base `origin/dev@28eb772`をmerge済み)
-- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)
-- Next Agent action: 独立reviewを通し、PASSならpushとPRを人間へ確認する
+- Last checkpoint: PR #120がready、CI SUCCESS。受け入れゲートはすべて通過し、残るのは人間によるmergeのみ
+- Blocker category: human-decision
+- Waiting for: 人間によるPR #120のmerge。branchに`.devcontainer/Dockerfile`(C toolchain追加、作者は人間)が含まれるため、AGENTS.mdのAgent auto-merge条件7(AI sandbox・secret境界を変更しない)に触れ、Agentはauto-mergeを有効化しない
+- Requested action: 人間がPR #120をmergeする(2026-08-12にこの方針を選択済み。Dockerfileを別PRへ分離しないのは、T09の346 PASSがこのtoolchainを含むbuildで取られており、分離すると証拠のidentityが崩れるため)
+- Evidence revision: PR #120 head(base `origin/dev@28eb772`)
+- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)、独立review=PASS(attempt 1)、CI `check`=SUCCESS
+- Next Agent action: merge後に`dev`上の結果とtask可視性を確認し、statusを`done`にしてworktree/branchを整理する
