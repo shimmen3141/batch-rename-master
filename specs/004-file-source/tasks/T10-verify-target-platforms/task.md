@@ -26,7 +26,8 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 - 2026-08-12 / manual checklistを復元した。ASDD移行で凍結側の9 stepが3 stepへ要約され、**REQ-011(「画像」「動画」は読み込まず未実装を示す / 「文書」はMIME絞り込み)**と、**追加の全file access権限を要求しないこと**の確認が落ちていた(`development-findings/2026-08-12-manual-checklists-lost-steps-in-migration.md`)。凍結側`history/asdd-1.x-development-unit/manual-verification.md`と突き合わせ、落ちた項目を戻したうえで、fixture作成commandと期待結果を人間が番号順に実行できる形にした。skillの規定に従い返信templateとstatus欄は置かない。未実施のため手戻りは無い。
 
-- Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — 残るP0/P1: none(P1-1 folder跨ぎstepの実行不能を`fb6f7d7`で解消済み。再review待ち)
+- Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — P1: folder跨ぎstepが実行不能(`fb6f7d7`で解消)
+- Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — P1: attempt 1の修正commitがAndroidのcancel確認stepを削除していた(復元前live版にも凍結側にもあった項目。この修正で復帰)
 
 ## Current state / handoff
 

@@ -108,3 +108,10 @@ skillの`manual-verification.md`はREQ等の内部用語をmanualへ出すこと
 ### 判断
 
 いずれもASDD plugin側の設計判断であり、このprojectだけで決められない。このprojectでは当面、対応表を作らず、reviewとmanual作成時のdry-run(`manual-verification.md`の「依頼前のdry-run」節)で漏れを見る。
+
+attempt 2でさらにFAIL。**attempt 1のP1を直した修正commit(`fb6f7d7`)が、Androidの「選ばずに戻ったとき何も起きない」stepを削除していた。** 凍結側にも復元前のlive版にもあった項目で、004:T10がその実機受け入れを持つ唯一のtaskである(Android SAFとdesktopはcancel判定が別実装なので、片方の確認は他方の証拠にならない)。
+
+このfindingのthesisは「step数が減ることは検査項目が減ることと等しい」だが、**その再発を、findingを書いた本人が是正commitで起こした**。sectionを書き直す形の編集は、意図せず項目を落とす。教訓は2つ。
+
+- manual checklistを**書き直す**ときは、編集前後のstepを機械的に突き合わせる。追記だけの編集と同じ扱いにしない。
+- 独立reviewは「元の欠落が直ったか」だけでなく「**是正で新たに落ちたものが無いか**」も見る必要がある。attempt 2がこれを検出した。

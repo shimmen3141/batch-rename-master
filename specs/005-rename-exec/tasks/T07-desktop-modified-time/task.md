@@ -24,7 +24,10 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - 旧005 T07とASDD 1.x work packageから未着手成果として移行。Issue #98はT05統合待ち。
 
-- 2026-08-12 / manual checklistを点検した。004/007と違い、**移行での欠落は無かった**(凍結0.x planのT7受け入れ条件3件はこのtask.mdへ移行済み)。stubだったのは実装前だからで、UIが未確定のまま手順を書くと実画面と食い違うため、`manual-verification.md`には実装時にchecklistへ落とす観点6件(既定OFF、Android非提示、表示順、filesystem解像度、副次失敗でrename維持、失敗の見分け)を残し、実行手順は実装時に書くことを明記した。あわせてskillの規定に反していた返信templateとstatus欄を外した。
+- 2026-08-12 / manual checklistを点検した。004/007と違い、**移行での欠落は無かった**(凍結0.x planのT7受け入れ条件3件のうち、既定OFF/表示順と「ずらし失敗でもrename成功」は受け入れ証拠へ、「Androidでは設定自体を提示しない」は変更範囲へ移っている。受け入れ証拠側には無いが失われてはいない)。stubだったのは実装前だからで、UIが未確定のまま手順を書くと実画面と食い違うため、`manual-verification.md`には実装時にchecklistへ落とす観点6件(既定OFF、Android非提示、表示順、filesystem解像度、副次失敗でrename維持、失敗の見分け)を残し、実行手順は実装時に書くことを明記した。あわせてskillの規定に反していた返信templateとstatus欄を外した。
+
+- Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — 残るP0/P1: none(このtaskへの指摘はP2-2内部用語とP2-7 findingの粒度。前者は`fb6f7d7`で一部、残りをこの修正で解消)
+- Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — 残るP0/P1: none(P2-a `manual-verification.md`に内部用語が残存、P2-b このattempt行の欠落。いずれもこの修正で解消)
 
 ## Current state / handoff
 

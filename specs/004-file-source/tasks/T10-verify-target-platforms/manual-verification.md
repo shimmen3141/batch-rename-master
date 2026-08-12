@@ -33,7 +33,10 @@ Set-Content -LiteralPath (Join-Path $a 'photo.jpg') -Value 'a-photo'
 Androidのエミュレータにも同じものを置きます。
 
 ```powershell
-$adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+# PATHに adb があればそれを、無ければ既定のSDK配置を使う。
+$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+if (-not $adb) { $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe' }
+if (-not (Test-Path -LiteralPath $adb)) { Write-Host "adb が見つかりません。SDKの場所を確認してください: $adb" }
 & $adb shell mkdir -p /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
 & $adb push C:\asdd-fixtures\src-a\doc1.txt  /sdcard/Download/asdd-src-a/
 & $adb push C:\asdd-fixtures\src-a\same.txt  /sdcard/Download/asdd-src-a/
@@ -74,9 +77,15 @@ Android側は `内部ストレージ > Download > asdd-src-a` と `asdd-src-b` �
 
 1. 「すべて」から `asdd-src-a` の `doc1.txt` を選びます。同じファイルを2回選べる場合は2回選んでから確定します。
    - 確認: 一覧に入るのは**1件だけ**。
-   - 2回選べない画面なら「確認不能」で構いません。
+   - 2回選べない画面なら、その旨だけ教えてください。
 
-### 4. フォルダをまたいで選んだとき(できる場合のみ)
+### 4. 選ばずに戻ったとき
+
+1. 「すべて」を選び、**ファイルを選ばずに**戻る/キャンセルします。
+   - 確認: 一覧が**まったく変化しない**(直前の選択がそのまま残る)。
+   - 確認: エラーやお知らせも**出ない**。
+
+### 5. フォルダをまたいで選んだとき(できる場合のみ)
 
 > このstepは**できなくても構いません。** Androidの標準のファイル選択画面は、フォルダを移動すると選択が解除される作りで、1回の選択で2つのフォルダから選べないことがあります(2026-08-05に確認済み)。その場合は次のstepへ進んでください。同じ内容は開発側のテストでも検査しています。
 
@@ -85,9 +94,9 @@ Android側は `内部ストレージ > Download > asdd-src-a` と `asdd-src-b` �
    - 確認: 読み込みは**成功する**。
    - 確認: 同名だが**2件**として残り、行の表示でどちらのフォルダか区別できる。
    - 確認: **複数のフォルダのファイルが混ざっている旨の警告**が出る。
-3. 選べなければ「確認不能」で構いません。
+3. 選べなければ、その旨だけ教えてください。
 
-### 5. 作成日時が分からないファイルの扱い
+### 6. 作成日時が分からないファイルの扱い
 
 Androidでは作成日時が取れないため、通常はすべて「不明」になります。
 
@@ -98,11 +107,11 @@ Androidでは作成日時が取れないため、通常はすべて「不明」�
 2. 並び順を「**元の名前順**」に戻します。
    - 確認: 「不明」の表示自体は残るが、**強調は外れる**(警告色・警告マークが消える)。
 
-### 6. 権限
+### 7. 権限
 
 1. ここまでの操作で、アプリから権限の許可を求められたか思い出してください。
    - 確認: **「すべてのファイルへのアクセス」やストレージ全体の許可を求められていない。**
-2. 設定 → アプリ → このアプリ → 権限 を開きます。
+2. 設定 → アプリ → 「一括リネーム（デモ）」 → 権限 を開きます。
    - 確認: ストレージ関連の権限が**付与されていない**(ファイル選択画面を経由するので、許可が要らない作りです)。
 
 ## Windows desktop
@@ -111,7 +120,7 @@ Androidでは作成日時が取れないため、通常はすべて「不明」�
    - 確認: 一覧が選んだ2件で置き換わり、各行にフォルダが表示される。
 
 2. 同じファイルを2回選べる場合は `doc1.txt` を重複させて選びます。
-   - 確認: 一覧に入るのは1件だけ。2回選べなければ「確認不能」で構いません。
+   - 確認: 一覧に入るのは1件だけ。2回選べなければ、その旨だけ教えてください。
 
 3. 「すべて」から `C:\asdd-fixtures\src-b` の `same.txt` **だけ**を選び直します。
    - 確認: 1件だけになり、前回分は残らない(Androidと同じ)。
@@ -119,14 +128,16 @@ Androidでは作成日時が取れないため、通常はすべて「不明」�
 4. ファイル選択画面をキャンセルします。
    - 確認: 一覧が変化せず、エラーや通知も出ない(Androidと同じ)。
 
-5. 1回の選択で両フォルダの `same.txt` を選べるか試します(Windowsの選択画面も通常は同一フォルダ内に限られるため、**できなければ「確認不能」で構いません**)。
+5. 1回の選択で両フォルダの `same.txt` を選べるか試します(Windowsの選択画面も通常は同一フォルダ内に限られるため、**できなければ、その旨だけ教えてください**)。
    - 選べた場合の確認: 2件として残り、フォルダをまたいでいる旨の警告が出る。行の表示で `src-a` と `src-b` が区別できる。
 
 ## 後片付け
 
 ```powershell
-Remove-Item -LiteralPath 'C:\asdd-fixtures' -Recurse -ErrorAction SilentlyContinue
-$adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+Remove-Item -LiteralPath 'C:\asdd-fixtures\src-a','C:\asdd-fixtures\src-b' -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'C:\asdd-fixtures' -Force -ErrorAction SilentlyContinue
+$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+if (-not $adb) { $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe' }
 & $adb shell rm -rf /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
 ```
 
