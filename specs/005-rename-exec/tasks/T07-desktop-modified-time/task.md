@@ -58,12 +58,16 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - 2026-08-12 / 証拠の再取得範囲を人間が決定: **案A(手順4だけ現headで再実施)**。`34b01d3`の変更はcatch節=失敗経路限定で、手順1・2・3・Androidは`setModifiedAt`の成功経路しか通らず変更行に到達しない。手順1・2・3・Androidの証拠は`1bf73e9`のものを再利用する。
 
+- 2026-08-12 / **手順4を現head `e49d753` で再実施 / PASS**。「3 件を改名しました」に続けて「改名は成功しましたが、1 件の更新日時は変更できませんでした」が表示され、改名の失敗としては出ないことを確認した。これでREQ-016の実機受け入れが、catch節を変更した後のcodeに対して取れた。
+  - 手順1・2・3・Androidは`1bf73e9`の結果を再利用する(人間の決定 2026-08-12)。`34b01d3`の変更は失敗経路限定で、これらの手順は`setModifiedAt`の成功経路しか通らない。
+  - このやり直しの原因は、manualを独立reviewより先に依頼したことにある。reviewはcodeとtestを見る工程なので修正を要求する確率が高く、その後ろにmanualを置けば失効しなかった。`development-findings/2026-08-12-manual-before-review-invalidates-evidence.md`へ記録した。
+
 ## Current state / handoff
 
-- Last checkpoint: 記録の不備(revision_history、Evidenceの実測値、identity切れの開示)を解消し、再取得範囲の決定を得た
-- Blocker category: manual
-- Waiting for: 現head `39bc45a` のWindows desktop buildでの[`manual-verification.md`](manual-verification.md)**手順4のみ**の再実施
-- Requested action: 人間が手順4を実施し、結果を会話で返す。branch移動は不要(Agentが`asdd/005-rename-exec/T07-desktop-modified-time`を維持する)
-- Evidence revision: 手順4は現head `39bc45a` で取り直す。手順1・2・3・Androidは`1bf73e9`のものを再利用する(人間の決定 2026-08-12。`34b01d3`の変更は失敗経路限定で、これらの手順は到達しない)
-- Evidence: `flutter test`=PASS(359、うち`modified_time_test.dart` 9件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)。manual=手順1・2・3・AndroidはPASS(`1bf73e9`)、手順4は再取得待ち
-- Next Agent action: 手順4の結果を記録し、再reviewを起動する。PASSすればPRを出して人間へmergeを依頼する
+- Last checkpoint: 手順4を現headで再実施しPASS。実装・test・仕様・manualがすべて揃った
+- Blocker category: review
+- Waiting for: 現headを対象にした独立review(manual証拠のidentity回復の確認を含む)
+- Requested action: なし(Agentがreviewを起動する)
+- Evidence revision: 手順4は`e49d753`で実施。手順1・2・3・Androidは`1bf73e9`(人間の決定により再利用)。以後`lib/`と`test/`は変更していない
+- Evidence: manual verification=PASS(全手順)、`flutter test`=PASS(359、うち`modified_time_test.dart` 9件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)
+- Next Agent action: 独立reviewを起動し、PASSならPRを出して人間へmergeを依頼する
