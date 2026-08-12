@@ -53,10 +53,11 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 
 ## Current state / handoff
 
-- Last checkpoint: PR #120がready、CI SUCCESS。受け入れゲートはすべて通過し、残るのは人間によるmergeのみ
-- Blocker category: human-decision
-- Waiting for: 人間によるPR #120のmerge。branchに`.devcontainer/Dockerfile`(C toolchain追加、作者は人間)が含まれるため、AGENTS.mdのAgent auto-merge条件7(AI sandbox・secret境界を変更しない)に触れ、Agentはauto-mergeを有効化しない
-- Requested action: 人間がPR #120をmergeする(2026-08-12にこの方針を選択済み。Dockerfileを別PRへ分離しないのは、T09の346 PASSがこのtoolchainを含むbuildで取られており、分離すると証拠のidentityが崩れるため)
-- Evidence revision: PR #120 head(base `origin/dev@28eb772`)
-- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)、独立review=PASS(attempt 1)、CI `check`=SUCCESS
-- Next Agent action: merge後に`dev`上の結果とtask可視性を確認し、statusを`done`にしてworktree/branchを整理する
+- 2026-08-12 / PR #120が人間により`dev`へmerge済み(`abc8007`)。merge後の`dev`で`flutter test`=PASS(346)、`workspace.py check specs`=PASSを再確認し、statusを`done`にした。
+- Last checkpoint: PR #120がmergeされ、merge後の`dev`で回帰と構造checkがPASS
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@abc8007`
+- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)、独立review=PASS(attempt 1)、CI `check`=SUCCESS、merge後の`dev`で回帰PASS
+- Next Agent action: なし(完了)

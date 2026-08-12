@@ -50,4 +50,12 @@ liveの`manual-verification.md`は4行のtemplate相当で、`Commit: pending`�
 
 ## 改善結果
 
-未対応。findingとして記録し、`004:T10` / `007:T06` / `005:T07`の実施前にlive checklistを復元する必要があることを人間へ報告した。復元はそれぞれのtaskが所有するため、005 T09のbranchでは変更していない。
+2026-08-12に3件を復元した(branch `docs/restore-manual-checklists`)。いずれも未実施のtaskなので手戻りは無い。
+
+- **004:T10**: 凍結側と突き合わせ、落ちていたREQ-011(「画像」「動画」は読み込まず未実装を示す / 「文書」はMIME絞り込み)と、追加の全file access権限を要求しないことの確認を戻した。あわせて、fixture作成command(PowerShell + `adb push`)、期待結果、handleの区別(同一handleは1件・別folderの同名は2件)を人間が番号順に実行できる形にした。
+- **007:T06**: hot restartとcold startの区別と、ruleを変更してからの2回目のcold start(上書き保存の確認)を戻した。識別可能なruleを2種類(A/B)定義した。
+- **005:T07**: 点検の結果、**移行での欠落は無かった**。凍結0.x planのT7受け入れ条件3件はtask.mdへ移行済みで、stubだったのは実装前だからである。UI未確定のまま手順を書くと実画面と食い違うため、実装時にchecklistへ落とす観点6件を残し、実行手順は実装時に書くことを明記した。つまり当初の観測のうちT07分は誤りで、劣化は004と007の2件だった。
+
+復元中に別の規約違反も見つかった。移行時のtemplate(および筆者がT09で書いたもの)が`## Result` / `- Status:`欄と返信templateを持っていたが、skillの`manual-verification.md`は「manualに返信template、結果欄、別のstatus欄を作らない」と定めている(状態の正本は`task.json`)。復元した3件からは外した。`005:T05` / `T06`の分は実施済みの証拠記録なので変更していない。
+
+ASDD pluginの移行手順への一般化(「manual verificationは要約せず全文移送する。減らす場合は減らした項目と理由を記録する」「checklistの各stepへ対応REQを書く」)は未対応。

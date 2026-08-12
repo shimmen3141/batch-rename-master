@@ -24,11 +24,13 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - 旧005 T07とASDD 1.x work packageから未着手成果として移行。Issue #98はT05統合待ち。
 
+- 2026-08-12 / manual checklistを点検した。004/007と違い、**移行での欠落は無かった**(凍結0.x planのT7受け入れ条件3件はこのtask.mdへ移行済み)。stubだったのは実装前だからで、UIが未確定のまま手順を書くと実画面と食い違うため、`manual-verification.md`には実装時にchecklistへ落とす観点6件(既定OFF、Android非提示、表示順、filesystem解像度、副次失敗でrename維持、失敗の見分け)を残し、実行手順は実装時に書くことを明記した。あわせてskillの規定に反していた返信templateとstatus欄を外した。
+
 ## Current state / handoff
 
-- Last checkpoint: 仕様と依存は確定。実装branchは未claim
-- Blocker category: dependency
-- Waiting for: 005:T05 / PR #116のdev統合
-- Requested action: none
-- Evidence revision: origin/dev@53acc33。T05はPR #116 head b866e35でmanual待ち
-- Next Agent action: T05統合後にIssue #98をclaimし、optionとmtime失敗境界をtest-firstで実装する
+- Last checkpoint: 依存が解けて着手可能。実装branchは未claim
+- Blocker category: なし
+- Waiting for: なし。依存していた005:T05はPR #116で`dev`へ統合済み(`425c30a`)で、T05/T06ともstatusは`done`
+- Requested action: なし
+- Evidence revision: `dev@abc8007`(依存の統合を確認した時点)
+- Next Agent action: Issue #98をclaimし、optionとmtime失敗境界をtest-firstで実装する。実装と同時に`manual-verification.md`の観点6件を実行手順へ具体化する

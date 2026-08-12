@@ -1,22 +1,74 @@
-# Manual verification — rule persistence across restart
+# 手動確認: アプリを再起動してもルールが復元されること
 
-## Evidence identity
+## 確認すること
 
-- Commit: pending
-- Build/artifact: pending
-- Environment/device: Android and desktop OS
-- Fixture/data: 元名、自由text、連番、日時tokenを区別できるrule
-- Observer: pending
-- Observed at: pending
+007は「前回のルールを次回起動時に復元する」機能です。自動testはin-memory portで往復を検査していますが、**実際のストレージに書けているか**と、**processが完全に終わってもデータが残るか**は実機でしか分かりません。
 
-## Checklist
+見るのは2方向あります。
 
-1. ruleを設定してpreviewへ反映されたことを確認する。
-2. hot reloadではなくアプリprocessを終了し、同じbuildを再起動する。
-3. token種別・値・順序が保存前と一致し、previewも同じになることをAndroidとdesktopで確認する。
-4. 必要なら空値・壊れた値のfallbackは既存自動testの証拠を参照し、実dataを不用意に破壊しない。
+- **復元**: 保存したルールが次の起動で戻る。
+- **上書き**: ルールを変えたら、次の起動では**新しいほう**が戻る(古いルールが残り続けない)。
 
-## Result
+2つ目を落とすと、「一度保存したきり更新されない」不具合を見逃します。
 
-- Status: pending
-- Notes: branch移動は原則不要。Agentが対象branch、exact commit/build、検証workspaceを準備してから依頼する。
+## 事前準備
+
+共通の起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従ってください。branchの移動は不要です。Agentが対象branchとcommitを用意した状態で待ちます。
+
+- Commit: `<Agentが記入>`
+- 対象: Android(emulatorまたは実機)と、Windows desktop build
+
+ルールは**見分けがつくもの**にしてください。token種別・順序・設定値のどれが崩れても気づけるよう、既定値のままにしないのが要点です。
+
+> ルールA: `元の名前` → `_v` → `連番(開始 7・3桁)` → `作成日時「YYYYMMDD」`
+>
+> ルールB: `連番(開始 1・2桁)` → `_b` → `元の名前`
+
+## Android
+
+### 1. ルールAを保存する
+
+1. ルールAを組み立てます。
+   - 確認: プレビューに反映される(例: `photo_v007<日付>.jpg`)。
+   - この時点のtoken順と設定値を控えておいてください。
+
+### 2. hot restartで戻る
+
+1. `flutter run`のコンソールで `R`(hot restart)を押します。
+   - 確認: ルールAがそのまま出る(token種別・順序・設定値がすべて一致)。
+
+> これは「起動時の復元処理が動くか」の軽い確認です。processは生きたままなので、これだけでは永続化の証明になりません。次が本番です。
+
+### 3. cold startで戻る
+
+1. `flutter run`を `q` で終了するか、アプリを**強制停止**します(設定 → アプリ → 強制停止)。processを完全に終わらせてください。
+2. アプリを起動し直します。
+   - 確認: ルールAが復元される。token種別・**順序**・設定値(開始7・3桁・`YYYYMMDD`)がすべて一致する。
+   - 確認: プレビューも保存前と同じになる。
+
+### 4. 変更して、もう一度cold startする(上書きの確認)
+
+1. ルールを**ルールB**に作り替えます。
+   - 確認: プレビューがBの結果に変わる。
+2. もう一度processを完全終了し、起動し直します。
+   - 確認: **ルールBが出る**。ルールAが復活しない。
+   - 確認: 順序も設定値もBのまま。
+
+## Desktop (Windows)
+
+1. 同じルールAを組み立てます。
+2. アプリのwindowを閉じ、processを完全に終了します(タスクマネージャーで残っていないことを確認)。
+3. 起動し直します。
+   - 確認: ルールAが復元される(token種別・順序・設定値)。
+4. ルールBに作り替え、もう一度processを完全終了して起動し直します。
+   - 確認: ルールBが出る。ルールAが復活しない。
+
+## 補足
+
+空値や壊れた保存値からのfallback(空ルールで開始する)は既存の自動testで検査済みです。**実データを壊して試す必要はありません。**
+
+## 結果の伝え方
+
+会話でそのまま教えてください。書式は問いません。復元されなかった場合は、保存前・再起動後それぞれのtoken順と設定値を教えてください。
+
+Agentが記録する証拠は、対象commit・build・OS/device、保存前のルール、hot restart後、cold start後、変更後2回目のcold start後の各ルールです。結果は`task.md`の作業記録へ要約します(このfileにstatusは書きません。状態の正本は`task.json`です)。
