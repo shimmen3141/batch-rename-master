@@ -38,19 +38,22 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 - 2026-08-12 / **manual verification実施 / 受け入れ条件を満たした**。開発者が`dev@7154ce3`のAndroid(emulator)とWindows desktop buildでchecklistを実施し、結果を会話で報告。
   - 種類の入口(REQ-011): 4種類が出る。「画像」「動画」は選んでも読み込まず未実装を示す。「文書」は文書系だけが出る。**確認できた**。
-  - 置き換えと場所表示(REQ-004 / REQ-007 / REQ-009)、選ばずに戻ったときの不変(REQ-008)、作成日時不明のwarningと強調・別sortでの強調解除(002 REQ-011 / REQ-013): **すべて確認事項どおり**。
+  - 置き換えと場所表示(REQ-004 / REQ-007 / REQ-009)、選ばずに戻ったときの不変(REQ-008)、作成日時不明のwarningと強調・別sortでの強調解除(002 REQ-011 / REQ-013): **すべて確認事項どおり**。後述の見切れがあっても、警告アイコンは省略対象外(`file_list_view.dart:626`は`Expanded`の外)のため、どの行の作成日時が不明かは観測できた。
+  - desktop(Windows)個別: 種類「すべて」からの複数選択で一覧が置き換わり場所が出る(手順1)、選び直しで前回分が残らない(手順3)、cancelで一覧・通知とも不変(手順4)を**個別に確認**。Androidと同じ契約になっている。
   - 権限: 設定→アプリ→権限が`No permissions allowed`。**追加の全file access権限を要求していない**ことを確認。
   - **フォルダ跨ぎ(REQ-012)は成立した**。ただし想定と違う経路で、file選択画面上部の`Documents`チップを選ぶと、folderが`asdd-src-a`のままでも`asdd-src-b`のtxtも一覧に出る(chipがfolderではなく種類で横断集約する)。両方のsame.txtを同時に選択でき、**複数folderが混ざっている旨の警告も出た**。REQ-012の実機受け入れはこれで取れている。
   - 同一fileの重複選択(Android手順3 / desktop手順2)は、どちらのfile選択画面でも同じfileを2回選べないため**実施不能**。REQ-004の重複集約はVER-002の自動testで検査済みで、実機受け入れの必須項目ではない。
   - desktopのfolder跨ぎ(手順5)も選択画面の制約で**実施不能**。Android側で取れているため受け入れに影響しない。
-  - 観測した不具合: 行のサブ情報が狭幅で見切れ、`作成日時: 不明`の強調まで届かないことがある。`file_list_view.dart:648`が`maxLines: 1` + ellipsisで1行にまとめているため。002 REQ-013は「どのitemの作成日時が不明かを提示する」ことを求めており、見切れると目的を果たさない。**UI調整として008へ送った**(開発者判断)。このtaskの受け入れは阻却しない。
+  - 観測した読みにくさ: 行のサブ情報が狭幅で見切れ、`作成日時: 不明`の文字列が読めないことがある。`file_list_view.dart:648`が`maxLines: 1` + ellipsisで1行にまとめているため。ただし警告アイコンは`Expanded`の外(同`:626`)で省略されないため、**002 REQ-013の識別自体は成立しており仕様違反ではない**。読みやすさの問題として**008へ送った**(開発者判断)。このtaskの受け入れは阻却しない。
+
+- Review attempt 5: PR #122 `dev@7154ce3...f98f53f` — PASS — 残るP0/P1: none(manual結果を対象とした初回review。P2 5件はこの後のcommitで解消)
 
 ## Current state / handoff
 
-- Last checkpoint: manual verificationを`dev@7154ce3`で実施しPASS。checklistの実施結果を作業記録へ要約した
-- Blocker category: review
-- Waiting for: exact revisionと証拠を対象にした独立review
-- Requested action: なし(Agentがreviewを起動する)
-- Evidence revision: `dev@7154ce3`。manual実施後、code / dependency / build設定は変更していない(差分はこのtaskの記録と手順の追記のみ)
-- Evidence: manual verification=PASS(`dev@7154ce3`、2026-08-12、開発者、Android emulator + Windows desktop)、復元内容の独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)
-- Next Agent action: 独立reviewを起動し、PASSなら`done`にする
+- Last checkpoint: manual verificationがPASSし、それを対象とした独立reviewもPASS。受け入れ条件を満たしたので`done`
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@7154ce3`でmanualを実施。以後この branch で code / dependency / build設定の差分はゼロ(reviewerが実diffで確認)
+- Evidence: manual verification=PASS(`dev@7154ce3`、2026-08-12、開発者、Android emulator + Windows desktop)、独立review=PASS(P0/P1なし)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)
+- Next Agent action: なし(完了)。PR #122のmergeは人間が行う
