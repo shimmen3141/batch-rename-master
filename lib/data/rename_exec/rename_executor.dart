@@ -83,6 +83,23 @@ abstract interface class RenameExecutor {
   Future<RenameResult> rename(String handle, String newName);
 }
 
+/// 改名後の実体へ更新日時を書き込める実装だけが実装する能力(005 REQ-014〜016)。
+///
+/// [RenameExecutor] 本体には含めない。更新日時を設定する手段はプラットフォームに
+/// よって**存在しない**(Android SAF には API が無い)ので、必須メソッドにすると
+/// 「呼べるが必ず失敗する」実装を全プラットフォームへ強いることになる。能力を
+/// 別に切っておくと、`executor is ModifiedAtWriter` がそのまま「この端末で
+/// 更新日時をずらせるか」になり、REQ-015(設定できないプラットフォームでは
+/// 設定を提示しない)を実装の形から満たせる。
+abstract interface class ModifiedAtWriter {
+  /// [handle] が指す実体の更新日時を [value] にする。
+  ///
+  /// **例外は投げない**(REQ-017 と同じ約束)。成功なら `null`、失敗なら理由を
+  /// 返す。更新日時の設定は改名の副次処理なので、失敗しても呼び出し側は改名を
+  /// 成功として扱い、実行を止めない(REQ-016)。
+  Future<RenameError?> setModifiedAt(String handle, DateTime value);
+}
+
 /// 未対応プラットフォーム用の [RenameExecutor]。常に失敗を返す(REQ-017)。
 class UnsupportedRenameExecutor implements RenameExecutor {
   const UnsupportedRenameExecutor();

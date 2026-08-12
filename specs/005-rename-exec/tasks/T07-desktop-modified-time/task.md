@@ -26,17 +26,50 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - 2026-08-12 / manual checklistを点検した。004/007と違い、**移行での欠落は無かった**(凍結0.x planのT7受け入れ条件3件のうち、既定OFF/表示順と「ずらし失敗でもrename成功」は受け入れ証拠へ、「Androidでは設定自体を提示しない」は変更範囲へ移っている。受け入れ証拠側には無いが失われてはいない)。stubだったのは実装前だからで、UIが未確定のまま手順を書くと実画面と食い違うため、`manual-verification.md`には実装時にchecklistへ落とす観点6件(既定OFF、Android非提示、表示順、filesystem解像度、副次失敗でrename維持、失敗の見分け)を残し、実行手順は実装時に書くことを明記した。あわせてskillの規定に反していた返信templateとstatus欄を外した。
 
+- 以下のattempt 1〜4は、**PR #121(manual checklist復元のdocs PR)に対するreview**であり、このtaskの実装に対するものではない。指摘内容も内部用語やfindingの粒度で、実装とは無関係。
 - Review attempt 1: PR #121 `dev@abc8007...7cb943b` — FAIL — 残るP0/P1: none(このtaskへの指摘はP2-2内部用語とP2-7 findingの粒度。前者は`fb6f7d7`で一部、残りをこの修正で解消)
 - Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — 残るP0/P1: none(P2-a `manual-verification.md`に内部用語が残存、P2-b このattempt行の欠落。いずれもこの修正で解消)
 - Review attempt 3: PR #121 `dev@abc8007...6432da8` — FAIL — 残るP0/P1: none(このtaskへの指摘なし。P2-a/P2-b/P2-7は解消を確認)
 
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(このtaskへの指摘なし)
+- **実装に対するreviewはここから。**
+- Review attempt 5(実装 1回目): `dev@b7f1e1b...1bf73e9` — FAIL — P1: VER-006がREQ-014の核心(実行計画順ではなく表示順)を判別できず、testのコメントが判別すると偽って主張していた
+- Review attempt 6(実装 2回目): `dev@b7f1e1b...a54c494` — BLOCKED — 未解決P0/P1なし。manual実施後に`34b01d3`が`lib/`を変えたため、現headに対応するmanual証拠が無かった
+- Review attempt 7(実装 3回目): `dev@b7f1e1b...4651c8c` — PASS — 残るP0/P1: none(P2 3件。attempt ledgerの欠落とfindingの原因分析はこのcommitで解消、`spec.md`のVER driftはplan側の残条件)
+
+- 2026-08-12 / **manual verification 1回目 / 一部のみ確認**。開発者がbranch headのWindows desktop buildとAndroid buildで実施。
+  - **確認できた**: 設定が既定OFFでOFFのままなら更新日時が変わらない(手順1)。ONにすると一覧の並び順に更新日時がずれる(手順2)。Androidでは設定そのものが出ない(REQ-015)。
+  - 更新日時は秒まで表示されなかったため、値の比較ではなく**更新日時順に並べ替えても順番が変わらない**ことで順序を確認した。REQ-014の観測としては成立している。
+  - **確認できなかった**: 手順3(並び替えへの追随)と手順4(更新日時だけ失敗しても改名は成功)。
+  - 手順3の原因は手順書の不備。ドラッグの取っ手は連番トークンがあるときだけ出る(002 REQ-014)のに、その理由を書かずに「取っ手が出ない場合は連番を足してください」とだけ書いたため、実施者に「連番で順序が変わるわけではない」と受け取られた。あわせて、改名を重ねると`a_m_n_o.txt`のように名前が伸びる点を手順が考慮していなかった。
+  - 手順4の原因はPowerShellの変数依存。`$dir`が別windowでは残らず`LiteralPath`にnullがbindされて失敗した。**005:T09で同じ失敗があり注意書きで対処したが、再発した**(`development-findings/2026-08-12-powershell-variables-break-manual-steps.md`)。
+- 2026-08-12 / 手順を書き直した。変数を全廃してliteral pathにし、各stepの先頭でfixtureを作り直す形にした。ドラッグの取っ手が連番に依存する理由も明記した。**手順3と手順4の再実施が要る。**
+
+- 2026-08-12 / **manual verification 2回目 / 残りの手順3・4もPASS**。書き直した手順で開発者が実施し、全項目を確認した。
+  - 手順3(並び替えへの追随): 画面で c, b, a に入れ替えた順で更新日時がずれることを確認。REQ-014の「実行計画ではなく表示順」が実機で観測できた。
+  - 手順4(更新日時だけ失敗しても改名は成功): 「**改名は成功しましたが、1 件の更新日時は変更できませんでした**」が表示され、改名の失敗としては出ないことを確認。REQ-016の実機受け入れが取れた。
+  - あわせて1回目の手順1・2・Android(REQ-015)がPASS済みで、code差分が無いため再利用できる。これでREQ-014 / REQ-015 / REQ-016の実機確認がすべて揃った。
+  - 変数依存が再発した原因も判明した(開発者の報告): 手順を上から実行すると`$dir`を定義したterminalでemulatorを起動することになり、起動したまま確認するには**必然的に別のterminalを使うことになる**。「同じwindowで実行」という前提自体が、この手順では成立しない。
+
+- 2026-08-12 / 実装に対する独立review(attempt 5)がFAIL。**P1はtestの判別力**だった。REQ-014は「実行計画ではなく表示順」と書いて特定の誤実装を排除しているが、置いたtestの入力はどれも目標名が既存名と衝突せず、`planExecution`が並べ替えないため**実行順=成功順=表示順**になっていた。`outcome.successes`を辿る誤実装でも全testがPASSする状態で、コメントだけが「両者が食い違う入力で検査する」と主張していた。reviewerがprobeで実装自体は正しいことを確認している。
+  - 対処: `f1→f2, f2→f3`(f1の目標名が既存のf2と衝突するので計画が逆順になる)を入力にしたtestを追加し、実行順が表示順の逆であることをtestの前提として押さえたうえで、更新日時が表示順に増えることを検査した。誤ったコメント2箇所も実態へ直した。
+  - **判別力をmutationで実証した**。`_shiftModifiedAtOfSuccesses`を`outcome.successes`順へ一時改変すると、**追加したtestだけがFAIL**し、他8件はPASSのままだった。改変は元へ戻してある。
+- 2026-08-12 / P2も対処した。`DesktopRenameExecutor.setModifiedAt`に自動testが1件も無かった(注入口を用意しながら未使用)ため4件追加した(実file更新、対象なし、想定外の例外、権限)。例外の捕捉を`FileSystemException`限定から全捕捉へ広げ、分類を独自のerrorCode読みからrename側と同じ`errorOf`へ寄せた。POSIXの5はEIO、Win32の5はACCESS_DENIEDで意味が違うため、数値を直接読まない。
+
+- 2026-08-12 / 独立reviewが挙げた「巻き戻しで更新日時が戻らない」点を、開発者が**意図した受容**と決定。契約の`scope.out`と`spec.md`の対象外へ明記し、代表例5bを追加、contract revisionを2→3にした。実装の振る舞いは変えていない(元から戻さない)。名前は`REQ-006`どおり戻る。
+
+- 2026-08-12 / 証拠の再取得範囲を人間が決定: **案A(手順4だけ現headで再実施)**。`34b01d3`の変更はcatch節=失敗経路限定で、手順1・2・3・Androidは`setModifiedAt`の成功経路しか通らず変更行に到達しない。手順1・2・3・Androidの証拠は`1bf73e9`のものを再利用する。
+
+- 2026-08-12 / **手順4を現head `e49d753` で再実施 / PASS**。「3 件を改名しました」に続けて「改名は成功しましたが、1 件の更新日時は変更できませんでした」が表示され、改名の失敗としては出ないことを確認した。これでREQ-016の実機受け入れが、catch節を変更した後のcodeに対して取れた。
+  - 手順1・2・3・Androidは`1bf73e9`の結果を再利用する(人間の決定 2026-08-12)。`34b01d3`の変更は失敗経路限定で、これらの手順は`setModifiedAt`の成功経路しか通らない。
+  - このやり直しの原因は、manualを独立reviewより先に依頼したことにある。reviewはcodeとtestを見る工程なので修正を要求する確率が高く、その後ろにmanualを置けば失効しなかった。`development-findings/2026-08-12-manual-before-review-invalidates-evidence.md`へ記録した。
 
 ## Current state / handoff
 
-- Last checkpoint: 依存が解けて着手可能。実装branchは未claim
+- Last checkpoint: 独立review attempt 7がPASS(P0/P1なし)。実装・test・仕様・manualがすべて揃い、受け入れ条件を満たした
 - Blocker category: なし
-- Waiting for: なし。依存していた005:T05はPR #116で`dev`へ統合済み(`425c30a`)で、T05/T06ともstatusは`done`
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@abc8007`(依存の統合を確認した時点)
-- Next Agent action: Issue #98をclaimし、optionとmtime失敗境界をtest-firstで実装する。実装と同時に`manual-verification.md`の観点6件を実行手順へ具体化する
+- Evidence revision: 手順4は`e49d753`(現headと`lib/`・`test/`同一)、手順1・2・3・Androidは`1bf73e9`(人間の決定により再利用。`34b01d3`の変更は失敗経路限定で到達しない。reviewerが実コードで確認)
+- Evidence: manual verification=PASS(全手順)、独立review=PASS(attempt 7)、`flutter test`=PASS(359)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)
+- Next Agent action: PRを作成し、CI PASSを確認してmergeを人間へ依頼する。**005のplan完了には`spec.md`のVER-004/VER-005ドリフト解消が別途必要**(plan.mdの全体受け入れ証拠に記載。T08由来でT07の範囲外)

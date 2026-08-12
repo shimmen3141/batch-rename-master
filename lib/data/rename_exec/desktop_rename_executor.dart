@@ -8,21 +8,53 @@ import 'rename_executor.dart';
 typedef DesktopRenameOperation =
     Future<NativeRenameResult> Function(String source, String destination);
 
+/// 更新日時の書き込み(test で差し替えるために外へ出す)。
+typedef DesktopSetModifiedAt =
+    Future<void> Function(String path, DateTime value);
+
 /// Windows / Linux / macOS の実ファイル用リネーム adapter。
 ///
 /// 通常の`File.rename`はOSによって既存fileを置換しうるため、排他的なnative rename
 /// を使って既存fileを原子的に上書きしない(INV-002)。成功時は絶対pathを新しい
 /// handleとして返す(REQ-001)。
-class DesktopRenameExecutor implements RenameExecutor {
-  DesktopRenameExecutor({DesktopRenameOperation? rename})
-    : _rename = rename ?? _exclusiveRename;
+class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
+  DesktopRenameExecutor({
+    DesktopRenameOperation? rename,
+    DesktopSetModifiedAt? setModifiedAt,
+  }) : _rename = rename ?? _exclusiveRename,
+       _setModifiedAt = setModifiedAt ?? _setLastModified;
 
   final DesktopRenameOperation _rename;
+  final DesktopSetModifiedAt _setModifiedAt;
 
   static Future<NativeRenameResult> _exclusiveRename(
     String source,
     String destination,
   ) async => renameFileWithoutOverwrite(source, destination);
+
+  static Future<void> _setLastModified(String path, DateTime value) =>
+      File(path).setLastModified(value);
+
+  /// 更新日時ずらし(005 REQ-014)。改名の副次処理なので、失敗しても理由を
+  /// 返すだけで実体の名前には触れない(REQ-016 は呼び出し側で保証する)。
+  @override
+  Future<RenameError?> setModifiedAt(String handle, DateTime value) async {
+    try {
+      await _setModifiedAt(handle, value);
+      return null;
+    } catch (error) {
+      // 分類は rename と同じ [errorOf] に任せる。errorCode の数値は OS で意味が
+      // 違う(POSIX の 5 は EIO、Win32 の 5 は ACCESS_DENIED)ので独自に読まない。
+      // ここで捕らえるのは FileSystemException だけではない — この port は
+      // 「例外を投げない」と約束しており(REQ-017)、想定外の例外を通すと
+      // REQ-016(更新日時の失敗で実行を止めない)が破れる。
+      final classified = errorOf(error);
+      return RenameError(
+        classified.kind,
+        '更新日時を設定できません: ${classified.message ?? error}',
+      );
+    }
+  }
 
   @override
   Future<RenameResult> rename(String handle, String newName) async {

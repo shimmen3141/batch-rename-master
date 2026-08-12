@@ -15,6 +15,7 @@ class RenameExecutionController extends ChangeNotifier {
     required this.executor,
     this._clock = DateTime.now,
     this.undoWindow = const Duration(seconds: 5),
+    this.modifiedAtInterval = const Duration(seconds: 1),
   });
 
   final FileListController files;
@@ -41,6 +42,39 @@ class RenameExecutionController extends ChangeNotifier {
   List<FileEntry> _excludedEmptyNames = const [];
   List<FileEntry> get excludedEmptyNames => _excludedEmptyNames;
 
+  /// この端末で更新日時をずらせるか(005 REQ-015)。
+  ///
+  /// 手段を持つ実装だけが [ModifiedAtWriter] を実装する。UI はこれが `false` の
+  /// ときに設定そのものを出さない — 「効かない設定」を見せないため。
+  bool get canShiftModifiedAt => executor is ModifiedAtWriter;
+
+  bool _shiftModifiedAt = false;
+
+  /// 更新日時ずらしが有効か。**既定は無効**(REQ-014)。
+  bool get shiftModifiedAt => _shiftModifiedAt;
+
+  /// 更新日時ずらしの入切。ずらせない端末では有効にできない(REQ-015)。
+  void setShiftModifiedAt(bool value) {
+    final next = value && canShiftModifiedAt;
+    if (next == _shiftModifiedAt) return;
+    _shiftModifiedAt = next;
+    notifyListeners();
+  }
+
+  /// ずらす間隔。既定 1 秒。
+  ///
+  /// filesystem の更新日時の解像度はこれより粗いことがある(FAT は 2 秒粒度)。
+  /// 丸められても**順序**は保たれるので、等間隔であることは要求しない(REQ-014)。
+  final Duration modifiedAtInterval;
+
+  List<FileEntry> _modifiedAtFailures = const [];
+
+  /// 直前の実行で、改名は成功したが更新日時を設定できなかったファイル。
+  ///
+  /// 改名の失敗([RenameOutcome.failure])とは別に持つ。混ぜると「改名できた
+  /// のか」が読めなくなる(REQ-016)。
+  List<FileEntry> get modifiedAtFailures => _modifiedAtFailures;
+
   /// [force] では 001 の自動解決後に空名を除外する(REQ-022)。
   ///
   /// ルールが空のときは、どの経路から呼ばれても実行を開始しない(REQ-019)。
@@ -51,6 +85,7 @@ class RenameExecutionController extends ChangeNotifier {
     _clearUndo();
     _running = true;
     _excludedEmptyNames = const [];
+    _modifiedAtFailures = const [];
     notifyListeners();
     try {
       final entries = _entriesWithSelection();
@@ -92,6 +127,7 @@ class RenameExecutionController extends ChangeNotifier {
       _excludedEmptyNames = List.unmodifiable(excluded);
       final outcome = await executePlan(planExecution(requests), executor);
       _applyOutcome(outcome, sources);
+      await _shiftModifiedAtOfSuccesses(outcome);
       _offerUndo(outcome);
       return outcome;
     } finally {
@@ -118,6 +154,44 @@ class RenameExecutionController extends ChangeNotifier {
       _running = false;
       notifyListeners();
     }
+  }
+
+  /// 成功した改名に対して、**表示順**で一定間隔ずつ増える更新日時を書く(REQ-014)。
+  ///
+  /// 順序の基準は実行計画ではない。[planExecution] は中間状態の衝突を避けるため
+  /// に並べ替え、一時名を挟むこともあるので、その順で書くと画面の並びと合わない。
+  /// [_applyOutcome] 済みの `files.items` を辿ることで、利用者が見ている順序を
+  /// そのまま使う。
+  ///
+  /// 1件失敗しても続ける(REQ-016)。失敗は [modifiedAtFailures] へ集め、改名の
+  /// 失敗とは別に提示できるようにする。
+  Future<void> _shiftModifiedAtOfSuccesses(RenameOutcome outcome) async {
+    final executorRef = executor;
+    if (!_shiftModifiedAt || executorRef is! ModifiedAtWriter) return;
+    final writer = executorRef as ModifiedAtWriter;
+    final renamedHandles = {
+      for (final success in outcome.successes) success.handle,
+    };
+    if (renamedHandles.isEmpty) return;
+
+    final base = _clock();
+    final failures = <FileEntry>[];
+    final replacements = <FileEntry, FileEntry>{};
+    var index = 0;
+    for (final item in files.items) {
+      final handle = item.sourceHandle;
+      if (handle == null || !renamedHandles.contains(handle)) continue;
+      final value = base.add(modifiedAtInterval * index);
+      index++;
+      final error = await writer.setModifiedAt(handle, value);
+      if (error != null) {
+        failures.add(item);
+        continue;
+      }
+      replacements[item] = _withModifiedAt(item, value);
+    }
+    _modifiedAtFailures = List.unmodifiable(failures);
+    files.replaceItems(replacements);
   }
 
   /// 成功した改名と、復元できず一時名のまま残った実体だけを一覧へ反映する。
@@ -201,6 +275,17 @@ class RenameExecutionController extends ChangeNotifier {
     sourceHandle: handle,
     sourceLocation: source.sourceLocation,
   );
+
+  static FileEntry _withModifiedAt(FileEntry source, DateTime modifiedAt) =>
+      FileEntry(
+        name: source.name,
+        createdAt: source.createdAt,
+        modifiedAt: modifiedAt,
+        size: source.size,
+        selected: source.selected,
+        sourceHandle: source.sourceHandle,
+        sourceLocation: source.sourceLocation,
+      );
 
   static bool _changedRename(SuccessfulRename rename) =>
       rename.originalName != rename.newName;
