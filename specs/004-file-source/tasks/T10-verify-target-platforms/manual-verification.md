@@ -2,27 +2,24 @@
 
 ## 確認すること
 
-004の選択導線を、実際のplatformで確認します。fakeでは確認できないもの——**システムのpickerが返すもの**、**種類ごとの入口**、**Androidが要求する権限**——が対象です。
+読み込み導線を、実際のAndroidとWindowsで確認します。開発側のテストでは確認できないもの——**OSのファイル選択画面が実際に返してくるもの**、**種類ごとの入口**、**Androidがアプリに要求する権限**——が対象です。
 
-特に次の2つは、この確認以外に検査する場所がありません。
+特に次の2つは、この確認以外に見る場所がありません。
 
-- 「画像」「動画」は読み込みを始めず、未実装であることを示す(**REQ-011**)。
-- **追加の全ファイルアクセス権限を要求しない**(このprojectのAndroid権限方針。`MANAGE_EXTERNAL_STORAGE`を使わない)。
+- 「画像」「動画」を選んでも読み込みを始めず、未実装であることを示す。
+- **アプリが「すべてのファイルへのアクセス」を要求しない。** このアプリは、ユーザーが選んだファイルだけを扱う方針です。
 
 ## 事前準備
 
-共通の起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従ってください。branchの移動は不要です。Agentが対象branchとcommitを用意した状態で待ちます。
+起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従ってください。**branchの移動は不要です。**Agentが対象のbranchとcommitを用意した状態で待ちます。
 
-- Commit: `<Agentが記入>`
-- 対象: Android(emulatorまたは実機)と、Windows desktop build
+必要なもの: Android(エミュレータまたは実機)と、Windows desktop build。両方を1回ずつ確認します。
 
-消えてよいfixtureを**2つのフォルダに分けて**用意します。片方に同名ファイルを置くのが要点です(フォルダ跨ぎの警告と、handleの区別を見るため)。
-
-Windows側:
+消えてよい確認用ファイルを、**2つのフォルダに分けて**作ります。片方に同名ファイルを置くのが要点です。
 
 ```powershell
-$a = Join-Path $env:TEMP 'asdd-src-a'
-$b = Join-Path $env:TEMP 'asdd-src-b'
+$a = 'C:\asdd-fixtures\src-a'
+$b = 'C:\asdd-fixtures\src-b'
 Remove-Item -LiteralPath $a,$b -Recurse -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $a,$b
 Set-Content -LiteralPath (Join-Path $a 'doc1.txt')  -Value 'a-doc1'
@@ -31,105 +28,110 @@ Set-Content -LiteralPath (Join-Path $b 'same.txt')  -Value 'b-same'
 Set-Content -LiteralPath (Join-Path $a 'photo.jpg') -Value 'a-photo'
 ```
 
-以降のPowerShellは同じwindowで続けてください(`$a`・`$b`はwindowを閉じると消えます)。
+置き場所は `C:\asdd-fixtures\src-a` と `C:\asdd-fixtures\src-b` です(ファイル選択画面でここへ辿ってください)。
 
-Android側(emulatorへ同じものを置く):
+Androidのエミュレータにも同じものを置きます。
 
 ```powershell
 $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
 & $adb shell mkdir -p /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
-& $adb push $a\doc1.txt  /sdcard/Download/asdd-src-a/
-& $adb push $a\same.txt  /sdcard/Download/asdd-src-a/
-& $adb push $b\same.txt  /sdcard/Download/asdd-src-b/
-& $adb push $a\photo.jpg /sdcard/Download/asdd-src-a/
+& $adb push C:\asdd-fixtures\src-a\doc1.txt  /sdcard/Download/asdd-src-a/
+& $adb push C:\asdd-fixtures\src-a\same.txt  /sdcard/Download/asdd-src-a/
+& $adb push C:\asdd-fixtures\src-b\same.txt  /sdcard/Download/asdd-src-b/
+& $adb push C:\asdd-fixtures\src-a\photo.jpg /sdcard/Download/asdd-src-a/
 ```
 
-## Android SAF
+Android側は `内部ストレージ > Download > asdd-src-a` と `asdd-src-b` に入ります。
 
-### 1. 種類の選択から始まる(REQ-011)
+## Android
+
+### 1. 種類の選択から始まる
 
 1. 「ファイルを選ぶ」を押します。
-   - 確認: 種類を選ぶシートが出て、「画像」「動画」「文書」「すべて」の**4つ**がある。
+   - 確認: 種類を選ぶ画面が出て、「画像」「動画」「文書」「すべて」の**4つ**がある。
 
 2. 「画像」を選びます。
-   - 確認: **読み込みが始まらない**。ファイル選択画面も開かない。
-   - 確認: 未実装である旨(写真機能で対応予定)が表示される。
-   - 確認: 一覧は変化しない。
+   - 確認: **ファイル選択画面が開かない**。一覧も変化しない。
+   - 確認: まだ用意できていない旨(写真機能で対応予定)が表示される。
 
 3. 「動画」でも同じことを確認します。
 
 4. 「文書」を選びます。
-   - 確認: システムのファイル選択画面が開き、**文書系のファイルに絞り込まれている**(`photo.jpg`が選べない、またはグレーアウトする)。
-   - いったん戻ります。
+   - 確認: ファイル選択画面が開き、`photo.jpg` が選べない(表示されないか、押しても選択できない)。
+   - 戻ります。
 
-### 2. 選択するとリストが置き換わる(REQ-004 / REQ-007 / REQ-009)
+### 2. 選ぶとリストが入れ替わる
 
-1. 「すべて」から`asdd-src-a`の`doc1.txt`と`same.txt`を選んで確定します。
+1. 「すべて」から `asdd-src-a` の `doc1.txt` と `same.txt` を選んで確定します。
    - 確認: 一覧が**選んだ2件だけ**になる。
-   - 確認: 2件とも**チェックが入っている**(既定で全選択)。
-   - 確認: 各行に**場所(元のフォルダ)**がサブ情報として出る。
+   - 確認: 2件ともチェックが入っている。
+   - 確認: 各行に**どのフォルダのファイルか**が小さく表示される。
 
-2. もう一度「すべて」から、今度は`asdd-src-b`の`same.txt`だけを選んで確定します。
-   - 確認: 一覧が**1件だけ**になる。前回の2件は**残らない**(蓄積せず置き換える)。
+2. もう一度「すべて」から、今度は `asdd-src-b` の `same.txt` **だけ**を選んで確定します。
+   - 確認: 一覧が**1件だけ**になる。前回の2件は**残らない**(足し算ではなく入れ替え)。
 
-### 3. 同一ファイルと同名別ファイルの扱い(REQ-002 / REQ-004)
+### 3. 同じファイルを2回選んだとき
 
-1. 「すべて」から`asdd-src-a`の`same.txt`と`asdd-src-b`の`same.txt`を**両方**選んで確定します。
+1. 「すべて」から `asdd-src-a` の `doc1.txt` を選びます。同じファイルを2回選べる場合は2回選んでから確定します。
+   - 確認: 一覧に入るのは**1件だけ**。
+   - 2回選べない画面なら「確認不能」で構いません。
+
+### 4. フォルダをまたいで選んだとき(できる場合のみ)
+
+> このstepは**できなくても構いません。** Androidの標準のファイル選択画面は、フォルダを移動すると選択が解除される作りで、1回の選択で2つのフォルダから選べないことがあります(2026-08-05に確認済み)。その場合は次のstepへ進んでください。同じ内容は開発側のテストでも検査しています。
+
+1. 1回の選択で `asdd-src-a` の `same.txt` と `asdd-src-b` の `same.txt` を**両方**選べるか試します。ファイル選択画面の「最近」タブや検索から、フォルダを移動せずに両方を選べる場合があります。
+2. 両方選べて確定できたら:
    - 確認: 読み込みは**成功する**。
-   - 確認: 同名だが**2件として残る**(別フォルダ＝別ファイル)。行の場所表示で区別できる。
-   - 確認: **フォルダを跨いでいる旨の警告**が出る(REQ-012)。
+   - 確認: 同名だが**2件**として残り、行の表示でどちらのフォルダか区別できる。
+   - 確認: **複数のフォルダのファイルが混ざっている旨の警告**が出る。
+3. 選べなければ「確認不能」で構いません。
 
-2. システムの選択画面で**同じファイルを2回**選べる場合は、`doc1.txt`を重複させて確定します。
-   - 確認: 一覧には**1件だけ**入る(同一handleは1件にまとめる)。
-   - 選択画面が重複選択を許さない場合は「確認不能」で構いません。
+### 5. 作成日時が分からないファイルの扱い
 
-### 4. cancelでは何も起きない(REQ-008)
+Androidでは作成日時が取れないため、通常はすべて「不明」になります。
 
-1. 「すべて」を選び、ファイルを選ばずに戻る/キャンセルします。
-   - 確認: 一覧が**まったく変化しない**(前回の選択が保たれる)。
-   - 確認: **通知やメッセージも出ない**(エラー表示が出ないこと)。
+1. 並び順を「**作成日時順**」にします。
+   - 確認: 作成日時が分からない件数と、更新日時で代わりに並べている旨の警告が出る。
+   - 確認: 各行の「作成日時: 不明」が**警告色・警告マークで強調**される。
 
-### 5. 作成日時が不明なときの扱い(002 REQ-011 / REQ-013)
+2. 並び順を「**元の名前順**」に戻します。
+   - 確認: 「不明」の表示自体は残るが、**強調は外れる**(警告色・警告マークが消える)。
 
-Android SAFは作成日時の列を持たないため、通常はすべて「不明」になります。
+### 6. 権限
 
-1. 並び順を**作成日時**にします。
-   - 確認: 作成日時が不明な件数と、更新日時で代替して並べている旨の警告が出る。
-   - 確認: 各行の日時表示で「作成日時: 不明」が**強調**される。
+1. ここまでの操作で、アプリから権限の許可を求められたか思い出してください。
+   - 確認: **「すべてのファイルへのアクセス」やストレージ全体の許可を求められていない。**
+2. 設定 → アプリ → このアプリ → 権限 を開きます。
+   - 確認: ストレージ関連の権限が**付与されていない**(ファイル選択画面を経由するので、許可が要らない作りです)。
 
-2. 並び順を**名前**に戻します。
-   - 確認: 「不明」の表示自体は残るが、**強調(警告色・警告マーク)は外れる**。
+## Windows desktop
 
-### 6. 権限(このprojectの方針)
+1. 「ファイルを選ぶ」→「**すべて**」を選び、`C:\asdd-fixtures\src-a` の `doc1.txt` と `same.txt` を選びます。
+   - 確認: 一覧が選んだ2件で置き換わり、各行にフォルダが表示される。
 
-1. ここまでの操作を通して、アプリが要求した権限を思い出してください。
-   - 確認: **「すべてのファイルへのアクセス」や、ストレージ全体の権限を要求されていない**。
-   - 確認: 設定 → アプリ → このアプリ → 権限 で、ストレージ関連の権限が付与されていない(SAFはシステムのpicker経由なので権限付与が要りません)。
+2. 同じファイルを2回選べる場合は `doc1.txt` を重複させて選びます。
+   - 確認: 一覧に入るのは1件だけ。2回選べなければ「確認不能」で構いません。
 
-## Desktop (Windows)
+3. 「すべて」から `C:\asdd-fixtures\src-b` の `same.txt` **だけ**を選び直します。
+   - 確認: 1件だけになり、前回分は残らない(Androidと同じ)。
 
-1. 「ファイルを選ぶ」からOSのpickerを開き、`asdd-src-a`の`doc1.txt`と`same.txt`を選びます。
-   - 確認: 一覧が選んだ2件で置き換わり、各行に場所が出る。
+4. ファイル選択画面をキャンセルします。
+   - 確認: 一覧が変化せず、エラーや通知も出ない(Androidと同じ)。
 
-2. `asdd-src-b`の`same.txt`だけを選び直します。
-   - 確認: 1件だけになり、前回分は残らない(Androidと同じ契約)。
-
-3. pickerをキャンセルします。
-   - 確認: 一覧が変化せず、通知も出ない(Androidと同じ契約)。
-
-4. `asdd-src-a`と`asdd-src-b`の`same.txt`を両方選びます。
-   - 確認: 2件として残り、フォルダ跨ぎの警告が出る。
-   - 確認: 行の場所表示で、それぞれ`asdd-src-a`と`asdd-src-b`だと分かる(handleが絶対パスで、同名の別パスを別ファイルとして扱えている)。
+5. 1回の選択で両フォルダの `same.txt` を選べるか試します(Windowsの選択画面も通常は同一フォルダ内に限られるため、**できなければ「確認不能」で構いません**)。
+   - 選べた場合の確認: 2件として残り、フォルダをまたいでいる旨の警告が出る。行の表示で `src-a` と `src-b` が区別できる。
 
 ## 後片付け
 
 ```powershell
-Remove-Item -LiteralPath $a,$b -Recurse -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath 'C:\asdd-fixtures' -Recurse -ErrorAction SilentlyContinue
+$adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
 & $adb shell rm -rf /sdcard/Download/asdd-src-a /sdcard/Download/asdd-src-b
 ```
 
 ## 結果の伝え方
 
-会話でそのまま教えてください。書式は問いません。うまくいかなかった箇所は、画面の文言と、必要なら`adb`やPowerShellの出力を添えてください。
+会話でそのまま教えてください。書式は問いません。うまくいかなかった箇所は、画面に出た文言と、必要なら`adb`やPowerShellの出力を添えてください。できなかったstepは「できなかった」と書いていただければ十分です。
 
-Agentが記録する証拠は、対象commit・build・OS/device、置換前後の一覧、cancel前後の一覧、種類別の入口の挙動、フォルダ跨ぎ警告、作成日時警告、権限の状態です。結果は`task.md`の作業記録へ要約します(このfileにstatusは書きません。状態の正本は`task.json`です)。
+結果を受け取ったらAgentが`task.md`へ記録し、受け入れ条件を満たしたかreviewします。
