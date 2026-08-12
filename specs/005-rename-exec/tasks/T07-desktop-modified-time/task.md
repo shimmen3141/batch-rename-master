@@ -56,14 +56,14 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 - 2026-08-12 / 独立reviewが挙げた「巻き戻しで更新日時が戻らない」点を、開発者が**意図した受容**と決定。契約の`scope.out`と`spec.md`の対象外へ明記し、代表例5bを追加、contract revisionを2→3にした。実装の振る舞いは変えていない(元から戻さない)。名前は`REQ-006`どおり戻る。
 
+- 2026-08-12 / 証拠の再取得範囲を人間が決定: **案A(手順4だけ現headで再実施)**。`34b01d3`の変更はcatch節=失敗経路限定で、手順1・2・3・Androidは`setModifiedAt`の成功経路しか通らず変更行に到達しない。手順1・2・3・Androidの証拠は`1bf73e9`のものを再利用する。
+
 ## Current state / handoff
 
-- 2026-08-12 / 実装に対する独立review 2回目(通算attempt 6)は**BLOCKED**。実装・test・仕様の内容面に未解決のP0/P1は無いが、**現headに対応するmanual証拠が無い**。manual実施(`1bf73e9`時点)のあと`34b01d3`で`desktop_rename_executor.dart`のcatch節を変更しており、AGENTS.mdの「manual証拠は対象commit以後にcode、dependency、build設定が変わったら再利用しない」に触れる。変わったのは手順4が踏む例外経路そのものである。
-- Review attempt 6(実装 2回目): `dev@b7f1e1b...a54c494` — BLOCKED — 未解決P0/P1なし。現headのmanual証拠が無いことによる
-- Last checkpoint: 実装・test・仕様は揃い、mutationで判別力も実証済み。残るのはmanual証拠のidentity回復のみ
-- Blocker category: human-decision
-- Waiting for: 証拠の再取得範囲の判断。`34b01d3`の変更は失敗経路(catch節)限定で、手順1・2・3・Androidは成功経路しか通らない
-- Requested action: 案A(手順4だけ現headで再実施)か案B(全手順を再実施)を選び、選んだ範囲を実施する
-- Evidence revision: manualは`1bf73e9`で実施。**その後`34b01d3`が`lib/data/rename_exec/desktop_rename_executor.dart`のcatch節と分類を変更している**(全捕捉化、`errorOf`へ寄せた)。現head `a54c494`に対応するmanual証拠は未取得
-- Evidence: `flutter test`=PASS(**359**、うち`modified_time_test.dart` **9件**、`platform_rename_executor_test.dart`に4件追加)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)。manual=**現headでは未取得**
-- Next Agent action: 人間が選んだ範囲のmanualを現headで実施してもらい、結果を記録して再reviewを起動する
+- Last checkpoint: 記録の不備(revision_history、Evidenceの実測値、identity切れの開示)を解消し、再取得範囲の決定を得た
+- Blocker category: manual
+- Waiting for: 現head `39bc45a` のWindows desktop buildでの[`manual-verification.md`](manual-verification.md)**手順4のみ**の再実施
+- Requested action: 人間が手順4を実施し、結果を会話で返す。branch移動は不要(Agentが`asdd/005-rename-exec/T07-desktop-modified-time`を維持する)
+- Evidence revision: 手順4は現head `39bc45a` で取り直す。手順1・2・3・Androidは`1bf73e9`のものを再利用する(人間の決定 2026-08-12。`34b01d3`の変更は失敗経路限定で、これらの手順は到達しない)
+- Evidence: `flutter test`=PASS(359、うち`modified_time_test.dart` 9件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)。manual=手順1・2・3・AndroidはPASS(`1bf73e9`)、手順4は再取得待ち
+- Next Agent action: 手順4の結果を記録し、再reviewを起動する。PASSすればPRを出して人間へmergeを依頼する
