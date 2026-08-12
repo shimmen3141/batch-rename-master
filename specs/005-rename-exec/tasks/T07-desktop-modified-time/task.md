@@ -54,6 +54,8 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
   - **判別力をmutationで実証した**。`_shiftModifiedAtOfSuccesses`を`outcome.successes`順へ一時改変すると、**追加したtestだけがFAIL**し、他8件はPASSのままだった。改変は元へ戻してある。
 - 2026-08-12 / P2も対処した。`DesktopRenameExecutor.setModifiedAt`に自動testが1件も無かった(注入口を用意しながら未使用)ため4件追加した(実file更新、対象なし、想定外の例外、権限)。例外の捕捉を`FileSystemException`限定から全捕捉へ広げ、分類を独自のerrorCode読みからrename側と同じ`errorOf`へ寄せた。POSIXの5はEIO、Win32の5はACCESS_DENIEDで意味が違うため、数値を直接読まない。
 
+- 2026-08-12 / 独立reviewが挙げた「巻き戻しで更新日時が戻らない」点を、開発者が**意図した受容**と決定。契約の`scope.out`と`spec.md`の対象外へ明記し、代表例5bを追加、contract revisionを2→3にした。実装の振る舞いは変えていない(元から戻さない)。名前は`REQ-006`どおり戻る。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装・仕様由来test・manual verificationがすべて揃った
