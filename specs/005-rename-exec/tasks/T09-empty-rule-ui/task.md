@@ -43,7 +43,9 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 ## Current state / handoff
 
 - Last checkpoint: REQ-019〜021の実装、アクションバー下部移設、undoのtoast移設まで完了し、full regressionがPASS
-- Blocker category: なし
+- Blocker category: manual
+- Waiting for: [`manual-verification.md`](manual-verification.md)の実施。特に、結果toast上のundoが実機で押せること(自動testではtap範囲とSafeAreaを再現できない)
+- Requested action: 人間がWindows desktop buildでmanual checklistを実施し、結果を返す
 - Evidence revision: branch `asdd/005-rename-exec/T09-empty-rule-ui`(base `dev@63de09c`)
 - Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)
 - Next Agent action: `manual-verification.md`を用意し、独立reviewを通したうえでpush / PRを人間へ確認する
