@@ -12,7 +12,7 @@
 
 ## 事前準備
 
-Windowsデスクトップアプリで確認します。branchの移動は不要です。Agentが`asdd/005-rename-exec/T09-empty-rule-ui`(commit `<記入>`)を用意した状態で待っています。
+Windowsデスクトップアプリで確認します。branchの移動は不要です。Agentが`asdd/005-rename-exec/T09-empty-rule-ui`(commit `d707e6d`)を用意した状態で待っています。
 
 PowerShellで専用folderとファイルを作ります。
 
@@ -100,28 +100,15 @@ Get-Content -LiteralPath (Join-Path $emptyRuleFixture 'photo_ok.txt')
 Remove-Item -LiteralPath $emptyRuleFixture -Recurse -ErrorAction SilentlyContinue
 ```
 
-## 結果の返し方
+## 結果の伝え方
 
-```text
-空ルールで警告帯ではなく未設定の案内が出た:
-空ルールで実行ボタンが押せず、実ファイルも変わらなかった:
-設定ボタンと実行ボタンが一覧の下に縦並びで出た:
-トークン追加で通常状態へ戻り、削除で未設定へ戻った:
-結果トーストの「元に戻す」が問題なく押せた:
-5秒以内のundoで実ファイルがphoto.txtへ戻った:
-6秒後は「元に戻す」が消えた:
-補足:
-```
+会話でそのまま教えてください。書式は問いません。うまくいかなかった箇所は、画面の文言とPowerShellの出力を添えてください。押しにくさや見た目の違和感も、気づいた範囲で書いていただけると助かります。
 
-各行を`PASS`、`FAIL`、`確認不能`で返してください。FAIL時は画面の文言とPowerShell出力を添えてください。押しにくさや見た目の違和感は`補足`へ書いてください。
+結果はAgentが`task.md`の作業記録へ要約します(このfileにはstatusを書きません。状態の正本は`task.json`です)。
 
-## Evidence identity
+## この確認が対象とするbuild
 
-- Commit: `d707e6d`(この確認以後、code / dependency / build設定の差分なし。以後の差分は証拠・記録・`origin/dev`のAGENTS.md取り込みのみ)
+- Commit: `d707e6d`
 - Build/artifact: Windows desktop build(人間がhostでbuild)
 - Environment/device: Windows / ウィンドウ幅840dp未満
 - Fixture/data: `%TEMP%\asdd-empty-rule-check\photo.txt`
-- Observer: 開発者
-- Observed at: 2026-08-12
-- Status: **PASS**(会話で報告。checklistを順番に実施し、全項目の動作を確認)
-- Notes: 手順のPowerShellで`引数が null であるため、パラメーター 'LiteralPath' にバインドできません`が出た。`$emptyRuleFixture`がwindowをまたいで残らないための手順側の不備で、UIの確認結果には影響していない(rename・undo・実ファイルの変化は確認済み)。手順へ注意書きを追加した。
