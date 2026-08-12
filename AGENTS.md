@@ -32,6 +32,7 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 - `tasks/<TNN>-<name>/task.md`: task固有の目的、範囲、受け入れ証拠、観測済みcheckpoint、handoff。
 - 同`task.json`: task ID、status、依存、仕様被覆、Issue/PR番号、manual確認path。
 - `spec.md`、contracts、decisions: 利用者から観測できる正しさと長期判断。
+- `docs/design/Bulk Renamer.html`: 005のUIにおける**配置・導線・情報階層**の正本。対象taskは適用する画面範囲を`task.md`へ書き、review・widget test・manual確認で照合する。判定、状態遷移、データ保護、時間制約はdesignへ移さず、`spec.md`、contracts、decisions、testを正本とする。参考画像や探索中のdesignは正本として扱わない。
 - Issueを使う場合: 担当、branch、review会話、外部結果link。taskの意味、依存、handoffを複製しない。
 
 `NNN`と`TNN`は安定IDであり、順序・優先度ではない。挿入・分割・移行で既存IDを振り直さず、実行可否は依存から判断する。
