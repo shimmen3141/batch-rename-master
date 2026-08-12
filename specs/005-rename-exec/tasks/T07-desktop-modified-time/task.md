@@ -34,6 +34,8 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(このtaskへの指摘なし)
 - **実装に対するreviewはここから。**
 - Review attempt 5(実装 1回目): `dev@b7f1e1b...1bf73e9` — FAIL — P1: VER-006がREQ-014の核心(実行計画順ではなく表示順)を判別できず、testのコメントが判別すると偽って主張していた
+- Review attempt 6(実装 2回目): `dev@b7f1e1b...a54c494` — BLOCKED — 未解決P0/P1なし。manual実施後に`34b01d3`が`lib/`を変えたため、現headに対応するmanual証拠が無かった
+- Review attempt 7(実装 3回目): `dev@b7f1e1b...4651c8c` — PASS — 残るP0/P1: none(P2 3件。attempt ledgerの欠落とfindingの原因分析はこのcommitで解消、`spec.md`のVER driftはplan側の残条件)
 
 - 2026-08-12 / **manual verification 1回目 / 一部のみ確認**。開発者がbranch headのWindows desktop buildとAndroid buildで実施。
   - **確認できた**: 設定が既定OFFでOFFのままなら更新日時が変わらない(手順1)。ONにすると一覧の並び順に更新日時がずれる(手順2)。Androidでは設定そのものが出ない(REQ-015)。
@@ -64,10 +66,10 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 ## Current state / handoff
 
-- Last checkpoint: 手順4を現headで再実施しPASS。実装・test・仕様・manualがすべて揃った
-- Blocker category: review
-- Waiting for: 現headを対象にした独立review(manual証拠のidentity回復の確認を含む)
-- Requested action: なし(Agentがreviewを起動する)
-- Evidence revision: 手順4は`e49d753`で実施。手順1・2・3・Androidは`1bf73e9`(人間の決定により再利用)。以後`lib/`と`test/`は変更していない
-- Evidence: manual verification=PASS(全手順)、`flutter test`=PASS(359、うち`modified_time_test.dart` 9件)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)
-- Next Agent action: 独立reviewを起動し、PASSならPRを出して人間へmergeを依頼する
+- Last checkpoint: 独立review attempt 7がPASS(P0/P1なし)。実装・test・仕様・manualがすべて揃い、受け入れ条件を満たした
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: 手順4は`e49d753`(現headと`lib/`・`test/`同一)、手順1・2・3・Androidは`1bf73e9`(人間の決定により再利用。`34b01d3`の変更は失敗経路限定で到達しない。reviewerが実コードで確認)
+- Evidence: manual verification=PASS(全手順)、独立review=PASS(attempt 7)、`flutter test`=PASS(359)、`flutter analyze`=PASS(0)、`dart format`=PASS(76 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、mutation=判別力を実証(reviewerが独立に再現)
+- Next Agent action: PRを作成し、CI PASSを確認してmergeを人間へ依頼する。**005のplan完了には`spec.md`のVER-004/VER-005ドリフト解消が別途必要**(plan.mdの全体受け入れ証拠に記載。T08由来でT07の範囲外)
