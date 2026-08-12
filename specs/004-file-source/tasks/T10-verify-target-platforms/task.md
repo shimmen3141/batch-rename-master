@@ -34,12 +34,26 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2 8件。実害のある007 manualの例示・label表記と、記録の不整合をこの後の commit で処理)
 
+- 2026-08-12 / PR #121が`dev`へmerge済み(`7154ce3`)。復元したchecklistで実機確認を依頼する段階になったため、statusを`blocked`(manual待ち)へ変更した。
+
+- 2026-08-12 / **manual verification実施 / 受け入れ条件を満たした**。開発者が`dev@7154ce3`のAndroid(emulator)とWindows desktop buildでchecklistを実施し、結果を会話で報告。
+  - 種類の入口(REQ-011): 4種類が出る。「画像」「動画」は選んでも読み込まず未実装を示す。「文書」は文書系だけが出る。**確認できた**。
+  - 置き換えと場所表示(REQ-004 / REQ-007 / REQ-009)、選ばずに戻ったときの不変(REQ-008)、作成日時不明のwarningと強調・別sortでの強調解除(002 REQ-011 / REQ-013): **すべて確認事項どおり**。後述の見切れがあっても、警告アイコンは省略対象外(`file_list_view.dart:626`は`Expanded`の外)のため、どの行の作成日時が不明かは観測できた。
+  - desktop(Windows)個別: 種類「すべて」からの複数選択で一覧が置き換わり場所が出る(手順1)、選び直しで前回分が残らない(手順3)、cancelで一覧・通知とも不変(手順4)を**個別に確認**。Androidと同じ契約になっている。
+  - 権限: 設定→アプリ→権限が`No permissions allowed`。**追加の全file access権限を要求していない**ことを確認。
+  - **フォルダ跨ぎ(REQ-012)は成立した**。ただし想定と違う経路で、file選択画面上部の`Documents`チップを選ぶと、folderが`asdd-src-a`のままでも`asdd-src-b`のtxtも一覧に出る(chipがfolderではなく種類で横断集約する)。両方のsame.txtを同時に選択でき、**複数folderが混ざっている旨の警告も出た**。REQ-012の実機受け入れはこれで取れている。
+  - 同一fileの重複選択(Android手順3 / desktop手順2)は、どちらのfile選択画面でも同じfileを2回選べないため**実施不能**。REQ-004の重複集約はVER-002の自動testで検査済みで、実機受け入れの必須項目ではない。
+  - desktopのfolder跨ぎ(手順5)も選択画面の制約で**実施不能**。Android側で取れているため受け入れに影響しない。
+  - 観測した読みにくさ: 行のサブ情報が狭幅で見切れ、`作成日時: 不明`の文字列が読めないことがある。`file_list_view.dart:648`が`maxLines: 1` + ellipsisで1行にまとめているため。ただし警告アイコンは`Expanded`の外(同`:626`)で省略されないため、**002 REQ-013の識別自体は成立しており仕様違反ではない**。読みやすさの問題として**008へ送った**(開発者判断)。このtaskの受け入れは阻却しない。
+
+- Review attempt 5: PR #122 `dev@7154ce3...f98f53f` — PASS — 残るP0/P1: none(manual結果を対象とした初回review。P2 5件はこの後のcommitで解消)
+
 ## Current state / handoff
 
-- Last checkpoint: 独立reviewのattempt 4がPASS(P0/P1なし)。残りのP2を解消し、mergeを人間へ依頼する段階
-- Blocker category: human-decision
-- Waiting for: 人間によるPR #121のmerge。このPRは`004:T10`・`005:T07`・`005:T09`・`007:T06`の4 taskにまたがるため、AGENTS.mdのAgent auto-merge条件1「plan/task、Issue、base/headが一意」を満たさない
-- Requested action: 人間がPR #121をmergeする
-- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
-- Evidence: 独立review attempt 4=PASS、dry-run=PASS(004の画面文言・path・command全件と007の文言をrepository内の出所と突き合わせ)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)、CI `check`=SUCCESS
-- Next Agent action: merge後、このtaskを`blocked`(manual待ち)へ戻し、対象commitを固定したうえで人間へchecklistを依頼する。**このreviewがPASSしてもmanual自体は未実施**であり、T10の成果は人間の実機確認である
+- Last checkpoint: manual verificationがPASSし、それを対象とした独立reviewもPASS。受け入れ条件を満たしたので`done`
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@7154ce3`でmanualを実施。以後この branch で code / dependency / build設定の差分はゼロ(reviewerが実diffで確認)
+- Evidence: manual verification=PASS(`dev@7154ce3`、2026-08-12、開発者、Android emulator + Windows desktop)、独立review=PASS(P0/P1なし)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)
+- Next Agent action: なし(完了)。PR #122のmergeは人間が行う

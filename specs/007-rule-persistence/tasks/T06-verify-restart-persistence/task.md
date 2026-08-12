@@ -32,12 +32,14 @@ Androidとdesktopで、保存したruleがアプリprocess終了後も実storage
 
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2-4/P2-5: 例示がサンプル実file名でない、連番labelが実UIと不一致。この後のcommitで解消)
 
+- 2026-08-12 / PR #121が`dev`へmerge済み(`7154ce3`)。復元したchecklistで実機確認を依頼する段階になったため、statusを`blocked`(manual待ち)へ変更した。
+
 ## Current state / handoff
 
-- Last checkpoint: manual checklistの復元が独立review attempt 4でPASS。PR #121のmerge待ち
-- Blocker category: human-decision
-- Waiting for: 人間によるPR #121のmerge
-- Requested action: 人間がPR #121をmergeする
-- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
-- Evidence: 独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)
-- Next Agent action: merge後、対象commitを固定して人間へchecklistを依頼する。**復元がPASSしただけでmanual自体は未実施**で、このtaskの成果は再起動をまたぐ復元の実機確認である
+- Last checkpoint: manual checklistの復元がPR #121で`dev`へ統合済み。実機確認の依頼を出した
+- Blocker category: manual
+- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。Android(emulatorまたは実機)とWindows desktop buildの両方が要る
+- Requested action: 人間が`dev@7154ce3`のbuildでchecklistを実施し、結果を会話で返す
+- Evidence revision: `dev@7154ce3`。Agentはこのcommitでcheckoutを維持し、実施中はcode/dependency/build設定を変更しない
+- Evidence: 復元内容の独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)。**manual自体は未実施**
+- Next Agent action: 結果を受け取って作業記録へ要約し、受け入れ条件を満たしたか判定する。満たせば独立reviewへ回す
