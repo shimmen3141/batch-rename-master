@@ -34,10 +34,11 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 ## Current state / handoff
 
-- Last checkpoint: manual checklistの復元をPR #121で実施。独立reviewが3回連続FAILし、自動修正を停止
-- Blocker category: review(3回FAIL規律)
-- Waiting for: 人間の判断。(a) P1-1の1語をAgentが直して続行、(b) 人間が直す、(c) 別の扱い
-- Requested action: 上記(a)〜(c)を選ぶ。選択後、必要ならattempt 4を取る
-- Evidence revision: PR #121 head `6432da8`(base `dev@abc8007`)
-- Evidence: `workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)。いずれもattempt 3のreviewerが独立に再実行して一致
-- Next Agent action: 人間の判断を待つ。manual自体の実施依頼はP1-1解消後
+- 2026-08-12 / 人間が3回FAIL規律の解除を選択((a) Agentが直して続行)。P1-1を直し、statusを`in_review`へ戻してattempt 4を取る。
+- Last checkpoint: P1-1(アプリ表示名)を`android:label`の実値へ修正し、dry-runを実行してcommit
+- Blocker category: review
+- Waiting for: attempt 4の独立review結果
+- Requested action: なし(Agentがattempt 4を実施中)
+- Evidence revision: PR #121 head `3d8e632`(base `dev@abc8007`)
+- Evidence: dry-run=PASS(画面文言14件を`git grep`で出所確認)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)
+- Next Agent action: attempt 4がPASSならPRのmergeを人間へ依頼する。FAILなら再び自動修正を止めて報告する
