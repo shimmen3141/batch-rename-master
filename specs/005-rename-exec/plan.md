@@ -40,7 +40,7 @@
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` が PASS
 - 同一commit/buildのhost検証で、desktopの実rename・競合時不変・permission拒否・undoと、Android SAFの理由付きunsupported・file不変を確認する。
 - 空ルールUIとdesktop更新日時ずらしを実装し、仕様由来test・manual確認・独立reviewを通す。
-- plan完了までに`spec.md`の検証表を契約と一致させる。2026-08-12のT09独立reviewで、`spec.md`のVER-004/005にT08で追加したREQ-019〜022が写されていないdriftを検出した(契約側は`VER-004: REQ-019, REQ-022` / `VER-005: REQ-019, REQ-020, REQ-021, REQ-022`を持つ)。正本は契約側であり判定に影響しないが、写しが古いまま残らないようにする。T08由来のdriftのためT09では変更しない。
+- `spec.md`の検証表を契約と一致させる。**2026-08-12に解消済み**(T09とT07のreviewで検出したdrift。VER-004へREQ-019/022、VER-005へREQ-019〜022を写した)。以後も契約側を正本とし、写しは契約の`verification`と全行一致していることを機械的に確認する。
 
 ## 人間の決定
 

@@ -92,8 +92,8 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-001 | contract | test/spec_005_rename_exec/ | OP-004, REQ-017, REQ-018, REQ-001 |
 | VER-002 | property | test/spec_005_rename_exec/ | OP-001, REQ-004, REQ-005, INV-002 |
 | VER-003 | example | test/spec_005_rename_exec/ | OP-002, OP-003, REQ-002, REQ-003, REQ-006, REQ-007, REQ-008, INV-001, INV-003, INV-004, INV-005, REQ-001, REQ-005 |
-| VER-004 | model | test/spec_005_rename_exec/ | SM-001, REQ-011, REQ-012, REQ-007 |
-| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011 |
+| VER-004 | model | test/spec_005_rename_exec/ | SM-001, REQ-011, REQ-012, REQ-007, REQ-019, REQ-022 |
+| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022 |
 | VER-006 | example | test/spec_005_rename_exec/ | REQ-014, REQ-015, REQ-016 |
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
 
