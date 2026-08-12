@@ -34,12 +34,14 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 
 - Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2 8件。実害のある007 manualの例示・label表記と、記録の不整合をこの後の commit で処理)
 
+- 2026-08-12 / PR #121が`dev`へmerge済み(`7154ce3`)。復元したchecklistで実機確認を依頼する段階になったため、statusを`blocked`(manual待ち)へ変更した。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立reviewのattempt 4がPASS(P0/P1なし)。残りのP2を解消し、mergeを人間へ依頼する段階
-- Blocker category: human-decision
-- Waiting for: 人間によるPR #121のmerge。このPRは`004:T10`・`005:T07`・`005:T09`・`007:T06`の4 taskにまたがるため、AGENTS.mdのAgent auto-merge条件1「plan/task、Issue、base/headが一意」を満たさない
-- Requested action: 人間がPR #121をmergeする
-- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
-- Evidence: 独立review attempt 4=PASS、dry-run=PASS(004の画面文言・path・command全件と007の文言をrepository内の出所と突き合わせ)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)、CI `check`=SUCCESS
-- Next Agent action: merge後、このtaskを`blocked`(manual待ち)へ戻し、対象commitを固定したうえで人間へchecklistを依頼する。**このreviewがPASSしてもmanual自体は未実施**であり、T10の成果は人間の実機確認である
+- Last checkpoint: manual checklistの復元がPR #121で`dev`へ統合済み。実機確認の依頼を出した
+- Blocker category: manual
+- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。Android(emulatorまたは実機)とWindows desktop buildの両方が要る
+- Requested action: 人間が`dev@7154ce3`のbuildでchecklistを実施し、結果を会話で返す
+- Evidence revision: `dev@7154ce3`。Agentはこのcommitでcheckoutを維持し、実施中はcode/dependency/build設定を変更しない
+- Evidence: 復元内容の独立review attempt 4=PASS、dry-run=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)。**manual自体は未実施**
+- Next Agent action: 結果を受け取って作業記録へ要約し、受け入れ条件を満たしたか判定する。満たせば独立reviewへ回す

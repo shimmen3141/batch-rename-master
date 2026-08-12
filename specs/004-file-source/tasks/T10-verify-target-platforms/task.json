@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T10",
   "title": "target platformでファイル選択を受け入れ確認する",
-  "status": "in_review",
+  "status": "blocked",
   "dependsOn": [
     "T09"
   ],

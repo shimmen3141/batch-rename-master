@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T06",
   "title": "process再起動をまたぐルール復元を受け入れ確認する",
-  "status": "pending",
+  "status": "blocked",
   "dependsOn": [
     "T05"
   ],
