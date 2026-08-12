@@ -36,4 +36,13 @@ T05の作業記録には「Dev ContainerのFlutter testは今回と別の既知�
 
 ## 改善結果
 
-未対応。人間の判断待ち。
+2026-08-12に「本命」を採用。人間が`.devcontainer/Dockerfile`の`apt-get install`へ`clang`と`build-essential`を追加し、imageをrebuildした。`clang`単体ではなくCbuild一式にしたのは、`debian:bookworm-slim`に標準headerとlinkerが無いためである。
+
+Forward-test(rebuild後のcontainer、005 T09 branch):
+
+- `clang --version` = `Debian clang version 14.0.6`、`which ld` = `/usr/bin/ld`、`which gcc` = `/usr/bin/gcc`。
+- `flutter test` = PASS(346件)。code assetのbuildを含めて1件も止まらない。
+- `sudo -l` = `(root) NOPASSWD: /usr/local/bin/init-firewall.sh`のみ。toolchainはimage build時の`USER dev`より前に入るため、Agentへrootや追加sudo権限は渡っていない。
+- `printenv AI_SANDBOX` = `1`、`/workspace/secrets/.dummy-marker`は存在。secret shadowも変わっていない。
+
+これでAGENTS.mdのrelated test / full regressionをcontainerのAgentが実行できるようになったため、「AI containerで実行不能な検証」としてのAGENTS.md追記は不要になった。`hook/build.dart`側の代案(compiler未解決時にcode assetを出さない)は、T05の受け入れを緩めるため採用しない。
