@@ -32,13 +32,14 @@ Android SAFとdesktop pickerで、既存004仕様の選択・cancel・置換・�
 - Review attempt 3: PR #121 `dev@abc8007...6432da8` — FAIL — P1: 設定画面のアプリ表示名が実在しない値(`一括リネーム（デモ）`は`MaterialApp.title`=Recents用。設定→アプリに出るのは`AndroidManifest.xml:3`の`android:label="batch_rename_master"`)
 - 2026-08-12 / **3回連続FAILのため自動修正を停止した**(AGENTS.md「同じtaskで独立verifierが3回FAILしたら自動修正を止め、diff、各回の実出力、未解決指摘、否定された仮定を報告する」)。statusを`blocked`にし、人間の判断を待つ。P1-1自体は1語の置換で仕様・scope・riskの判断を含まないが、規約は回数で止めることを求めているため、Agent判断で続行しない。
 
+- Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2 8件。実害のある007 manualの例示・label表記と、記録の不整合をこの後の commit で処理)
+
 ## Current state / handoff
 
-- 2026-08-12 / 人間が3回FAIL規律の解除を選択((a) Agentが直して続行)。P1-1を直し、statusを`in_review`へ戻してattempt 4を取る。
-- Last checkpoint: P1-1(アプリ表示名)を`android:label`の実値へ修正し、dry-runを実行してcommit
-- Blocker category: review
-- Waiting for: attempt 4の独立review結果
-- Requested action: なし(Agentがattempt 4を実施中)
-- Evidence revision: PR #121 head `3d8e632`(base `dev@abc8007`)
-- Evidence: dry-run=PASS(画面文言14件を`git grep`で出所確認)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)
-- Next Agent action: attempt 4がPASSならPRのmergeを人間へ依頼する。FAILなら再び自動修正を止めて報告する
+- Last checkpoint: 独立reviewのattempt 4がPASS(P0/P1なし)。残りのP2を解消し、mergeを人間へ依頼する段階
+- Blocker category: human-decision
+- Waiting for: 人間によるPR #121のmerge。このPRは`004:T10`・`005:T07`・`005:T09`・`007:T06`の4 taskにまたがるため、AGENTS.mdのAgent auto-merge条件1「plan/task、Issue、base/headが一意」を満たさない
+- Requested action: 人間がPR #121をmergeする
+- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
+- Evidence: 独立review attempt 4=PASS、dry-run=PASS(004の画面文言・path・command全件と007の文言をrepository内の出所と突き合わせ)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、`flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format`=PASS(0 changed)、CI `check`=SUCCESS
+- Next Agent action: merge後、このtaskを`blocked`(manual待ち)へ戻し、対象commitを固定したうえで人間へchecklistを依頼する。**このreviewがPASSしてもmanual自体は未実施**であり、T10の成果は人間の実機確認である

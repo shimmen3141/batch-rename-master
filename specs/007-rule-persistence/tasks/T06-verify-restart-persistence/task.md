@@ -30,11 +30,14 @@ Androidとdesktopで、保存したruleがアプリprocess終了後も実storage
 - Review attempt 2: PR #121 `dev@abc8007...aaacf5d` — FAIL — P1: このtaskのattempt 1記録がFAILをPASSと書いていた(P1-B。`6432da8`で解消)。復元内容自体は網羅性を確認済み
 - Review attempt 3: PR #121 `dev@abc8007...6432da8` — FAIL — 残るP0/P1: none(このtaskへの指摘はattempt 2行の形式=P2-2のみ)
 
+- Review attempt 4: PR #121 `dev@abc8007...3255f87` — PASS — 残るP0/P1: none(P2-4/P2-5: 例示がサンプル実file名でない、連番labelが実UIと不一致。この後のcommitで解消)
+
 ## Current state / handoff
 
-- Last checkpoint: 自動testと配線は完了。実storageの再起動証拠をT06へ移行
-- Blocker category: none
-- Waiting for: none
-- Requested action: Agentが検証branch・exact buildを準備してから人間へchecklistを依頼する
-- Evidence revision: 未確定。code/dependency/build変更後の古い観測は再利用しない
-- Next Agent action: 現在のmanual待ちtaskと同じbuildで併行確認できるかを確認し、検証workspaceを準備する
+- Last checkpoint: manual checklistの復元が独立review attempt 4でPASS。PR #121のmerge待ち
+- Blocker category: human-decision
+- Waiting for: 人間によるPR #121のmerge
+- Requested action: 人間がPR #121をmergeする
+- Evidence revision: PR #121 head(このcommit時点)。base `dev@abc8007`
+- Evidence: 独立review attempt 4=PASS、`workspace.py check specs`=PASS(7 plans, 43 tasks)
+- Next Agent action: merge後、対象commitを固定して人間へchecklistを依頼する。**復元がPASSしただけでmanual自体は未実施**で、このtaskの成果は再起動をまたぐ復元の実機確認である
