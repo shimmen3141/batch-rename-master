@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T09",
   "title": "空ルール時の実行防止UIを実装する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T08",
     "T04"

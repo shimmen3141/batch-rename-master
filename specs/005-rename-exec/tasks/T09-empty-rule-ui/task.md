@@ -17,6 +17,7 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 - 空名警告と基準日時不明警告が同一fileで重なるときの1件へのまとめ(REQ-021)。
 - **アクションバーの位置**: `T04`がリスト上部へ置いたrename actionを、designどおりリスト下の固定バーへ移し、`RuleBuilderWorkspace`が別に持っていたルール編集ボタンと同じバーへ集約する。narrowはルール設定＋実行の2段、wideはルールペインが常時見えているため実行のみ。
 - **undoの位置**: バーを下部へ移した結果、結果toastがバーを覆いundo buttonを押せなくなったため、undoを結果toast内のactionへ移す。designも同じ形(toast内の「元に戻す」)である。REQ-006 / REQ-007の窓と挙動は変えない。
+- **designを適用する画面範囲**(AGENTS.mdの正本規定に従う): `docs/design/Bulk Renamer.html`のうち、mobile画面の**下部固定バー**(ルール設定ボタンと実行ボタンの縦積み)と、**結果toast内の「元に戻す」**だけを適用する。同designのリスト表示3案、ファイル種別アイコン、読み込み導線、余白・タイポは`008`の範囲であり、このtaskでは触らない。
 - 対象外: 実行ラベルの動的化(`N 件をリネーム`等)、警告帯・確認ダイアログ・結果本文の再実装、配色やタイポの視覚調整。
 
 ## 受け入れ証拠
@@ -40,12 +41,15 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
   - 実挙動: 結果toastが下部バーを覆い、undo buttonがhit testに当たらない(`Offset(726.8, 564.0) would not hit test`)。toastの既定表示は4秒、undo窓は5秒なので、実機でも取り消せる間ずっと押せない。designどおりundoをtoast内のactionへ移して解消した。`SnackBar.persist`が`action != null`で既定trueになりtoastが消えなくなるため、`persist: false`を明示してREQ-007の5秒窓と一致させた。
   - test追随: `warning_display_test`の2件は空ruleを空名警告のfixtureに使っていたが、空ruleは警告帯ではなく未設定案内になった(REQ-020)ため、`LiteralToken('')`へ差し替えた。`widget_test` / `rule_builder_workspace_test`は初期ruleが空のとき導線の表示が「変更する名前を設定する」へ変わるため、`configure-rule` keyでの検査へ変えた。いずれもassertionの意図は保持している。
 
+- 2026-08-12 / manual verificationを開発者が`d707e6d`のWindows desktop buildで実施し、全項目PASS(会話で報告)。最重要だった「結果toast上のundoが実機で押せる」も確認できた。手順のPowerShellが`$emptyRuleFixture`のwindowまたぎで落ちる不備を見つけ、注意書きを追加した(UI確認結果には影響なし)。
+- 2026-08-12 / `origin/dev`をmerge。人間が`docs/design/Bulk Renamer.html`を005 UIの配置・導線・情報階層の正本としてAGENTS.mdへ明記した(`e7ccfaa`)ため、このtaskが適用するdesign画面範囲を変更範囲へ明記した。merge後も`flutter test`=PASS(346)、`workspace.py check specs`=PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: REQ-019〜021の実装、アクションバー下部移設、undoのtoast移設まで完了し、full regressionがPASS
-- Blocker category: manual
-- Waiting for: [`manual-verification.md`](manual-verification.md)の実施。特に、結果toast上のundoが実機で押せること(自動testではtap範囲とSafeAreaを再現できない)
-- Requested action: 人間がWindows desktop buildでmanual checklistを実施し、結果を返す
-- Evidence revision: branch `asdd/005-rename-exec/T09-empty-rule-ui`(base `dev@63de09c`)
-- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)
-- Next Agent action: `manual-verification.md`を用意し、独立reviewを通したうえでpush / PRを人間へ確認する
+- Last checkpoint: 実装・full regression・manual verificationまで完了し、残るゲートは独立reviewのみ
+- Blocker category: review
+- Waiting for: 対象rangeの独立review(`dev`..branch head)
+- Requested action: 独立reviewを実施し、PASSならpush / PRを人間へ確認する
+- Evidence revision: branch `asdd/005-rename-exec/T09-empty-rule-ui`(latest base `origin/dev@28eb772`をmerge済み)
+- Evidence: `flutter test`=PASS(346)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(75 files / 0 changed)、`workspace.py check specs`=PASS(7 plans, 43 tasks)、manual verification=PASS(`d707e6d`)
+- Next Agent action: 独立reviewを通し、PASSならpushとPRを人間へ確認する

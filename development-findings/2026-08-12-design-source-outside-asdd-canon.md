@@ -39,4 +39,8 @@
 
 ## 改善結果
 
-未対応。projectのT09では配置をtestで固定するところまで対処した。正本一覧の更新はAGENTS.mdの変更にあたるため人間へ依頼する。
+2026-08-12に人間がAGENTS.mdへ1行追加して対応した(`e7ccfaa`、PR #119で`dev`へmerge)。`docs/design/Bulk Renamer.html`を**005のUIにおける配置・導線・情報階層の正本**と定め、対象taskは適用する画面範囲を`task.md`へ書き、review・widget test・manual確認で照合すると規定した。判定・状態遷移・データ保護・時間制約はdesignへ移さず`spec.md`・contracts・decisions・testを正本とする、という役割分担も明示された。参考画像や探索中のdesignは正本にしない。
+
+Forward-test(005 T09): 規定に従い、T09の変更範囲へ「適用するのは下部固定バーと結果toast内のundoだけで、リスト表示3案・アイコン・読み込み導線・余白は008の範囲」と画面範囲を明記した。これにより、designのどこを今回satisfyしたのかがreviewから照合できる。配置自体は`empty_rule_test.dart`のwidget testで固定済み。
+
+残る提案(`review-task`の「逸脱」観点へ、projectがdesign正本を持つ場合の確認を一行入れる)はASDD plugin側の判断で、未対応。

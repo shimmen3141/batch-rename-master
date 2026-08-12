@@ -24,6 +24,8 @@ Set-Content -LiteralPath (Join-Path $emptyRuleFixture 'photo.txt') -Value 'empty
 $emptyRuleFixture
 ```
 
+**以降のPowerShellは、この同じwindowで続けて実行してください。** `$emptyRuleFixture`はwindowを閉じると消えるため、別windowで実行すると`LiteralPath`にnullが渡り`引数が null であるため、パラメーター 'LiteralPath' にバインドできません`になります。その場合は上の1行目(`$emptyRuleFixture = ...`)だけをもう一度実行すれば復帰します。
+
 アプリを起動したら、**ウィンドウ幅を840dpより狭く**してください(横幅をおよそ半分以下に縮める)。この幅がモバイル相当のレイアウトで、今回の下部バーが出ます。広いままだと右にルールペインが出る2ペイン表示になり、確認したい導線が出ません。
 
 ## 1. ルールを空にする
@@ -115,10 +117,11 @@ Remove-Item -LiteralPath $emptyRuleFixture -Recurse -ErrorAction SilentlyContinu
 
 ## Evidence identity
 
-- Commit: `<Agentが記入>`
+- Commit: `d707e6d`(この確認以後、code / dependency / build設定の差分なし。以後の差分は証拠・記録・`origin/dev`のAGENTS.md取り込みのみ)
 - Build/artifact: Windows desktop build(人間がhostでbuild)
 - Environment/device: Windows / ウィンドウ幅840dp未満
 - Fixture/data: `%TEMP%\asdd-empty-rule-check\photo.txt`
-- Observer: `<記入>`
-- Observed at: `<記入>`
-- Status: pending
+- Observer: 開発者
+- Observed at: 2026-08-12
+- Status: **PASS**(会話で報告。checklistを順番に実施し、全項目の動作を確認)
+- Notes: 手順のPowerShellで`引数が null であるため、パラメーター 'LiteralPath' にバインドできません`が出た。`$emptyRuleFixture`がwindowをまたいで残らないための手順側の不備で、UIの確認結果には影響していない(rename・undo・実ファイルの変化は確認済み)。手順へ注意書きを追加した。

@@ -16,7 +16,7 @@
 | 旧`plan.md`の目的・境界・決定 | 新`plan.md` | 人間向けのplan正本へ移行 |
 | 旧`plan.md`の各`Tn` | `tasks/TNN-*/task.md`と`task.json` | IDをzero paddingして目的・証拠・状態・依存・Issue/PRを分離 |
 | 旧`plan.md`原文 | 各`history/asdd-0.x-plan.md` | 凍結履歴。live stateには使わない |
-| `specs/discovery.md` | `history/asdd-0.x-discovery.md` | 凍結し、現行分類を`product-map.md`へ移行 |
+| `specs/discovery.md` | `history/asdd-0.x-discovery.md` | 凍結し、現行分類を`product-map.md`へ移行。**分類だけが移り、将来候補008に含まれる人間の決定((a)〜(g))は移送漏れだった**。2026-08-12に`product-map.md`の「008へ引き継ぐ人間の決定」として補完 |
 | `development-units/complete-rename-execution/` | `005-rename-exec/plan.md`とT04〜T09 | work packageを旧stable task IDへ統合。原文は005の`history/` |
 | `development-units/verify-file-selection-on-target-platforms/` | `004:T10` | 実装doneと未完manual受け入れを分離。原文は004の`history/` |
 | `development-units/verify-rule-persistence-across-restart/` | `007:T06` | 実装doneと未完manual受け入れを分離。原文は007の`history/` |
