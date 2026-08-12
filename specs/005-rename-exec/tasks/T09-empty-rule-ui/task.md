@@ -44,6 +44,7 @@ ruleが空ならrenameを開始せず設定案内を表示し、token追加で�
 - 2026-08-12 / manual verificationを開発者が`d707e6d`のWindows desktop buildで実施し、全項目PASS(会話で報告)。最重要だった「結果toast上のundoが実機で押せる」も確認できた。手順のPowerShellが`$emptyRuleFixture`のwindowまたぎで落ちる不備を見つけ、注意書きを追加した(UI確認結果には影響なし)。
 - 2026-08-12 / `origin/dev`をmerge。人間が`docs/design/Bulk Renamer.html`を005 UIの配置・導線・情報階層の正本としてAGENTS.mdへ明記した(`e7ccfaa`)ため、このtaskが適用するdesign画面範囲を変更範囲へ明記した。merge後も`flutter test`=PASS(346)、`workspace.py check specs`=PASS。
 
+- Review attempt 1: `origin/dev@28eb772...aabe8f5` — PASS — 残るP0/P1: none(P2 8件は下記で処理)
 - 2026-08-12 / **Review attempt 1 / PASS**(task level)。range `origin/dev(28eb772)...aabe8f5`を実装文脈から分離したAgentがreviewし、`flutter test`=346 PASS、`analyze`=0、`format`=0 changed、`workspace.py check specs`=PASSを独立に再実行して報告値と一致を確認。P0/P1なし、P2が8件。反証された論点は、既存test 4件の書き換えが緩和でないこと(assertion本体は無傷で`widget_test`はむしろ強化)、undoのtoast移設がREQ-006/007の窓を変えないこと(`persist: false`は必要指定)、`presentWarnings`のインスタンス同一性依存が現行の全呼び出し経路で破れないこと、manual証拠`d707e6d`以後にcode/dependency/build差分が無いこと。
   - このtaskで対処したP2: 手順のcommitプレースホルダ未記入(P2-3)、`warning_display_test`の古いコメント(P2-7)、manualへ返信templateとstatus欄を作っていた点(P2-4。skillの`manual-verification.md`が「返信template、結果欄、別のstatus欄を作らない」と定めているため削除し、状態の正本を`task.json`へ一本化)。
   - 他taskへ接続したP2: `spec.md`の検証表が契約とdriftしている(P2-2。VER-004/005の被覆にREQ-019〜022が写されていない。T08由来の既存driftで、T09のdiffに`spec.md`は含まれない)。005 plan完了ゲートまでに解消する。`plan.md`の未解決事項へ記録した。

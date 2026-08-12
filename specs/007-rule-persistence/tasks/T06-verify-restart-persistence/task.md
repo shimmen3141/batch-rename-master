@@ -26,6 +26,8 @@ Androidとdesktopで、保存したruleがアプリprocess終了後も実storage
 
 - 2026-08-12 / manual checklistを復元した。ASDD移行で、凍結側にあった**hot restartとcold startの区別**と、**ruleを変更してからの2回目のcold start(上書き保存の確認)**が落ちていた(`development-findings/2026-08-12-manual-checklists-lost-steps-in-migration.md`)。復元前は復元しか検査せず、「一度保存したきり更新されない」不具合を見逃す手順だった。識別可能なruleを2種類(A/B)定義し、A保存 → hot restart → cold start → Bへ変更 → 2回目のcold startの順に確認する形へ戻した。未実施のため手戻りは無い。
 
+- Review attempt 1: PR #121 `dev@abc8007...7cb943b` — PASS(この taskの復元分に指摘なし。同PRの004分がFAILのためPR全体は再review待ち)
+
 ## Current state / handoff
 
 - Last checkpoint: 自動testと配線は完了。実storageの再起動証拠をT06へ移行
