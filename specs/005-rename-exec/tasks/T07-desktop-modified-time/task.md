@@ -34,10 +34,12 @@ desktopでだけ表示される既定OFFの設定により、rename成功後の�
 
 ## Current state / handoff
 
-- 2026-08-12 / 着手。branch `asdd/005-rename-exec/T07-desktop-modified-time`(base `dev@b7f1e1b`)、Issue #98をclaim。
-- Last checkpoint: branchをclaimし、契約(REQ-014〜016 / VER-006)と既存のexecutor境界を読み終えた
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@b7f1e1b`
-- Next Agent action: 能力interfaceでmtime書き込みを分離し、test-firstでREQ-014〜016を実装する。実装が固まったら`manual-verification.md`の観点6件を実行手順へ具体化する
+- 2026-08-12 / 実装完了。`ModifiedAtWriter`能力interfaceで更新日時の書き込みを`RenameExecutor`本体から分離し、desktop executorだけが実装する形にした。これで`executor is ModifiedAtWriter`がそのまま「この端末でずらせるか」になり、REQ-015が実装の形から出る。順序はREQ-014の文言どおり実行計画ではなく表示順(`files.items`)を基準にし、実行計画と食い違う入力でtestを置いた。REQ-016は失敗しても後続を続け、`modifiedAtFailures`へ改名の失敗と分けて集める。
+- 2026-08-12 / `manual-verification.md`を実UIに合わせて具体化した。書いた画面文言6件を`git grep`でrepository内の出所と突き合わせ済み(dry-run)。
+- Last checkpoint: 実装と仕様由来testが通り、manual手順を具体化した
+- Blocker category: manual
+- Waiting for: 人間による[`manual-verification.md`](manual-verification.md)の実施。実filesystemの更新日時が実際に書き換わること、Androidで設定が出ないこと、更新日時だけ失敗しても改名が成功として残ることは実機でしか観測できない
+- Requested action: 人間がWindows desktop buildとAndroid buildでchecklistを実施し、結果を会話で返す
+- Evidence revision: branch `asdd/005-rename-exec/T07-desktop-modified-time`(base `dev@b7f1e1b`)
+- Evidence: `flutter test`=PASS(354、うち`modified_time_test.dart` 8件)、`flutter analyze`=PASS(0)、`dart format --set-exit-if-changed`=PASS(76 files / 0 changed)、manual dry-run=PASS(画面文言6件の出所確認)
+- Next Agent action: Draft PRを出し、manual結果を受け取ってから独立reviewへ回す
