@@ -54,4 +54,4 @@
 
 ## 改善結果
 
-`AGENTS.md`本文は未更新(人間の判断待ち)。projectの実運用は上記の新しい運用に従う。筆者は以後、push / PR作成 / ready化を判断で行い、報告に含める。mergeと`.github/workflows`は従来どおり人間へ渡す。
+2026-08-13、`AGENTS.md`を人間の決定と一致させた。remote共有・CI・review・handoffに必要なら、Agentが通常push、PR作成、ready化を行い、結果を報告する。mergeの7条件、`.github/workflows`を含むpush、Issueのclose等の境界は変更していない。
