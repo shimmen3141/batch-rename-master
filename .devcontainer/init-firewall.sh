@@ -31,6 +31,10 @@ ALLOWED_DOMAINS=(
   "api.openai.com"          # Codex CLI (API)
   "auth.openai.com"         # Codex CLI (ログイン)
   "chatgpt.com"             # Codex CLI (ChatGPT プラン利用時)
+  # Android storage・permission境界の一次資料調査(ASDD 013:T01)
+  "developer.android.com"   # Android SDK・storage・permission公式資料
+  "source.android.com"      # AOSP platform・storage公式資料
+  "api.flutter.dev"         # Flutter API公式資料
   # --- プロジェクト固有の例(必要なものだけ有効化) ---
   # "<project-ref>.supabase.co"
 )
