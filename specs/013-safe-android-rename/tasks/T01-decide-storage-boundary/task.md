@@ -63,6 +63,8 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   1. `:87-94` — `MANAGE_EXTERNAL_STORAGE`の付与内容の引用で、原文の`except /Android/data/, /sdcard/Android, ...`を**`such as /sdcard/Android`と書いており意味が反転している**。原文をcurlで再取得して確認済み。**逐語引用を直す作業の中で、より悪い誤りを入れた。** 地の文(`:98`)は正しく「書けない」としているので結論は無事だが、原文として提示したblock自体が原文と矛盾する。
   2. `:168` — S-2の**判定基準**節に「`EEXIST`かつtargetの内容が不変 → 判定軸1と2を満たす」が残存。同じfileの`:185`が「判定軸2を実測したとは言えない」と正反対を述べており矛盾。attempt 2のP1-1(結論節に旧主張が残存)と同型の伝播漏れ。
   - **3回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+- 2026-08-13 / **人間が(c)「引用を持たない形にする」を選択。** `research-matrix.md`と`ADR-002`から引用ブロックを全廃し(`^>`行は0)、出典のURLと節名+筆者の要約+「原文の転記ではない」の明示へ置き換えた。判断が原文の一語に依存する箇所(`except`か`such as`か、`only`か`likely`か)は、**その語が判断を分けること自体を本文へ書いた**。`:168`の判定基準の伝播漏れも解消。
+  - **転記をやめたのは、注意力ではなく手段を変える対処である。** attempt 2の時点で`AGENTS.md`の「2回続いたら洗い直す」が発火していたが、筆者は記録しただけで手段を変えず、3回目を招いた。この構造上の穴はfindingへ記録した。
 - 2026-08-13 / **spike S-2を対照付きで再実施(人間)。因果が確定した。**
   - `/data/local/tmp`と`/sdcard`の両方で、case A=`-1`/`EEXIST`/target無傷、**case B(flags=0)=`0`/上書き**、case C=`0`。
   - **差はフラグに由来する。** 「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
@@ -72,9 +74,9 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 ## Current state / handoff
 
-- Last checkpoint: review attempt 3もFAIL。**3回連続のため自動修正を停止した**(AGENTS.md)
-- Blocker category: process(3回FAIL規律)
-- Waiting for: 人間の判断。(a) 残る2行を直して再開する / (b) 別のAgentへ渡す / (c) 範囲を見直す
-- Requested action: 上記(a)〜(c)を選ぶ
+- Last checkpoint: 人間の判断(c)により引用を全廃した。attempt 4待ち
+- Blocker category: なし
+- Waiting for: exact rangeの独立review(attempt 4)
+- Requested action: なし
 - Evidence revision: `dev@ec2e74f` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: **人間の指示を待つ。** 勝手に4回目の修正を始めない。再開が承認されたら`research-matrix.md`の2行(`:87-94`の引用の反転、`:168`の判定基準)を直し、SAFの引用(`:46-54`)も同じ方法で再照合してからattempt 4を起動する
+- Next Agent action: attempt 4がPASSしたらPR #133をmergeし`T02`へ進む。**引用を再導入しないこと。** 精度が要るときは出典を直接読む

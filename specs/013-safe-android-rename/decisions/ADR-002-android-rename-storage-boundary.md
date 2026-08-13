@@ -15,11 +15,11 @@ ADR-001は「Android SAFのrenameは005の契約を満たせない」と判断�
 
 ### 一次資料で確定したこと
 
-`DocumentsProvider.renameDocument`の`displayName`について、公式資料は次を明記する。
+`DocumentsProvider.renameDocument`の`displayName`について、公式資料は「**providerが内部の制約を満たすためにこの名前を変えてよい**」とし、その例として名前の衝突を避けることを挙げている。そして`DocumentsContract.renameDocument`が`Throws`に挙げるのは`FileNotFoundException`(と認証関連)だけで、**名前衝突を表す失敗が定義されていない**。
 
-> The provider may alter this name to meet any internal constraints, such as avoiding conflicting names.
+よってSAFは判定軸「原子的no-replace」と「名前の同一性」の両方を満たせない。**ADR-001の判断は、資料側の変化なく維持される。**
 
-client側`DocumentsContract.renameDocument`の`Throws`は`FileNotFoundException`のみで、**名前衝突を表す失敗が定義されていない**。よってSAFは判定軸「原子的no-replace」と「名前の同一性」の両方を満たせない。**ADR-001の判断は、資料側の変化なく維持される。**
+**この記述は原文の転記ではなく筆者の要約である。** 出典と読み取りの根拠は[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md)にある。精度が要る場面では出典を直接読むこと(同節の「原文を転記しない」を参照)。
 
 MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実質mediaに限られ、004が持つ`document` / `all`を覆えない。`MediaStore.Files`まで広げると`MANAGE_EXTERNAL_STORAGE`の領域に入る。
 
@@ -48,15 +48,13 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 ### 受け入れた条件1: `MANAGE_EXTERNAL_STORAGE`をPlayで宣言する
 
-公式資料の条件は次のとおりである。
+公式資料の条件(**筆者の要約**。出典と読み取りは[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md))。
 
-> Request the `MANAGE_EXTERNAL_STORAGE` permission only when your app can't effectively make use of the more privacy-friendly APIs, such as the Storage Access Framework or the Media Store API. Your app's usage of the permission **must fall within permitted uses** and must be directly tied to the core functionality of the app.
+- 要求してよいのは、**よりprivacy-friendlyなAPI(SAF、Media Store)では目的を達せられない場合に限る**。
+- 権限の使い方は、**permitted usesの範囲に入り**、appの**中核機能へ直接結びついて**いなければならない。
+- file manager、document management等**に似たuse caseを含むなら要求できる可能性が高い**、としている。
 
-> If your app includes a use case **similar to any of the following, it's likely that** it can request the `MANAGE_EXTERNAL_STORAGE` permission:
->
-> File managers / Backup and restore apps / Anti-virus apps / Document management apps / On-device file search / Disk and file encryption / Device-to-device data migration
-
-**この一覧は閉じたallowlistではない。** 条件は「一覧に載っていること」ではなく「載っているものに**似ている**こと」と「permitted usesの範囲に入り、中核機能へ直接結びついていること」である。
+**この一覧は閉じたallowlistではない。** 条件は「一覧に載っていること」ではなく「載っているものに**似ている**こと」と、上のpermitted usesの方である。
 
 **"permitted uses"の定義はこのpageに無く、Play Consoleのpolicy pageにある。そのdomainはcontainerから到達できていない [未到達]。** よって「一括改名appが該当する」ことを資料で確定できていない。**却下されるriskを抱えたまま実装planへ進む**という判断である。
 

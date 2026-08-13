@@ -10,9 +10,19 @@
 
 | 記号 | 意味 |
 |---|---|
-| **[一次]** | 公式資料の原文で確認した。引用を併記する |
+| **[一次]** | 公式資料の原文を読んで確認した。**出典のURLと節名を示し、内容は自分の言葉で書く** |
 | **[要spike]** | 資料からは決まらない。実機で観測しないと言えない |
 | **[未到達]** | AI containerのegress制限で一次資料へ到達できていない |
+
+### 原文を転記しない
+
+**この文書は外部資料を引用しない。** 出典のURLと節名を示し、読み取った内容は自分の言葉で書く。
+
+2026-08-13のreviewで、引用ブロックの誤りが**3回続けて**検出された。要約toolの言い換えを原文として貼った、人間の生出力を整形して貼った、そして**逐語引用を直す作業の中で原文の`except`を`such as`と書いて意味を反転させた**。3回目は「書けない」を「書ける」に変えており、planを都合よく見せる方向だった。
+
+原因は転記そのものである。**転記しなければ転記ミスは起きない。** 精度が要る場面では、この文書ではなく出典を読む。
+
+判断が引用の一語に依存するとき(`except`か`such as`か、`only`か`likely`か)は、**その語が判断を分けることを本文へ書く。** 語そのものを写すのではなく、どちらであるかを述べる。
 
 ## 判定軸
 
@@ -41,19 +51,16 @@
 
 ### A / B — SAFは要求名を保証しない
 
-`DocumentsProvider.renameDocument`(API 21)の`displayName`パラメータ:
+出典: `DocumentsProvider`の`renameDocument(String, String)`(API 21)、および`DocumentsContract`の`renameDocument(ContentResolver, Uri, String)`(API 21)。下記URLの各methodの節。
 
-> The provider may alter this name to meet any internal constraints, such as avoiding conflicting names.
+読み取った内容(**筆者の要約。原文の転記ではない**):
 
-戻り値:
+- `DocumentsProvider`側の`displayName`パラメータの説明は、**providerが内部の制約を満たすためにこの名前を変えてよい**としており、その例として**名前の衝突を避けること**を挙げている。
+- 戻り値は、renameに伴って別のdocument IDが必要ならそれを返し、元のIDがそのまま有効なら`null`を返す、と定めている。
+- `DocumentsContract`側は、providerが新しいdocument IDを作る必要があるならそれを返し元のdocumentは無効になる、そうでなければ元のdocumentを返す、としている。
+- **どちらのmethodも、`Throws`に挙げているのは`FileNotFoundException`(と認証関連)だけで、名前衝突を表す失敗を定義していない。**
 
-> If a different `Document.COLUMN_DOCUMENT_ID` must be used to represent the renamed document, generate and return it. Any outstanding URI permission grants will be updated to point at the new document. If the original `Document.COLUMN_DOCUMENT_ID` is still valid after the rename, return `null`.
-
-client側`DocumentsContract.renameDocument`(API 21):
-
-> Change the display name of an existing document. If the underlying provider needs to create a new `Document.COLUMN_DOCUMENT_ID` to represent the updated display name, that new document is returned and the original document is no longer valid. Otherwise, the original document is returned.
-
-`Throws`は`FileNotFoundException`のみで、**名前衝突を表す失敗が定義されていない。**
+**判断はこの2点に依存する。** (i) 要求名の改変が**許されている**か禁じられているか、(ii) 改変が起きたことを呼び出し側へ伝える失敗経路が**存在しない**か存在するか。資料は(i)許されている・(ii)存在しない、と読める。**この読みが誤っていれば結論が変わる**ので、疑うときは出典を直接読むこと。
 
 **これが決定的である。** providerは衝突を避けるために名前を変えてよいと明記されており、しかも「変えた」ことを呼び出し側へ伝える失敗経路が無い。つまりAは判定軸1と3の両方を満たせない。ADR-001の判断はこの原文どおりで、**revisionを重ねても資料側は変わっていない。**
 
@@ -64,13 +71,12 @@ Bはrename後に`COLUMN_DISPLAY_NAME`を読めば**改変の検出**はできる
 
 ### C — MediaStoreはmedia限定で、他appのfileには同意が要る
 
-renameは`DISPLAY_NAME`の`update`で行う:
+出典: 「Access media files from shared storage」の"Update media files"節(下記URL)。
 
-> You can move files on disk during a call to `update()` by changing `MediaColumns.RELATIVE_PATH` or `MediaColumns.DISPLAY_NAME`.
+読み取った内容(**筆者の要約**):
 
-しかし所有者の制約がある:
-
-> If your app uses scoped storage, it ordinarily can't update a media file that a different app contributed to the media store.
+- `ContentResolver.update()`で`MediaColumns.RELATIVE_PATH`または`MediaColumns.DISPLAY_NAME`を変えると、disk上のfileを移動・改名できる。
+- scoped storageでは、**他のappがmedia storeへ登録したfileを通常は更新できない**。
 
 他appのfileには`RecoverableSecurityException`の捕捉と利用者同意が要る。Android 11以上なら`createWriteRequest()`で**まとめて1回の同意**にできる。一括改名appとしてはこれは扱いやすい。
 
@@ -82,32 +88,29 @@ renameは`DISPLAY_NAME`の`update`で行う:
 
 ### D / E — All files accessの範囲とPlay審査
 
-`MANAGE_EXTERNAL_STORAGE`が与えるもの:
+出典: 「Manage all files on a storage device」の"Operations permitted by MANAGE_EXTERNAL_STORAGE"節と、Google Play policyの節(下記URL)。
 
-> The `MANAGE_EXTERNAL_STORAGE` permission grants the following:
->
-> - Read and write access to all files within shared storage.
-> - Access to the contents of the `MediaStore.Files` table.
-> - Access to the root directory of both the USB on-the-go (OTG) drive and the SD card.
-> - Write access to all internal storage directories, such as `/sdcard/Android`. This write access includes direct file path access.
->
-> **Note:** The `/sdcard/Android/media` directory is part of shared storage.
+権限が与えるもの(**筆者の要約**):
 
-**"including direct file path access"が要点である。** 実pathが得られるので、SAFのopaque handleではなくPOSIX APIを直接使える。
+- 共有storage内の全fileへの読み書き。
+- `MediaStore.Files` tableの内容への access。
+- USB OTG drive と SD card の root directory への access。
+- 内部storageのdirectoryへの書き込み。**`/Android/data/`、`/sdcard/Android`、および`/sdcard/Android`の大半のsubdirectoryは除く。** この書き込みには**直接のfile path access**が含まれる。
+- この権限があっても、他appのapp固有directory(`Android/data/`の下)へは到達できない。
+- なお資料は、`/sdcard/Android/media`は共有storageの一部である、と注記している(=読み書きの対象に入る)。
 
-**ただし全域ではない。** 同じpageは、この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectoryへは**書けない**こと、他appのapp固有directoryへは到達できないことを明記する。**app内file browserはそこを改名できない。** この制約は`T03`(読み込み導線の定義)で利用者から見える形にする。
+**"直接のfile path access"が要点である。** 実pathが得られるので、SAFのopaque handleではなくPOSIX APIを直接使える。
 
-Google Playの制約。原文は次のとおりである。
+**ただし全域ではない。** `/Android/data/`と`/sdcard/Android`の大半へは**書けない**。**app内file browserはそこを改名できない。** この制約は`T03`(読み込み導線の定義)で利用者から見える形にする。
 
-> To limit broad access to shared storage, the Google Play store has updated its policy to evaluate apps that target Android 11 (API level 30) or higher and request all-files access through the `MANAGE_EXTERNAL_STORAGE` permission. This policy is in effect as of May 2021.
+Google Playの制約(**筆者の要約**):
 
-> Request the `MANAGE_EXTERNAL_STORAGE` permission only when your app can't effectively make use of the more privacy-friendly APIs, such as the Storage Access Framework or the Media Store API. Your app's usage of the permission **must fall within permitted uses** and must be directly tied to the core functionality of the app.
+- Android 11(API level 30)以上をtargetし、`MANAGE_EXTERNAL_STORAGE`で全file accessを要求するappを、Playが審査対象にしている(2021年5月から)。
+- 要求してよいのは、**よりprivacy-friendlyなAPI(SAF、Media Store)では目的を達せられない場合に限る**。
+- appによる権限の使い方は、**permitted usesの範囲に入り**、appの**中核機能に直接結びついて**いなければならない。
+- そのうえで、file manager、backup/restore、anti-virus、document management、on-device file search、暗号化、device間のdata移行**に似たuse caseを含むなら、要求できる可能性が高い**としている。
 
-> If your app includes a use case **similar to any of the following, it's likely that** it can request the `MANAGE_EXTERNAL_STORAGE` permission:
->
-> File managers / Backup and restore apps / Anti-virus apps / Document management apps / On-device file search / Disk and file encryption / Device-to-device data migration
-
-**この一覧は閉じたallowlistではない。** 「similar to any of the following」「it's likely that」という書き方であり、**一覧に載っていることではなく、載っているものに似ていることが条件**である。規範的な条件は「permitted usesの範囲に入り、appの中核機能へ直接結びついていること」の方である。
+**最後の一覧は閉じたallowlistではない。** 資料の書き方は「これらに**似ている**なら**おそらく**要求できる」であって、「これらに限る」ではない。**この違いが判断を分ける。** 規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方である。
 
 **"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。そのdomain(`support.google.com`)はcontainerから到達できない [未到達]。** したがって「一括改名appが該当するか」を資料で確定できていない。
 
@@ -165,7 +168,7 @@ AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)ため、
 `MANAGE_EXTERNAL_STORAGE`を持つappは**使わない**。知りたいのはフラグがFUSEを透過するかであり、それは`adb shell`から観測できる。app内での再確認は、候補Eを採用すると決めたあとに行えばよい。**人間の手間を先に増やさない。**
 
 **判定**:
-- `-1` / `EEXIST`かつ`spike-d.txt`の内容が不変 → **RENAME_NOREPLACEが有効**。候補Eは判定軸1と2を満たす。
+- `-1` / `EEXIST`かつ`spike-d.txt`の内容が不変 → **RENAME_NOREPLACEが有効**。候補Eは判定軸1を満たす。**判定軸2(失敗時不変)はsource側を観測するまで満たしたと言えない**(spikeへ追加済み)。
 - `-1` / `EINVAL`または`ENOSYS` → FUSEまたはkernelがフラグを解さない。**候補Eは不成立。**
 - `0`(成功)かつ`spike-d.txt`が上書きされている → **最悪。フラグが黙って無視されている。**候補Eは不成立で、かつ危険。
 

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "storage・permission境界を設計判断する",
-  "status": "blocked",
+  "status": "in_review",
   "dependsOn": [
     "005:T05"
   ],
