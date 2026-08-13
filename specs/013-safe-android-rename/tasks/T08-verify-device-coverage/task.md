@@ -13,7 +13,7 @@
 
 S-2は**1機種・1 API level・`adb shell`からの観測**だった。実装後に次を埋める。
 
-1. **`flags=0`との対照。** `T01`の第1回spikeにこれが無く、「フラグが効いた」の因果を示せなかった。app内で確かめるときも、フラグ有り/無しの両方を測る。**片側だけでは安全の原因が分からない。**
+1. **`flags=0`との対照を毎回取る。** `T01`の初回spikeにこれが無く、「フラグが効いた」の因果を示せなかった(reviewでP1)。**片側だけでは安全の原因が分からない。** app内でも、別API levelでも、FAT系でも、必ず両方を測る。あわせて`stat -f`と`mount`でfilesystemを記録する。
 2. **appのmount view。** `MANAGE_EXTERNAL_STORAGE`を持つapp自身から`renameat2(RENAME_NOREPLACE)`を呼び、`EEXIST`になりtargetが無傷であることを確認する。**S-2は`shell` uidからの観測なので、これが最も重要である。**
 3. **API levelの幅。** Android 11〜16のいずれかでも確認する。MediaProviderのFUSE実装はversionごとに変わる。
 4. **実機。** emulatorだけでなく実機で確認する。vendor kernelやf2fsで挙動が変わりうる。

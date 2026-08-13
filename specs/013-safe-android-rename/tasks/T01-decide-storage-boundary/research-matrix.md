@@ -34,7 +34,7 @@
 | B | A + rename後にdisplay nameを検証 | 不可(検出のみ) [一次] | 検出可・保証不可 | 広い | なし | 要検討。3を満たせない |
 | C | MediaStore `DISPLAY_NAME` update | [要spike] | [要spike] | **media限定** [一次] | 他app所有fileに同意が要る [一次] | 種別で不足 |
 | D | `MANAGE_EXTERNAL_STORAGE` + `File.renameTo` | **不可**(POSIX renameは置換する) | 可 | 広い [一次] | **要Play審査** [一次] | 1を満たさない |
-| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **観測上は可**(S-2。対照は再実施待ち) | 可 | 広い [一次] | **要Play審査** [一次] | **採用**(ADR-002) |
+| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **可**(S-2で対照付きに実測) | 可 | 広い [一次] | **要Play審査** [一次] | **採用**(ADR-002) |
 | F | app固有storageに限定 | 可 | 可 | 利用者のfileを扱えない | なし | 用途を満たさない |
 
 ## 一次資料
@@ -164,29 +164,40 @@ AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)ため、
 
 Android 11以上の端末と、可能なら別世代の端末の2台で行う。**SD card / USB OTGでも実施する**(filesystemがFATだと挙動が変わりうる)。
 
-### S-2の結果(2026-08-13 実施)
+### S-2の結果(2026-08-13 実施。対照を追加して再実施)
 
-**A) `RENAME_NOREPLACE`は有効。** ext4(`/data/local/tmp`)とFUSE(`/sdcard`)の両方で同じ結果だった。
+**A) `RENAME_NOREPLACE`が効いている。** 両方のpathで同じ結果だった。
 
-| 環境 | case 1(target あり) | targetの内容 | case 2(target なし) |
-|---|---|---|---|
-| `/data/local/tmp`(ext4) | `-1` / `errno 17 EEXIST` | 無傷 | `0` |
-| `/sdcard`(FUSE) | `-1` / `errno 17 EEXIST` | 無傷 | `0` |
+| 環境 | A: NOREPLACE / target あり | targetの内容 | B: flags=0 / target あり | C: NOREPLACE / target なし |
+|---|---|---|---|---|
+| `/data/local/tmp` | `-1` / `errno 17 EEXIST` | 無傷 | `0` — **上書きした** | `0` |
+| `/sdcard` | `-1` / `errno 17 EEXIST` | 無傷 | `0` — **上書きした** | `0` |
+
+**case Bが決め手である。** 同じ操作をフラグ無しで行うと成功して上書きする。**差はフラグに由来する**ので、「そのpathがそもそも上書きrenameを拒む」possibilityは排除された。
+
+`/sdcard`がFUSEであることも観測した(推測ではない)。
+
+```text
+$ adb shell stat -f /sdcard
+    ID: 0000000000000000 Namelen: 255    Type: 0x65735546
+
+$ adb shell mount | Select-String sdcard,fuse,emulated
+/dev/fuse on /storage/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,...)
+/dev/fuse on /mnt/user/0/emulated type fuse (...)
+```
+
+`0x65735546`は`FUSE_SUPER_MAGIC`である。**MediaProviderのFUSEがフラグを透過している。**
 
 実施環境: Android emulator、Pixel 8a image、**Android 17("CinnamonBun")**、x86_64。
 
-**この2ケースだけでは「フラグが効いた」とは言い切れない。** フラグ有りが失敗したことは、フラグの効果とも「そのpathがそもそも上書きrenameを拒む」とも読める。**flags=0の対照が無かった。** 2026-08-13のreviewで指摘され、spikeへcase B(flags=0で同じ操作)を追加した。**再実施待ちである。**
+初回のspikeにはcase Bが無く、「フラグが効いた」の因果を示せていなかった(2026-08-13のreview attempt 1でP1として指摘)。対照を追加して再実施し、**因果が確定した。**
 
-言えるのは「`RENAME_NOREPLACE`を付けた`renameat2`は、targetがあるとき`EEXIST`で失敗し、targetを壊さない」までである。**それは候補Eの安全性としては十分だが、他のAPI level・kernel・filesystemへ一般化する根拠にはならない。** 一般化にはフラグが原因だという確認が要る。
-
-さらに**1機種・1 API level・`shell` uidの結果である。** 残る未検証は次節に書く。
+**1機種・1 API level・`shell` uidの結果であることは変わらない。** 残る未検証は次節に書く。
 
 ### S-2で残った未検証
 
 - **API levelの幅**: Android 17でしか見ていない。実装が対象にするAndroid 11〜16のFUSEで同じとは限らない。**MediaProviderのFUSE実装はversionごとに変わる。**
 - **実機**: emulatorのみ。実機のvendor kernelやfilesystem(f2fs等)で挙動が変わりうる。
-- **flags=0の対照**: 上記のとおり未実施。**これが埋まるまで「フラグが効いた」と書かない。**
-- **`/sdcard`のfilesystem**: `stat -f`や`mount`を採っていない。「FUSEを経由している」はemulator imageからの推測であって観測ではない。
 - **FAT系**: SD card / USB OTGは未実施。FATは`renameat2`のフラグをfilesystem側で扱えない可能性がある。
 - **appのmount view**: `adb shell`(shell uid)からの観測である。`MANAGE_EXTERNAL_STORAGE`を持つappは**別のmount viewで`/storage`を見る**ため、同じ結果になるとは限らない。**候補Eを採用すると決めた場合、app内での再確認が要る。**
 
@@ -214,9 +225,9 @@ Android 11以上の端末と、可能なら別世代の端末の2台で行う。
 
 ## 現時点の結論
 
-**候補Eは観測上、安全に動く。** S-2で、targetがある状態の`renameat2(RENAME_NOREPLACE)`が`EEXIST`で失敗しtargetを壊さないことを`/sdcard`で実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
+**候補Eは動く。** S-2で、FUSEと確認した`/sdcard`上で`renameat2(RENAME_NOREPLACE)`が`EEXIST`で失敗しtargetを壊さないこと、**同じ操作がフラグ無しなら成功して上書きすること**を対照付きで実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
 
-**ただし「フラグが効いたから安全だった」の因果はまだ示せていない。** flags=0の対照を取っていないためである(spikeへcase Bとして追加済み、再実施待ち)。因果が確定するまで、この観測を他のAPI level・kernel・filesystemへ一般化しない。
+**ただし1機種・1 API level・`shell` uidの結果である。** 他のAPI level、実機、FAT系、そして`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount viewは`T08`で確かめる。
 
 残る関門は2つで、**どちらも技術ではない。**
 

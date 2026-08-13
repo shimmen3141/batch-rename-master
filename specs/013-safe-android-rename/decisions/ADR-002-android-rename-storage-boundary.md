@@ -27,16 +27,16 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 `MANAGE_EXTERNAL_STORAGE`が与える**直接file path access**の上で、NDKの`renameat2(RENAME_NOREPLACE)`が使える。2026-08-13のS-2で次を実測した。
 
-| 環境 | target あり | targetの内容 | target なし |
-|---|---|---|---|
-| `/data/local/tmp`(ext4) | `-1` / `EEXIST` | 無傷 | `0` |
-| `/sdcard`(FUSE) | `-1` / `EEXIST` | 無傷 | `0` |
+| 環境 | NOREPLACE / target あり | targetの内容 | flags=0 / target あり | NOREPLACE / target なし |
+|---|---|---|---|---|
+| `/data/local/tmp` | `-1` / `EEXIST` | 無傷 | `0` — 上書きした | `0` |
+| `/sdcard` | `-1` / `EEXIST` | 無傷 | `0` — 上書きした | `0` |
 
-環境: Android emulator、Pixel 8a image、Android 17、x86_64。
+環境: Android emulator、Pixel 8a image、Android 17、x86_64。`/sdcard`がFUSEであることは`stat -f`の`Type: 0x65735546`(`FUSE_SUPER_MAGIC`)と`mount`の`/dev/fuse on /storage/emulated type fuse`で観測した。
 
-観測できたのは「`RENAME_NOREPLACE`を付けた`renameat2`は、targetがあるとき`EEXIST`で失敗し、targetを壊さない」までである。
+**MediaProviderのFUSEはフラグを透過する。** フラグ有りは`EEXIST`で失敗しtargetを壊さず、フラグ無しは成功して上書きした。**差はフラグに由来する**ので、「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
 
-**「フラグが効いたから安全だった」という因果はまだ示せていない。** flags=0の対照を取っていないため、「そのpathがそもそも上書きrenameを拒む」可能性を排除できない。安全側の挙動である点は変わらないが、**他のAPI level・kernel・filesystemへ一般化する根拠にはならない。** 対照はspikeへcase Bとして追加済みで、再実施待ちである(`T08`が引き継ぐ)。
+対照(flags=0)は初回のspikeに無く、2026-08-13のreviewで指摘されて追加・再実施した。**1機種・1 API level・`shell` uidの結果である**点は変わらず、`T08`が引き継ぐ。
 
 ## Decision
 

@@ -55,13 +55,18 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   3. **`renameat2`のAPI 30という`[未到達]`主張が、ADRとT02では無印の事実に昇格していた。** しかもspike binaryは`android24`向けにビルドして動作しており、生syscallならwrapperのlevelに依存しない。T02の選択肢を2案から3案へ直した。
   4. **T02の`dependsOn`が空**でT01への実質依存が未宣言だった。`["T01"]`にした。
   - P2も併せて解消(状態表記、引用の逐語性、`/Android/data`等の書込不可をT03へ、spikeの早期returnでの後始末、`exists()`のTOCTOU、case Cの診断文言、mount種別の採取、allowlist依頼の宙吊り、covers)。
-- 2026-08-13 / spikeへcase B(`flags=0`の対照)とmount種別の採取を追加。container(x86_64/ext4)で再ビルド・実行し、case A=`EEXIST`/target無傷、case B=`0`/上書き、case C=`0`、判定`A) RENAME_NOREPLACE が効いている`、消し残し無しを確認した。
+- 2026-08-13 / spikeへcase B(`flags=0`の対照)とmount種別の採取を追加。container(x86_64/ext4)で再ビルド・実行し、case A=`EEXIST`/target無傷、case B=`0`/上書き、case C=`0`、判定`A)`、消し残し無しを確認した(dry-run)。
+- 2026-08-13 / **spike S-2を対照付きで再実施(人間)。因果が確定した。**
+  - `/data/local/tmp`と`/sdcard`の両方で、case A=`-1`/`EEXIST`/target無傷、**case B(flags=0)=`0`/上書き**、case C=`0`。
+  - **差はフラグに由来する。** 「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
+  - `/sdcard`がFUSEであることを観測した。`stat -f` → `Type: 0x65735546`(`FUSE_SUPER_MAGIC`)、`mount` → `/dev/fuse on /storage/emulated type fuse`。**推測ではなくなった。**
+  - 環境: Android emulator、Pixel 8a image、Android 17、x86_64。**1機種・1 API level・`shell` uidである点は変わらない**(`T08`が引き継ぐ)。
 
 ## Current state / handoff
 
-- Last checkpoint: 採否decisionまで完了。ADR-002が`accepted`になり、後続T02〜T08を定義した。独立review待ち
+- Last checkpoint: review attempt 1のP1×4を解消し、対照付きspikeで因果を確定した。attempt 2待ち
 - Blocker category: なし
-- Waiting for: **spikeの再実施**(`flags=0`の対照とmount種別)。手順は同じで、追加は再ビルドと1コマンドのみ
-- Requested action: [`manual-verification.md`](manual-verification.md)の手順2(再ビルド)以降をもう一度実行する。case Bの結果と`stat -f`/`mount`の出力を報告する
-- Evidence revision: `dev@f97a2cc` + spike S-2 第1回(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: 再spikeの結果を記録し、attempt 2の独立reviewを起動する。PASSならPR #133をmergeし`T02`へ進む。`minSdk`を含む4点を人間へ一度に問う
+- Waiting for: exact rangeの独立review(attempt 2)
+- Requested action: なし
+- Evidence revision: `dev@f97a2cc` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
+- Next Agent action: attempt 2がPASSしたらPR #133をmergeし`T02`へ進む。`minSdk`を含む4点を人間へ一度に問う
