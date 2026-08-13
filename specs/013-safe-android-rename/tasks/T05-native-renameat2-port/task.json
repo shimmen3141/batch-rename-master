@@ -10,9 +10,15 @@
     "REQ-005",
     "REQ-006",
     "REQ-007",
+    "REQ-008",
     "REQ-009",
+    "REQ-010",
+    "REQ-011",
+    "REQ-012",
+    "REQ-013",
     "INV-001",
-    "INV-002"
+    "INV-002",
+    "INV-004"
   ],
   "issue": null,
   "pullRequest": null,

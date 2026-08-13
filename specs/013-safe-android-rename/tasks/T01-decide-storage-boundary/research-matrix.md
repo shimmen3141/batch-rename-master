@@ -124,21 +124,26 @@ Google Playの制約(**筆者の要約**):
 
 読み取った内容(**筆者の要約。原文の転記ではない**):
 
-- 対象はAndroid 11(API 30)以上をtargetし、この権限を宣言するapp。宣言するなら**Play ConsoleのPermissions Declaration Formを提出し、承認を受ける**必要がある。提出しない、または要件を満たさないappは**Playから削除されうる**。
+- 対象はAndroid 11(API 30)をtargetし、この権限を宣言するapp。宣言するなら**Play ConsoleのPermissions Declaration Formを提出し、承認を受ける**必要がある。提出しない、または要件を満たさないappは**Playから削除されうる**。
 - 「core functionality」は**appの主目的**と定義され、それが無ければappは壊れている(unusable)状態になるもの、とされる。さらに**appの説明文で目立つ形に記載・訴求されていること**が求められる。
 - permitted usesの表に**File management**があり、その定義は「appの主目的が、**app固有storageの外にあるfileとfolderへのaccess、編集、管理(maintenanceを含む)**であること」。この用途は`MANAGE_EXTERNAL_STORAGE`の対象として挙げられている。
 - 他にbackup/restore、anti-virus、document management、on-device search、暗号化、device移行がある。いずれも**Playの審査と承認が前提**と注記されている。
 
-**重要: 「invalid uses」に該当しうる記述がある。**
+**重要: 「invalid uses」にこのappが該当しうる。** ここは要約しない。**判断が語の強さに依存するため、原文を読むこと。**
 
-- 認められない例として、**利用者が個々のfileを手で選ぶだけのfile選択操作**が挙げられており、代替としてSAFを使うよう案内されている。
-- 一方で、この一覧は網羅的ではないとも書かれている。
+- 認められない例の一つは、**利用者が個々のfileを手で選ぶ file selection activity 全般**である(資料は`Any`と書いており、「選ぶだけのapp」に限定していない)。代替としてSAFが案内されている。
+- 代替の表には、**利用者がfileを選んで import / transfer / processing する用途**にSAFを検討せよ、という行がある。**一括改名は processing に読める。**
+- 「この一覧は網羅的ではない」という注記は、**invalid usesの列挙**に付いている。**invalidの範囲を広げる方向にしか働かない。**
 
-**この2つは、このappの位置づけ次第でどちらにも転ぶ。** 004の現在のmodel(SAFで個々のfileを選ぶ)は後者に近い。一方、`T03`で作るapp内file browser(folderを辿ってfileとfolderを管理する)は前者の**File management**の定義に近い。**したがってT03の設計は技術的な帰結であるだけでなく、配布要件でもある。**
+**したがって「該当しうるか」は未解決である。** 到達できたのはpermitted usesの**定義**であって、このappの**当てはまり**ではない。permitted usesのFile managementに当てはまるという読みと、invalid usesのfile selection activityに当てはまるという読みが**両立しうる**。どちらが優先するかは資料に書かれていない。
 
-さらに例外条項がある。permitted usesに当てはまらなくても、(i) その権限がcore functionalityを成立させ、(ii) 代替が無いか、privacy-friendlyな代替がcritical featureへ実質的な悪影響を与え、(iii) privacyへの影響がbest practiceで緩和されている場合、**一時的な例外**がありうる。**その場合はConsoleの申告でSAF/MediaStoreでは不十分な理由を説明する必要がある。**
+**この判断はAgentが行わない。** 配布riskの受容であり、原文を読んだうえでの人間の判断とする。
 
-**このappはその説明を持っている。** ADR-002の一次資料分析(SAFは要求名の同一性を保証せず、MediaStoreは対象種別を覆えない)がそのまま(ii)の論拠になる。
+`T03`でapp内file browserをfolder管理の導線として作ることは、**File managementの定義へ寄せる方向に働く**。ただしそれでinvalid usesを外れると保証されるわけではない。
+
+例外条項もある。permitted usesに当てはまらなくても、**(i)** その権限がcore functionalityを成立させ、**(ii)** 代替が無いか、privacy-friendlyな代替がcritical featureへ実質的な悪影響を与え、**(iii)** privacyへの影響がbest practiceで緩和されている場合に、一時的な例外がありうる。**3条件すべてが要る。** さらにConsoleの申告でSAF/MediaStoreが不十分な理由を説明する義務が加わる(説明だけで足りるのではない)。
+
+ADR-002の一次資料分析(SAFは要求名の同一性を保証せず、MediaStoreは対象種別を覆えない)は**(ii)の論拠になる**。(i)と(iii)は別に示す必要がある。
 
 - 出典: <https://support.google.com/googleplay/android-developer/answer/10467955>
 
@@ -287,14 +292,15 @@ none on /sys/fs/fuse/connections type fusectl (rw,relatime)
 
 ### 関門1: `MANAGE_EXTERNAL_STORAGE`のPlay審査
 
-**2026-08-13にPlay Consoleのpolicy原文を読めるようになり、この関門の中身が具体的になった。**
+**2026-08-13にPlay Consoleのpolicy原文を読めるようになった。** 分かったのは条件の中身であって、このappが通るかではない。
 
-- permitted usesの**File management**(主目的がapp固有storage外のfileとfolderのaccess・編集・管理)は、このappの主目的と一致する。
-- ただし**invalid usesに「利用者が個々のfileを手で選ぶだけのfile選択操作」があり、SAFを使うよう案内されている。** 004の現在のmodelはこちらに近い。
-- 例外条項があり、SAF/MediaStoreでは不十分な理由をConsoleで説明できれば一時的な例外がありうる。**その説明はADR-002の一次資料分析がそのまま使える。**
-- いずれにせよ**Permissions Declaration Formの提出と承認が要り、承認されるかはPlayの審査次第**である。
+- permitted usesの**File management**の定義は、このappの主目的と一致する。
+- **同時に、invalid usesのfile selection activityにも該当しうる**(上の「Playのpermitted uses」節)。資料は`Any`と書き、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。**
+- 「一覧は網羅的でない」という注記は**invalid usesの側**に付いており、invalidの範囲を広げる方向にしか働かない。
+- 例外条項は3条件すべてを要し、Consoleでの説明は追加の義務である。
+- **Permissions Declaration Formの提出と承認が要り、承認されるかはPlayの審査次第**である。
 
-**残る不確実性は「審査に通るか」であって、「該当しうるか」ではなくなった。** また、**`T03`でapp内file browserをfolder管理として作ることが、技術的必要であると同時に配布要件でもある**ことが分かった。
+**「該当しうるか」は未解決のままである。** 到達できたのはpermitted usesの定義であって、このappの当てはまりではない。`T03`でfolder管理の導線として作ることはFile managementの定義へ寄せる方向に働くが、**それでinvalid usesを外れる保証は無い。** これはAgentが決める論点ではなく、原文を読んだうえでの人間のrisk受容である。
 
 ### 関門2: Androidのfile選択導線が変わる
 

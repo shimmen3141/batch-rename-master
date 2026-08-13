@@ -59,14 +59,16 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 **2026-08-13追記: `support.google.com`がallowlistへ追加され、"permitted uses"の原文を読めた。** `[未到達]`は解消した。要点は次のとおり(**筆者の要約**。詳細と出典は[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md))。
 
 - permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」と定義され、**このappの主目的と一致する**。
-- ただし**invalid usesに「利用者が個々のfileを手で選ぶだけのfile選択操作」があり、SAFを使うよう案内されている。** 004の現在のmodelはこちらに近い。
-- 例外条項があり、SAF/MediaStoreでは不十分な理由をConsoleで説明できれば一時的な例外がありうる。**その説明は本ADRの分析がそのまま使える。**
+- **同時に、invalid usesの file selection activity にも該当しうる。** 資料は`Any`と書いて限定しておらず、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。** さらに「一覧は網羅的でない」の注記は**invalid usesの側**に付いており、範囲を広げる方向にしか働かない。
+- 例外条項は**3条件すべて**(core functionalityの成立 / 代替が無いか実質的な悪影響 / privacyの緩和)を要し、Consoleでの説明は**追加の義務**である。本ADRの分析は2つ目の論拠になるが、それだけでは足りない。
 - `Permissions Declaration Form`の提出と承認が要る。提出しない、または要件を満たさないappは**Playから削除されうる**。
 - core functionalityは**appの説明文で目立つ形に記載・訴求されている**必要がある。
 
-**残る不確実性は「審査に通るか」であって、「該当しうるか」ではなくなった。** 却下riskを抱えたまま進む判断は変わらないが、**riskの形が具体的になった。**
+**「該当しうるか」は未解決のままである。** 到達できたのはpermitted usesの**定義**であって、このappの**当てはまり**ではない。File managementに当てはまる読みとfile selection activityに当てはまる読みが**両立しうる**。**却下riskを抱えたまま進む判断は変わらないが、riskは当初の見立てより大きい。**
 
-**設計への含意**: `T03`のapp内file browserを、単なるfile選択画面ではなく**folderとfileを管理する導線**として作ることが、技術的必要であると同時に**配布要件**でもある。
+**この点は原文を読んだうえでの人間のrisk受容とする。** Agentは決めない。
+
+**設計への含意**: `T03`のapp内file browserを、単なるfile選択画面ではなく**folderとfileを管理する導線**として作ることは、File managementの定義へ寄せる方向に働く。**ただしそれでinvalid usesを外れる保証は無い。**
 
 「よりprivacy-friendlyなAPIでは目的を達せられない」という条件については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。宣言理由にはこれを使う。**ただし提出前に、人間がPlayのpolicy原文と突き合わせること。**
 
