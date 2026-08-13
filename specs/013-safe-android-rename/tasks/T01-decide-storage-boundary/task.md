@@ -48,12 +48,13 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   - **FUSEがフラグを透過している。** 候補Eの技術的前提が成立した。
   - 未検証: API levelの幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。**採用を決めてから確かめる。**
 - 2026-08-13 / 調査の結果、**候補Eの採用がAndroidのfile選択導線の作り直し(004への波及)を伴う**ことが判明した。`renameat2`はpathを要り、SAF URIはpathへ変換できないため、選択がSAFからapp内file browserへ変わる。当初の想定に無かった影響なので、採否の判断材料へ加えた。
+- 2026-08-13 / **開発者が候補Eの採用を決定。** ADR-002を`accepted`にし、T02〜T08を定義した。`flutter test` — PASS (359)。005のnegative testは無傷。
 
 ## Current state / handoff
 
-- Last checkpoint: 公式資料調査とspike S-2が完了。**候補Eは技術的に成立する**ことを実測で確認し、[`decisions/ADR-002`](../../decisions/ADR-002-android-rename-storage-boundary.md)を`proposed`として起草した
-- Blocker category: decision(人間の配布・scope判断)
-- Waiting for: **候補Eを採るかどうかの人間の決定。** 技術ではなく、(1) `MANAGE_EXTERNAL_STORAGE`をPlayで宣言する方針を取れるか、(2) Androidのfile選択をSAFからapp内file browserへ作り直す範囲を受け入れるか
-- Requested action: ADR-002の「決めること」に答える。採用する場合は004の再承認も要る
+- Last checkpoint: 採否decisionまで完了。ADR-002が`accepted`になり、後続T02〜T08を定義した。独立review待ち
+- Blocker category: なし
+- Waiting for: exact rangeの独立review
+- Requested action: なし
 - Evidence revision: `dev@f97a2cc` + spike S-2(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: 採用ならADR-002を`accepted`にし、実装planのtask案(004のAndroid選択導線の作り直しを含む)を作る。不採用ならADR-002を`rejected`にし、005のAndroid未対応を確定として013を閉じる。どちらも承認前に実装しない
+- Next Agent action: 独立reviewがPASSしたらPR #133をmergeし、`T02`(権限とAPI levelの方針)へ進む。`minSdk`を含む4点を人間へ一度に問う
