@@ -59,6 +59,10 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 - Review attempt 2: `ec2e74f..2baaa48` — FAIL — P1×5。**うち2件はattempt 1の修正が一部のfileにしか届いていなかった**(`research-matrix.md`の結論節に閉じたallowlist表現が残存、`T05`/`T04`にAPI 30が無印で残存)。他は`mount`出力を逐語でなく整形して生出力として提示(attempt 1のP1-1と同じ根本原因の再発)、`Evidence revision`が実在しないbase`f97a2cc`のまま、判定軸2(失敗時不変)をsource側で観測していないのに満たしたと書いていた。
   - 対処: 訂正対象を`grep`で全文横断してから直した。spikeへsource側とcase Cの中身の確認を追加(次回の実行から実測になる)。`Evidence revision`を8fileとも`dev@ec2e74f`へ。Playのpolicy確認を`T02`の受け入れ証拠としてgate化した。
   - **1件は指摘を採らなかった。** 「Android 17のcodename "CinnamonBun"に出典が無い」との指摘だが、これは人間が2026-08-13の報告で「device managerではPixel 8a, Android 17.0 ("CinnamonBun")と書いてありました」と伝えた内容である。reviewerへ渡した抜粋に含まれていなかったための誤検出。出典を明記して残す。
+- Review attempt 3: `ec2e74f..1f870af` — FAIL — P1×2、P2×6。attempt 2のP1×5は伝播含め解消、spikeの改訂も妥当と確認された。**残るP1は2件、いずれも`research-matrix.md`の2行である。**
+  1. `:87-94` — `MANAGE_EXTERNAL_STORAGE`の付与内容の引用で、原文の`except /Android/data/, /sdcard/Android, ...`を**`such as /sdcard/Android`と書いており意味が反転している**。原文をcurlで再取得して確認済み。**逐語引用を直す作業の中で、より悪い誤りを入れた。** 地の文(`:98`)は正しく「書けない」としているので結論は無事だが、原文として提示したblock自体が原文と矛盾する。
+  2. `:168` — S-2の**判定基準**節に「`EEXIST`かつtargetの内容が不変 → 判定軸1と2を満たす」が残存。同じfileの`:185`が「判定軸2を実測したとは言えない」と正反対を述べており矛盾。attempt 2のP1-1(結論節に旧主張が残存)と同型の伝播漏れ。
+  - **3回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
 - 2026-08-13 / **spike S-2を対照付きで再実施(人間)。因果が確定した。**
   - `/data/local/tmp`と`/sdcard`の両方で、case A=`-1`/`EEXIST`/target無傷、**case B(flags=0)=`0`/上書き**、case C=`0`。
   - **差はフラグに由来する。** 「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
@@ -68,9 +72,9 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 ## Current state / handoff
 
-- Last checkpoint: review attempt 2のP1×5を解消した。attempt 3待ち
-- Blocker category: なし
-- Waiting for: exact rangeの独立review(attempt 3)
-- Requested action: なし
+- Last checkpoint: review attempt 3もFAIL。**3回連続のため自動修正を停止した**(AGENTS.md)
+- Blocker category: process(3回FAIL規律)
+- Waiting for: 人間の判断。(a) 残る2行を直して再開する / (b) 別のAgentへ渡す / (c) 範囲を見直す
+- Requested action: 上記(a)〜(c)を選ぶ
 - Evidence revision: `dev@ec2e74f` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: attempt 3がPASSしたらPR #133をmergeし`T02`へ進む。**これが3回目のreviewである。** FAILなら自動修正を止め、diff・各回の実出力・未解決指摘・否定された仮定を人間へ報告する(AGENTS.md)
+- Next Agent action: **人間の指示を待つ。** 勝手に4回目の修正を始めない。再開が承認されたら`research-matrix.md`の2行(`:87-94`の引用の反転、`:168`の判定基準)を直し、SAFの引用(`:46-54`)も同じ方法で再照合してからattempt 4を起動する
