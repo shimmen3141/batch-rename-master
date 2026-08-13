@@ -4,12 +4,16 @@
   "service": "ai-dev",
   "workspaceFolder": "/workspace",
   "remoteUser": "dev",
+  "userEnvProbe": "none",
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && bash /workspace/.devcontainer/check-secrets.sh",
   "remoteEnv": {
     "SSH_AUTH_SOCK": null
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "telemetry.telemetryLevel": "off"
+      },
       "extensions": [
         "anthropic.claude-code",
         "openai.chatgpt",
