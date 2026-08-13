@@ -44,8 +44,8 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 - 2026-08-13 / **spike S-2を実施(人間)。結果はA) `RENAME_NOREPLACE`は有効。**
   - 環境: Android emulator、Pixel 8a image、Android 17("CinnamonBun")、x86_64。
-  - `/data/local/tmp`(ext4)と`/sdcard`(FUSE)の**両方**で、targetが既にある場合は`-1` / `errno 17 EEXIST`、targetの内容は無傷、targetが無い場合は`0`。
-  - **FUSEがフラグを透過している。** 候補Eの技術的前提が成立した。
+  - `/data/local/tmp`と`/sdcard`の**両方**で、targetが既にある場合は`-1` / `errno 17 EEXIST`、targetの内容は無傷、targetが無い場合は`0`。
+  - 候補Eの技術的前提が成立した(この時点では対照が無く、因果は未確定)。
   - 未検証: API levelの幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。**採用を決めてから確かめる。**
 - 2026-08-13 / 調査の結果、**候補Eの採用がAndroidのfile選択導線の作り直し(004への波及)を伴う**ことが判明した。`renameat2`はpathを要り、SAF URIはpathへ変換できないため、選択がSAFからapp内file browserへ変わる。当初の想定に無かった影響なので、採否の判断材料へ加えた。
 - 2026-08-13 / **開発者が候補Eの採用を決定。** ADR-002を`accepted`にし、T02〜T08を定義した。`flutter test` — PASS (359)。005のnegative testは無傷。
@@ -56,17 +56,21 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   4. **T02の`dependsOn`が空**でT01への実質依存が未宣言だった。`["T01"]`にした。
   - P2も併せて解消(状態表記、引用の逐語性、`/Android/data`等の書込不可をT03へ、spikeの早期returnでの後始末、`exists()`のTOCTOU、case Cの診断文言、mount種別の採取、allowlist依頼の宙吊り、covers)。
 - 2026-08-13 / spikeへcase B(`flags=0`の対照)とmount種別の採取を追加。container(x86_64/ext4)で再ビルド・実行し、case A=`EEXIST`/target無傷、case B=`0`/上書き、case C=`0`、判定`A)`、消し残し無しを確認した(dry-run)。
+- Review attempt 2: `ec2e74f..2baaa48` — FAIL — P1×5。**うち2件はattempt 1の修正が一部のfileにしか届いていなかった**(`research-matrix.md`の結論節に閉じたallowlist表現が残存、`T05`/`T04`にAPI 30が無印で残存)。他は`mount`出力を逐語でなく整形して生出力として提示(attempt 1のP1-1と同じ根本原因の再発)、`Evidence revision`が実在しないbase`f97a2cc`のまま、判定軸2(失敗時不変)をsource側で観測していないのに満たしたと書いていた。
+  - 対処: 訂正対象を`grep`で全文横断してから直した。spikeへsource側とcase Cの中身の確認を追加(次回の実行から実測になる)。`Evidence revision`を8fileとも`dev@ec2e74f`へ。Playのpolicy確認を`T02`の受け入れ証拠としてgate化した。
+  - **1件は指摘を採らなかった。** 「Android 17のcodename "CinnamonBun"に出典が無い」との指摘だが、これは人間が2026-08-13の報告で「device managerではPixel 8a, Android 17.0 ("CinnamonBun")と書いてありました」と伝えた内容である。reviewerへ渡した抜粋に含まれていなかったための誤検出。出典を明記して残す。
 - 2026-08-13 / **spike S-2を対照付きで再実施(人間)。因果が確定した。**
   - `/data/local/tmp`と`/sdcard`の両方で、case A=`-1`/`EEXIST`/target無傷、**case B(flags=0)=`0`/上書き**、case C=`0`。
   - **差はフラグに由来する。** 「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
-  - `/sdcard`がFUSEであることを観測した。`stat -f` → `Type: 0x65735546`(`FUSE_SUPER_MAGIC`)、`mount` → `/dev/fuse on /storage/emulated type fuse`。**推測ではなくなった。**
-  - 環境: Android emulator、Pixel 8a image、Android 17、x86_64。**1機種・1 API level・`shell` uidである点は変わらない**(`T08`が引き継ぐ)。
+  - `/sdcard`がFUSE経由であることを観測した。`stat -f` → `Type: 0x65735546`(`FUSE_SUPER_MAGIC`)、`mount` → `/dev/fuse on /storage/emulated type fuse`。**推測ではなくなった。**
+  - ただし同じ`mount`出力に`/dev/block/dm-6 on /mnt/pass_through/0/emulated type ext4`があり、**下位filesystemはext4**である。FUSEが自分で判定したのか下位へ委譲したのかは切り分けていない。
+  - 環境: Android emulator、Pixel 8a image、Android 17.0("CinnamonBun"。人間がdevice managerの表示として報告)、x86_64。**1機種・1 API level・`shell` uid・下位ext4である点は変わらない**(`T08`が引き継ぐ)。
 
 ## Current state / handoff
 
-- Last checkpoint: review attempt 1のP1×4を解消し、対照付きspikeで因果を確定した。attempt 2待ち
+- Last checkpoint: review attempt 2のP1×5を解消した。attempt 3待ち
 - Blocker category: なし
-- Waiting for: exact rangeの独立review(attempt 2)
+- Waiting for: exact rangeの独立review(attempt 3)
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: attempt 2がPASSしたらPR #133をmergeし`T02`へ進む。`minSdk`を含む4点を人間へ一度に問う
+- Evidence revision: `dev@ec2e74f` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
+- Next Agent action: attempt 3がPASSしたらPR #133をmergeし`T02`へ進む。**これが3回目のreviewである。** FAILなら自動修正を止め、diff・各回の実出力・未解決指摘・否定された仮定を人間へ報告する(AGENTS.md)

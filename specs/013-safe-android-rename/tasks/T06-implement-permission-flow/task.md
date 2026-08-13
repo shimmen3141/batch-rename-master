@@ -35,5 +35,5 @@
 - Blocker category: dependency
 - Waiting for: `T02`の仕様承認
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002
+- Evidence revision: `dev@ec2e74f` + ADR-002
 - Next Agent action: `T02`承認後に着手する。権限判定をportにしてからUIを書く

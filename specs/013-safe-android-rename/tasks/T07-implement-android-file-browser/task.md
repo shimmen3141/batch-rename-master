@@ -38,5 +38,5 @@
 - Blocker category: dependency
 - Waiting for: `T03`の仕様承認と`T06`の権限導線
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002
+- Evidence revision: `dev@ec2e74f` + ADR-002
 - Next Agent action: `T03`承認後に着手する。008との作業重複を先に確認する

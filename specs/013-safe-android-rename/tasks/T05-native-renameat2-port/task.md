@@ -17,7 +17,9 @@
 - `errno`から`RenameErrorKind`への写像(`T04`の決定に従う)。
 - 仕様由来testの追加。
 
-**注意**: `renameat2`はAPI 30公開。`T02`の決定に従って、API 30未満では未対応を返す分岐を残すか、`minSdk`を上げる。
+**注意**: `renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約であり原文を読めていない(**[未到達]**)。**生の`syscall(SYS_renameat2, ...)`を使えばwrapperのlevelに依存しない**(`T01`のspike binaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。
+
+`T02`の決定(3案のいずれか: `minSdk`を30へ上げる / 24のまま生syscallで呼び動かない端末を実行時に検出する / API levelで一律分岐する)に従う。**API levelを対応可否の代理指標にしない**という`T02`の但し書きも守る。
 
 ## 受け入れ証拠
 
@@ -39,5 +41,5 @@
 - Blocker category: dependency
 - Waiting for: `T04`の契約承認
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002 + spike S-2
+- Evidence revision: `dev@ec2e74f` + ADR-002 + spike S-2
 - Next Agent action: `T04`承認後にtest-firstで着手する。spikeのCコードをそのまま流用できる部分を先に確認する

@@ -39,5 +39,5 @@ S-2は**1機種・1 API level・`adb shell`からの観測**だった。実装�
 - Blocker category: dependency
 - Waiting for: `T05`と`T07`の実装
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid)
+- Evidence revision: `dev@ec2e74f` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid)
 - Next Agent action: `T05`/`T07`完了後、実行できるmanual手順を書いてから人間へ依頼する。**依頼前にdry-runする**

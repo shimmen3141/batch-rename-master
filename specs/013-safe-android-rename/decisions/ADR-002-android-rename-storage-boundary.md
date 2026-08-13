@@ -34,9 +34,11 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 環境: Android emulator、Pixel 8a image、Android 17、x86_64。`/sdcard`がFUSEであることは`stat -f`の`Type: 0x65735546`(`FUSE_SUPER_MAGIC`)と`mount`の`/dev/fuse on /storage/emulated type fuse`で観測した。
 
-**MediaProviderのFUSEはフラグを透過する。** フラグ有りは`EEXIST`で失敗しtargetを壊さず、フラグ無しは成功して上書きした。**差はフラグに由来する**ので、「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
+**`/sdcard`のFUSE経路は`RENAME_NOREPLACE`を尊重する。** フラグ有りは`EEXIST`で失敗しtargetを壊さず、フラグ無しは成功して上書きした。**差はフラグに由来する**ので、「そのpathがそもそも上書きrenameを拒むだけ」という説明は排除された。
 
-対照(flags=0)は初回のspikeに無く、2026-08-13のreviewで指摘されて追加・再実施した。**1機種・1 API level・`shell` uidの結果である**点は変わらず、`T08`が引き継ぐ。
+対照(flags=0)は初回のspikeに無く、2026-08-13のreviewで指摘されて追加・再実施した。
+
+**ただし「FUSE daemon自身が判定した」とまでは言えない。** 同じ`mount`出力に`/dev/block/dm-6 on /mnt/pass_through/0/emulated type ext4`があり、下位filesystemはext4である。FUSEが判定したのか下位へ委譲したのかは切り分けていない。**1機種・1 API level・`shell` uid・下位ext4の結果である**点も含め、`T08`が引き継ぐ。
 
 ## Decision
 
@@ -101,7 +103,7 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 ### 採用したことによる帰結
 
 - 005 contractは**変えない**。INV-002へのplatform例外を作らない。
-- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystムの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
+- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
 - 採用後に、S-2で残した未検証を確かめる。**API level幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。** 特に最後の1つは、今回`adb shell`から観測したものであり、app内で再確認する必要がある。
 - production実装は`013:T02`以降として定義する。**本ADRは実装を含まない。**

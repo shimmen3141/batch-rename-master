@@ -14,7 +14,7 @@
 ## 決めること
 
 1. **失敗の分類。** `errno`を`RenameErrorKind`のどれへ写すか。`EEXIST`→`nameConflict`、`EACCES`/`EPERM`→`permissionDenied`、`ENOENT`→`notFound`、`EXDEV`(別filesystem)は新設が要るか。
-2. **API 30未満の扱い**(`T02`の決定に従う)。`unsupportedPlatform`を返す経路を残すか。
+2. **`renameat2`が使えない端末の扱い**(`T02`の決定に従う)。`unsupportedPlatform`を返す経路を残すか。**API levelを境界として書き込まない** — `T02`が選ぶのはAPI levelでの分岐とは限らず、実行時検出の案もある。契約は「使えない端末では未対応を返す」という観測可能な形で書く。
 3. **handleの意味。** Androidのhandleが不透明なSAF URIから**絶対path**へ変わる。INV-005(handleは最後に得た値)の書き方が変わるか確認する。
 4. **更新日時ずらし**(REQ-014〜016)。pathが手に入るので`ModifiedAtWriter`をAndroidでも実装できる。**このplanの範囲に入れるか、別taskへ送るか。**
 
@@ -43,5 +43,5 @@
 - Blocker category: dependency
 - Waiting for: `T02`のAPI level方針
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002
+- Evidence revision: `dev@ec2e74f` + ADR-002
 - Next Agent action: `T02`承認後に着手する。契約の差分は最小にし、platform例外を作らないことを最優先で確認する

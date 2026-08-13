@@ -13,8 +13,17 @@
 //
 // 使い方:
 //   ./renameat2_spike <作業ディレクトリ>
-//   例: ./renameat2_spike /sdcard        (FUSE。本番)
-//       ./renameat2_spike /data/local/tmp (ext4。対照)
+//
+// 観測するもの:
+//   case A: RENAME_NOREPLACE + target あり → EEXIST で失敗し、source も
+//           target も無傷か(005 INV-002 と OP-004)
+//   case B: flags=0 + target あり → 成功して上書きするか(対照。これが無いと
+//           「フラグが効いた」と「その path が上書きを拒む」を区別できない)
+//   case C: RENAME_NOREPLACE + target なし → 成功し、中身が移るか
+//
+//   例: ./renameat2_spike /sdcard         (FUSE経由。本番)
+//       ./renameat2_spike /data/local/tmp (FUSEを経由しない path。切り分け用)
+//   filesystem 種別は思い込まず `stat -f <dir>` で別途記録する。
 //
 // このプログラムは自分でfixtureを作り、終了時に片付ける。引数のディレクトリに
 // spike-c.txt / spike-d.txt / spike-e.txt を一時的に作る。既に同名のfileが
@@ -144,12 +153,18 @@ int main(int argc, char **argv) {
   body[0] = '\0';
   int readA = read_file(dst, body, sizeof(body));
   int intactA = readA && strcmp(body, "TARGET") == 0;
+  // 失敗時不変(005 OP-004)は target だけでなく source 側でも見る。
+  char srcBody[64] = {0};
+  int readSrcA = read_file(src, srcBody, sizeof(srcBody));
+  int srcIntactA = readSrcA && strcmp(srcBody, "SOURCE") == 0;
 
   printf("[case A] RENAME_NOREPLACE / target あり\n");
   printf("  戻り値 : %d\n", rA);
   printf("  errno  : %d (%s)\n", eA, rA == 0 ? "-" : strerror(eA));
   printf("  spike-d.txt : %s\n", readA ? body : "(読めない)");
-  printf("  target は無傷か : %s\n\n", intactA ? "YES" : "NO");
+  printf("  target は無傷か : %s\n", intactA ? "YES" : "NO");
+  printf("  spike-c.txt : %s\n", readSrcA ? srcBody : "(読めない)");
+  printf("  source は無傷か : %s\n\n", srcIntactA ? "YES" : "NO");
 
   // --- case B: flags=0、target あり(対照。ここが要) ---
   if (!reset_fixture(1)) {
@@ -180,16 +195,23 @@ int main(int argc, char **argv) {
   int rC = renameat2_raw(src, missing, RENAME_NOREPLACE);
   int eC = errno;
 
+  body[0] = '\0';
+  int readC = read_file(missing, body, sizeof(body));
+  int movedC = readC && strcmp(body, "SOURCE") == 0;
+
   printf("[case C] RENAME_NOREPLACE / target なし\n");
   printf("  戻り値 : %d\n", rC);
-  printf("  errno  : %d (%s)\n\n", eC, rC == 0 ? "-" : strerror(eC));
+  printf("  errno  : %d (%s)\n", eC, rC == 0 ? "-" : strerror(eC));
+  printf("  spike-e.txt : %s\n", readC ? body : "(読めない)");
+  printf("  中身が移ったか : %s\n\n", movedC ? "YES" : "NO");
 
   // --- 判定 ---
   printf("=== 判定 ===\n");
-  if (rA == -1 && eA == EEXIST && intactA && rB == 0 && replacedB) {
+  if (rA == -1 && eA == EEXIST && intactA && srcIntactA && rB == 0 && replacedB) {
     printf("A) RENAME_NOREPLACE が効いている。\n");
-    printf("   フラグ有りは EEXIST で失敗し target 無傷、フラグ無しは成功して\n");
-    printf("   上書きした。差はフラグに由来する。候補Eは成立しうる。\n");
+    printf("   フラグ有りは EEXIST で失敗し source も target も無傷、フラグ\n");
+    printf("   無しは成功して上書きした。差はフラグに由来する。\n");
+    printf("   候補Eは成立しうる。\n");
   } else if (rA == -1 && (eA == EINVAL || eA == ENOSYS)) {
     printf("B) フラグを解釈できない (errno=%s)。候補Eは不成立。\n", strerror(eA));
   } else if (rA == 0) {
@@ -200,6 +222,13 @@ int main(int argc, char **argv) {
     printf("   case B の errno=%d (%s) を報告する。\n", eB, strerror(eB));
   } else {
     printf("E) 想定外。上の生の値をそのまま報告する。\n");
+  }
+  if (rA == -1 && eA == EEXIST && intactA && !srcIntactA) {
+    printf("   注意: 失敗したのに source が変化している。失敗時不変(OP-004)を\n");
+    printf("   満たさない。この点だけで候補Eは採れない。\n");
+  }
+  if (rC == 0 && !movedC) {
+    printf("   注意: case C は成功を返したが中身が移っていない。\n");
   }
   if (rC != 0) {
     printf("   注意: target が無い場合の rename も失敗した (errno=%d %s)。\n",

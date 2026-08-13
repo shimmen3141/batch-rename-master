@@ -94,10 +94,11 @@ adb shell chmod 755 /data/local/tmp/renameat2_spike
 
 ## 手順4 — 対照実験(まず普通のファイルシステムで試す)
 
-`/data/local/tmp`はFUSEを通らない普通のext4です。**ここでフラグが効かなければ、`/sdcard`を試す意味がありません。**
+`/data/local/tmp`は共有storageのFUSEを経由しないpathです。**ここでフラグが効かなければ、`/sdcard`を試す意味がありません**(kernel側の問題だと分かります)。
 
 ```powershell
 adb shell /data/local/tmp/renameat2_spike /data/local/tmp
+adb shell stat -f /data/local/tmp
 ```
 
 **期待する出力**(末尾の判定行):

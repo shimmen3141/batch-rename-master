@@ -34,7 +34,8 @@
 
 - 上記4点すべてに、外部から観測できる形で答えている。
 - **人間による承認**(仕様の新規approvedまたは既存specの再承認)。
-- 承認されたREQ IDを、T05/T06/T07の`task.json`の`covers`へ書く。
+- 承認されたREQ IDを、T05/T06/T07/T08の`task.json`の`covers`へ書く。
+- **Playのpolicy原文との突き合わせを人間が済ませていること。** ADR-002は「一括改名appがpermitted usesに入るか」を`[未到達]`のまま残している。**T05〜T07の実装へ投資する前にこのgateを通す。** 通らなければ候補Eは配布できず、Android未対応維持へ戻る(ADR-002の退避経路)。
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
 ## 作業記録
@@ -47,5 +48,5 @@
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@f97a2cc` + ADR-002
+- Evidence revision: `dev@ec2e74f` + ADR-002
 - Next Agent action: 「決めること」の4点へ案を作り、人間へ一度に問う。`minSdk`は他の3点の前提になるので最初に置く

@@ -34,7 +34,7 @@
 | B | A + rename後にdisplay nameを検証 | 不可(検出のみ) [一次] | 検出可・保証不可 | 広い | なし | 要検討。3を満たせない |
 | C | MediaStore `DISPLAY_NAME` update | [要spike] | [要spike] | **media限定** [一次] | 他app所有fileに同意が要る [一次] | 種別で不足 |
 | D | `MANAGE_EXTERNAL_STORAGE` + `File.renameTo` | **不可**(POSIX renameは置換する) | 可 | 広い [一次] | **要Play審査** [一次] | 1を満たさない |
-| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **可**(S-2で対照付きに実測) | 可 | 広い [一次] | **要Play審査** [一次] | **採用**(ADR-002) |
+| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **no-replaceは実測**(原子性はkernel契約に依拠) | 可 | 広い [一次] | **要Play審査** [一次] | **採用**(ADR-002) |
 | F | app固有storageに限定 | 可 | 可 | 利用者のfileを扱えない | なし | 用途を満たさない |
 
 ## 一次資料
@@ -84,7 +84,14 @@ renameは`DISPLAY_NAME`の`update`で行う:
 
 `MANAGE_EXTERNAL_STORAGE`が与えるもの:
 
-> Read and write access to all files within shared storage / Access to the contents of the `MediaStore.Files` table / Access to the root directory of both the USB OTG drive and the SD card / Write access to all internal storage directories except `/Android/data/`, `/sdcard/Android`, and most subdirectories of `/sdcard/Android` (including direct file path access)
+> The `MANAGE_EXTERNAL_STORAGE` permission grants the following:
+>
+> - Read and write access to all files within shared storage.
+> - Access to the contents of the `MediaStore.Files` table.
+> - Access to the root directory of both the USB on-the-go (OTG) drive and the SD card.
+> - Write access to all internal storage directories, such as `/sdcard/Android`. This write access includes direct file path access.
+>
+> **Note:** The `/sdcard/Android/media` directory is part of shared storage.
 
 **"including direct file path access"が要点である。** 実pathが得られるので、SAFのopaque handleではなくPOSIX APIを直接使える。
 
@@ -92,7 +99,7 @@ renameは`DISPLAY_NAME`の`update`で行う:
 
 Google Playの制約。原文は次のとおりである。
 
-> The Google Play store has updated its policy to evaluate apps that target Android 11 (API level 30) or higher and request all-files access through the `MANAGE_EXTERNAL_STORAGE` permission. This policy is in effect as of May 2021.
+> To limit broad access to shared storage, the Google Play store has updated its policy to evaluate apps that target Android 11 (API level 30) or higher and request all-files access through the `MANAGE_EXTERNAL_STORAGE` permission. This policy is in effect as of May 2021.
 
 > Request the `MANAGE_EXTERNAL_STORAGE` permission only when your app can't effectively make use of the more privacy-friendly APIs, such as the Storage Access Framework or the Media Store API. Your app's usage of the permission **must fall within permitted uses** and must be directly tied to the core functionality of the app.
 
@@ -153,7 +160,7 @@ AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)ため、
 1. targetが既にある状態で`renameat2(..., RENAME_NOREPLACE)`を呼んだときの戻り値と`errno`。
 2. そのときtargetの内容が保たれているか。
 3. targetが無い場合に通常どおり成功するか(対照)。
-4. `/data/local/tmp`(ext4)と`/sdcard`(FUSE)の両方で1〜3を行う。**ext4で効かなければkernel側の問題**で、FUSEを疑う前に切り分けられる。
+4. `/data/local/tmp`(FUSEを経由しないapp外のpath)と`/sdcard`(FUSE)の両方で1〜3を行う。**前者で効かなければkernel側の問題**で、FUSEを疑う前に切り分けられる。`stat -f`で両方のfilesystem種別を記録する。
 
 `MANAGE_EXTERNAL_STORAGE`を持つappは**使わない**。知りたいのはフラグがFUSEを透過するかであり、それは`adb shell`から観測できる。app内での再確認は、候補Eを採用すると決めたあとに行えばよい。**人間の手間を先に増やさない。**
 
@@ -170,23 +177,41 @@ Android 11以上の端末と、可能なら別世代の端末の2台で行う。
 
 | 環境 | A: NOREPLACE / target あり | targetの内容 | B: flags=0 / target あり | C: NOREPLACE / target なし |
 |---|---|---|---|---|
-| `/data/local/tmp` | `-1` / `errno 17 EEXIST` | 無傷 | `0` — **上書きした** | `0` |
+| `/data/local/tmp`(fs種別未観測) | `-1` / `errno 17 EEXIST` | 無傷 | `0` — **上書きした** | `0` |
 | `/sdcard` | `-1` / `errno 17 EEXIST` | 無傷 | `0` — **上書きした** | `0` |
 
 **case Bが決め手である。** 同じ操作をフラグ無しで行うと成功して上書きする。**差はフラグに由来する**ので、「そのpathがそもそも上書きrenameを拒む」possibilityは排除された。
+
+**観測したのはtarget側だけである。** case Aは失敗後の`spike-d.txt`が`TARGET`のままであることを見ているが、**source(`spike-c.txt`)が元の名前・内容で残っているかは測っていない**。`EEXIST`はrenameが行われなかったことを意味するので推論としては妥当だが、判定軸2(失敗時不変)を実測したとは言えない。spikeへsource側の確認を追加したので、`T08`の実行では実測になる。
 
 `/sdcard`がFUSEであることも観測した(推測ではない)。
 
 ```text
 $ adb shell stat -f /sdcard
+  File: "/sdcard"
     ID: 0000000000000000 Namelen: 255    Type: 0x65735546
+Block Size: 4096    Fundamental block size: 4096
+Blocks: Total: 2541783  Free: 1168353   Available: 1131489
+Inodes: Total: 655360   Free: 645365
 
 $ adb shell mount | Select-String sdcard,fuse,emulated
-/dev/fuse on /storage/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,...)
-/dev/fuse on /mnt/user/0/emulated type fuse (...)
+none on /sys/fs/fuse/connections type fusectl (rw,relatime)
+/dev/fuse on /mnt/user/0/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,user_id=0,group_id=0,allow_other)
+/dev/fuse on /storage/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,user_id=0,group_id=0,allow_other)
+/dev/fuse on /mnt/androidwritable/0/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,user_id=0,group_id=0,allow_other)
+/dev/fuse on /mnt/installer/0/emulated type fuse (rw,lazytime,nosuid,nodev,noexec,noatime,user_id=0,group_id=0,allow_other)
+/dev/block/dm-6 on /mnt/pass_through/0/emulated type ext4 (rw,seclabel,nosuid,nodev,noatime,resgid=1065,errors=panic)
+/dev/fuse on /mnt/user/0/0000-0000 type fuse (...)
+/dev/fuse on /storage/0000-0000 type fuse (...)
+/dev/fuse on /mnt/androidwritable/0/0000-0000 type fuse (...)
+/dev/fuse on /mnt/installer/0/0000-0000 type fuse (...)
 ```
 
-`0x65735546`は`FUSE_SUPER_MAGIC`である。**MediaProviderのFUSEがフラグを透過している。**
+(`0000-0000` volumeの4行だけoptionを省略した。他は生出力のままである。)
+
+`0x65735546`は`FUSE_SUPER_MAGIC`である。**`/sdcard`はFUSE経由であり、その経路が`RENAME_NOREPLACE`を尊重した。**
+
+**ただし「FUSE daemon自身がフラグを判定した」とまでは言えない。** 同じ出力に`/dev/block/dm-6 on /mnt/pass_through/0/emulated type ext4`があり、**下位のfilesystemはext4である**。FUSEが自分で判定したのか、下位のext4へ委譲した結果なのかは、この観測では切り分けられない。下位がFATやf2fsのときに同じ結果になる保証は無い(`T08`)。
 
 実施環境: Android emulator、Pixel 8a image、**Android 17("CinnamonBun")**、x86_64。
 
@@ -198,6 +223,9 @@ $ adb shell mount | Select-String sdcard,fuse,emulated
 
 - **API levelの幅**: Android 17でしか見ていない。実装が対象にするAndroid 11〜16のFUSEで同じとは限らない。**MediaProviderのFUSE実装はversionごとに変わる。**
 - **実機**: emulatorのみ。実機のvendor kernelやfilesystem(f2fs等)で挙動が変わりうる。
+- **下位filesystem**: 今回の`/sdcard`はFUSEの下がext4だった。**FUSEが自分で判定したのか下位へ委譲したのかを切り分けていない。** 下位がFATやf2fsのとき同じとは限らない。
+- **`/data/local/tmp`のfilesystem種別**: `stat -f`を採っていない。
+- **失敗時のsource側**: 上記のとおり未観測(推論に留まる)。
 - **FAT系**: SD card / USB OTGは未実施。FATは`renameat2`のフラグをfilesystem側で扱えない可能性がある。
 - **appのmount view**: `adb shell`(shell uid)からの観測である。`MANAGE_EXTERNAL_STORAGE`を持つappは**別のmount viewで`/storage`を見る**ため、同じ結果になるとは限らない。**候補Eを採用すると決めた場合、app内での再確認が要る。**
 
@@ -233,7 +261,7 @@ $ adb shell mount | Select-String sdcard,fuse,emulated
 
 ### 関門1: `MANAGE_EXTERNAL_STORAGE`のPlay審査
 
-Playが宣言を認めるのはfile manager、document management等に限られる。一括改名appが該当するかは配布の判断である。**これが通らなければ候補Eは実装しても配布できない**ので、他の何よりも先に決める必要がある。
+公式資料は「file manager、document management等に**似た**use caseなら**おそらく**要求できる」という開いた例示を示すだけで、規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方にある。**その"permitted uses"の定義はPlay Consoleのpolicy pageにあり、containerから到達できない [未到達]。** したがって一括改名appが該当するかは資料で確定できず、配布の判断である。**これが通らなければ候補Eは実装しても配布できない**ので、他の何よりも先に決める必要がある。
 
 ### 関門2: Androidのfile選択導線が変わる
 
