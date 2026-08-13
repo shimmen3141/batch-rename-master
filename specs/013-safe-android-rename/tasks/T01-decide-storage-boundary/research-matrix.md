@@ -34,7 +34,7 @@
 | B | A + rename後にdisplay nameを検証 | 不可(検出のみ) [一次] | 検出可・保証不可 | 広い | なし | 要検討。3を満たせない |
 | C | MediaStore `DISPLAY_NAME` update | [要spike] | [要spike] | **media限定** [一次] | 他app所有fileに同意が要る [一次] | 種別で不足 |
 | D | `MANAGE_EXTERNAL_STORAGE` + `File.renameTo` | **不可**(POSIX renameは置換する) | 可 | 広い [一次] | **要Play審査** [一次] | 1を満たさない |
-| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | [要spike] | 可 | 広い [一次] | **要Play審査** [一次] | **最有力。spike必須** |
+| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **可**(S-2で実測) | 可 | 広い [一次] | **要Play審査** [一次] | **技術的には成立。配布判断待ち** |
 | F | app固有storageに限定 | 可 | 可 | 利用者のfileを扱えない | なし | 用途を満たさない |
 
 ## 一次資料
@@ -155,6 +155,30 @@ AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)ため、
 
 Android 11以上の端末と、可能なら別世代の端末の2台で行う。**SD card / USB OTGでも実施する**(filesystemがFATだと挙動が変わりうる)。
 
+### S-2の結果(2026-08-13 実施)
+
+**A) `RENAME_NOREPLACE`は有効。** ext4(`/data/local/tmp`)とFUSE(`/sdcard`)の両方で同じ結果だった。
+
+| 環境 | case 1(target あり) | targetの内容 | case 2(target なし) |
+|---|---|---|---|
+| `/data/local/tmp`(ext4) | `-1` / `errno 17 EEXIST` | 無傷 | `0` |
+| `/sdcard`(FUSE) | `-1` / `errno 17 EEXIST` | 無傷 | `0` |
+
+実施環境: Android emulator、Pixel 8a image、**Android 17("CinnamonBun")**、x86_64。
+
+**FUSEはフラグを透過している。** 候補Eの前提が1件の実測で成立した。判定軸1(原子的no-replace)と2(失敗時不変)を、kernelの保証として得られる見込みが立った。
+
+**ただし1機種・1 API levelの結果である。** 残る未検証は「S-2で残った未検証」節に書く。
+
+### S-2で残った未検証
+
+- **API levelの幅**: Android 17でしか見ていない。実装が対象にするAndroid 11〜16のFUSEで同じとは限らない。**MediaProviderのFUSE実装はversionごとに変わる。**
+- **実機**: emulatorのみ。実機のvendor kernelやfilesystem(f2fs等)で挙動が変わりうる。
+- **FAT系**: SD card / USB OTGは未実施。FATは`renameat2`のフラグをfilesystem側で扱えない可能性がある。
+- **appのmount view**: `adb shell`(shell uid)からの観測である。`MANAGE_EXTERNAL_STORAGE`を持つappは**別のmount viewで`/storage`を見る**ため、同じ結果になるとは限らない。**候補Eを採用すると決めた場合、app内での再確認が要る。**
+
+これらは**採用を決めてから**確かめる。決める前に人間の時間を使わない。
+
 ### S-3 `Files.move`の非置換動作(候補D/Eの代替)
 
 `java.nio.file.Files.move`をtargetが存在する状態で呼び、`FileAlreadyExistsException`になるか、置換されるかを観測する。**原子性は観測できない**ので、これは「使えるか」ではなく「明らかに使えないか」を早く知るためのspikeである。
@@ -175,8 +199,28 @@ Android 11以上の端末と、可能なら別世代の端末の2台で行う。
 
 **依頼**: `android.googlesource.com`をallowlistへ追加していただけると、S-2の結果を実装の根拠と突き合わせられる。**追加が難しければspikeの実測だけで判断する**ことも可能なので、必須ではない。
 
-## 現時点の見立て
+## 現時点の結論
 
-**候補Eが唯一、005の契約を緩めずにAndroidのrenameを成立させうる。** ただし成立はS-2の結果に完全に依存し、さらに`MANAGE_EXTERNAL_STORAGE`のPlay審査という**技術ではない関門**を通る必要がある。
+**候補Eは技術的に成立する見込みが立った。** S-2でFUSEが`RENAME_NOREPLACE`を透過することを実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
 
-S-2が不成立なら、**Androidの安全なunsupportedを維持する**のが正しい結論になる。それは失敗ではなく、005が守っている保証を下げないという判断である。
+残る関門は2つで、**どちらも技術ではない。**
+
+### 関門1: `MANAGE_EXTERNAL_STORAGE`のPlay審査
+
+Playが宣言を認めるのはfile manager、document management等に限られる。一括改名appが該当するかは配布の判断である。**これが通らなければ候補Eは実装しても配布できない**ので、他の何よりも先に決める必要がある。
+
+### 関門2: Androidのfile選択導線が変わる
+
+これは調査中に判明した、**当初の想定に無かった影響である。**
+
+`renameat2`はfilesystemのpathを要る。SAFのURIは不透明なhandleで、**pathへ変換できない**(ADR-001で却下済み)。したがって候補Eを採るなら、Androidのfile選択は**SAFではなくapp内のfile browserへ変わる**。`MANAGE_EXTERNAL_STORAGE`があれば直接pathでfilesystemを辿れるので技術的には可能だが、次を伴う。
+
+- **004の読み込み導線をAndroidだけ作り直す。** 004 specの再承認が要る。
+- 利用者から見て、OSの見慣れた選択画面が自作の画面に変わる。
+- 「すべてのファイルへのアクセス」を許可させる導線と説明が要る。
+
+**これは013単独の話ではなく004へ波及する。** 実装量も利用者影響も、当初の「renameを1つ足す」より大きい。
+
+### 採らない場合
+
+**Androidの安全なunsupportedを維持する**のが正しい結論になる。それは失敗ではなく、005が守っている保証を下げないという判断である。desktopでは完全に動作し、Androidでは理由を明示して何もしない — この状態はそれ自体が一貫している。

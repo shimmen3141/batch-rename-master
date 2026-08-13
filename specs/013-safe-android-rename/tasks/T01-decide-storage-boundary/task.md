@@ -42,11 +42,18 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   - **見立て**: 候補E(`MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)`)が唯一契約を緩めずに成立しうる。成否は**S-2(FUSEがRENAME_NOREPLACEを透過するか)**に完全に依存する。
   - spikeはAndroid SDK・実機が要るためhost側で人間が実施する。
 
+- 2026-08-13 / **spike S-2を実施(人間)。結果はA) `RENAME_NOREPLACE`は有効。**
+  - 環境: Android emulator、Pixel 8a image、Android 17("CinnamonBun")、x86_64。
+  - `/data/local/tmp`(ext4)と`/sdcard`(FUSE)の**両方**で、targetが既にある場合は`-1` / `errno 17 EEXIST`、targetの内容は無傷、targetが無い場合は`0`。
+  - **FUSEがフラグを透過している。** 候補Eの技術的前提が成立した。
+  - 未検証: API levelの幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。**採用を決めてから確かめる。**
+- 2026-08-13 / 調査の結果、**候補Eの採用がAndroidのfile選択導線の作り直し(004への波及)を伴う**ことが判明した。`renameat2`はpathを要り、SAF URIはpathへ変換できないため、選択がSAFからapp内file browserへ変わる。当初の想定に無かった影響なので、採否の判断材料へ加えた。
+
 ## Current state / handoff
 
-- Last checkpoint: 公式資料調査を完了し、`research-matrix.md`に候補比較とspike計画を作成した。決定はまだ出していない
-- Blocker category: environment(spikeの実行環境)
-- Waiting for: **S-2の実機結果**。`renameat2(RENAME_NOREPLACE)`がAndroid 11以降の共有storage(FUSE)を透過するか
-- Requested action: [`manual-verification.md`](manual-verification.md)のS-2を実施する。所要15〜20分、NDKが要る。appのbuildは不要
-- Evidence revision: `dev@f97a2cc`。公式資料は2026-08-13時点の`developer.android.com`
-- Next Agent action: S-2の結果を受け取り、成立なら候補Eのdecision record(ADR)案とproduction実装task案を作る。不成立ならAndroid未対応維持のADR案を作る。どちらも人間の承認前に実装しない
+- Last checkpoint: 公式資料調査とspike S-2が完了。**候補Eは技術的に成立する**ことを実測で確認し、[`decisions/ADR-002`](../../decisions/ADR-002-android-rename-storage-boundary.md)を`proposed`として起草した
+- Blocker category: decision(人間の配布・scope判断)
+- Waiting for: **候補Eを採るかどうかの人間の決定。** 技術ではなく、(1) `MANAGE_EXTERNAL_STORAGE`をPlayで宣言する方針を取れるか、(2) Androidのfile選択をSAFからapp内file browserへ作り直す範囲を受け入れるか
+- Requested action: ADR-002の「決めること」に答える。採用する場合は004の再承認も要る
+- Evidence revision: `dev@f97a2cc` + spike S-2(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
+- Next Agent action: 採用ならADR-002を`accepted`にし、実装planのtask案(004のAndroid選択導線の作り直しを含む)を作る。不採用ならADR-002を`rejected`にし、005のAndroid未対応を確定として013を閉じる。どちらも承認前に実装しない
