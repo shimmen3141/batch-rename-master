@@ -11,9 +11,9 @@
 | 001 コア命名エンジン | 純粋Dartの命名、preview、検証、自動解決を実装済み | [`001-rename-core/`](001-rename-core/) |
 | 002 ファイル一覧 | 選択、sort、custom順、preview表示を実装済み | [`002-file-list/`](002-file-list/) |
 | 003 ルール構築 | token追加・編集・並び替えとresponsive UIを実装済み | [`003-rule-builder/`](003-rule-builder/) |
-| 004 ファイルsource | Android SAF・desktop pickerと選択導線を実装済み。target platformの手動受け入れも完了 | [`004-file-source/`](004-file-source/) |
-| 005 リネーム実行 | 警告確認・結果表示、desktop安全rename・5秒以内undo、空ルールUI、desktop更新日時ずらしを実装し手動確認済み。Androidは安全にunsupported | [`005-rename-exec/`](005-rename-exec/) |
-| 007 ルール永続化 | serialization・保存・復元を実装済み。process再起動をまたぐ手動受け入れも完了 | [`007-rule-persistence/`](007-rule-persistence/) |
+| 004 ファイルsource | Android SAFとdesktop pickerからファイルを読み込み、一覧へ渡せる | [`004-file-source/`](004-file-source/) |
+| 005 リネーム実行 | 警告を確認して実行し、結果と5秒以内のundoを提示できる。desktopは安全な実rename・更新日時ずらし、Androidは理由付きの未対応 | [`005-rename-exec/`](005-rename-exec/) |
+| 007 ルール永続化 | 直近のルールを保存し、process再起動後に復元できる | [`007-rule-persistence/`](007-rule-persistence/) |
 | 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyをT01〜T10へ分解した。今後のUI調整の受け皿でもある | [`008-ui-alignment/`](008-ui-alignment/) |
 | 013 Android安全rename | 005の安全なunsupportedが統合済み。`T01`は公式資料への到達経路が2026-08-13に許可され、着手可能 | [`013-safe-android-rename/`](013-safe-android-rename/) |
 

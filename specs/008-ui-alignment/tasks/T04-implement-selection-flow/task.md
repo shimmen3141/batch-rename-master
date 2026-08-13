@@ -15,6 +15,10 @@
 - 「すべて外す」の改名と、必要なら配置。
 - 002/004の仕様由来testの更新と追加。
 
+### 行widgetの分担(T07・T09と共有する)
+
+`lib/ui/file_list/file_list_view.dart`の行は、**T04が操作(×の廃止、除去の導線、checkboxとの関係)**、**T07が情報階層と静的layout**、**T09がmode別描画**を持つ。判断が割れたらT07の情報階層を優先する。表は[`T07のtask.md`](../T07-row-and-warning-presentation/task.md)にある。
+
 ### `file_source_bar.dart`の分担(T08と共有する)
 
 `すべて外す`(`clear-files-button`)、`ファイルを選ぶ`(`pick-files-button`)、種類chip(`file-kind-*`)、複数folder警告(`multi-folder-warning`)は**すべて`lib/ui/file_source/file_source_bar.dart`の同じbarにある**。T04とT08が同じfileへ入るので、分担を先に固定する。
