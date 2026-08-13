@@ -13,18 +13,19 @@
 
 S-2は**1機種・1 API level・`adb shell`からの観測**だった。実装後に次を埋める。
 
-1. **appのmount view。** `MANAGE_EXTERNAL_STORAGE`を持つapp自身から`renameat2(RENAME_NOREPLACE)`を呼び、`EEXIST`になりtargetが無傷であることを確認する。**S-2は`shell` uidからの観測なので、これが最も重要である。**
-2. **API levelの幅。** Android 11〜16のいずれかでも確認する。MediaProviderのFUSE実装はversionごとに変わる。
-3. **実機。** emulatorだけでなく実機で確認する。vendor kernelやf2fsで挙動が変わりうる。
-4. **FAT系。** SD card / USB OTGで確認する。**FATでフラグが効かないなら、その媒体は未対応にする**必要がある。
+1. **`flags=0`との対照。** `T01`の第1回spikeにこれが無く、「フラグが効いた」の因果を示せなかった。app内で確かめるときも、フラグ有り/無しの両方を測る。**片側だけでは安全の原因が分からない。**
+2. **appのmount view。** `MANAGE_EXTERNAL_STORAGE`を持つapp自身から`renameat2(RENAME_NOREPLACE)`を呼び、`EEXIST`になりtargetが無傷であることを確認する。**S-2は`shell` uidからの観測なので、これが最も重要である。**
+3. **API levelの幅。** Android 11〜16のいずれかでも確認する。MediaProviderのFUSE実装はversionごとに変わる。
+4. **実機。** emulatorだけでなく実機で確認する。vendor kernelやf2fsで挙動が変わりうる。
+5. **FAT系。** SD card / USB OTGで確認する。**FATでフラグが効かないなら、その媒体は未対応にする**必要がある。
 
-**4がNGだった場合、契約を緩めるのではなく対象媒体を絞る。** INV-002へplatform例外を作らない(ADR-002)。
+**5がNGだった場合、契約を緩めるのではなく対象媒体を絞る。** INV-002へplatform例外を作らない(ADR-002)。
 
 ## 受け入れ証拠
 
-- 上記1〜4の観測結果を`task.md`へ記録する。**Agentが推測で埋めない。**
-- 1がNGなら**ADR-002を見直す**。実装を残したまま「動くはず」で進めない。
-- 4がNGなら、対象外にする媒体を仕様へ書き、利用者へ提示する。
+- 上記1〜5の観測結果を`task.md`へ記録する。**Agentが推測で埋めない。**
+- 1または2がNGなら**ADR-002を見直す**。実装を残したまま「動くはず」で進めない。
+- 5がNGなら、対象外にする媒体を仕様へ書き、利用者へ提示する。
 - host側のAndroid buildが成功する(containerでは実行できない)。
 - [`manual-verification.md`](manual-verification.md)に手順を書く。**`T01`のmanualと同じ具体度**にする(実行できるコマンド、期待する出力、判定条件)。
 

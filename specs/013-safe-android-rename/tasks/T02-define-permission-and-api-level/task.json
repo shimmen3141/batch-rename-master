@@ -3,7 +3,9 @@
   "id": "T02",
   "title": "権限とAPI levelの方針を定義する",
   "status": "pending",
-  "dependsOn": [],
+  "dependsOn": [
+    "T01"
+  ],
   "covers": [],
   "issue": null,
   "pullRequest": null,

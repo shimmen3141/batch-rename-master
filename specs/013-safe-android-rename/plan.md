@@ -30,6 +30,7 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - **退避経路を残す。** Playの宣言が却下される可能性がある。`lib/data/rename_exec/saf_rename_executor.dart`(安全な未対応)とそのnegative testは実装中も削除しない。
 - **仕様を変えるものは、仕様更新taskと実装taskを分ける。** 004はapproved、005はStrict approvedなので、外部から観測できる振る舞いを変えるには人間の再承認が要る。
 - **一次資料とspikeを区別する。** `T01`が確立した`[一次]` / `[要spike]` / `[未到達]`の区別を以後も使う。
+- **`covers`は仕様task(T02/T03/T04)が埋める。** 現在は全taskで空である。REQ IDが確定するのはそれぞれの承認時なので、各taskの受け入れ証拠に「対応する実装taskの`covers`を書く」ことを入れてある。**特にT04は005 Strict contractを触るので、被覆の記録を落とさない。**
 - **spikeの未検証を実装後に埋める。** `T01`のS-2は1機種・1 API level・`shell` uidの観測である。`T08`で実装したappから確かめるまで「安全」と言わない。
 
 ## 全体の受け入れ証拠

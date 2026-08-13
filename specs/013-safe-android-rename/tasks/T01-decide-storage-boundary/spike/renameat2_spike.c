@@ -6,6 +6,11 @@
 //   RENAME_NOREPLACE が実際に効くかで決まる。Android 11以降の /sdcard は
 //   MediaProvider の FUSE を経由するため、フラグが素通りするとは限らない。
 //
+// なぜ対照(case B)が要るか:
+//   「NOREPLACE を付けたら失敗した」だけでは、フラグが効いたのか、その path が
+//   そもそも上書きrenameを拒むのかを区別できない。flags=0 で同じ操作を試し、
+//   そちらが**成功して上書きする**ことを見て初めて「フラグが効いた」と言える。
+//
 // 使い方:
 //   ./renameat2_spike <作業ディレクトリ>
 //   例: ./renameat2_spike /sdcard        (FUSE。本番)
@@ -29,6 +34,7 @@
 #endif
 
 // SYS_renameat2 が headerに無い環境でも呼べるようにarch別の番号を用意する。
+// 生のsyscallを使うので、bionicのwrapperが公開されたAPI levelには縛られない。
 #ifndef SYS_renameat2
 #if defined(__aarch64__)
 #define SYS_renameat2 276
@@ -42,6 +48,8 @@
 #error "SYS_renameat2 unknown for this architecture"
 #endif
 #endif
+
+static char src[512], dst[512], missing[512];
 
 static int renameat2_raw(const char *from, const char *to, unsigned int flags) {
   return (int)syscall(SYS_renameat2, AT_FDCWD, from, AT_FDCWD, to, flags);
@@ -64,9 +72,29 @@ static int read_file(const char *path, char *buf, size_t n) {
   return 1;
 }
 
+// 1=ある / 0=無い / -1=判定できない。
+//
+// stat の失敗を一律「無い」とみなすと、権限などで見えないだけのfileを
+// 上書きしうる。TOCTOUを調べるspikeで自分がTOCTOUを踏まないよう、
+// ENOENT 以外は「判定できない」として中止する。
 static int exists(const char *path) {
   struct stat st;
-  return stat(path, &st) == 0;
+  if (stat(path, &st) == 0) return 1;
+  return errno == ENOENT ? 0 : -1;
+}
+
+static void cleanup(void) {
+  unlink(src);
+  unlink(dst);
+  unlink(missing);
+}
+
+// src="SOURCE" / dst="TARGET" を作り直す。失敗したら 0。
+static int reset_fixture(int with_target) {
+  cleanup();
+  if (write_file(src, "SOURCE") != 0) return 0;
+  if (with_target && write_file(dst, "TARGET") != 0) return 0;
+  return 1;
 }
 
 int main(int argc, char **argv) {
@@ -76,74 +104,111 @@ int main(int argc, char **argv) {
   }
   const char *dir = argv[1];
 
-  char src[512], dst[512], missing[512];
   snprintf(src, sizeof(src), "%s/spike-c.txt", dir);
   snprintf(dst, sizeof(dst), "%s/spike-d.txt", dir);
   snprintf(missing, sizeof(missing), "%s/spike-e.txt", dir);
 
-  if (exists(src) || exists(dst) || exists(missing)) {
-    fprintf(stderr,
-            "ERROR: %s に spike-c/d/e.txt のいずれかが既にあります。\n"
-            "利用者のfileを壊さないため中止します。先に消してください。\n",
-            dir);
-    return 2;
+  const char *paths[3] = {src, dst, missing};
+  for (int i = 0; i < 3; i++) {
+    int e = exists(paths[i]);
+    if (e == 1) {
+      fprintf(stderr,
+              "ERROR: %s が既にあります。\n"
+              "利用者のfileを壊さないため中止します。先に消してください。\n",
+              paths[i]);
+      return 2;
+    }
+    if (e == -1) {
+      fprintf(stderr,
+              "ERROR: %s の有無を判定できません (%s)。\n"
+              "上書きするおそれがあるため中止します。\n",
+              paths[i], strerror(errno));
+      return 2;
+    }
   }
 
-  printf("=== renameat2(RENAME_NOREPLACE) spike ===\n");
+  printf("=== renameat2 spike (013:T01 S-2) ===\n");
   printf("directory: %s\n\n", dir);
 
-  // --- case 1: target が既にある(本命) ---
-  if (write_file(src, "SOURCE") != 0 || write_file(dst, "TARGET") != 0) {
+  char body[64];
+
+  // --- case A: RENAME_NOREPLACE、target あり(本命) ---
+  if (!reset_fixture(1)) {
     fprintf(stderr, "ERROR: fixtureを作れません: %s\n", strerror(errno));
+    cleanup();
     return 2;
   }
-
   errno = 0;
-  int r1 = renameat2_raw(src, dst, RENAME_NOREPLACE);
-  int e1 = errno;
+  int rA = renameat2_raw(src, dst, RENAME_NOREPLACE);
+  int eA = errno;
+  body[0] = '\0';
+  int readA = read_file(dst, body, sizeof(body));
+  int intactA = readA && strcmp(body, "TARGET") == 0;
 
-  char body[64] = {0};
-  int dst_readable = read_file(dst, body, sizeof(body));
-  int target_intact = dst_readable && strcmp(body, "TARGET") == 0;
+  printf("[case A] RENAME_NOREPLACE / target あり\n");
+  printf("  戻り値 : %d\n", rA);
+  printf("  errno  : %d (%s)\n", eA, rA == 0 ? "-" : strerror(eA));
+  printf("  spike-d.txt : %s\n", readA ? body : "(読めない)");
+  printf("  target は無傷か : %s\n\n", intactA ? "YES" : "NO");
 
-  printf("[case 1] target あり: spike-c.txt -> spike-d.txt\n");
-  printf("  戻り値 : %d\n", r1);
-  printf("  errno  : %d (%s)\n", e1, r1 == 0 ? "-" : strerror(e1));
-  printf("  spike-d.txt の中身 : %s\n", dst_readable ? body : "(読めない)");
-  printf("  target は無傷か    : %s\n\n", target_intact ? "YES" : "NO");
-
-  // --- case 2: target が無い(対照。通常のrenameが動くことの確認) ---
-  const char *src2 = exists(src) ? src : dst;  // case 1 の結果で場所が変わる
+  // --- case B: flags=0、target あり(対照。ここが要) ---
+  if (!reset_fixture(1)) {
+    fprintf(stderr, "ERROR: fixtureを作り直せません: %s\n", strerror(errno));
+    cleanup();
+    return 2;
+  }
   errno = 0;
-  int r2 = renameat2_raw(src2, missing, RENAME_NOREPLACE);
-  int e2 = errno;
+  int rB = renameat2_raw(src, dst, 0);
+  int eB = errno;
+  body[0] = '\0';
+  int readB = read_file(dst, body, sizeof(body));
+  int replacedB = readB && strcmp(body, "SOURCE") == 0;
 
-  printf("[case 2] target なし: %s -> spike-e.txt\n", src2);
-  printf("  戻り値 : %d\n", r2);
-  printf("  errno  : %d (%s)\n\n", e2, r2 == 0 ? "-" : strerror(e2));
+  printf("[case B] flags=0 / target あり(対照)\n");
+  printf("  戻り値 : %d\n", rB);
+  printf("  errno  : %d (%s)\n", eB, rB == 0 ? "-" : strerror(eB));
+  printf("  spike-d.txt : %s\n", readB ? body : "(読めない)");
+  printf("  上書きされたか : %s\n\n", replacedB ? "YES" : "NO");
+
+  // --- case C: RENAME_NOREPLACE、target なし(通常成功の確認) ---
+  if (!reset_fixture(0)) {
+    fprintf(stderr, "ERROR: fixtureを作り直せません: %s\n", strerror(errno));
+    cleanup();
+    return 2;
+  }
+  errno = 0;
+  int rC = renameat2_raw(src, missing, RENAME_NOREPLACE);
+  int eC = errno;
+
+  printf("[case C] RENAME_NOREPLACE / target なし\n");
+  printf("  戻り値 : %d\n", rC);
+  printf("  errno  : %d (%s)\n\n", eC, rC == 0 ? "-" : strerror(eC));
 
   // --- 判定 ---
   printf("=== 判定 ===\n");
-  if (r1 == -1 && e1 == EEXIST && target_intact) {
-    printf("A) RENAME_NOREPLACE は有効。候補Eは成立しうる。\n");
-  } else if (r1 == -1 && (e1 == EINVAL || e1 == ENOSYS)) {
-    printf("B) このpathではフラグを解釈できない(errno=%s)。候補Eは不成立。\n",
-           strerror(e1));
-  } else if (r1 == 0) {
+  if (rA == -1 && eA == EEXIST && intactA && rB == 0 && replacedB) {
+    printf("A) RENAME_NOREPLACE が効いている。\n");
+    printf("   フラグ有りは EEXIST で失敗し target 無傷、フラグ無しは成功して\n");
+    printf("   上書きした。差はフラグに由来する。候補Eは成立しうる。\n");
+  } else if (rA == -1 && (eA == EINVAL || eA == ENOSYS)) {
+    printf("B) フラグを解釈できない (errno=%s)。候補Eは不成立。\n", strerror(eA));
+  } else if (rA == 0) {
     printf("C) フラグが無視され、既存fileを置換した。候補Eは不成立、かつ危険。\n");
+  } else if (rA == -1 && eA == EEXIST && rB != 0) {
+    printf("D) フラグの有無に関わらず上書きrenameが失敗している。\n");
+    printf("   安全ではあるが、**フラグが効いた証拠にはならない。**\n");
+    printf("   case B の errno=%d (%s) を報告する。\n", eB, strerror(eB));
   } else {
-    printf("D) 想定外。戻り値=%d errno=%d(%s)。上の生の値をそのまま報告する。\n",
-           r1, e1, strerror(e1));
+    printf("E) 想定外。上の生の値をそのまま報告する。\n");
   }
-  if (r2 != 0) {
-    printf("   注意: target が無い場合の rename も失敗している。\n"
-           "   この環境ではそもそも書き込めていない可能性がある。\n");
+  if (rC != 0) {
+    printf("   注意: target が無い場合の rename も失敗した (errno=%d %s)。\n",
+           eC, strerror(eC));
+    printf("   書き込めていないのか、フラグを拒んでいるのか、case B と\n");
+    printf("   合わせて判断する。\n");
   }
 
-  // --- 片付け ---
-  unlink(src);
-  unlink(dst);
-  unlink(missing);
+  cleanup();
   printf("\nfixtureを削除しました。\n");
   return 0;
 }

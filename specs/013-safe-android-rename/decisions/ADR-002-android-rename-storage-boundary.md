@@ -34,7 +34,9 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 環境: Android emulator、Pixel 8a image、Android 17、x86_64。
 
-**FUSEはフラグを透過する。** 「既存fileを置換せず、kernelが不可分に失敗させる」がAndroidでも得られる。
+観測できたのは「`RENAME_NOREPLACE`を付けた`renameat2`は、targetがあるとき`EEXIST`で失敗し、targetを壊さない」までである。
+
+**「フラグが効いたから安全だった」という因果はまだ示せていない。** flags=0の対照を取っていないため、「そのpathがそもそも上書きrenameを拒む」可能性を排除できない。安全側の挙動である点は変わらないが、**他のAPI level・kernel・filesystemへ一般化する根拠にはならない。** 対照はspikeへcase Bとして追加済みで、再実施待ちである(`T08`が引き継ぐ)。
 
 ## Decision
 
@@ -44,15 +46,19 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 ### 受け入れた条件1: `MANAGE_EXTERNAL_STORAGE`をPlayで宣言する
 
-Playが宣言を認めるのは次に限られる。
+公式資料の条件は次のとおりである。
 
+> Request the `MANAGE_EXTERNAL_STORAGE` permission only when your app can't effectively make use of the more privacy-friendly APIs, such as the Storage Access Framework or the Media Store API. Your app's usage of the permission **must fall within permitted uses** and must be directly tied to the core functionality of the app.
+
+> If your app includes a use case **similar to any of the following, it's likely that** it can request the `MANAGE_EXTERNAL_STORAGE` permission:
+>
 > File managers / Backup and restore apps / Anti-virus apps / Document management apps / On-device file search / Disk and file encryption / Device-to-device data migration
 
-> Request the permission only when your app can't effectively use more privacy-friendly APIs such as the Storage Access Framework or the Media Store API.
+**この一覧は閉じたallowlistではない。** 条件は「一覧に載っていること」ではなく「載っているものに**似ている**こと」と「permitted usesの範囲に入り、中核機能へ直接結びついていること」である。
 
-一括改名appが「File managers」「Document management apps」に当たるかは配布の判断である。なお後段の条件「よりprivacy-friendlyなAPIでは目的を達せられない」については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。
+**"permitted uses"の定義はこのpageに無く、Play Consoleのpolicy pageにある。そのdomainはcontainerから到達できていない [未到達]。** よって「一括改名appが該当する」ことを資料で確定できていない。**却下されるriskを抱えたまま実装planへ進む**という判断である。
 
-**通らなければ、実装しても配布できない。** 実装planはこのriskを抱えたまま進む。宣言理由には本ADRの一次資料分析(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)をそのまま使う。
+「よりprivacy-friendlyなAPIでは目的を達せられない」という条件については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。宣言理由にはこれを使う。**ただし提出前に、人間がPlayのpolicy原文と突き合わせること。**
 
 ### 受け入れた条件2: Androidのfile選択導線を作り直す
 
@@ -95,14 +101,14 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 ### 採用したことによる帰結
 
 - 005 contractは**変えない**。INV-002へのplatform例外を作らない。
-- `minSdk`を24から30以上へ上げるか、API 30未満で未対応へ分岐する(`renameat2`はAPI 30公開)。**24〜29の端末を切るかどうかも人間の判断**である。
-- 004のAndroid読み込み導線を作り直し、specを再承認する。
+- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystムの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
+- 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
 - 採用後に、S-2で残した未検証を確かめる。**API level幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。** 特に最後の1つは、今回`adb shell`から観測したものであり、app内で再確認する必要がある。
 - production実装は`013:T02`以降として定義する。**本ADRは実装を含まない。**
 
 ### 未解決のまま残る決定
 
-- **`minSdk`をどうするか。** 30へ上げて24〜29の端末を切るか、24のまま実行時に分岐してAPI 30未満を未対応にするか。`013:T02`で人間へ問う。
+- **`minSdk`をどうするか。** 上記3案。`013:T02`で人間へ問う。
 - **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
 
 ### 参考: 採用しなかった場合に起きたこと

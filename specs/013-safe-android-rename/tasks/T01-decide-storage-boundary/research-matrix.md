@@ -1,7 +1,7 @@
 # 013:T01 調査matrix — Androidで安全なrenameが成立する境界
 
 - 作成: 2026-08-13
-- 状態: **調査中**。決定はまだ出していない。採否は人間の判断を得てからADRへ書く
+- 状態: **完了**。採否は[ADR-002](../../decisions/ADR-002-android-rename-storage-boundary.md)(`accepted`)が正本。この文書はその根拠である
 - 対象: 005 contract revision 3の`INV-002`(既存fileを置換しない)と`OP-004`(失敗時不変)をAndroidで満たせるstorage・permission境界
 
 ## この文書の読み方
@@ -34,7 +34,7 @@
 | B | A + rename後にdisplay nameを検証 | 不可(検出のみ) [一次] | 検出可・保証不可 | 広い | なし | 要検討。3を満たせない |
 | C | MediaStore `DISPLAY_NAME` update | [要spike] | [要spike] | **media限定** [一次] | 他app所有fileに同意が要る [一次] | 種別で不足 |
 | D | `MANAGE_EXTERNAL_STORAGE` + `File.renameTo` | **不可**(POSIX renameは置換する) | 可 | 広い [一次] | **要Play審査** [一次] | 1を満たさない |
-| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **可**(S-2で実測) | 可 | 広い [一次] | **要Play審査** [一次] | **技術的には成立。配布判断待ち** |
+| E | `MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)` | **観測上は可**(S-2。対照は再実施待ち) | 可 | 広い [一次] | **要Play審査** [一次] | **採用**(ADR-002) |
 | F | app固有storageに限定 | 可 | 可 | 利用者のfileを扱えない | なし | 用途を満たさない |
 
 ## 一次資料
@@ -88,17 +88,23 @@ renameは`DISPLAY_NAME`の`update`で行う:
 
 **"including direct file path access"が要点である。** 実pathが得られるので、SAFのopaque handleではなくPOSIX APIを直接使える。
 
-Google Playの制約:
+**ただし全域ではない。** 同じpageは、この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectoryへは**書けない**こと、他appのapp固有directoryへは到達できないことを明記する。**app内file browserはそこを改名できない。** この制約は`T03`(読み込み導線の定義)で利用者から見える形にする。
 
-> As of May 2021, the Google Play store has updated its policy to evaluate apps that target Android 11 (API level 30) or higher and request all-files access through `MANAGE_EXTERNAL_STORAGE`.
+Google Playの制約。原文は次のとおりである。
 
-宣言が許されるのは次のみ:
+> The Google Play store has updated its policy to evaluate apps that target Android 11 (API level 30) or higher and request all-files access through the `MANAGE_EXTERNAL_STORAGE` permission. This policy is in effect as of May 2021.
 
+> Request the `MANAGE_EXTERNAL_STORAGE` permission only when your app can't effectively make use of the more privacy-friendly APIs, such as the Storage Access Framework or the Media Store API. Your app's usage of the permission **must fall within permitted uses** and must be directly tied to the core functionality of the app.
+
+> If your app includes a use case **similar to any of the following, it's likely that** it can request the `MANAGE_EXTERNAL_STORAGE` permission:
+>
 > File managers / Backup and restore apps / Anti-virus apps / Document management apps / On-device file search / Disk and file encryption / Device-to-device data migration
 
-> Request the permission only when your app can't effectively use more privacy-friendly APIs such as the Storage Access Framework or the Media Store API. Your app's usage must be directly tied to core functionality.
+**この一覧は閉じたallowlistではない。** 「similar to any of the following」「it's likely that」という書き方であり、**一覧に載っていることではなく、載っているものに似ていることが条件**である。規範的な条件は「permitted usesの範囲に入り、appの中核機能へ直接結びついていること」の方である。
 
-一括改名appが「File managers」または「Document management apps」に当たるかは**Agentが決められる論点ではない。** 配布可否と審査risk、利用者への説明責任が変わるので人間の判断とする。ただし「SAF・MediaStoreでは目的を達せられない」という条件は、上のA〜Cの分析でそのまま論拠になる。
+**"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。そのdomain(`support.google.com`)はcontainerから到達できない [未到達]。** したがって「一括改名appが該当するか」を資料で確定できていない。
+
+一括改名appが「File managers」「Document management apps」に**似ている**と主張できるかは配布判断であり、Agentは決めない。ただし「SAF・MediaStoreでは目的を達せられない」という条件は、上のA〜Cの分析でそのまま論拠になる。
 
 `Environment.isExternalStorageManager()`で付与を確認し、`Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`で設定画面へ誘導する。
 
@@ -110,14 +116,17 @@ POSIXの`rename(2)`は**既存targetを黙って置換する**ので、`java.io.
 
 Linuxの`renameat2`に`RENAME_NOREPLACE`を渡せば、targetが存在するとき**kernelが不可分に失敗させる**。bionicでは**API level 30**で公開されたとされる(検索結果の要約であり、AOSPのheaderを直接読めていない [未到達])。
 
-`minSdk = 24`なので、採るなら次のどちらかになる。
+**ただしこれはbionicのwrapper関数が公開されたlevelであって、syscallが使えるlevelではない。** 生の`syscall(SYS_renameat2, ...)`を呼べば、wrapperの有無に関わらず到達できる。実際、S-2で使ったbinaryは**`android24`向けにコンパイルし、生のsyscallで呼んで動作した**。
 
-- minSdkを30へ上げる(24〜29端末を切る)。
-- 実行時に分岐し、API 30未満はAndroidを未対応のままにする。
+したがって`minSdk = 24`のまま採れる可能性がある。制約はlibcではなく**kernelとfilesystem**の側にあり、そこは[要spike]である。選択肢は少なくとも3つある。
+
+- minSdkを30へ上げる(24〜29端末を切る。最も安全だが端末を失う)。
+- minSdk 24のまま生のsyscallで呼び、**動かない端末を実行時に検出して**未対応へ落とす。
+- 実行時にAPI levelで分岐し、30未満は一律未対応にする。
 
 **さらに重大な未確認点がある。** Android 11以降の共有storageはMediaProviderのFUSEを経由する。**FUSE層が`RENAME_NOREPLACE`フラグを解釈して透過するか**は資料から確定できない [要spike]。透過しなければ、`renameat2`を呼んでも実効的に置換renameになるか`EINVAL`になる。**ここが候補Eの成否を決める。**
 
-- 出典(二次): <https://android.googlesource.com/platform/bionic/+/main/libc/include/android/api-level.h>(検索結果経由。原文未読)
+- 出典(**[未到達]**。検索結果の要約であり、bionicのheader原文を読めていない): <https://android.googlesource.com/platform/bionic/+/main/libc/include/android/api-level.h>
 
 ## 実機spike
 
@@ -166,14 +175,18 @@ Android 11以上の端末と、可能なら別世代の端末の2台で行う。
 
 実施環境: Android emulator、Pixel 8a image、**Android 17("CinnamonBun")**、x86_64。
 
-**FUSEはフラグを透過している。** 候補Eの前提が1件の実測で成立した。判定軸1(原子的no-replace)と2(失敗時不変)を、kernelの保証として得られる見込みが立った。
+**この2ケースだけでは「フラグが効いた」とは言い切れない。** フラグ有りが失敗したことは、フラグの効果とも「そのpathがそもそも上書きrenameを拒む」とも読める。**flags=0の対照が無かった。** 2026-08-13のreviewで指摘され、spikeへcase B(flags=0で同じ操作)を追加した。**再実施待ちである。**
 
-**ただし1機種・1 API levelの結果である。** 残る未検証は「S-2で残った未検証」節に書く。
+言えるのは「`RENAME_NOREPLACE`を付けた`renameat2`は、targetがあるとき`EEXIST`で失敗し、targetを壊さない」までである。**それは候補Eの安全性としては十分だが、他のAPI level・kernel・filesystemへ一般化する根拠にはならない。** 一般化にはフラグが原因だという確認が要る。
+
+さらに**1機種・1 API level・`shell` uidの結果である。** 残る未検証は次節に書く。
 
 ### S-2で残った未検証
 
 - **API levelの幅**: Android 17でしか見ていない。実装が対象にするAndroid 11〜16のFUSEで同じとは限らない。**MediaProviderのFUSE実装はversionごとに変わる。**
 - **実機**: emulatorのみ。実機のvendor kernelやfilesystem(f2fs等)で挙動が変わりうる。
+- **flags=0の対照**: 上記のとおり未実施。**これが埋まるまで「フラグが効いた」と書かない。**
+- **`/sdcard`のfilesystem**: `stat -f`や`mount`を採っていない。「FUSEを経由している」はemulator imageからの推測であって観測ではない。
 - **FAT系**: SD card / USB OTGは未実施。FATは`renameat2`のフラグをfilesystem側で扱えない可能性がある。
 - **appのmount view**: `adb shell`(shell uid)からの観測である。`MANAGE_EXTERNAL_STORAGE`を持つappは**別のmount viewで`/storage`を見る**ため、同じ結果になるとは限らない。**候補Eを採用すると決めた場合、app内での再確認が要る。**
 
@@ -197,11 +210,13 @@ Android 11以上の端末と、可能なら別世代の端末の2台で行う。
 - bionicの`renameat2`宣言とAPI levelの原文。
 - MediaProviderのFUSE実装が`RENAME_NOREPLACE`を扱うか。
 
-**依頼**: `android.googlesource.com`をallowlistへ追加していただけると、S-2の結果を実装の根拠と突き合わせられる。**追加が難しければspikeの実測だけで判断する**ことも可能なので、必須ではない。
+`android.googlesource.com`をallowlistへ追加すればAOSP実装と突き合わせられるが、**採否の判断には必要なかった**ため依頼していない。必要になるとすれば`T08`で実機の挙動が資料と食い違ったときである。そのとき改めて判断する。
 
 ## 現時点の結論
 
-**候補Eは技術的に成立する見込みが立った。** S-2でFUSEが`RENAME_NOREPLACE`を透過することを実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
+**候補Eは観測上、安全に動く。** S-2で、targetがある状態の`renameat2(RENAME_NOREPLACE)`が`EEXIST`で失敗しtargetを壊さないことを`/sdcard`で実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
+
+**ただし「フラグが効いたから安全だった」の因果はまだ示せていない。** flags=0の対照を取っていないためである(spikeへcase Bとして追加済み、再実施待ち)。因果が確定するまで、この観測を他のAPI level・kernel・filesystemへ一般化しない。
 
 残る関門は2つで、**どちらも技術ではない。**
 

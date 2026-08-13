@@ -49,12 +49,19 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   - 未検証: API levelの幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。**採用を決めてから確かめる。**
 - 2026-08-13 / 調査の結果、**候補Eの採用がAndroidのfile選択導線の作り直し(004への波及)を伴う**ことが判明した。`renameat2`はpathを要り、SAF URIはpathへ変換できないため、選択がSAFからapp内file browserへ変わる。当初の想定に無かった影響なので、採否の判断材料へ加えた。
 - 2026-08-13 / **開発者が候補Eの採用を決定。** ADR-002を`accepted`にし、T02〜T08を定義した。`flutter test` — PASS (359)。005のnegative testは無傷。
+- Review attempt 1: `ec2e74f..ccd234f` — FAIL — P1×4。
+  1. **Playの許可対象の一次資料の意味を変えていた。** 原文は「similar to any of the following, it's likely that」という**開いた例示**なのに、「宣言が許されるのは次のみ」と閉じたallowlistとして書き、`[一次]`を付けていた。WebFetchの要約をそのまま原文として扱ったことが原因。原文を再取得して修正した。**"permitted uses"の定義は`support.google.com`にあり到達できない**ことも明記した。
+  2. **spikeに`flags=0`の対照が無く、「フラグが効いた」の因果を示せていなかった。** 「そのpathがそもそも上書きrenameを拒む」可能性を排除できない。spikeへcase Bを追加し、主張を観測の範囲へ戻した。**再実施待ち。**
+  3. **`renameat2`のAPI 30という`[未到達]`主張が、ADRとT02では無印の事実に昇格していた。** しかもspike binaryは`android24`向けにビルドして動作しており、生syscallならwrapperのlevelに依存しない。T02の選択肢を2案から3案へ直した。
+  4. **T02の`dependsOn`が空**でT01への実質依存が未宣言だった。`["T01"]`にした。
+  - P2も併せて解消(状態表記、引用の逐語性、`/Android/data`等の書込不可をT03へ、spikeの早期returnでの後始末、`exists()`のTOCTOU、case Cの診断文言、mount種別の採取、allowlist依頼の宙吊り、covers)。
+- 2026-08-13 / spikeへcase B(`flags=0`の対照)とmount種別の採取を追加。container(x86_64/ext4)で再ビルド・実行し、case A=`EEXIST`/target無傷、case B=`0`/上書き、case C=`0`、判定`A) RENAME_NOREPLACE が効いている`、消し残し無しを確認した。
 
 ## Current state / handoff
 
 - Last checkpoint: 採否decisionまで完了。ADR-002が`accepted`になり、後続T02〜T08を定義した。独立review待ち
 - Blocker category: なし
-- Waiting for: exact rangeの独立review
-- Requested action: なし
-- Evidence revision: `dev@f97a2cc` + spike S-2(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: 独立reviewがPASSしたらPR #133をmergeし、`T02`(権限とAPI levelの方針)へ進む。`minSdk`を含む4点を人間へ一度に問う
+- Waiting for: **spikeの再実施**(`flags=0`の対照とmount種別)。手順は同じで、追加は再ビルドと1コマンドのみ
+- Requested action: [`manual-verification.md`](manual-verification.md)の手順2(再ビルド)以降をもう一度実行する。case Bの結果と`stat -f`/`mount`の出力を報告する
+- Evidence revision: `dev@f97a2cc` + spike S-2 第1回(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
+- Next Agent action: 再spikeの結果を記録し、attempt 2の独立reviewを起動する。PASSならPR #133をmergeし`T02`へ進む。`minSdk`を含む4点を人間へ一度に問う
