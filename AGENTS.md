@@ -7,7 +7,7 @@
 AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`printenv AI_SANDBOX`が`1`か確認する。
 
 - `secrets/`、環境変数、慣習的な`.env`の値はダミーである。本物の値を探索・表示しない。
-- `compose.ai.yml`と`.devcontainer/`はread-only。変更は人間へ依頼する。
+- `compose.ai.yml`と`.devcontainer/`はread-only。変更は人間へ依頼する。これらのpathが現在のHEADと移動先で異なる場合、container内の`switch`、`checkout`、`pull`、`merge`は途中まで適用して失敗しうるため実行せず、host側での更新とRebuildを依頼する。Git操作が失敗したら、何も変わっていないと仮定せず直ちに`git status --short`を確認する。
 - 各worktreeではignoredな`secrets/ai.env`が存在しないことがある。Compose構文上必要なだけで値は不要なので、Agentはコメントだけの空相当fileをそのworktreeへ作成してよい。別worktreeやhostからcopyせず、credentialや環境変数代入を追加しない。
 - push / PRは`gh`で行えるが、`.github/workflows`を含むpushは人間が行う。
 - クラウド認証や広権限tokenを持ち込まない。infra/deployは人間監督下で行う。
@@ -140,7 +140,7 @@ Git管理されたhandoffとIssueが食い違う場合はhandoffを正本とし�
 
 コード、test、仕様、Git、Issue/PRから分かることは質問しない。scope、利用者から見える振る舞い、data・互換性・権限・公開・費用、受け入れ証拠を変えるmaterial ambiguityだけを、一度に一つ、現実的で相互排他的な選択肢2〜3個と推奨案・影響を付けて尋ねる。
 
-manual確認を依頼する前に、Agentが検証対象branch、exact commit/build、人間が実行するworkspaceを準備し、その状態を維持して待つ。人間によるbranch移動は原則不要と明記し、`git switch`や`git checkout`を通常手順にしない。未commit変更、使用中worktree、container/IDE制約で安全に準備できない場合だけblockerと選択肢を示す。
+manual確認を依頼する前に、Agentが検証対象branch、exact commit/build、人間が実行するworkspaceを準備し、その状態を維持して待つ。これはAgent自身もそのworkspaceのbranchやcommitを動かさないという意味であり、待機中の別作業は別worktreeで行う。人間によるbranch移動は原則不要と明記し、`git switch`や`git checkout`を通常手順にしない。未commit変更、使用中worktree、container/IDE制約で安全に準備できない場合だけblockerと選択肢を示す。
 
 共通起動手順はdocsへlinkする。task固有manualを依頼するときは、対象`NNN / TNN`とtask名、クリック可能なrepository-relative link（例: [`specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md`](specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md)）を示す。`manual-verification.md`というfile名だけや「文書を確認してください」だけで依頼しない。今回固有の操作、fixture、期待結果、結果受領後のAgent作業も報告内の一つのchecklistへ要約する。人間の結果は会話で自由形式に受け取り、証拠metadataはAgentが`task.md`へ記録する。
 

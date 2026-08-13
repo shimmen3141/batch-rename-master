@@ -53,3 +53,5 @@
 `/workspace`を`asdd/013-safe-android-rename/T01-decide-storage-boundary@2993d5e`へ戻し、`manual-verification.md`と`spike/renameat2_spike.c`が見える状態にした。008の作業は既にpush・PR済み(#134)なので失われていない。
 
 以後、実機確認の依頼中に別branchの作業が必要になったら`.worktrees/`を使う。
+
+誤読を減らすため、「Agent自身も共有workspaceを動かさない」をproject PR #136とASDD PR #10で明記した。

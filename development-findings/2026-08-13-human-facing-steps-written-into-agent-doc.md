@@ -74,4 +74,4 @@
 
 `013:T01`に`manual-verification.md`と`spike/renameat2_spike.c`を作り、`task.json`の`manualVerification`を設定した。Cプログラムはcontainer内(x86_64/ext4)でコンパイル・実行し、`A) RENAME_NOREPLACE は有効`を出すこと、fixtureを自分で片付けることを確認済み。
 
-ASDD plugin側の3点は未対応。
+ASDD PR #10で、実機spike等の調査も`manual-verification.md`の対象とし、計画時にAgent単独で証拠取得できるか確認する規律と、command・環境・所要時間・判定可能な出力まで具体化する規律を追加した。自然言語heuristicによるvalidator警告は誤検知と形式依存を避けるため見送った。
