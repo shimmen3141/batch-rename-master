@@ -5,5 +5,14 @@
   "risk": "strict",
   "issue": null,
   "dependsOn": [],
-  "tasks": ["tasks/T01-decide-storage-boundary"]
+  "tasks": [
+    "tasks/T01-decide-storage-boundary",
+    "tasks/T02-define-permission-and-api-level",
+    "tasks/T03-define-android-file-browsing",
+    "tasks/T04-update-rename-contract-for-android",
+    "tasks/T05-native-renameat2-port",
+    "tasks/T06-implement-permission-flow",
+    "tasks/T07-implement-android-file-browser",
+    "tasks/T08-verify-device-coverage"
+  ]
 }

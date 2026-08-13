@@ -15,7 +15,7 @@
 | 005 リネーム実行 | 警告確認・結果表示、desktop安全rename・5秒以内undo、空ルールUI、desktop更新日時ずらしを実装し手動確認済み。Androidは安全にunsupported | [`005-rename-exec/`](005-rename-exec/) |
 | 007 ルール永続化 | serialization・保存・復元を実装済み。process再起動をまたぐ手動受け入れも完了 | [`007-rule-persistence/`](007-rule-persistence/) |
 | 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyをT01〜T10へ分解した。今後のUI調整の受け皿でもある | [`008-ui-alignment/`](008-ui-alignment/) |
-| 013 Android安全rename | 005の安全なunsupportedが統合済み。`T01`は公式資料への到達経路が2026-08-13に許可され、着手可能 | [`013-safe-android-rename/`](013-safe-android-rename/) |
+| 013 Android安全rename | 現状はAndroidで理由付きの未対応。`renameat2(RENAME_NOREPLACE)`による対応を採用と決め(ADR-002)、権限導線・app内file browser・契約更新をT02〜T08へ分解した | [`013-safe-android-rename/`](013-safe-android-rename/) |
 
 ## 主な依存
 

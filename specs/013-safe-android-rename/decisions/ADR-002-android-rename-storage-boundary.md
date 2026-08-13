@@ -1,6 +1,6 @@
 # ADR-002: Androidで安全なrenameを成立させるstorage境界
 
-- Status: **proposed**(人間の決定待ち)
+- Status: **accepted**(2026-08-13 開発者承認)
 - Date: 2026-08-13
 - Related: [ADR-001](../../005-rename-exec/decisions/ADR-001-android-saf-rename-safety.md)、005 `contracts/behavior-contract.json` revision 3、004 spec 決定D-2
 - Related requirements: INV-002(既存fileを置換しない)、INV-003 / REQ-018(要求名と結果名の一致)、OP-004(失敗時不変)
@@ -40,9 +40,9 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 **候補E(`MANAGE_EXTERNAL_STORAGE` + `renameat2(RENAME_NOREPLACE)`)以外に、005の契約を満たす道は無い。**
 
-採否そのものは技術判断では決まらない。**次の2点は人間が決める。**
+**2026-08-13、開発者が候補Eの採用を決定した。** Androidが主対象である以上、「主要プラットフォームで改名できない」状態は製品として成立しないという判断による。以下の2点は採用にあたって受け入れた条件である。
 
-### 決めること1: `MANAGE_EXTERNAL_STORAGE`を宣言する方針を取れるか
+### 受け入れた条件1: `MANAGE_EXTERNAL_STORAGE`をPlayで宣言する
 
 Playが宣言を認めるのは次に限られる。
 
@@ -52,9 +52,9 @@ Playが宣言を認めるのは次に限られる。
 
 一括改名appが「File managers」「Document management apps」に当たるかは配布の判断である。なお後段の条件「よりprivacy-friendlyなAPIでは目的を達せられない」については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。
 
-**通らなければ、実装しても配布できない。** 他の何よりも先に決める。
+**通らなければ、実装しても配布できない。** 実装planはこのriskを抱えたまま進む。宣言理由には本ADRの一次資料分析(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)をそのまま使う。
 
-### 決めること2: Androidのfile選択導線の作り直しを受け入れるか
+### 受け入れた条件2: Androidのfile選択導線を作り直す
 
 `renameat2`はfilesystem pathを要る。SAFのURIは不透明なhandleで**pathへ変換できない**(ADR-001で却下済み)。したがって候補Eを採ると、**Androidのfile選択はSAFからapp内のfile browserへ変わる。**
 
@@ -64,7 +64,7 @@ Playが宣言を認めるのは次に限られる。
 - OSの見慣れた選択画面が自作の画面に変わる(利用者から見える変化)。
 - 「すべてのファイルへのアクセス」を許可させる導線と説明が要る。
 
-**これは当初の想定に無かった。** 実装量も利用者影響も「renameを1つ足す」より大きい。
+**これは当初の想定に無かった。** 実装量も利用者影響も「renameを1つ足す」より大きい。採用の決定はこの範囲を含む。
 
 ## Considered alternatives
 
@@ -88,20 +88,23 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 
 ### Androidを未対応のまま維持する
 
-**決めること1または2でNoとなった場合の結論。** 失敗ではない。desktopでは完全に動作し、Androidでは理由を明示して実体に触れない。005が守る保証を下げないという一貫した状態である。
+**採用しない場合の結論だった。2026-08-13に採用が決まったため、この案は採らない。** 失敗ではない選択肢ではあった。desktopでは完全に動作し、Androidでは理由を明示して実体に触れない。005が守る保証を下げないという一貫した状態である。
 
 ## Consequences
 
-### 採用する場合
+### 採用したことによる帰結
 
 - 005 contractは**変えない**。INV-002へのplatform例外を作らない。
 - `minSdk`を24から30以上へ上げるか、API 30未満で未対応へ分岐する(`renameat2`はAPI 30公開)。**24〜29の端末を切るかどうかも人間の判断**である。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。
 - 採用後に、S-2で残した未検証を確かめる。**API level幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。** 特に最後の1つは、今回`adb shell`から観測したものであり、app内で再確認する必要がある。
-- production実装は別taskまたは別planへ定義する。**本ADRは実装を含まない。**
+- production実装は`013:T02`以降として定義する。**本ADRは実装を含まない。**
 
-### 採用しない場合
+### 未解決のまま残る決定
 
-- 005のAndroid未対応が**確定**になる。「将来対応する」ではなく「対応しない」と決めたことになるので、利用者への説明もそれに合わせる。
-- 013は`T01`の完了をもって閉じる。
-- 010(写真・動画source)がMediaStoreを導入するとき、**media限定なら候補Cが再検討の対象になりうる**。そのときは本ADRを入力とする。
+- **`minSdk`をどうするか。** 30へ上げて24〜29の端末を切るか、24のまま実行時に分岐してAPI 30未満を未対応にするか。`013:T02`で人間へ問う。
+- **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
+
+### 参考: 採用しなかった場合に起きたこと
+
+005のAndroid未対応が確定し、013は`T01`で閉じていた。なお010(写真・動画source)がMediaStoreを導入するとき、**media限定なら候補Cが再検討の対象になりうる**。その場合も本ADRを入力とする。
