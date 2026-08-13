@@ -119,9 +119,11 @@ Linuxの`renameat2`に`RENAME_NOREPLACE`を渡せば、targetが存在すると�
 
 - 出典(二次): <https://android.googlesource.com/platform/bionic/+/main/libc/include/android/api-level.h>(検索結果経由。原文未読)
 
-## 実機spike(host側で人間が実行する)
+## 実機spike
 
-AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)。以下は**host側で実施**する。各spikeは「何を観測したら何が言えるか」を先に固定してある。
+AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)ため、host側で人間が実施する。
+
+**最優先のS-2は、実行できる手順書として[`manual-verification.md`](manual-verification.md)に分けてある。人間へ依頼するときはそちらを渡す。** 以下は各spikeの**設計**(何を観測したら何が言えるか)であり、Agentが判定に使う。
 
 ### S-1 SAFのdisplay name改変を実測する(候補A/Bの確認)
 
@@ -135,11 +137,16 @@ AI containerにはAndroid SDKもemulatorも無い(`AGENTS.md`の前提)。以下
 
 **これが最優先。** これが通らなければ候補Eは消える。
 
-1. `MANAGE_EXTERNAL_STORAGE`を付与した確認用appを用意する。
-2. `/sdcard/`直下に`spike-c.txt`と`spike-d.txt`を置く。
-3. NDKから`renameat2(AT_FDCWD, "/sdcard/spike-c.txt", AT_FDCWD, "/sdcard/spike-d.txt", RENAME_NOREPLACE)`を呼ぶ。
-4. **観測**: 戻り値と`errno`。および`spike-d.txt`の内容が元のままか。
-5. 同じ手順を、targetが存在しない場合(`spike-e.txt`へ)でも実行する。
+**実行手順は[`manual-verification.md`](manual-verification.md)。** 観測用のCプログラムは[`spike/renameat2_spike.c`](spike/renameat2_spike.c)にあり、fixtureの作成・2ケースの実行・片付けまで行う。
+
+観測するのは次である。
+
+1. targetが既にある状態で`renameat2(..., RENAME_NOREPLACE)`を呼んだときの戻り値と`errno`。
+2. そのときtargetの内容が保たれているか。
+3. targetが無い場合に通常どおり成功するか(対照)。
+4. `/data/local/tmp`(ext4)と`/sdcard`(FUSE)の両方で1〜3を行う。**ext4で効かなければkernel側の問題**で、FUSEを疑う前に切り分けられる。
+
+`MANAGE_EXTERNAL_STORAGE`を持つappは**使わない**。知りたいのはフラグがFUSEを透過するかであり、それは`adb shell`から観測できる。app内での再確認は、候補Eを採用すると決めたあとに行えばよい。**人間の手間を先に増やさない。**
 
 **判定**:
 - `-1` / `EEXIST`かつ`spike-d.txt`の内容が不変 → **RENAME_NOREPLACEが有効**。候補Eは判定軸1と2を満たす。

@@ -47,6 +47,6 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 - Last checkpoint: 公式資料調査を完了し、`research-matrix.md`に候補比較とspike計画を作成した。決定はまだ出していない
 - Blocker category: environment(spikeの実行環境)
 - Waiting for: **S-2の実機結果**。`renameat2(RENAME_NOREPLACE)`がAndroid 11以降の共有storage(FUSE)を透過するか
-- Requested action: `research-matrix.md`の「実機spike」節のS-2を実施し、戻り値・`errno`・targetの内容が保たれたかを報告する。S-1も実施できると候補Aの不採用理由が実測で固まる
+- Requested action: [`manual-verification.md`](manual-verification.md)のS-2を実施する。所要15〜20分、NDKが要る。appのbuildは不要
 - Evidence revision: `dev@f97a2cc`。公式資料は2026-08-13時点の`developer.android.com`
 - Next Agent action: S-2の結果を受け取り、成立なら候補Eのdecision record(ADR)案とproduction実装task案を作る。不成立ならAndroid未対応維持のADR案を作る。どちらも人間の承認前に実装しない
