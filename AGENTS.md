@@ -99,7 +99,7 @@ PRはremote collaboration、CI、独立review、manual gate、integrationに意�
 - titleとbodyは日本語で書く。titleは`[ASDD NNN/TNN] <観測可能な成果>`を既定とする。
 - 本文にplan/task、risk、Issue、成果と対象外、実検査、review base/head/range、manual要否、未解決P0/P1、人間判断、後続taskを含める。
 - task固有Issueがmergeで調整終了する場合だけ`Closes #N`、plan Issueや継続利用Issueは`Refs #N`とする。
-- 通常push、PR作成、ready化は明示依頼を必要とする。`.github/workflows`を含むpushは人間が行う。
+- 通常push、PR作成、ready化は、remote共有・CI・review・handoffに必要ならAgentが行い、結果を報告する。`.github/workflows`を含むpushは人間が行う。
 
 このprojectでは、次をすべて満たすwork-package PRに限り、追加の人間確認なしでAgentがauto-mergeを有効化またはmergeしてよい。
 
