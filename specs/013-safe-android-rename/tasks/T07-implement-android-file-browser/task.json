@@ -7,7 +7,10 @@
     "T03",
     "T06"
   ],
-  "covers": [],
+  "covers": [
+    "REQ-001",
+    "REQ-008"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"

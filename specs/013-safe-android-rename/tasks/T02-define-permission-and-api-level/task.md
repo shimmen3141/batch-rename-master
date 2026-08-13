@@ -43,14 +43,21 @@
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 - 2026-08-13 / 着手。`T01`のP2×4(結論節の未検証が7項目のうち4つ、plan.mdの未決定が2件、`Evidence revision`の二重括弧とmerge前base、trailing whitespace)を先に解消した。
 - 2026-08-13 / **開発者が`minSdk`を「24のまま実行時検出」と決定。** API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため。
+- 2026-08-13 / **開発者が`spec.md`を承認(draft → approved)。** 承認されたREQ IDをT05〜T08の`covers`へ書いた。
+- 2026-08-13 / **`support.google.com`がallowlistへ追加され、Playのpermitted usesの原文を読めた。** ADR-002が`[未到達]`としていた箇所が埋まり、`T02`のgate(実装投資前のpolicy確認)を満たせた。
+  - permitted usesの**File management**(主目的がapp固有storage外のfileとfolderのaccess・編集・管理)は、このappの主目的と一致する。
+  - **ただしinvalid usesに「利用者が個々のfileを手で選ぶだけのfile選択操作」があり、SAFを使うよう案内されている。** 004の現在のmodelはこちらに近い。
+  - 例外条項があり、SAF/MediaStoreでは不十分な理由をConsoleで説明できれば一時的な例外がありうる。**その説明はADR-002の分析がそのまま使える。**
+  - **設計への含意を`T03`へ渡した。** app内file browserをfolder管理の導線として作ることは、技術的必要であると同時に配布要件である。store説明文での主目的の訴求も同様。
+  - **残る不確実性は「審査に通るか」であって、「該当しうるか」ではなくなった。**
 - 2026-08-13 / `spec.md`をdraftとして起草した。**preflight(REQ-005〜008)がこのtaskで最も重要な設計判断である。** `renameat2`が`EINVAL`/`ENOSYS`を返す端末は安全(実体不変)だが、**フラグを黙って無視して上書きする端末は実行時に検出できない**(`T01`のspikeの`C)`)。したがって実行前に対象folderで実測する必要がある。対照(flags=0)を含めるのは、`T01`のreviewで「片側だけでは因果を示せない」と指摘されたのと同じ理由による。
 - 2026-08-13 / **`minSdk`の判断材料を整理し、人間へ問うた。** `renameat2`のkernel実装はLinux 3.15で入っており、bionicのwrapperが無くても生syscallで到達できる(`T01`のspike binaryは`android24`向けにビルドして動作)。**したがってAPI levelは対応可否の代理指標として弱い。** 実際に効くかを決めるのはkernelとfilesystem(FUSEの下がext4かFATか等)であり、これはAPI levelと独立に端末ごとに変わる。
 
 ## Current state / handoff
 
-- Last checkpoint: `spec.md`をdraftとして起草した。人間の承認待ち
-- Blocker category: decision
-- Waiting for: **`spec.md`の承認**(draft → approved)と、Playのpolicy原文との突き合わせ
-- Requested action: `spec.md`のREQ-001〜009とINV-001〜003を確認する。特にREQ-005(preflight)が受け入れられるか
+- Last checkpoint: `spec.md`が`approved`。Playのpolicy原文も読めたため、受け入れ証拠が揃った
+- Blocker category: なし
+- Waiting for: exact rangeの独立review
+- Requested action: なし
 - Evidence revision: `dev@70e4287` + ADR-002
-- Next Agent action: 承認されたらREQ IDをT05〜T08の`covers`へ書き、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。差し戻しなら該当REQだけ直す
+- Next Agent action: reviewがPASSしたらmergeし、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。両者は並列可

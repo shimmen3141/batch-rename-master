@@ -112,13 +112,36 @@ Google Playの制約(**筆者の要約**):
 
 **最後の一覧は閉じたallowlistではない。** 資料の書き方は「これらに**似ている**なら**おそらく**要求できる」であって、「これらに限る」ではない。**この違いが判断を分ける。** 規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方である。
 
-**"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。そのdomain(`support.google.com`)はcontainerから到達できない [未到達]。** したがって「一括改名appが該当するか」を資料で確定できていない。
-
-一括改名appが「File managers」「Document management apps」に**似ている**と主張できるかは配布判断であり、Agentは決めない。ただし「SAF・MediaStoreでは目的を達せられない」という条件は、上のA〜Cの分析でそのまま論拠になる。
+**"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。** 2026-08-13までは`support.google.com`へ到達できず`[未到達]`だったが、同日のallowlist更新で読めるようになった。次節に記す。
 
 `Environment.isExternalStorageManager()`で付与を確認し、`Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`で設定画面へ誘導する。
 
 - 出典: <https://developer.android.com/training/data-storage/manage-all-files>
+
+### Playのpermitted uses(2026-08-13に到達可能になった)
+
+出典: Play Console Help「Use of All files access (MANAGE_EXTERNAL_STORAGE) permission」(下記URL)。`support.google.com`は2026-08-13のallowlist更新で到達できるようになった。**以前`[未到達]`としていた"permitted uses"の定義はここにある。**
+
+読み取った内容(**筆者の要約。原文の転記ではない**):
+
+- 対象はAndroid 11(API 30)以上をtargetし、この権限を宣言するapp。宣言するなら**Play ConsoleのPermissions Declaration Formを提出し、承認を受ける**必要がある。提出しない、または要件を満たさないappは**Playから削除されうる**。
+- 「core functionality」は**appの主目的**と定義され、それが無ければappは壊れている(unusable)状態になるもの、とされる。さらに**appの説明文で目立つ形に記載・訴求されていること**が求められる。
+- permitted usesの表に**File management**があり、その定義は「appの主目的が、**app固有storageの外にあるfileとfolderへのaccess、編集、管理(maintenanceを含む)**であること」。この用途は`MANAGE_EXTERNAL_STORAGE`の対象として挙げられている。
+- 他にbackup/restore、anti-virus、document management、on-device search、暗号化、device移行がある。いずれも**Playの審査と承認が前提**と注記されている。
+
+**重要: 「invalid uses」に該当しうる記述がある。**
+
+- 認められない例として、**利用者が個々のfileを手で選ぶだけのfile選択操作**が挙げられており、代替としてSAFを使うよう案内されている。
+- 一方で、この一覧は網羅的ではないとも書かれている。
+
+**この2つは、このappの位置づけ次第でどちらにも転ぶ。** 004の現在のmodel(SAFで個々のfileを選ぶ)は後者に近い。一方、`T03`で作るapp内file browser(folderを辿ってfileとfolderを管理する)は前者の**File management**の定義に近い。**したがってT03の設計は技術的な帰結であるだけでなく、配布要件でもある。**
+
+さらに例外条項がある。permitted usesに当てはまらなくても、(i) その権限がcore functionalityを成立させ、(ii) 代替が無いか、privacy-friendlyな代替がcritical featureへ実質的な悪影響を与え、(iii) privacyへの影響がbest practiceで緩和されている場合、**一時的な例外**がありうる。**その場合はConsoleの申告でSAF/MediaStoreでは不十分な理由を説明する必要がある。**
+
+**このappはその説明を持っている。** ADR-002の一次資料分析(SAFは要求名の同一性を保証せず、MediaStoreは対象種別を覆えない)がそのまま(ii)の論拠になる。
+
+- 出典: <https://support.google.com/googleplay/android-developer/answer/10467955>
+
 
 ### E — `renameat2(RENAME_NOREPLACE)`
 
@@ -264,7 +287,14 @@ none on /sys/fs/fuse/connections type fusectl (rw,relatime)
 
 ### 関門1: `MANAGE_EXTERNAL_STORAGE`のPlay審査
 
-公式資料は「file manager、document management等に**似た**use caseなら**おそらく**要求できる」という開いた例示を示すだけで、規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方にある。**その"permitted uses"の定義はPlay Consoleのpolicy pageにあり、containerから到達できない [未到達]。** したがって一括改名appが該当するかは資料で確定できず、配布の判断である。**これが通らなければ候補Eは実装しても配布できない**ので、他の何よりも先に決める必要がある。
+**2026-08-13にPlay Consoleのpolicy原文を読めるようになり、この関門の中身が具体的になった。**
+
+- permitted usesの**File management**(主目的がapp固有storage外のfileとfolderのaccess・編集・管理)は、このappの主目的と一致する。
+- ただし**invalid usesに「利用者が個々のfileを手で選ぶだけのfile選択操作」があり、SAFを使うよう案内されている。** 004の現在のmodelはこちらに近い。
+- 例外条項があり、SAF/MediaStoreでは不十分な理由をConsoleで説明できれば一時的な例外がありうる。**その説明はADR-002の一次資料分析がそのまま使える。**
+- いずれにせよ**Permissions Declaration Formの提出と承認が要り、承認されるかはPlayの審査次第**である。
+
+**残る不確実性は「審査に通るか」であって、「該当しうるか」ではなくなった。** また、**`T03`でapp内file browserをfolder管理として作ることが、技術的必要であると同時に配布要件でもある**ことが分かった。
 
 ### 関門2: Androidのfile選択導線が変わる
 

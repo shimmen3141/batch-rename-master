@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "権限とAPI levelの方針を定義する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T01"
   ],

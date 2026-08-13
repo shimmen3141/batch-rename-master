@@ -56,7 +56,17 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 **この一覧は閉じたallowlistではない。** 条件は「一覧に載っていること」ではなく「載っているものに**似ている**こと」と、上のpermitted usesの方である。
 
-**"permitted uses"の定義はこのpageに無く、Play Consoleのpolicy pageにある。そのdomainはcontainerから到達できていない [未到達]。** よって「一括改名appが該当する」ことを資料で確定できていない。**却下されるriskを抱えたまま実装planへ進む**という判断である。
+**2026-08-13追記: `support.google.com`がallowlistへ追加され、"permitted uses"の原文を読めた。** `[未到達]`は解消した。要点は次のとおり(**筆者の要約**。詳細と出典は[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md))。
+
+- permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」と定義され、**このappの主目的と一致する**。
+- ただし**invalid usesに「利用者が個々のfileを手で選ぶだけのfile選択操作」があり、SAFを使うよう案内されている。** 004の現在のmodelはこちらに近い。
+- 例外条項があり、SAF/MediaStoreでは不十分な理由をConsoleで説明できれば一時的な例外がありうる。**その説明は本ADRの分析がそのまま使える。**
+- `Permissions Declaration Form`の提出と承認が要る。提出しない、または要件を満たさないappは**Playから削除されうる**。
+- core functionalityは**appの説明文で目立つ形に記載・訴求されている**必要がある。
+
+**残る不確実性は「審査に通るか」であって、「該当しうるか」ではなくなった。** 却下riskを抱えたまま進む判断は変わらないが、**riskの形が具体的になった。**
+
+**設計への含意**: `T03`のapp内file browserを、単なるfile選択画面ではなく**folderとfileを管理する導線**として作ることが、技術的必要であると同時に**配布要件**でもある。
 
 「よりprivacy-friendlyなAPIでは目的を達せられない」という条件については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。宣言理由にはこれを使う。**ただし提出前に、人間がPlayのpolicy原文と突き合わせること。**
 
@@ -119,6 +129,7 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 
 - **`minSdk`をどうするか。** 上記3案。`013:T02`で人間へ問う。
 - **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
+- **Permissions Declaration Formの提出内容と、store説明文への記載。** リリース時の人間の作業である。policyは「core functionalityがappの説明文で目立つ形に記載・訴求されていること」を求める。**実装が終わってから考えると間に合わない**ので、`T03`の設計時に「何を主目的として説明するか」を決めておく。
 
 ### 参考: 採用しなかった場合に起きたこと
 

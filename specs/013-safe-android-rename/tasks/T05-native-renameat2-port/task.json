@@ -6,7 +6,14 @@
   "dependsOn": [
     "T04"
   ],
-  "covers": [],
+  "covers": [
+    "REQ-005",
+    "REQ-006",
+    "REQ-007",
+    "REQ-009",
+    "INV-001",
+    "INV-002"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": null

@@ -1,6 +1,6 @@
 # 013 Androidのstorage権限と対応可否 — 振る舞い仕様
 
-- Status: **draft**(人間の承認待ち)
+- Status: **approved**(2026-08-13 開発者承認)
 - Date: 2026-08-13
 - 所有task: `T02`
 - 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、005 contract revision 3、004 spec
@@ -107,5 +107,5 @@
 
 ## 未解決
 
-- **Playのpolicy確認**(ADR-002の`[未到達]`)。`T05`〜`T07`の実装へ投資する前に人間が原文と突き合わせる(`T02`の受け入れ証拠)。
+- **Playの審査に通るか。** policy原文は2026-08-13に読めた(`[未到達]`は解消)。permitted usesの**File management**とこのappの主目的は一致するが、invalid usesの「個々のfileを手で選ぶだけの選択操作」に見られるriskが残る。`T03`の設計と、`Permissions Declaration Form`・store説明文で対処する。**通らなければAndroid未対応へ戻す**(ADR-002の退避経路)。
 - preflightが作る一時ファイルの名前規則。衝突しにくく、途中終了しても識別できる形にする。実装時(`T05`)に決めてよい。
