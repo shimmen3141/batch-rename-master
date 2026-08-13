@@ -117,8 +117,8 @@ merge methodはcheckpointとmanual evidenceのidentityを保つmerge commitを�
 
 「続けて」と言われたら、次の順で現在地を復元する。
 
-1. `specs/README.md`と`workspace.py summary specs`。
-2. `in_progress / in_review / blocked` taskの`Current state / handoff`。
+1. `specs/README.md`と`python <asdd-plugin>/scripts/workspace.py resume specs`。全task一覧が必要な場合だけ`summary`を使う。
+2. `resume`が示したtaskの`Current state / handoff`。
 3. current branch/worktree、`git status --short`、staged/unstaged diff、未追跡file。
 4. taskが所有するIssue/PRとexact review range。
 
@@ -142,7 +142,7 @@ Git管理されたhandoffとIssueが食い違う場合はhandoffを正本とし�
 
 manual確認を依頼する前に、Agentが検証対象branch、exact commit/build、人間が実行するworkspaceを準備し、その状態を維持して待つ。人間によるbranch移動は原則不要と明記し、`git switch`や`git checkout`を通常手順にしない。未commit変更、使用中worktree、container/IDE制約で安全に準備できない場合だけblockerと選択肢を示す。
 
-共通起動手順はdocsへlinkしつつ、今回固有の操作、fixture、期待結果、証拠の記録先、結果受領後のAgent作業を報告内にも一つのchecklistで示す。
+共通起動手順はdocsへlinkする。task固有manualを依頼するときは、対象`NNN / TNN`とtask名、クリック可能なrepository-relative link（例: [`specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md`](specs/005-rename-exec/tasks/T09-empty-rule-ui/manual-verification.md)）を示す。`manual-verification.md`というfile名だけや「文書を確認してください」だけで依頼しない。今回固有の操作、fixture、期待結果、結果受領後のAgent作業も報告内の一つのchecklistへ要約する。人間の結果は会話で自由形式に受け取り、証拠metadataはAgentが`task.md`へ記録する。
 
 ## Development findings
 
