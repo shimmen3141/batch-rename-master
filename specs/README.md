@@ -4,9 +4,7 @@
 
 ## 現在の開発
 
-- [005 安全なリネーム実行](005-rename-exec/plan.md)
-- [004 対象ファイルの選択と読み込み](004-file-source/plan.md)
-- [007 前回ルールの保存と復元](007-rule-persistence/plan.md)
+- [008 UIと主要操作の整合](008-ui-alignment/plan.md)
 - [013 Androidの安全なrename境界](013-safe-android-rename/plan.md)
 
 ## 既存能力
