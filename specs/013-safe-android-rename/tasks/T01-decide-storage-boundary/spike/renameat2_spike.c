@@ -219,7 +219,8 @@ int main(int argc, char **argv) {
   } else if (rA == -1 && eA == EEXIST && rB != 0) {
     printf("D) フラグの有無に関わらず上書きrenameが失敗している。\n");
     printf("   安全ではあるが、**フラグが効いた証拠にはならない。**\n");
-    printf("   case B の errno=%d (%s) を報告する。\n", eB, strerror(eB));
+    printf("   case B の 戻り値=%d errno=%d (%s) を報告する。\n", rB, eB,
+           eB == 0 ? "errnoは設定されていない" : strerror(eB));
   } else {
     printf("E) 想定外。上の生の値をそのまま報告する。\n");
   }
