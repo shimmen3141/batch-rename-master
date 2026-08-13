@@ -25,7 +25,7 @@
 ## 変更範囲
 
 - 表示modeの状態と切替control。
-- 各modeの行・cellの描画。
+- 各modeの行・cellの描画。**リッチ案はT07の行をそのまま使い、作り直さない。** 行の情報階層はT07、行の操作はT04が持つ。表は[`T07のtask.md`](../T07-row-and-warning-presentation/task.md)にある。
 - 選択、手動並び替え、警告表示が各modeで成立すること。
 
 ## 受け入れ証拠

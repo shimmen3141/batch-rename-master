@@ -66,12 +66,14 @@
 | 2026-08-05 | token追加 | 「既定値で即追加してから編集」をやめ、追加を押すとmodalが出て設定を終えると追加される形にする | 開発者 |
 | 2026-08-12 | 行サブ情報の見切れ | 狭幅で`作成日時: 不明`の文字列が読めない件を、UI調整として008で扱う(識別自体は警告アイコンで成立しており仕様違反ではない) | 開発者 |
 | 2026-08-13 | (a)〜(d)の扱い | 他のplanが拾わないため**008の対象へ入れる**。T07へ(b)を統合し、(c)(a)(d)をT08/T09/T10として足す。あわせて008を今後のUI調整の受け皿と位置づける | 開発者 |
+| 2026-08-13 | 計画の承認 | 状態 draft → **approved**。task分割、対象外の範囲、(a)〜(d)を含めた構成に個別異議なし | 開発者承認 |
 
 出典: `specs/product-map.md`の「008へ引き継いだ人間の決定(planへ反映済み)」節。原文は凍結した[`specs/history/asdd-0.x-discovery.md`](../history/asdd-0.x-discovery.md)の44〜48行。
 
 ## review記録
 
 - Review attempt 1: `ea1dd04..d9d6bb2` — FAIL — P1: T09の`dependsOn`がtask.md本文の前提(T02によるREQ-014廃止)を宣言していない。P2×6: 引用節名の陳腐化、`008-ui-polish` slugの残存、`file_source_bar.dart`の担当重複、T07/T08の場所の提示の分担未定、`covers`を埋める時期の未定義、product-mapの到達点が古い。
+- Review attempt 2: `ea1dd04..72dd5f8` — PASS — 未解決P0/P1なし。残P2×3(行widgetのT04/T07/T09間の分担未宣言、T08 task.mdの内部矛盾、product-mapのlive status寄り記述)は`ec2e74f`のmerge後に解消した。
 
 ## タスク
 
