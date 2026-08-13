@@ -94,6 +94,8 @@ AI もコンテナ内から push / PR を作成できます(対象リポジト�
 
 トークンは `secrets/ai.env` に置きます。**ファイルとしては AI から見えません**(`secrets/` はダミーの影)が、compose が環境変数 `GH_TOKEN` として注入するため **AI プロセスの環境変数としては見えます**(これは意図した設計)。守りは「トークンを隠すこと」ではなく「**権限をこのリポジトリの contents / PR 操作だけに絞り、漏れても被害をそこに限定する**」ことです。だから PAT は必ず fine-grained・対象リポジトリ1つ・workflow なしにします。
 
+`.devcontainer/devcontainer.json` の `userEnvProbe: "none"` は削除しません。Composeで注入した認証環境はそのまま使いつつ、VS Codeがlogin shellの全環境変数をprobeしてhost側debug logへ書き出す経路を止める設定です。VS Code telemetryもcontainer既定で無効にし、egress firewallで失敗する不要な再送を避けます。
+
 **PAT の発行・更新(人間の作業。トークン値は AI に貼らない・見せない):**
 
 1. GitHub → ユーザの Settings → Developer settings → **Fine-grained personal access tokens** → Generate new token
