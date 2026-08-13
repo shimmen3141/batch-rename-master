@@ -14,6 +14,8 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 - 公式資料調査、最小spike、permission・配布制約の比較、decision record。
 - 人間承認前にproduction renameや広権限を導入しない。
 
+調査の正本は[`research-matrix.md`](research-matrix.md)。**[一次]**(公式資料の原文で確認)、**[要spike]**(実機で観測しないと言えない)、**[未到達]**(egress制限で一次資料へ到達できていない)を区別して書く。この区別を崩さない。
+
 ## 受け入れ証拠
 
 - 候補API/version/providerを固定した再現可能なspike結果。
@@ -33,11 +35,18 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   - したがって、このtaskを進めるには次のどちらかが要る。(a) 人間がfirewallのallowlistへ`developer.android.com`等を追加し、spikeはhost側で実施する。(b) 人間が一次資料の該当箇所とspike結果をAgentへ渡し、Agentは比較・decision recordの作成に限定する。
   - どちらもAgentの判断では選べないため、statusは`pending`のまま人間へ返す。
 
+- 2026-08-13 / 開発者が**(a)**を選択。PR #127で`developer.android.com`・`source.android.com`・`api.flutter.dev`・`cs.android.com`をallowlistへ追加し、rebuild後に到達を確認(いずれも200)。`android.googlesource.com`と`support.google.com`は引き続きtimeout。
+- 2026-08-13 / 公式資料調査を実施し、[`research-matrix.md`](research-matrix.md)へ候補A〜Fの比較、一次資料の引用、必要なspike(S-1〜S-4)を書いた。
+  - **一次資料で確定**: `DocumentsProvider.renameDocument`は「providerが衝突回避のために要求名を変えてよい」と明記し、名前衝突を表す失敗を定義していない。SAF単独では原子的no-replaceも名前の同一性も満たせず、**ADR-001の判断は資料側の変化なく維持される**。
+  - **一次資料で確定**: `MANAGE_EXTERNAL_STORAGE`は直接file path accessを与えるが、Google Playが宣言を認めるappの種類が限定されている。一括改名appが該当するかは配布判断であり、Agentは決めない。
+  - **見立て**: 候補E(`MANAGE_EXTERNAL_STORAGE` + NDK `renameat2(RENAME_NOREPLACE)`)が唯一契約を緩めずに成立しうる。成否は**S-2(FUSEがRENAME_NOREPLACEを透過するか)**に完全に依存する。
+  - spikeはAndroid SDK・実機が要るためhost側で人間が実施する。
+
 ## Current state / handoff
 
-- Last checkpoint: 依存(005:T05)は解消済み。着手を試みたが、AI containerからは受け入れ証拠を満たせないことが判明した
-- Blocker category: environment
-- Waiting for: 調査の進め方の決定。(a) firewall allowlistへ公式資料domainを追加し、spikeはhost側で実施する / (b) 人間が一次資料とspike結果をAgentへ渡し、Agentは比較とdecision recordに限定する
-- Requested action: (a)か(b)を選ぶ。(a)ならallowlistの更新は`.devcontainer/`側の変更なので人間が行う
-- Evidence revision: `dev@ea1dd04`で到達可能性を確認(`developer.android.com`・`source.android.com`・`api.flutter.dev`=timeout、`pub.dev`=200)
-- Next Agent action: 人間が方針を選んだら、候補ごとの調査matrixを作る。production実装は設計判断のあと別taskまたは別planへ定義する
+- Last checkpoint: 公式資料調査を完了し、`research-matrix.md`に候補比較とspike計画を作成した。決定はまだ出していない
+- Blocker category: environment(spikeの実行環境)
+- Waiting for: **S-2の実機結果**。`renameat2(RENAME_NOREPLACE)`がAndroid 11以降の共有storage(FUSE)を透過するか
+- Requested action: `research-matrix.md`の「実機spike」節のS-2を実施し、戻り値・`errno`・targetの内容が保たれたかを報告する。S-1も実施できると候補Aの不採用理由が実測で固まる
+- Evidence revision: `dev@f97a2cc`。公式資料は2026-08-13時点の`developer.android.com`
+- Next Agent action: S-2の結果を受け取り、成立なら候補Eのdecision record(ADR)案とproduction実装task案を作る。不成立ならAndroid未対応維持のADR案を作る。どちらも人間の承認前に実装しない
