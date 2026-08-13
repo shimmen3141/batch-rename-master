@@ -29,8 +29,9 @@
 
 Windows Explorer D&D、UIと主要操作の整合、写真・動画source、名前付きルールpreset、保存schema移行、隠しfile filter、元名のcase変換は[プロダクトマップ](product-map.md#将来候補)を入口にする。候補のままIssueを一括作成せず、着手判断後にplanへ定義する。
 
-全taskの状態と依存は、ASDD pluginの次のcommandで確認する。
+再開時はASDD pluginの`resume`で作業中・block中・着手可能なtaskだけを確認する。全taskの状態と依存が必要な場合だけ`summary`を使う。
 
 ```console
+python <asdd-plugin>/scripts/workspace.py resume specs
 python <asdd-plugin>/scripts/workspace.py summary specs
 ```
