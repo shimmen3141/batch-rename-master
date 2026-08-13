@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T08",
+  "title": "読み込み導線と場所の提示を整える",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

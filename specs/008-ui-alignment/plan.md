@@ -13,13 +13,16 @@
 - 並び順controlの作り直しと、002 REQ-014(連番が無いとき手動並び替えを隠す)の廃止。
 - 行のcheckbox(rename対象)と行の×(一覧から除去)の役割重複の解消。「すべて外す」の改名。
 - token追加を「既定値で即追加してから編集」から「modalで設定を終えてから追加」へ変える。
-- 行のサブ情報と警告帯の情報階層。狭幅で必要な情報が読めなくなる問題を含む。
+- 行のサブ情報と警告帯の情報階層。狭幅で必要な情報が読めなくなる問題を含む。ファイル種別アイコンとリッチな行layoutを含む。
+- 読み込み導線と場所の提示。
+- リスト表示modeの切替。
+- 全体の余白・階層・typography。
 - 上記に伴う002/003/004 specの更新と、人間の再承認。
+
+**このplanはUI調整の受け皿である。** 実機で触って出るUIの指摘は今後も増える前提で、新しい指摘は原則このplanへtaskとして足す。別planを立てるのは、UIの提示ではなく判定・契約・permissionが動くときに限る。
 
 ### 対象外
 
-- リスト表示の3案切替(リッチ/グリッド/コンパクト)、ファイル種別アイコン、読み込み導線とpath表示の作り込み。→ 優先順位が未決定。必要になった時点でこのplanへtaskを足すか、別planへ定義する
-- 全体の余白・階層・typographyの作り込み。→ 上と同じ
 - ルールのpreset保存UI。→ 009
 - 元名の大小変換。→ 001の将来拡張
 - 001の重複判定をfolder単位へ変えること。→ 判定は001が正本。008は提示だけを扱う
@@ -43,6 +46,12 @@
   - 証拠: 003 specの更新と再承認、仕様由来test、手動確認
 - [ ] 狭幅でも、どの行の作成日時が不明かと、警告の内容が読み取れる
   - 証拠: widget test、Android実機での手動確認
+- [ ] 読み込み前・読み込み後・複数folderが混ざった状態で、どこから何が入っているかが読み取れる
+  - 証拠: widget test、AndroidとWindows desktopでの手動確認
+- [ ] リスト表示modeを切り替えても、選択・手動並び替え・警告表示が成立する
+  - 証拠: widget test、両platformでの手動確認
+- [ ] 余白と文字の階層がapp全体で一貫し、値がthemeへ寄っている
+  - 証拠: 既存widget testの継続PASS、diff、両platformでの手動確認
 - [ ] `python <asdd-plugin>/scripts/workspace.py check specs`、`flutter test`、`flutter analyze`、`dart format --output=none --set-exit-if-changed .` がPASS
 - [ ] 001の判定、004の読み込み契約、005の実行・undo・警告の判定を変えていない(既存testの継続PASS)
 
@@ -55,6 +64,7 @@
 | 2026-08-05 | 選択と削除 | 行のcheckboxと行の×の併存をやめ、checkboxへ統一する。削除は左swipeで出す。「すべて外す」は「リストを空にする」等へ改名する | 開発者 |
 | 2026-08-05 | token追加 | 「既定値で即追加してから編集」をやめ、追加を押すとmodalが出て設定を終えると追加される形にする | 開発者 |
 | 2026-08-12 | 行サブ情報の見切れ | 狭幅で`作成日時: 不明`の文字列が読めない件を、UI調整として008で扱う(識別自体は警告アイコンで成立しており仕様違反ではない) | 開発者 |
+| 2026-08-13 | (a)〜(d)の扱い | 他のplanが拾わないため**008の対象へ入れる**。T07へ(b)を統合し、(c)(a)(d)をT08/T09/T10として足す。あわせて008を今後のUI調整の受け皿と位置づける | 開発者 |
 
 出典: `specs/product-map.md`の「008へ引き継ぐ人間の決定」節。原文は凍結した[`specs/history/asdd-0.x-discovery.md`](../history/asdd-0.x-discovery.md)の44〜48行。
 
@@ -71,3 +81,6 @@
 | T05 | [task.md](tasks/T05-define-token-add-modal/task.md) |
 | T06 | [task.md](tasks/T06-implement-token-add-modal/task.md) |
 | T07 | [task.md](tasks/T07-row-and-warning-presentation/task.md) |
+| T08 | [task.md](tasks/T08-load-affordance-and-path/task.md) |
+| T09 | [task.md](tasks/T09-list-display-modes/task.md) |
+| T10 | [task.md](tasks/T10-spacing-and-typography/task.md) |

@@ -12,6 +12,9 @@
     "tasks/T04-implement-selection-flow",
     "tasks/T05-define-token-add-modal",
     "tasks/T06-implement-token-add-modal",
-    "tasks/T07-row-and-warning-presentation"
+    "tasks/T07-row-and-warning-presentation",
+    "tasks/T08-load-affordance-and-path",
+    "tasks/T09-list-display-modes",
+    "tasks/T10-spacing-and-typography"
   ]
 }
