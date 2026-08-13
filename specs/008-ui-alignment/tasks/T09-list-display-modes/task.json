@@ -3,7 +3,7 @@
   "id": "T09",
   "title": "リスト表示モードの切替を入れる",
   "status": "pending",
-  "dependsOn": ["T07"],
+  "dependsOn": ["T02", "T07"],
   "covers": [],
   "issue": null,
   "pullRequest": null,

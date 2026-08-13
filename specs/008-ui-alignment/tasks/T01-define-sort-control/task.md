@@ -6,7 +6,7 @@
 
 ## 入力と依存
 
-- `specs/product-map.md`「008へ引き継ぐ人間の決定」の(e)。原文は凍結discoveryの45行。
+- `specs/product-map.md`「008へ引き継いだ人間の決定(planへ反映済み)」の(e)。原文は凍結discoveryの45行。
 - 現行の002 spec REQ-002(sort key)、REQ-003(`reorder`で`custom`へ)、**REQ-014**(連番が無いとき手動並び替えとcustomを隠す)。
 - `docs/design/Bulk Renamer.html`の並び順control。
 
@@ -28,6 +28,7 @@
 - 002 specの更新差分が、上記の決めることすべてに答えている。
 - 更新後のspecが**人間により再承認**される(現在approved。2026-08-01承認 / 2026-08-05再承認)。
 - 既存のVER-001/002が新しいREQをどう被覆するかがVER表から読める。
+- 承認されたREQ IDを、実装task **T02**(および表示modeを扱う**T09**)の`task.json`の`covers`へ書く。`covers`は現在空で、REQが確定するのはこのtaskの承認時である。**ここで埋めないと空のまま`done`になる。**
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
 ## 作業記録

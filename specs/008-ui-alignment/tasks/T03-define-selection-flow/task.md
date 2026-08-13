@@ -6,7 +6,7 @@
 
 ## 入力と依存
 
-- `specs/product-map.md`「008へ引き継ぐ人間の決定」の(g)。原文は凍結discoveryの47行。
+- `specs/product-map.md`「008へ引き継いだ人間の決定(planへ反映済み)」の(g)。原文は凍結discoveryの47行。
 - 現行の002 spec REQ-004(`toggleSelection`/`selectAll`/`clearAll`)、**REQ-009**(`removeFile`/`clearFiles`)。004 spec REQ-006。
 - 現行実装: 行の×(`file_list_view.dart`の`removeFile`)、読み込みbarの「すべて外す」(`lib/ui/file_source/file_source_bar.dart`)。
 
@@ -28,6 +28,7 @@
 - 002/004 specの更新差分が、上記の決めることすべてに答えている。
 - 更新後のspecが**人間により再承認**される。
 - 状態層のREQ(002 REQ-009 / 004 REQ-006)が意味を変えていないことが差分から読める。
+- 承認されたREQ IDを、実装task **T04**の`task.json`の`covers`へ書く。`covers`は現在空で、REQが確定するのはこのtaskの承認時である。**ここで埋めないと空のまま`done`になる。**
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
 ## 作業記録

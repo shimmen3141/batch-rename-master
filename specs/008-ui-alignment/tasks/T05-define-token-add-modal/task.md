@@ -6,7 +6,7 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
 
 ## 入力と依存
 
-- `specs/product-map.md`「008へ引き継ぐ人間の決定」の(f)。原文は凍結discoveryの46行。
+- `specs/product-map.md`「008へ引き継いだ人間の決定(planへ反映済み)」の(f)。原文は凍結discoveryの46行。
 - 現行の003 spec のtoken追加REQ。
 - 現行実装: `lib/ui/rule_builder/rule_builder_view.dart`の追加button、`lib/ui/rule_builder/token_editors.dart`。
 
@@ -26,6 +26,7 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
 
 - 003 specの更新差分が、上記の決めることすべてに答えている。
 - 更新後のspecが**人間により再承認**される。
+- 承認されたREQ IDを、実装task **T06**の`task.json`の`covers`へ書く。`covers`は現在空で、REQが確定するのはこのtaskの承認時である。**ここで埋めないと空のまま`done`になる。**
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
 ## 作業記録

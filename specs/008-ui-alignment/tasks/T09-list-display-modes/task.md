@@ -9,6 +9,7 @@
 - `specs/history/asdd-0.x-discovery.md`の(a)。
 - 参考design `docs/design/Bulk Renamer.html`の3案。
 - T07が決めた行の情報階層。**リッチ案はT07の行そのもの**なので、T07の後に着手する。
+- **T02**。受け入れ証拠が「各modeで手動並び替えが成立する」ことを求めており、それは002 REQ-014(連番が無いとdrag handleを隠す)をT02が廃止して初めて常時成立する。T02より先に着手すると、REQ-014が生きている状態で「常に並び替えられる」ことを検査することになり前提が崩れる。
 - 002 spec。行の描画方法は「視覚デザインは非規範」として対象外だが、**表示modeという利用者から見える状態を足す**ことは提示以上の変更にあたる。
 
 ## 先に決めること
@@ -44,7 +45,7 @@
 
 - Last checkpoint: 定義しただけ。未着手
 - Blocker category: なし
-- Waiting for: T07(行の情報階層)。リッチ案がT07の成果そのもののため
+- Waiting for: T07(行の情報階層。リッチ案がT07の成果そのもの)とT02(REQ-014廃止。手動並び替えが常時成立する前提)
 - Requested action: なし
 - Evidence revision: `dev@ea1dd04`
-- Next Agent action: T07完了後、「先に決めること」の3点を人間へ一度に確認してから設計する
+- Next Agent action: T02とT07の完了後、「先に決めること」の3点を人間へ一度に確認してから設計する

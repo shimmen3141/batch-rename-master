@@ -15,6 +15,16 @@
 - 「すべて外す」の改名と、必要なら配置。
 - 002/004の仕様由来testの更新と追加。
 
+### `file_source_bar.dart`の分担(T08と共有する)
+
+`すべて外す`(`clear-files-button`)、`ファイルを選ぶ`(`pick-files-button`)、種類chip(`file-kind-*`)、複数folder警告(`multi-folder-warning`)は**すべて`lib/ui/file_source/file_source_bar.dart`の同じbarにある**。T04とT08が同じfileへ入るので、分担を先に固定する。
+
+- **T04が持つのは`clear-files-button`だけ**(文言と、必要なら配置)。
+- **barそのものの構成・読み込み導線・場所の提示・複数folder警告はT08が持つ。**
+- T04が先に着手した場合、`clear-files-button`以外へ触らない。T08が先に着手した場合、`clear-files-button`の文言は現状のまま残し、T04で改名する。
+
+**どちらが先でも成立する**ようにこの分担を切ってある。依存edgeにしないのは、T04が`T03`の仕様承認待ちで、T08を不必要に止めたくないためである。
+
 ## 受け入れ証拠
 
 - 新しい除去導線で一覧から消え、checkboxの状態とは独立であることをwidget testで検査する。
