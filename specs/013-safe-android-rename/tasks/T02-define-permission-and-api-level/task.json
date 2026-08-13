@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T02",
+  "title": "権限とAPI levelの方針を定義する",
+  "status": "pending",
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T07",
+  "title": "app内file browserを実装する",
+  "status": "pending",
+  "dependsOn": [
+    "T03",
+    "T06"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
