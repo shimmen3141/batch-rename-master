@@ -26,8 +26,8 @@
 
 ## 変更範囲
 
-- 新規`specs/013-safe-android-rename/spec.md`(Androidのstorage権限に関する観測可能な振る舞い)。
-- または004/005 specへの追記。**どちらにするかもこのtaskで決める**(権限はsourceと実行の両方に関わるため、独立したspecの方が収まりが良い可能性がある)。
+- **新規[`specs/013-safe-android-rename/spec.md`](../../spec.md)** を作成した。権限はsource(004)と実行(005)の両方に関わるため、どちらかへ追記すると片方の仕様が他方の都合で膨らむ。独立させた。
+- 改名そのものの正しさは**005 contractが正本**であり、013は緩めない(INV-001)。004/005 specは`T03`/`T04`が触る。
 - `AndroidManifest.xml`の権限宣言は**このtaskでは行わない**(T06)。
 
 ## 受け入れ証拠
@@ -42,13 +42,15 @@
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 - 2026-08-13 / 着手。`T01`のP2×4(結論節の未検証が7項目のうち4つ、plan.mdの未決定が2件、`Evidence revision`の二重括弧とmerge前base、trailing whitespace)を先に解消した。
+- 2026-08-13 / **開発者が`minSdk`を「24のまま実行時検出」と決定。** API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため。
+- 2026-08-13 / `spec.md`をdraftとして起草した。**preflight(REQ-005〜008)がこのtaskで最も重要な設計判断である。** `renameat2`が`EINVAL`/`ENOSYS`を返す端末は安全(実体不変)だが、**フラグを黙って無視して上書きする端末は実行時に検出できない**(`T01`のspikeの`C)`)。したがって実行前に対象folderで実測する必要がある。対照(flags=0)を含めるのは、`T01`のreviewで「片側だけでは因果を示せない」と指摘されたのと同じ理由による。
 - 2026-08-13 / **`minSdk`の判断材料を整理し、人間へ問うた。** `renameat2`のkernel実装はLinux 3.15で入っており、bionicのwrapperが無くても生syscallで到達できる(`T01`のspike binaryは`android24`向けにビルドして動作)。**したがってAPI levelは対応可否の代理指標として弱い。** 実際に効くかを決めるのはkernelとfilesystem(FUSEの下がext4かFATか等)であり、これはAPI levelと独立に端末ごとに変わる。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@ec2e74f` + ADR-002
-- Next Agent action: 「決めること」の4点へ案を作り、人間へ一度に問う。`minSdk`は他の3点の前提になるので最初に置く
+- Last checkpoint: `spec.md`をdraftとして起草した。人間の承認待ち
+- Blocker category: decision
+- Waiting for: **`spec.md`の承認**(draft → approved)と、Playのpolicy原文との突き合わせ
+- Requested action: `spec.md`のREQ-001〜009とINV-001〜003を確認する。特にREQ-005(preflight)が受け入れられるか
+- Evidence revision: `dev@70e4287` + ADR-002
+- Next Agent action: 承認されたらREQ IDをT05〜T08の`covers`へ書き、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。差し戻しなら該当REQだけ直す
