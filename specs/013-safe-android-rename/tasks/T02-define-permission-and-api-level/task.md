@@ -50,6 +50,7 @@
   3. **preflightの後片付けが要求として閉じていなかった。** 観測の過程で名前が移動するため「作ったものを削除する」では3つ目の宛先が残る。中断時の残骸の扱いも無く、残骸をINV-002の「既存ファイル」と扱うと**そのfolderで永久に改名できなくなる**経路があった。
   4. **複数folderに跨るbatchの意味論と、preflight結果の失効条件が未定義だった。**
   - 対処: 1と2は5fileすべてで直し、要約をやめて**原文を読むよう促す形**にした。3はREQ-010/011とINV-004、4はREQ-012/013で閉じた。`covers`のREQ-008をT05へ移した。
+  - 2026-08-13 / **開発者がinvalid usesのriskを受容してT05以降へ投資すると決定。** ADR-002とplan.mdへ記録した。
   - **1は同じ根本原因の4回目である。** 転記をやめても、**要約する時点で自分の結論へ寄る**ことは止まっていなかった。findingへ記録した。
 - 2026-08-13 / **`support.google.com`がallowlistへ追加され、Playのpermitted usesの原文を読めた。** ADR-002が`[未到達]`としていた箇所が埋まり、`T02`のgate(実装投資前のpolicy確認)を満たせた。
   - permitted usesの**File management**の定義は、このappの主目的と一致する。
@@ -64,7 +65,7 @@
 
 - Last checkpoint: review attempt 1のP1×4を解消。`spec.md`へREQ-010〜013とINV-004を足したため**再承認待ち**
 - Blocker category: decision
-- Waiting for: (1) `spec.md`の**再承認**(preflightの後片付け・batch単位・失効条件を追加した) (2) **Playのpolicyに該当しうるかのrisk受容**(Agentは決めない)
-- Requested action: 追加したREQ-010〜013とINV-004を確認する。あわせて、invalid usesに該当しうる点を受け入れてT05以降へ投資するかを決める
+- Waiting for: `spec.md`の**再承認**(preflightの後片付け・batch単位・失効条件を追加した)
+- Requested action: 追加したREQ-010〜013とINV-004を確認する
 - Evidence revision: `dev@70e4287` + ADR-002
 - Next Agent action: reviewがPASSしたらmergeし、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。両者は並列可

@@ -66,7 +66,13 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 **「該当しうるか」は未解決のままである。** 到達できたのはpermitted usesの**定義**であって、このappの**当てはまり**ではない。File managementに当てはまる読みとfile selection activityに当てはまる読みが**両立しうる**。**却下riskを抱えたまま進む判断は変わらないが、riskは当初の見立てより大きい。**
 
-**この点は原文を読んだうえでの人間のrisk受容とする。** Agentは決めない。
+**2026-08-13、開発者がこのriskを受容して進めることを決定した。** invalid usesに該当しうることを認めたうえで、次で寄せる。
+
+- `T03`でapp内file browserを**folderとfileを管理する導線**として作る(File managementの定義へ寄せる)。
+- store説明文で**主目的を目立つ形に訴求する**(policyの要求)。
+- `Permissions Declaration Form`で、SAF/MediaStoreが不十分な理由を本ADRの分析で説明する。
+
+**却下された場合はAndroid未対応へ戻す。** 退避経路(未対応adapterとnegative testの維持)はこのriskのために保つ。
 
 **設計への含意**: `T03`のapp内file browserを、単なるfile選択画面ではなく**folderとfileを管理する導線**として作ることは、File managementの定義へ寄せる方向に働く。**ただしそれでinvalid usesを外れる保証は無い。**
 
