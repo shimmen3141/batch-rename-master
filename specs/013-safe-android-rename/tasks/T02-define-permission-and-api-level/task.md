@@ -41,6 +41,8 @@
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
+- 2026-08-13 / 着手。`T01`のP2×4(結論節の未検証が7項目のうち4つ、plan.mdの未決定が2件、`Evidence revision`の二重括弧とmerge前base、trailing whitespace)を先に解消した。
+- 2026-08-13 / **`minSdk`の判断材料を整理し、人間へ問うた。** `renameat2`のkernel実装はLinux 3.15で入っており、bionicのwrapperが無くても生syscallで到達できる(`T01`のspike binaryは`android24`向けにビルドして動作)。**したがってAPI levelは対応可否の代理指標として弱い。** 実際に効くかを決めるのはkernelとfilesystem(FUSEの下がext4かFATか等)であり、これはAPI levelと独立に端末ごとに変わる。
 
 ## Current state / handoff
 

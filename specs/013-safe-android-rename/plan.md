@@ -56,10 +56,12 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 | 2026-08-09 | 現SAF APIがStrict no-replaceを保証できない | Android成功経路を005から分離し、最初の成果を調査と設計判断に限定する | 開発者 |
 | 2026-08-13 | storage境界の採否 | **候補E(`MANAGE_EXTERNAL_STORAGE` + `renameat2(RENAME_NOREPLACE)`)を採用する。** Androidが主対象である以上、主要プラットフォームで改名できない状態は製品として成立しない。Play審査riskと、Androidのfile選択をapp内browserへ作り直す範囲を受け入れる | 開発者承認 |
 
-未決定として残っているもの(`T02`で問う)。
+未決定として残っているものは**4件**あり、正本は[`T02`](tasks/T02-define-permission-and-api-level/task.md)の「決めること」である。ここへ複製せず、件数と論点だけ示す。
 
-- `minSdk`をどうするか。**少なくとも3案ある**(30へ上げる / 24のまま生syscallで呼び動かない端末を実行時に検出する / API levelで一律分岐する)。正本は[`T02`](tasks/T02-define-permission-and-api-level/task.md)で、**2案の二択として人間へ出さない**と定めてある。
-- 権限が無いときに読み込み自体を止めるか、読めるが実行時に断るか。
+1. `minSdk`をどうするか(**3案**。`T02`は「2案の二択として人間へ出さない」と定めている)。
+2. 権限が無いときの振る舞い。
+3. 権限を要求する時機。
+4. 権限を拒否されたあとの導線。
 
 ## タスク
 

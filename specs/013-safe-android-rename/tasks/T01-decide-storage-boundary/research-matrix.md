@@ -258,7 +258,7 @@ none on /sys/fs/fuse/connections type fusectl (rw,relatime)
 
 **候補Eは動く。** S-2で、FUSEと確認した`/sdcard`上で`renameat2(RENAME_NOREPLACE)`が`EEXIST`で失敗しtargetを壊さないこと、**同じ操作がフラグ無しなら成功して上書きすること**を対照付きで実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
 
-**ただし1機種・1 API level・`shell` uidの結果である。** 他のAPI level、実機、FAT系、そして`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount viewは`T08`で確かめる。
+**ただし1機種・1 API level・`shell` uidの結果である。** 残る未検証は上の「S-2で残った未検証」の**7項目**であり、`T08`が同じ集合を引き継ぐ。ここで数を書き直さない(箇所ごとに集合がばらけるのを避けるため)。
 
 残る関門は2つで、**どちらも技術ではない。**
 
