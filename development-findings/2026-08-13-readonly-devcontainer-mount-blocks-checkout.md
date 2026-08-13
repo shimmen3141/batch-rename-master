@@ -76,4 +76,4 @@ git ls-files .devcontainer compose.ai.yml | xargs git update-index --skip-worktr
 
 ## 改善結果
 
-workaroundを適用し、`dev`を`f97a2cc`へ進めた。`AGENTS.md`への追記は人間の判断待ち(`AGENTS.md`はAgentが変更しない対象)。
+workaroundを適用し、`dev`を`f97a2cc`へ進めた。その後の再評価では、`skip-worktree`によるindex/worktree不一致を通常化せず、対象pathが変わるGit移動はhost側更新＋Rebuildへ戻す方針を採用した。project側はPR #136、生成元は`ai-sandbox-setup` PR #2で規則化した。
