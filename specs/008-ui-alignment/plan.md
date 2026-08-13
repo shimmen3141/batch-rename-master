@@ -1,0 +1,91 @@
+# 008 UIと主要操作の整合
+
+## 目的
+
+実機で触って出た「操作の意味が読み取れない」指摘を解消する。並び順は現在の状態が見える一つのcontrolになり、リストからの除去は選択と混同されなくなり、tokenは設定を終えてから列に入る。参考designと現実装の食い違いのうち、**利用者の操作の意味に関わるもの**を揃える。
+
+002/003の仕様は「視覚デザインは非規範」として見た目を対象外にしており、その結果これらの指摘がどの計画にも割り当てられないまま残っていた。008がその受け皿になる。
+
+## 境界
+
+### 対象
+
+- 並び順controlの作り直しと、002 REQ-014(連番が無いとき手動並び替えを隠す)の廃止。
+- 行のcheckbox(rename対象)と行の×(一覧から除去)の役割重複の解消。「すべて外す」の改名。
+- token追加を「既定値で即追加してから編集」から「modalで設定を終えてから追加」へ変える。
+- 行のサブ情報と警告帯の情報階層。狭幅で必要な情報が読めなくなる問題を含む。ファイル種別アイコンとリッチな行layoutを含む。
+- 読み込み導線と場所の提示。
+- リスト表示modeの切替。
+- 全体の余白・階層・typography。
+- 上記に伴う002/003/004 specの更新と、人間の再承認。
+
+**このplanはUI調整の受け皿である。** 実機で触って出るUIの指摘は今後も増える前提で、新しい指摘は原則このplanへtaskとして足す。別planを立てるのは、UIの提示ではなく判定・契約・permissionが動くときに限る。
+
+### 対象外
+
+- ルールのpreset保存UI。→ 009
+- 元名の大小変換。→ 001の将来拡張
+- 001の重複判定をfolder単位へ変えること。→ 判定は001が正本。008は提示だけを扱う
+- Androidのrename成功経路。→ 013
+
+## 方針
+
+- **仕様を変えるものは、仕様更新taskと実装taskを分ける。** 002/003/004はいずれもLightだがapprovedなので、外部から観測できる振る舞いを変えるには人間の再承認が要る。承認前に実装を始めない。
+- **`covers`は仕様更新taskが埋める。** 全taskの`covers`は現在空である。REQ IDが確定するのはT01/T03/T05の承認時なので、その3taskの受け入れ証拠に「対応する実装taskの`covers`を書く」ことを入れてある。T07/T08/T10は仕様を変えないため、空のままが正しい。
+- **判定は動かさない。** 001の重複・桁不足・空名・基準日時不明の判定、005の実行可否、004の読み込み契約はそのまま。008が変えるのは**提示と操作の導線**である。
+- 参考design `docs/design/Bulk Renamer.html` は配置・導線・情報階層の正本(AGENTS.md)。各taskは適用する画面範囲を`task.md`へ書く。
+- 実機で触らないと判断できない項目があるため、実装taskはmanual確認を持つ。手順は実装後にcurrent revisionと照合して具体化する。
+- 005:T09で下部固定バーへ集約した実行導線は動かさない。今回触るのは一覧の行、並び順control、token追加、警告帯である。
+
+## 全体の受け入れ条件
+
+- [ ] 連番トークンの有無に関わらず手動並び替えができ、並び順controlが現在の状態(名前/作成日時/更新日時/サイズ/カスタム、昇順・降順)を常に示す
+  - 証拠: 002 specの更新と再承認、仕様由来test、Windows desktopとAndroidでの手動確認
+- [ ] 一覧からの除去がcheckboxと混同されない導線になり、「すべて外す」が何をするか名前から分かる
+  - 証拠: 002/004 specの更新と再承認、仕様由来test、手動確認
+- [ ] tokenは設定を終えてから列に入る。既定値のままのtokenが紛れない
+  - 証拠: 003 specの更新と再承認、仕様由来test、手動確認
+- [ ] 狭幅でも、どの行の作成日時が不明かと、警告の内容が読み取れる
+  - 証拠: widget test、Android実機での手動確認
+- [ ] 読み込み前・読み込み後・複数folderが混ざった状態で、どこから何が入っているかが読み取れる
+  - 証拠: widget test、AndroidとWindows desktopでの手動確認
+- [ ] リスト表示modeを切り替えても、選択・手動並び替え・警告表示が成立する
+  - 証拠: widget test、両platformでの手動確認
+- [ ] 余白と文字の階層がapp全体で一貫し、値がthemeへ寄っている
+  - 証拠: 既存widget testの継続PASS、diff、両platformでの手動確認
+- [ ] `python <asdd-plugin>/scripts/workspace.py check specs`、`flutter test`、`flutter analyze`、`dart format --output=none --set-exit-if-changed .` がPASS
+- [ ] 001の判定、004の読み込み契約、005の実行・undo・警告の判定を変えていない(既存testの継続PASS)
+
+## 人間の決定
+
+| 日付 | 論点 | 決定 | 決定者 |
+|---|---|---|---|
+| 2026-08-05 | 実施順 | 警告表示・進捗・undoのUIは005が作るため、008は005完了後に行う | 開発者 |
+| 2026-08-05 | 並び順control | 横並びchipをやめ、現在の状態を示すドロップダウンにする。手動で並び替えた瞬間に「カスタム」へ変える。各keyへ昇順・降順を持たせる。あわせて002 REQ-014を廃止し、連番の有無に関わらず手動並び替えを可能にする | 開発者 |
+| 2026-08-05 | 選択と削除 | 行のcheckboxと行の×の併存をやめ、checkboxへ統一する。削除は左swipeで出す。「すべて外す」は「リストを空にする」等へ改名する | 開発者 |
+| 2026-08-05 | token追加 | 「既定値で即追加してから編集」をやめ、追加を押すとmodalが出て設定を終えると追加される形にする | 開発者 |
+| 2026-08-12 | 行サブ情報の見切れ | 狭幅で`作成日時: 不明`の文字列が読めない件を、UI調整として008で扱う(識別自体は警告アイコンで成立しており仕様違反ではない) | 開発者 |
+| 2026-08-13 | (a)〜(d)の扱い | 他のplanが拾わないため**008の対象へ入れる**。T07へ(b)を統合し、(c)(a)(d)をT08/T09/T10として足す。あわせて008を今後のUI調整の受け皿と位置づける | 開発者 |
+
+出典: `specs/product-map.md`の「008へ引き継いだ人間の決定(planへ反映済み)」節。原文は凍結した[`specs/history/asdd-0.x-discovery.md`](../history/asdd-0.x-discovery.md)の44〜48行。
+
+## review記録
+
+- Review attempt 1: `ea1dd04..d9d6bb2` — FAIL — P1: T09の`dependsOn`がtask.md本文の前提(T02によるREQ-014廃止)を宣言していない。P2×6: 引用節名の陳腐化、`008-ui-polish` slugの残存、`file_source_bar.dart`の担当重複、T07/T08の場所の提示の分担未定、`covers`を埋める時期の未定義、product-mapの到達点が古い。
+
+## タスク
+
+タスクのID・依存・状態は`plan.json`と各`tasks/*/task.json`が正本。詳細は各`task.md`を読む。番号は安定した識別子であり、実行順や優先順位ではない。
+
+| ID | 詳細 |
+|---|---|
+| T01 | [task.md](tasks/T01-define-sort-control/task.md) |
+| T02 | [task.md](tasks/T02-implement-sort-control/task.md) |
+| T03 | [task.md](tasks/T03-define-selection-flow/task.md) |
+| T04 | [task.md](tasks/T04-implement-selection-flow/task.md) |
+| T05 | [task.md](tasks/T05-define-token-add-modal/task.md) |
+| T06 | [task.md](tasks/T06-implement-token-add-modal/task.md) |
+| T07 | [task.md](tasks/T07-row-and-warning-presentation/task.md) |
+| T08 | [task.md](tasks/T08-load-affordance-and-path/task.md) |
+| T09 | [task.md](tasks/T09-list-display-modes/task.md) |
+| T10 | [task.md](tasks/T10-spacing-and-typography/task.md) |

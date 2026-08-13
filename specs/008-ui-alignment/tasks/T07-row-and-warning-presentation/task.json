@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T07",
+  "title": "行と警告の情報階層を整える",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
