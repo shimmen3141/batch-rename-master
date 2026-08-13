@@ -103,7 +103,16 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 - 005 contractは**変えない**。INV-002へのplatform例外を作らない。
 - `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
-- 採用後に、S-2で残した未検証を確かめる。**API level幅(Android 11〜16)、実機、FAT系(SD/OTG)、`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount view。** 特に最後の1つは、今回`adb shell`から観測したものであり、app内で再確認する必要がある。
+- 採用後に、S-2で残した未検証を`013:T08`で確かめる。**7項目ある**([`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
+  1. **appのmount view**(`MANAGE_EXTERNAL_STORAGE`を持つapp自身。今回は`shell` uidからの観測)
+  2. **失敗時のsource側**(今回はtarget側しか観測しておらず、`EEXIST`からの推論に留まる)
+  3. **`/data/local/tmp`のfilesystem種別**(`stat -f`未採取)
+  4. **下位filesystem**(今回はFUSEの下がext4。FUSE自身の判定か下位への委譲かを切り分けていない)
+  5. **API levelの幅**(Android 17のみ。11〜16は未確認)
+  6. **実機**(emulatorのみ)
+  7. **FAT系**(SD card / USB OTG未実施)
+  
+  **1と2が最も重要である。** 1は`shell` uidの観測をappへ一般化できない点、2は判定軸「失敗時不変」を実測していない点で、どちらもNGなら本ADRを見直す。
 - production実装は`013:T02`以降として定義する。**本ADRは実装を含まない。**
 
 ### 未解決のまま残る決定

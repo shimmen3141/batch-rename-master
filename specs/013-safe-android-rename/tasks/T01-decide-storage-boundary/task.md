@@ -63,6 +63,7 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
   1. `:87-94` — `MANAGE_EXTERNAL_STORAGE`の付与内容の引用で、原文の`except /Android/data/, /sdcard/Android, ...`を**`such as /sdcard/Android`と書いており意味が反転している**。原文をcurlで再取得して確認済み。**逐語引用を直す作業の中で、より悪い誤りを入れた。** 地の文(`:98`)は正しく「書けない」としているので結論は無事だが、原文として提示したblock自体が原文と矛盾する。
   2. `:168` — S-2の**判定基準**節に「`EEXIST`かつtargetの内容が不変 → 判定軸1と2を満たす」が残存。同じfileの`:185`が「判定軸2を実測したとは言えない」と正反対を述べており矛盾。attempt 2のP1-1(結論節に旧主張が残存)と同型の伝播漏れ。
   - **3回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+- Review attempt 4: `ec2e74f..9d3d97e` — **PASS** — P0/P1なし。reviewerが4つの公式資料を実取得して全要約を原文照合し、引用をやめたことによる精度低下が無いことを確認した。残P2×6は後続commitで解消。
 - 2026-08-13 / **人間が(c)「引用を持たない形にする」を選択。** `research-matrix.md`と`ADR-002`から引用ブロックを全廃し(`^>`行は0)、出典のURLと節名+筆者の要約+「原文の転記ではない」の明示へ置き換えた。判断が原文の一語に依存する箇所(`except`か`such as`か、`only`か`likely`か)は、**その語が判断を分けること自体を本文へ書いた**。`:168`の判定基準の伝播漏れも解消。
   - **転記をやめたのは、注意力ではなく手段を変える対処である。** attempt 2の時点で`AGENTS.md`の「2回続いたら洗い直す」が発火していたが、筆者は記録しただけで手段を変えず、3回目を招いた。この構造上の穴はfindingへ記録した。
 - 2026-08-13 / **spike S-2を対照付きで再実施(人間)。因果が確定した。**
@@ -74,9 +75,9 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 
 ## Current state / handoff
 
-- Last checkpoint: 人間の判断(c)により引用を全廃した。attempt 4待ち
+- Last checkpoint: **完了。** review attempt 4がPASSし、PR #133を`dev`へmergeした
 - Blocker category: なし
-- Waiting for: exact rangeの独立review(attempt 4)
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: `dev@ec2e74f` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
-- Next Agent action: attempt 4がPASSしたらPR #133をmergeし`T02`へ進む。**引用を再導入しないこと。** 精度が要るときは出典を直接読む
+- Next Agent action: `T02`(権限とAPI levelの方針)へ進む。`minSdk`を含む4点を人間へ一度に問う。**引用を再導入しないこと** — 精度が要るときは出典を直接読む

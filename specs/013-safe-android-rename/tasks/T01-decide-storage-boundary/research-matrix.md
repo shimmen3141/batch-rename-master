@@ -58,7 +58,7 @@
 - `DocumentsProvider`側の`displayName`パラメータの説明は、**providerが内部の制約を満たすためにこの名前を変えてよい**としており、その例として**名前の衝突を避けること**を挙げている。
 - 戻り値は、renameに伴って別のdocument IDが必要ならそれを返し、元のIDがそのまま有効なら`null`を返す、と定めている。
 - `DocumentsContract`側は、providerが新しいdocument IDを作る必要があるならそれを返し元のdocumentは無効になる、そうでなければ元のdocumentを返す、としている。
-- **どちらのmethodも、`Throws`に挙げているのは`FileNotFoundException`(と認証関連)だけで、名前衝突を表す失敗を定義していない。**
+- **どちらのmethodも、名前衝突を表す失敗を定義していない。** `DocumentsProvider`側の`Throws`は`FileNotFoundException`と`AuthenticationRequiredException`、`DocumentsContract`側は`FileNotFoundException`のみである。なお`DocumentsContract`側は失敗時に`null`を返しうるとも書かれている。
 
 **判断はこの2点に依存する。** (i) 要求名の改変が**許されている**か禁じられているか、(ii) 改変が起きたことを呼び出し側へ伝える失敗経路が**存在しない**か存在するか。資料は(i)許されている・(ii)存在しない、と読める。**この読みが誤っていれば結論が変わる**ので、疑うときは出典を直接読むこと。
 
@@ -75,7 +75,7 @@ Bはrename後に`COLUMN_DISPLAY_NAME`を読めば**改変の検出**はできる
 
 読み取った内容(**筆者の要約**):
 
-- `ContentResolver.update()`で`MediaColumns.RELATIVE_PATH`または`MediaColumns.DISPLAY_NAME`を変えると、disk上のfileを移動・改名できる。
+- `ContentResolver.update()`で`MediaColumns.RELATIVE_PATH`または`MediaColumns.DISPLAY_NAME`を変えると、**disk上のfileを移動できる**(資料の語は"move files on disk")。`DISPLAY_NAME`を変える場合が改名にあたる、というのは筆者の読みである。
 - scoped storageでは、**他のappがmedia storeへ登録したfileを通常は更新できない**。
 
 他appのfileには`RecoverableSecurityException`の捕捉と利用者同意が要る。Android 11以上なら`createWriteRequest()`で**まとめて1回の同意**にできる。一括改名appとしてはこれは扱いやすい。
