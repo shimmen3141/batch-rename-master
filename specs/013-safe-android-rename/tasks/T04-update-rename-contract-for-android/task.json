@@ -1,13 +1,13 @@
 {
   "schema": "asdd.task/v1",
   "id": "T04",
-  "title": "005契約のAndroid経路を更新する",
-  "status": "pending",
+  "title": "005契約を衝突の採番回避へ改訂する(revision 4)",
+  "status": "in_review",
   "dependsOn": [
     "T02"
   ],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 138,
   "manualVerification": null
 }

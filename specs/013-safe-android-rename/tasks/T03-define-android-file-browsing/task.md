@@ -11,6 +11,12 @@ Androidのfile選択をSAFからapp内のfile browserへ変える。その振る
 - 004 spec。特にREQ-011(種類の選択)、決定D-2(実装が返したものをそのまま扱う)、REQ-006。
 - `development-findings/2026-08-12-documentsui-type-chip-crosses-folders.md`。**SAFの種類chipがfolderを横断する問題は、app内browserでは起きない。**
 
+## 配布要件でもある
+
+**このtaskの設計はPlayのpolicy適合に直結する。** permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」だが、invalid usesには「**利用者が個々のfileを手で選ぶ file selection activity**」があり(資料は`Any`と書いて限定していない)、SAFを使うよう案内されている。代替の表には「fileを選んでimport / transfer / **processing**する用途」の行もある(詳細は[`research-matrix.md`](../T01-decide-storage-boundary/research-matrix.md)の「Playのpermitted uses」)。
+
+**両立しうる読みであり、このappがどちらに当たるかは未解決である。** したがって、**単なるfile選択画面ではなく、folderとfileを管理する導線として作る**(File managementの定義へ寄せる)。**ただしそれで外れる保証は無い。** あわせて「このappの主目的をどう説明するか」も決める。policyはcore functionalityがstore説明文で目立つ形に記載・訴求されていることを求めており、**実装後に考えると間に合わない。**
+
 ## 決めること
 
 1. **何を見せるか。** folder階層を辿るのか、既知の場所(Downloads、DCIM等)への近道を出すのか、両方か。

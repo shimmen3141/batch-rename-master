@@ -11,7 +11,7 @@
 
 ## 確かめること
 
-S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装後に次の**7項目**を埋める([`research-matrix.md`](../T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
+S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装後に次の**7項目**を埋める(([`research-matrix.md`](../T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
 
 1. **appのmount view。** `MANAGE_EXTERNAL_STORAGE`を持つapp自身から呼び、`EEXIST`になりtargetが無傷であることを確認する。**S-2は`shell` uidからの観測なので、これが最も重要である。**
 2. **失敗時のsource側。** S-2はtarget側しか観測しておらず、判定軸「失敗時不変」は`EEXIST`からの推論に留まる。spikeへ確認を追加済みなので、実行すれば実測になる。
@@ -21,7 +21,9 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 6. **実機。** emulatorだけでなく実機で確認する。vendor kernelやf2fsで挙動が変わりうる。
 7. **FAT系。** SD card / USB OTGで確認する。**FATでフラグが効かないなら、その媒体は未対応にする**必要がある。
 
-**7がNGだった場合、契約を緩めるのではなく対象媒体を絞る。** INV-002へplatform例外を作らない(ADR-002)。
+**この確認は製品の可否を左右しない。** 005 contract revision 4により、`RENAME_NOREPLACE`が効かない環境でも実在確認へ劣化するだけで機能する。**確認する目的は、005 INV-002がどの環境で完全に成立するかを知ることである。**
+
+**NGだった媒体は「対応外」にしない。** 保証の水準が下がることを記録する。
 
 ### 測り方の要件
 
@@ -30,8 +32,8 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 ## 受け入れ証拠
 
 - 上記1〜7の観測結果を`task.md`へ記録する。**Agentが推測で埋めない。**
-- 1または2がNGなら**ADR-002を見直す**(ADR-002も同じ2項目を最重要としている)。実装を残したまま「動くはず」で進めない。
-- 7がNGなら、対象外にする媒体を仕様へ書き、利用者へ提示する。
+- 1または2がNGなら、**005 INV-002が完全には成立しない環境である**ことを記録する(013 ADR-002の見直しではなく、成立範囲の記録である)。
+- 7がNGなら、その媒体で保証の水準が下がることを記録する。**対応外にはしない。**
 - host側のAndroid buildが成功する(containerでは実行できない)。
 - [`manual-verification.md`](manual-verification.md)に手順を書く。**`T01`のmanualと同じ具体度**にする(実行できるコマンド、期待する出力、判定条件)。
 
@@ -45,5 +47,5 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 - Blocker category: dependency
 - Waiting for: `T05`と`T07`の実装
 - Requested action: なし
-- Evidence revision: `dev@ec2e74f` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid)
+- Evidence revision: `dev@4fd6ab1` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid) + `spec.md`(approved 2026-08-14)+ 005 contract revision 4
 - Next Agent action: `T05`/`T07`完了後、実行できるmanual手順を書いてから人間へ依頼する。**依頼前にdry-runする**

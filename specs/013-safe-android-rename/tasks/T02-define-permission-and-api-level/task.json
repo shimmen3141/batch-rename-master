@@ -2,12 +2,19 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "権限とAPI levelの方針を定義する",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T01"
   ],
-  "covers": [],
+  "covers": [
+    "REQ-001",
+    "REQ-002",
+    "REQ-003",
+    "REQ-004",
+    "INV-001",
+    "INV-002"
+  ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 138,
   "manualVerification": null
 }

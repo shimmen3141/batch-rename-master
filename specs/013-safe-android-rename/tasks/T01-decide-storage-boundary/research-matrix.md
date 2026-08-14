@@ -112,13 +112,41 @@ Google Playの制約(**筆者の要約**):
 
 **最後の一覧は閉じたallowlistではない。** 資料の書き方は「これらに**似ている**なら**おそらく**要求できる」であって、「これらに限る」ではない。**この違いが判断を分ける。** 規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方である。
 
-**"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。そのdomain(`support.google.com`)はcontainerから到達できない [未到達]。** したがって「一括改名appが該当するか」を資料で確定できていない。
-
-一括改名appが「File managers」「Document management apps」に**似ている**と主張できるかは配布判断であり、Agentは決めない。ただし「SAF・MediaStoreでは目的を達せられない」という条件は、上のA〜Cの分析でそのまま論拠になる。
+**"permitted uses"の定義はこのpageには無く、Play Consoleのpolicy pageにある。** 2026-08-13までは`support.google.com`へ到達できず`[未到達]`だったが、同日のallowlist更新で読めるようになった。次節に記す。
 
 `Environment.isExternalStorageManager()`で付与を確認し、`Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`で設定画面へ誘導する。
 
 - 出典: <https://developer.android.com/training/data-storage/manage-all-files>
+
+### Playのpermitted uses(2026-08-13に到達可能になった)
+
+出典: Play Console Help「Use of All files access (MANAGE_EXTERNAL_STORAGE) permission」(下記URL)。`support.google.com`は2026-08-13のallowlist更新で到達できるようになった。**以前`[未到達]`としていた"permitted uses"の定義はここにある。**
+
+読み取った内容(**筆者の要約。原文の転記ではない**):
+
+- 対象はAndroid 11(API 30)をtargetし、この権限を宣言するapp。宣言するなら**Play ConsoleのPermissions Declaration Formを提出し、承認を受ける**必要がある。提出しない、または要件を満たさないappは**Playから削除されうる**。
+- 「core functionality」は**appの主目的**と定義され、それが無ければappは壊れている(unusable)状態になるもの、とされる。さらに**appの説明文で目立つ形に記載・訴求されていること**が求められる。
+- permitted usesの表に**File management**があり、その定義は「appの主目的が、**app固有storageの外にあるfileとfolderへのaccess、編集、管理(maintenanceを含む)**であること」。この用途は`MANAGE_EXTERNAL_STORAGE`の対象として挙げられている。
+- 他にbackup/restore、anti-virus、document management、on-device search、暗号化、device移行がある。いずれも**Playの審査と承認が前提**と注記されている。
+
+**重要: 「invalid uses」にこのappが該当しうる。** ここは要約しない。**判断が語の強さに依存するため、原文を読むこと。**
+
+- 認められない例の一つは、**利用者が個々のfileを手で選ぶ file selection activity 全般**である(資料は`Any`と書いており、「選ぶだけのapp」に限定していない)。代替としてSAFが案内されている。
+- 代替の表には、**利用者がfileを選んで import / transfer / processing する用途**にSAFを検討せよ、という行がある。**一括改名は processing に読める。**
+- 「この一覧は網羅的ではない」という注記は、**invalid usesの列挙**に付いている。**invalidの範囲を広げる方向にしか働かない。**
+
+**したがって「該当しうるか」は未解決である。** 到達できたのはpermitted usesの**定義**であって、このappの**当てはまり**ではない。permitted usesのFile managementに当てはまるという読みと、invalid usesのfile selection activityに当てはまるという読みが**両立しうる**。どちらが優先するかは資料に書かれていない。
+
+**この判断はAgentが行わない。** 配布riskの受容であり、原文を読んだうえでの人間の判断とする。
+
+`T03`でapp内file browserをfolder管理の導線として作ることは、**File managementの定義へ寄せる方向に働く**。ただしそれでinvalid usesを外れると保証されるわけではない。
+
+例外条項もある。permitted usesに当てはまらなくても、**(i)** その権限がcore functionalityを成立させ、**(ii)** 代替が無いか、privacy-friendlyな代替がcritical featureへ実質的な悪影響を与え、**(iii)** privacyへの影響がbest practiceで緩和されている場合に、一時的な例外がありうる。**3条件すべてが要る。** さらにConsoleの申告でSAF/MediaStoreが不十分な理由を説明する義務が加わる(説明だけで足りるのではない)。
+
+ADR-002の一次資料分析(SAFは要求名の同一性を保証せず、MediaStoreは対象種別を覆えない)は**(ii)の論拠になる**。(i)と(iii)は別に示す必要がある。
+
+- 出典: <https://support.google.com/googleplay/android-developer/answer/10467955>
+
 
 ### E — `renameat2(RENAME_NOREPLACE)`
 
@@ -258,13 +286,21 @@ none on /sys/fs/fuse/connections type fusectl (rw,relatime)
 
 **候補Eは動く。** S-2で、FUSEと確認した`/sdcard`上で`renameat2(RENAME_NOREPLACE)`が`EEXIST`で失敗しtargetを壊さないこと、**同じ操作がフラグ無しなら成功して上書きすること**を対照付きで実測した。候補A〜D・Fはいずれも判定軸のどれかを満たせないので、**候補Eが唯一の道である。**
 
-**ただし1機種・1 API level・`shell` uidの結果である。** 他のAPI level、実機、FAT系、そして`MANAGE_EXTERNAL_STORAGE`を持つapp自身のmount viewは`T08`で確かめる。
+**ただし1機種・1 API level・`shell` uidの結果である。** 残る未検証は上の「S-2で残った未検証」の**7項目**であり、`T08`が同じ集合を引き継ぐ。ここで数を書き直さない(箇所ごとに集合がばらけるのを避けるため)。
 
 残る関門は2つで、**どちらも技術ではない。**
 
 ### 関門1: `MANAGE_EXTERNAL_STORAGE`のPlay審査
 
-公式資料は「file manager、document management等に**似た**use caseなら**おそらく**要求できる」という開いた例示を示すだけで、規範的な条件は「permitted usesの範囲に入り、中核機能へ直接結びついていること」の方にある。**その"permitted uses"の定義はPlay Consoleのpolicy pageにあり、containerから到達できない [未到達]。** したがって一括改名appが該当するかは資料で確定できず、配布の判断である。**これが通らなければ候補Eは実装しても配布できない**ので、他の何よりも先に決める必要がある。
+**2026-08-13にPlay Consoleのpolicy原文を読めるようになった。** 分かったのは条件の中身であって、このappが通るかではない。
+
+- permitted usesの**File management**の定義は、このappの主目的と一致すると読める。
+- **同時に、invalid usesのfile selection activityにも該当しうる**(上の「Playのpermitted uses」節)。資料は`Any`と書き、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。**
+- 「一覧は網羅的でない」という注記は**invalid usesの側**に付いており、invalidの範囲を広げる方向にしか働かない。
+- 例外条項は3条件すべてを要し、Consoleでの説明は追加の義務である。
+- **Permissions Declaration Formの提出と承認が要り、承認されるかはPlayの審査次第**である。
+
+**「該当しうるか」は未解決のままである。** 到達できたのはpermitted usesの定義であって、このappの当てはまりではない。`T03`でfolder管理の導線として作ることはFile managementの定義へ寄せる方向に働くが、**それでinvalid usesを外れる保証は無い。** これはAgentが決める論点ではなく、原文を読んだうえでの人間のrisk受容である。
 
 ### 関門2: Androidのfile選択導線が変わる
 

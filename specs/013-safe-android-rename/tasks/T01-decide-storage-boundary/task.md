@@ -79,5 +79,5 @@ Androidで005のno-replace保証を満たせる候補を比較し、採用・不
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@ec2e74f` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator/x86_64、`/sdcard`はFUSEと観測)(2026-08-13、Android 17 emulator、x86_64、ext4とFUSEの両方でEEXIST)
+- Evidence revision: PR #133 merge commit `70e4287` + spike S-2 第2回(対照付き、2026-08-13、Android 17 emulator / x86_64、`/data/local/tmp`と`/sdcard`の両方で`EEXIST`、`/sdcard`はFUSEと観測)
 - Next Agent action: `T02`(権限とAPI levelの方針)へ進む。`minSdk`を含む4点を人間へ一度に問う。**引用を再導入しないこと** — 精度が要るときは出典を直接読む

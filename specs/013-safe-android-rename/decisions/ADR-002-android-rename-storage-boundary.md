@@ -56,7 +56,25 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 **この一覧は閉じたallowlistではない。** 条件は「一覧に載っていること」ではなく「載っているものに**似ている**こと」と、上のpermitted usesの方である。
 
-**"permitted uses"の定義はこのpageに無く、Play Consoleのpolicy pageにある。そのdomainはcontainerから到達できていない [未到達]。** よって「一括改名appが該当する」ことを資料で確定できていない。**却下されるriskを抱えたまま実装planへ進む**という判断である。
+**2026-08-13追記: `support.google.com`がallowlistへ追加され、"permitted uses"の原文を読めた。** `[未到達]`は解消した。要点は次のとおり(**筆者の要約**。詳細と出典は[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md))。
+
+- permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」と定義され、このappの主目的と**一致すると読める**(当てはめは筆者の解釈であり、資料が判定しているわけではない)。
+- **同時に、invalid usesの file selection activity にも該当しうる。** 資料は`Any`と書いて限定しておらず、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。** さらに「一覧は網羅的でない」の注記は**invalid usesの側**に付いており、範囲を広げる方向にしか働かない。
+- 例外条項は**3条件すべて**(core functionalityの成立 / 代替が無いか実質的な悪影響 / privacyの緩和)を要し、Consoleでの説明は**追加の義務**である。本ADRの分析は2つ目の論拠になるが、それだけでは足りない。
+- `Permissions Declaration Form`の提出と承認が要る。提出しない、または要件を満たさないappは**Playから削除されうる**。
+- core functionalityは**appの説明文で目立つ形に記載・訴求されている**必要がある。
+
+**「該当しうるか」は未解決のままである。** 到達できたのはpermitted usesの**定義**であって、このappの**当てはまり**ではない。File managementに当てはまる読みとfile selection activityに当てはまる読みが**両立しうる**。**却下riskを抱えたまま進む判断は変わらないが、riskは当初の見立てより大きい。**
+
+**2026-08-13、開発者がこのriskを受容して進めることを決定した。** invalid usesに該当しうることを認めたうえで、次で寄せる。
+
+- `T03`でapp内file browserを**folderとfileを管理する導線**として作る(File managementの定義へ寄せる)。
+- store説明文で**主目的を目立つ形に訴求する**(policyの要求)。
+- `Permissions Declaration Form`で、SAF/MediaStoreが不十分な理由を本ADRの分析で説明する。
+
+**却下された場合はAndroid未対応へ戻す。** 退避経路(未対応adapterとnegative testの維持)はこのriskのために保つ。
+
+**設計への含意**: `T03`のapp内file browserを、単なるfile選択画面ではなく**folderとfileを管理する導線**として作ることは、File managementの定義へ寄せる方向に働く。**ただしそれでinvalid usesを外れる保証は無い。**
 
 「よりprivacy-friendlyなAPIでは目的を達せられない」という条件については、**本ADRの一次資料分析がそのまま論拠になる**(SAFは名前の同一性を保証せず、MediaStoreは対象種別を覆えない)。宣言理由にはこれを使う。**ただし提出前に、人間がPlayのpolicy原文と突き合わせること。**
 
@@ -100,8 +118,8 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 
 ### 採用したことによる帰結
 
-- 005 contractは**変えない**。INV-002へのplatform例外を作らない。
-- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
+- 005 contractへ**platform例外を作らない**。**ただし2026-08-14のrevision 4で、契約そのものは全platform共通に変わった**(衝突を採番で回避し、INV-002の成立範囲を環境依存とする。[005 ADR-002](../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md))。Androidだけの例外ではない。
+- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。**2026-08-13に開発者が2案目を決定した**(`013`の`spec.md` D-1)。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
 - 採用後に、S-2で残した未検証を`013:T08`で確かめる。**7項目ある**([`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
   1. **appのmount view**(`MANAGE_EXTERNAL_STORAGE`を持つapp自身。今回は`shell` uidからの観測)
@@ -111,14 +129,15 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
   5. **API levelの幅**(Android 17のみ。11〜16は未確認)
   6. **実機**(emulatorのみ)
   7. **FAT系**(SD card / USB OTG未実施)
-  
+
   **1と2が最も重要である。** 1は`shell` uidの観測をappへ一般化できない点、2は判定軸「失敗時不変」を実測していない点で、どちらもNGなら本ADRを見直す。
 - production実装は`013:T02`以降として定義する。**本ADRは実装を含まない。**
 
 ### 未解決のまま残る決定
 
-- **`minSdk`をどうするか。** 上記3案。`013:T02`で人間へ問う。
+- ~~**`minSdk`をどうするか。**~~ **2026-08-13に決着。24のまま、対応可否を実行時に判定する**(`013`の`spec.md` D-1)。API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため。
 - **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
+- **Permissions Declaration Formの提出内容と、store説明文への記載。** リリース時の人間の作業である。policyは「core functionalityがappの説明文で目立つ形に記載・訴求されていること」を求める。**実装が終わってから考えると間に合わない**ので、`T03`の設計時に「何を主目的として説明するか」を決めておく。
 
 ### 参考: 採用しなかった場合に起きたこと
 

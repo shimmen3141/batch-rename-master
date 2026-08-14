@@ -21,6 +21,7 @@
 
 - 未許可・許可・設定画面から戻った直後の各状態で、表示と操作可否が仕様どおりであることをwidget testで検査する。
 - 権限判定をportで抽象化し、testで両状態を再現できるようにする(実機に依存しないこと)。
+- **INV-002 / VER-003**(013 spec): 権限portを未許可に固定した状態で読み込みと実行を起動し、**filesystem portへの書き込み呼び出しが1件も発生しない**ことをtestで検査する。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - [`manual-verification.md`](manual-verification.md)で、実機の許可・拒否・設定画面往復を確認する。
 - exact rangeの独立reviewがPASSする。

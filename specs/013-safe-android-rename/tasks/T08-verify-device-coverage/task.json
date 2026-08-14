@@ -7,7 +7,9 @@
     "T05",
     "T07"
   ],
-  "covers": [],
+  "covers": [
+    "INV-001"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"
