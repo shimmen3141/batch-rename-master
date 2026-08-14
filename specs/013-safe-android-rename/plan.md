@@ -67,6 +67,8 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 | 2026-08-13 | Play policyのinvalid uses | **該当しうることを認めたうえでriskを受容し、T05以降へ投資する。** `T03`のfolder管理導線、store説明文での主目的の訴求、Declaration Formでの説明で寄せる。却下されたらAndroid未対応へ戻す | 開発者承認 |
 | 2026-08-14 | `spec.md`の再承認(失効) | ~~preflightの後片付け・batch単位・失効条件を追加した仕様を承認~~ **同日の方針転換でpreflightごと削除。** | 開発者承認(失効) |
 | 2026-08-14 | preflightの所有判定(第1案) | ~~2段階作成 + 空の回収~~ **同日に破棄。** review attempt 4で、解除側の窓とmarker書きかけの窓が残ることが判明した | 開発者方針決定(破棄) |
+| 2026-08-14 | 005 contract revision 4 | **approved。** 占有名(folderごと)を衝突判定と自動解決へ常に含める(REQ-026)、実在名を取得できないfolderを含む実行は行わない(REQ-027)、`nameConflict`は再採番(REQ-023)、改名ポートは常に実在確認(REQ-025) | 開発者承認 |
+| 2026-08-14 | 013 `spec.md`の再承認 | **approved。** preflight削除に加え、**新規must要求REQ-005・REQ-006とVER-005を含む**。REQ-005は「`renameat2`が使えない端末を対応外にしない」で、旧承認版のREQ-009と方向が逆である | 開発者承認 |
 | 2026-08-14 | **衝突の扱い(方針転換)** | **衝突は失敗ではなく採番で回避する。** 他の警告と同じモーダルで確認し、実行するなら`(n)`を付ける。`RENAME_NOREPLACE`は破壊を防ぐ砦から**再採番の入口**へ役割が変わり、**preflightは不要になった**。005 contract revision 4と[005 ADR-002](../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)。代償はTOCTOU(フラグが効かない環境のみ) | 開発者決定 |
 | 2026-08-14 | preflightの残骸方針(破棄) | ~~毎回一意な名前 + 決して中止しない~~ **同日の方針転換でpreflightごと削除。** 「認識できない実体があったら中止する」をやめる。review attempt 1・3・4で同じ不具合が3回、場所を変えて現れ、窓を1つ塞ぐたびに別の場所へ移ったため、**窓ではなく中止する設計の方を外した**。代償として残骸が増えうることを受容する(INV-004) | 開発者方針決定 |
 

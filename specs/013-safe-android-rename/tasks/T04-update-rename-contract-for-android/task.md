@@ -88,11 +88,13 @@
   3. **P1: 実在名を取得できない場合の振る舞いが契約のどこにも無かった。** REQ-026は`must`で「常に占有名を含める」と要求するが、列挙は権限・I/Oで失敗しうる。`T10`の「決めること」に論点はあったが、**契約は満たせない`must`を持ったまま承認されていた**(attempt 2のP1-5と同型)。→ **REQ-027を新設**し、取得できないfolderを含む実行は行わず理由を提示すると定めた。例25eで固定した。
   - P2×9も解消(INV-002の参照、`open_questions`は空という記述、VER-008の検証実体が未実装である旨、占有名の計算時点とREQ-022の順序、REQ-026とREQ-019/020の優先、PR本文のtask数、branchの正本、`T04`の`title`、ADR-002の見出し行)。
 
+- 2026-08-14 / **開発者が005 contract revision 4と013 `spec.md`を承認。** 占有名のfolder単位化、REQ-027、013のREQ-005/006/VER-005を含む形。plan.mdの決定表へ2行を追加した。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 4のP1×3・P2×9を解消。**契約と013 specをどちらも`draft`へ戻した**
-- Blocker category: decision
-- Waiting for: **005 contract revision 4と013 `spec.md`の再承認**(占有名のfolder単位化、REQ-027、013のREQ-005/006)
+- Last checkpoint: **005 contract revision 4と013 `spec.md`がどちらも`approved`**
+- Blocker category: なし
+- Waiting for: 独立review(attempt 5)
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
 - Next Agent action: 再承認を受けてからattempt 5を起動する。PASSしたらmergeし、`T03`・`T10`・`T11`へ進む。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
