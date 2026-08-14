@@ -41,3 +41,5 @@ skill側の記述を確認した。
 ## 改善結果
 
 未対応(plugin側)。projectでは、attempt 1のFAILを修正したうえでattempt 2を起動し、`Review attempt N:`の1行記録を規定形式で3件のtaskへ補った。
+
+- 2026-08-14 / **`013`で10回のFAILを経て、止め時の判断軸が「回数」では足りないと分かった。** `T04`ではP0がattempt 3以降ゼロで、以後の5回は完全性と精度の問題だった。**「まだFAILしている」と「まだ危険である」は違う。** P0が消えて以降は、実装と並行した方が速いことがある。詳細は[2026-08-14-hardening-a-contract-without-implementation.md](2026-08-14-hardening-a-contract-without-implementation.md)。

@@ -51,3 +51,4 @@ Playの「invalid uses」について、原文は次の構造を持つ。
 ## 改善結果
 
 `research-matrix.md`・`ADR-002`・`spec.md`・`T02`・`T03`の5fileで、invalid usesの要約をやめ、**原文を読むよう促す形**へ変えた。`Any`を保ち、`processing`の行を加え、非網羅性の注記を正しい側へ戻した。「該当しうるか」は未解決として書き戻し、**人間のrisk受容**として明示した。
+- 2026-08-14 / **この根本原因は、外部資料だけでなく自作の代償見積もりにも2回出た**(`013:T04`のreview attempt 1と3。「残るのはまれに1つ」「効かない端末ではTOCTOUが残る」がいずれも実際より軽かった)。**歪む向きは常に自分の結論に有利だった。** 全体の総括は[2026-08-14-hardening-a-contract-without-implementation.md](2026-08-14-hardening-a-contract-without-implementation.md)。
