@@ -72,11 +72,20 @@
   2. **P1: REQ-024の提示が4件目以降を落としていた。** `take(3)` + 「ほか」で、**残りは黙って別の名前になる**。`occupiedNames`がまだ供給されていない現状では、folderに読み込んでいない同名fileがあるだけで多数同時に起きるため、**再採番が最も起きやすい今の状態で提示が打ち切られる**。→ 全件を並べ、多いときは高さを制限してスクロールさせる。4件のwidget testで固定した(`skipOffstage: false`で数える — 主眼は「打ち切らない」ことであって画面内の見た目ではない)。
   - P2×6も解消(OQ-002/OQ-003のownerを`T10`へ移動、`T11`の受け入れ証拠から「revision 5として反映」を外す、005 `spec.md`のtest未存在の記述、`covers`、失敗時の提示文言はOQ-001の未決着分として残す旨)。
 
+- Review attempt 3: `691d3f5..ea8ab61` — FAIL — P1×3、P2×6。attempt 2のP1-B(`take(3)`)は解消と確認された。4つの新規testはすべてmutationで落ちることも確認された。
+  1. **P1: `_isCaseOnlyChange`が、case-sensitiveなfilesystemで正当な再採番まで止めていた。** reviewerが実FS(Linux/ext4)で実測: `Photo.jpg`(target `photo.jpg`)と**別実体の**`photo.jpg`がある状況で、再採番せず失敗して**実行全体が停止**する。REQ-023は`photo (1).jpg`への再採番を要求しており、除外条項は閉じた4項でcase-onlyを含まない。**plan 013が対象とするAndroid内部ストレージがまさにcase-sensitiveである。**
+  2. **P1: その除外条項が契約にもrevision 5の範囲にも登録されていなかった。** `T10`へ移したのはOQ-001とOQ-005(どちらも実装が契約より**広い**側)だけで、**狭い側を記録した成果物がゼロ**だった。
+  3. **P1: 同じ穴が正規化(NFC/NFD)の軸に残っている。** APFSはcaseだけでなくnormalization-insensitiveでもあるため、`toLowerCase()`比較では塞げない。macOS実測はできていないが、**guardの存在理由と同じ根拠**である。
+- 2026-08-14 / **3回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+  - **否定された仮定**: 「filesystemのcase感度・正規化感度を、アプリ側が名前の比較で代用できる」。**代用できない。** 3回とも「アプリが知らない情報を推測で埋める」形の修正だった(`destination != handle` → `p.equals` → `toLowerCase()`)。**判定できるのはfilesystemに触るport側だけである。**
+  - **見つけた解**: `dart:io`の**`FileSystemEntity.identical(path1, path2)`**が、まさに「2つのpathが同じ実体を指すか」を返す。containerで実測した — 同一pathで`true`、別実体で`false`、片方が無いと`PathNotFoundException`。**これを使えばcase感度も正規化感度も推測せずに済み、`_isCaseOnlyChange`という契約に無い除外条項ごと削除できる**(P1-1〜P1-3が同時に消える)。
+  - **勝手に適用しない。** 3回連続FAILの直後に4つ目の修正を当てるのは、これまでと同じ形である。人間の判断を待つ。
+
 ## Current state / handoff
 
-- Last checkpoint: review attempt 2のP1×2・P2×6を解消。`flutter test` — PASS (382、+23)
-- Blocker category: なし
-- Waiting for: なし
+- Last checkpoint: **review attempt 3もFAIL。3回連続のため自動修正を停止した**
+- Blocker category: decision
+- Waiting for: **`FileSystemEntity.identical`で自己衝突をport側で判定する案を採るかの判断**
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 3を起動する。**契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: **勝手に4つ目の修正を当てない。** 判断を受けてから動く。**契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
