@@ -37,7 +37,7 @@
 - 契約の差分がINV-002 / INV-003 / OP-004を緩めていないことを、差分から読める形で示す。
 - `spec.md`の検証表が契約の`verification`と全行一致する(005で一度driftさせた箇所)。
 - **人間による契約の再承認**(revision 4)。
-- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。**`task.json`の`covers`は所属planのspecへ解決される**ため、005契約のREQ IDはここへ書かない(同じ番号が013 specの別要求と衝突する)。**このtaskが触った005側のIDは次のとおり**: REQ-004、REQ-011、REQ-018、REQ-023、REQ-024、REQ-025、REQ-026、INV-002、INV-003、OP-001、OP-002、OP-003、OP-004、SM-001、VER-005、VER-008。
+- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。**`task.json`の`covers`は所属planのspecへ解決される**ため、005契約のREQ IDはここへ書かない(同じ番号が013 specの別要求と衝突する)。**このtaskが触った005側のIDは次のとおり**: REQ-004、REQ-011、REQ-018、REQ-023、REQ-024、REQ-025、REQ-026、REQ-027、INV-002、INV-003、OP-001、OP-002、OP-003、OP-004、SM-001、VER-005、VER-008。
 - **再採番の経路がtestで検査できる形になっていること。** `nameConflict`を注入し、次の候補名で再試行し、結果に「確認した名前と異なる」が現れることを検査する。
 - **preflightに関する記述が契約・spec・taskのどこにも残っていないこと**(2026-08-14に削除した)。
 - 005の既存test(Android未対応のnegative testを含む)がどう変わるかを明示する。**退避経路のため、未対応adapterとそのtestは削除しない**(ADR-002)。
@@ -102,11 +102,15 @@
   - **否定された仮定**: 「実装を持たない契約を、reviewの反復で完全にできる」。**5回とも、閉じた穴の隣に新しい面が生まれている。** 契約が扱う対象(folderの同一性、一時名の名前空間、001との判定軸の一致)は、**実装とtestを書けば自然に決まる種類のもの**で、抽象のまま先に決め切ろうとしている。
   - **P0はattempt 3以降ゼロで、破壊経路は塞がっている**(REQ-025の「常に実在確認」が効いている)。残る指摘は完全性と精度の問題である。
 
+- 2026-08-14 / **開発者が「既知の穴を記録してmerge」を選択。** attempt 5のP1のうち契約に残る5件を`open_questions` OQ-002〜OQ-006としてownerつきで登録し、`T10`/`T11`の「決めること」と受け入れ証拠へ接続した。**決まった内容はrevision 5として契約へ戻す。**
+  - **磨き続けない判断の根拠**: 残る論点(folderの同一性、一時名の名前空間、001の判定軸)は**実装とtestを書けば決まる**種類で、抽象のまま先に決めるたび新しい未定義語を生んでいた。P0はattempt 3以降ゼロで、破壊経路はREQ-025で塞がっている。
+  - あわせてP2の伝播漏れを解消(契約`scope.in`のfolder単位化、`T04`の触ったID一覧へREQ-027、005/013両ADR、`plan.md`の未決定記述と受け入れ証拠、`T08`の壊れた文、findingsへ方針転換の追記、例25dの前提明示と並び順)。
+
 ## Current state / handoff
 
-- Last checkpoint: **review attempt 5もFAIL。5回連続のため自動修正を停止した**
-- Blocker category: decision
-- Waiting for: **進め方の判断。** 契約をこのまま磨き続けるか、既知の穴を`open_questions`へ記録してmergeし`T10`/`T11`の実装で閉じるか、revision 4の範囲を狭めるか
+- Last checkpoint: OQ-002〜OQ-006を登録し、P2の伝播漏れを解消。**mergeへ進む**
+- Blocker category: なし
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: **勝手に磨き続けない。** 進め方の判断を受けてから動く。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
+- Next Agent action: PR #138をmergeし、`T03`・`T10`・`T11`へ進む。**OQ-002〜OQ-006は実装で決めてrevision 5へ戻す。****契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)

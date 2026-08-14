@@ -31,7 +31,9 @@
 
 - **占有名をいつ取るか。** 読み込み時か、実行の確認直前か、両方か。古い一覧で判定すると、事前検出をすり抜ける。
 - **複数folderに跨る選択でどう扱うか。** 衝突はfolderごとにしか起きないので、folder単位で持つ必要がある。
-- **列挙できないfolderがあったときの扱い**(権限、I/Oエラー)。**「列挙できなかった」を「衝突が無い」と読まない。**
+- ~~列挙できないfolderがあったときの扱い~~ **決着済み**: 005 contract **REQ-027** — そのfolderを含む実行を行わず、理由を提示する。**「取得できなかった」を「衝突が無い」と読まない。**
+- ~~複数folderに跨る選択でどう扱うか~~ **決着済み**: 占有名はfolderごと(005 contractの用語)。**folderを跨いで混ぜない。**
+- **契約の`open_questions` OQ-004(`folder`の同一性判定と正規化の責務)とOQ-006(001の横断判定をfolder単位へ揃えるか)をこのtaskで決める。**
 
 ## 受け入れ証拠
 
@@ -41,7 +43,9 @@
 - **REQ-022で除外されたfileの現在名との衝突は警告として出る**ことをtestで検査する(005 spec 例25c)。
 - `autoResolve`が返す名前が占有名と衝突しないことをtestで検査する。
 - 001が占有名を**入力として**受け取り、filesystemに依存しないままであることをtestで検査する(INV-004 副作用なし)。
-- 列挙できなかったfolderで、衝突が無いと誤判定しないことをtestで検査する。
+- **実在名を取得できないfolderがあると、そのfolderを含む実行を行わず理由を提示する**ことをtestで検査する(REQ-027、005 spec例25e)。
+- **別folderの同名とは衝突しない**ことをtestで検査する(REQ-026、005 spec例25d)。
+- `folder`の同一性判定(別表記の同一folderが分割されないこと)をtestで検査する(OQ-004)。
 - 001の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - exact rangeの独立reviewがPASSする。

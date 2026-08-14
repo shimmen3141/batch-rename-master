@@ -28,6 +28,7 @@
 ## 決めること
 
 - **再採番の試行上限**(contract `open_questions` OQ-001)と、上限に達したときの提示文言。
+- **契約の`open_questions` OQ-002(REQ-027の操作面とSM-001の遷移)、OQ-003(`occupiedNames`の全域性)、OQ-005(一時名と再採番の相互回避)をこのtaskで決める。** 決まった内容は**revision 5として契約へ戻す。**
 - **`renumber`が`null`を返す条件**(候補が尽きる場合があるか)。
 
 ## 受け入れ証拠
@@ -38,7 +39,8 @@
 - 生存名の5要素すべてが再採番の照合に効くことをtestで検査する。**特に「すでに確定した結果名」**(review attempt 2のP1-2)。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
-- exact rangeの独立reviewがPASSする。
+- **OQ-001〜OQ-006のうち、このtaskが所有する分が決着し、契約revision 5として反映されている。**
+- exact rangeの独立reviewがPASSする.
 
 ## 作業記録
 

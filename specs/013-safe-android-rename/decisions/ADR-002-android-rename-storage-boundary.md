@@ -118,7 +118,7 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 
 ### 採用したことによる帰結
 
-- 005 contractは**変えない**。INV-002へのplatform例外を作らない。
+- 005 contractへ**platform例外を作らない**。**ただし2026-08-14のrevision 4で、契約そのものは全platform共通に変わった**(衝突を採番で回避し、INV-002の成立範囲を環境依存とする。[005 ADR-002](../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md))。Androidだけの例外ではない。
 - `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。**2026-08-13に開発者が2案目を決定した**(`013`の`spec.md` D-1)。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
 - 採用後に、S-2で残した未検証を`013:T08`で確かめる。**7項目ある**([`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
