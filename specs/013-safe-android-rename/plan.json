@@ -13,6 +13,7 @@
     "tasks/T05-native-renameat2-port",
     "tasks/T06-implement-permission-flow",
     "tasks/T07-implement-android-file-browser",
-    "tasks/T08-verify-device-coverage"
+    "tasks/T08-verify-device-coverage",
+    "tasks/T09-implement-preflight-orchestration"
   ]
 }

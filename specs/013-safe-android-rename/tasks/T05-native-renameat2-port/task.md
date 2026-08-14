@@ -19,12 +19,18 @@
 
 **注意**: `renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約であり原文を読めていない(**[未到達]**)。**生の`syscall(SYS_renameat2, ...)`を使えばwrapperのlevelに依存しない**(`T01`のspike binaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。
 
-`T02`の決定(3案のいずれか: `minSdk`を30へ上げる / 24のまま生syscallで呼び動かない端末を実行時に検出する / API levelで一律分岐する)に従う。**API levelを対応可否の代理指標にしない**という`T02`の但し書きも守る。
+`T02`は**「`minSdk`は24のまま、対応可否を実行時に判定する」**と決めた(`spec.md`のD-1、2026-08-13 開発者承認)。生syscallで呼び、動かない端末は実行時に検出する。**API levelを対応可否の代理指標にしない。**
+
+### このtaskの範囲ではないもの
+
+**preflightの実行制御と提示は`T09`が持つ。** ここで作るのは「`renameat2`を1回呼んで結果を返す部品」と、REQ-006の3観測をその部品で行えることまでである。後片付け(REQ-010)、subfolderとmarker(REQ-011)、複数folderの停止単位(REQ-012)、結果の失効(REQ-013)、理由の提示(REQ-007)は`T09`の受け入れ証拠にある。
 
 ## 受け入れ証拠
 
 - targetが既にある場合に`nameConflict`を返し、**targetの内容が変わらない**ことをtestで検査する。
 - 権限が無い場合、対象が無い場合の分類をtestで検査する。
+- REQ-006の3観測(`RENAME_NOREPLACE`で衝突 / **フラグ無しの対照** / `RENAME_NOREPLACE`で成功)を、この部品で行えることをtestで検査する。**対照を呼べないAPIにしない** — 対照が無いと`T09`が因果を示せない(`T01`のreviewで指摘された)。
+- `EINVAL`/`ENOSYS`を`RenameErrorKind`へ写像し、`T09`が「効かない」と判定できる形で返す(REQ-009)。
 - 例外を投げないこと(REQ-017)をtestで検査する。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。

@@ -34,8 +34,8 @@
 
 - 上記4点すべてに、外部から観測できる形で答えている。
 - **人間による承認**(仕様の新規approvedまたは既存specの再承認)。
-- 承認されたREQ IDを、T05/T06/T07/T08の`task.json`の`covers`へ書く。
-- **Playのpolicy原文との突き合わせを人間が済ませていること。** ADR-002は「一括改名appがpermitted usesに入るか」を`[未到達]`のまま残している。**T05〜T07の実装へ投資する前にこのgateを通す。** 通らなければ候補Eは配布できず、Android未対応維持へ戻る(ADR-002の退避経路)。
+- 承認されたREQ IDを、T05〜T09の`task.json`の`covers`へ書く。**IDを書くだけにせず、そのtaskの受け入れ証拠にREQを検査する記述があることまで確認する。**
+- **Playのpolicy原文との突き合わせが済んでいること(通過済み)。** 2026-08-13に`support.google.com`へ到達して原文を読み、`[未到達]`は解消した。当てはまりは資料からは決まらないため、**開発者が2026-08-13にriskを受容**してT05以降への投資を決めた。却下されればAndroid未対応維持へ戻る(ADR-002の退避経路)。
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
 ## 作業記録
@@ -53,7 +53,7 @@
   - 2026-08-13 / **開発者がinvalid usesのriskを受容してT05以降へ投資すると決定。** ADR-002とplan.mdへ記録した。
   - **1は同じ根本原因の4回目である。** 転記をやめても、**要約する時点で自分の結論へ寄る**ことは止まっていなかった。findingへ記録した。
 - 2026-08-13 / **`support.google.com`がallowlistへ追加され、Playのpermitted usesの原文を読めた。** ADR-002が`[未到達]`としていた箇所が埋まり、`T02`のgate(実装投資前のpolicy確認)を満たせた。
-  - permitted usesの**File management**の定義は、このappの主目的と一致する。
+  - permitted usesの**File management**の定義は、このappの主目的と一致すると読める。
   - **同時にinvalid usesのfile selection activityにも該当しうる。** 資料は`Any`と書いて限定せず、代替の表は「fileを選んでimport / transfer / processingする用途」にSAFを案内している。
   - 例外条項は3条件すべてを要し、Consoleでの説明は追加の義務である。
   - **設計への含意を`T03`へ渡した。** folder管理の導線として作ることはFile managementの定義へ寄せる方向に働くが、invalid usesを外れる保証にはならない。
@@ -63,11 +63,19 @@
 
 - 2026-08-14 / **開発者が`spec.md`を再承認(draft → approved)。** REQ-010〜013とINV-004を含む仕様が確定し、`T02`の未決定は無くなった。plan.mdの決定表へ記録した。
 
+- Review attempt 2: `4fd6ab1..ce4ae6e` — FAIL — P1×4、P2×6。**外部資料の中立性は今回は問題を検出されなかった**(reviewerがpolicy原文をHTTP 200で取得し、限定語の増減・不利な行の欠落・注記の付け替えが無いことを7項目突き合わせた。`^>`行も0を確認)。**引用を全廃した対処が持ちこたえた最初のreviewである。**
+  1. **PR #137の本文にattempt 1の偏った要約が逐語で残っていた。** specs配下は直したが、**人間が配布riskを判断する画面はPRである。** 「手で選ぶだけの」も「残る不確実性は審査に通るかであって該当しうるかではない」も本文に残存し、rangeも旧headのままだった。**修正がGit管理下のfileで止まり、成果物の外へ伝播していなかった。**
+  2. **`covers`にREQ IDを書いただけで、所有taskの範囲・受け入れ証拠が更新されていなかった。** REQ-010〜013は`T05`(native port)のcoversにあるが、`T05/task.md`にpreflightの語が一度も無い。そもそもREQ-012(batchの停止単位)とREQ-007(理由の提示)は実行flowとUIの要求で、native portの範囲ではない。**preflightのorchestrationを所有するtaskが存在しなかった。** → `T09`を新設し、`T05`のcoversを部品の範囲へ戻した。
+  3. **REQ-011とINV-002が同じ入力へ逆の動作を要求していた。** 「規則に合致する残骸を削除」は判定を**名前だけ**に置いており、利用者のファイルがたまたま合致すれば黙って消える。risk `strict`のplanで唯一の無条件削除だった。→ preflightを**専用subfolder + marker file**へ閉じ、削除条件を「名前の合致**かつ**markerの存在」にした。markerの無い同名実体は中止する(REQ-007)。
+  4. **INV-003にVERが無かった。** 権限失効(REQ-004が想定)と競合したとき書き込みを試みないことは、この仕様で最も検証したい不変条件のひとつなのに、承認済み仕様に検証方法が無かった。→ VER-010を追加し、`T06`の受け入れ証拠へ書いた。
+  - P2×6も解消(plan.mdの`[未到達]`とcovers空の記述、同一節での自己矛盾、`T02`受け入れ証拠の現在形、REQの並びと`REQ-005〜008`の範囲記法、ADR-002のhedgeの非対称)。
+- 2026-08-14 / **3の修正は利用者から観測できる振る舞いを変える**(subfolderが一時的に現れる、markerの無い同名実体があると中止する)。`spec.md`へ**修正A-1として確認待ち**と明記した。
+
 ## Current state / handoff
 
-- Last checkpoint: `spec.md`が再承認され`approved`。review attempt 2を起動する
-- Blocker category: なし
-- Waiting for: 独立review(attempt 2)
-- Requested action: なし
+- Last checkpoint: review attempt 2のP1×4とP2×6を解消。`T09`を新設した
+- Blocker category: decision
+- Waiting for: `spec.md`**修正A-1**の確認(REQ-011をsubfolder + marker方式へ変えた)
+- Requested action: REQ-011・INV-002・REQ-007の書き換えを確認する
 - Evidence revision: `dev@4fd6ab1` + ADR-002 + `spec.md` re-approval 2026-08-14
-- Next Agent action: reviewがPASSしたらmergeし、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。両者は並列可
+- Next Agent action: 確認後にattempt 3を起動し、PASSならmergeして`T03`と`T04`へ進む。両者は並列可

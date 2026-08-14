@@ -294,7 +294,7 @@ none on /sys/fs/fuse/connections type fusectl (rw,relatime)
 
 **2026-08-13にPlay Consoleのpolicy原文を読めるようになった。** 分かったのは条件の中身であって、このappが通るかではない。
 
-- permitted usesの**File management**の定義は、このappの主目的と一致する。
+- permitted usesの**File management**の定義は、このappの主目的と一致すると読める。
 - **同時に、invalid usesのfile selection activityにも該当しうる**(上の「Playのpermitted uses」節)。資料は`Any`と書き、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。**
 - 「一覧は網羅的でない」という注記は**invalid usesの側**に付いており、invalidの範囲を広げる方向にしか働かない。
 - 例外条項は3条件すべてを要し、Consoleでの説明は追加の義務である。

@@ -58,7 +58,7 @@ MediaStoreは`DISPLAY_NAME`の更新でrenameできるが、扱えるのが実�
 
 **2026-08-13追記: `support.google.com`がallowlistへ追加され、"permitted uses"の原文を読めた。** `[未到達]`は解消した。要点は次のとおり(**筆者の要約**。詳細と出典は[`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md))。
 
-- permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」と定義され、**このappの主目的と一致する**。
+- permitted usesの**File management**は「主目的がapp固有storage外のfileとfolderのaccess・編集・管理であること」と定義され、このappの主目的と**一致すると読める**(当てはめは筆者の解釈であり、資料が判定しているわけではない)。
 - **同時に、invalid usesの file selection activity にも該当しうる。** 資料は`Any`と書いて限定しておらず、代替の表は「利用者がfileを選んでimport / transfer / **processing**する用途」にSAFを案内している。**一括改名はprocessingに読める。** さらに「一覧は網羅的でない」の注記は**invalid usesの側**に付いており、範囲を広げる方向にしか働かない。
 - 例外条項は**3条件すべて**(core functionalityの成立 / 代替が無いか実質的な悪影響 / privacyの緩和)を要し、Consoleでの説明は**追加の義務**である。本ADRの分析は2つ目の論拠になるが、それだけでは足りない。
 - `Permissions Declaration Form`の提出と承認が要る。提出しない、または要件を満たさないappは**Playから削除されうる**。
