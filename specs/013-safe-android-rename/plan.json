@@ -14,6 +14,6 @@
     "tasks/T06-implement-permission-flow",
     "tasks/T07-implement-android-file-browser",
     "tasks/T08-verify-device-coverage",
-    "tasks/T09-implement-preflight-orchestration"
+    "tasks/T10-add-existing-names-to-collision-check"
   ]
 }

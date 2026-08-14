@@ -1,10 +1,10 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T04",
-  "title": "005契約のAndroid経路を更新する",
-  "status": "in_progress",
+  "id": "T10",
+  "title": "対象folderの実在名を衝突判定へ入れる",
+  "status": "pending",
   "dependsOn": [
-    "T02"
+    "T04"
   ],
   "covers": [],
   "issue": null,
