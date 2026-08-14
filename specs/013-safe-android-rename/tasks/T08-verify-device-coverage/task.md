@@ -7,11 +7,11 @@
 ## 入力と依存
 
 - [`T01`のresearch-matrix](../T01-decide-storage-boundary/research-matrix.md)「S-2で残った未検証」。
-- `T05`(native port)と`T07`(file browser)の実装。
+- `T05`(native port)、`T07`(file browser)、`T09`(preflightの実行制御)の実装。
 
 ## 確かめること
 
-S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装後に次の**7項目**を埋める([`research-matrix.md`](../T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
+S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装後に次の**8項目**を埋める。1〜7は([`research-matrix.md`](../T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
 
 1. **appのmount view。** `MANAGE_EXTERNAL_STORAGE`を持つapp自身から呼び、`EEXIST`になりtargetが無傷であることを確認する。**S-2は`shell` uidからの観測なので、これが最も重要である。**
 2. **失敗時のsource側。** S-2はtarget側しか観測しておらず、判定軸「失敗時不変」は`EEXIST`からの推論に留まる。spikeへ確認を追加済みなので、実行すれば実測になる。
@@ -21,7 +21,9 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 6. **実機。** emulatorだけでなく実機で確認する。vendor kernelやf2fsで挙動が変わりうる。
 7. **FAT系。** SD card / USB OTGで確認する。**FATでフラグが効かないなら、その媒体は未対応にする**必要がある。
 
-**7がNGだった場合、契約を緩めるのではなく対象媒体を絞る。** INV-002へplatform例外を作らない(ADR-002)。
+8. **preflightのsubfolderが対象folder直下の代理になるか(REQ-005)。** preflightが観測するのは*subfolder内*のrenameだが、実行するのは*対象folder直下*のrenameである。同じmountにあることは必要条件だが**十分条件ではない** — AndroidのFUSEはpathに依存する扱いを持つ。**app自身のmount viewで、subfolder内と対象folder直下の両方を対照付きで観測し、結果が一致することを確かめる。**
+
+**7がNGだった場合、契約を緩めるのではなく対象媒体を絞る。** INV-002へplatform例外を作らない(ADR-002)。**8がNGなら、preflightの観測場所そのものを見直す**(仕様の前提が崩れる)。
 
 ### 測り方の要件
 
@@ -29,7 +31,8 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 ## 受け入れ証拠
 
-- 上記1〜7の観測結果を`task.md`へ記録する。**Agentが推測で埋めない。**
+- 上記1〜8の観測結果を`task.md`へ記録する。**Agentが推測で埋めない。**
+- **8(REQ-005の代理成立)**: subfolder内と対象folder直下で、`RENAME_NOREPLACE`有り/無しの4通りを観測し、両者が一致することを記録する。
 - 1または2がNGなら**ADR-002を見直す**(ADR-002も同じ2項目を最重要としている)。実装を残したまま「動くはず」で進めない。
 - 7がNGなら、対象外にする媒体を仕様へ書き、利用者へ提示する。
 - host側のAndroid buildが成功する(containerでは実行できない)。
@@ -43,7 +46,7 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 - Last checkpoint: 定義しただけ。未着手
 - Blocker category: dependency
-- Waiting for: `T05`と`T07`の実装
+- Waiting for: `T05`、`T07`、`T09`の実装
 - Requested action: なし
 - Evidence revision: `dev@ec2e74f` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid)
 - Next Agent action: `T05`/`T07`完了後、実行できるmanual手順を書いてから人間へ依頼する。**依頼前にdry-runする**
