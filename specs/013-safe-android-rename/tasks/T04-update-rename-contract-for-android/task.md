@@ -90,11 +90,23 @@
 
 - 2026-08-14 / **開発者が005 contract revision 4と013 `spec.md`を承認。** 占有名のfolder単位化、REQ-027、013のREQ-005/006/VER-005を含む形。plan.mdの決定表へ2行を追加した。
 
+- Review attempt 5: `4fd6ab1..4c9bed6` — FAIL — P1×9、P2×8。**P0なし(attempt 3以降ゼロ)。** 契約の機械的整合(参照切れ0、全REQ/INV/OP/SM/CONのVER被覆、`spec.md`検証表8行との完全一致)はreviewer側で再計算して確認された。
+  - **5回連続で「前回の修正で新設した面に穴が移る」形である。** 今回はfolder単位化とREQ-027の面。
+    - REQ-027が`operations`にもSM-001にも現れず、**取得失敗folderを「警告0件」と評価して`running`へ直行できる**。
+    - `Map<folder, Set<String>>`に「すべての改名要求のfolderがkeyとして存在する」という全域性が事前条件に無い。
+    - **用語`folder`が契約に定義されていない。** 013でhandleが絶対pathへ変わるため、`/sdcard/DCIM`と`/storage/emulated/0/DCIM`が別keyへ割れると占有名が分割される。
+    - 生存名の一時名は「その時点で**存在する**」なので、**これから使う予定の一時名**を再採番が先取りしうる(attempt 1のP1-3で塞いだ経路の逆方向)。
+    - 例25dは、001の重複判定が**folder横断のまま**であることと接続されていない。`/B/keep.jpg`が読み込み済み・未選択なら001が警告を出すので、「警告は出ない」は成立しない。
+  - **P1-6/P1-7: attempt 4で撤回した主張が、PR本文と`T02`の作業記録に逐語で残っていた。** attempt 4が「PR本文にも同じ主張が載っている」と明示していたのに、`spec.md`・`plan.md`・`T04/task.md`にしか訂正が届いていなかった。**人間が承認判断に使う面である。9回目の伝播漏れ。** → **この2件だけ即座に直した。**
+- 2026-08-14 / **5回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+  - **否定された仮定**: 「実装を持たない契約を、reviewの反復で完全にできる」。**5回とも、閉じた穴の隣に新しい面が生まれている。** 契約が扱う対象(folderの同一性、一時名の名前空間、001との判定軸の一致)は、**実装とtestを書けば自然に決まる種類のもの**で、抽象のまま先に決め切ろうとしている。
+  - **P0はattempt 3以降ゼロで、破壊経路は塞がっている**(REQ-025の「常に実在確認」が効いている)。残る指摘は完全性と精度の問題である。
+
 ## Current state / handoff
 
-- Last checkpoint: **005 contract revision 4と013 `spec.md`がどちらも`approved`**
-- Blocker category: なし
-- Waiting for: 独立review(attempt 5)
+- Last checkpoint: **review attempt 5もFAIL。5回連続のため自動修正を停止した**
+- Blocker category: decision
+- Waiting for: **進め方の判断。** 契約をこのまま磨き続けるか、既知の穴を`open_questions`へ記録してmergeし`T10`/`T11`の実装で閉じるか、revision 4の範囲を狭めるか
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: 再承認を受けてからattempt 5を起動する。PASSしたらmergeし、`T03`・`T10`・`T11`へ進む。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
+- Next Agent action: **勝手に磨き続けない。** 進め方の判断を受けてから動く。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
