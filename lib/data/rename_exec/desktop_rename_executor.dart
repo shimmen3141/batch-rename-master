@@ -89,27 +89,41 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         destination,
         followLinks: false,
       );
-      // 「実体があるか」ではなく「**別の実体**があるか」で判定する。
+      // 「実体があるか」ではなく「**別の実体**があるか」で判定する(REQ-025)。
       //
-      // `p.equals` が大文字小文字を無視するのは **Windows style のときだけ**
-      // である(`package:path` の case 非依存比較は windows.dart にしかない)。
-      // したがって macOS や case-insensitive にmountしたfilesystemでは、
-      // `img_01.JPG -> img_01.jpg` のような改名がここで `nameConflict` になる。
+      // 大文字小文字を区別しないfilesystem(Windows、macOSのAPFS既定)や
+      // 正規化を区別しないfilesystem(APFS)では、`Photo.jpg -> photo.jpg` の
+      // ような改名で目標名が「実在する」ことになる。**それは自分自身である。**
       //
-      // **その先で再採番されないことは実行orchestration側が保証する**
-      // (`_isCaseOnlyChange`)。ここで無理に同一実体を判定しようとしない —
-      // Dartからinodeを見る手段が無く、判定を誤ると**別の実体を上書きする**。
-      // 失敗として返すほうが安全側である。
-      //
-      // **Windows / macOS では未検証**(containerはLinuxのみ)。
-      if (destinationType != FileSystemEntityType.notFound &&
-          !p.equals(destination, handle)) {
-        return RenameFailed(
-          RenameError(
-            RenameErrorKind.nameConflict,
-            '同名のファイルが既に存在します: $destination',
-          ),
-        );
+      // **case感度も正規化感度もアプリ側で推測しない。** `FileSystemEntity.identical`
+      // がfilesystemに問い合わせて同一実体かを返す。名前の文字列比較で代用しようと
+      // して3回失敗した(`013:T11`のreview attempt 1〜3)。
+      var sameEntity = false;
+      if (destinationType != FileSystemEntityType.notFound) {
+        try {
+          sameEntity = await FileSystemEntity.identical(handle, destination);
+        } on FileSystemException {
+          // 判定できないときは「別の実体」として扱う。**安全側へ倒す** —
+          // 誤って同一とみなすと、次の行で既存を上書きする。
+          sameEntity = false;
+        }
+        if (!sameEntity) {
+          return RenameFailed(
+            RenameError(
+              RenameErrorKind.nameConflict,
+              '同名のファイルが既に存在します: $destination',
+            ),
+          );
+        }
+      }
+
+      if (sameEntity) {
+        // 目標名は自分自身を指している(大文字小文字や正規化だけの違い)。
+        // **排他renameは使えない** — macOSの`renamex_np(RENAME_EXCL)`は
+        // この場合も`EEXIST`を返す。同一実体だと確認済みなので、通常のrenameで
+        // 上書きされる相手は存在しない(INV-002を破らない)。
+        await File(handle).rename(destination);
+        return Renamed(File(destination).absolute.path, name: newName);
       }
 
       final nativeResult = await _rename(handle, destination);

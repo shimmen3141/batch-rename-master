@@ -149,6 +149,45 @@ void main() {
       expect(await source.readAsString(), 'source-content');
     });
 
+    test('大文字小文字だけの改名は、自分自身との衝突として扱わない(REQ-025)', () async {
+      // 大文字小文字を区別しないfilesystemでは、目標名が「実在する」ことになる。
+      // **それは自分自身である。** `FileSystemEntity.identical` がfilesystemへ
+      // 問い合わせて判定するので、case感度をアプリ側で推測しない。
+      //
+      // **このtestはLinuxでは自己衝突の経路を通らない**(case-sensitiveなので
+      // 目標名は実在せず、通常の改名として成功する)。case-insensitiveな
+      // filesystemでの回帰ガードであり、containerでは実測できない。
+      // **能動的に検査できているのは次のtest(別の実体があれば衝突)だけである。**
+      final source = File(p.join(directory.path, 'Photo.jpg'));
+      await source.writeAsString('kept-content');
+
+      final result = await DesktopRenameExecutor().rename(
+        source.path,
+        'photo.jpg',
+      );
+
+      expect(result, isA<Renamed>(), reason: '衝突として扱わない');
+      final renamed = result as Renamed;
+      expect(await File(renamed.newHandle).readAsString(), 'kept-content');
+    });
+
+    test('目標名に別の実体があれば nameConflict を返す(REQ-025 / INV-002)', () async {
+      // 上のtestの裏。**「実在する」だけで通してはならない。**
+      final source = File(p.join(directory.path, 'Photo.jpg'));
+      final other = File(p.join(directory.path, 'photo.jpg'));
+      await source.writeAsString('source-content');
+      await other.writeAsString('other-content');
+
+      final result = await DesktopRenameExecutor().rename(
+        source.path,
+        'photo.jpg',
+      );
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(await other.readAsString(), 'other-content');
+      expect(await source.readAsString(), 'source-content');
+    });
+
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
       final result = await DesktopRenameExecutor().rename(
         p.join(directory.path, 'missing.txt'),

@@ -134,10 +134,10 @@ void main() {
       expect(outcome.successes, isEmpty);
     });
 
-    test('大文字小文字だけの改名が衝突しても再採番しない', () async {
-      // 大文字小文字を区別しないfilesystemでは、`Photo.jpg -> photo.jpg` が
-      // **自分自身との衝突**として `nameConflict` になりうる。これを再採番すると
-      // 利用者が確認していない `photo (1).jpg` が確定する。失敗として提示する。
+    test('portが`nameConflict`を返せば、その原因を問わず再採番する', () async {
+      // **自己衝突の判定はportの責務である**(REQ-025)。大文字小文字や正規化
+      // だけが違う改名で目標名が「実在する」ことになるかはfilesystem依存で、
+      // 実行orchestrationは判定できない。ここへ届く`nameConflict`は本物の衝突。
       final requests = _requests({'Photo.jpg': 'photo.jpg'});
       final executor = _folder([
         'Photo.jpg',
@@ -145,26 +145,8 @@ void main() {
 
       final outcome = await executePlan(planExecution(requests), executor);
 
-      expect(outcome.failure?.error.kind, RenameErrorKind.nameConflict);
-      expect(outcome.successes, isEmpty);
-      expect(
-        executor.calls.where((c) => c.contains(' (')),
-        isEmpty,
-        reason: '別名を作らない',
-      );
-    });
-
-    test('大文字小文字が同じで中身が違う改名は、通常どおり再採番する', () async {
-      // 上の除外が広すぎないことを固定する。
-      final requests = _requests({'Photo.jpg': 'other.jpg'});
-      final executor = _folder([
-        'Photo.jpg',
-      ], failWhen: _conflictOnce('other.jpg'));
-
-      final outcome = await executePlan(planExecution(requests), executor);
-
       expect(outcome.failure, isNull);
-      expect(outcome.successes.single.newName, 'other (1).jpg');
+      expect(outcome.successes.single.newName, 'photo (1).jpg');
     });
 
     test('一時名への改名では再採番しない(利用者が確認していない名前を内部ステップで作らない)', () async {
