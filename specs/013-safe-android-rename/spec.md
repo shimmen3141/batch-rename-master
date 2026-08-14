@@ -5,7 +5,7 @@
   - INV/VERは、残ったREQに対応するものへ整理し直した(番号は振り直している)。
 - Date: 2026-08-14
 - 所有task: `T02`
-- 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、[005 ADR-002](../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)、005 contract revision 4(draft)、004 spec
+- 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、[005 ADR-002](../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)、005 contract revision 4(approved)、004 spec
 
 ## この仕様の範囲
 
@@ -59,7 +59,13 @@
 
 **REQ-004** 権限の状態は、読み込みの直前と改名の実行直前に確認する。設定から取り消されうるため、一度確認した結果を持ち回らない。
 
-### 対応可否の判定
+### 改名の実行経路
+
+**REQ-005** Androidの改名は、`renameat2`に`RENAME_NOREPLACE`を付けて行う。**フラグが使えない端末でも「対応外」にしない** — 005 contract REQ-025の「目標名が実在しないことを確認してから改名する」経路で実行する。**利用者から見た機能は同じで、005 INV-002の成立範囲だけが変わる。**
+
+> 根拠: 005 contract revision 4により、衝突は失敗ではなく採番で回避するものになった。アプリは「上書きしたい」場面を持たないので、フラグは破壊を防ぐ砦ではなく**すり抜けた衝突を捕まえて再採番へ戻す入口**である。効かなくても事前検出が残る。
+
+**REQ-006** `renameat2`が`EEXIST`を返した場合、005 contract REQ-023の再採番へ繋がる形(`nameConflict`)で返す。**Android固有の失敗として利用者へ見せない。**
 
 ## 不変条件
 
@@ -73,6 +79,7 @@
 |---|---|---|
 | VER-001 | REQ-001, REQ-002, REQ-003, REQ-004 | 権限判定をportで抽象化し、未許可・許可・取り消し後の各状態をwidget testで検査する |
 | VER-002 | INV-001 | 005の既存contract testが継続PASSすること |
+| VER-005 | REQ-005, REQ-006 | `renameat2`をportで抽象化し、`EEXIST`→`nameConflict`、`EINVAL`/`ENOSYS`→実在確認経路への劣化をtestで検査する。**未対応として利用者へ提示しないこと**を検査する |
 | VER-003 | INV-002 | 権限portを未許可に固定した状態で読み込みと実行を起動し、**filesystem portへの書き込み呼び出しが1件も発生しない**ことをtestで検査する |
 | VER-004 | 全体 | `T08`の実機確認。**`shell` uidではなくapp自身から**、対照付きで`RENAME_NOREPLACE`の挙動を観測する。**これは製品の可否を左右しない**(効かなくても機能する)が、INV-002の成立範囲を知るために必要である |
 

@@ -128,9 +128,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: **完了。** `spec.md`は権限のREQ-001〜004のみで`approved`
+- Last checkpoint: `spec.md`は権限のREQ-001〜006で`approved`。**成果物は未mergeの#138にあるため`in_review`へ戻した**
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: #138の独立reviewとmerge
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + 005 ADR-002(accepted) + 005 contract revision 4(approved)
-- Next Agent action: `T04`のPRとして独立reviewを起動する。**preflightの記述がどこにも残っていないことを確認範囲に含める**
+- Next Agent action: #138がmergeされたら`done`にする。**独立reviewのPASSを受けずに`done`にしない**(2026-08-14のreviewでP2として指摘された)

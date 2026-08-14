@@ -51,11 +51,20 @@
 
 - 2026-08-14 / **開発者がcontract revision 4を承認。** `status: approved`、ADR-002を`accepted`にした。005 `spec.md`へ代表例25〜27とVER-008を足し、契約と一致させた。013側はpreflightの記述を全taskから除き、`T09`削除・`T10`新設まで反映した。PR #138。
 
+- Review attempt 1: `4fd6ab1..2ddb929` — FAIL — P0×1、P1×5、P2×5。005 spec.mdの検証表と契約`verification`の全行一致、preflight残骸の不在、外部資料の中立性は確認された。
+  - **P0: 用語「実在名」が選択file自身の現在名を含んでいた。** そのまま衝突判定へ渡すと、`IMG_0001..0100`を1つずらす改名で**ほぼ全fileに` (1)`が付く**。005 spec.mdの例2(入れ替え)と例3(循環)も到達不能になり、REQ-004の一時名機構が死ぬ。**新設した例25が既存の例2・例3と同一契約内で矛盾していた。**
+    - 対処: 用語**「占有名」**(実在名から、この実行で改名される選択fileの現在名を除いたもの)を新設し、REQ-004・REQ-011をそれに切り替えた。**REQ-022で除外されたfileの現在名は改名されないので占有名に含める**(例25c)。例25bで入れ替えが警告を出さないことを固定した。
+  - **P1-1/P1-2: 操作面が要求に追いついていなかった。** OP-002の`errors`が「改名ポートが失敗を返したら停止」のままでREQ-023と正面から矛盾し、OP-001/OP-002のinterfaceが占有名も採番規則も受け取れなかった。**REQ-023は契約自身の操作面からは実現不能だった。** → OP-001へ`occupiedNames`、OP-002へ`renumber`を通し、`errors`・`postconditions`・`requirements`を更新した。
+  - **P1-3: 再採番が「どの名前集合に対して」次の候補を求めるかが未定義だった。** 一時名と一致しうることを何も禁じておらず、一致するとREQ-005の後片付けが不定になる。→ 用語**「生存名」**(占有名 ∪ 未実行の目標名 ∪ 未実行の現在名 ∪ 一時名)を新設し、REQ-004へ「一時名は生存名と一致しない」を追加した。
+  - **P1-4: 再採番が巻き戻し(OP-003)へ及ぶ読みを排除していなかった。** 文字どおり読むと巻き戻しが`元の名前 (1)`へ再採番され、INV-004を破る。→ REQ-023を**OP-002の実行中に限定**し、OP-003へ明記した。
+  - **P1-5: 「フラグを受け付けて黙って無視する環境」の分岐が無かった。** REQ-025が二分岐だったため、その端末は「提供する」と判定されて原子branchへ入り、**実在確認を省いてしまう**。5回のreviewを費やした端末classがそのまま穴になっていた。→ **原子的no-replaceがあっても実在確認を省かない**へ変更した。ADR-002の「失ったもの」へ「効くと信じられる環境が実際には確かめられない」を追記した。**自作の代償見積もりが軽かった(failure mode #4)の2回目である。**
+  - P2×5も解消(013 specの空見出し→REQ-005/006を定義、`draft`表記、`T08`の失効ID参照、`T05`/`T10`のcovers、`T02`の`status`と`pullRequest`)。**P2-5(research-matrixの出典帰属)だけは変更していない** — reviewerが同URLで該当記述を見つけられなかったとしつつ断定を避けており、attempt 2・4のreviewerは同じURLで確認している。**判断を保留し、次のreviewerへ渡す。**
+
 ## Current state / handoff
 
-- Last checkpoint: **005 contract revision 4がapproved。** PR #138で独立review待ち
+- Last checkpoint: review attempt 1のP0×1・P1×5・P2×5を解消
 - Blocker category: なし
-- Waiting for: 独立review
+- Waiting for: 独立review(attempt 2)
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
 - Next Agent action: reviewがPASSしたらmergeし、`T03`と`T10`へ進む。004の仕様改訂で範囲が重なるので着手時に調整する
