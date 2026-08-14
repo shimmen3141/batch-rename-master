@@ -1,8 +1,11 @@
 # 013 Androidのstorage権限 — 振る舞い仕様
 
-- Status: **approved**(2026-08-14)
-  - 本文は**2026-08-13に承認済みのREQ-001〜004(権限)をそのまま残し、preflight関連をすべて削除した**ものである。**新たに追加した要求は無く、承認済みの内容の部分集合になっている**ため、削除に伴う再承認は005 contract revision 4の承認(2026-08-14)に含まれるものとして扱う。
-  - INV/VERは、残ったREQに対応するものへ整理し直した(番号は振り直している)。
+- Status: **draft**(**再承認待ち**)
+  - **「承認済み内容の部分集合だから再承認は不要」と書いていたが、それは誤りだった**(review attempt 4のP1-1)。preflightの削除に加えて、**新しいmust要求を2件追加している**。
+    - **REQ-005(新)**: `renameat2`が使えない端末でも「対応外」にしない。**2026-08-13に承認された版のREQ-009は「`EINVAL`/`ENOSYS`なら停止し、対応していないことを提示する」で、方向が逆である。**
+    - **REQ-006(新)**: `EEXIST`は005 contract REQ-023の再採番へ繋がる形で返し、Android固有の失敗として見せない。
+    - **VER-005(新)**: 上記2件の検証。
+  - 権限のREQ-001〜004は2026-08-13の承認から変えていない。
 - Date: 2026-08-14
 - 所有task: `T02`
 - 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、[005 ADR-002](../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)、005 contract revision 4(approved)、004 spec

@@ -82,11 +82,17 @@
   - 承認前の自己点検で、**REQ-026への参照がADR-002と`T04`の「触ったID」一覧に伝播していなかった**のを発見して直した(`a5edd64`)。**7回目の伝播漏れになる前に自分で拾えた1件である。**
   - 機械的に確認したこと: 契約内の参照切れ0件、全REQ/INV/OPがVERに被覆、`spec.md`の検証表と契約`verification`が全行一致(8行)。
 
+- Review attempt 4: `4fd6ab1..730ddef` — FAIL — P1×3、P2×9。**P0なし。** attempt 3のP0(契約への修正が保存されていなかった)とP1-1〜P1-7は、**契約fileの実体で解消を確認された**。生存名5要素の計算可能性、REQ-023の除外リストの閉じ方、REQ-011から占有名を抜いたことによる規定の消失が無いことも確認された。
+  1. **P1: 013 `spec.md`の「承認済み内容の部分集合だから再承認は不要」が事実と異なっていた。** preflightの削除に加えて**新しいmust要求を2件追加している**(REQ-005・REQ-006とVER-005)。しかも**REQ-005は、2026-08-13に承認された版のREQ-009(「`EINVAL`/`ENOSYS`なら停止し、対応していないことを提示する」)と方向が逆**である。PR本文にも同じ主張が載っており、**読んだ人間は「削除だけ」と理解して、方向が反転した要求を読まないまま承認する**。→ 主張を撤回し、`draft`へ戻して再承認を依頼する。**契約側でattempt 3のP1-7として直したのと同型の欠陥が、013 spec側に残っていた。**
+  2. **P1: 占有名がfolder単位を表現できていなかった。** 004は複数の親folderに跨る選択を許す(004 REQ-012)のに、契約は`Set<String>`のフラットな集合だった。`/A`と`/B`から選び`/B`に`keep.jpg`があると、**実際には衝突しないのに`/A`のfileへ` (1)`が付く**。attempt 1のP0と同じ被害classがfolder軸へ移っていた。→ 占有名と生存名をfolderごとに定義し、`OP-001`/`OP-002`のinterfaceを`Map<folder, Set<String>>`にした。例25dで固定した。
+  3. **P1: 実在名を取得できない場合の振る舞いが契約のどこにも無かった。** REQ-026は`must`で「常に占有名を含める」と要求するが、列挙は権限・I/Oで失敗しうる。`T10`の「決めること」に論点はあったが、**契約は満たせない`must`を持ったまま承認されていた**(attempt 2のP1-5と同型)。→ **REQ-027を新設**し、取得できないfolderを含む実行は行わず理由を提示すると定めた。例25eで固定した。
+  - P2×9も解消(INV-002の参照、`open_questions`は空という記述、VER-008の検証実体が未実装である旨、占有名の計算時点とREQ-022の順序、REQ-026とREQ-019/020の優先、PR本文のtask数、branchの正本、`T04`の`title`、ADR-002の見出し行)。
+
 ## Current state / handoff
 
-- Last checkpoint: **005 contract revision 4が再承認され`approved`**
-- Blocker category: なし
-- Waiting for: 独立review(attempt 4)
+- Last checkpoint: attempt 4のP1×3・P2×9を解消。**契約と013 specをどちらも`draft`へ戻した**
+- Blocker category: decision
+- Waiting for: **005 contract revision 4と013 `spec.md`の再承認**(占有名のfolder単位化、REQ-027、013のREQ-005/006)
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 4がPASSしたらmergeし、`T03`・`T10`・`T11`へ進む。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
+- Next Agent action: 再承認を受けてからattempt 5を起動する。PASSしたらmergeし、`T03`・`T10`・`T11`へ進む。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
