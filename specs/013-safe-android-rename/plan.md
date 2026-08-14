@@ -14,7 +14,8 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - **Androidのfile選択をSAFからapp内file browserへ作り直すこと。** 004 specの更新と再承認を伴う。
 - 005 contractのAndroid経路の更新(revision 4)と再承認。
 - 実装後の端末幅・媒体・app内mount viewの再検証。
-- **対象folderの実在名を衝突判定へ入れること**(`T10`)。001と004の仕様改訂を伴う。
+- **対象folderの占有名を衝突判定へ入れること**(`T10`)。占有名=実在名−この実行で改名される選択fileの現在名。001と004の仕様改訂を伴う。
+- **005 contract revision 4の実行経路(再採番・結果提示・実在確認)の実装**(`T11`)。**desktopを含む。**
 
 ### 対象外
 
@@ -50,8 +51,10 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
   - 証拠: 004 spec再承認、実機確認
 - [ ] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
   - 証拠: `T08`。**`shell` uidの観測では代用しない**
-- [ ] 読み込んでいないfileとの衝突が、実行前に警告として出る
-  - 証拠: `T10`、001/004の仕様改訂、test
+- [ ] 読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
+  - 証拠: `T10`、001/004の仕様改訂、005 spec例25/25b/25c
+- [ ] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
+  - 証拠: `T11`、005 spec例24/26/28〜30、VER-008
 - [ ] 005の安全なunsupportedとnegative testを弱めない(退避経路の維持)
 
 ## 人間の決定
@@ -88,5 +91,6 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 | T07 | [task.md](tasks/T07-implement-android-file-browser/task.md) |
 | T08 | [task.md](tasks/T08-verify-device-coverage/task.md) |
 | T10 | [task.md](tasks/T10-add-existing-names-to-collision-check/task.md) |
+| T11 | [task.md](tasks/T11-implement-renumbering-execution/task.md) |
 
 `T09`(preflightの実行制御)は**2026-08-14に削除した**。preflightそのものが不要になったため。IDは再利用しない。

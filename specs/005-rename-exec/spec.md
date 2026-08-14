@@ -67,7 +67,9 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | 25c | 例22で除外されたfileが`keep.jpg`のまま残り、別のfileの目標名が`keep.jpg`になる | **重複警告として提示される。** 除外されたfileは改名されないので、その現在名は占有名に含まれる | REQ-011, REQ-022 |
 | 26 | 例24で再採番が起きた | 結果に「確認した名前と異なる」ことが分かる形で含まれ、利用者へどの項目がどの名前になったか提示される | REQ-024 |
 | 27 | 任意の環境で改名 | **常に**目標名が実在しないことを確認してから改名する。原子的no-replaceがあれば併用する。実在すると判定できたときは改名せず`nameConflict`を返す | REQ-025, INV-002 |
-| 28 | 実行中に再採番が起きたあと巻き戻し | 巻き戻しでは**再採番しない**。元の名前が埋まっていれば`nameConflict`を失敗として扱い、現在名を報告する | REQ-023, REQ-008, OP-003 |
+| 28 | 実行中に再採番が起きたあと巻き戻し | 巻き戻しでは**再採番しない**。元の名前が埋まっていれば`nameConflict`を失敗として扱う(戻せなかった件として区別される) | REQ-023, REQ-008, OP-003 |
+| 29 | 循環解決の一時名への改名が`nameConflict`になった | **再採番しない。** REQ-004の規定に従い失敗として扱う。**利用者が確認していない名前を内部ステップで作らない** | REQ-023, REQ-004 |
+| 30 | 停止時に一時名を元の名前へ戻せない(元の名前が埋まっている) | **再採番しない。** REQ-005の規定に従い、現在名を報告する | REQ-023, REQ-005 |
 
 ## 自由とする点（実装に委ねる）
 
@@ -106,7 +108,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022 |
 | VER-006 | example | test/spec_005_rename_exec/ | REQ-014, REQ-015, REQ-016 |
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
-| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025 |
+| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, OP-001, OP-002 |
 
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
 - revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。

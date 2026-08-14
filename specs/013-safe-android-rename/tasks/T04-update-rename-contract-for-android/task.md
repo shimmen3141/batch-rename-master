@@ -20,11 +20,11 @@
 
 ## 決めること
 
-0. **再採番の試行上限**(contract `open_questions` OQ-001)と、上限に達したときの提示。**無限に試さない。**
-1. **失敗の分類。** `errno`を`RenameErrorKind`のどれへ写すか。`EEXIST`→`nameConflict`、`EACCES`/`EPERM`→`permissionDenied`、`ENOENT`→`notFound`、`EXDEV`(別filesystem)は新設が要るか。
+0. ~~**再採番の試行上限**~~ → contract `open_questions` OQ-001として`T11`へ繰り越した。
+1. **失敗の分類(決着)。** `EEXIST`→`nameConflict`、`EACCES`/`EPERM`→`permissionDenied`、`ENOENT`→`notFound`、それ以外→`ioFailure`。**`EXDEV`のための新設はしない** — 改名はfolder内で完結し、この機能はfileを移動しないため(005 `scope.out`)。万一返ったら`ioFailure`として扱う。
 2. **`renameat2`が使えない端末の扱い。** `T02`のD-2により、**「対応外」にはしない** — 実在確認による事前検出へ劣化させる。契約はREQ-025でその形を定めた。`unsupportedPlatform`はSAF退避経路のために残す。**API levelを境界として書き込まない。**
-3. **handleの意味。** Androidのhandleが不透明なSAF URIから**絶対path**へ変わる。INV-005(handleは最後に得た値)の書き方が変わるか確認する。
-4. **更新日時ずらし**(REQ-014〜016)。pathが手に入るので`ModifiedAtWriter`をAndroidでも実装できる。**このplanの範囲に入れるか、別taskへ送るか。**
+3. **handleの意味(決着)。** Androidのhandleが不透明なSAF URIから**絶対path**へ変わる。**契約の書き換えは不要** — 用語「ハンドル」は既に「Androidは SAF の document URI、デスクトップは絶対パス」と実体を例示しているだけで、INV-005は「この実行の中で最後に得られた値」という関係を定めており、値の種類に依存しない。`T07`が004側でhandleの実体を変えるときに、用語の例示を更新する。
+4. **更新日時ずらし(決着)。** pathが手に入るのでAndroidでも実装できるが、**013の範囲に入れない。** 013の目的はAndroidで安全に改名できるようにすることで、更新日時ずらしは独立した任意機能である(REQ-014は既定OFF)。**Androidで出さないままにする**(REQ-015は現在「Androidでは設定を出さない」を要求しており、そのまま変えない)。将来やるなら別planで、REQ-015の変更と再承認を伴う。**これは機能を減らす決定ではなく、現状維持である。**
 
 ## 変更範囲
 
@@ -60,11 +60,21 @@
   - **P1-5: 「フラグを受け付けて黙って無視する環境」の分岐が無かった。** REQ-025が二分岐だったため、その端末は「提供する」と判定されて原子branchへ入り、**実在確認を省いてしまう**。5回のreviewを費やした端末classがそのまま穴になっていた。→ **原子的no-replaceがあっても実在確認を省かない**へ変更した。ADR-002の「失ったもの」へ「効くと信じられる環境が実際には確かめられない」を追記した。**自作の代償見積もりが軽かった(failure mode #4)の2回目である。**
   - P2×5も解消(013 specの空見出し→REQ-005/006を定義、`draft`表記、`T08`の失効ID参照、`T05`/`T10`のcovers、`T02`の`status`と`pullRequest`)。**P2-5(research-matrixの出典帰属)だけは変更していない** — reviewerが同URLで該当記述を見つけられなかったとしつつ断定を避けており、attempt 2・4のreviewerは同じURLで確認している。**判断を保留し、次のreviewerへ渡す。**
 
+- Review attempt 2: `4fd6ab1..59e9d62` — FAIL — P1×6、P2×6。**P0は無し** — REQ-025(常に実在確認)により、見つかった穴はいずれもfile消失に至らないと確認された。**attempt 1のP0とP1×5は塞がっていると確認された。** Play policyの出典帰属(attempt 1のP2-5で保留)は**原文で正しいと確認され、クローズ**。ADR-002の代償記述も「軽く見積もっている記述は見つからない」と確認された。
+  - **4件はattempt 1のP1-2と同じ型**(要求が契約の操作面から実現不能)。修正で新設した面に穴が移っていた。
+    1. **`OP-002`が生存名を組み立てられない。** 占有名が`OP-001`にしか渡っておらず、`OP-002`の入力にも実行計画にも無い。→ `OP-002`のinterfaceへ`occupiedNames`を通し、**生存名を組み立てるのはexecuteである**と用語へ明記した。
+    2. **生存名に「この実行ですでに確定した結果名」が欠けていた。** 定義文は「既存を踏むおそれのある名前の全体」と書いていたが全体ではなかった。→ 5要素目として追加した。
+    3. **一時名への改名と停止時の復旧改名まで再採番の対象になっていた。** `OP-002`の`errors`が無条件に書かれていたため、停止した利用者のfolderに`a (1).jpg`のような**確認していない名前の残骸**が残る。**preflightを捨てる決め手になった「残骸」classと同じ被害である。** → REQ-023を「改名要求を確認した目標名へ進める改名」に限定し、一時名・復旧・巻き戻しを明示的に除外した。例29・30で固定した。
+    4. **`OP-001`が、目標名が占有名と衝突している入力に対して事後条件を満たせないのに`errors`が空だった。** REQ-011が占有名を持ち込むのは「衝突の判定」だけで、**`autoResolve`が占有名を避ける義務がどこにも無かった**。事前検出を入れた意味が消える。→ REQ-011へ「自動解決も占有名を衝突集合に含める」を明記し、`OP-001`へ事前条件と`errors`を追加した。
+  - **P1-5: REQ-023〜025を所有する実装taskが存在しなかった。** 005のtaskはT01〜T09すべて`done`、013の他taskはこの範囲を持たない。**承認済み契約を誰も実装しない状態で、`desktop_rename_executor.dart`は既にREQ-025に違反していた。** → `T11`を新設した。**013:T02のreview attempt 2で受けた指摘(orchestrationを所有するtaskが無い)の再発である。**
+  - **P1-6: 訂正が`T10`と契約`scope`へ伝播していなかった。** `T10/task.md`は「実在名へ広げる」のままで、**その指示どおり実装するとattempt 1のP0が再現する**。契約の`scope.in`も「実在名を001の検証へ渡す」で、用語「実在名」の「そのまま渡すものではない」と自己矛盾していた。→ 3箇所を占有名で書き直し、`T10`の受け入れ証拠へ例25b/25c相当を入れた。**伝播漏れは6回目。**
+  - P2×6も解消(VER-008の対象、`renumber`が`null`のとき、PR本文の`T02` status、`T04`の「決めること」1・3・4の決着、SM-001へREQ-024、例28の表現)。
+
 ## Current state / handoff
 
-- Last checkpoint: review attempt 1のP0×1・P1×5・P2×5を解消
+- Last checkpoint: review attempt 2のP1×6・P2×6を解消。`T11`を新設した
 - Blocker category: なし
-- Waiting for: 独立review(attempt 2)
+- Waiting for: 独立review(attempt 3)
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
 - Next Agent action: reviewがPASSしたらmergeし、`T03`と`T10`へ進む。004の仕様改訂で範囲が重なるので着手時に調整する

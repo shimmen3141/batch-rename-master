@@ -1,7 +1,7 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T10",
-  "title": "対象folderの占有名を衝突判定へ入れる",
+  "id": "T11",
+  "title": "契約revision 4の実行経路を実装する",
   "status": "pending",
   "dependsOn": [
     "T04"
