@@ -89,8 +89,13 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         destination,
         followLinks: false,
       );
+      // 「実体があるか」ではなく「**別の実体**があるか」で判定する。
+      // Windows(NTFS)やmacOS(APFS既定)は大文字小文字を区別しないので、
+      // `img_01.JPG -> img_01.jpg` のような改名で目標名が「実在する」ことに
+      // なる。生の文字列比較で除外すると、**自分自身を衝突と誤判定**して
+      // 再採番へ落ち、利用者が確認していない `img_01 (1).jpg` が確定する。
       if (destinationType != FileSystemEntityType.notFound &&
-          destination != handle) {
+          !p.equals(destination, handle)) {
         return RenameFailed(
           RenameError(
             RenameErrorKind.nameConflict,

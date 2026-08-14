@@ -177,6 +177,10 @@ Future<RenameOutcome> executePlan(
   for (final step in plan.steps) {
     if (step.kind == RenameStepKind.unchanged) {
       // 実体は既に目標名。ポートを呼ばずに成功として記録する(INV-003)。
+      // 生存名へは `recordSettled` しない — この分岐は
+      // `originalName == targetName` のときしか生じない(`planExecution` の
+      // 性質)ので、未実行として足す (2)(3) と結果名が一致するためである。
+      // **その等式が崩れたらここも記録が要る。**
       successes.add(
         SuccessfulRename(
           request: step.request,
@@ -194,6 +198,10 @@ Future<RenameOutcome> executePlan(
     final renumberable = step.kind == RenameStepKind.target;
     var attemptName = step.newName;
     var attempts = 0;
+    // 実行時に衝突が観測された名前。生存名へ足して、次の候補が同じ名前へ
+    // 戻らないようにする。**生存名は実行前の観測から作るので、他processが
+    // 今まさに作った名前は入っていない。**
+    final observedConflicts = <String>{};
 
     while (true) {
       final result = await executor.rename(step.request.handle, attemptName);
@@ -235,7 +243,13 @@ Future<RenameOutcome> executePlan(
       }
 
       // 事前検出をすり抜けた衝突。生存名に対する次の候補名で試し直す(REQ-023)。
-      final next = renumber(attemptName, live.namesFor(step.request));
+      // 候補は**確認した目標名から数え直す**。直前の試行名を base にすると
+      // ` (n)` が入れ子になる。
+      observedConflicts.add(attemptName);
+      final next = renumber(step.request, {
+        ...live.namesFor(step.request),
+        ...observedConflicts,
+      });
       if (next == null) {
         failure = FailedRename(
           request: step.request,
@@ -316,10 +330,16 @@ Future<UndoOutcome> undoSuccessfulRenames(
 
 /// 実行中の再採番で、次の候補名を求める操作(005 contract OP-002 の `renumber`)。
 ///
-/// 第2引数はそのfolderの**生存名**。`null` を返すと、呼び出し側はその改名要求を
-/// 失敗として記録する(REQ-023)。
+/// 第1引数は**改名要求**であり、直前に試した名前ではない。候補は毎回
+/// [RenameRequest.targetName](確認した目標名)から数え直す — そうしないと
+/// ` (n)` の n が進まず、`x (1) (1).jpg` のように接尾辞が入れ子になる
+/// (`x (2).jpg` が正しい)。契約の `OP-002` が `renumber: (改名要求, 生存名)`
+/// と書いているのはこのためである。
+///
+/// 第2引数はそのfolderの**生存名**(実行時に観測した衝突名を含む)。`null` を
+/// 返すと、呼び出し側はその改名要求を失敗として記録する(REQ-023)。
 typedef RenumberCandidate =
-    String? Function(String name, Set<String> liveNames);
+    String? Function(RenameRequest request, Set<String> liveNames);
 
 /// 改名要求が属するfolderの識別子を求める操作。
 ///
@@ -330,8 +350,8 @@ typedef RenumberCandidate =
 typedef FolderOfRequest = String Function(RenameRequest request);
 
 /// 既定の再採番(001 の自動解決規則をそのまま使う)。
-String? defaultRenumber(String name, Set<String> liveNames) =>
-    nextCandidateName(name, liveNames);
+String? defaultRenumber(RenameRequest request, Set<String> liveNames) =>
+    nextCandidateName(request.targetName, liveNames);
 
 /// 再採番の試行上限(005 contract `open_questions` OQ-001)。
 ///

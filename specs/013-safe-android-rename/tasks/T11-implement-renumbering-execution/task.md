@@ -55,13 +55,20 @@
   - **OQ-001(試行上限)を`8`と決めた。** 事前検出を通ったうえで衝突するのは他processがちょうどその名前を作った場合だけで、それが8回続く状況は「名前が埋まっている」ではなく**別の何かが起きている**(監視appの書き戻し、誤ったerrno等)。試し続けるより止めて理由を見せるほうがよい。
   - **OQ-005(一時名との相互回避)を解いた。** 生存名の(4)を「その時点で存在する一時名」ではなく**計画が使う一時名すべて**にした。これから使う予定の一時名を再採番が先取りすると、後続の一時名への改名が衝突し、REQ-023が一時名を再採番対象から外しているために停止する。
   - test: `test/spec_005_rename_exec/renumbering_test.dart`(16件)と、desktop の REQ-025 を1件。**REQ-025 の test は実装を外すと落ちることを確認した**(vacuousでない)。`flutter test` — PASS (376、+17)。
-  - **未着手**: OQ-002(REQ-027のSM-001遷移)、OQ-003(`occupiedNames`の全域性)、REQ-026/027のUI経路。**`occupiedNames`は現状どこからも渡っていない**(既定は空)。これは`T10`が004/001側から供給する。
+  - **未着手**: OQ-002(REQ-027のSM-001遷移)、OQ-003(`occupiedNames`の全域性)、REQ-026/027の経路。**`occupiedNames`は現状どこからも渡っていない**(既定は空)。これは`T10`が004/001側から供給する。
+  - **`defaultFolderOf`は暫定である。** ハンドルを path とみなして最後の`/`より前を取るだけで、`/`を含まないハンドルでは空文字を返して**すべて同一folder扱い**になる。SAF URIのような形も想定していない。同一性判定の責務はOQ-004(`T10`)。
+
+- Review attempt 1: `691d3f5..1734f6f` — FAIL — P1×3、P2×7。無限ループ・データ破壊・INV-002/INV-003違反は無いと確認された。mutation検査で、主要なtestがvacuousでないことも確認された。
+  1. **P1: 再採番が` (n)`のnを進めず、接尾辞を入れ子にしていた。** `renumber`へ**直前の試行名**を渡していたため、`x.jpg` → `x (1).jpg` → **`x (1) (1).jpg`**(正しくは`x (2).jpg`)。契約の`OP-002`が`renumber: (改名要求, 生存名)`と書いているのは、**毎回「確認した目標名」から数え直す**ためだった。**signatureを`(String, Set)`に変えたときに意図を落とした。** → `RenumberCandidate`を`(RenameRequest, Set<String>)`へ戻し、実行時に観測した衝突名を照合集合へ足すようにした。
+  2. **P1: 大文字小文字を区別しないfilesystemで、case-onlyの改名が`nameConflict`になっていた。** `destination != handle`という生の文字列比較だったため、Windows/macOSでは`img_01.JPG → img_01.jpg`が**自分自身を衝突と誤判定**し、再採番で`img_01 (1).jpg`が確定する。**このPRが持ち込んだ振る舞いの変化である。** → `p.equals`で同一実体を判定するようにした。**containerはLinuxのみなので、この経路の実測はできていない。**
+  3. **P1: REQ-024の「利用者へ提示」が実装されていなかった。** `renumbered`/`confirmedName`を読むcodeが`lib/`に1つも無く、利用者は確認した名前と違う結果になった事実に気づけない。**PR本文は「UIから読める」と書いており、事実より広い説明だった。** → 結果トーストへ「実行中に名前が使われていたため N 件の名前が変わりました(旧 → 新)」を出し、widget testを2件(出る側・出ない側)追加した。
+  - P2×7も解消(`unchanged`分岐が`recordSettled`を呼ばない依存の明示、`nextCandidateName`と`autoResolve`の拡張子境界の違いをdocへ、構造ガードtestの位置づけをcommentへ、group名、`defaultFolderOf`の暫定性、契約revision 5の所有を`T10`へ明記、PR本文のstatus)。
 
 ## Current state / handoff
 
-- Last checkpoint: REQ-023/024/025 と OQ-001/OQ-005 を実装しtestを追加。**独立review前**
+- Last checkpoint: review attempt 1のP1×3・P2×7を解消。`flutter test` — PASS (379、+20)
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: PRを作り独立reviewを起動する。**残るOQ-002/OQ-003は`occupiedNames`の供給元(`T10`)が要るので、そこまで含めるか分ける**
+- Next Agent action: attempt 2を起動する。**契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない

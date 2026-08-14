@@ -176,6 +176,21 @@ class _RenameActionBar extends StatelessWidget {
     final message = StringBuffer('${outcome.successes.length} 件を改名しました');
     final excluded = execution.excludedEmptyNames.length;
     if (excluded > 0) message.write('。名前が空になるため $excluded 件を除外しました');
+    // REQ-024: 実行中に再採番が起きた項目は、確認した名前と結果名が違う。
+    // **黙って別の名前にしない** — 何件がどの名前になったかを示す。件数だけだと
+    // 「どれが変わったか」が分からないので、少数なら名前を並べる。
+    final renumbered = [
+      for (final success in outcome.successes)
+        if (success.renumbered) success,
+    ];
+    if (renumbered.isNotEmpty) {
+      message.write('。実行中に名前が使われていたため ${renumbered.length} 件の名前が変わりました');
+      final shown = renumbered
+          .take(3)
+          .map((s) => '${s.confirmedName} → ${s.newName}');
+      message.write('(${shown.join('、')}');
+      message.write(renumbered.length > 3 ? ' ほか)' : ')');
+    }
     final failure = outcome.failure;
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');

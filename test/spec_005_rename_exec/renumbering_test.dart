@@ -59,6 +59,31 @@ void main() {
       expect(executor.names, contains('x (1).jpg'));
     });
 
+    test('衝突が続いても ` (n)` の n が進む(接尾辞を入れ子にしない)', () async {
+      // 直前の試行名をbaseに次候補を求めると `x (1) (1).jpg` になる。候補は
+      // 毎回**確認した目標名**から数え直さなければならない。
+      final requests = _requests({'a.jpg': 'x.jpg'});
+      var remaining = 2;
+      final executor = _folder(
+        ['a.jpg'],
+        failWhen: (handle, newName) {
+          if (remaining == 0) return null;
+          remaining -= 1;
+          return const RenameError(RenameErrorKind.nameConflict, '注入');
+        },
+      );
+
+      final outcome = await executePlan(planExecution(requests), executor);
+
+      expect(outcome.failure, isNull);
+      expect(outcome.successes.single.newName, 'x (2).jpg');
+      expect(executor.calls, [
+        '/photos/a.jpg -> x.jpg',
+        '/photos/a.jpg -> x (1).jpg',
+        '/photos/a.jpg -> x (2).jpg',
+      ]);
+    });
+
     test('`nameConflict`以外の失敗では再採番せず、その時点で停止する', () async {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(
@@ -102,7 +127,7 @@ void main() {
       final outcome = await executePlan(
         planExecution(requests),
         executor,
-        renumber: (name, liveNames) => null,
+        renumber: (request, liveNames) => null,
       );
 
       expect(outcome.failure?.error.kind, RenameErrorKind.nameConflict);
@@ -135,7 +160,11 @@ void main() {
       );
     });
 
-    test('停止時の復旧改名では再採番しない', () async {
+    // 次の2件は**構造ガード**である。復旧改名と巻き戻しは再採番ループの外の
+    // 別codeなので、`renumberable` を真に改変しても落ちない。再採番機構が
+    // これらの経路へ広がったときに落ちることを狙っている。REQ-023の除外条項を
+    // 能動的に検証しているのは、直前の「一時名への改名では再採番しない」だけ。
+    test('停止時の復旧改名では再採番しない(構造ガード)', () async {
       final requests = _requests({'a.jpg': 'b.jpg', 'b.jpg': 'a.jpg'});
       final plan = planExecution(requests);
       final temporaryName = plan.steps
@@ -162,7 +191,7 @@ void main() {
       );
     });
 
-    test('巻き戻しでは再採番しない', () async {
+    test('巻き戻しでは再採番しない(構造ガード)', () async {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(['a.jpg']);
       final outcome = await executePlan(planExecution(requests), executor);
@@ -223,7 +252,7 @@ void main() {
     });
   });
 
-  group('生存名(OQ-005 / review attempt 2 の P1-2)', () {
+  group('生存名(OQ-005 / `T04` review attempt 2 の P1-2)', () {
     test('再採番の照合集合に、計画がこれから使う一時名が含まれる', () async {
       // 循環がある計画。一時名は「その時点で存在する」ものだけでなく、
       // **これから使う予定**のものも避けないと、後続の一時名への改名が衝突して
@@ -249,9 +278,9 @@ void main() {
       await executePlan(
         plan,
         executor,
-        renumber: (name, liveNames) {
+        renumber: (request, liveNames) {
           live ??= liveNames;
-          return nextCandidateName(name, liveNames);
+          return nextCandidateName(request.targetName, liveNames);
         },
       );
 
@@ -273,9 +302,9 @@ void main() {
       await executePlan(
         planExecution(requests),
         executor,
-        renumber: (name, liveNames) {
+        renumber: (request, liveNames) {
           live ??= liveNames;
-          return nextCandidateName(name, liveNames);
+          return nextCandidateName(request.targetName, liveNames);
         },
       );
 
@@ -283,8 +312,8 @@ void main() {
       expect(live, contains('x.jpg'), reason: 'すでに確定した結果名');
       expect(
         live,
-        isNot(contains('y.jpg')),
-        reason: '自分自身の目標名は照合集合に入れない(入れると必ず (1) から始まる)',
+        contains('y.jpg'),
+        reason: '実行時に観測した衝突名も照合集合に入る(次の候補が同じ名前へ戻らないように)',
       );
     });
 
@@ -300,9 +329,9 @@ void main() {
           _dir: {'keep.jpg'},
           '/other': {'elsewhere.jpg'},
         },
-        renumber: (name, liveNames) {
+        renumber: (request, liveNames) {
           live ??= liveNames;
-          return nextCandidateName(name, liveNames);
+          return nextCandidateName(request.targetName, liveNames);
         },
       );
 

@@ -107,6 +107,61 @@ void main() {
     execution.dispose();
   });
 
+  testWidgets('再採番が起きたら、確認した名前と結果名の違いを提示する(REQ-024)', (tester) async {
+    // 事前検出をすり抜けた衝突(他processがちょうどその名前を作った)を注入する。
+    // **黙って別の名前にしない** — 利用者は自分が確認した名前と違う結果になった
+    // ことに気づけなければならない。
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    var fired = false;
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt'},
+      failWhen: (handle, newName) {
+        if (newName != 'renamed.txt' || fired) return null;
+        fired = true;
+        return const RenameError(RenameErrorKind.nameConflict, '注入');
+      },
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('1 件を改名しました'), findsOneWidget);
+    expect(find.textContaining('1 件の名前が変わりました'), findsOneWidget);
+    expect(
+      find.textContaining('renamed.txt → renamed (1).txt'),
+      findsOneWidget,
+      reason: 'どの項目がどの名前になったかを示す',
+    );
+    execution.dispose();
+  });
+
+  testWidgets('再採番が起きていなければ、名前が変わった旨は出さない(REQ-024)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('名前が変わりました'), findsNothing);
+    execution.dispose();
+  });
+
   testWidgets('失敗時は成功件数と理由を提示する(REQ-013)', (tester) async {
     final files = FileListController(
       files: [_file('a.txt')],
