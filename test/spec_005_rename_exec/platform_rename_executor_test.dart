@@ -122,6 +122,33 @@ void main() {
       expect(await occupied.readAsString(), 'occupied-content');
     });
 
+    test('原子的no-replaceが効かなくても、実在確認で上書きを止める(REQ-025)', () async {
+      // フラグを受け付けながら黙って無視する環境を模す。native rename を
+      // 「常に成功する上書き rename」に差し替えても、実在確認が先に止める。
+      // **アプリはこの環境を他と区別できない**ので、原子的no-replaceがあっても
+      // 確認を省いてはならない。
+      final source = File(p.join(directory.path, 'before.txt'));
+      final occupied = File(p.join(directory.path, 'after.txt'));
+      await source.writeAsString('source-content');
+      await occupied.writeAsString('occupied-content');
+
+      var nativeCalled = false;
+      final executor = DesktopRenameExecutor(
+        rename: (from, to) async {
+          nativeCalled = true;
+          await File(from).rename(to); // 上書きする(危険な環境)
+          return NativeRenameResult.success;
+        },
+      );
+
+      final result = await executor.rename(source.path, 'after.txt');
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(nativeCalled, isFalse, reason: '実在確認で止めるので native を呼ばない');
+      expect(await occupied.readAsString(), 'occupied-content');
+      expect(await source.readAsString(), 'source-content');
+    });
+
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
       final result = await DesktopRenameExecutor().rename(
         p.join(directory.path, 'missing.txt'),

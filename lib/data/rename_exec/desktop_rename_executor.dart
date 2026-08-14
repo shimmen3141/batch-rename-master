@@ -17,6 +17,10 @@ typedef DesktopSetModifiedAt =
 /// 通常の`File.rename`はOSによって既存fileを置換しうるため、排他的なnative rename
 /// を使って既存fileを原子的に上書きしない(INV-002)。成功時は絶対pathを新しい
 /// handleとして返す(REQ-001)。
+///
+/// **目標名の実在確認は、原子的no-replaceがあっても省かない**(REQ-025)。
+/// フラグを受け付けながら黙って無視する環境をアプリは区別できないため、
+/// 省くとその環境で事前検出まで失われる。
 class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
   DesktopRenameExecutor({
     DesktopRenameOperation? rename,
@@ -75,6 +79,23 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       if (sourceType == FileSystemEntityType.notFound) {
         return RenameFailed(
           RenameError(RenameErrorKind.notFound, '対象が見つかりません: $handle'),
+        );
+      }
+
+      // REQ-025: 目標名が実在しないことを確認してから改名する。**原子的
+      // no-replace があっても省かない。** 確認と改名の間(TOCTOU)は native の
+      // 排他 rename が塞ぐが、それが実際に効かない環境ではこの確認だけが残る。
+      final destinationType = await FileSystemEntity.type(
+        destination,
+        followLinks: false,
+      );
+      if (destinationType != FileSystemEntityType.notFound &&
+          destination != handle) {
+        return RenameFailed(
+          RenameError(
+            RenameErrorKind.nameConflict,
+            '同名のファイルが既に存在します: $destination',
+          ),
         );
       }
 

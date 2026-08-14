@@ -46,11 +46,22 @@
 
 - 2026-08-14 / `T04`のreview attempt 2のP1-5を受けて定義。**REQ-023〜025を所有するtaskが無く、承認済み契約を誰も実装しない状態だった。**
 
+- 2026-08-14 / **着手。再採番の実行経路(REQ-023/024)と、常に実在確認(REQ-025)を実装した。**
+  - **001**: `nextCandidateName(fullName, taken, {limit})` を追加。`autoResolve` と**同じ規則**(ベース名の末尾へ` (n)`、衝突しない最小の n)で、判定する名前集合を呼び出し側が渡す形。`autoResolve` は選択集合から集合を組み立てる形なので、実行の途中で「その時点の生存名」に対して次候補を求めることを表現できなかった。
+  - **005 `executePlan`**: `occupiedNames` / `renumber` / `renumberLimit` / `folderOf` を受け取り、**生存名を組み立てるのは `execute`** とした(OP-002)。`nameConflict` を受けたら次候補で再試行する。
+  - **再採番するのは`RenameStepKind.target`だけ**。一時名への改名・停止時の復旧改名・巻き戻しでは再採番しない(REQ-023)。
+  - **`SuccessfulRename`へ`confirmedTargetName`と`renumbered`を追加**(REQ-024)。再採番後の名前を`newName`として記録する(INV-003)。
+  - **desktop**: 改名の前に目標名の実在を確認する(REQ-025)。**native の排他 rename があっても省かない。**
+  - **OQ-001(試行上限)を`8`と決めた。** 事前検出を通ったうえで衝突するのは他processがちょうどその名前を作った場合だけで、それが8回続く状況は「名前が埋まっている」ではなく**別の何かが起きている**(監視appの書き戻し、誤ったerrno等)。試し続けるより止めて理由を見せるほうがよい。
+  - **OQ-005(一時名との相互回避)を解いた。** 生存名の(4)を「その時点で存在する一時名」ではなく**計画が使う一時名すべて**にした。これから使う予定の一時名を再採番が先取りすると、後続の一時名への改名が衝突し、REQ-023が一時名を再採番対象から外しているために停止する。
+  - test: `test/spec_005_rename_exec/renumbering_test.dart`(16件)と、desktop の REQ-025 を1件。**REQ-025 の test は実装を外すと落ちることを確認した**(vacuousでない)。`flutter test` — PASS (376、+17)。
+  - **未着手**: OQ-002(REQ-027のSM-001遷移)、OQ-003(`occupiedNames`の全域性)、REQ-026/027のUI経路。**`occupiedNames`は現状どこからも渡っていない**(既定は空)。これは`T10`が004/001側から供給する。
+
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T04`(005 contract revision 4)のreview PASSとmerge
+- Last checkpoint: REQ-023/024/025 と OQ-001/OQ-005 を実装しtestを追加。**独立review前**
+- Blocker category: なし
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@4fd6ab1` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: `T04`のmerge後に着手する。**`T10`(事前検出)と範囲が隣接するので、どちらが先かを決めてから始める**
+- Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
+- Next Agent action: PRを作り独立reviewを起動する。**残るOQ-002/OQ-003は`occupiedNames`の供給元(`T10`)が要るので、そこまで含めるか分ける**
