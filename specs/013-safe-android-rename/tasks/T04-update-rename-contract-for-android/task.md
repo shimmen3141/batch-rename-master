@@ -37,7 +37,7 @@
 - 契約の差分がINV-002 / INV-003 / OP-004を緩めていないことを、差分から読める形で示す。
 - `spec.md`の検証表が契約の`verification`と全行一致する(005で一度driftさせた箇所)。
 - **人間による契約の再承認**(revision 4)。
-- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。**`task.json`の`covers`は所属planのspecへ解決される**ため、005契約のREQ IDはここへ書かない(同じ番号が013 specの別要求と衝突する)。**このtaskが触った005側のIDは次のとおり**: REQ-004、REQ-011、REQ-018、REQ-023、REQ-024、REQ-025、INV-002、INV-003、OP-004、VER-008。
+- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。**`task.json`の`covers`は所属planのspecへ解決される**ため、005契約のREQ IDはここへ書かない(同じ番号が013 specの別要求と衝突する)。**このtaskが触った005側のIDは次のとおり**: REQ-004、REQ-011、REQ-018、REQ-023、REQ-024、REQ-025、REQ-026、INV-002、INV-003、OP-001、OP-002、OP-003、OP-004、SM-001、VER-005、VER-008。
 - **再採番の経路がtestで検査できる形になっていること。** `nameConflict`を注入し、次の候補名で再試行し、結果に「確認した名前と異なる」が現れることを検査する。
 - **preflightに関する記述が契約・spec・taskのどこにも残っていないこと**(2026-08-14に削除した)。
 - 005の既存test(Android未対応のnegative testを含む)がどう変わるかを明示する。**退避経路のため、未対応adapterとそのtestは削除しない**(ADR-002)。
