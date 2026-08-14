@@ -1,8 +1,8 @@
 # ADR-002: 衝突は採番で回避し、no-replaceは再採番の入口にする
 
-- Status: **proposed**(2026-08-14 開発者の方針決定。contract revision 4の承認で`accepted`にする)
+- Status: **accepted**(2026-08-14 開発者承認。005 contract revision 4を同日承認)
 - Date: 2026-08-14
-- Related: [ADR-001](ADR-001-android-saf-rename-safety.md)、005 `contracts/behavior-contract.json` revision 3 → 4、001 ADR-001、013 ADR-002
+- Related: [ADR-001](ADR-001-android-saf-rename-safety.md)、005 `contracts/behavior-contract.json` revision 4、001 ADR-001、013 ADR-002
 - Related requirements: INV-002(既存fileを置換しない)、INV-003 / REQ-018(要求名と結果名の一致)、REQ-004(実行計画)、REQ-011(警告と強制実行)、OP-004
 
 ## Context

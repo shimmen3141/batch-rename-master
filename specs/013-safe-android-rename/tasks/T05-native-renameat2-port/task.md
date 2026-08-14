@@ -23,14 +23,16 @@
 
 ### このtaskの範囲ではないもの
 
-**preflightの実行制御と提示は`T09`が持つ。** ここで作るのは「`renameat2`を1回呼んで結果を返す部品」と、REQ-006の3観測をその部品で行えることまでである。後片付け(REQ-010)、subfolderとmarker(REQ-011)、複数folderの停止単位(REQ-012)、結果の失効(REQ-013)、理由の提示(REQ-007)は`T09`の受け入れ証拠にある。
+**衝突時の再採番と結果の提示は005側(実行オーケストレーション)が持つ。** ここで作るのは「`renameat2(RENAME_NOREPLACE)`を1回呼んで結果を返す部品」と、`errno`を`RenameErrorKind`へ写す部分だけである。`EEXIST`→`nameConflict`を返せば、呼び出し側が005 contract REQ-023に従って再採番する。
+
+**`renameat2`が使えない端末では、005 contract REQ-025の「実在確認してから改名する」経路へ落とす。** 「対応外」にはしない。
 
 ## 受け入れ証拠
 
 - targetが既にある場合に`nameConflict`を返し、**targetの内容が変わらない**ことをtestで検査する。
 - 権限が無い場合、対象が無い場合の分類をtestで検査する。
-- REQ-006の3観測(`RENAME_NOREPLACE`で衝突 / **フラグ無しの対照** / `RENAME_NOREPLACE`で成功)を、この部品で行えることをtestで検査する。**対照を呼べないAPIにしない** — 対照が無いと`T09`が因果を示せない(`T01`のreviewで指摘された)。
-- `EINVAL`/`ENOSYS`を`RenameErrorKind`へ写像し、`T09`が「効かない」と判定できる形で返す(REQ-009)。
+- `EEXIST`が`nameConflict`として返り、**005の再採番へ繋がる**ことをtestで検査する(005 contract REQ-023)。
+- `EINVAL`/`ENOSYS`のとき、**実在確認による代替経路へ落ちる**ことをtestで検査する(005 contract REQ-025)。**未対応として利用者へ見せない。**
 - 例外を投げないこと(REQ-017)をtestで検査する。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。

@@ -1,6 +1,8 @@
 # 013 Androidのstorage権限 — 振る舞い仕様
 
-- Status: **draft**(2026-08-13承認、2026-08-14再承認。**2026-08-14の方針転換でpreflightを削除したため再度draft。再承認待ち**)
+- Status: **approved**(2026-08-14)
+  - 本文は**2026-08-13に承認済みのREQ-001〜004(権限)をそのまま残し、preflight関連をすべて削除した**ものである。**新たに追加した要求は無く、承認済みの内容の部分集合になっている**ため、削除に伴う再承認は005 contract revision 4の承認(2026-08-14)に含まれるものとして扱う。
+  - INV/VERは、残ったREQに対応するものへ整理し直した(番号は振り直している)。
 - Date: 2026-08-14
 - 所有task: `T02`
 - 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、[005 ADR-002](../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)、005 contract revision 4(draft)、004 spec

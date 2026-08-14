@@ -21,12 +21,11 @@
   },
   {
    "revision": "4",
-   "proposed_date": "2026-08-14",
-   "status": "draft",
-   "meaning": "衝突を失敗ではなく採番で回避するものとして扱う。対象folderの実在名を衝突判定の入力へ加え、実行時にnameConflictが返ったら次の候補名へ進めて再試行する。RENAME_NOREPLACEは破壊を防ぐ砦から再採番の入口へ役割が変わり、原子的no-replaceが無い環境でもINV-002を事前検出の水準で保つ。Android SAF未対応(revision 2)は退避経路として維持する。ADR-002。"
+   "meaning": "衝突を失敗ではなく採番で回避するものとして扱う。対象folderの実在名を衝突判定の入力へ加え、実行時にnameConflictが返ったら次の候補名へ進めて再試行する。RENAME_NOREPLACEは破壊を防ぐ砦から再採番の入口へ役割が変わり、原子的no-replaceが無い環境でもINV-002を事前検出の水準で保つ。Android SAF未対応(revision 2)は退避経路として維持する。ADR-002。",
+   "approved_date": "2026-08-14"
   }
  ],
- "status": "draft",
+ "status": "approved",
  "scope": {
   "in": [
    "改名要求の列から、途中で衝突しない実行順序(必要なら一時名)を決める計画立案。",
@@ -333,7 +332,7 @@
    "statement": "改名が`nameConflict`で失敗した場合、その改名要求を失敗として記録せず、**001の自動解決規則に従って次の候補名を求め、再試行する**(再採番)。再試行の回数には上限を設ける。上限に達した改名要求だけを失敗として記録し、以降は停止規則(REQ-002)に従う。**`nameConflict`以外の失敗では再採番しない。**",
    "observable": true,
    "verification": [
-    "VER-001"
+    "VER-008"
    ]
   },
   {
@@ -343,7 +342,7 @@
    "statement": "再採番が起きた改名要求は、**確認した目標名と結果名が異なることが分かる形で実行結果に含める**。利用者へ提示するとき、どの項目がどの名前になったかを示す。**黙って別の名前にしない。**",
    "observable": true,
    "verification": [
-    "VER-001"
+    "VER-008"
    ]
   },
   {
@@ -353,7 +352,7 @@
    "statement": "改名ポートは、環境が原子的no-replaceを提供する場合はそれを用いる。提供しない環境では、**目標名が実在しないことを確認してから改名する**。いずれの場合も、目標名に実体があると判定できたときは改名を行わず`nameConflict`を返す。",
    "observable": true,
    "verification": [
-    "VER-001"
+    "VER-008"
    ]
   }
  ],
@@ -746,10 +745,10 @@
    "type": "property",
    "artifact": "test/spec_005_rename_exec/",
    "covers": [
+    "INV-002",
     "OP-001",
     "REQ-004",
-    "REQ-005",
-    "INV-002"
+    "REQ-005"
    ]
   },
   {
@@ -817,6 +816,16 @@
    "covers": [
     "CON-001",
     "REQ-013"
+   ]
+  },
+  {
+   "id": "VER-008",
+   "type": "example",
+   "artifact": "test/spec_005_rename_exec/",
+   "covers": [
+    "REQ-023",
+    "REQ-024",
+    "REQ-025"
    ]
   }
  ],

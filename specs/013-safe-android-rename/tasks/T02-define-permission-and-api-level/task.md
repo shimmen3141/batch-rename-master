@@ -122,11 +122,15 @@
   - **INV-004の代償を訂正した。** 「まれに1つ」ではなく「**増えうる。appからは消せない**」と書いた。空の残骸の回収も、判定が名前規則だけに依ることを**受容したrisk**として明示した。
   - P2×6も解消(INV-004の見出し文、VER-005の除外範囲、「自分が作った以外に触れない」の字面衝突、REQ-006の観測1でerrnoを問う、`T08`の`Evidence revision`、`T09`の`covers`へREQ-006)。
 
+- 2026-08-14 / **方針転換によりpreflightが不要になった**(005 ADR-002)。`spec.md`からREQ-005〜013・INV-002・INV-004を削除し、**権限のREQ-001〜004だけを残して`approved`にした**。追加した要求は無く、承認済み内容の部分集合である。
+  - **preflightに費やしたreview 5回分の作業は、成果物としては残らない。** ただしそこで見つかった不具合(そのfolderで永久に改名できない、残骸が増え続ける)が、**契約そのものを問い直す入力になった。** 経緯は[005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)に残した。
+  - PR #137は中身が失効したため**閉じた**(2026-08-14、開発者の指示)。commitは`T04`のPRへ引き継ぐ。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 5のP1×5とP2×6を解消。preflightを全域関数として定義し直した
-- Blocker category: decision
-- Waiting for: `spec.md`の**再承認**(preflightの残骸方針を変えた)
-- Requested action: REQ-005の全域性、REQ-007の4分類、REQ-011、INV-002の削除条件、**INV-004(残骸が増えうるという代償)**、VER-002/005/007を確認する
-- Evidence revision: `dev@4fd6ab1` + ADR-002 + 2026-08-14の開発者方針決定(毎回一意な名前 + 中止しない)
-- Next Agent action: 再承認後にattempt 5を起動する。**mergeの前に`spec.md`が単一値で`approved`であることを確かめる**
+- Last checkpoint: **完了。** `spec.md`は権限のREQ-001〜004のみで`approved`
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + 005 ADR-002(accepted) + 005 contract revision 4(approved)
+- Next Agent action: `T04`のPRとして独立reviewを起動する。**preflightの記述がどこにも残っていないことを確認範囲に含める**
