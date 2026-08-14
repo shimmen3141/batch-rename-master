@@ -1,7 +1,7 @@
 # 013 Androidのstorage権限と対応可否 — 振る舞い仕様
 
-- Status: **draft**(REQ-010〜013とINV-004の追加により**再承認待ち**。初回承認は2026-08-13)
-- Date: 2026-08-13
+- Status: **approved**(初回承認 2026-08-13。REQ-010〜013とINV-004の追加により**2026-08-14に再承認**)
+- Date: 2026-08-14
 - 所有task: `T02`
 - 関連: [ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)、005 contract revision 3、004 spec
 

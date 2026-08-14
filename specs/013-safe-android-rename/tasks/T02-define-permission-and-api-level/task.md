@@ -61,11 +61,13 @@
 - 2026-08-13 / `spec.md`をdraftとして起草した。**preflight(REQ-005〜008)がこのtaskで最も重要な設計判断である。** `renameat2`が`EINVAL`/`ENOSYS`を返す端末は安全(実体不変)だが、**フラグを黙って無視して上書きする端末は実行時に検出できない**(`T01`のspikeの`C)`)。したがって実行前に対象folderで実測する必要がある。対照(flags=0)を含めるのは、`T01`のreviewで「片側だけでは因果を示せない」と指摘されたのと同じ理由による。
 - 2026-08-13 / **`minSdk`の判断材料を整理し、人間へ問うた。** `renameat2`のkernel実装はLinux 3.15で入っており、bionicのwrapperが無くても生syscallで到達できる(`T01`のspike binaryは`android24`向けにビルドして動作)。**したがってAPI levelは対応可否の代理指標として弱い。** 実際に効くかを決めるのはkernelとfilesystem(FUSEの下がext4かFATか等)であり、これはAPI levelと独立に端末ごとに変わる。
 
+- 2026-08-14 / **開発者が`spec.md`を再承認(draft → approved)。** REQ-010〜013とINV-004を含む仕様が確定し、`T02`の未決定は無くなった。plan.mdの決定表へ記録した。
+
 ## Current state / handoff
 
-- Last checkpoint: review attempt 1のP1×4を解消。`spec.md`へREQ-010〜013とINV-004を足したため**再承認待ち**
-- Blocker category: decision
-- Waiting for: `spec.md`の**再承認**(preflightの後片付け・batch単位・失効条件を追加した)
-- Requested action: 追加したREQ-010〜013とINV-004を確認する
-- Evidence revision: `dev@70e4287` + ADR-002
+- Last checkpoint: `spec.md`が再承認され`approved`。review attempt 2を起動する
+- Blocker category: なし
+- Waiting for: 独立review(attempt 2)
+- Requested action: なし
+- Evidence revision: `dev@4fd6ab1` + ADR-002 + `spec.md` re-approval 2026-08-14
 - Next Agent action: reviewがPASSしたらmergeし、`T03`(Androidの読み込み導線)と`T04`(005契約)へ進む。両者は並列可

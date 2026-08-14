@@ -55,13 +55,13 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 |---|---|---|---|
 | 2026-08-09 | 現SAF APIがStrict no-replaceを保証できない | Android成功経路を005から分離し、最初の成果を調査と設計判断に限定する | 開発者 |
 | 2026-08-13 | storage境界の採否 | **候補E(`MANAGE_EXTERNAL_STORAGE` + `renameat2(RENAME_NOREPLACE)`)を採用する。** Androidが主対象である以上、主要プラットフォームで改名できない状態は製品として成立しない。Play審査riskと、Androidのfile選択をapp内browserへ作り直す範囲を受け入れる | 開発者承認 |
-
 | 2026-08-13 | `minSdk` | **24のまま、対応可否を実行時に判定する。** API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため | 開発者承認 |
 | 2026-08-13 | Play policyのinvalid uses | **該当しうることを認めたうえでriskを受容し、T05以降へ投資する。** `T03`のfolder管理導線、store説明文での主目的の訴求、Declaration Formでの説明で寄せる。却下されたらAndroid未対応へ戻す | 開発者承認 |
+| 2026-08-14 | `spec.md`の再承認 | **approved。** preflightの後片付け(REQ-010/011)、複数folder batchの停止単位(REQ-012)、結果の失効条件(REQ-013)、痕跡を残さないこと(INV-004)を追加した仕様を承認 | 開発者承認 |
 
 未決定として残っているものは**4件**あり、正本は[`T02`](tasks/T02-define-permission-and-api-level/task.md)の「決めること」である。ここへ複製せず、件数と論点だけ示す。
 
-1〜4はいずれも`T02`の`spec.md`で決着した(`minSdk`はD-1、権限の振る舞いはREQ-001〜004)。**残るのは`spec.md`の再承認**(preflightの後片付け・batch単位・失効条件を追加したため)。
+1〜4はいずれも`T02`の`spec.md`で決着し、**2026-08-14に再承認された。`T02`の未決定は残っていない。**
 
 ## タスク
 
