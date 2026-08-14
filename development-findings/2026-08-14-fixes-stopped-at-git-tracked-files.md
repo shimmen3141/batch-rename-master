@@ -32,3 +32,6 @@ attempt 1で「Play policyのinvalid usesを自分に有利に要約していた
 - 2026-08-14 / PR #137の本文を中立な記述へ全面的に書き直し、range・未解決P0/P1・人間判断を現在の状態へ更新した。
 - `T02/task.md`のreview記録へ、この根本原因を記載した。
 - **forward-test**: 次のreview attemptで、reviewerがPR本文とspecs配下の記述の一致を確認できる状態になっているかを見る。
+- 2026-08-14 / **forward-testは1回目でFAILした。** この改善結果を書いたcommit(`85fba32`)自身がheadを進めたのに、PR本文の`review base/head/range`を更新しなかった。attempt 3のP1-2として再検出された。
+  - **足りなかったのは伝播先の列挙ではなく、再評価の契機である。** 「PR本文も伝播先に含める」と一度書いても、**成果物を変えるたびに見直さなければ**本文は即座に古くなる。とくに`review range`はcommitするたびに古くなる唯一の項目である。
+  - 追加の緩和案: **review依頼の直前を単一の同期点にする。** 依頼するrangeを決めた時点でPR本文のhead/rangeと未解決P0/P1を書き換え、それ以外のタイミングでは触らない。「commitのたびに更新する」より守りやすい。

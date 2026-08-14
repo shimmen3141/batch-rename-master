@@ -71,11 +71,20 @@
   - P2×6も解消(plan.mdの`[未到達]`とcovers空の記述、同一節での自己矛盾、`T02`受け入れ証拠の現在形、REQの並びと`REQ-005〜008`の範囲記法、ADR-002のhedgeの非対称)。
 - 2026-08-14 / **3の修正は利用者から観測できる振る舞いを変える**(subfolderが一時的に現れる、markerの無い同名実体があると中止する)。`spec.md`へ**修正A-1として確認待ち**と明記した。
 
+- Review attempt 3: `4fd6ab1..85fba32` — FAIL — P1×2、P2×8。**外部資料の中立性は2回連続で指摘ゼロ**(reviewerがpolicy原文を実取得し7項目突き合わせ)。attempt 2のP1-2(covers)とP1-4(VER-010)は伝播含め解消と確認された。
+  1. **修正A-1そのものに欠陥がある。attempt 1のP1-3が形を変えて残っていた。** markerは所有判定を決定的にするはずだったが、**markerが必ず存在するとは限らない**。(a) subfolderを作ってからmarkerを書くまでの間に中断すると、**markerを持たない自分のsubfolder**が残る。それは「利用者のもの」と分類されて削除されず、REQ-007(3)で中止し、**そのfolderで永久に改名できなくなる**。しかも提示は「利用者の実体と衝突した」と事実に反する。(b) REQ-006の観測でmarkerを踏まないことが仕様で閉じていない(REQ-010が「名前が移動する」と明記しているのに、移動先がmarker名に当たる実装を禁じていない)。**`spec.md`の「中断で残った実体は必ずmarkerを伴う」は根拠なく断言していた。**
+  2. **PR本文の`review base/head/range`が旧headのままだった。** これはattempt 2のP1-1で名指しされた項目であり、**その根本原因を記録したfinding自身のforward-testを、findingを追加したcommitが壊した**。同じ根本原因の3回目。
+  - P2×8: ADR-002に`minSdk`の未解決記述が残存(訂正が一部fileで止まる型の再発)、REQ-007(3)の「削除できない」が削除試行を許す読みを残す、INV-002の「内側だけ」がsubfolder自体の作成・削除と矛盾しVER-005がすり抜ける、REQ-005の「代理として成立する」が同一mountを十分条件のように断定している(未検証項目に依存)、並行preflightが未定義、subfolderの外部可視性(MediaStore・gallery・同期app)が未定義、`T09`の`dependsOn`にT06/T07が無い、PR本文が「引用しない方針」と書いた段落で逐語引用している、`Evidence revision`が修正A-1の確認待ちを含んでいない。
+  - **reviewerの判断: この状態でmergeしてはならない。** `Status: approved`の直下に「本文の一部は未承認」と書くとstatusが二値になり、downstreamの`T09`は承認済みの入力として受け取る。AGENTS.mdのauto-merge条件6を満たさない。
+- 2026-08-14 / **3回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+  - **否定された仮定**: 「markerを第二条件にすれば所有判定は決定的になる」。**決定的なのはmarkerが存在するときだけで、markerを書く前の窓と、観測がmarkerを壊す経路が残る。** attempt 1のP1-3(削除判定を名前だけに置いた)と根本は同じで、**複数stepの操作へ単一stepの不変条件を仮定した**点が共通している。穴を閉じたつもりで小さく移動させただけだった。
+  - **P1-2の否定された仮定**: 「訂正の伝播先を`grep`で全文横断すれば足りる」。findingでPR本文を伝播先に含めたが、**その直後のcommitで自分のrangeを進めながらPR本文を更新しなかった。** 伝播先の列挙を一度書くだけでは足りず、**成果物を変えるたびに再評価する必要がある。**
+
 ## Current state / handoff
 
-- Last checkpoint: review attempt 2のP1×4とP2×6を解消。`T09`を新設した
+- Last checkpoint: **review attempt 3もFAIL。3回連続のため自動修正を停止した**
 - Blocker category: decision
-- Waiting for: `spec.md`**修正A-1**の確認(REQ-011をsubfolder + marker方式へ変えた)
-- Requested action: REQ-011・INV-002・REQ-007の書き換えを確認する
-- Evidence revision: `dev@4fd6ab1` + ADR-002 + `spec.md` re-approval 2026-08-14
-- Next Agent action: 確認後にattempt 3を起動し、PASSならmergeして`T03`と`T04`へ進む。両者は並列可
+- Waiting for: **REQ-011の所有判定をどう閉じるかの人間の判断。** markerだけでは足りないことが判明した
+- Requested action: 空のmarkerless subfolderを回収可能にするか、一時名→正規名の2段階作成で所有の確立を不可分にするか、両方採るかを決める
+- Evidence revision: `dev@4fd6ab1` + ADR-002 + `spec.md` re-approval 2026-08-14(**修正A-1は未承認かつ欠陥あり**)
+- Next Agent action: **勝手に直さない。** 判断を受けてからREQ-011を書き直し、P2を解消し、attempt 4を起動する
