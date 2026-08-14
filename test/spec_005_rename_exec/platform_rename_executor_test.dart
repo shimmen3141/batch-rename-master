@@ -154,10 +154,11 @@ void main() {
       // **それは自分自身である。** `FileSystemEntity.identical` がfilesystemへ
       // 問い合わせて判定するので、case感度をアプリ側で推測しない。
       //
-      // **このtestはLinuxでは自己衝突の経路を通らない**(case-sensitiveなので
-      // 目標名は実在せず、通常の改名として成功する)。case-insensitiveな
-      // filesystemでの回帰ガードであり、containerでは実測できない。
-      // **能動的に検査できているのは次のtest(別の実体があれば衝突)だけである。**
+      // **Linux(case-sensitive)ではこのtestは自己衝突の分岐を通らない** —
+      // 目標名が実在しないので、通常の改名として成功する。case-insensitiveな
+      // filesystemでの回帰ガードである。
+      //
+      // **自己衝突の分岐そのものは、次のhard linkのtestがLinuxで能動的に検査する。**
       final source = File(p.join(directory.path, 'Photo.jpg'));
       await source.writeAsString('kept-content');
 
@@ -186,6 +187,82 @@ void main() {
       expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
       expect(await other.readAsString(), 'other-content');
       expect(await source.readAsString(), 'source-content');
+    });
+
+    test('目標名が hard link なら、同じ実体でも衝突として扱う(REQ-025 / INV-003)', () async {
+      // `FileSystemEntity.identical` が答えるのは「同じ**実体**か」であって
+      // 「同じ**directory entry** か」ではない。hard linkは別の名前が同じ
+      // inodeを指すので `identical` は true を返すが、それは自分自身ではない。
+      //
+      // 見逃すと、POSIXの`rename()`が「同じfileの別entry」に対して**何もせず
+      // 成功を返す**ため、実体が動いていないのに改名済みとして記録される
+      // (INV-003違反)。**この経路はLinuxで再現できる。**
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+      final link = File(p.join(directory.path, 'b.txt'));
+      final result0 = await Process.run('ln', [source.path, link.path]);
+      expect(result0.exitCode, 0, reason: 'hard linkを作れること: ${result0.stderr}');
+
+      final result = await DesktopRenameExecutor().rename(source.path, 'b.txt');
+
+      expect(
+        (result as RenameFailed).error.kind,
+        RenameErrorKind.nameConflict,
+        reason: '改名していないのに成功を返してはならない',
+      );
+      expect(await source.exists(), isTrue);
+      expect(await link.exists(), isTrue);
+    });
+
+    test('case-insensitiveなfilesystemを模すと、自己衝突は改名として通る(REQ-025)', () async {
+      // **Linuxの実FSではこの条件を作れない**(目標名が実在し、同じ実体で、
+      // 別entryではない = case/正規化だけの別名)。probeを差し替えて、この機能の
+      // 中心にある分岐を能動的に検査する。
+      final source = File(p.join(directory.path, 'Photo.jpg'));
+      await source.writeAsString('kept-content');
+
+      var exclusiveRenameUsed = false;
+      final executor = DesktopRenameExecutor(
+        probe: _FakeProbe(
+          exists: true,
+          sameEntity: true,
+          exactEntry: false, // 保存されている名前は 'Photo.jpg' なので一致しない
+        ),
+        rename: (from, to) async {
+          exclusiveRenameUsed = true;
+          return NativeRenameResult.nameConflict;
+        },
+      );
+
+      final result = await executor.rename(source.path, 'photo.jpg');
+
+      expect(result, isA<Renamed>(), reason: '自己衝突を衝突として扱わない');
+      expect(
+        exclusiveRenameUsed,
+        isFalse,
+        reason: '排他renameは使わない(macOSのRENAME_EXCLは自己衝突でもEEXISTを返す)',
+      );
+      expect(
+        await File(p.join(directory.path, 'photo.jpg')).readAsString(),
+        'kept-content',
+      );
+    });
+
+    test('同じ実体でも別entryなら衝突として扱う(probe差し替え)', () async {
+      // 上のtestの裏。`isSameEntity` が真でも `hasExactEntry` が真なら
+      // hard linkであり、自分自身ではない。
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final executor = DesktopRenameExecutor(
+        probe: _FakeProbe(exists: true, sameEntity: true, exactEntry: true),
+        rename: (from, to) async => NativeRenameResult.success,
+      );
+
+      final result = await executor.rename(source.path, 'b.txt');
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(await source.readAsString(), 'kept-content');
     });
 
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
@@ -311,4 +388,27 @@ void main() {
     expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
     expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
   });
+}
+
+/// [DesktopPathProbe] の固定応答版。filesystemのcase感度・正規化感度を
+/// containerで再現できないため、条件そのものを注入する。
+class _FakeProbe implements DesktopPathProbe {
+  _FakeProbe({
+    required bool exists,
+    required this.sameEntity,
+    required this.exactEntry,
+  }) : existsResult = exists;
+
+  final bool existsResult;
+  final bool sameEntity;
+  final bool exactEntry;
+
+  @override
+  Future<bool> exists(String path) async => existsResult;
+
+  @override
+  Future<bool> isSameEntity(String a, String b) async => sameEntity;
+
+  @override
+  Future<bool> hasExactEntry(String path) async => exactEntry;
 }

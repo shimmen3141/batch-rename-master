@@ -36,7 +36,7 @@
 - 005 spec.mdの例24・26・28・29・30に対応するtestがある(VER-008)。
 - **一時名への改名と復旧改名で再採番が起きない**ことをtestで検査する。**片方向だけでは足りない** — 再採番する側としない側の両方を固定する。
 - **desktopで実在確認が行われる**ことをtestで検査する(REQ-025)。**Windows / macOS では未検証**(containerはLinuxのみ)。大文字小文字を区別しないfilesystemでの挙動は`T08`と同じ扱いで、実機確認が要る。
-- **自己衝突をport側で判定する**ことをtestで検査する(自己衝突は衝突として扱わない / 別の実体があれば衝突する)。**実行orchestrationは自己衝突を判定しない。**
+- **自己衝突をport側で判定する**ことをtestで検査する。**3つの述語(実在 / 同一実体 / byte一致のentry)それぞれを外すとtestが落ちること**をmutationで確認する。**「containerでは再現できない」を理由に検査しないまま出さない** — attempt 4で、その理由づけがそのまま不具合を隠した。
 - 生存名の5要素すべてが再採番の照合に効くことをtestで検査する。**特に「すでに確定した結果名」**(review attempt 2のP1-2)。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
@@ -86,13 +86,21 @@
   - **自己衝突と分かったら排他renameを使わない。** macOSの`renamex_np(RENAME_EXCL)`はこの場合も`EEXIST`を返すため、排他renameのままでは塞げなかった。同一実体だと確認済みなので、通常のrenameで上書きされる相手は存在しない(INV-002を破らない)。
   - 判定できない場合(`FileSystemException`)は**「別の実体」として扱う**。誤って同一とみなすと既存を上書きするので、安全側へ倒す。
   - **`_isCaseOnlyChange`を削除した。** 契約に無い除外条項が消え、attempt 3のP1-1(case-sensitiveで正当な再採番まで止める)、P1-2(契約に登録されていない狭め)、P1-3(正規化の軸)が同時に解消した。**実行orchestrationへ届く`nameConflict`は本物の衝突である**と言い切れるようになった。
-  - test: portの2件(自己衝突を衝突として扱わない / 別の実体があれば衝突する)と、orchestrationの1件(原因を問わず再採番する)。**前者はLinuxでは自己衝突の経路を通らない**(case-sensitiveなので目標名が実在しない)ので回帰ガードであり、**能動的に検査できているのは「別の実体があれば衝突」だけ**である。mutationで確認した。`flutter test` — PASS (383、+24)。
+  - test: portとorchestrationの各経路。**当初「Linuxでは自己衝突の経路を通らないので回帰ガードにすぎない」と書いたが、これは誤りだった**(review attempt 4のP1-2)。hard linkがあれば`identical`は真を返すので、**Linuxからその分岐へ到達できる。そして到達した先が誤動作していた**(下記)。
+
+- Review attempt 4: `691d3f5..ba890ea` — FAIL — P1×2、P2×2。`_isCaseOnlyChange`の削除は正しい方向と確認され、symlinkは安全側、再採番orchestrationのtestは本物、PR本文の範囲説明も今回は一致と確認された。
+  1. **P1: `FileSystemEntity.identical`は「同じ実体(dev+inode)か」であって「同じdirectory entryか」ではない。** hard linkは別の名前が同じinodeを指すので真を返す。それを自己衝突とみなして通常のrenameへ進むと、**POSIXの`rename()`は「同じfileの別entry」に対して何もせず成功を返す**ため、実体が動いていないのに改名済みとして記録される(**INV-003違反**)。reviewerが実FSで再現した。**この経路はこのPRが新設した。**
+    - 対処: 判定を2段にした。(1) `identical`で同じ実体か、(2) **親directoryの実際のentry名にbyte一致で存在するか**。hard linkは(2)で真になり衝突側へ、case/正規化の別名は保存されている名前とbyte一致しないので自己衝突側へ落ちる。
+  2. **P1: 自己衝突の分岐に能動的なtestが1件も無かった。** `identical`の呼び出しを削除してもCIが緑だった。しかも**「Linuxでは自己衝突の経路を通らない」という私の自己申告が、そのままP1-1を隠していた。**
+    - 対処: **`DesktopPathProbe`を導入し、3つの述語(実在 / 同一実体 / byte一致のentry)を注入可能にした。** case感度・正規化感度はcontainerの実FSでは再現できないので、条件そのものを注入する。あわせてhard linkの実FS testも足した。**mutationで、3つの述語それぞれを外すとtestが落ちることを確認した。**
+  - P2×2も解消(自己衝突経路のTOCTOUを「無い」と断言していたのを撤回し窓の存在をcodeへ明記、OQ-001の`status`を`partially decided`にして提示文言が未決着であることを残した)。
+  - `flutter test` — PASS (386、+27)。
 
 ## Current state / handoff
 
-- Last checkpoint: 自己衝突の判定をport側へ移し、attempt 3のP1×3を解消
+- Last checkpoint: attempt 4のP1×2・P2×2を解消。自己衝突の判定を2段にし、注入可能にした
 - Blocker category: なし
 - Waiting for: 独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 4を起動する。**case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: attempt 5を起動する。**case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
