@@ -108,9 +108,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: OQ-002〜OQ-006を登録し、P2の伝播漏れを解消。**mergeへ進む**
+- Last checkpoint: **完了。** #138を`dev`へmergeした(merge commit `37031f5`)
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: PR #138をmergeし、`T03`・`T10`・`T11`へ進む。**OQ-002〜OQ-006は実装で決めてrevision 5へ戻す。****契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
+- Evidence revision: `dev@37031f5` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
+- Next Agent action: `T03`・`T10`・`T11`へ進む。**OQ-002〜OQ-006は実装で決めてrevision 5へ戻す。****契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T04",
   "title": "005契約を衝突の採番回避へ改訂する(revision 4)",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T02"
   ],

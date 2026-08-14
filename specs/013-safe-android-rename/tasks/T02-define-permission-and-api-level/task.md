@@ -128,9 +128,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `spec.md`は権限のREQ-001〜006で`approved`。**成果物は未mergeの#138にあるため`in_review`へ戻した**
+- Last checkpoint: **完了。** #138が`dev`へmergeされた(merge commit `37031f5`)
 - Blocker category: なし
-- Waiting for: #138の独立reviewとmerge
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + 005 ADR-002(accepted) + 005 contract revision 4(approved)
-- Next Agent action: #138がmergeされたら`done`にする。**独立reviewのPASSを受けずに`done`にしない**(2026-08-14のreviewでP2として指摘された)
+- Evidence revision: `dev@37031f5` + 013 ADR-002 + 005 ADR-002(accepted) + 005 contract revision 4(approved)
+- Next Agent action: なし。`T03`(004の読み込み導線)が次の仕様task
