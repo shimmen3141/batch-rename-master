@@ -1,6 +1,6 @@
 # リネーム実行(rename-exec) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）。**revision 4は現在`draft`** — 一度approvedとしたあと独立reviewを3回受けて規範文を書き換えたため、再承認を待っている
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）
@@ -62,14 +62,14 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | 22 | 9件中1件だけ空名になる状態で強制実行 | 残り8件は改名され、1件が除外される | REQ-022 |
 | 23 | Android SAFで改名を要求 | provider renameを呼ばず`unsupportedPlatform`で停止し、URIが指す全fileの名前・内容・個数は変わらない | REQ-017, OP-004, INV-001, INV-002 |
 | 24 | desktopで既存名との競合中に別processが目標を作成 | 排他的renameが`nameConflict`で失敗し、sourceと既存targetの内容は変わらない。**その改名要求は失敗として記録されず、次の候補名で再試行される** | OP-004, INV-002, REQ-023 |
-| 25 | 対象folderに、アプリへ読み込んでいない`keep.jpg`があり、改名先が`keep.jpg`になる | **実行前に重複警告として提示される**(読み込んでいないfileとの衝突も検出する) | REQ-004, REQ-011 |
-| 25b | `a.jpg`(選)を`b.jpg`へ、`b.jpg`(選)を`c.jpg`へ改名する | **警告は出ない。** `b.jpg`は選択fileの現在名なので占有名に含まれず、REQ-004が`b→c`を先に行う順序を与える | REQ-004, REQ-011 |
-| 25c | 例22で除外されたfileが`keep.jpg`のまま残り、別のfileの目標名が`keep.jpg`になる | **重複警告として提示される。** 除外されたfileは改名されないので、その現在名は占有名に含まれる | REQ-011, REQ-022 |
+| 25 | 対象folderに、アプリへ読み込んでいない`keep.jpg`があり、改名先が`keep.jpg`になる | **実行前に重複警告として提示される**(読み込んでいないfileとの衝突も検出する)。**他に警告が無くても、確認を経ずに実行へ入らない** | REQ-026, REQ-011 |
+| 25b | `a.jpg`(選)を`b.jpg`へ、`b.jpg`(選)を`c.jpg`へ改名する | **警告は出ない。** `b.jpg`は選択fileの現在名なので占有名に含まれず、REQ-004が`b→c`を先に行う順序を与える | REQ-004, REQ-026 |
+| 25c | 例22で除外されたfileが`keep.jpg`のまま残り、別のfileの目標名が`keep.jpg`になる | **重複警告として提示される。** 除外されたfileは改名されないので、その現在名は占有名に含まれる | REQ-026, REQ-022 |
 | 26 | 例24で再採番が起きた | 結果に「確認した名前と異なる」ことが分かる形で含まれ、利用者へどの項目がどの名前になったか提示される | REQ-024 |
 | 27 | 任意の環境で改名 | **常に**目標名が実在しないことを確認してから改名する。原子的no-replaceがあれば併用する。実在すると判定できたときは改名せず`nameConflict`を返す | REQ-025, INV-002 |
 | 28 | 実行中に再採番が起きたあと巻き戻し | 巻き戻しでは**再採番しない**。元の名前が埋まっていれば`nameConflict`を失敗として扱う(戻せなかった件として区別される) | REQ-023, REQ-008, OP-003 |
-| 29 | 循環解決の一時名への改名が`nameConflict`になった | **再採番しない。** REQ-004の規定に従い失敗として扱う。**利用者が確認していない名前を内部ステップで作らない** | REQ-023, REQ-004 |
-| 30 | 停止時に一時名を元の名前へ戻せない(元の名前が埋まっている) | **再採番しない。** REQ-005の規定に従い、現在名を報告する | REQ-023, REQ-005 |
+| 29 | 循環解決の一時名への改名が`nameConflict`になった | **再採番しない。** REQ-023の除外により、REQ-004の規定に従い失敗として扱う。**利用者が確認していない名前を内部ステップで作らない** | REQ-023, REQ-004, OP-002 |
+| 30 | 停止時に一時名を元の名前へ戻せない(元の名前が埋まっている) | **再採番しない。** REQ-023の除外により、REQ-005の規定に従い現在名を報告する | REQ-023, REQ-005, OP-002 |
 
 ## 自由とする点（実装に委ねる）
 
@@ -105,10 +105,10 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-002 | property | test/spec_005_rename_exec/ | INV-002, OP-001, REQ-004, REQ-005 |
 | VER-003 | example | test/spec_005_rename_exec/ | OP-002, OP-003, REQ-002, REQ-003, REQ-006, REQ-007, REQ-008, INV-001, INV-003, INV-004, INV-005, REQ-001, REQ-005 |
 | VER-004 | model | test/spec_005_rename_exec/ | SM-001, REQ-011, REQ-012, REQ-007, REQ-019, REQ-022 |
-| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022 |
+| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022, REQ-026 |
 | VER-006 | example | test/spec_005_rename_exec/ | REQ-014, REQ-015, REQ-016 |
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
-| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, OP-001, OP-002 |
+| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, REQ-026, INV-002, OP-001, OP-002 |
 
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
 - revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
