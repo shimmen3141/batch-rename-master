@@ -78,11 +78,15 @@
   - **P1-7: 承認後に規範文を書き換えながら`approved`のままだった。** 開発者が承認したのは`0dd858b`時点の本文で、その後REQ-004/011/023/025、INV-002、OP-001/002を書き換えている。特にREQ-025は「no-replaceが無い環境で実在確認」→「**常に**実在確認」へ、全platformの改名ポートの義務を強めた。→ **契約を`draft`へ戻した。再承認を依頼する。**
   - P2×5も解消(PR本文の逐語不一致・task数・T02のcovers記述、VER-008へINV-002、branchの同一性は`T04`側を正本と明記)。
 
+- 2026-08-14 / **開発者がcontract revision 4を再承認。** attempt 1〜3で書き換えた規範文(REQ-026新設、REQ-025を「常に実在確認」へ、REQ-023の除外リスト、OP-001/OP-002の入力とerrors、用語5つ)を含む版が`approved`。
+  - 承認前の自己点検で、**REQ-026への参照がADR-002と`T04`の「触ったID」一覧に伝播していなかった**のを発見して直した(`a5edd64`)。**7回目の伝播漏れになる前に自分で拾えた1件である。**
+  - 機械的に確認したこと: 契約内の参照切れ0件、全REQ/INV/OPがVERに被覆、`spec.md`の検証表と契約`verification`が全行一致(8行)。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 3のP0×1・P1×7・P2×5を解消。**契約を`draft`へ戻した**
-- Blocker category: decision
-- Waiting for: **005 contract revision 4の再承認。** 承認後に規範文を書き換えたため`approved`を名乗れない
+- Last checkpoint: **005 contract revision 4が再承認され`approved`**
+- Blocker category: なし
+- Waiting for: 独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: 再承認を受けてからattempt 4を起動する。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
+- Next Agent action: attempt 4がPASSしたらmergeし、`T03`・`T10`・`T11`へ進む。**契約fileを書き換えたら、書き換え後の値をfileから読み直して確認する**(attempt 3のP0)
