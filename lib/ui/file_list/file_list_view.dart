@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../../data/rename_exec/rename_execution.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
@@ -169,6 +170,36 @@ class _RenameActionBar extends StatelessWidget {
     await _run(context, force: false);
   }
 
+  /// 結果の本文。再採番が起きた項目は**全件**を並べる(REQ-024)。
+  ///
+  /// 件数だけでは「どれが変わったか」が分からず、先頭数件で打ち切ると
+  /// **残りは黙って別の名前になる**。多いときは高さを制限してスクロールさせ、
+  /// 落とさない。
+  Widget _resultContent(String summary, List<SuccessfulRename> renumbered) {
+    if (renumbered.isEmpty) return Text(summary);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(summary),
+        const SizedBox(height: 4),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 96),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final s in renumbered)
+                  Text('${s.confirmedName} → ${s.newName}'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _run(BuildContext context, {required bool force}) async {
     final execution = this.execution!;
     final outcome = await execution.execute(force: force);
@@ -185,11 +216,6 @@ class _RenameActionBar extends StatelessWidget {
     ];
     if (renumbered.isNotEmpty) {
       message.write('。実行中に名前が使われていたため ${renumbered.length} 件の名前が変わりました');
-      final shown = renumbered
-          .take(3)
-          .map((s) => '${s.confirmedName} → ${s.newName}');
-      message.write('(${shown.join('、')}');
-      message.write(renumbered.length > 3 ? ' ほか)' : ')');
     }
     final failure = outcome.failure;
     if (failure != null) {
@@ -203,7 +229,7 @@ class _RenameActionBar extends StatelessWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message.toString()),
+        content: _resultContent(message.toString(), renumbered),
         // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
         // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
         duration: execution.undoWindow,

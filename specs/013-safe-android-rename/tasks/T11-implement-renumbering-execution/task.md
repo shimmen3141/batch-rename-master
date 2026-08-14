@@ -35,11 +35,13 @@
 
 - 005 spec.mdの例24・26・28・29・30に対応するtestがある(VER-008)。
 - **一時名への改名と復旧改名で再採番が起きない**ことをtestで検査する。**片方向だけでは足りない** — 再採番する側としない側の両方を固定する。
-- **desktopで実在確認が行われる**ことをtestで検査する(REQ-025。現状の実装は満たしていない)。
+- **desktopで実在確認が行われる**ことをtestで検査する(REQ-025)。**Windows / macOS では未検証**(containerはLinuxのみ)。大文字小文字を区別しないfilesystemでの挙動は`T08`と同じ扱いで、実機確認が要る。
+- **大文字小文字だけの改名が衝突しても再採番しない**ことをtestで検査する。除外が広すぎないこと(中身の違う改名は通常どおり再採番する)も併せて固定する。
 - 生存名の5要素すべてが再採番の照合に効くことをtestで検査する。**特に「すでに確定した結果名」**(review attempt 2のP1-2)。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
-- **OQ-001〜OQ-006のうち、このtaskが所有する分が決着し、契約revision 5として反映されている。**
+- **OQ-001とOQ-005が決着している。** ただし**契約revision 5への反映は`T10`が行う**(`T10`の受け入れ証拠に書いた) — `T10`のOQ-004/OQ-006と同時に承認を取るほうが、人間へ一度で問える。**このtaskの完了は「決着したこと」までで、契約への反映を条件にしない。**
+- **OQ-002(REQ-027のSM-001遷移)とOQ-003(`occupiedNames`の全域性)は`T10`へ移す。** どちらも占有名の供給元が要り、このtaskの範囲では決められない。
 - exact rangeの独立reviewがPASSする.
 
 ## 作業記録
@@ -64,11 +66,17 @@
   3. **P1: REQ-024の「利用者へ提示」が実装されていなかった。** `renumbered`/`confirmedName`を読むcodeが`lib/`に1つも無く、利用者は確認した名前と違う結果になった事実に気づけない。**PR本文は「UIから読める」と書いており、事実より広い説明だった。** → 結果トーストへ「実行中に名前が使われていたため N 件の名前が変わりました(旧 → 新)」を出し、widget testを2件(出る側・出ない側)追加した。
   - P2×7も解消(`unchanged`分岐が`recordSettled`を呼ばない依存の明示、`nextCandidateName`と`autoResolve`の拡張子境界の違いをdocへ、構造ガードtestの位置づけをcommentへ、group名、`defaultFolderOf`の暫定性、契約revision 5の所有を`T10`へ明記、PR本文のstatus)。
 
+- Review attempt 2: `691d3f5..39183a9` — FAIL — P1×2、P2×6。attempt 1のP1-1(接尾辞の入れ子)とP1-3(REQ-024の提示)は**mutationで解消を確認**された。
+  1. **P1: `p.equals`は大文字小文字を無視しない。** `package:path`のcase非依存比較は**Windows styleにしか実装されていない**(`windows.dart`にしかoverrideが無く、macOSは`posix` style)。reviewerが`Style.platform`と`equals`を実測して示した。**私の修正はWindowsでしか効かず、コメントとtask.mdは「macOS(APFS既定)も」と事実より広く書いていた。** macOSでは`Photo.jpg -> photo.jpg`が再採番され、`photo (1).jpg`が確定する。**これはattempt 1でこのPRが新設した経路である**(それ以前は失敗として止まっていた)。
+    - 対処: **同一実体の判定をやめた。** Dartからinodeを見る手段が無く、判定を誤ると**別の実体を上書きする**。代わりに**実行orchestration側で「大文字小文字だけの改名は再採番しない」**を保証する(`_isCaseOnlyChange`)。衝突したら失敗として提示し、利用者に判断させる — attempt 1以前の振る舞いへ戻る。**Windows / macOSが未検証であることをcode・task.md・PR本文の3箇所へ書いた。**
+  2. **P1: REQ-024の提示が4件目以降を落としていた。** `take(3)` + 「ほか」で、**残りは黙って別の名前になる**。`occupiedNames`がまだ供給されていない現状では、folderに読み込んでいない同名fileがあるだけで多数同時に起きるため、**再採番が最も起きやすい今の状態で提示が打ち切られる**。→ 全件を並べ、多いときは高さを制限してスクロールさせる。4件のwidget testで固定した(`skipOffstage: false`で数える — 主眼は「打ち切らない」ことであって画面内の見た目ではない)。
+  - P2×6も解消(OQ-002/OQ-003のownerを`T10`へ移動、`T11`の受け入れ証拠から「revision 5として反映」を外す、005 `spec.md`のtest未存在の記述、`covers`、失敗時の提示文言はOQ-001の未決着分として残す旨)。
+
 ## Current state / handoff
 
-- Last checkpoint: review attempt 1のP1×3・P2×7を解消。`flutter test` — PASS (379、+20)
+- Last checkpoint: review attempt 2のP1×2・P2×6を解消。`flutter test` — PASS (382、+23)
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 2を起動する。**契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: attempt 3を起動する。**契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない

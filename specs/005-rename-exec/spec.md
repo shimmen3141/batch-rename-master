@@ -112,7 +112,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
 | VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, REQ-026, REQ-027, INV-002, OP-001, OP-002 |
 
-- **VER-005 の REQ-026 と VER-008 に対応する test は、まだ `test/spec_005_rename_exec/` に存在しない。** revision 4 で新設した要求であり、実装は `013:T10` / `013:T11` が持つ。005 のタスクはすべて `done` なので、ここを読んだだけでは被覆済みに見える。
+- **VER-008(REQ-023 / REQ-024 / REQ-025)の test は `013:T11` が追加した**(`test/spec_005_rename_exec/renumbering_test.dart` ほか)。**VER-005 の REQ-026 と REQ-027 に対応する test はまだ無い** — 占有名の供給は `013:T10` が持つ。005 のタスクはすべて `done` なので、ここを読んだだけでは被覆済みに見える。
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
 - revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
 

@@ -90,10 +90,18 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         followLinks: false,
       );
       // 「実体があるか」ではなく「**別の実体**があるか」で判定する。
-      // Windows(NTFS)やmacOS(APFS既定)は大文字小文字を区別しないので、
-      // `img_01.JPG -> img_01.jpg` のような改名で目標名が「実在する」ことに
-      // なる。生の文字列比較で除外すると、**自分自身を衝突と誤判定**して
-      // 再採番へ落ち、利用者が確認していない `img_01 (1).jpg` が確定する。
+      //
+      // `p.equals` が大文字小文字を無視するのは **Windows style のときだけ**
+      // である(`package:path` の case 非依存比較は windows.dart にしかない)。
+      // したがって macOS や case-insensitive にmountしたfilesystemでは、
+      // `img_01.JPG -> img_01.jpg` のような改名がここで `nameConflict` になる。
+      //
+      // **その先で再採番されないことは実行orchestration側が保証する**
+      // (`_isCaseOnlyChange`)。ここで無理に同一実体を判定しようとしない —
+      // Dartからinodeを見る手段が無く、判定を誤ると**別の実体を上書きする**。
+      // 失敗として返すほうが安全側である。
+      //
+      // **Windows / macOS では未検証**(containerはLinuxのみ)。
       if (destinationType != FileSystemEntityType.notFound &&
           !p.equals(destination, handle)) {
         return RenameFailed(

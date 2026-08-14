@@ -196,6 +196,9 @@ Future<RenameOutcome> executePlan(
     // 内部ステップなので、衝突しても再採番しない(利用者が確認していない名前を
     // 内部ステップで作らない)。
     final renumberable = step.kind == RenameStepKind.target;
+    // このstepを始める時点の名前(一時名を経由していればその一時名)。
+    String currentNameOf(RenameStep s) =>
+        atTemporaryName[s.request] ?? s.request.originalName;
     var attemptName = step.newName;
     var attempts = 0;
     // 実行時に衝突が観測された名前。生存名へ足して、次の候補が同じ名前へ
@@ -228,9 +231,15 @@ Future<RenameOutcome> executePlan(
       }
 
       final error = (result as RenameFailed).error;
+      // 大文字小文字だけが違う改名(`Photo.jpg -> photo.jpg`)は、
+      // 大文字小文字を区別しないfilesystemでは**自分自身との衝突**として
+      // 返りうる。これを再採番すると、利用者が確認していない `photo (1).jpg`
+      // が確定する。**再採番しない** — 失敗として提示し、利用者に判断させる。
+      final caseOnly = _isCaseOnlyChange(currentNameOf(step), attemptName);
       final retriable =
           renumberable &&
           error.kind == RenameErrorKind.nameConflict &&
+          !caseOnly &&
           attempts < renumberLimit;
       if (!retriable) {
         failure = FailedRename(
@@ -420,3 +429,12 @@ class _LiveNames {
     return names;
   }
 }
+
+/// [from] と [to] が**大文字小文字だけ違う**か。
+///
+/// 大文字小文字を区別しないfilesystem(Windows、macOSのAPFS既定、
+/// case-insensitiveにmountしたexFAT/NTFS等)では、この形の改名で目標名が
+/// 「実在する」ことになり、`nameConflict` が返りうる。**自分自身との衝突**な
+/// ので再採番してはならない(REQ-023の趣旨: 利用者が確認していない名前を作らない)。
+bool _isCaseOnlyChange(String from, String to) =>
+    from != to && from.toLowerCase() == to.toLowerCase();
