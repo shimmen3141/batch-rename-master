@@ -119,7 +119,7 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 ### 採用したことによる帰結
 
 - 005 contractは**変えない**。INV-002へのplatform例外を作らない。
-- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。`013:T02`で人間へ問う。
+- `minSdk`の扱いを決める。`renameat2`が**bionicのwrapperとして**公開されたのはAPI 30とされるが、これは検索結果の要約で原文を読めていない [未到達]。しかも**生のsyscallを使えばwrapperの有無に依存しない**(S-2のbinaryは`android24`向けにビルドして動作した)。制約はlibcではなくkernelとfilesystemの側にある。選択肢は「30へ上げる」「24のまま生syscallで呼び動かない端末を実行時に検出する」「API levelで一律分岐する」の少なくとも3つ。**2026-08-13に開発者が2案目を決定した**(`013`の`spec.md` D-1)。
 - 004のAndroid読み込み導線を作り直し、specを再承認する。**この権限があっても`/Android/data/`、`/sdcard/Android`とその大半のsubdirectory、他appのapp固有directoryへは書けない** [一次]。app内file browserがそこを改名できないことを、`T03`で利用者から見える形にする。
 - 採用後に、S-2で残した未検証を`013:T08`で確かめる。**7項目ある**([`research-matrix.md`](../tasks/T01-decide-storage-boundary/research-matrix.md)の「S-2で残った未検証」と同じ集合)。
   1. **appのmount view**(`MANAGE_EXTERNAL_STORAGE`を持つapp自身。今回は`shell` uidからの観測)
@@ -135,7 +135,7 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 
 ### 未解決のまま残る決定
 
-- **`minSdk`をどうするか。** 上記3案。`013:T02`で人間へ問う。
+- ~~**`minSdk`をどうするか。**~~ **2026-08-13に決着。24のまま、対応可否を実行時に判定する**(`013`の`spec.md` D-1)。API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため。
 - **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
 - **Permissions Declaration Formの提出内容と、store説明文への記載。** リリース時の人間の作業である。policyは「core functionalityがappの説明文で目立つ形に記載・訴求されていること」を求める。**実装が終わってから考えると間に合わない**ので、`T03`の設計時に「何を主目的として説明するか」を決めておく。
 

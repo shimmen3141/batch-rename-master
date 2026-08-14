@@ -80,11 +80,19 @@
   - **否定された仮定**: 「markerを第二条件にすれば所有判定は決定的になる」。**決定的なのはmarkerが存在するときだけで、markerを書く前の窓と、観測がmarkerを壊す経路が残る。** attempt 1のP1-3(削除判定を名前だけに置いた)と根本は同じで、**複数stepの操作へ単一stepの不変条件を仮定した**点が共通している。穴を閉じたつもりで小さく移動させただけだった。
   - **P1-2の否定された仮定**: 「訂正の伝播先を`grep`で全文横断すれば足りる」。findingでPR本文を伝播先に含めたが、**その直後のcommitで自分のrangeを進めながらPR本文を更新しなかった。** 伝播先の列挙を一度書くだけでは足りず、**成果物を変えるたびに再評価する必要がある。**
 
+- 2026-08-14 / **開発者がREQ-011の閉じ方を決定: 「2段階作成 + 空の回収」の両方。**
+  - **2段階作成**: 一時名でsubfolderを作り、markerを書き終えてから正規名へrenameする。directoryのrenameは不可分なので、**正規名にあるsubfolderは必ずmarkerを持つ**。
+  - **空の回収**: 名前が規則に合致する**空の**subfolderは自分の残骸として回収する。空directoryの削除は利用者のデータを一切壊さないので、INV-002と両立する。
+  - **両方要るのは、片方だけでは窓が残るため。** 2段階だけでは一時名の空残骸が溜まってINV-004を破り、空の回収だけでは正規名にmarkerの無いsubfolderが現れうる。
+  - あわせて「**markerを観測の対象にしない**」をREQ-011へ明記し、VER-007を5項目へ拡張した。
+  - P2×8も解消(ADR-002の`minSdk`未解決記述、REQ-007を4経路へ整理し削除試行を禁止、INV-002を「利用者の実体に触れない」へ、REQ-005の代理成立を**前提(未検証)**として`T08`へ回す、並行preflightの前提を明記、subfolderの外部可視性を範囲外としつつ隠蔽方針を`T09`へ、`T09`の`dependsOn`へT06/T07、PR本文の逐語引用を除去)。
+  - `spec.md`は**単一の値で`draft`**へ。再承認を待つ。
+
 ## Current state / handoff
 
-- Last checkpoint: **review attempt 3もFAIL。3回連続のため自動修正を停止した**
+- Last checkpoint: 開発者の方針決定を受けてREQ-011を書き直し、attempt 3のP1×2とP2×8を解消した
 - Blocker category: decision
-- Waiting for: **REQ-011の所有判定をどう閉じるかの人間の判断。** markerだけでは足りないことが判明した
-- Requested action: 空のmarkerless subfolderを回収可能にするか、一時名→正規名の2段階作成で所有の確立を不可分にするか、両方採るかを決める
-- Evidence revision: `dev@4fd6ab1` + ADR-002 + `spec.md` re-approval 2026-08-14(**修正A-1は未承認かつ欠陥あり**)
-- Next Agent action: **勝手に直さない。** 判断を受けてからREQ-011を書き直し、P2を解消し、attempt 4を起動する
+- Waiting for: `spec.md`の**再承認**(REQ-011を2段階作成 + 空の回収へ変えた)
+- Requested action: REQ-011・REQ-007・INV-002・REQ-005の注記・VER-007を確認する
+- Evidence revision: `dev@4fd6ab1` + ADR-002 + 2026-08-14の開発者方針決定(REQ-011の閉じ方)
+- Next Agent action: 再承認後にattempt 4を起動する。**PASSしてもmergeの前に`spec.md`が単一値で`approved`であることを確かめる**

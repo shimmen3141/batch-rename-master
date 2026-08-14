@@ -5,7 +5,9 @@
   "status": "pending",
   "dependsOn": [
     "T04",
-    "T05"
+    "T05",
+    "T06",
+    "T07"
   ],
   "covers": [
     "REQ-005",
