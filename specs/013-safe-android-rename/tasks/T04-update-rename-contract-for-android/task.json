@@ -2,12 +2,12 @@
   "schema": "asdd.task/v1",
   "id": "T04",
   "title": "005契約のAndroid経路を更新する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T02"
   ],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 138,
   "manualVerification": null
 }

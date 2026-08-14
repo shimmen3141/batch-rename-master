@@ -37,7 +37,7 @@
 - 契約の差分がINV-002 / INV-003 / OP-004を緩めていないことを、差分から読める形で示す。
 - `spec.md`の検証表が契約の`verification`と全行一致する(005で一度driftさせた箇所)。
 - **人間による契約の再承認**(revision 4)。
-- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。
+- 承認されたREQ IDをT05とT10の`task.json`の`covers`へ書く。**`task.json`の`covers`は所属planのspecへ解決される**ため、005契約のREQ IDはここへ書かない(同じ番号が013 specの別要求と衝突する)。**このtaskが触った005側のIDは次のとおり**: REQ-004、REQ-011、REQ-018、REQ-023、REQ-024、REQ-025、INV-002、INV-003、OP-004、VER-008。
 - **再採番の経路がtestで検査できる形になっていること。** `nameConflict`を注入し、次の候補名で再試行し、結果に「確認した名前と異なる」が現れることを検査する。
 - **preflightに関する記述が契約・spec・taskのどこにも残っていないこと**(2026-08-14に削除した)。
 - 005の既存test(Android未対応のnegative testを含む)がどう変わるかを明示する。**退避経路のため、未対応adapterとそのtestは削除しない**(ADR-002)。
@@ -49,11 +49,13 @@
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 
+- 2026-08-14 / **開発者がcontract revision 4を承認。** `status: approved`、ADR-002を`accepted`にした。005 `spec.md`へ代表例25〜27とVER-008を足し、契約と一致させた。013側はpreflightの記述を全taskから除き、`T09`削除・`T10`新設まで反映した。PR #138。
+
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T02`のAPI level方針
+- Last checkpoint: **005 contract revision 4がapproved。** PR #138で独立review待ち
+- Blocker category: なし
+- Waiting for: 独立review
 - Requested action: なし
-- Evidence revision: `dev@ec2e74f` + ADR-002
-- Next Agent action: `T02`承認後に着手する。契約の差分は最小にし、platform例外を作らないことを最優先で確認する
+- Evidence revision: `dev@4fd6ab1` + 013 ADR-002 + [005 ADR-002](../../../005-rename-exec/decisions/ADR-002-collision-resolution-by-numbering.md)(accepted) + 005 contract revision 4(approved 2026-08-14)
+- Next Agent action: reviewがPASSしたらmergeし、`T03`と`T10`へ進む。004の仕様改訂で範囲が重なるので着手時に調整する
