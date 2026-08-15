@@ -23,7 +23,7 @@
 - **再採番のループ**: `nameConflict` → 次候補 → 再試行。試行上限と、`renumber`が`null`を返したときの失敗記録。
 - **一時名・復旧改名・巻き戻しでは再採番しない**(REQ-023)。**利用者が確認していない名前を内部ステップで作らない。**
 - **結果の提示**(REQ-024): 再採番された項目が「確認した名前と異なる」と分かる形。
-- **改名ポート**(REQ-025): **常に**実在確認してから改名し、原子的no-replaceがあれば併用する。desktopとAndroidの両方。
+- **改名ポート**(REQ-025): **常に**実在確認してから改名し、原子的no-replaceがあれば併用する。**desktopのみ実質的に実装される** — Android production経路(`saf_rename_executor.dart`)はrevision 2の未対応のままで`unsupportedPlatform`を返すので、**REQ-025はAndroidでは空虚に成立している**(実装したのは`T05`以降)。
 
 ## 決めること
 
@@ -168,18 +168,25 @@
   - P2×4も解消(PR本文のrange、退避失敗を`nameConflict`へ倒す件をOQ-008として登録、`String.hashCode`が同一buildの範囲でしか一致しない旨を005 specへ、mutation表へ2種追加)。
   - **mutation表のパターンが構造変更で4件`SKIP`になった。** scriptが`SKIP`を`KILLED`と誤認しない設計だったので気づけた。パターンを更新して**29/29 KILLED**。
 
+- **Review attempt 12: `691d3f5..9835f11` — PASS。** P0/P1なし、P2×5。**12回目にしてP1がゼロになった。** reviewerが読解ではなく実行で確かめた — 1段目成功後の`await` 5箇所すべてがtry内であること、`temporary`確定から`try {`の間に`await`が無いこと、`_rollbackAfter`がthrowしえないこと、`_ThrowsAt`がFS状態ログの実測で狙った段階に当たっていること。**11回続いた「前回の修正で新設した面に穴が移る」型は再現しなかった。**
+  - P2×5を解消: PR本文の「22種」を29種へ、**fakeへ到達判定(`reachedStage`)を持たせて狙った段階に当たったことをassert**(最優先とされた。代理依存のままだと同じ照準ずれが再発する)、巻き戻し失敗testへFSの実状態のassert、OQ-007へ**INV-005への波及**、005 specへ`StrandedFile.currentName`の食い違い。
+- Review attempt 13: `691d3f5..6d07e81` — FAIL — P1×1、P2×3。**コード上の指摘は0件。** `git diff 9835f11..6d07e81 -- lib/ tool/`が空であることが確認され、`reachedStage`が狙った段階でのみ立つこと、想定した劣化(候補probeの削除)を実際に検出できることも実測された。
+  1. **P1: `task.md`がHEADに追いついていなかった。** attempt 12のPASSも、そのP2×5も、解消したcommitも作業記録に無く、handoffは「attempt 12を起動する」のままだった。**AGENTS.mdはhandoffを正本とするので、ここから再開したAgentは解消済みのrangeをattempt 12として再reviewする。** 同型の陳腐化はattempt 6・7でもP1判定されている。
+  - P2×3も解消(**AndroidのREQ-025が空虚**である旨、巻き戻し失敗testの内容assert、fakeの`_movedAway`を「退避先をprobeしたか」の代理からFS観測へ)。
+  - **merge可否の判断材料も得た** — auto-merge 7条件のうち、3・4・7は成立、1(Draft)と2(review)は手続き上のもの、6はP1-1のみ。**未検証領域(case-insensitive FSの実挙動、Android実機)はblockerにしない**というreviewerの見解: この設計は「判定しない」ので、FSがどちらに答えても**両分岐とも安全側に閉じている**。5(UI・実機証拠)は**人間の判断領域**とされた。
+
 - 2026-08-15 / **開発者の指示で独立reviewを一旦停止し、その後再開した。** attempt 1〜10はすべてFAILだったが、**P1の件数は 3→5→3→2→2→3→3→1 と減っており、attempt 6以降は「判定の外側に反例」型の穴が1件も出ていない**(設計変更が効いている)。
   - **未reviewの差分がある**: attempt 10のP1×1(観測済みの衝突を退避の失敗で捨てない)とP2×5の修正は、まだ独立reviewを受けていない。
   - **mergeしていない。** PR #139はDraftのまま。
 
 ## Current state / handoff
 
-- Last checkpoint: attempt 11のP1×2・P2×4を解消。1段目成功以降を構造で巻き戻し保証。mutation 29/29 KILLED
+- Last checkpoint: **attempt 12がPASS**(P0/P1なし)。attempt 13のP1×1(記録の遅れ)とP2×3も解消した
 - Blocker category: なし
-- Waiting for: 独立review(attempt 12)
+- Waiting for: 独立review(attempt 14)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 12を起動する。次の5点を守る。
+- Next Agent action: attempt 14を起動し、PASSならmergeする。**mergeの前に7条件を確認する。** 次の5点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**

@@ -403,6 +403,11 @@ void main() {
           .map((e) => p.basename(e.path))
           .toList();
       expect(left.single, startsWith('a.txt.renaming-swap-'));
+      expect(
+        await File(p.join(directory.path, left.single)).readAsString(),
+        'kept-content',
+        reason: '残っているのは元の実体である',
+      );
     });
 
     test('一時名が埋まっていたら次の候補を試す', () async {
@@ -713,12 +718,23 @@ class _ThrowsAt implements DesktopPathProbe {
   /// (review attempt 11で10回分それが起きた)。
   bool reachedStage = false;
 
-  bool _movedAway = false;
+  /// 退避が**実際に起きたか**をFSで観測する。
+  ///
+  /// 「退避先をprobeしたか」で代理判定すると、候補probeと退避renameの間に
+  /// 別のprobeが挿入されたときに照準がずれる(attempt 13のP2-3)。
+  bool _movedAway(String path) => Directory(
+    p.dirname(path),
+  ).listSync().any((e) => p.basename(e.path).contains('renaming-swap'));
 
   @override
   Future<bool> exists(String path) async {
+    if (p.basename(path).contains('renaming-swap')) {
+      return false; // 退避先は空いている
+    }
+    final moved = _movedAway(path);
     final isDestination = p.basename(path) == p.basename(destination);
-    if (isDestination && _movedAway) {
+    if (isDestination) {
+      if (!moved) return true; // 改名前の実在確認
       // 再観測(退避後に目標名を見ている)。
       if (stage == 'reobserve') {
         reachedStage = true;
@@ -726,15 +742,11 @@ class _ThrowsAt implements DesktopPathProbe {
       }
       return true; // 別の実体がある → 巻き戻しへ
     }
-    if (p.basename(path).contains('renaming-swap')) {
-      _movedAway = true; // 次の目標名の問い合わせは再観測である
-      return false; // 退避先は空いている
-    }
-    if (_movedAway && stage == 'rollback') {
+    if (moved && stage == 'rollback') {
       reachedStage = true;
       throw const FileSystemException('boom'); // 巻き戻し先の確認
     }
-    return isDestination;
+    return false;
   }
 }
 
