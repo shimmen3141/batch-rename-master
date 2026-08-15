@@ -129,7 +129,11 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     }
   }
 
-  /// 一時名を経由して [destination] へ改名する(case-only改名の経路)。
+  /// 一時名を経由して [destination] へ改名する。
+  ///
+  /// **目標名に実体があるときの経路であり、case-only改名専用ではない。**
+  /// ありふれた重複名もここを通る。再採番(REQ-023)が繰り返されると、
+  /// **1件の改名要求につき最大`renumberLimit + 1`回この経路を通る**。
   ///
   /// 1. 排他renameで **一意な一時名** へ退避する。一意なので衝突しない。
   /// 2. **目標名をもう一度観測する。** 退避で元の名前が空いたので、目標名の実体が
@@ -172,12 +176,23 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         break;
       }
       if (result != NativeRenameResult.nameConflict) {
-        return RenameFailed(_nativeError(result, handle, candidate));
+        // **観測済みの衝突を捨てない。** この関数へ入った時点で、目標名に
+        // 実体があることをprobeで肯定的に観測している。退避が別の理由で
+        // 失敗したからといって`io`等を返すと、呼び出し側の再採番
+        // (REQ-023)は`nameConflict`しか拾わないので**再採番されず実行全体が
+        // 止まる**。内部の失敗理由は本文へ併記する。
+        return RenameFailed(
+          _conflictWithDetail(destination, result, handle, candidate),
+        );
       }
     }
     if (temporary == null) {
+      // 同上。衝突は観測済みなので`nameConflict`として返し、再採番へ繋ぐ。
       return RenameFailed(
-        RenameError(RenameErrorKind.io, '一時名を確保できません: $handle'),
+        RenameError(
+          RenameErrorKind.nameConflict,
+          '同名のファイルが既に存在します: $destination(一時名を確保できませんでした)',
+        ),
       );
     }
 
@@ -256,6 +271,21 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     );
   }
 
+  /// 観測済みの衝突を`nameConflict`として返しつつ、内部の失敗理由を併記する。
+  static RenameError _conflictWithDetail(
+    String destination,
+    NativeRenameResult result,
+    String source,
+    String candidate,
+  ) {
+    final detail = _nativeError(result, source, candidate);
+    return RenameError(
+      RenameErrorKind.nameConflict,
+      '同名のファイルが既に存在します: $destination'
+      '(一時名への退避に失敗: ${detail.message ?? detail.kind.name})',
+    );
+  }
+
   /// 一時名のbase。`.renaming-swap-N` を足しても `NAME_MAX`(255 byte)を
   /// 超えないよう、**byte長で**切り詰める。
   ///
@@ -268,12 +298,18 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     final bytes = utf8.encode(name);
     final room = limit - suffix.length;
     if (bytes.length <= room) return name;
-    var cut = room;
-    // UTF-8のcode point境界で切る。
+    // **切り詰めると元の名前が読めなくなる。** 同じ前置を持つ別fileの残骸と
+    // 区別できるよう、元名から求めた短いhashを付ける。
+    final digest = name.hashCode
+        .toUnsigned(32)
+        .toRadixString(16)
+        .padLeft(8, '0');
+    var cut = room - digest.length - 1;
+    // UTF-8のcode point境界で切る。境界の途中(continuation byte)なら戻る。
     while (cut > 0 && (bytes[cut] & 0xC0) == 0x80) {
       cut -= 1;
     }
-    return utf8.decode(bytes.sublist(0, cut), allowMalformed: true);
+    return '${utf8.decode(bytes.sublist(0, cut))}-$digest';
   }
 
   static RenameError _nativeError(

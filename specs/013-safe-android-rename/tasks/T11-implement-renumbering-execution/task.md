@@ -153,15 +153,23 @@
   - 実測: **21/22 KILLED**、生き残った`folder絞り(一時名)`にtestを足して**22/22 KILLED**。
   - `flutter test` — PASS (400)。
 
+- Review attempt 10: `691d3f5..9b6c212` — FAIL — P1×1、P2×5。**P1が1件まで減った。** attempt 9のP1×3はすべて解消と確認された。`tool/mutation_check.py`の構造は妥当(`SKIP`を`KILLED`と誤認しない、`finally`で復元する)と確認され、**22/22 KILLEDが再現された**。設計そのものには今回も「判定の外側に反例」型の穴が無く、上書き・データ破壊の経路も検出されなかった。
+  1. **P1: 観測済みの衝突を、退避の失敗で捨てていた。** `_renameViaTemporary`へ入った時点で目標名に実体があることをprobeで肯定的に観測しているのに、退避が`nameConflict`以外で失敗すると`io`等を返していた。**再採番(REQ-023)は`nameConflict`しか拾わないので、既知の衝突なのに再採番されず実行全体が止まる。** → 退避失敗と一時名確保失敗を`nameConflict`として返し、内部の理由を本文へ併記する。
+    - **これはattempt 9のP1-2と同じ機構である。** attempt 9は「長い名前だと化ける」を指摘し、私は`_temporaryBase`で**その一事例だけ**を潰した。**機構は残したまま**で、しかも`_temporaryBase`のdartdocが機構そのものを正しく説明していた。**事例を潰して機構を残す**型。
+  - P2×5も解消(PR本文の手順から再観測が抜けていた件を**再度**修正、`_renameViaTemporary`のdartdocが「case-only改名の経路」と狭かった件、UTF-8境界ループのtest、切り詰めで元名を辿れなくなる件へhashを付与、`stranded`に載らないのが全衝突経路である旨を005 specへ)。
+  - **mutation検査へ5種を追加**(主probe、UTF-8境界、切り詰めhash、退避失敗の分類、一時名確保失敗の分類)。**27/27 KILLED。**
+  - `flutter test` — PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 9のP1×3・P2×2を解消。mutation検査をscript化し22/22 KILLED
+- Last checkpoint: attempt 10のP1×1・P2×5を解消。mutation 27/27 KILLED
 - Blocker category: なし
-- Waiting for: 独立review(attempt 10)
+- Waiting for: 独立review(attempt 11)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 10を起動する。次の3点を守る。
+- Next Agent action: attempt 11を起動する。次の4点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**
-  - **mutation検査は[`tool/mutation_check.py`](../../../../tool/mutation_check.py)で走らせ、生の出力を報告へ貼る。** 手で当てて手で数えない。
+  - **mutation検査は[`tool/mutation_check.py`](../../../../tool/mutation_check.py)で走らせ、生の出力を報告へ貼る。** 手で当てて手で数えない。**新しい述語を足したら表にも足す。**
+  - **指摘を直すとき、事例ではなく機構を見る。** attempt 10で「長い名前だと分類が化ける」を`_temporaryBase`で潰したが、化ける機構そのものは残っていた。

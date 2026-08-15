@@ -1,4 +1,5 @@
 // VER-001 / VER-007: platform adapter の実ファイル作用と SAF 契約。
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:batch_rename_master/data/rename_exec/desktop_rename_executor.dart';
@@ -408,7 +409,7 @@ void main() {
       );
     });
 
-    test('一時名を32回取れなければ、理由付きで失敗する', () async {
+    test('一時名を32回取れなくても、nameConflictとして返す(再採番へ繋ぐ)', () async {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
@@ -419,11 +420,13 @@ void main() {
 
       final result = await executor.rename(source.path, 'A.txt');
 
-      expect((result as RenameFailed).error.kind, RenameErrorKind.io);
-      expect(result.error.message, contains('一時名を確保できません'));
+      // **観測済みの衝突を捨てない。** `io`で返すと呼び出し側の再採番が
+      // 拾えず、実行全体が止まる(REQ-023)。
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(result.error.message, contains('一時名を確保できませんでした'));
     });
 
-    test('退避が権限で失敗したら、その理由を返す(「確保できません」に化けない)', () async {
+    test('退避が別の理由で失敗しても、nameConflictとして返し理由を併記する', () async {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
@@ -434,10 +437,9 @@ void main() {
 
       final result = await executor.rename(source.path, 'A.txt');
 
-      expect(
-        (result as RenameFailed).error.kind,
-        RenameErrorKind.permissionDenied,
-      );
+      // 分類は`nameConflict`(衝突は観測済み)。内部の理由は本文に残す。
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(result.error.message, contains('権限がありません'));
     });
 
     test('巻き戻し先が塞がっていたら戻さず、現在の名前を理由に含める(REQ-025)', () async {
@@ -481,6 +483,37 @@ void main() {
         reason: 'ioに化けない: ${result.error.message}',
       );
       expect(await source.readAsString(), 'source-content');
+    });
+
+    test('元名が長くても、一時名が有効なUTF-8になり元名を辿れる', () async {
+      // 切り詰めをcode point境界で行わないと、多byte文字の途中で切れる。
+      // 切り詰めると元名が読めなくなるので、短いhashを付けて区別できるようにする。
+      final longBase = 'あ' * 80;
+      final source = File(p.join(directory.path, '$longBase-TAIL.txt'));
+      await source.writeAsString('source-content');
+      await File(p.join(directory.path, 'dest.txt')).writeAsString('other');
+
+      final calls = <String>[];
+      await DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+        rename: (from, to) async {
+          calls.add(p.basename(to));
+          return renameFileWithoutOverwrite(from, to);
+        },
+      ).rename(source.path, 'dest.txt');
+
+      final temporary = calls.first;
+      expect(utf8.encode(temporary).length, lessThanOrEqualTo(255));
+      expect(
+        temporary.contains('\uFFFD'),
+        isFalse,
+        reason: 'code point境界で切る: $temporary',
+      );
+      expect(
+        RegExp(r'-[0-9a-f]{8}\.renaming-swap-\d+$').hasMatch(temporary),
+        isTrue,
+        reason: '元名を辿るhashが付く: $temporary',
+      );
     });
 
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
