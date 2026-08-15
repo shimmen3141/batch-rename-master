@@ -107,6 +107,106 @@ void main() {
     execution.dispose();
   });
 
+  testWidgets('再採番が起きたら、確認した名前と結果名の違いを提示する(REQ-024)', (tester) async {
+    // 事前検出をすり抜けた衝突(他processがちょうどその名前を作った)を注入する。
+    // **黙って別の名前にしない** — 利用者は自分が確認した名前と違う結果になった
+    // ことに気づけなければならない。
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    var fired = false;
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt'},
+      failWhen: (handle, newName) {
+        if (newName != 'renamed.txt' || fired) return null;
+        fired = true;
+        return const RenameError(RenameErrorKind.nameConflict, '注入');
+      },
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('1 件を改名しました'), findsOneWidget);
+    expect(find.textContaining('1 件の名前が変わりました'), findsOneWidget);
+    expect(
+      find.textContaining('renamed.txt → renamed (1).txt'),
+      findsOneWidget,
+      reason: 'どの項目がどの名前になったかを示す',
+    );
+    execution.dispose();
+  });
+
+  testWidgets('再採番が4件以上でも、すべての項目を落とさず提示する(REQ-024)', (tester) async {
+    // 件数だけでは「どれが変わったか」が分からず、先頭数件で打ち切ると
+    // **残りは黙って別の名前になる**。`occupiedNames` がまだ供給されていない
+    // 現状では、folderに読み込んでいない同名fileがあるだけで多数同時に起きる。
+    final files = FileListController(
+      files: [for (var i = 0; i < 4; i++) _file('f$i.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final fired = <String>{};
+    final executor = FakeRenameExecutor(
+      files: {for (var i = 0; i < 4; i++) '/files/f$i.txt': 'f$i.txt'},
+      failWhen: (handle, newName) {
+        // 各fileの最初の1回だけ衝突させる。handleは改名で変わるので、
+        // 「その要求が既に一度衝突したか」を元名で覚える。
+        final key = handle.split('/').last;
+        if (fired.contains(key)) return null;
+        fired.add(key);
+        return const RenameError(RenameErrorKind.nameConflict, '注入');
+      },
+    );
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    // 重複警告が出るので強制実行を経る。
+    if (find.byKey(const Key('rename-force')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('rename-force')));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      find.textContaining('件の名前が変わりました', skipOffstage: false),
+      findsOneWidget,
+    );
+    // 4件すべてが「旧 → 新」の行として出ている(3件で打ち切らない)。
+    // scroll外の行も数える。**先頭3件で打ち切らない**ことがこのtestの主眼で、
+    // 画面内に何件見えるかではない。
+    expect(find.textContaining('→', skipOffstage: false), findsNWidgets(4));
+    execution.dispose();
+  });
+
+  testWidgets('再採番が起きていなければ、名前が変わった旨は出さない(REQ-024)', (tester) async {
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      files: files,
+      executor: executor,
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('名前が変わりました'), findsNothing);
+    execution.dispose();
+  });
+
   testWidgets('失敗時は成功件数と理由を提示する(REQ-013)', (tester) async {
     final files = FileListController(
       files: [_file('a.txt')],

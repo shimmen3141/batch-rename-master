@@ -293,3 +293,48 @@ Token _expandDigits(Token token, int selectedCount) {
 /// ベース名 [base] の末尾に ' (n)' を付与し、拡張子 [ext] を後置する(REQ-010)。
 String _withSuffix(String base, int n, String ext) =>
     ext.isEmpty ? '$base ($n)' : '$base ($n).$ext';
+
+/// フルネーム [fullName] の拡張子境界。[FileEntry] と同じ規則(REQ-001)。
+///
+/// 最後に出現するドット。ただし先頭文字のドットは境界としない。境界が無ければ `-1`。
+int _extensionBoundary(String fullName) {
+  final i = fullName.lastIndexOf('.');
+  return i <= 0 ? -1 : i;
+}
+
+/// [fullName] が [taken] と衝突するとき、自動解決規則で次の候補名を返す
+/// (005 contract revision 4 の REQ-023 が呼ぶ操作)。
+///
+/// [autoResolve] が選択集合の内側で行っている解決と**同じ接尾辞規則**である —
+/// ベース名の末尾へ ` (n)` を付け、[taken] と衝突しない最小の n を選ぶ。005 は
+/// 実行の途中で「その時点の生存名」に対して次候補を求める必要があり、
+/// [autoResolve] のように選択集合から集合を組み立てる形では表現できない。
+///
+/// **拡張子境界の取り方だけは異なる。** [autoResolve] は元 file の
+/// [FileEntry.extension] を使い、この関数は [fullName] の最後のドットで切る。
+/// 拡張子の無い file に `my.file` のような名前を付けた場合、前者は
+/// `my.file (1)`、後者は `my (1).file` になる。**実行時の再採番では元 file の
+/// 拡張子ではなく、いま付けようとしている名前の見た目を保つほうが利用者の
+/// 期待に近い**ので、この違いは意図したものである。
+///
+/// [limit] は探索する n の上限(005 contract の `open_questions` OQ-001)。
+/// 上限内に空きが見つからなければ `null` を返す。呼び出し側はそれを失敗として
+/// 扱う(REQ-023)。**無限に試さない。**
+///
+/// [fullName] 自身が [taken] に含まれない場合でも、この関数は必ず ` (n)` 付きの
+/// **別の名前**を返す。衝突したから呼ばれる操作なので、同じ名前を返しても
+/// 呼び出し側は同じ失敗を繰り返すだけである。
+String? nextCandidateName(
+  String fullName,
+  Set<String> taken, {
+  int limit = 10000,
+}) {
+  final boundary = _extensionBoundary(fullName);
+  final base = boundary < 0 ? fullName : fullName.substring(0, boundary);
+  final ext = boundary < 0 ? '' : fullName.substring(boundary + 1);
+  for (var n = 1; n <= limit; n++) {
+    final candidate = _withSuffix(base, n, ext);
+    if (!taken.contains(candidate)) return candidate;
+  }
+  return null;
+}

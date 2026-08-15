@@ -37,6 +37,7 @@
 | 011 保存schema移行 | 保存済みruleをschema変更後も失わず変換する | 利用者資産を増やす前に必要性を判断する |
 | 012 隠し・system file filter | 識別可能なplatformで対象外fileを除外する | 信頼できるAPIとfallbackが必要 |
 | 元名のcase変換 | keep/upper/lowerをtokenへ追加する | 001 Strict contractの意味変更と人間承認が必要 |
+| 中断した改名の残骸の検出 | process強制終了・電源断で残った一時名(`*.renaming-swap-N`)を次回起動時に検出し、利用者へ提示する | 005 spec「一時名が残ったときの提示」。**folderの走査を伴うので、013のpreflightで失敗した設計を繰り返さないこと**。元の名前は空くため実行は妨げられず、優先度は低い |
 
 ### 008へ引き継いだ人間の決定(planへ反映済み)
 

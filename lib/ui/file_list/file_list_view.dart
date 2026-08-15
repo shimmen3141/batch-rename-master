@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../../data/rename_exec/rename_execution.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
@@ -169,6 +170,36 @@ class _RenameActionBar extends StatelessWidget {
     await _run(context, force: false);
   }
 
+  /// 結果の本文。再採番が起きた項目は**全件**を並べる(REQ-024)。
+  ///
+  /// 件数だけでは「どれが変わったか」が分からず、先頭数件で打ち切ると
+  /// **残りは黙って別の名前になる**。多いときは高さを制限してスクロールさせ、
+  /// 落とさない。
+  Widget _resultContent(String summary, List<SuccessfulRename> renumbered) {
+    if (renumbered.isEmpty) return Text(summary);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(summary),
+        const SizedBox(height: 4),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 96),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final s in renumbered)
+                  Text('${s.confirmedName} → ${s.newName}'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _run(BuildContext context, {required bool force}) async {
     final execution = this.execution!;
     final outcome = await execution.execute(force: force);
@@ -176,6 +207,16 @@ class _RenameActionBar extends StatelessWidget {
     final message = StringBuffer('${outcome.successes.length} 件を改名しました');
     final excluded = execution.excludedEmptyNames.length;
     if (excluded > 0) message.write('。名前が空になるため $excluded 件を除外しました');
+    // REQ-024: 実行中に再採番が起きた項目は、確認した名前と結果名が違う。
+    // **黙って別の名前にしない** — 何件がどの名前になったかを示す。件数だけだと
+    // 「どれが変わったか」が分からないので、少数なら名前を並べる。
+    final renumbered = [
+      for (final success in outcome.successes)
+        if (success.renumbered) success,
+    ];
+    if (renumbered.isNotEmpty) {
+      message.write('。実行中に名前が使われていたため ${renumbered.length} 件の名前が変わりました');
+    }
     final failure = outcome.failure;
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
@@ -188,7 +229,7 @@ class _RenameActionBar extends StatelessWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message.toString()),
+        content: _resultContent(message.toString(), renumbered),
         // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
         // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
         duration: execution.undoWindow,
