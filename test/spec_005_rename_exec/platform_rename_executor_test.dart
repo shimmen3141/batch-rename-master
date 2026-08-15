@@ -368,7 +368,11 @@ void main() {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
-      final probe = _ThrowsAt(stage: 'reobserve', destination: 'A.txt');
+      final probe = _ThrowsAt(
+        stage: 'reobserve',
+        destination: 'A.txt',
+        original: 'a.txt',
+      );
       final result = await DesktopRenameExecutor(
         probe: probe,
       ).rename(source.path, 'A.txt');
@@ -388,7 +392,11 @@ void main() {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
-      final probe = _ThrowsAt(stage: 'rollback', destination: 'A.txt');
+      final probe = _ThrowsAt(
+        stage: 'rollback',
+        destination: 'A.txt',
+        original: 'a.txt',
+      );
       final result = await DesktopRenameExecutor(
         probe: probe,
       ).rename(source.path, 'A.txt');
@@ -707,11 +715,18 @@ class _CaseInsensitiveProbe implements DesktopPathProbe {
 /// 回数で狙うと照準が黙ってずれる(review attempt 11で、再観測を狙ったはずの
 /// testが退避先の確認に当たっていた)。**pathと段階で分岐する。**
 class _ThrowsAt implements DesktopPathProbe {
-  _ThrowsAt({required this.stage, required this.destination});
+  _ThrowsAt({
+    required this.stage,
+    required this.destination,
+    required this.original,
+  });
 
   /// `reobserve`: 1段目のあとの目標名の再観測。`rollback`: 巻き戻し先の確認。
   final String stage;
   final String destination;
+
+  /// 巻き戻し先(元の名前)。**消去法で当てない** — 段階をpathで指名する。
+  final String original;
 
   /// **狙った段階に実際に到達したか。** testはこれをassertする。
   /// 到達判定を持たないと、実装が変わったときに照準が黙ってずれて緑のまま通る
@@ -742,7 +757,9 @@ class _ThrowsAt implements DesktopPathProbe {
       }
       return true; // 別の実体がある → 巻き戻しへ
     }
-    if (moved && stage == 'rollback') {
+    if (moved &&
+        stage == 'rollback' &&
+        p.basename(path) == p.basename(original)) {
       reachedStage = true;
       throw const FileSystemException('boom'); // 巻き戻し先の確認
     }
