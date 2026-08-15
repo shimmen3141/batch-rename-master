@@ -160,14 +160,18 @@
   - **mutation検査へ5種を追加**(主probe、UTF-8境界、切り詰めhash、退避失敗の分類、一時名確保失敗の分類)。**27/27 KILLED。**
   - `flutter test` — PASS。
 
+- 2026-08-15 / **開発者の指示で独立reviewを一旦停止。** attempt 1〜10はすべてFAILだったが、**P1の件数は 3→5→3→2→2→3→3→1 と減っており、attempt 6以降は「判定の外側に反例」型の穴が1件も出ていない**(設計変更が効いている)。
+  - **未reviewの差分がある**: attempt 10のP1×1(観測済みの衝突を退避の失敗で捨てない)とP2×5の修正は、まだ独立reviewを受けていない。
+  - **mergeしていない。** PR #139はDraftのまま。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 10のP1×1・P2×5を解消。mutation 27/27 KILLED
+- Last checkpoint: attempt 10のP1×1・P2×5を解消。mutation 27/27 KILLED。**開発者の指示で独立reviewを一旦停止した**
 - Blocker category: なし
-- Waiting for: 独立review(attempt 11)
+- Waiting for: なし(再開の判断)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 11を起動する。次の4点を守る。
+- Next Agent action: **勝手にattempt 11を起動しない。** 再開が決まったら`691d3f5..7ab472a`(またはそれ以降のhead)で起動する。**attempt 10の修正はまだreviewを受けていない。** 再開時は次の4点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**
