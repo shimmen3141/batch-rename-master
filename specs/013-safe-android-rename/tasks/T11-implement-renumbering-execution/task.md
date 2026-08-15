@@ -36,7 +36,7 @@
 - 005 spec.mdの例24・26・28・29・30に対応するtestがある(VER-008)。
 - **一時名への改名と復旧改名で再採番が起きない**ことをtestで検査する。**片方向だけでは足りない** — 再採番する側としない側の両方を固定する。
 - **desktopで実在確認が行われる**ことをtestで検査する(REQ-025)。**Windows / macOS では未検証**(containerはLinuxのみ)。大文字小文字を区別しないfilesystemでの挙動は`T08`と同じ扱いで、実機確認が要る。
-- **自己衝突をport側で判定する**ことをtestで検査する。**3つの述語(実在 / 同一実体 / byte一致のentry)それぞれを外すとtestが落ちること**をmutationで確認する。**「containerでは再現できない」を理由に検査しないまま出さない** — attempt 4で、その理由づけがそのまま不具合を隠した。
+- **自己衝突を判定しない**ことをtestで検査する。一時名を経由する経路(case-only / 別の実体 / hard link / 巻き戻し失敗)を、**containerのLinuxで**検査する。**mutationは両方向で行う** — attempt 5で片方向だけの確認を「確認した」と報告した。
 - 生存名の5要素すべてが再採番の照合に効くことをtestで検査する。**特に「すでに確定した結果名」**(review attempt 2のP1-2)。
 - 005の既存contract testが継続PASSする。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
@@ -105,6 +105,18 @@
   - **reviewerが示した別の型の解**: 判定を増やすのではなく、**改名したあとに結果を確認する**。`File.rename`のあとで「元の名前のentryが消え、目標名のentryができた」をfilesystemへ問い合わせ、満たさなければ`Renamed`を返さない。**hard linkのno-opも、case-only renameを黙って無視するFSも、同時に「成功として記録しない」側へ倒れる。** 予測をやめて観測にする。
   - **勝手に適用しない。** 6つ目の条件を足すのと、判定の型を変えるのは違うが、5回連続の直後である。
 
+- 2026-08-15 / **開発者が第3案(一時名を経由する2段階rename)を選択。** 別のAIへ問い合わせて出てきた案で、**私が5回の間一度も検討しなかった型**である([finding](../../../../development-findings/2026-08-15-asking-another-ai-broke-a-five-attempt-deadlock.md))。
+  - **判定を持たない形にした。** 目標名に実体があるとき、自分自身かどうかを**言い当てず、一時名を経由して確かめる**。
+    1. 排他renameで**一意な一時名**へ退避(一意なので衝突しない)
+    2. 排他renameで一時名 → 目標名。**成功なら自分自身だった**(case-only改名)
+    3. `nameConflict`なら**別の実体**。排他renameで元の名前へ巻き戻し、`nameConflict`を返す
+  - **一度も上書きrenameを使わない。** どちらの段も排他rename(`RENAME_NOREPLACE`相当)である。
+  - **`_isCaseOnlyChange`・`identical`・byte一致の判定をすべて削除した。** attempt 3のP1-2/P1-3(契約に無い除外条項が未登録)と、attempt 5のP1-1/P1-2/P1-3が同時に解消した。**契約に無い例外が無くなり、REQ-025を字面どおり満たす。**
+  - **提案は「小文字比較でcase-onlyと判定したときだけ2段階」だったが、`EEXIST`(目標名が実在)を引き金にする形へ変えた。** 判定が完全に消え、小文字比較では拾えない**正規化の軸**も同じ経路で通る。
+  - **containerのLinuxで全ケースをtestできるようになった** — 判定を持たないので「case-insensitive FSを再現しないと検査できない」が消えた。case-only(注入)、別の実体、hard link、巻き戻し失敗の4件。**一時名経路を通らない改変で2件、巻き戻しをしない改変で5件が落ちることをmutationで確認した。**
+  - **異常終了で一時名が残る窓**については、005 `spec.md`へ「一時名が残ったときの提示」節を追加した。**実行中の失敗は提示できる**(巻き戻し失敗時に現在名を理由へ含める)。**process強制終了・電源断は提示する仕組みが無い**ので対象外とし、product-mapの将来候補へ入れた。**元の名前は空くので次回の実行を妨げない** — preflightの残骸と違い恒久的な阻害にならない。
+  - `flutter test` — PASS (385)。
+
 ## Current state / handoff
 
 - Last checkpoint: attempt 4のP1×2・P2×2を解消。自己衝突の判定を2段にし、注入可能にした
@@ -112,4 +124,4 @@
 - Waiting for: 独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: **勝手に6つ目の条件を足さない。** 判断を受けてから動く。**case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: attempt 6を起動する。**判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。****case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない

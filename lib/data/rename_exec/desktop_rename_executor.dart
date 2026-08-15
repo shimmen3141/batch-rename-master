@@ -12,23 +12,14 @@ typedef DesktopRenameOperation =
 typedef DesktopSetModifiedAt =
     Future<void> Function(String path, DateTime value);
 
-/// 改名の前にfilesystemへ問い合わせる3つの述語(REQ-025)。
+/// 改名の前に「目標名に実体があるか」をfilesystemへ問い合わせる述語(REQ-025)。
 ///
-/// **testで差し替えるために外へ出す。** 自己衝突の分岐は
-/// 「目標名が実在し、かつ同じ実体で、かつ別のentryではない」ときにだけ通る。
-/// この条件はcase-insensitive / 正規化を区別しないfilesystemでしか起きず、
-/// **Linuxのcontainerでは実FSから作れない**。差し替えられないと、この機能の
-/// 中心にある分岐を一度も検査できないまま出すことになる。
+/// **testで差し替えるために外へ出す。** 大文字小文字や正規化を区別しない
+/// filesystemは、`Photo.jpg`がある状態で`photo.jpg`を「実在する」と答える。
+/// その条件はLinuxのcontainerでは作れないので、条件そのものを注入する。
 abstract interface class DesktopPathProbe {
   /// [path] に実体があるか(symlinkを辿らない)。
   Future<bool> exists(String path);
-
-  /// [a] と [b] が**同じ実体**(dev+inode)か。
-  Future<bool> isSameEntity(String a, String b);
-
-  /// [path] の basename が、親directoryの実際のentry名として**byte一致で**
-  /// 存在するか。**hard linkはここで真になる。**
-  Future<bool> hasExactEntry(String path);
 }
 
 /// Windows / Linux / macOS の実ファイル用リネーム adapter。
@@ -104,54 +95,24 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         );
       }
 
-      // REQ-025: 目標名が実在しないことを確認してから改名する。**原子的
-      // no-replace があっても省かない。** 確認と改名の間(TOCTOU)は native の
-      // 排他 rename が塞ぐが、それが実際に効かない環境ではこの確認だけが残る。
-      final destinationExists = await _probe.exists(destination);
-      // 「実体があるか」ではなく「**別の directory entry があるか**」で
-      // 判定する(REQ-025)。
+      // REQ-025: 目標名の実在を**常に**確認する。原子的no-replaceがあっても
+      // 省かない — フラグを受け付けながら黙って無視する環境を区別できないため。
       //
-      // 大文字小文字を区別しないfilesystem(Windows、macOSのAPFS既定)や
-      // 正規化を区別しないfilesystem(APFS)では、`Photo.jpg -> photo.jpg` の
-      // ような改名で目標名が「実在する」ことになる。**それは自分自身である。**
+      // 実体があるなら、そのまま改名しない。
       //
-      // **case感度も正規化感度もアプリ側で推測しない。** 判定は2段で行う。
+      // **ただし「その実体は自分自身ではないか」を判定しない。** 大文字小文字や
+      // 正規化を区別しないfilesystemでは、`Photo.jpg -> photo.jpg` のような改名
+      // (case-only改名)で目標名が「実在する」ことになるが、それは自分自身である。
       //
-      // 1. `FileSystemEntity.identical` — 同じ実体(dev+inode)か。
-      // 2. **親directoryの実際のentry名にbyte一致で存在するか。**
+      // 判定で言い当てようとして5回失敗した(`013:T11`のreview attempt 1〜5)。
+      // 文字列比較、`p.equals`、小文字化、`identical`(inode)、親directoryの
+      // byte一致 — **毎回、増やした条件の外側に反例があった**。
       //
-      // 1だけでは足りない。**hard linkは「別の名前が同じ inode を指す」ので
-      // `identical` が`true`を返す**が、それは自分自身ではなく別のentryである。
-      // 見逃すと、POSIXの`rename()`が「同じfileの別entry」に対して**何もせず
-      // 成功を返す**ため、実体が動いていないのに改名済みとして記録する
-      // (INV-003違反)。`013:T11`のreview attempt 4で実測された。
-      //
-      // 2はfilesystemが**保存している名前**を見るので、case/正規化の別名は
-      // byte一致せず自己衝突側へ、hard linkはbyte一致して衝突側へ落ちる。
-      if (destinationExists) {
-        final sameEntity = await _probe.isSameEntity(handle, destination);
-        final separateEntry =
-            !sameEntity || await _probe.hasExactEntry(destination);
-        if (separateEntry) {
-          return RenameFailed(
-            RenameError(
-              RenameErrorKind.nameConflict,
-              '同名のファイルが既に存在します: $destination',
-            ),
-          );
-        }
-
-        // 目標名は自分自身の別名(大文字小文字や正規化だけの違い)である。
-        // **排他renameは使えない** — macOSの`renamex_np(RENAME_EXCL)`は
-        // この場合も`EEXIST`を返す(**macOS実機では未検証**)。
-        //
-        // **ここにはTOCTOUの窓がある。** 確認と改名は別のstepなので、その間に
-        // 他processがdestinationをunlinkして別fileを作れば、no-replaceでない
-        // renameがそれを置換する。**INV-002が受容しているTOCTOUは「原子的
-        // no-replaceが効かない環境」の話であり、ここは効く環境で自分から
-        // no-replaceを捨てている。** 窓は狭いが、無いとは書かない。
-        await File(handle).rename(destination);
-        return Renamed(File(destination).absolute.path, name: newName);
+      // **判定をやめ、一時名を経由して確かめる。** 自分自身なら1段目で目標名が
+      // 空くので2段目が通り、本物の衝突なら2段目が`EEXIST`で止まる。
+      // **一度も上書きrenameを使わない**(どちらの段も排他rename)。
+      if (await _probe.exists(destination)) {
+        return _renameViaTemporary(handle, destination, newName);
       }
 
       final nativeResult = await _rename(handle, destination);
@@ -162,6 +123,63 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     } catch (error) {
       return RenameFailed(errorOf(error));
     }
+  }
+
+  /// 一時名を経由して [destination] へ改名する(case-only改名の経路)。
+  ///
+  /// 1. 排他renameで **一意な一時名** へ退避する。一意なので衝突しない。
+  /// 2. 排他renameで一時名から目標名へ進める。
+  ///    - 成功: 目標名の実体は自分自身だった(case-only改名)。改名は完了。
+  ///    - `nameConflict`: 目標名には**別の実体**がある。3へ。
+  /// 3. 排他renameで元の名前へ巻き戻し、`nameConflict`を返す。
+  ///
+  /// **1と2の間で異常終了すると、一時名のfileが残る。** 元の名前は空くので
+  /// 次回の実行を妨げない(preflightの残骸と違い、恒久的な阻害にならない)。
+  /// 名前で正体が分かり、利用者が直せる。窓はsyscall 2回の間だけで、しかも
+  /// 目標名が実在するときにしか通らない。
+  Future<RenameResult> _renameViaTemporary(
+    String handle,
+    String destination,
+    String newName,
+  ) async {
+    final directory = p.dirname(handle);
+    final base = p.basename(handle);
+
+    String? temporary;
+    for (var n = 0; n < 32; n++) {
+      final candidate = p.join(directory, '$base.renaming-swap-$n');
+      final result = await _rename(handle, candidate);
+      if (result == NativeRenameResult.success) {
+        temporary = candidate;
+        break;
+      }
+      if (result != NativeRenameResult.nameConflict) {
+        return RenameFailed(_nativeError(result, handle, candidate));
+      }
+    }
+    if (temporary == null) {
+      return RenameFailed(
+        RenameError(RenameErrorKind.io, '一時名を確保できません: $handle'),
+      );
+    }
+
+    final forward = await _rename(temporary, destination);
+    if (forward == NativeRenameResult.success) {
+      return Renamed(File(destination).absolute.path, name: newName);
+    }
+
+    // 目標名には別の実体がある。**元の名前へ戻す。**
+    final rollback = await _rename(temporary, handle);
+    if (rollback != NativeRenameResult.success) {
+      return RenameFailed(
+        RenameError(
+          RenameErrorKind.io,
+          '改名に失敗し、元の名前へも戻せませんでした。'
+          '現在の名前: ${p.basename(temporary)}',
+        ),
+      );
+    }
+    return RenameFailed(_nativeError(forward, temporary, destination));
   }
 
   static RenameError _nativeError(
@@ -224,32 +242,4 @@ class _RealPathProbe implements DesktopPathProbe {
   Future<bool> exists(String path) async =>
       await FileSystemEntity.type(path, followLinks: false) !=
       FileSystemEntityType.notFound;
-
-  @override
-  Future<bool> isSameEntity(String a, String b) async {
-    try {
-      return await FileSystemEntity.identical(a, b);
-    } on FileSystemException {
-      // 判定できないときは「別の実体」として扱う。**安全側へ倒す** —
-      // 誤って同一とみなすと既存を上書きする。
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> hasExactEntry(String path) async {
-    final name = p.basename(path);
-    try {
-      await for (final entity in Directory(
-        p.dirname(path),
-      ).list(followLinks: false)) {
-        if (p.basename(entity.path) == name) return true;
-      }
-    } on FileSystemException {
-      // 列挙できないときは「存在する」として扱う。**安全側へ倒す** —
-      // 存在しないと決めつけると、通常のrenameで別entryを消しうる。
-      return true;
-    }
-    return false;
-  }
 }

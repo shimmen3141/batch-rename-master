@@ -122,56 +122,6 @@ void main() {
       expect(await occupied.readAsString(), 'occupied-content');
     });
 
-    test('原子的no-replaceが効かなくても、実在確認で上書きを止める(REQ-025)', () async {
-      // フラグを受け付けながら黙って無視する環境を模す。native rename を
-      // 「常に成功する上書き rename」に差し替えても、実在確認が先に止める。
-      // **アプリはこの環境を他と区別できない**ので、原子的no-replaceがあっても
-      // 確認を省いてはならない。
-      final source = File(p.join(directory.path, 'before.txt'));
-      final occupied = File(p.join(directory.path, 'after.txt'));
-      await source.writeAsString('source-content');
-      await occupied.writeAsString('occupied-content');
-
-      var nativeCalled = false;
-      final executor = DesktopRenameExecutor(
-        rename: (from, to) async {
-          nativeCalled = true;
-          await File(from).rename(to); // 上書きする(危険な環境)
-          return NativeRenameResult.success;
-        },
-      );
-
-      final result = await executor.rename(source.path, 'after.txt');
-
-      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
-      expect(nativeCalled, isFalse, reason: '実在確認で止めるので native を呼ばない');
-      expect(await occupied.readAsString(), 'occupied-content');
-      expect(await source.readAsString(), 'source-content');
-    });
-
-    test('大文字小文字だけの改名は、自分自身との衝突として扱わない(REQ-025)', () async {
-      // 大文字小文字を区別しないfilesystemでは、目標名が「実在する」ことになる。
-      // **それは自分自身である。** `FileSystemEntity.identical` がfilesystemへ
-      // 問い合わせて判定するので、case感度をアプリ側で推測しない。
-      //
-      // **Linux(case-sensitive)ではこのtestは自己衝突の分岐を通らない** —
-      // 目標名が実在しないので、通常の改名として成功する。case-insensitiveな
-      // filesystemでの回帰ガードである。
-      //
-      // **自己衝突の分岐そのものは、次のhard linkのtestがLinuxで能動的に検査する。**
-      final source = File(p.join(directory.path, 'Photo.jpg'));
-      await source.writeAsString('kept-content');
-
-      final result = await DesktopRenameExecutor().rename(
-        source.path,
-        'photo.jpg',
-      );
-
-      expect(result, isA<Renamed>(), reason: '衝突として扱わない');
-      final renamed = result as Renamed;
-      expect(await File(renamed.newHandle).readAsString(), 'kept-content');
-    });
-
     test('目標名に別の実体があれば nameConflict を返す(REQ-025 / INV-002)', () async {
       // 上のtestの裏。**「実在する」だけで通してはならない。**
       final source = File(p.join(directory.path, 'Photo.jpg'));
@@ -189,21 +139,74 @@ void main() {
       expect(await source.readAsString(), 'source-content');
     });
 
-    test('目標名が hard link なら、同じ実体でも衝突として扱う(REQ-025 / INV-003)', () async {
-      // `FileSystemEntity.identical` が答えるのは「同じ**実体**か」であって
-      // 「同じ**directory entry** か」ではない。hard linkは別の名前が同じ
-      // inodeを指すので `identical` は true を返すが、それは自分自身ではない。
+    test('case-only改名は一時名を経由して通る(REQ-025)', () async {
+      // **判定しない。** 目標名が実在しても、一時名を経由すれば自分自身かどうかが
+      // 分かる。1段目で元の名前が空くので、自分自身なら2段目が通る。
       //
-      // 見逃すと、POSIXの`rename()`が「同じfileの別entry」に対して**何もせず
-      // 成功を返す**ため、実体が動いていないのに改名済みとして記録される
-      // (INV-003違反)。**この経路はLinuxで再現できる。**
+      // Linuxのcontainerではcase-insensitiveなFSを作れないので、
+      // 「目標名が実在する」という条件だけを注入して経路を通す。
+      final source = File(p.join(directory.path, 'Photo.jpg'));
+      await source.writeAsString('kept-content');
+
+      final calls = <String>[];
+      final executor = DesktopRenameExecutor(
+        probe: const _AlwaysExists(),
+        rename: (from, to) async {
+          calls.add('${p.basename(from)} -> ${p.basename(to)}');
+          return renameFileWithoutOverwrite(from, to);
+        },
+      );
+
+      final result = await executor.rename(source.path, 'photo.jpg');
+
+      expect(result, isA<Renamed>());
+      expect(calls.length, 2, reason: '一時名を経由する: $calls');
+      expect(calls.first, startsWith('Photo.jpg -> Photo.jpg.renaming-swap-'));
+      expect(calls.last, endsWith('-> photo.jpg'));
+      expect(
+        await File(p.join(directory.path, 'photo.jpg')).readAsString(),
+        'kept-content',
+      );
+      // 一時名は残らない。
+      final left = await directory
+          .list()
+          .map((e) => p.basename(e.path))
+          .toList();
+      expect(left, ['photo.jpg']);
+    });
+
+    test('目標名に別の実体があれば、巻き戻して nameConflict を返す(INV-002)', () async {
+      // 2段目が`EEXIST`で止まり、元の名前へ戻る。**一度も上書きしない。**
+      final source = File(p.join(directory.path, 'Photo.jpg'));
+      final other = File(p.join(directory.path, 'photo.jpg'));
+      await source.writeAsString('source-content');
+      await other.writeAsString('other-content');
+
+      final result = await DesktopRenameExecutor(
+        probe: const _AlwaysExists(),
+      ).rename(source.path, 'photo.jpg');
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(await source.readAsString(), 'source-content');
+      expect(await other.readAsString(), 'other-content');
+      final left =
+          (await directory.list().map((e) => p.basename(e.path)).toList())
+            ..sort();
+      expect(left, ['Photo.jpg', 'photo.jpg'], reason: '一時名が残らない');
+    });
+
+    test('目標名が hard link なら衝突として扱う(INV-003)', () async {
+      // hard linkは別の名前が同じ実体を指す。**それは自分自身ではない。**
+      // 通常のrenameだと「何もせず成功」を返すが、排他renameは`EEXIST`にする。
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
       final link = File(p.join(directory.path, 'b.txt'));
-      final result0 = await Process.run('ln', [source.path, link.path]);
-      expect(result0.exitCode, 0, reason: 'hard linkを作れること: ${result0.stderr}');
+      final ln = await Process.run('ln', [source.path, link.path]);
+      expect(ln.exitCode, 0, reason: 'hard linkを作れること: ${ln.stderr}');
 
-      final result = await DesktopRenameExecutor().rename(source.path, 'b.txt');
+      final result = await DesktopRenameExecutor(
+        probe: const _AlwaysExists(),
+      ).rename(source.path, 'b.txt');
 
       expect(
         (result as RenameFailed).error.kind,
@@ -214,55 +217,26 @@ void main() {
       expect(await link.exists(), isTrue);
     });
 
-    test('case-insensitiveなfilesystemを模すと、自己衝突は改名として通る(REQ-025)', () async {
-      // **Linuxの実FSではこの条件を作れない**(目標名が実在し、同じ実体で、
-      // 別entryではない = case/正規化だけの別名)。probeを差し替えて、この機能の
-      // 中心にある分岐を能動的に検査する。
-      final source = File(p.join(directory.path, 'Photo.jpg'));
-      await source.writeAsString('kept-content');
-
-      var exclusiveRenameUsed = false;
-      final executor = DesktopRenameExecutor(
-        probe: _FakeProbe(
-          exists: true,
-          sameEntity: true,
-          exactEntry: false, // 保存されている名前は 'Photo.jpg' なので一致しない
-        ),
-        rename: (from, to) async {
-          exclusiveRenameUsed = true;
-          return NativeRenameResult.nameConflict;
-        },
-      );
-
-      final result = await executor.rename(source.path, 'photo.jpg');
-
-      expect(result, isA<Renamed>(), reason: '自己衝突を衝突として扱わない');
-      expect(
-        exclusiveRenameUsed,
-        isFalse,
-        reason: '排他renameは使わない(macOSのRENAME_EXCLは自己衝突でもEEXISTを返す)',
-      );
-      expect(
-        await File(p.join(directory.path, 'photo.jpg')).readAsString(),
-        'kept-content',
-      );
-    });
-
-    test('同じ実体でも別entryなら衝突として扱う(probe差し替え)', () async {
-      // 上のtestの裏。`isSameEntity` が真でも `hasExactEntry` が真なら
-      // hard linkであり、自分自身ではない。
+    test('巻き戻しにも失敗したら、一時名を含む理由を返す(REQ-017)', () async {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
+      var step = 0;
       final executor = DesktopRenameExecutor(
-        probe: _FakeProbe(exists: true, sameEntity: true, exactEntry: true),
-        rename: (from, to) async => NativeRenameResult.success,
+        probe: const _AlwaysExists(),
+        rename: (from, to) async {
+          step += 1;
+          if (step == 1) return renameFileWithoutOverwrite(from, to);
+          return NativeRenameResult.nameConflict; // 前進も巻き戻しも失敗
+        },
       );
 
       final result = await executor.rename(source.path, 'b.txt');
 
-      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
-      expect(await source.readAsString(), 'kept-content');
+      final failure = result as RenameFailed;
+      expect(failure.error.kind, RenameErrorKind.io);
+      expect(failure.error.message, contains('renaming-swap-'));
+      expect(failure.error.message, contains('戻せませんでした'));
     });
 
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
@@ -390,25 +364,13 @@ void main() {
   });
 }
 
-/// [DesktopPathProbe] の固定応答版。filesystemのcase感度・正規化感度を
-/// containerで再現できないため、条件そのものを注入する。
-class _FakeProbe implements DesktopPathProbe {
-  _FakeProbe({
-    required bool exists,
-    required this.sameEntity,
-    required this.exactEntry,
-  }) : existsResult = exists;
-
-  final bool existsResult;
-  final bool sameEntity;
-  final bool exactEntry;
+/// 目標名が「実在する」と答える [DesktopPathProbe]。
+///
+/// 大文字小文字や正規化を区別しないfilesystemを模す。Linuxの実FSでは
+/// この条件を作れない(`mount`が使えない)ので、条件そのものを注入する。
+class _AlwaysExists implements DesktopPathProbe {
+  const _AlwaysExists();
 
   @override
-  Future<bool> exists(String path) async => existsResult;
-
-  @override
-  Future<bool> isSameEntity(String a, String b) async => sameEntity;
-
-  @override
-  Future<bool> hasExactEntry(String path) async => exactEntry;
+  Future<bool> exists(String path) async => true;
 }
