@@ -401,6 +401,40 @@ void main() {
       expect(live, contains('keep.jpg'));
       expect(live, isNot(contains('elsewhere.jpg')), reason: 'folderを跨いで混ぜない');
     });
+
+    test('別folderの改名要求は生存名に混ざらない', () async {
+      // 占有名だけでなく、**他の改名要求**もfolderで絞る。
+      final requests = [
+        RenameRequest(
+          handle: '$_dir/a.jpg',
+          originalName: 'a.jpg',
+          targetName: 'x.jpg',
+        ),
+        RenameRequest(
+          handle: '/other/b.jpg',
+          originalName: 'b.jpg',
+          targetName: 'elsewhere.jpg',
+        ),
+      ];
+      final executor = FakeRenameExecutor(
+        files: {'$_dir/a.jpg': 'a.jpg', '/other/b.jpg': 'b.jpg'},
+        failWhen: _conflictOnce('x.jpg'),
+      );
+
+      Set<String>? live;
+      await executePlan(
+        planExecution(requests),
+        executor,
+        renumber: (request, liveNames) {
+          live ??= liveNames;
+          return nextCandidateName(request.targetName, liveNames);
+        },
+      );
+
+      expect(live, isNotNull);
+      expect(live, isNot(contains('elsewhere.jpg')));
+      expect(live, isNot(contains('b.jpg')));
+    });
   });
 
   group('nextCandidateName(001 の自動解決規則)', () {

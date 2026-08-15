@@ -136,17 +136,31 @@
 - Review attempt 7: `691d3f5..17fc284` — FAIL — P1×3、P2×4。**設計そのものは今回も正しい方向**と確認された — data lossにつながる経路・上書きrename・INV-002/INV-003違反はこのrangeに無く、「判定の外側に反例が出る」型の穴も見つからなかった。**私が申告した4つのmutationはすべて再現された**(failure mode 6の再発なし)。
   1. **P1: 1段目を通ったあとの例外で、巻き戻さずに抜けていた。** 実体は一時名にあるのに、理由文に名前が出ない。**attempt 6で新設した回帰testが、この経路を通しながら`isA<RenameFailed>()`しか見ておらず、自分が作り出した残骸状態を1行も観測していなかった。** さらに、同じrangeで登録したばかりのOQ-007が**すでに実装より狭かった**(「巻き戻しにも失敗した場合」しか書いていない)。→ 例外時も巻き戻すようにし、`_rollbackAfter`へ集約した。testは残骸が消えることまで見る。
   2. **P1: 生存名の第2要素(未実行の目標名)にtestが無かった。** 除去しても387件すべてPASS。**先行fileが後続fileの確認済み目標名を横取りし、`x (1) (1).jpg`が確定する** — attempt 1のP1-1で直した症状そのものが、無言で再発しうる状態だった。**attempt 6の修正が「(5)のfixtureを直す」に閉じ、受け入れ証拠が要求する「5要素すべて」へ届いていなかった。** → (2)と(3)のtestを追加し、mutationで落ちることを確認した。
-  3. **P1: attempt 6のP1-5(handoff)が解消されていなかった。** 更新されたのは`Next Agent action`の1行だけで、`Last checkpoint`は削除済みの「2段判定」を、`Waiting for`は3回前のattemptを指したままだった。**作業記録には解消済みと書いていた。** → `## Current state / handoff`のblock全体を書き直し、**読み返して確認した。**
+  3. **P1: attempt 6のP1-5(handoff)が解消されていなかった。** 更新されたのは`Next Agent action`の1行だけで、`Last checkpoint`は削除済みの「2段判定」を、`Waiting for`は3回前のattemptを指したままだった。**作業記録には解消済みと書いていた。** → `- Review attempt 8: `691d3f5..29e9d5d` — FAIL — P1×2、P2×3。attempt 7のP1×3は解消と確認された(`_rollbackAfter`の4経路、生存名の5要素すべてがmutationで落ちる、handoffの更新)。
+  1. **P1: 実在を肯定的に検出した目標名へ、no-replaceフラグだけを頼りにrenameしていた。** 1段目のあとに再観測が無く、**フラグを黙って無視する環境では2段目が成功して、実在を確認済みの別の実体を上書きする**。**REQ-025の存在理由そのものが「フラグを黙殺する環境」なのに、`exists`と分かった側だけ塞げていなかった。** → **1段目のあとに目標名をもう一度観測する。** 空いていれば自分自身だったので前進、まだ実在するなら別の実体なので2段目を実行せず巻き戻す。**判定は一切増えない** — 観測するだけである。
+  2. **P1: `return await`を守るtestが失われ、PR本文のmutation申告が事実と違った。** attempt 7で例外処理を`_renameViaTemporary`の内側へ移した結果、attempt 6の回帰testが内側のcatchを通るようになり、**外側の`await`を検証しなくなった**。`await`を外しても390件すべてPASSする状態で、PR本文には「いずれも落ちる」と書いていた。**確認漏れの4回目。** → 内側でcatchを持たない唯一の箇所(再観測)で例外を投げるtestを足し、`await`除去で落ちることを実測した。
+  - P2×3も解消(別folderの改名要求を生存名から除く検査、一時名確保ループの2分岐の検査、OQ-001/005/007のownerを「`T11`が決着 / `T10`がrevision 5へ反映」で統一)。
+  - **mutationは11種を両方向で実測した** — `await`除去、再観測除去、1段目の例外catch除去、確保ループの上限、非`nameConflict`の早期return、巻き戻し(4経路)、生存名(1)〜(5)、folder絞り。**すべて落ちる。**
+  - `flutter test` — PASS (397)。
+
+## Current state / handoff`のblock全体を書き直し、**読み返して確認した。**
   - P2×4も解消(`covers`が空である理由を「被覆した仕様」節へ明記、生存名の第3要素のtest、findingの改善結果を実際の採用案と結果へ更新、PR本文のmutation件数は再測定した値へ)。
+
+- Review attempt 8: `691d3f5..29e9d5d` — FAIL — P1×2、P2×3。attempt 7のP1×3は解消と確認された(`_rollbackAfter`の4経路、生存名の5要素すべてがmutationで落ちる、handoffの更新)。
+  1. **P1: 実在を肯定的に検出した目標名へ、no-replaceフラグだけを頼りにrenameしていた。** 1段目のあとに再観測が無く、**フラグを黙って無視する環境では2段目が成功して、実在を確認済みの別の実体を上書きする**。**REQ-025の存在理由そのものが「フラグを黙殺する環境」なのに、`exists`と分かった側だけ塞げていなかった。** → **1段目のあとに目標名をもう一度観測する。** 空いていれば自分自身だったので前進、まだ実在するなら別の実体なので2段目を実行せず巻き戻す。**判定は一切増えない** — 観測するだけである。
+  2. **P1: `return await`を守るtestが失われ、PR本文のmutation申告が事実と違った。** attempt 7で例外処理を`_renameViaTemporary`の内側へ移した結果、attempt 6の回帰testが内側のcatchを通るようになり、**外側の`await`を検証しなくなった**。`await`を外しても390件すべてPASSする状態で、PR本文には「いずれも落ちる」と書いていた。**確認漏れの4回目。** → 内側でcatchを持たない唯一の箇所(再観測)で例外を投げるtestを足し、`await`除去で落ちることを実測した。
+  - P2×3も解消(別folderの改名要求を生存名から除く検査、一時名確保ループの2分岐の検査、OQ-001/005/007のownerを「`T11`が決着 / `T10`がrevision 5へ反映」で統一)。
+  - **mutationは11種を両方向で実測した** — `await`除去、再観測除去、1段目の例外catch除去、確保ループの上限、非`nameConflict`の早期return、巻き戻し(4経路)、生存名(1)〜(5)、folder絞り。**すべて落ちる。**
+  - `flutter test` — PASS (397)。
 
 ## Current state / handoff
 
-- Last checkpoint: attempt 7のP1×3・P2×4を解消。設計は一時名経由の2段階renameで、自己衝突の判定は持たない
+- Last checkpoint: attempt 8のP1×2・P2×3を解消。1段目のあとに目標名を再観測する形にした
 - Blocker category: なし
-- Waiting for: 独立review(attempt 8)
+- Waiting for: 独立review(attempt 9)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 8を起動する。次の3点を守る。
+- Next Agent action: attempt 9を起動する。次の3点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**

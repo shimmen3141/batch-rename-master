@@ -150,7 +150,7 @@ void main() {
 
       final calls = <String>[];
       final executor = DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
         rename: (from, to) async {
           calls.add('${p.basename(from)} -> ${p.basename(to)}');
           return renameFileWithoutOverwrite(from, to);
@@ -176,14 +176,14 @@ void main() {
     });
 
     test('目標名に別の実体があれば、巻き戻して nameConflict を返す(INV-002)', () async {
-      // 2段目が`EEXIST`で止まり、元の名前へ戻る。**一度も上書きしない。**
+      // 1段目のあとの再観測でまだ実在するので、**2段目を実行しない**。
       final source = File(p.join(directory.path, 'Photo.jpg'));
       final other = File(p.join(directory.path, 'photo.jpg'));
       await source.writeAsString('source-content');
       await other.writeAsString('other-content');
 
       final result = await DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
       ).rename(source.path, 'photo.jpg');
 
       expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
@@ -205,7 +205,7 @@ void main() {
       expect(ln.exitCode, 0, reason: 'hard linkを作れること: ${ln.stderr}');
 
       final result = await DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
       ).rename(source.path, 'b.txt');
 
       expect(
@@ -234,13 +234,13 @@ void main() {
         },
       );
 
-      // 目標名が実在する → 退避・前進失敗・巻き戻しの3回。
+      // 目標名が実在する → 退避・(再観測でまだ実在)・巻き戻しの2回。
       final conflict = await record().rename(free.path, 'b.txt');
       expect(
         (conflict as RenameFailed).error.kind,
         RenameErrorKind.nameConflict,
       );
-      expect(calls.length, 3, reason: '一時名を経由する: $calls');
+      expect(calls.length, 2, reason: '一時名を経由する: $calls');
 
       // 目標名が空いている → 1回だけ。
       calls.clear();
@@ -257,7 +257,7 @@ void main() {
 
       var step = 0;
       final executor = DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
         rename: (from, to) async {
           step += 1;
           if (step == 2) throw const FileSystemException('boom');
@@ -265,7 +265,7 @@ void main() {
         },
       );
 
-      final result = await executor.rename(source.path, 'b.txt');
+      final result = await executor.rename(source.path, 'A.txt');
 
       expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
       expect(await source.readAsString(), 'kept-content', reason: '元の名前へ戻す');
@@ -282,7 +282,7 @@ void main() {
 
       var step = 0;
       final executor = DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
         rename: (from, to) async {
           step += 1;
           if (step == 1) return renameFileWithoutOverwrite(from, to);
@@ -290,7 +290,7 @@ void main() {
         },
       );
 
-      final result = await executor.rename(source.path, 'b.txt');
+      final result = await executor.rename(source.path, 'A.txt');
 
       final failure = result as RenameFailed;
       expect(failure.error.message, contains('renaming-swap-'));
@@ -303,7 +303,7 @@ void main() {
 
       var step = 0;
       final executor = DesktopRenameExecutor(
-        probe: const _AlwaysExists(),
+        probe: const _CaseInsensitiveProbe(),
         rename: (from, to) async {
           step += 1;
           if (step == 1) return renameFileWithoutOverwrite(from, to);
@@ -311,12 +311,130 @@ void main() {
         },
       );
 
-      final result = await executor.rename(source.path, 'b.txt');
+      final result = await executor.rename(source.path, 'A.txt');
 
       final failure = result as RenameFailed;
       expect(failure.error.kind, RenameErrorKind.io);
       expect(failure.error.message, contains('renaming-swap-'));
       expect(failure.error.message, contains('戻せませんでした'));
+    });
+
+    test('no-replaceを黙って無視する環境でも、別の実体を上書きしない(REQ-025)', () async {
+      // 排他renameが「常に成功する上書きrename」である環境を模す。
+      // **1段目のあとの再観測が、2段目を実行させない。**
+      final source = File(p.join(directory.path, 'a.txt'));
+      final victim = File(p.join(directory.path, 'b.txt'));
+      await source.writeAsString('source-content');
+      await victim.writeAsString('victim-content');
+
+      final calls = <String>[];
+      final executor = DesktopRenameExecutor(
+        rename: (from, to) async {
+          calls.add('${p.basename(from)} -> ${p.basename(to)}');
+          await File(from).rename(to); // 上書きする(危険な環境)
+          return NativeRenameResult.success;
+        },
+      );
+
+      final result = await executor.rename(source.path, 'b.txt');
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(await victim.readAsString(), 'victim-content', reason: '上書きしない');
+      expect(await source.readAsString(), 'source-content');
+      expect(calls.length, 2, reason: '2段目を実行しない: $calls');
+    });
+
+    test('一時名への退避で例外が出ても、例外を外へ出さない(REQ-017)', () async {
+      // **1段目はまだ実体を動かしていない。** ここで例外が漏れると、
+      // `rename()`のcatchを素通りして実行全体を貫通する。
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final executor = DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+        rename: (from, to) async => throw const FileSystemException('boom'),
+      );
+
+      final result = await executor.rename(source.path, 'A.txt');
+
+      expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+      expect(await source.readAsString(), 'kept-content');
+    });
+
+    test('再観測で例外が出ても、例外を外へ出さない(REQ-017)', () async {
+      // `_renameViaTemporary`の内側で唯一catchを持たないのが再観測である。
+      // ここが漏れると`rename()`のcatchを素通りして実行全体を貫通する。
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final result = await DesktopRenameExecutor(
+        probe: const _ThrowsOnSecondProbe(),
+      ).rename(source.path, 'A.txt');
+
+      expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+    });
+
+    test('一時名が埋まっていたら次の候補を試す', () async {
+      // 前回の異常終了で残った一時名があっても、改名は通る。
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+      await File(
+        p.join(directory.path, 'a.txt.renaming-swap-0'),
+      ).writeAsString('leftover');
+
+      final calls = <String>[];
+      final executor = DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+        rename: (from, to) async {
+          calls.add(p.basename(to));
+          return renameFileWithoutOverwrite(from, to);
+        },
+      );
+
+      final result = await executor.rename(source.path, 'A.txt');
+
+      expect(result, isA<Renamed>());
+      expect(calls.first, 'a.txt.renaming-swap-0');
+      expect(calls[1], 'a.txt.renaming-swap-1', reason: '次の候補を試す');
+      expect(
+        await File(
+          p.join(directory.path, 'a.txt.renaming-swap-0'),
+        ).readAsString(),
+        'leftover',
+        reason: '残骸を壊さない',
+      );
+    });
+
+    test('一時名を32回取れなければ、理由付きで失敗する', () async {
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final executor = DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+        rename: (from, to) async => NativeRenameResult.nameConflict,
+      );
+
+      final result = await executor.rename(source.path, 'A.txt');
+
+      expect((result as RenameFailed).error.kind, RenameErrorKind.io);
+      expect(result.error.message, contains('一時名を確保できません'));
+    });
+
+    test('退避が権限で失敗したら、その理由を返す(「確保できません」に化けない)', () async {
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final executor = DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+        rename: (from, to) async => NativeRenameResult.permissionDenied,
+      );
+
+      final result = await executor.rename(source.path, 'A.txt');
+
+      expect(
+        (result as RenameFailed).error.kind,
+        RenameErrorKind.permissionDenied,
+      );
     });
 
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
@@ -444,13 +562,47 @@ void main() {
   });
 }
 
-/// 目標名が「実在する」と答える [DesktopPathProbe]。
+/// 大文字小文字を区別しないfilesystemを模す [DesktopPathProbe]。
 ///
-/// 大文字小文字や正規化を区別しないfilesystemを模す。Linuxの実FSでは
-/// この条件を作れない(`mount`が使えない)ので、条件そのものを注入する。
-class _AlwaysExists implements DesktopPathProbe {
-  const _AlwaysExists();
+/// 実FSに加えて、**同じdirectoryに小文字化して一致するentryがあれば「実在する」**
+/// と答える。Linuxの実FSではこの条件を作れない(`mount`が使えない)ので、
+/// 条件そのものを注入する。
+///
+/// **退避で元の名前が空けば`false`になる**ので、2段階renameの各段で正しく
+/// 振る舞う。固定値を返すfakeでは1段目の前後を区別できない。
+class _CaseInsensitiveProbe implements DesktopPathProbe {
+  const _CaseInsensitiveProbe();
 
   @override
-  Future<bool> exists(String path) async => true;
+  Future<bool> exists(String path) async {
+    if (await FileSystemEntity.type(path, followLinks: false) !=
+        FileSystemEntityType.notFound) {
+      return true;
+    }
+    final name = p.basename(path).toLowerCase();
+    await for (final entity in Directory(p.dirname(path)).list()) {
+      if (p.basename(entity.path).toLowerCase() == name) return true;
+    }
+    return false;
+  }
+}
+
+/// 2回目の問い合わせで例外を投げる [DesktopPathProbe]。
+///
+/// 1回目(改名前の実在確認)は真を返して2段階経路へ入れ、2回目(1段目のあとの
+/// 再観測)で投げる。
+class _ThrowsOnSecondProbe implements DesktopPathProbe {
+  const _ThrowsOnSecondProbe();
+
+  static int _calls = 0;
+
+  @override
+  Future<bool> exists(String path) async {
+    _calls += 1;
+    if (_calls >= 2) {
+      _calls = 0;
+      throw const FileSystemException('boom');
+    }
+    return true;
+  }
 }

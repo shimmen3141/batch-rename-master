@@ -131,7 +131,9 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
   /// 一時名を経由して [destination] へ改名する(case-only改名の経路)。
   ///
   /// 1. 排他renameで **一意な一時名** へ退避する。一意なので衝突しない。
-  /// 2. 排他renameで一時名から目標名へ進める。
+  /// 2. **目標名をもう一度観測する。** 退避で元の名前が空いたので、目標名の実体が
+  ///    自分自身だったならもう存在しない。まだ存在するなら**別の実体**である。
+  ///    排他renameで一時名から目標名へ進める。
   ///    - 成功: 目標名の実体は自分自身だった(case-only改名)。改名は完了。
   ///    - `nameConflict`: 目標名には**別の実体**がある。3へ。
   /// 3. 排他renameで元の名前へ巻き戻し、`nameConflict`を返す。
@@ -156,7 +158,13 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     String? temporary;
     for (var n = 0; n < 32; n++) {
       final candidate = p.join(directory, '$base.renaming-swap-$n');
-      final result = await _rename(handle, candidate);
+      final NativeRenameResult result;
+      try {
+        result = await _rename(handle, candidate);
+      } catch (error) {
+        // 1段目はまだ実体を動かしていない。**例外を外へ出さない**(REQ-017)。
+        return RenameFailed(errorOf(error));
+      }
       if (result == NativeRenameResult.success) {
         temporary = candidate;
         break;
@@ -168,6 +176,25 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     if (temporary == null) {
       return RenameFailed(
         RenameError(RenameErrorKind.io, '一時名を確保できません: $handle'),
+      );
+    }
+
+    // **1段目のあと、目標名をもう一度観測する。**
+    //
+    // 退避で元の名前が空いたので、目標名の実体が「自分自身」だったなら
+    // **もう存在しない**。まだ存在するなら、それは**別の実体**である。
+    // **判定ではなく観測**であり、case感度も正規化感度も推測しない。
+    //
+    // ここを省くと、no-replaceフラグを黙って無視する環境で2段目が成功し、
+    // **実在を確認済みの別の実体を上書きする**(REQ-025の存在理由そのもの)。
+    if (await _probe.exists(destination)) {
+      return _rollbackAfter(
+        temporary,
+        handle,
+        RenameError(
+          RenameErrorKind.nameConflict,
+          '同名のファイルが既に存在します: $destination',
+        ),
       );
     }
 
