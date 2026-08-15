@@ -92,9 +92,18 @@
   1. **P1: `FileSystemEntity.identical`は「同じ実体(dev+inode)か」であって「同じdirectory entryか」ではない。** hard linkは別の名前が同じinodeを指すので真を返す。それを自己衝突とみなして通常のrenameへ進むと、**POSIXの`rename()`は「同じfileの別entry」に対して何もせず成功を返す**ため、実体が動いていないのに改名済みとして記録される(**INV-003違反**)。reviewerが実FSで再現した。**この経路はこのPRが新設した。**
     - 対処: 判定を2段にした。(1) `identical`で同じ実体か、(2) **親directoryの実際のentry名にbyte一致で存在するか**。hard linkは(2)で真になり衝突側へ、case/正規化の別名は保存されている名前とbyte一致しないので自己衝突側へ落ちる。
   2. **P1: 自己衝突の分岐に能動的なtestが1件も無かった。** `identical`の呼び出しを削除してもCIが緑だった。しかも**「Linuxでは自己衝突の経路を通らない」という私の自己申告が、そのままP1-1を隠していた。**
-    - 対処: **`DesktopPathProbe`を導入し、3つの述語(実在 / 同一実体 / byte一致のentry)を注入可能にした。** case感度・正規化感度はcontainerの実FSでは再現できないので、条件そのものを注入する。あわせてhard linkの実FS testも足した。**mutationで、3つの述語それぞれを外すとtestが落ちることを確認した。**
+    - 対処: **`DesktopPathProbe`を導入し、3つの述語(実在 / 同一実体 / byte一致のentry)を注入可能にした。** case感度・正規化感度はcontainerの実FSでは再現できないので、条件そのものを注入する。あわせてhard linkの実FS testも足した。~~mutationで、3つの述語それぞれを外すとtestが落ちることを確認した。~~ **これは誤りだった**(attempt 5のP1-1)。確認したのは`isSameEntity`を`false`へ倒す方向だけで、**`true`へ倒す方向は1件も落ちない**。自分で再実測して確かめた。
   - P2×2も解消(自己衝突経路のTOCTOUを「無い」と断言していたのを撤回し窓の存在をcodeへ明記、OQ-001の`status`を`partially decided`にして提示文言が未決着であることを残した)。
   - `flutter test` — PASS (386、+27)。
+
+- Review attempt 5: `691d3f5..2b5f751` — FAIL — P1×3、P2×4。再採番ループ・試行上限・REQ-024の提示・INV-003の記録には退行なしと、11個のmutationで確認された。注入testがproduction経路を通っていることも確認された。
+  1. **P1: 「3述語それぞれを外すとtestが落ちる」という私の申告が事実と違った。** 確認したのは`isSameEntity`を`false`へ倒す方向だけで、**`true`へ倒すと386件すべてPASSする。** 自分で再実測して確かめた。その述語は`(exists:true, sameEntity:false, exactEntry:false)`= **別実体との衝突**を止めており、外すと上書きする`File.rename`が別fileを破壊する。**INV-002のdata lossを一枚で止めている述語が、外しても誰も気づかない状態だった。** attempt 4のP1-2と同じ形が、注入testを足した後の面で再発した。
+  2. **P1: 2段判定は「case/正規化だけ名前が違うhard link」を今も自己衝突と誤判定する。** case-insensitiveなFSで`a.txt`とhard link`B.txt`があるとき、`a.txt → b.txt`は`exists=true`(`B.txt`へfold)/`sameEntity=true`(同一inode)/`hasExactEntry=false`(保存名は`a.txt`と`B.txt`でbyte一致しない)となり、**自己衝突分岐へ落ちる**。attempt 4で塞いだのは「byte一致するhard link」だけだった。
+  3. **P1: 自己衝突の例外がspecsのどこにも登録されていない。** 承認済みREQ-025は無条件で「実体があると判定できたら`nameConflict`を返す」と書いており、実装は**契約に無い例外**を持つ。attempt 3のP1-2は「除外条項が契約に登録されていない」だった。**除外がorchestrationからportへ移っただけで、未登録である状態は同じ。** PR本文の「契約より狭い箇所は無い」も事実と違う。
+- 2026-08-15 / **5回連続FAILのため、AGENTS.mdに従い自動修正を停止し人間へ報告した。**
+  - **否定された仮定**: 「判定条件を増やせば、改名の前に自己衝突かどうかを言い当てられる」。**言い当てられない。** 5回とも「条件を1つ増やす → 増やした条件の外側に反例が見つかる」だった(`!=` → `p.equals` → `toLowerCase` → `identical` → `identical + byte一致`)。**filesystemの同一性規則をアプリ側で先に決め切ろうとしている点は、契約を実装なしで磨いて5回FAILしたのと同じ形である。**
+  - **reviewerが示した別の型の解**: 判定を増やすのではなく、**改名したあとに結果を確認する**。`File.rename`のあとで「元の名前のentryが消え、目標名のentryができた」をfilesystemへ問い合わせ、満たさなければ`Renamed`を返さない。**hard linkのno-opも、case-only renameを黙って無視するFSも、同時に「成功として記録しない」側へ倒れる。** 予測をやめて観測にする。
+  - **勝手に適用しない。** 6つ目の条件を足すのと、判定の型を変えるのは違うが、5回連続の直後である。
 
 ## Current state / handoff
 
@@ -103,4 +112,4 @@
 - Waiting for: 独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 5を起動する。**case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: **勝手に6つ目の条件を足さない。** 判断を受けてから動く。**case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
