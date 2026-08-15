@@ -160,20 +160,29 @@
   - **mutation検査へ5種を追加**(主probe、UTF-8境界、切り詰めhash、退避失敗の分類、一時名確保失敗の分類)。**27/27 KILLED。**
   - `flutter test` — PASS。
 
-- 2026-08-15 / **開発者の指示で独立reviewを一旦停止。** attempt 1〜10はすべてFAILだったが、**P1の件数は 3→5→3→2→2→3→3→1 と減っており、attempt 6以降は「判定の外側に反例」型の穴が1件も出ていない**(設計変更が効いている)。
+- Review attempt 11: `691d3f5..9801b17` — FAIL — P1×2、P2×4。`tool/mutation_check.py`の27/27がclean worktreeで再現され、`SKIP`混入が無いことも確認された。設計には今回も「判定の外側に反例」型の穴が無く、上書きrenameは1箇所も無いと確認された。
+  1. **P1: 1段目のあとの`_probe.exists`が2箇所とも例外から守られていなかった。** `_rename`はcatchで囲んでいたが、**attempt 9で新設したprobeは囲んでいなかった**。媒体のunmount(SDカード抜去 — plan 013の対象領域そのもの)や権限喪失で例外が出ると、**実体が一時名のまま残り、理由文に名前が出ない**。実装自身が直前の行に「ここから先で例外が出ても元の名前へ戻す」と書いており、005 `spec.md`も「仕組みはある」と書いていた。**宣言した保証の違反である。**
+    - 対処: **事例を潰さず構造で担保した。** 1段目成功以降をまとめて`try`で囲み、catchで`_rollbackAfter`を通す。`_rollbackAfter`内のprobeとrenameも1つの`try`に入れた。**awaitを1つ足すたびに漏れる形をやめた。**
+  2. **P1: 「再観測で例外」を検査していると称するtestが、再観測に到達していなかった。** fakeが「N回目」で分岐しており、attempt 9が退避先の確認を**間に挿入した**ことで照準が黙ってずれていた(2回目=退避先の確認、再観測は3回目)。assertionが`isA<RenameFailed>()`だけだったので**ずれても緑のまま**。**P1-1が10回のreviewを生き延びた直接の原因。**
+    - 対処: fakeを**pathと段階**で分岐する形へ変え、assertionへ**FSの実状態**(元の名前へ戻っている / 一時名が残らない)と**理由文に一時名が含まれること**を入れた。
+  - P2×4も解消(PR本文のrange、退避失敗を`nameConflict`へ倒す件をOQ-008として登録、`String.hashCode`が同一buildの範囲でしか一致しない旨を005 specへ、mutation表へ2種追加)。
+  - **mutation表のパターンが構造変更で4件`SKIP`になった。** scriptが`SKIP`を`KILLED`と誤認しない設計だったので気づけた。パターンを更新して**29/29 KILLED**。
+
+- 2026-08-15 / **開発者の指示で独立reviewを一旦停止し、その後再開した。** attempt 1〜10はすべてFAILだったが、**P1の件数は 3→5→3→2→2→3→3→1 と減っており、attempt 6以降は「判定の外側に反例」型の穴が1件も出ていない**(設計変更が効いている)。
   - **未reviewの差分がある**: attempt 10のP1×1(観測済みの衝突を退避の失敗で捨てない)とP2×5の修正は、まだ独立reviewを受けていない。
   - **mergeしていない。** PR #139はDraftのまま。
 
 ## Current state / handoff
 
-- Last checkpoint: attempt 10のP1×1・P2×5を解消。mutation 27/27 KILLED。**開発者の指示で独立reviewを一旦停止した**
+- Last checkpoint: attempt 11のP1×2・P2×4を解消。1段目成功以降を構造で巻き戻し保証。mutation 29/29 KILLED
 - Blocker category: なし
-- Waiting for: なし(再開の判断)
+- Waiting for: 独立review(attempt 12)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: **勝手にattempt 11を起動しない。** 再開が決まったら`691d3f5..7ab472a`(またはそれ以降のhead)で起動する。**attempt 10の修正はまだreviewを受けていない。** 再開時は次の4点を守る。
+- Next Agent action: attempt 12を起動する。次の5点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**
   - **mutation検査は[`tool/mutation_check.py`](../../../../tool/mutation_check.py)で走らせ、生の出力を報告へ貼る。** 手で当てて手で数えない。**新しい述語を足したら表にも足す。**
-  - **指摘を直すとき、事例ではなく機構を見る。** attempt 10で「長い名前だと分類が化ける」を`_temporaryBase`で潰したが、化ける機構そのものは残っていた。
+  - **指摘を直すとき、事例ではなく機構を見る。** attempt 10で「長い名前だと分類が化ける」を`_temporaryBase`で潰したが、化ける機構そのものは残っていた。attempt 11のprobe例外も同型で、**構造(1段目成功以降を包括catch)で担保した。**
+  - **fakeを「N回目」で分岐させない。** 呼び出し回数は実装の都合で変わるので、照準が黙ってずれる。**引数と段階で分岐する。**

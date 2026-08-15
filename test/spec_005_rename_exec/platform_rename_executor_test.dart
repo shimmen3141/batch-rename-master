@@ -362,17 +362,37 @@ void main() {
       expect(await source.readAsString(), 'kept-content');
     });
 
-    test('再観測で例外が出ても、例外を外へ出さない(REQ-017)', () async {
-      // `_renameViaTemporary`の内側で唯一catchを持たないのが再観測である。
-      // ここが漏れると`rename()`のcatchを素通りして実行全体を貫通する。
+    test('再観測で例外が出ても、巻き戻して元の名前へ戻す(REQ-017)', () async {
+      // **1段目を通ったあとのawaitはすべて巻き戻し経路を通る。**
+      // `isA<RenameFailed>()`だけでは、自分が作り出した残骸状態を観測していない。
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
       final result = await DesktopRenameExecutor(
-        probe: const _ThrowsOnSecondProbe(),
+        probe: _ThrowsAt(stage: 'reobserve', destination: 'A.txt'),
       ).rename(source.path, 'A.txt');
 
       expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+      expect(await source.readAsString(), 'kept-content', reason: '元の名前へ戻る');
+      final left = await directory
+          .list()
+          .map((e) => p.basename(e.path))
+          .toList();
+      expect(left, ['a.txt'], reason: '一時名が残らない');
+    });
+
+    test('巻き戻し先の確認で例外が出たら、現在の名前を理由に含める(REQ-017)', () async {
+      // 巻き戻せないので実体は一時名にある。**名前を理由へ出す**。
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      final result = await DesktopRenameExecutor(
+        probe: _ThrowsAt(stage: 'rollback', destination: 'A.txt'),
+      ).rename(source.path, 'A.txt');
+
+      final failure = result as RenameFailed;
+      expect(failure.error.message, contains('renaming-swap-'));
+      expect(failure.error.message, contains('戻せませんでした'));
     });
 
     test('一時名が埋まっていたら次の候補を試す', () async {
@@ -666,23 +686,36 @@ class _CaseInsensitiveProbe implements DesktopPathProbe {
   }
 }
 
-/// 2回目の問い合わせで例外を投げる [DesktopPathProbe]。
+/// 指定した段階で例外を投げる [DesktopPathProbe]。
 ///
-/// 1回目(改名前の実在確認)は真を返して2段階経路へ入れ、2回目(1段目のあとの
-/// 再観測)で投げる。
-class _ThrowsOnSecondProbe implements DesktopPathProbe {
-  const _ThrowsOnSecondProbe();
+/// **「N回目」で分岐しない。** probeの呼び出し回数は実装の都合で変わるので、
+/// 回数で狙うと照準が黙ってずれる(review attempt 11で、再観測を狙ったはずの
+/// testが退避先の確認に当たっていた)。**pathと段階で分岐する。**
+class _ThrowsAt implements DesktopPathProbe {
+  _ThrowsAt({required this.stage, required this.destination});
 
-  static int _calls = 0;
+  /// `reobserve`: 1段目のあとの目標名の再観測。`rollback`: 巻き戻し先の確認。
+  final String stage;
+  final String destination;
+
+  bool _movedAway = false;
 
   @override
   Future<bool> exists(String path) async {
-    _calls += 1;
-    if (_calls >= 2) {
-      _calls = 0;
-      throw const FileSystemException('boom');
+    final isDestination = p.basename(path) == p.basename(destination);
+    if (isDestination && _movedAway) {
+      // 再観測(退避後に目標名を見ている)。
+      if (stage == 'reobserve') throw const FileSystemException('boom');
+      return true; // 別の実体がある → 巻き戻しへ
     }
-    return true;
+    if (p.basename(path).contains('renaming-swap')) {
+      _movedAway = true; // 次の目標名の問い合わせは再観測である
+      return false; // 退避先は空いている
+    }
+    if (_movedAway && stage == 'rollback') {
+      throw const FileSystemException('boom'); // 巻き戻し先の確認
+    }
+    return isDestination;
   }
 }
 

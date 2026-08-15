@@ -197,45 +197,43 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       );
     }
 
-    // **1段目のあと、目標名をもう一度観測する。**
+    // **1段目を通った。ここから先は必ず巻き戻し経路を通る。**
     //
-    // 退避で元の名前が空いたので、目標名の実体が「自分自身」だったなら
-    // **もう存在しない**。まだ存在するなら、それは**別の実体**である。
-    // **判定ではなく観測**であり、case感度も正規化感度も推測しない。
-    //
-    // ここを省くと、no-replaceフラグを黙って無視する環境で2段目が成功し、
-    // **実在を確認済みの別の実体を上書きする**(REQ-025の存在理由そのもの)。
-    if (await _probe.exists(destination)) {
-      return _rollbackAfter(
+    // 個別のawaitをcatchで囲むのではなく、**1段目成功以降をまとめて囲む**。
+    // 事例ごとに囲む形は、awaitを1つ足すたびに漏れる(review attempt 11で、
+    // attempt 9が新設したprobeが2箇所とも漏れていた)。
+    try {
+      // **目標名をもう一度観測する。**
+      //
+      // 退避で元の名前が空いたので、目標名の実体が「自分自身」だったなら
+      // **もう存在しない**。まだ存在するなら、それは**別の実体**である。
+      // **判定ではなく観測**であり、case感度も正規化感度も推測しない。
+      //
+      // ここを省くと、no-replaceフラグを黙って無視する環境で2段目が成功し、
+      // **実在を確認済みの別の実体を上書きする**(REQ-025の存在理由そのもの)。
+      if (await _probe.exists(destination)) {
+        return await _rollbackAfter(
+          temporary,
+          handle,
+          RenameError(
+            RenameErrorKind.nameConflict,
+            '同名のファイルが既に存在します: $destination',
+          ),
+        );
+      }
+
+      final forward = await _rename(temporary, destination);
+      if (forward == NativeRenameResult.success) {
+        return Renamed(File(destination).absolute.path, name: newName);
+      }
+      return await _rollbackAfter(
         temporary,
         handle,
-        RenameError(
-          RenameErrorKind.nameConflict,
-          '同名のファイルが既に存在します: $destination',
-        ),
+        _nativeError(forward, handle, destination),
       );
-    }
-
-    // 1段目を通ったので、実体は一時名にある。**ここから先で例外が出ても
-    // 元の名前へ戻す。** 戻さずに抜けると、利用者は一時名になった実体を
-    // どこからも知れない(理由文にも名前が出ない)。
-    NativeRenameResult forward;
-    try {
-      forward = await _rename(temporary, destination);
     } catch (error) {
-      return _rollbackAfter(temporary, handle, errorOf(error));
+      return await _rollbackAfter(temporary, handle, errorOf(error));
     }
-
-    if (forward == NativeRenameResult.success) {
-      return Renamed(File(destination).absolute.path, name: newName);
-    }
-
-    // 目標名には別の実体がある。**元の名前へ戻す。**
-    return _rollbackAfter(
-      temporary,
-      handle,
-      _nativeError(forward, handle, destination),
-    );
   }
 
   /// 一時名 [temporary] を [handle] へ戻し、[reason] を失敗として返す。
@@ -252,15 +250,16 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     // **巻き戻し先にも実在確認を省かない**(REQ-025)。退避と巻き戻しの間に
     // 他processが元の名前を作っていると、フラグを黙って無視する環境では
     // **その実体を上書きする**。戻せないなら戻さず、現在の名前を理由へ出す。
+    // **probeもrenameもまとめて囲む。** どちらが投げても「戻せなかった」として
+    // 現在の名前を理由へ出す。ここで例外を漏らすと、実体が一時名にあるのに
+    // 名前がどこにも出ない。
     NativeRenameResult rollback;
-    if (await _probe.exists(handle)) {
-      rollback = NativeRenameResult.nameConflict;
-    } else {
-      try {
-        rollback = await _rename(temporary, handle);
-      } catch (_) {
-        rollback = NativeRenameResult.io;
-      }
+    try {
+      rollback = await _probe.exists(handle)
+          ? NativeRenameResult.nameConflict
+          : await _rename(temporary, handle);
+    } catch (_) {
+      rollback = NativeRenameResult.io;
     }
     if (rollback == NativeRenameResult.success) return RenameFailed(reason);
     return RenameFailed(
