@@ -249,7 +249,34 @@ void main() {
       expect(calls, ['a.txt -> c.txt'], reason: '一時名を経由しない');
     });
 
-    test('2段階の途中で例外が出ても、例外を外へ出さない(REQ-017)', () async {
+    test('2段階の途中で例外が出ても、例外を外へ出さず元の名前へ戻す(REQ-017)', () async {
+      // **1段目を通ったあとの例外で抜けると、実体は一時名のまま残り、
+      // 利用者はどのfileがどうなったかを知る手立てを失う。**
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      var step = 0;
+      final executor = DesktopRenameExecutor(
+        probe: const _AlwaysExists(),
+        rename: (from, to) async {
+          step += 1;
+          if (step == 2) throw const FileSystemException('boom');
+          return renameFileWithoutOverwrite(from, to);
+        },
+      );
+
+      final result = await executor.rename(source.path, 'b.txt');
+
+      expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+      expect(await source.readAsString(), 'kept-content', reason: '元の名前へ戻す');
+      final left = await directory
+          .list()
+          .map((e) => p.basename(e.path))
+          .toList();
+      expect(left, ['a.txt'], reason: '一時名が残らない');
+    });
+
+    test('例外のあと巻き戻しもできなければ、現在の名前を理由に含める(REQ-017)', () async {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
@@ -265,7 +292,9 @@ void main() {
 
       final result = await executor.rename(source.path, 'b.txt');
 
-      expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+      final failure = result as RenameFailed;
+      expect(failure.error.message, contains('renaming-swap-'));
+      expect(failure.error.message, contains('戻せませんでした'));
     });
 
     test('巻き戻しにも失敗したら、一時名を含む理由を返す(REQ-017)', () async {

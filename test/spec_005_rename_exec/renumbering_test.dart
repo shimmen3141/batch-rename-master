@@ -339,6 +339,47 @@ void main() {
       expect(live.last, contains('x (1).jpg'), reason: 'すでに確定した結果名(生存名の第5要素)');
     });
 
+    test('生存名に、未実行の改名要求の確認した目標名が含まれる(第2要素)', () async {
+      // 先行fileが後続fileの**確認済み目標名を横取り**すると、後続に
+      // `x (1) (1).jpg` という入れ子接尾辞が確定する。attempt 1のP1-1で
+      // 直した症状そのものなので、(2)を守るtestが要る。
+      final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'x (1).jpg'});
+      final executor = _folder([
+        'a.jpg',
+        'b.jpg',
+      ], failWhen: _conflictOnce('x.jpg'));
+
+      final outcome = await executePlan(planExecution(requests), executor);
+
+      expect(outcome.failure, isNull);
+      final a = outcome.successes.firstWhere((s) => s.originalName == 'a.jpg');
+      final b = outcome.successes.firstWhere((s) => s.originalName == 'b.jpg');
+      expect(a.newName, 'x (2).jpg', reason: '未実行の b の目標名 x (1).jpg を横取りしない');
+      expect(b.newName, 'x (1).jpg');
+    });
+
+    test('生存名に、未実行の選択fileの現在名が含まれる(第3要素)', () async {
+      // 現在名を数えないと、まだ改名していないfileの名前を候補に選び、
+      // portが`nameConflict`を返して試行上限を無駄に消費する。
+      final requests = _requests({'a.jpg': 'x.jpg', 'x (1).jpg': 'z.jpg'});
+      final executor = _folder([
+        'a.jpg',
+        'x (1).jpg',
+      ], failWhen: _conflictOnce('x.jpg'));
+
+      final calls = <String>[];
+      await executePlan(
+        planExecution(requests),
+        executor,
+        renumber: (request, liveNames) {
+          calls.add(liveNames.contains('x (1).jpg') ? 'counted' : 'missed');
+          return nextCandidateName(request.targetName, liveNames);
+        },
+      );
+
+      expect(calls, ['counted'], reason: '未実行fileの現在名を数える');
+    });
+
     test('占有名(folderごと)が生存名に含まれ、別folderの名前は混ざらない', () async {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(['a.jpg'], failWhen: _conflictOnce('x.jpg'));

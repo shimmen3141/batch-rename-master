@@ -31,6 +31,13 @@
 - **契約の`open_questions` OQ-002(REQ-027の操作面とSM-001の遷移)、OQ-003(`occupiedNames`の全域性)、OQ-005(一時名と再採番の相互回避)をこのtaskで決める。** 決まった内容は**revision 5として契約へ戻す。**
 - **`renumber`が`null`を返す条件**(候補が尽きる場合があるか)。
 
+## 被覆した仕様
+
+**`task.json`の`covers`は空にしている。** `covers`は所属plan(013)の`spec.md`へ解決されるため、005契約のREQ IDを書くと**同じ番号の013の別要求と黙って一致する**(`T04/task.md`の規約)。このtaskが実装した005側のIDは次のとおり。
+
+- REQ-023(再採番)、REQ-024(結果の提示)、REQ-025(常に実在確認)
+- INV-003(実行結果と実体の一致)、OP-002(実行)、OP-004(改名port)、VER-008
+
 ## 受け入れ証拠
 
 - 005 spec.mdの例24・26・28・29・30に対応するtestがある(VER-008)。
@@ -126,11 +133,20 @@
   - P2×4も解消(巻き戻し成功後の理由文が存在しない一時名を含んでいた、二重の一時名のケースを005 specへ、PR本文の「contractに無い例外が無くなった」が同本文のOQ-007と矛盾、契約をrevision据え置きで編集した件)。
   - `flutter test` — PASS (387)。
 
+- Review attempt 7: `691d3f5..17fc284` — FAIL — P1×3、P2×4。**設計そのものは今回も正しい方向**と確認された — data lossにつながる経路・上書きrename・INV-002/INV-003違反はこのrangeに無く、「判定の外側に反例が出る」型の穴も見つからなかった。**私が申告した4つのmutationはすべて再現された**(failure mode 6の再発なし)。
+  1. **P1: 1段目を通ったあとの例外で、巻き戻さずに抜けていた。** 実体は一時名にあるのに、理由文に名前が出ない。**attempt 6で新設した回帰testが、この経路を通しながら`isA<RenameFailed>()`しか見ておらず、自分が作り出した残骸状態を1行も観測していなかった。** さらに、同じrangeで登録したばかりのOQ-007が**すでに実装より狭かった**(「巻き戻しにも失敗した場合」しか書いていない)。→ 例外時も巻き戻すようにし、`_rollbackAfter`へ集約した。testは残骸が消えることまで見る。
+  2. **P1: 生存名の第2要素(未実行の目標名)にtestが無かった。** 除去しても387件すべてPASS。**先行fileが後続fileの確認済み目標名を横取りし、`x (1) (1).jpg`が確定する** — attempt 1のP1-1で直した症状そのものが、無言で再発しうる状態だった。**attempt 6の修正が「(5)のfixtureを直す」に閉じ、受け入れ証拠が要求する「5要素すべて」へ届いていなかった。** → (2)と(3)のtestを追加し、mutationで落ちることを確認した。
+  3. **P1: attempt 6のP1-5(handoff)が解消されていなかった。** 更新されたのは`Next Agent action`の1行だけで、`Last checkpoint`は削除済みの「2段判定」を、`Waiting for`は3回前のattemptを指したままだった。**作業記録には解消済みと書いていた。** → `## Current state / handoff`のblock全体を書き直し、**読み返して確認した。**
+  - P2×4も解消(`covers`が空である理由を「被覆した仕様」節へ明記、生存名の第3要素のtest、findingの改善結果を実際の採用案と結果へ更新、PR本文のmutation件数は再測定した値へ)。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 4のP1×2・P2×2を解消。自己衝突の判定を2段にし、注入可能にした
+- Last checkpoint: attempt 7のP1×3・P2×4を解消。設計は一時名経由の2段階renameで、自己衝突の判定は持たない
 - Blocker category: なし
-- Waiting for: 独立review(attempt 4)
+- Waiting for: 独立review(attempt 8)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 7を起動する。**判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。****case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: attempt 8を起動する。次の3点を守る。
+  - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
+  - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
+  - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**

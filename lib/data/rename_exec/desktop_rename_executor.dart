@@ -171,25 +171,52 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       );
     }
 
-    final forward = await _rename(temporary, destination);
+    // 1段目を通ったので、実体は一時名にある。**ここから先で例外が出ても
+    // 元の名前へ戻す。** 戻さずに抜けると、利用者は一時名になった実体を
+    // どこからも知れない(理由文にも名前が出ない)。
+    NativeRenameResult forward;
+    try {
+      forward = await _rename(temporary, destination);
+    } catch (error) {
+      return _rollbackAfter(temporary, handle, errorOf(error));
+    }
     if (forward == NativeRenameResult.success) {
       return Renamed(File(destination).absolute.path, name: newName);
     }
 
     // 目標名には別の実体がある。**元の名前へ戻す。**
-    final rollback = await _rename(temporary, handle);
-    if (rollback != NativeRenameResult.success) {
-      return RenameFailed(
-        RenameError(
-          RenameErrorKind.io,
-          '改名に失敗し、元の名前へも戻せませんでした。'
-          '現在の名前: ${p.basename(temporary)}',
-        ),
-      );
+    return _rollbackAfter(
+      temporary,
+      handle,
+      _nativeError(forward, handle, destination),
+    );
+  }
+
+  /// 一時名 [temporary] を [handle] へ戻し、[reason] を失敗として返す。
+  ///
+  /// **戻せなかった場合は、現在の名前(一時名)を理由に含める。** このとき実体は
+  /// 一時名にあるので、`OP-004`の事後条件「失敗時、実体は変化しない」の例外に
+  /// なる(契約の`open_questions` OQ-007)。理由に名前を出さないと、利用者は
+  /// どのfileがどうなったかを知る手立てを失う。
+  Future<RenameResult> _rollbackAfter(
+    String temporary,
+    String handle,
+    RenameError reason,
+  ) async {
+    NativeRenameResult rollback;
+    try {
+      rollback = await _rename(temporary, handle);
+    } catch (_) {
+      rollback = NativeRenameResult.io;
     }
-    // 巻き戻せたので実体は元の名前にある。**理由に一時名を出さない** —
-    // 既に存在しない名前を利用者へ見せることになる。
-    return RenameFailed(_nativeError(forward, handle, destination));
+    if (rollback == NativeRenameResult.success) return RenameFailed(reason);
+    return RenameFailed(
+      RenameError(
+        RenameErrorKind.io,
+        '${reason.message ?? reason.kind.name} '
+        '元の名前へも戻せませんでした。現在の名前: ${p.basename(temporary)}',
+      ),
+    );
   }
 
   static RenameError _nativeError(
