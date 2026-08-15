@@ -16,7 +16,8 @@
 
 ## 入力と依存
 
-- `T04`で承認された005 contract revision 4(REQ-004、REQ-011、REQ-023〜026)。
+- 005 contract revision 4(approved。REQ-004、REQ-011、REQ-023〜027)。
+- **`T11`の実装**(`rename_execution.dart`の`executePlan`が`occupiedNames`を受け取る形になっている)。**このtaskはその供給元を作る** — 現状は既定の空mapが渡っており、**REQ-026とREQ-027はまだ効いていない**。
 - 001の`validate` / `autoResolve`と`contracts/behavior-contract.json`(001が正本)。
 - 004のfile source(実在entry名を供給する側)。
 
@@ -58,9 +59,13 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T04`(005 contract revision 4)の承認
+- Last checkpoint: 定義しただけ。未着手。**依存は解けた** — `T04`(契約revision 4)も`T11`(実行経路)もmerge済み
+- Blocker category: なし
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@4fd6ab1` + 005 ADR-002(proposed)
-- Next Agent action: `T04`承認後に着手する。**001と004の仕様改訂を伴うので、`T03`との範囲重複を先に調整する**
+- Evidence revision: `dev@b06766b` + 005 contract revision 4(approved 2026-08-14)+ `T11`のmerge commit `2721971`
+- Next Agent action: **着手できる。** 最初に次の3つを決める。
+  1. **`T03`との範囲重複。** どちらも004 specを触る。**先にどちらを進めるかを決める**(このtaskは実在名の供給、`T03`は読み込み導線そのもの)。
+  2. **OQ-004**(`folder`の同一性判定と正規化の責務)と**OQ-006**(001の重複判定をfolder単位へ揃えるか)。
+  3. **OQ-002**(REQ-027に対応する`operations`とSM-001の遷移)と**OQ-003**(`occupiedNames`の全域性)。`T11`から移してある。
+  そのうえで、`T11`が決着させた**OQ-001・OQ-005・OQ-007・OQ-008**と合わせて**契約revision 5**として戻し、人間の承認を取る(受け入れ証拠に入っている)。

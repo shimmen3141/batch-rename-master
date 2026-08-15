@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T11",
   "title": "契約revision 4の実行経路を実装する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T04"
   ],

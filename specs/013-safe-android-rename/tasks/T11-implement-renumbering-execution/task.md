@@ -192,17 +192,15 @@
   - **未reviewの差分がある**: attempt 10のP1×1(観測済みの衝突を退避の失敗で捨てない)とP2×5の修正は、まだ独立reviewを受けていない。
   - **mergeしていない。** PR #139はDraftのまま。
 
+- 2026-08-15 / **PR #139を人間が`dev`へmerge**(merge commit `2721971`)。**開発者がdesign逸脱を受容した** — 結果toastの情報階層をdesignの1行から2段へ変える判断。提示手段の見直し(modal化)は`008`へ送った。
+  - あわせてPR #140(`AGENTS.md`のdesign HTMLを正本→土台)もmergeされた(`b06766b`)。
+  - `dev`上で検証: `flutter test` — PASS (402)、`flutter analyze` — PASS、`dart format` — PASS、`workspace.py check specs` — PASS (8 plans, 62 tasks)。
+
 ## Current state / handoff
 
-- Last checkpoint: **attempt 14が`691d3f5..582868f`でPASS**(P0/P1なし)。そのP2×2も解消した。PR #139はDraft解除済み
-- Blocker category: decision
-- Waiting for: **人間のmergeと、auto-merge条件5の判断**。結果toastの情報階層をdesignの1行から2段へ変えており、**design逸脱を受容するか、desktopでtoastの実表示を1回確認するか**を人間が決める(その他の条件は充足。詳細はPR #139の本文)
+- Last checkpoint: **完了。** PR #139が`dev`へmerge済み(`2721971`)。independent review attempt 14がPASS
+- Blocker category: なし
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: **人間がmergeする。Agentはmergeしない**(条件5が人間の判断領域)。merge後は`dev`上の結果を確認して`T11`を`done`にし、`T10`(占有名の事前検出)へ進む。**PASS後の2 commitは`lib/`を変更していない**(testの照準、記録、`AGENTS.md`追随)。関連PR: **#140**(`AGENTS.md`のdesign HTMLを土台へ)。次の5点を守る。
-  - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
-  - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
-  - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**
-  - **mutation検査は[`tool/mutation_check.py`](../../../../tool/mutation_check.py)で走らせ、生の出力を報告へ貼る。** 手で当てて手で数えない。**新しい述語を足したら表にも足す。**
-  - **指摘を直すとき、事例ではなく機構を見る。** attempt 10で「長い名前だと分類が化ける」を`_temporaryBase`で潰したが、化ける機構そのものは残っていた。attempt 11のprobe例外も同型で、**構造(1段目成功以降を包括catch)で担保した。**
-  - **fakeを「N回目」で分岐させない。** 呼び出し回数は実装の都合で変わるので、照準が黙ってずれる。**引数と段階で分岐する。**
+- Evidence revision: `dev@b06766b`(PR #139 merge commit `2721971`)+ 005 contract revision 4(approved 2026-08-14)
+- Next Agent action: なし。**次は`T10`(占有名の事前検出)。** `T11`が決着させたOQ-001・OQ-005・OQ-007・OQ-008を、`T10`自身のOQ-002/003/004/006と一緒に**契約revision 5として戻す**のが`T10`の受け入れ証拠に入っている。
