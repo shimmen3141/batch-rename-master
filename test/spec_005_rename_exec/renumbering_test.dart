@@ -304,32 +304,39 @@ void main() {
     });
 
     test('生存名に、この実行ですでに確定した結果名が含まれる', () async {
-      // a→x を先に確定させ、そのあと b→y を衝突させる。再採番の照合集合には
-      // 確定済みの x が入っていなければならない(実在名は実行前の観測値なので
-      // x を含まない)。
+      // **先行要求自身を再採番させて、確定名 ≠ targetName にする。** そうしないと
+      // 確定名は「未実行の目標名」としても集合へ入るので、(5)を消しても落ちない
+      // (`T04` review attempt 2のP1-2、`T11` attempt 6のP1-4)。
       final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'y.jpg'});
-      final executor = _folder([
-        'a.jpg',
-        'b.jpg',
-      ], failWhen: _conflictOnce('y.jpg'));
+      final conflicts = <String>{'x.jpg', 'y.jpg'};
+      final executor = _folder(
+        ['a.jpg', 'b.jpg'],
+        failWhen: (handle, newName) {
+          if (!conflicts.remove(newName)) return null;
+          return const RenameError(RenameErrorKind.nameConflict, '注入');
+        },
+      );
 
-      Set<String>? live;
-      await executePlan(
+      final live = <Set<String>>[];
+      final outcome = await executePlan(
         planExecution(requests),
         executor,
         renumber: (request, liveNames) {
-          live ??= liveNames;
+          live.add(liveNames);
           return nextCandidateName(request.targetName, liveNames);
         },
       );
 
-      expect(live, isNotNull, reason: '再採番が呼ばれること');
-      expect(live, contains('x.jpg'), reason: 'すでに確定した結果名');
-      expect(
-        live,
-        contains('y.jpg'),
-        reason: '実行時に観測した衝突名も照合集合に入る(次の候補が同じ名前へ戻らないように)',
+      // a は x (1).jpg で確定する(targetName は x.jpg のまま)。
+      final settled = outcome.successes.firstWhere(
+        (s) => s.originalName == 'a.jpg',
       );
+      expect(settled.newName, 'x (1).jpg');
+      expect(settled.confirmedName, 'x.jpg');
+
+      // b の再採番時、照合集合に**確定名**が入っていること。
+      expect(live.length, 2);
+      expect(live.last, contains('x (1).jpg'), reason: 'すでに確定した結果名(生存名の第5要素)');
     });
 
     test('占有名(folderごと)が生存名に含まれ、別folderの名前は混ざらない', () async {

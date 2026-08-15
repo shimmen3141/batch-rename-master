@@ -112,7 +112,10 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       // 空くので2段目が通り、本物の衝突なら2段目が`EEXIST`で止まる。
       // **一度も上書きrenameを使わない**(どちらの段も排他rename)。
       if (await _probe.exists(destination)) {
-        return _renameViaTemporary(handle, destination, newName);
+        // **`await` を落とさない。** `try { return future; }` はfutureをtryの
+        // 外で待つので、この先で投げられた例外がcatchへ入らず呼び出し側へ抜ける
+        // (REQ-017違反)。review attempt 6で指摘された。
+        return await _renameViaTemporary(handle, destination, newName);
       }
 
       final nativeResult = await _rename(handle, destination);
@@ -137,6 +140,11 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
   /// 次回の実行を妨げない(preflightの残骸と違い、恒久的な阻害にならない)。
   /// 名前で正体が分かり、利用者が直せる。窓はsyscall 2回の間だけで、しかも
   /// 目標名が実在するときにしか通らない。
+  ///
+  /// **3にも失敗した場合、実体は一時名にあるまま`RenameFailed`を返す。**
+  /// これは`OP-004`の事後条件「失敗時、実体は変化しない」の例外である
+  /// (契約の`open_questions` OQ-007へ登録済み)。理由に現在の名前を含めるので、
+  /// 結果の提示(REQ-013)が利用者へ届ける。
   Future<RenameResult> _renameViaTemporary(
     String handle,
     String destination,
@@ -179,7 +187,9 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         ),
       );
     }
-    return RenameFailed(_nativeError(forward, temporary, destination));
+    // 巻き戻せたので実体は元の名前にある。**理由に一時名を出さない** —
+    // 既に存在しない名前を利用者へ見せることになる。
+    return RenameFailed(_nativeError(forward, handle, destination));
   }
 
   static RenameError _nativeError(

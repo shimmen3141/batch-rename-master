@@ -217,6 +217,57 @@ void main() {
       expect(await link.exists(), isTrue);
     });
 
+    test('目標名が実在するときだけ一時名を経由する(REQ-025の実在確認)', () async {
+      // **productionの述語(`_RealPathProbe.exists`)が実際に効いていること**を
+      // 固定する。probeを注入せず、rename呼び出しの回数で判定する。
+      // `exists`を常にtrue/falseへ倒すと、どちらもこのtestが落ちる。
+      final occupied = File(p.join(directory.path, 'b.txt'));
+      await occupied.writeAsString('other');
+      final free = File(p.join(directory.path, 'a.txt'));
+      await free.writeAsString('src');
+
+      final calls = <String>[];
+      DesktopRenameExecutor record() => DesktopRenameExecutor(
+        rename: (from, to) async {
+          calls.add('${p.basename(from)} -> ${p.basename(to)}');
+          return renameFileWithoutOverwrite(from, to);
+        },
+      );
+
+      // 目標名が実在する → 退避・前進失敗・巻き戻しの3回。
+      final conflict = await record().rename(free.path, 'b.txt');
+      expect(
+        (conflict as RenameFailed).error.kind,
+        RenameErrorKind.nameConflict,
+      );
+      expect(calls.length, 3, reason: '一時名を経由する: $calls');
+
+      // 目標名が空いている → 1回だけ。
+      calls.clear();
+      final ok = await record().rename(free.path, 'c.txt');
+      expect(ok, isA<Renamed>());
+      expect(calls, ['a.txt -> c.txt'], reason: '一時名を経由しない');
+    });
+
+    test('2段階の途中で例外が出ても、例外を外へ出さない(REQ-017)', () async {
+      final source = File(p.join(directory.path, 'a.txt'));
+      await source.writeAsString('kept-content');
+
+      var step = 0;
+      final executor = DesktopRenameExecutor(
+        probe: const _AlwaysExists(),
+        rename: (from, to) async {
+          step += 1;
+          if (step == 1) return renameFileWithoutOverwrite(from, to);
+          throw const FileSystemException('boom');
+        },
+      );
+
+      final result = await executor.rename(source.path, 'b.txt');
+
+      expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
+    });
+
     test('巻き戻しにも失敗したら、一時名を含む理由を返す(REQ-017)', () async {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');

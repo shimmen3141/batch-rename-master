@@ -117,6 +117,15 @@
   - **異常終了で一時名が残る窓**については、005 `spec.md`へ「一時名が残ったときの提示」節を追加した。**実行中の失敗は提示できる**(巻き戻し失敗時に現在名を理由へ含める)。**process強制終了・電源断は提示する仕組みが無い**ので対象外とし、product-mapの将来候補へ入れた。**元の名前は空くので次回の実行を妨げない** — preflightの残骸と違い恒久的な阻害にならない。
   - `flutter test` — PASS (385)。
 
+- Review attempt 6: `691d3f5..2d3e4f9` — FAIL — P1×5、P2×4。**設計変更そのものは正しい方向と確認された** — 「判定の外側に反例が出る」型の穴は**このrangeで1件も見つからなかった**(5回続いていた)。2段階renameに上書き・データ破壊の経路は無く、一時名の名前空間の衝突も無いことが実測された。再採番・試行上限・生存名(2)(3)(4)・REQ-024の提示・INV-003の記録も8個のmutationで退行なしと確認された。
+  1. **P1: `_renameViaTemporary`を`await`していなかった。** `try { return future; }` はfutureをtryの外で待つので、**新設した経路だけが`catch`の保護外**だった。例外が`rename()`の呼び出し側へ抜け、実行全体を貫通する — fileは一時名のまま、結果トーストも出ず、**同じbatchで成功済みの改名をundoできない**(REQ-017違反)。→ `return await`。回帰testを追加した。
+  2. **P1: 巻き戻し失敗時に`OP-004`の事後条件「失敗時、実体は変化しない」を破るのに、その食い違いが未登録だった。** OQ-007は「異常終了で一時名が残ること」しか書いていなかった。→ OQ-007へ追記し、005 `spec.md`の節にも書いた。**契約から外れた箇所の未登録は3回目**(attempt 3のP1-2、attempt 5のP1-3と同型)。
+  3. **P1: REQ-025の実在確認を検証しているtestが1件も無かった。** `_RealPathProbe.exists`を`true`にも`false`にも倒して385件すべてPASSした。分岐の存在は注入testが守っていたが、**productionの述語が実際に参照されているか**は誰も見ていなかった。→ 既定のprobeのままrename呼び出し**回数**を固定するtestを追加(実在する目標名→3回、空いている→1回)。**両方向のmutationで落ちることを確認した。**
+  4. **P1: 生存名の第5要素のtestがvacuousだった。** 確定名が「未実行の目標名」としても集合へ入るfixtureだったため、`recordSettled`を消しても落ちない。**attempt 2で指摘され、受け入れ証拠に明記した項目が満たされていなかった。** → **先行要求自身を再採番させて確定名 ≠ targetName にする**fixtureへ変えた。
+  5. **P1: `handoff`がattempt 4のままで、削除済みの「2段判定」を現在地として指していた。** そこから再開するAgentは**判定を足す方向へ戻る** — `Next Agent action`が禁じている動きをhandoff自身が誘導していた。
+  - P2×4も解消(巻き戻し成功後の理由文が存在しない一時名を含んでいた、二重の一時名のケースを005 specへ、PR本文の「contractに無い例外が無くなった」が同本文のOQ-007と矛盾、契約をrevision据え置きで編集した件)。
+  - `flutter test` — PASS (387)。
+
 ## Current state / handoff
 
 - Last checkpoint: attempt 4のP1×2・P2×2を解消。自己衝突の判定を2段にし、注入可能にした
@@ -124,4 +133,4 @@
 - Waiting for: 独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 6を起動する。**判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。****case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
+- Next Agent action: attempt 7を起動する。**判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。****case-insensitive filesystemの実測は`T08`と同じ扱いで人間の作業として残る。****契約のrevision 5更新(OQ-001/OQ-005の反映)は`T10`が`T10`自身のOQと一緒に行う** — 実装が契約より広い状態を放置しない
