@@ -47,7 +47,9 @@
 - **本taskの変更**: 再採番が起きたとき、本文の下へ**「旧 → 新」の行を全件**並べる(高さ制限つきscroll)。**情報階層が1行から2段へ変わる。**
 - **意図的な逸脱である。** REQ-024は「どの項目がどの名前になったかを示す」「**黙って別の名前にしない**」を要求しており、件数だけ、あるいは先頭数件だけの提示では満たせない(review attempt 2のP1-B)。**designの1行に収める形と、契約の要求が両立しない。**
 - **契約を優先する。** **判定・データ保護・時間制約はdesignへ移さず契約とtestを正本とする**(`AGENTS.md`)。ここは「利用者が確認していない名前になった事実を隠さない」というデータ保護側の要求である。
-- **未確認**: 高さ制限つきscrollとundoボタンが同居したときの実表示。**containerでは確認できない。** 振る舞い(全件出す / 打ち切らない / 出ない側)はwidget test 4件で固定済みで、**未検証なのは視覚的な体裁のみ**である。
+- **縦に伸びない工夫はしてある。** 高さを96px(約4行)で打ち切り、`SingleChildScrollView`でscrollさせる。**打ち切るのは表示領域であって件数ではない** — 全件がscroll内に存在する。
+- **未確認**: その高さ制限つきscrollとundoボタンが同居したときの実表示。**containerでは確認できない。** 振る舞い(全件出す / 打ち切らない / 出ない側)はwidget test 4件で固定済みで、**未検証なのは視覚的な体裁のみ**である。
+- **提示手段の見直しは008へ送った**(2026-08-15の開発者指摘: 全件出すならmodalの方が向いている)。005 spec「自由とする点」が提示方法を実装に委ねており、**振る舞いを変えずに手段だけ動かすので008の範囲**である。
 
 ## 受け入れ証拠
 
@@ -192,12 +194,12 @@
 
 ## Current state / handoff
 
-- Last checkpoint: **attempt 12がPASS**(P0/P1なし)。attempt 13のP1×1(記録の遅れ)とP2×3も解消した
-- Blocker category: なし
-- Waiting for: 独立review(attempt 14)
+- Last checkpoint: **attempt 14が`691d3f5..582868f`でPASS**(P0/P1なし)。そのP2×2も解消した。PR #139はDraft解除済み
+- Blocker category: decision
+- Waiting for: **人間のmergeと、auto-merge条件5の判断**。結果toastの情報階層をdesignの1行から2段へ変えており、**design逸脱を受容するか、desktopでtoastの実表示を1回確認するか**を人間が決める(その他の条件は充足。詳細はPR #139の本文)
 - Requested action: なし
 - Evidence revision: `dev@691d3f5` + 005 contract revision 4(approved 2026-08-14)
-- Next Agent action: attempt 14を起動し、PASSならmergeする。**mergeの前に7条件を確認する。** 次の5点を守る。
+- Next Agent action: **人間がmergeする。Agentはmergeしない**(条件5が人間の判断領域)。merge後は`dev`上の結果を確認して`T11`を`done`にし、`T10`(占有名の事前検出)へ進む。**PASS後の2 commitは`lib/`を変更していない**(testの照準、記録、`AGENTS.md`追随)。関連PR: **#140**(`AGENTS.md`のdesign HTMLを土台へ)。次の5点を守る。
   - **判定を足す方向の修正が出てきたら、それは元の型への逆戻りである。**
   - **契約のrevision 5更新(OQ-001 / OQ-005 / OQ-007の反映)は`T10`が自分のOQと一緒に行う。** 実装が契約と食い違う状態を放置しない。
   - **case-insensitiveなfilesystemの実測は`T08`と同じ扱いで人間の作業として残る。**
