@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -153,18 +154,19 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     String newName,
   ) async {
     final directory = p.dirname(handle);
-    final base = p.basename(handle);
+    final base = _temporaryBase(p.basename(handle));
 
     String? temporary;
     for (var n = 0; n < 32; n++) {
       final candidate = p.join(directory, '$base.renaming-swap-$n');
-      final NativeRenameResult result;
-      try {
-        result = await _rename(handle, candidate);
-      } catch (error) {
-        // 1段目はまだ実体を動かしていない。**例外を外へ出さない**(REQ-017)。
-        return RenameFailed(errorOf(error));
-      }
+      // **退避先にも実在確認を省かない**(REQ-025)。フラグを黙って無視する
+      // 環境では排他renameが成功してしまい、**前回の異常終了で残った実体を
+      // 上書きする**。実装自身がその残骸を「利用者が直せる」として受容範囲に
+      // 置いている以上、想定外の状態ではない。
+      if (await _probe.exists(candidate)) continue;
+      // ここで例外が出ても外側の`try`が受ける(`return await`)。**内側に
+      // catchを置かない** — 冗長でtestが固定できず、「検査済み」と誤認させる。
+      final result = await _rename(handle, candidate);
       if (result == NativeRenameResult.success) {
         temporary = candidate;
         break;
@@ -207,6 +209,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     } catch (error) {
       return _rollbackAfter(temporary, handle, errorOf(error));
     }
+
     if (forward == NativeRenameResult.success) {
       return Renamed(File(destination).absolute.path, name: newName);
     }
@@ -230,11 +233,18 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     String handle,
     RenameError reason,
   ) async {
+    // **巻き戻し先にも実在確認を省かない**(REQ-025)。退避と巻き戻しの間に
+    // 他processが元の名前を作っていると、フラグを黙って無視する環境では
+    // **その実体を上書きする**。戻せないなら戻さず、現在の名前を理由へ出す。
     NativeRenameResult rollback;
-    try {
-      rollback = await _rename(temporary, handle);
-    } catch (_) {
-      rollback = NativeRenameResult.io;
+    if (await _probe.exists(handle)) {
+      rollback = NativeRenameResult.nameConflict;
+    } else {
+      try {
+        rollback = await _rename(temporary, handle);
+      } catch (_) {
+        rollback = NativeRenameResult.io;
+      }
     }
     if (rollback == NativeRenameResult.success) return RenameFailed(reason);
     return RenameFailed(
@@ -244,6 +254,26 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         '元の名前へも戻せませんでした。現在の名前: ${p.basename(temporary)}',
       ),
     );
+  }
+
+  /// 一時名のbase。`.renaming-swap-N` を足しても `NAME_MAX`(255 byte)を
+  /// 超えないよう、**byte長で**切り詰める。
+  ///
+  /// 超えると排他renameが`ENAMETOOLONG`で失敗し、`io`として返る。呼び出し側の
+  /// 再採番(REQ-023)は`nameConflict`しか拾わないので、**長い名前のときだけ
+  /// 再採番が働かず実行全体が止まる**(review attempt 9で実FS再現)。
+  static String _temporaryBase(String name) {
+    const suffix = '.renaming-swap-00'; // 最長の接尾辞
+    const limit = 255;
+    final bytes = utf8.encode(name);
+    final room = limit - suffix.length;
+    if (bytes.length <= room) return name;
+    var cut = room;
+    // UTF-8のcode point境界で切る。
+    while (cut > 0 && (bytes[cut] & 0xC0) == 0x80) {
+      cut -= 1;
+    }
+    return utf8.decode(bytes.sublist(0, cut), allowMalformed: true);
   }
 
   static RenameError _nativeError(

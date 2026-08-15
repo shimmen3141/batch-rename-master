@@ -177,14 +177,14 @@ void main() {
 
     test('目標名に別の実体があれば、巻き戻して nameConflict を返す(INV-002)', () async {
       // 1段目のあとの再観測でまだ実在するので、**2段目を実行しない**。
-      final source = File(p.join(directory.path, 'Photo.jpg'));
-      final other = File(p.join(directory.path, 'photo.jpg'));
+      final source = File(p.join(directory.path, 'a.txt'));
+      final other = File(p.join(directory.path, 'b.txt'));
       await source.writeAsString('source-content');
       await other.writeAsString('other-content');
 
       final result = await DesktopRenameExecutor(
         probe: const _CaseInsensitiveProbe(),
-      ).rename(source.path, 'photo.jpg');
+      ).rename(source.path, 'b.txt');
 
       expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
       expect(await source.readAsString(), 'source-content');
@@ -192,7 +192,7 @@ void main() {
       final left =
           (await directory.list().map((e) => p.basename(e.path)).toList())
             ..sort();
-      expect(left, ['Photo.jpg', 'photo.jpg'], reason: '一時名が残らない');
+      expect(left, ['a.txt', 'b.txt'], reason: '一時名が残らない');
     });
 
     test('目標名が hard link なら衝突として扱う(INV-003)', () async {
@@ -394,8 +394,11 @@ void main() {
       final result = await executor.rename(source.path, 'A.txt');
 
       expect(result, isA<Renamed>());
-      expect(calls.first, 'a.txt.renaming-swap-0');
-      expect(calls[1], 'a.txt.renaming-swap-1', reason: '次の候補を試す');
+      expect(
+        calls.first,
+        'a.txt.renaming-swap-1',
+        reason: '実在確認で swap-0 を避ける(呼ばない)',
+      );
       expect(
         await File(
           p.join(directory.path, 'a.txt.renaming-swap-0'),
@@ -435,6 +438,49 @@ void main() {
         (result as RenameFailed).error.kind,
         RenameErrorKind.permissionDenied,
       );
+    });
+
+    test('巻き戻し先が塞がっていたら戻さず、現在の名前を理由に含める(REQ-025)', () async {
+      // 退避と巻き戻しの間に他processが元の名前を作った状況。**戻すと
+      // その実体を上書きする**(フラグを黙って無視する環境)。戻さない。
+      final source = File(p.join(directory.path, 'a.txt'));
+      final other = File(p.join(directory.path, 'b.txt'));
+      await source.writeAsString('source-content');
+      await other.writeAsString('other-content');
+
+      final executor = DesktopRenameExecutor(
+        probe: const _ExistsExceptTemporary(),
+        rename: (from, to) async => renameFileWithoutOverwrite(from, to),
+      );
+
+      final result = await executor.rename(source.path, 'b.txt');
+
+      final failure = result as RenameFailed;
+      expect(failure.error.message, contains('renaming-swap-'));
+      expect(failure.error.message, contains('戻せませんでした'));
+      expect(await other.readAsString(), 'other-content', reason: '上書きしない');
+    });
+
+    test('元名が長くても、一時名が長さ上限を超えない(REQ-023が働く)', () async {
+      // 一時名が`NAME_MAX`を超えると排他renameが`ENAMETOOLONG`で失敗し、
+      // `io`として返る。呼び出し側の再採番は`nameConflict`しか拾わないので、
+      // **長い名前のときだけ再採番が働かず実行全体が止まる。**
+      final longBase = 'x' * 240;
+      final source = File(p.join(directory.path, '$longBase.txt'));
+      await source.writeAsString('source-content');
+      final other = File(p.join(directory.path, 'dest.txt'));
+      await other.writeAsString('other-content');
+
+      final result = await DesktopRenameExecutor(
+        probe: const _CaseInsensitiveProbe(),
+      ).rename(source.path, 'dest.txt');
+
+      expect(
+        (result as RenameFailed).error.kind,
+        RenameErrorKind.nameConflict,
+        reason: 'ioに化けない: ${result.error.message}',
+      );
+      expect(await source.readAsString(), 'source-content');
     });
 
     test('存在しない対象は例外でなく notFound を返す(REQ-017)', () async {
@@ -605,4 +651,16 @@ class _ThrowsOnSecondProbe implements DesktopPathProbe {
     }
     return true;
   }
+}
+
+/// 一時名以外は「実在する」と答える [DesktopPathProbe]。
+///
+/// 退避は通り、**巻き戻し先が塞がっている**状況を模す(退避と巻き戻しの間に
+/// 他processが元の名前を作った場合)。
+class _ExistsExceptTemporary implements DesktopPathProbe {
+  const _ExistsExceptTemporary();
+
+  @override
+  Future<bool> exists(String path) async =>
+      !p.basename(path).contains('renaming-swap');
 }

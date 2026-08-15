@@ -435,6 +435,58 @@ void main() {
       expect(live, isNot(contains('elsewhere.jpg')));
       expect(live, isNot(contains('b.jpg')));
     });
+
+    test('別folderの一時名は生存名に混ざらない', () async {
+      // 循環がある`/photos`と、衝突する`/other`。`/other`の再採番の照合集合に
+      // `/photos`の一時名が入ってはならない。
+      final requests = [
+        RenameRequest(
+          handle: '$_dir/a.jpg',
+          originalName: 'a.jpg',
+          targetName: 'b.jpg',
+        ),
+        RenameRequest(
+          handle: '$_dir/b.jpg',
+          originalName: 'b.jpg',
+          targetName: 'a.jpg',
+        ),
+        RenameRequest(
+          handle: '/other/c.jpg',
+          originalName: 'c.jpg',
+          targetName: 'z.jpg',
+        ),
+      ];
+      final plan = planExecution(requests);
+      final temporaryNames = {
+        for (final s in plan.steps)
+          if (s.kind == RenameStepKind.temporary) s.newName,
+      };
+      expect(temporaryNames, isNotEmpty);
+
+      final executor = FakeRenameExecutor(
+        files: {
+          '$_dir/a.jpg': 'a.jpg',
+          '$_dir/b.jpg': 'b.jpg',
+          '/other/c.jpg': 'c.jpg',
+        },
+        failWhen: _conflictOnce('z.jpg'),
+      );
+
+      Set<String>? live;
+      await executePlan(
+        plan,
+        executor,
+        renumber: (request, liveNames) {
+          live ??= liveNames;
+          return nextCandidateName(request.targetName, liveNames);
+        },
+      );
+
+      expect(live, isNotNull);
+      for (final name in temporaryNames) {
+        expect(live, isNot(contains(name)), reason: '別folderの一時名: $name');
+      }
+    });
   });
 
   group('nextCandidateName(001 の自動解決規則)', () {
