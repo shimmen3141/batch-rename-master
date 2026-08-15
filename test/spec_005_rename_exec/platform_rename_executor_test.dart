@@ -368,10 +368,12 @@ void main() {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
+      final probe = _ThrowsAt(stage: 'reobserve', destination: 'A.txt');
       final result = await DesktopRenameExecutor(
-        probe: _ThrowsAt(stage: 'reobserve', destination: 'A.txt'),
+        probe: probe,
       ).rename(source.path, 'A.txt');
 
+      expect(probe.reachedStage, isTrue, reason: '再観測に到達していること');
       expect(result, isA<RenameFailed>(), reason: '例外ではなく失敗値を返す');
       expect(await source.readAsString(), 'kept-content', reason: '元の名前へ戻る');
       final left = await directory
@@ -386,13 +388,21 @@ void main() {
       final source = File(p.join(directory.path, 'a.txt'));
       await source.writeAsString('kept-content');
 
+      final probe = _ThrowsAt(stage: 'rollback', destination: 'A.txt');
       final result = await DesktopRenameExecutor(
-        probe: _ThrowsAt(stage: 'rollback', destination: 'A.txt'),
+        probe: probe,
       ).rename(source.path, 'A.txt');
 
+      expect(probe.reachedStage, isTrue, reason: '巻き戻し先の確認に到達していること');
       final failure = result as RenameFailed;
       expect(failure.error.message, contains('renaming-swap-'));
       expect(failure.error.message, contains('戻せませんでした'));
+      // **巻き戻していない**ことをFSの実状態で固定する。
+      final left = await directory
+          .list()
+          .map((e) => p.basename(e.path))
+          .toList();
+      expect(left.single, startsWith('a.txt.renaming-swap-'));
     });
 
     test('一時名が埋まっていたら次の候補を試す', () async {
@@ -698,6 +708,11 @@ class _ThrowsAt implements DesktopPathProbe {
   final String stage;
   final String destination;
 
+  /// **狙った段階に実際に到達したか。** testはこれをassertする。
+  /// 到達判定を持たないと、実装が変わったときに照準が黙ってずれて緑のまま通る
+  /// (review attempt 11で10回分それが起きた)。
+  bool reachedStage = false;
+
   bool _movedAway = false;
 
   @override
@@ -705,7 +720,10 @@ class _ThrowsAt implements DesktopPathProbe {
     final isDestination = p.basename(path) == p.basename(destination);
     if (isDestination && _movedAway) {
       // 再観測(退避後に目標名を見ている)。
-      if (stage == 'reobserve') throw const FileSystemException('boom');
+      if (stage == 'reobserve') {
+        reachedStage = true;
+        throw const FileSystemException('boom');
+      }
       return true; // 別の実体がある → 巻き戻しへ
     }
     if (p.basename(path).contains('renaming-swap')) {
@@ -713,6 +731,7 @@ class _ThrowsAt implements DesktopPathProbe {
       return false; // 退避先は空いている
     }
     if (_movedAway && stage == 'rollback') {
+      reachedStage = true;
       throw const FileSystemException('boom'); // 巻き戻し先の確認
     }
     return isDestination;
