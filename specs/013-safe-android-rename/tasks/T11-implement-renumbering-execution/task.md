@@ -162,7 +162,7 @@
   2. **P1: 元名が長いと一時名が`NAME_MAX`を超え、`nameConflict`が`io`に化けていた。** 再採番(REQ-023)は`nameConflict`しか拾わないので、**長い名前のときだけ再採番が働かず実行全体が止まる**。実FS(tmpfs)で再現された。閾値は239 byte ≒ 日本語79文字。→ 一時名のbaseをbyte長で切り詰める。
   3. **P1: mutation申告がまた事実と違った(5回目)。** 「1段目の例外catch除去」は落ちない — その内側catchは外側catchと冗長で、testが固定できない。「folder絞り」も片方(requests側)だけだった。→ **冗長な内側catchを削除し**、一時名側のfolder絞りのtestを追加した。
   - P2×2も解消(`task.md`のhandoff見出しの破損、PR本文のREQ-025の手順から再観測が抜けていた件)。
-- 2026-08-15 / **mutation検査をscript化した**([`tool/mutation_check.py`](../../../../tool/mutation_check.py))。手で当てて手で数えると片方向だけ見て「確認した」と書く事故が起きる(5回)。**22種を機械が当てて結果を表で出す。** 生の出力を報告へ貼る。
+- 2026-08-15 / **mutation検査をscript化した**(表は[`tool/mutations.json`](../../../../tool/mutations.json)。駆動は当初`tool/mutation_check.py`、2026-08-19にASDD pluginの`scripts/mutation_check.py`へ移した)。手で当てて手で数えると片方向だけ見て「確認した」と書く事故が起きる(5回)。**22種を機械が当てて結果を表で出す。** 生の出力を報告へ貼る。
   - 実測: **21/22 KILLED**、生き残った`folder絞り(一時名)`にtestを足して**22/22 KILLED**。
   - `flutter test` — PASS (400)。
 

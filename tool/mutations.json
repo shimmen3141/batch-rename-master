@@ -1,0 +1,212 @@
+{
+  "command": [
+    "flutter",
+    "test"
+  ],
+  "timeout": 900,
+  "mutations": [
+    {
+      "id": "M01",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "} catch (error) {\n      return await _rollbackAfter(temporary, handle, errorOf(error));\n    }",
+      "replace": "} catch (error) {\n      return RenameFailed(errorOf(error));\n    }",
+      "note": "1段目成功後の包括catch除去"
+    },
+    {
+      "id": "M02",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "    } catch (_) {\n      rollback = NativeRenameResult.io;\n    }",
+      "replace": "    } catch (_) {\n      rollback = NativeRenameResult.success;\n    }",
+      "note": "巻き戻し内のcatch除去"
+    },
+    {
+      "id": "M03",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "return await _renameViaTemporary(handle, destination, newName);",
+      "replace": "return _renameViaTemporary(handle, destination, newName);",
+      "note": "await除去"
+    },
+    {
+      "id": "M04",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "if (await _probe.exists(destination)) {\n        // **`await` を落とさない。**",
+      "replace": "if (false) {\n        // **`await` を落とさない。**",
+      "note": "主probe(目標名の実在確認)除去"
+    },
+    {
+      "id": "M05",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "while (cut > 0 && (bytes[cut] & 0xC0) == 0x80) {\n      cut -= 1;\n    }",
+      "replace": "",
+      "note": "UTF-8境界ループ除去"
+    },
+    {
+      "id": "M06",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "return '${utf8.decode(bytes.sublist(0, cut))}-$digest';",
+      "replace": "return utf8.decode(bytes.sublist(0, cut));",
+      "note": "切り詰め時のhash除去"
+    },
+    {
+      "id": "M07",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "return RenameFailed(\n          _conflictWithDetail(destination, result, handle, candidate),\n        );",
+      "replace": "return RenameFailed(_nativeError(result, handle, candidate));",
+      "note": "退避失敗をnameConflictにしない"
+    },
+    {
+      "id": "M08",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "RenameErrorKind.nameConflict,\n          '同名のファイルが既に存在します: $destination(一時名を確保できませんでした)',",
+      "replace": "RenameErrorKind.io,\n          '一時名を確保できません',",
+      "note": "一時名確保失敗をnameConflictにしない"
+    },
+    {
+      "id": "M09",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "if (await _probe.exists(destination)) {\n        return await _rollbackAfter(",
+      "replace": "if (false) {\n        return await _rollbackAfter(",
+      "note": "1段目後の再観測除去"
+    },
+    {
+      "id": "M10",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "if (await _probe.exists(candidate)) continue;",
+      "replace": "",
+      "note": "退避先の実在確認除去"
+    },
+    {
+      "id": "M11",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "rollback = await _probe.exists(handle)\n          ? NativeRenameResult.nameConflict\n          : await _rename(temporary, handle);",
+      "replace": "rollback = await _rename(temporary, handle);",
+      "note": "巻き戻し先の実在確認除去"
+    },
+    {
+      "id": "M12",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "final base = _temporaryBase(p.basename(handle));",
+      "replace": "final base = p.basename(handle);",
+      "note": "一時名の長さ制限除去"
+    },
+    {
+      "id": "M13",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "for (var n = 0; n < 32; n++) {",
+      "replace": "for (var n = 0; n < 1; n++) {",
+      "note": "確保ループを1回に"
+    },
+    {
+      "id": "M14",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "if (result != NativeRenameResult.nameConflict) {",
+      "replace": "if (false) {",
+      "note": "非nameConflictの早期return除去"
+    },
+    {
+      "id": "M15",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "return await _rollbackAfter(\n        temporary,\n        handle,\n        _nativeError(forward, handle, destination),\n      );",
+      "replace": "return RenameFailed(_nativeError(forward, handle, destination));",
+      "note": "前進失敗時の巻き戻し除去"
+    },
+    {
+      "id": "M16",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "return await _rollbackAfter(\n          temporary,\n          handle,\n          RenameError(",
+      "replace": "return RenameFailed(\n          RenameError(",
+      "note": "再観測で衝突したときの巻き戻し除去"
+    },
+    {
+      "id": "M17",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "find": "if (rollback == NativeRenameResult.success) return RenameFailed(reason);",
+      "replace": "return RenameFailed(reason);",
+      "note": "巻き戻し失敗の理由文除去"
+    },
+    {
+      "id": "M18",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "final names = <String>{...?occupied[folder]};",
+      "replace": "final names = <String>{};",
+      "note": "生存名(1)占有名除去"
+    },
+    {
+      "id": "M19",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "names.add(other.targetName); // (2)",
+      "replace": "// (2) removed",
+      "note": "生存名(2)未実行の目標名除去"
+    },
+    {
+      "id": "M20",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "names.add(other.originalName); // (3)",
+      "replace": "// (3) removed",
+      "note": "生存名(3)未実行の現在名除去"
+    },
+    {
+      "id": "M21",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "names.add(step.newName); // (4) 使用予定を含む",
+      "replace": "// (4) removed",
+      "note": "生存名(4)一時名除去"
+    },
+    {
+      "id": "M22",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "live.recordSettled(step.request, attemptName);",
+      "replace": "",
+      "note": "生存名(5)確定名除去"
+    },
+    {
+      "id": "M23",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "if (folderOf(other) != folder) continue;",
+      "replace": "",
+      "note": "folder絞り(requests)除去"
+    },
+    {
+      "id": "M24",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "if (folderOf(step.request) != folder) continue;",
+      "replace": "",
+      "note": "folder絞り(一時名)除去"
+    },
+    {
+      "id": "M25",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "final renumberable = step.kind == RenameStepKind.target;",
+      "replace": "final renumberable = true;",
+      "note": "再採番の除外(一時名)除去"
+    },
+    {
+      "id": "M26",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "attempts < renumberLimit",
+      "replace": "true",
+      "note": "試行上限除去"
+    },
+    {
+      "id": "M27",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "observedConflicts.add(attemptName);",
+      "replace": "",
+      "note": "観測済み衝突名の記録除去"
+    },
+    {
+      "id": "M28",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "confirmedTargetName: step.request.targetName,",
+      "replace": "",
+      "note": "REQ-024の確認名記録除去"
+    },
+    {
+      "id": "M29",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "if (renumbered.isEmpty) return Text(summary);",
+      "replace": "if (true) return Text(summary);",
+      "note": "REQ-024のUI提示除去"
+    }
+  ]
+}
