@@ -1,6 +1,6 @@
 # リネーム実行(rename-exec) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）、**revision 5は`013:T10`/`013:T11`が決めたOQ-001〜OQ-008を契約へ戻したもの(2026-08-20・再承認待ち)**
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）
@@ -65,8 +65,10 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | 25 | 対象folderに、アプリへ読み込んでいない`keep.jpg`があり、改名先が`keep.jpg`になる | **実行前に重複警告として提示される**(読み込んでいないfileとの衝突も検出する)。**他に警告が無くても、確認を経ずに実行へ入らない** | REQ-026, REQ-011 |
 | 25b | `a.jpg`(選)を`b.jpg`へ、`b.jpg`(選)を`c.jpg`へ改名する | **警告は出ない。** `b.jpg`は選択fileの現在名なので占有名に含まれず、REQ-004が`b→c`を先に行う順序を与える | REQ-004, REQ-026 |
 | 25c | 例22で除外されたfileが`keep.jpg`のまま残り、別のfileの目標名が`keep.jpg`になる | **重複警告として提示される。** 除外されたfileは改名されないので、その現在名は占有名に含まれる | REQ-026, REQ-022 |
-| 25d | `/A`と`/B`から選択し、`/B`に**アプリへ読み込んでいない**`keep.jpg`がある。`/A`のfileの目標名が`keep.jpg`になる | **警告は出ない。** 占有名はfolderごとで、別folderの名前とは衝突しない。**読み込み済み・未選択の場合は001の横断判定が別途警告を出す**(OQ-006) | REQ-026 |
+| 25d | `/A`と`/B`から選択し、`/B`に**アプリへ読み込んでいない**`keep.jpg`がある。`/A`のfileの目標名が`keep.jpg`になる | **警告は出ない。** 占有名はfolderごとで、別folderの名前とは衝突しない | REQ-026 |
 | 25e | 対象folderの実在名を取得できない(権限・I/Oエラー) | **そのfolderを含む実行を行わず、理由を提示する。** 「衝突が無い」とは扱わない | REQ-027 |
+| 25f | 例25dで`/B/keep.jpg`が**アプリへ読み込み済み・未選択**である | **警告は出ない**(revision 5 / OQ-006)。001の最終名集合もfolderごとになったため、読み込み済みかどうかで結果が変わらない。**revision 4までは警告が出ていた** | REQ-026, 001 REQ-007 |
+| 25g | 読み込みのあと、実行を要求する前に他processが対象folderへ`keep.jpg`を作った。目標名が`keep.jpg`になる | **確認を経る。** 占有名は**実行を要求した時点で取り直す**ので、一覧に警告が出ていなくても確認の経路へ入る | REQ-028, REQ-011 |
 | 26 | 例24で再採番が起きた | 結果に「確認した名前と異なる」ことが分かる形で含まれ、利用者へどの項目がどの名前になったか提示される | REQ-024 |
 | 27 | 任意の環境で改名 | **常に**目標名が実在しないことを確認してから改名する。原子的no-replaceがあれば併用する。実在すると判定できたときは改名せず`nameConflict`を返す | REQ-025, INV-002 |
 | 28 | 実行中に再採番が起きたあと巻き戻し | 巻き戻しでは**再採番しない**。元の名前が埋まっていれば`nameConflict`を失敗として扱う(戻せなかった件として区別される) | REQ-023, REQ-008, OP-003 |
@@ -121,13 +123,13 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | VER-001 | contract | test/spec_005_rename_exec/ | OP-004, REQ-017, REQ-018, REQ-001 |
 | VER-002 | property | test/spec_005_rename_exec/ | INV-002, OP-001, REQ-004, REQ-005 |
 | VER-003 | example | test/spec_005_rename_exec/ | OP-002, OP-003, REQ-002, REQ-003, REQ-006, REQ-007, REQ-008, INV-001, INV-003, INV-004, INV-005, REQ-001, REQ-005 |
-| VER-004 | model | test/spec_005_rename_exec/ | SM-001, REQ-011, REQ-012, REQ-007, REQ-019, REQ-022 |
-| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022, REQ-026 |
+| VER-004 | model | test/spec_005_rename_exec/ | SM-001, REQ-011, REQ-012, REQ-007, REQ-019, REQ-022, REQ-027 |
+| VER-005 | example | test/spec_005_rename_exec/ | REQ-009, REQ-010, REQ-013, REQ-011, REQ-019, REQ-020, REQ-021, REQ-022, REQ-026, REQ-028 |
 | VER-006 | example | test/spec_005_rename_exec/ | REQ-014, REQ-015, REQ-016 |
 | VER-007 | manual | docs/development/emulator-verification.md | CON-001, REQ-013 |
-| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, REQ-026, REQ-027, INV-002, OP-001, OP-002 |
+| VER-008 | example | test/spec_005_rename_exec/ | REQ-023, REQ-024, REQ-025, REQ-026, REQ-027, REQ-028, INV-002, OP-001, OP-002, OP-005 |
 
-- **VER-008(REQ-023 / REQ-024 / REQ-025)の test は `013:T11` が追加した**(`test/spec_005_rename_exec/renumbering_test.dart` ほか)。**VER-005 の REQ-026 と REQ-027 に対応する test はまだ無い** — 占有名の供給は `013:T10` が持つ。005 のタスクはすべて `done` なので、ここを読んだだけでは被覆済みに見える。
+- **VER-008(REQ-023 / REQ-024 / REQ-025)の test は `013:T11` が追加した**(`test/spec_005_rename_exec/renumbering_test.dart` ほか)。**REQ-026 / REQ-027 / REQ-028 と OP-005 に対応する test は `013:T10` が追加する** — 占有名の供給元を作るのがそのタスクだからである。005 のタスクはすべて `done` なので、ここを読んだだけでは被覆済みに見える。
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
 - revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
 
@@ -149,7 +151,9 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 
 ## 未解決事項
 
-**2026-08-07 に 2 件とも解消済み**(開発者回答)。**revision 4 で OQ-001〜OQ-006 を追加した。** OQ-001(再採番の試行上限)は `013:T11`。OQ-002〜OQ-006 は review attempt 5 が挙げた契約の未定義点で、**実装(`013:T10` / `013:T11`)で決めてから revision 5 として契約へ戻す**。
+**2026-08-07 に 2 件とも解消済み**(開発者回答)。**revision 4 で OQ-001〜OQ-006 を追加し、`013:T11` が OQ-007 / OQ-008 を足した。** **8件すべてを revision 5 で決着させ、契約へ戻した(2026-08-20・再承認待ち)。** 決着の内容は契約の `open_questions`(各 `status` が `decided`)と `revision_history` の revision 5 を正本とする。ここへ複製しない。
+
+**OQ-006 は開発者決定である**(2026-08-20): 001 の重複判定を folder 単位へ揃える。これにより 004 の T7 OQ-3 で置いた「001 の判定範囲は変更しない」という判断を**明示的に取り消す**。取り消した理由は、占有名が folder ごとと決まった時点で、最終名集合を横断のまま残すと規則が2つ並び、**実際には衝突しないのに ` (n)` を付ける自動解決**が残るためである。
 
 T8(空ルール時の扱い)の追加分に未解決事項は無い。**REQ-022 の「除外」という強度は本タスクで具体化したもの**(開発者の指示は「空名は実行時に強く止める」)なので、再承認時に確認いただきたい。
 

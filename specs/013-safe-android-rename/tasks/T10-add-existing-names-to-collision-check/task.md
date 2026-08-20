@@ -53,19 +53,35 @@
 - **契約をrevision 5へ更新し、人間の承認を得ている。** OQ-001・OQ-004・OQ-005・OQ-006の決着を反映する。**`T11`の実装が契約より広い状態を放置しない** — 契約を読んで実装する次のAgentが、実装を「契約違反」として狭め直す。
 - exact rangeの独立reviewがPASSする。
 
+## 決めたこと(2026-08-20)
+
+「決めること」への回答。**正本は契約側**(005 contract revision 5 の `open_questions` と各 REQ、001 contract、004 spec)。ここは索引である。
+
+| 論点 | 決着 | 反映先 |
+|---|---|---|
+| 占有名をいつ取るか | **実行を要求した時点で取り直す。** 一覧の警告表示にはより古い取得結果を使ってよいが、確認の要否と自動解決の入力は要求時のものを使う。要求時の取得で新たに警告が生じたら確認の経路へ入る | 005 **REQ-028**(新設)、SM-001 |
+| 複数folderに跨る選択 | 決着済み(revision 4)。占有名はfolderごと。**folderを跨いで混ぜない** | 005 用語 `占有名` |
+| 列挙できないfolder | 決着済み(revision 4)。REQ-027。そのfolderを含む実行を行わない | 005 **OP-005**(新設)、SM-001 遷移 |
+| **OQ-002** REQ-027の操作とSM遷移 | **OP-005 `collectOccupiedNames` を新設**し、SM-001 へ `idle --requestExecute[取得できないfolderがある]--> idle` と forbidden trace を追加。idle→confirming / idle→running の guard にも「対象folderの実在名をすべて取得できた」を入れた | 005 contract |
+| **OQ-003** `occupiedNames`の全域性 | **OP-001 / OP-002 の事前条件**にした。key欠損は事前条件違反であり「占有名が空」として黙って通さない | 005 contract |
+| **OQ-004** `folder`の同一性と正規化 | **004 に置く**(004 **REQ-013** 所属folderハンドル)。005 も 001 も等値だけで判定し、**ハンドル文字列からfolderを導出しない** | 004 spec、005 用語 `folder`、001 用語 `folder` |
+| **OQ-006** 001の判定範囲 | **folder単位へ揃える**(2026-08-20 開発者決定)。004 T7 OQ-3 の「001の判定範囲は変更しない」を明示的に取り消す | 001 REQ-007/010/012/015・INV-003・用語「最終名集合」 |
+| **OQ-001 / OQ-005 / OQ-007 / OQ-008** | `T11` の決着をそのまま契約へ戻した(実装が契約より広い状態を解消) | 005 REQ-023 / REQ-025 / 用語 `生存名` / OP-004 / INV-005 |
+| `T03` との順序 | **`T10` が先。** どちらも 004 spec を触るが、`T10` はポートへ `listNames` と所属folderハンドルを足すだけで、種類の選択・選択UI・導線には触れない | plan.md |
+
 ## 作業記録
 
 - 2026-08-14 / 005 ADR-002(衝突は採番で回避する)を受けて定義。preflightを削除した`T09`の代わりに置く**わけではない** — `T09`はpreflightの実行制御で、こちらは事前検出の入力を正すtaskである。
+- 2026-08-20 / 着手。`T03`より先に進めると決めた。OQ-006を開発者へ確認し「folder単位へ揃える」で決着。001 contract + spec、004 spec、005 contract revision 5 + spec を改訂した。**実装はこの改訂の承認後に行う。**
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手。**依存は解けた** — `T04`(契約revision 4)も`T11`(実行経路)もmerge済み
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@b06766b` + 005 contract revision 4(approved 2026-08-14)+ `T11`のmerge commit `2721971`
-- Next Agent action: **着手できる。** 最初に次の3つを決める。
-  1. **`T03`との範囲重複。** どちらも004 specを触る。**先にどちらを進めるかを決める**(このtaskは実在名の供給、`T03`は読み込み導線そのもの)。
-  2. **OQ-004**(`folder`の同一性判定と正規化の責務)と**OQ-006**(001の重複判定をfolder単位へ揃えるか)。
-  3. **OQ-002**(REQ-027に対応する`operations`とSM-001の遷移)と**OQ-003**(`occupiedNames`の全域性)。`T11`から移してある。
-  そのうえで、`T11`が決着させた**OQ-001・OQ-005・OQ-007・OQ-008**と合わせて**契約revision 5**として戻し、人間の承認を取る(受け入れ証拠に入っている)。
+- Last checkpoint: **仕様改訂を書き終えた。実装は未着手。** `python <asdd-plugin>/scripts/workspace.py check specs` は PASS
+- Blocker category: **human approval**
+- Waiting for: **001 contract(Strict)・004 spec・005 contract revision 5(Strict)の再承認**
+- Requested action: 下記3点の承認可否。承認されたら各 `status` を承認済みへ更新し、実装へ進む
+  1. **005 contract revision 5** — OQ-001〜OQ-008 の決着 + REQ-028(占有名の取得タイミング)+ OP-005
+  2. **001 contract** — 用語 `folder` / `占有名` の追加、最終名集合の folder 単位化、REQ-007/010/012・INV-003 の改訂、REQ-015 の追加、OP-003/OP-004 の引数追加
+  3. **004 spec** — REQ-013(所属folderハンドル)・REQ-014(`listNames`)の追加、REQ-012 の理由更新
+- Evidence revision: `dev@c6cbd9a` + branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check`
+- Next Agent action: **承認後、実装へ進む。** 順序は (a) 004 の `sourceFolder` と `listNames`、(b) 001 の `occupiedNames` 受け取りと folder 単位化、(c) 005 の `collectOccupiedNames` と `RenameRequest.folder`、`planExecution`/`executePlan` の全域性、(d) UI 結線(要求時の取り直しと REQ-027 の提示)、(e) 受け入れ証拠の test。**承認前に実装をmergeしない。**
