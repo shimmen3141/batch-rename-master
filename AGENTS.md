@@ -21,17 +21,18 @@ AIエージェント作業はDev Container（`compose.ai.yml`）内で行う。`
 
 このprojectは、番号付きplan・task・仕様を`specs/`の同じfeature workspaceへ置く。integration branchは`dev`である。
 
-必要なASDD pluginは`2.0.0`以上である。plugin manifestまたはskillが1.xで`development-units/`を正本として要求する場合は実行を止め、pluginを更新する。旧skillへ合わせて`development-units/`を再作成したり、`specs/`と二重管理したりしない。
+必要なASDD pluginは`2.2.1`以上である。plugin manifestまたはskillが1.xで`development-units/`を正本として要求する場合は実行を止め、pluginを更新する。旧skillへ合わせて`development-units/`を再作成したり、`specs/`と二重管理したりしない。
 
 ## 正本
 
 - `specs/README.md`: 人間と新しいAgentの入口。詳細statusを複製しない。
 - `specs/product-map.md`: 能力、未完了領域、将来候補、対象外、機能間依存。live statusを置かない。
 - `specs/<NNN>-<name>/plan.md`: 目的、境界、方針、全体受け入れ、人間の決定。
-- 同`plan.json`: plan ID、risk、plan間依存、task directory、plan全体のIssue番号。
+- 同`plan.json`: plan ID、risk、plan間依存、task directory、plan全体のIssue番号、仕様に未決定点がある場合だけ`openQuestions`。
 - `tasks/<TNN>-<name>/task.md`: task固有の目的、範囲、受け入れ証拠、観測済みcheckpoint、handoff。
 - 同`task.json`: task ID、status、依存、仕様被覆、Issue/PR番号、manual確認path。
-- `spec.md`、contracts、decisions: 利用者から観測できる正しさと長期判断。
+- `spec.md`、contracts: 利用者から観測できる正しさ。未決定点は`spec.md`の「未決定事項」へIDと内容を書き、決めるtaskとstatusは`plan.json.openQuestions`へ置く。
+- `decisions/`: 外部資料の要約、調査で得た根拠、複数task・将来変更へ長く効くWhy / Why not。plan、task、spec、PR本文からはlinkし、要約を複製しない。
 - `docs/design/Bulk Renamer.html`: 005のUIにおける**配置・導線・情報階層の土台**。**正本ではない** — 作成時から仕様と認識が変わっているため、**これに合わないことが即座に誤りではない**。対象taskは適用する画面範囲を`task.md`へ書き、review・widget test・manual確認で照合する。**土台から離れるときは、離れた点と理由を`task.md`へ書く**(spec・contractの要求と両立しない場合など)。判定、状態遷移、データ保護、時間制約はdesignへ移さず、`spec.md`、contracts、decisions、testを正本とする。参考画像や探索中のdesignは土台としても扱わない。
 - Issueを使う場合: 担当、branch、review会話、外部結果link。taskの意味、依存、handoffを複製しない。
 
@@ -62,7 +63,19 @@ task statusは`pending / in_progress / blocked / in_review / done`だけを使�
 
 高リスク、共有作業、PR ready化、merge、plan完了では、対象実装の文脈から分離した独立reviewを必要とする。低リスクlocal作業で独立Agentを利用できなければ`SELF-REVIEW ONLY`を残せるが、独立PASSや完了の代用にしない。
 
-同じ根本原因が修正後も2回続いたら類似修正を止めて仮定を洗い直す。同じtaskで独立verifierが3回FAILしたら自動修正を止め、diff、各回の実出力、未解決指摘、否定された仮定を報告する。回数をtaskへlive counterとして保存しない。
+次のいずれかに達したら、同じ種類の修正を繰り返さず解き方を変える。回数をtaskへlive counterとして保存しない。
+
+- 同じ根本原因が修正後も2回続いた
+- 同じ判定や条件式へ条件を1つ足す修正が2回続いた
+- 同じtaskで独立reviewが合計3回FAILした
+
+洗い直す対象に、実装案の仮定だけでなく仕様・contractが要求している保証そのものを含める。「この保証を弱めるか別の形で満たすと、この不具合の類は消えるか」を明示的に問い、消えるなら人間へ選択肢として出す。承認済みの仕様は不変ではないが、Agentが自分で緩めることはしない。前の2つではloopを止めず解き方を変えて続け、3回FAILで`blocked`にして人間へ返す。
+
+人間へ返す選択肢を現在の路線の改良だけで構成しない。「この問題を別の枠組みで解くとどうなるか」を1案入れる。見つからない場合は、この経緯を知らない相手へ一般的な解き方を尋ねることを人間の作業として提案する。外から得た案はそのまま採らず、前提が噛み合うかをケース表で確かめる。報告ではP0の有無とP1の中身を区別するが、この区別は判定を変えない。P1が残る限りreviewはFAILであり、完成度の問題であることを理由にPASSへ格上げしない。
+
+正本(仕様、contract、plan、task)を変更するときは、適用の成否が返る編集手段を使う。read-modify-writeのscriptで書き換える場合は、書き戻し後の値を読み直して照合する処理をscript自身へ含める。構造検査やtestのPASSは「壊していない」であって「意図した変更が入った」ではない。
+
+testが本物かをmutationで確かめる場合は手で当てて手で数えず、表を`tool/mutations.json`へ置いて`python <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .`を使う。生の出力を報告へ貼る。「対象が見つからなかった」と「testが落ちなかった」を区別するのが要点である。
 
 ## Git・worktree・commit
 
@@ -97,7 +110,7 @@ Issueはremote collaborationの共有窓口であり、task statusの正本で�
 PRはremote collaboration、CI、独立review、manual gate、integrationに意味がある場合に使う。最初の検証可能なcheckpoint後にDraftを作る。既定は一task branch=一PRだが、同じreview・rollback境界の小さな隣接taskはまとめてよい。
 
 - titleとbodyは日本語で書く。titleは`[ASDD NNN/TNN] <観測可能な成果>`を既定とする。
-- 本文にplan/task、risk、Issue、成果と対象外、実検査、review base/head/range、manual要否、未解決P0/P1、人間判断、後続taskを含める。
+- 本文には安定ID、`task.md`と`plan.md`へのlink、観測可能になった成果、対象外、integration条件を置く。判断の根拠になる`spec.md`や`decisions/`があれば加える。受け入れ条件と証拠、review試行と未解決P0/P1、manual対象commitと結果、人間の判断と作業は`task.md`を正本とし、本文へ複製しない。review rangeはPRのbase...head diffを正本とし、本文へ書き写さない。
 - task固有Issueがmergeで調整終了する場合だけ`Closes #N`、plan Issueや継続利用Issueは`Refs #N`とする。
 - 通常push、PR作成、ready化は、remote共有・CI・review・handoffに必要ならAgentが行い、結果を報告する。`.github/workflows`を含むpushは人間が行う。
 
