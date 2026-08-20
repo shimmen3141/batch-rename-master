@@ -1,7 +1,10 @@
 import '../../core/rename_engine.dart';
 
+import 'occupied_names.dart';
 import 'rename_executor.dart';
 import 'rename_plan.dart';
+
+export 'occupied_names.dart';
 
 /// 目標名に到達した改名(005 spec `terms`: 実行結果 の「成功した改名」)。
 ///
@@ -156,10 +159,9 @@ class UndoOutcome {
 Future<RenameOutcome> executePlan(
   RenamePlan plan,
   RenameExecutor executor, {
-  Map<String, Set<String>> occupiedNames = const {},
+  required OccupiedNames occupiedNames,
   RenumberCandidate renumber = defaultRenumber,
   int renumberLimit = defaultRenumberLimit,
-  FolderOfRequest folderOf = defaultFolderOf,
 }) async {
   final successes = <SuccessfulRename>[];
   // 今まさに一時名を持っている要求(要求 → その一時名)。
@@ -168,11 +170,7 @@ Future<RenameOutcome> executePlan(
 
   // 生存名(005 spec `terms`)をfolderごとに組み立てる。組み立てるのは execute
   // である(OP-002)。実行が進むにつれて (2)(3)(5) が動くので、都度作り直す。
-  final live = _LiveNames(
-    plan: plan,
-    occupied: occupiedNames,
-    folderOf: folderOf,
-  );
+  final live = _LiveNames(plan: plan, occupied: occupiedNames);
 
   for (final step in plan.steps) {
     if (step.kind == RenameStepKind.unchanged) {
@@ -346,14 +344,6 @@ Future<UndoOutcome> undoSuccessfulRenames(
 typedef RenumberCandidate =
     String? Function(RenameRequest request, Set<String> liveNames);
 
-/// 改名要求が属するfolderの識別子を求める操作。
-///
-/// **正規化と同一性判定の責務は未決である**(005 contract `open_questions`
-/// OQ-004、所有は `013:T10`)。既定はハンドルを path とみなして最後の `/` より
-/// 前を取るだけで、`/sdcard/DCIM` と `/storage/emulated/0/DCIM` のような別表記は
-/// 別folderとして扱う。**T10 がこの責務を確定させるまでの暫定である。**
-typedef FolderOfRequest = String Function(RenameRequest request);
-
 /// 既定の再採番(001 の自動解決規則をそのまま使う)。
 String? defaultRenumber(RenameRequest request, Set<String> liveNames) =>
     nextCandidateName(request.targetName, liveNames);
@@ -368,12 +358,6 @@ String? defaultRenumber(RenameRequest request, Set<String> liveNames) =>
 /// 理由を見せるほうがよい。
 const int defaultRenumberLimit = 8;
 
-/// 既定のfolder識別(ハンドルを path とみなす)。[FolderOfRequest] を参照。
-String defaultFolderOf(RenameRequest request) {
-  final i = request.handle.lastIndexOf('/');
-  return i < 0 ? '' : request.handle.substring(0, i);
-}
-
 /// 生存名(005 spec `terms`)をfolderごとに保持する。
 ///
 /// 5要素の和である。(1) 占有名、(2) 未実行の改名要求の確認した目標名、
@@ -385,15 +369,10 @@ String defaultFolderOf(RenameRequest request) {
 /// `nameConflict` になり、REQ-023 が一時名を再採番対象から外しているために
 /// 停止する(005 contract `open_questions` OQ-005)。
 class _LiveNames {
-  _LiveNames({
-    required this.plan,
-    required this.occupied,
-    required this.folderOf,
-  });
+  _LiveNames({required this.plan, required this.occupied});
 
   final RenamePlan plan;
-  final Map<String, Set<String>> occupied;
-  final FolderOfRequest folderOf;
+  final OccupiedNames occupied;
 
   /// 確定した結果名(要求 → その名前)。(5)
   final Map<RenameRequest, String> _settled = {};
@@ -404,11 +383,13 @@ class _LiveNames {
 
   /// [request] が属するfolderの生存名。
   Set<String> namesFor(RenameRequest request) {
-    final folder = folderOf(request);
-    final names = <String>{...?occupied[folder]};
+    final folder = request.folder;
+    // **key が無ければ投げる**(OQ-003)。「占有名が空」として黙って通すと、
+    // 実在名を取得できなかったfolderが「衝突が無い」と読まれる(REQ-027)。
+    final names = <String>{...occupied.of(folder)};
     for (final other in plan.requests) {
       if (identical(other, request)) continue;
-      if (folderOf(other) != folder) continue;
+      if (other.folder != folder) continue;
       final settled = _settled[other];
       if (settled != null) {
         names.add(settled); // (5)
@@ -419,7 +400,7 @@ class _LiveNames {
     }
     for (final step in plan.steps) {
       if (step.kind != RenameStepKind.temporary) continue;
-      if (folderOf(step.request) != folder) continue;
+      if (step.request.folder != folder) continue;
       names.add(step.newName); // (4) 使用予定を含む
     }
     return names;

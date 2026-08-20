@@ -36,6 +36,24 @@ class FileEntry {
   /// 命名エンジンはこの値を評価に用いない(INV-005)。
   final String? sourceLocation;
 
+  /// 所属 folder を一意に識別する不透明な値(004 REQ-013)。
+  ///
+  /// **同じ場所にあるファイルは必ず等しい値**になり、別表記(別名 path・
+  /// シンボリックリンク経由など)で割れない。**正規化の責務は 004 が持ち**、
+  /// 001 と 005 は**等値だけ**で同一性を判定する — 文字列を path として解釈しない
+  /// (005 contract の用語 `folder` / OQ-004)。
+  ///
+  /// [sourceHandle] とは別物である。ハンドルは1ファイルを指し、この値は場所を指す。
+  /// [sourceLocation] とも別物である(あちらは人間可読の表示用で、同名の別 folder を
+  /// 区別できない)。
+  ///
+  /// `null` は**「不明」という単一の folder**を表す(個別の folder に分けない)。
+  /// 分けると、読み込み元を持たない入力で重複判定が一切働かなくなる。
+  ///
+  /// 生成後名の構成には用いない。用いるのは [validate] と [autoResolve] だけで、
+  /// 最終名集合の範囲を区切り占有名を引き当てるためである(INV-005)。
+  final String? sourceFolder;
+
   const FileEntry({
     required this.name,
     this.createdAt,
@@ -44,6 +62,7 @@ class FileEntry {
     this.selected = true,
     this.sourceHandle,
     this.sourceLocation,
+    this.sourceFolder,
   });
 
   /// 拡張子境界となるドットの位置。

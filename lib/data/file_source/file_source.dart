@@ -52,6 +52,34 @@ class Failed extends PickResult {
   final PickError error;
 }
 
+/// [FileSource.listNames] の結果(004 REQ-014)。
+///
+/// **「列挙できなかった」と「entry が無い」を型で区別する。** 空リストで両者を
+/// 表すと、権限が無い folder を「衝突が無い」と読んでしまう(005 REQ-027)。
+sealed class NameListResult {
+  const NameListResult();
+}
+
+/// 列挙できた。[names] は 0 件以上(空フォルダは空の [NamesListed])。
+class NamesListed extends NameListResult {
+  NamesListed(Set<String> names) : names = Set.unmodifiable(names);
+
+  /// その folder に**実際に存在する** entry の名前。
+  ///
+  /// ファイル・サブフォルダを問わない。**アプリへ読み込まれたファイルに限らない** —
+  /// 読み込んでいないファイルの名前も含む(004 REQ-014)。隠しファイルもフィルタ
+  /// しない(決定 D-2) — 名前を占めていることに変わりはないため。
+  final Set<String> names;
+}
+
+/// 権限・IO・フォルダ消失などで列挙できなかった(004 REQ-014)。
+class NameListFailed extends NameListResult {
+  const NameListFailed(this.error);
+
+  /// 失敗の理由。
+  final PickError error;
+}
+
 /// 実ファイルの読み込み入口の抽象ポート(FEAT-004)。
 ///
 /// プラットフォーム権限・URI の保持は実装の内側に隠す(実装は T4:
@@ -68,6 +96,17 @@ abstract interface class FileSource {
   /// 空なら絞り込まない(種類「すべて」)。絞り込みの効き方はプラットフォーム
   /// 依存で、効かない環境があっても契約違反ではない。
   Future<PickResult> pickFiles({List<String> mimeTypes = const []});
+
+  /// [folder] にある**実在 entry 名**を返す(REQ-014)。
+  ///
+  /// [folder] は [FileEntry.sourceFolder] が持つ所属 folder ハンドル(REQ-013)。
+  /// 005 はこれを材料に**占有名**を作り、読み込んでいないファイルとの衝突を実行前に
+  /// 検出する(005 REQ-026)。
+  ///
+  /// **例外を投げない**(REQ-001 と同じ約束)。列挙できなければ [NameListFailed] を
+  /// 返す。**空の [NamesListed] で代用しない** — 005 は「取得できなかった」folder を
+  /// 含む実行を行わないと定めており(REQ-027)、区別できないとその判断ができない。
+  Future<NameListResult> listNames(String folder);
 }
 
 /// あらかじめ与えた結果を返す [FileSource] 実装(サンドボックス検証用の fake)。
@@ -97,5 +136,25 @@ class FakeFileSource implements FileSource {
     fileCallCount++;
     lastMimeTypes = mimeTypes;
     return _fileResults.isEmpty ? exhausted : _fileResults.removeAt(0);
+  }
+
+  /// folder ハンドル → その folder の実在 entry 名。
+  ///
+  /// [nameFailures] に載っている folder は [NameListFailed] を返す(REQ-014)。
+  /// どちらにも無い folder は**空の [NamesListed]** を返す。
+  final Map<String, Set<String>> folderNames = {};
+
+  /// 列挙に失敗する folder ハンドル → その理由。
+  final Map<String, PickError> nameFailures = {};
+
+  /// [listNames] が呼ばれた folder(呼ばれた順)。
+  final List<String> listedFolders = [];
+
+  @override
+  Future<NameListResult> listNames(String folder) async {
+    listedFolders.add(folder);
+    final failure = nameFailures[folder];
+    if (failure != null) return NameListFailed(failure);
+    return NamesListed(folderNames[folder] ?? const {});
   }
 }

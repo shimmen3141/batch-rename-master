@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../../data/file_source/file_source.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
@@ -129,7 +130,28 @@ class _RenameActionBar extends StatelessWidget {
     if (execution == null || execution.isRunning || controller.isRuleEmpty) {
       return;
     }
+    // REQ-028: 占有名を**実行を要求したこの時点で取り直す**。読み込み時の観測で
+    // 判定すると、そのあと他processが作ったfileとの衝突が事前検出をすり抜ける。
+    final prepared = await execution.prepare();
+    if (prepared is OccupiedNamesUnavailable) {
+      // REQ-027: 実在名を取得できなかったfolderがある。**実行を行わず理由を出す。**
+      // 「取得できなかった」を「衝突が無い」と読まない。
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const Key('rename-occupied-names-unavailable'),
+          content: Text(_unavailableMessage(prepared.reasons)),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+    final occupiedNames = (prepared as OccupiedNamesReady).names;
+
     // 確認ダイアログも帯と同じ提示単位を使う(REQ-021 のまとめを両方へ効かせる)。
+    // `prepare` が取り直した占有名を `controller` へ反映済みなので、この警告には
+    // 占有名との衝突が含まれる(REQ-026 / REQ-028)。
     final warnings = presentWarnings(controller.warnings);
     if (warnings.isNotEmpty) {
       final force = await showDialog<bool>(
@@ -164,10 +186,22 @@ class _RenameActionBar extends StatelessWidget {
         ),
       );
       if (force != true || !context.mounted) return;
-      await _run(context, force: true);
+      await _run(context, force: true, occupiedNames: occupiedNames);
       return;
     }
-    await _run(context, force: false);
+    await _run(context, force: false, occupiedNames: occupiedNames);
+  }
+
+  /// 実在名を取得できなかった folder の提示文(REQ-027)。
+  ///
+  /// **どのfolderがなぜ駄目かを出す。** 件数だけでは利用者が直しようがない。
+  static String _unavailableMessage(Map<String?, PickError> reasons) {
+    final lines = [
+      for (final entry in reasons.entries)
+        '${entry.key ?? '(場所不明)'}: ${entry.value.message ?? entry.value.kind.name}',
+    ];
+    return 'フォルダ内のファイル名を確認できないため実行しませんでした。'
+        '${lines.join(' / ')}';
   }
 
   /// 結果の本文。再採番が起きた項目は**全件**を並べる(REQ-024)。
@@ -200,9 +234,16 @@ class _RenameActionBar extends StatelessWidget {
     );
   }
 
-  Future<void> _run(BuildContext context, {required bool force}) async {
+  Future<void> _run(
+    BuildContext context, {
+    required bool force,
+    required OccupiedNames occupiedNames,
+  }) async {
     final execution = this.execution!;
-    final outcome = await execution.execute(force: force);
+    final outcome = await execution.execute(
+      force: force,
+      occupiedNames: occupiedNames,
+    );
     if (outcome == null || !context.mounted) return;
     final message = StringBuffer('${outcome.successes.length} 件を改名しました');
     final excluded = execution.excludedEmptyNames.length;

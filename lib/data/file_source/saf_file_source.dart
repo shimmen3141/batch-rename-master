@@ -30,7 +30,11 @@ class SafFileSource implements FileSource {
       return Picked([
         for (final file in files)
           if (!file.isDir)
-            entryOf(file, location: locationOfDocumentUri(file.uri)),
+            entryOf(
+              file,
+              location: locationOfDocumentUri(file.uri),
+              folder: folderHandleOfDocumentUri(file.uri),
+            ),
       ]);
     } catch (error) {
       return Failed(errorOf(error));
@@ -57,11 +61,54 @@ class SafFileSource implements FileSource {
     return parts.length >= 2 ? parts[parts.length - 2] : null;
   }
 
+  /// SAF の document URI から**所属 folder ハンドル**を作る(004 REQ-013)。
+  ///
+  /// document ID の親ディレクトリ部分を URI へ戻した文字列。同じフォルダの
+  /// ファイルは同じ値になる。**path として解釈するための値ではない** — 005 も 001 も
+  /// 等値だけで使う(005 用語 `folder`)。導出できない形なら URI 全体を返す
+  /// (1ファイル1 folder として扱われるだけで、既存を上書きすることはない)。
+  static String folderHandleOfDocumentUri(String uri) {
+    final lastSlash = uri.lastIndexOf('/');
+    if (lastSlash < 0) return uri;
+    final prefix = uri.substring(0, lastSlash + 1);
+    final docId = Uri.decodeComponent(uri.substring(lastSlash + 1));
+    final colon = docId.indexOf(':');
+    final volume = colon < 0 ? '' : docId.substring(0, colon + 1);
+    final path = colon < 0 ? docId : docId.substring(colon + 1);
+    final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+    // 末尾はファイル名。その手前までが親フォルダ(無ければボリューム直下)。
+    final parent = parts.sublist(0, parts.length - 1).join('/');
+    return '$prefix${Uri.encodeComponent('$volume$parent')}';
+  }
+
+  /// **Android SAF では実在名を列挙できない**(004 REQ-014)。
+  ///
+  /// `pickFiles` が取るのは1ファイルずつの読み取り権限で、**親フォルダを列挙する
+  /// 権限は含まれない**。ツリー権限は使わないと決めてある(004 の T8 実機確認)。
+  ///
+  /// したがって理由付きの [NameListFailed] を返す。**空の [NamesListed] にしない** —
+  /// 005 はそれを「衝突が無い」と読み、読み込んでいないファイルを上書きしうる
+  /// 名前で確認なしに実行へ入ってしまう(005 REQ-027)。**Android の実 rename は
+  /// revision 2 以来「安全な未対応」なので、ここで実行が止まることは新しい制限を
+  /// 作らない。** app 内 file browser(`013:T07`)が入ったときに、その browser が
+  /// 持つ列挙権限で実装し直す。
+  @override
+  Future<NameListResult> listNames(String folder) async => const NameListFailed(
+    PickError(
+      PickErrorKind.permissionDenied,
+      'SAF ではフォルダ内のファイル名を一覧できません(フォルダの権限がありません)',
+    ),
+  );
+
   /// SAF のドキュメントを [FileEntry] へ写す(実 IO 無しで検証できるよう公開)。
   ///
   /// [location] は表示用のフォルダ名(REQ-009)。導出できない場合は `null`
-  /// (行は日時のみを副題に出す)。
-  static FileEntry entryOf(SafDocumentFile file, {required String? location}) {
+  /// (行は日時のみを副題に出す)。[folder] は所属 folder ハンドル(REQ-013)。
+  static FileEntry entryOf(
+    SafDocumentFile file, {
+    required String? location,
+    String? folder,
+  }) {
     return FileEntry(
       name: file.name,
       // SAF には作成日時の列が無い。取得できないので不明のままにする(REQ-003)。
@@ -70,6 +117,7 @@ class SafFileSource implements FileSource {
       size: file.length < 0 ? 0 : file.length,
       sourceHandle: file.uri,
       sourceLocation: location,
+      sourceFolder: folder ?? folderHandleOfDocumentUri(file.uri),
     );
   }
 

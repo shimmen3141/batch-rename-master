@@ -79,6 +79,8 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
       RenameExecutionController(
         files: _files,
         executor: createPlatformRenameExecutor(),
+        // 占有名の材料は 004 が供給する(004 REQ-014 / 005 REQ-026)。
+        listNames: _source.listNames,
       );
 
   @override

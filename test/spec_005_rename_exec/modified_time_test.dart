@@ -18,6 +18,7 @@ import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.d
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 FileEntry _file(String name) => FileEntry(
   name: name,
@@ -25,6 +26,7 @@ FileEntry _file(String name) => FileEntry(
   modifiedAt: DateTime(2026, 1, 2, 3, 4),
   size: 1,
   sourceHandle: '/files/$name',
+  sourceFolder: '/files',
 );
 
 /// 更新日時を書ける fake。書き込みを記録し、任意の handle で失敗させられる。
@@ -54,6 +56,10 @@ RenameExecutionController _controller(
 }) => RenameExecutionController(
   files: files,
   executor: executor,
+  // 一覧に載っている file がそのまま folder の実在名である(占有名は結果として空)。
+  listNames: listNamesFixed('/files', {
+    for (final item in files.items) item.name,
+  }),
   clock: clock ?? () => DateTime(2026, 5, 6, 7, 8),
 );
 
@@ -70,7 +76,7 @@ void main() {
       final execution = _controller(files, executor);
 
       expect(execution.shiftModifiedAt, isFalse); // 既定OFF
-      final outcome = await execution.execute(force: false);
+      final outcome = await prepareAndExecute(execution, force: false);
 
       expect(outcome!.successes, hasLength(2)); // 改名自体は成功する
       expect(executor.written, isEmpty); // 更新日時には触れない
@@ -101,7 +107,7 @@ void main() {
       final execution = _controller(files, executor, clock: () => base);
       execution.setShiftModifiedAt(true);
 
-      final outcome = await execution.execute(force: false);
+      final outcome = await prepareAndExecute(execution, force: false);
       expect(outcome!.successes, hasLength(3));
 
       // 表示順(a, b, c)に対応する新しい handle へ、interval ずつ増えて書かれる。
@@ -142,7 +148,7 @@ void main() {
       final execution = _controller(files, executor, clock: () => base);
       execution.setShiftModifiedAt(true);
 
-      final outcome = await execution.execute(force: false);
+      final outcome = await prepareAndExecute(execution, force: false);
       expect(outcome!.successes, hasLength(2));
 
       // 実行順は表示順と逆であることを、この test の前提として押さえておく。
@@ -170,7 +176,7 @@ void main() {
       final execution = _controller(files, executor, clock: () => base);
       execution.setShiftModifiedAt(true);
 
-      await execution.execute(force: false);
+      await prepareAndExecute(execution, force: false);
 
       expect(executor.written.map((w) => w.$1), [
         '/files/b_1.txt',
@@ -197,7 +203,7 @@ void main() {
       final execution = _controller(files, executor, clock: () => base);
       execution.setShiftModifiedAt(true);
 
-      final outcome = await execution.execute(force: false);
+      final outcome = await prepareAndExecute(execution, force: false);
 
       // 改名は3件とも成功し、失敗として記録されない。
       expect(outcome!.successes, hasLength(3));
@@ -228,13 +234,13 @@ void main() {
       final execution = _controller(files, executor);
       execution.setShiftModifiedAt(true);
 
-      await execution.execute(force: false);
+      await prepareAndExecute(execution, force: false);
       expect(execution.modifiedAtFailures, hasLength(1));
 
       files.setRule(
         const RenameRule([OriginalNameToken(), LiteralToken('_2')]),
       );
-      await execution.execute(force: false);
+      await prepareAndExecute(execution, force: false);
       expect(execution.modifiedAtFailures, isEmpty);
     });
   });
@@ -253,7 +259,7 @@ void main() {
       execution.setShiftModifiedAt(true);
       expect(execution.shiftModifiedAt, isFalse); // 立たない
 
-      final outcome = await execution.execute(force: false);
+      final outcome = await prepareAndExecute(execution, force: false);
       expect(outcome!.successes, hasLength(1)); // 改名自体は通常どおり
       expect(execution.modifiedAtFailures, isEmpty);
     });

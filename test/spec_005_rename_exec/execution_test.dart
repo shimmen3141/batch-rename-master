@@ -10,8 +10,15 @@ import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 const _dir = '/photos';
+
+/// この folder で「占有している名前は無い」ことを表す全域な占有名。
+///
+/// これらの test の executor は選択 file だけを持つので、実在名から改名される
+/// 現在名を除いた占有名は実際に空である(005 用語「占有名」)。
+final _noOccupied = noOccupiedIn(_dir);
 
 List<RenameRequest> _requests(Map<String, String> renames) => [
   for (final e in renames.entries)
@@ -19,6 +26,7 @@ List<RenameRequest> _requests(Map<String, String> renames) => [
       handle: '$_dir/${e.key}',
       originalName: e.key,
       targetName: e.value,
+      folder: _dir,
     ),
 ];
 
@@ -35,7 +43,11 @@ void main() {
     final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'y.jpg'});
     final executor = _folder(['a.jpg', 'b.jpg']);
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.failure, isNull);
     expect(requests[0].handle, '$_dir/x.jpg');
@@ -50,7 +62,11 @@ void main() {
     final first = _requests({'a.jpg': 'x.jpg'});
     final executor = _folder(['a.jpg']);
 
-    await executePlan(planExecution(first), executor);
+    await executePlan(
+      planExecution(first, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     // 2回目は1回目で更新されたハンドルから始める(古い値なら notFound になる)。
     final second = [
@@ -58,9 +74,14 @@ void main() {
         handle: first.single.handle,
         originalName: 'x.jpg',
         targetName: 'z.jpg',
+        folder: _dir,
       ),
     ];
-    final outcome = await executePlan(planExecution(second), executor);
+    final outcome = await executePlan(
+      planExecution(second, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.failure, isNull);
     expect(executor.names, ['z.jpg']);
@@ -71,7 +92,11 @@ void main() {
     final requests = _requests({'a.jpg': 'b.jpg', 'b.jpg': 'a.jpg'});
     final executor = _folder(['a.jpg', 'b.jpg']);
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.failure, isNull);
     // 一時名を経由した要求も、最後は目標名のハンドルを指している。
@@ -93,7 +118,11 @@ void main() {
           : null,
     );
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.stopped, isTrue);
     expect(outcome.failure!.error.kind, RenameErrorKind.io);
@@ -117,7 +146,11 @@ void main() {
           : null,
     );
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.successes.map((s) => s.originalName), ['a.jpg']);
     expect(outcome.failure!.request.originalName, 'b.jpg');
@@ -134,7 +167,11 @@ void main() {
     });
     final executor = _folder(['a.jpg', 'b.jpg', 'c.jpg']);
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.successes, hasLength(3));
     for (final success in outcome.successes) {
@@ -153,7 +190,11 @@ void main() {
     final executor = _folder(['a.jpg', 'b.jpg']);
     final before = executor.files.values.toList();
 
-    await executePlan(planExecution(requests), executor);
+    await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     final after = executor.files.values.toList();
     expect(after, hasLength(before.length));
@@ -176,7 +217,11 @@ void main() {
           : null,
     );
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.stopped, isTrue);
     expect(outcome.failure!.request.originalName, 'b.jpg');
@@ -200,7 +245,11 @@ void main() {
           : null,
     );
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.stopped, isTrue);
     final stranded = outcome.stranded.single;
@@ -220,7 +269,11 @@ void main() {
           : null,
     );
 
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     expect(outcome.failure!.temporary, isTrue);
     expect(outcome.failure!.attemptedName, contains('renaming-'));
@@ -233,7 +286,11 @@ void main() {
   test('成功したrenameだけを新handleから逆順に元へ戻す(REQ-006 / INV-004)', () async {
     final requests = _requests({'a.jpg': 'x.jpg', 'b.jpg': 'y.jpg'});
     final executor = _folder(['a.jpg', 'b.jpg']);
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
 
     final undo = await undoSuccessfulRenames(outcome.successes, executor);
 
@@ -264,7 +321,11 @@ void main() {
           ? const RenameError(RenameErrorKind.permissionDenied, '権限がありません')
           : null,
     );
-    final outcome = await executePlan(planExecution(requests), executor);
+    final outcome = await executePlan(
+      planExecution(requests, occupiedNames: _noOccupied),
+      executor,
+      occupiedNames: _noOccupied,
+    );
     undoPhase = true;
 
     final undo = await undoSuccessfulRenames(outcome.successes, executor);

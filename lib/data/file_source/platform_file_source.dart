@@ -29,4 +29,9 @@ class UnsupportedFileSource implements FileSource {
   @override
   Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async =>
       const Failed(_error);
+
+  /// 未対応プラットフォームでは実在名も列挙できない(004 REQ-014 / 005 REQ-027)。
+  @override
+  Future<NameListResult> listNames(String folder) async =>
+      const NameListFailed(_error);
 }

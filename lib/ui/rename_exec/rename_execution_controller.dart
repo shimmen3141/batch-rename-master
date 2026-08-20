@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
+import '../../data/file_source/file_source.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../../data/rename_exec/rename_executor.dart';
 import '../../data/rename_exec/rename_plan.dart';
@@ -13,6 +14,7 @@ class RenameExecutionController extends ChangeNotifier {
   RenameExecutionController({
     required this.files,
     required this.executor,
+    required this.listNames,
     this._clock = DateTime.now,
     this.undoWindow = const Duration(seconds: 5),
     this.modifiedAtInterval = const Duration(seconds: 1),
@@ -20,6 +22,13 @@ class RenameExecutionController extends ChangeNotifier {
 
   final FileListController files;
   final RenameExecutor executor;
+
+  /// 実在名の供給元(004 REQ-014 の `FileSource.listNames`)。
+  ///
+  /// **占有名の材料である。** これが無いと読み込んでいないファイルとの衝突を実行前に
+  /// 検出できない(005 REQ-026)。**既定値を置かない** — 既定で「列挙しない」に
+  /// できると、結線を忘れた経路が黙って REQ-026 を素通りする。
+  final FolderNameLister listNames;
   final DateTime Function() _clock;
   final Duration undoWindow;
   bool _running = false;
@@ -41,6 +50,41 @@ class RenameExecutionController extends ChangeNotifier {
 
   List<FileEntry> _excludedEmptyNames = const [];
   List<FileEntry> get excludedEmptyNames => _excludedEmptyNames;
+
+  Map<String?, PickError> _unavailableFolders = const {};
+
+  /// 直前の [prepare] で実在名を取得できなかった folder → その理由(REQ-027)。
+  ///
+  /// 空でない間、実行は行われない。**「取得できなかった」を「衝突が無い」と
+  /// 読まない。**
+  Map<String?, PickError> get unavailableFolders => _unavailableFolders;
+
+  /// 実行を要求した時点で占有名を取り直す(005 OP-005 / REQ-028)。
+  ///
+  /// 取得できたら [FileListController.setOccupiedNames] へも反映するので、以降の
+  /// [FileListController.warnings] は**取り直した占有名**で評価される — 呼び出し側は
+  /// この後に警告を読み、確認の要否を決めればよい(REQ-011 / REQ-028)。
+  ///
+  /// 1つでも取得できなければ [OccupiedNamesUnavailable] を返す。**呼び出し側は
+  /// そのとき [execute] を呼んではならない**(REQ-027)。
+  Future<OccupiedNamesResult> prepare() async {
+    final result = await collectOccupiedNames(
+      entries: _entriesWithSelection(),
+      rule: files.rule,
+      now: _clock(),
+      listNames: listNames,
+    );
+    switch (result) {
+      case OccupiedNamesReady(:final names):
+        _unavailableFolders = const {};
+        // 一覧の警告表示も取り直した占有名へ揃える(REQ-026)。
+        files.setOccupiedNames(names.asMap);
+      case OccupiedNamesUnavailable(:final reasons):
+        _unavailableFolders = reasons;
+    }
+    notifyListeners();
+    return result;
+  }
 
   /// この端末で更新日時をずらせるか(005 REQ-015)。
   ///
@@ -80,7 +124,10 @@ class RenameExecutionController extends ChangeNotifier {
   /// ルールが空のときは、どの経路から呼ばれても実行を開始しない(REQ-019)。
   /// ボタンの無効化だけに頼ると、別経路から実体を変更できてしまうため、
   /// 状態境界のここでも止める。
-  Future<RenameOutcome?> execute({required bool force}) async {
+  Future<RenameOutcome?> execute({
+    required bool force,
+    required OccupiedNames occupiedNames,
+  }) async {
     if (_running || files.isRuleEmpty) return null;
     _clearUndo();
     _running = true;
@@ -91,7 +138,12 @@ class RenameExecutionController extends ChangeNotifier {
       final entries = _entriesWithSelection();
       final now = _clock();
       final resolved = force
-          ? autoResolve(files.rule, entries, now)
+          ? autoResolve(
+              files.rule,
+              entries,
+              now,
+              occupiedNames: occupiedNames.asMap,
+            )
           : generatePreview(files.rule, entries, now)
                 .map(
                   (entry) => ResolvedEntry(
@@ -119,13 +171,20 @@ class RenameExecutionController extends ChangeNotifier {
           handle: entry.source.sourceHandle!,
           originalName: entry.source.name,
           targetName: entry.resultName,
+          // folder は 004 が供給した値をそのまま持つ。ハンドルから導出しない
+          // (005 用語 `folder` / OQ-004)。
+          folder: entry.source.sourceFolder,
         );
         requests.add(request);
         final actual = actualByHandle[entry.source.sourceHandle];
         if (actual != null) sources[request] = actual;
       }
       _excludedEmptyNames = List.unmodifiable(excluded);
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: occupiedNames),
+        executor,
+        occupiedNames: occupiedNames,
+      );
       _applyOutcome(outcome, sources);
       await _shiftModifiedAtOfSuccesses(outcome);
       _offerUndo(outcome);
@@ -274,6 +333,7 @@ class RenameExecutionController extends ChangeNotifier {
     selected: source.selected,
     sourceHandle: handle,
     sourceLocation: source.sourceLocation,
+    sourceFolder: source.sourceFolder,
   );
 
   static FileEntry _withModifiedAt(FileEntry source, DateTime modifiedAt) =>
@@ -285,6 +345,7 @@ class RenameExecutionController extends ChangeNotifier {
         selected: source.selected,
         sourceHandle: source.sourceHandle,
         sourceLocation: source.sourceLocation,
+        sourceFolder: source.sourceFolder,
       );
 
   static bool _changedRename(SuccessfulRename rename) =>
@@ -300,6 +361,7 @@ class RenameExecutionController extends ChangeNotifier {
         selected: files.selectedOf(item),
         sourceHandle: item.sourceHandle,
         sourceLocation: item.sourceLocation,
+        sourceFolder: item.sourceFolder,
       ),
   ];
 
