@@ -163,6 +163,14 @@ Future<RenameOutcome> executePlan(
   RenumberCandidate renumber = defaultRenumber,
   int renumberLimit = defaultRenumberLimit,
 }) async {
+  // OP-002 の事前条件(OQ-003): occupiedNames は全域である。**実ファイルへ触る前に
+  // 確かめる。** 生存名は再採番のときにしか組み立てないので、そこまで遅らせると
+  // 「衝突が起きたときだけ落ちる」という最悪の形になる。ここで投げれば実体は
+  // 変化していない。
+  for (final request in plan.requests) {
+    occupiedNames.of(request.folder);
+  }
+
   final successes = <SuccessfulRename>[];
   // 今まさに一時名を持っている要求(要求 → その一時名)。
   final atTemporaryName = <RenameRequest, String>{};

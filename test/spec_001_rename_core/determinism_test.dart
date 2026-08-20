@@ -1,6 +1,7 @@
 // VER-005: 決定性・時計非参照・非依存の検証(FEAT-001)。
 // 対象: REQ-013(決定性), INV-004(現在日時は入力 now を用い時計を参照しない),
-//       INV-005(命名出力は sourceHandle / sourceLocation に依存しない),
+//       INV-005(命名出力は sourceHandle / sourceLocation に依存せず、
+//       sourceFolder は buildName / generatePreview に影響しない),
 //       CON-001(lib/core は package:flutter / dart:io に依存しない)。
 import 'dart:io';
 
@@ -176,6 +177,81 @@ void main() {
           );
         }
       }
+    });
+  });
+
+  group('INV-004 / INV-005: 占有名と sourceFolder', () {
+    FileEntry inFolder(FileEntry file, String? folder) => FileEntry(
+      name: file.name,
+      createdAt: file.createdAt,
+      modifiedAt: file.modifiedAt,
+      size: file.size,
+      selected: file.selected,
+      sourceFolder: folder,
+    );
+
+    test('sourceFolder は buildName の出力に影響しない(INV-005)', () {
+      final plain = _file('a.jpg');
+      expect(
+        buildName(_rule, inFolder(plain, '/A'), 1, _now),
+        buildName(_rule, plain, 1, _now),
+      );
+    });
+
+    test('sourceFolder は generatePreview の出力に影響しない(INV-005)', () {
+      final plain = [_file('a.jpg'), _file('b.jpg')];
+      final tagged = [inFolder(plain[0], '/A'), inFolder(plain[1], '/B')];
+      expect(
+        generatePreview(_rule, tagged, _now).map((e) => e.resultName),
+        generatePreview(_rule, plain, _now).map((e) => e.resultName),
+      );
+    });
+
+    test('占有名は入力であり、エンジンは観測しない(INV-004)', () {
+      // 同じ (rule, files, now) でも、与えた占有名が違えば結果が変わる。
+      // つまり占有名は**入力**であって、エンジンが filesystem から得た値ではない。
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [inFolder(_file('a.png'), '/A')];
+
+      final without = autoResolve(rule, files, _now);
+      final with_ = autoResolve(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/A': {'keep.png'},
+        },
+      );
+
+      expect(without.single.resultName, 'keep.png');
+      expect(with_.single.resultName, 'keep (1).png');
+    });
+
+    test('同じ占有名を与えれば結果は毎回同じ(REQ-013)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [inFolder(_file('a.png'), '/A')];
+      final occupied = {
+        '/A': {'keep.png'},
+      };
+
+      expect(
+        autoResolve(
+          rule,
+          files,
+          _now,
+          occupiedNames: occupied,
+        ).single.resultName,
+        autoResolve(
+          rule,
+          files,
+          _now,
+          occupiedNames: occupied,
+        ).single.resultName,
+      );
+      expect(
+        validate(rule, files, _now, occupiedNames: occupied).length,
+        validate(rule, files, _now, occupiedNames: occupied).length,
+      );
     });
   });
 }
