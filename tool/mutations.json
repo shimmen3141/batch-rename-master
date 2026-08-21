@@ -127,7 +127,7 @@
     {
       "id": "M18",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "final names = <String>{...?occupied[folder]};",
+      "find": "final names = <String>{...occupied.of(folder)};",
       "replace": "final names = <String>{};",
       "note": "生存名(1)占有名除去"
     },
@@ -162,14 +162,14 @@
     {
       "id": "M23",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "if (folderOf(other) != folder) continue;",
+      "find": "if (other.folder != folder) continue;",
       "replace": "",
       "note": "folder絞り(requests)除去"
     },
     {
       "id": "M24",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "if (folderOf(step.request) != folder) continue;",
+      "find": "if (step.request.folder != folder) continue;",
       "replace": "",
       "note": "folder絞り(一時名)除去"
     },

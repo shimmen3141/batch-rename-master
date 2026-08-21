@@ -176,7 +176,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         temporary = candidate;
         break;
       }
-      if (false) {
+      if (result != NativeRenameResult.nameConflict) {
         // **観測済みの衝突を捨てない。** この関数へ入った時点で、目標名に
         // 実体があることをprobeで肯定的に観測している。退避が別の理由で
         // 失敗したからといって`io`等を返すと、呼び出し側の再採番
