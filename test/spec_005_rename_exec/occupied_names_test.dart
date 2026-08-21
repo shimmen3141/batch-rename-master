@@ -188,8 +188,10 @@ void main() {
       );
     });
 
-    test('改名される選択 file が1件も無ければ folder を問い合わせない', () async {
-      // 実行する改名が無いので、確認すべき衝突も無い。
+    test('全件が REQ-022 で除外されても、その folder は問い合わせる', () async {
+      // **除外は「占有名から引く集合」だけを狭め、対象 folder は狭めない**
+      // (OP-005 の事後条件)。強制実行の自動解決は除外を解く方向へ働きうるので、
+      // 狭めると execute が prepare の覆う範囲の外へ出る(下の回帰 test)。
       const rule = RenameRule([
         DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
       ]);
@@ -198,11 +200,15 @@ void main() {
 
       final result = await _collect(entries, rule, (folder) async {
         asked.add(folder);
-        return NamesListed(const {});
+        return NamesListed(const {'keep.txt'});
       });
 
-      expect(asked, isEmpty);
-      expect(result, isA<OccupiedNamesReady>());
+      expect(asked, [_a]);
+      final names = (result as OccupiedNamesReady).names;
+      expect(names.covers(_a), isTrue);
+      expect(names.of(_a), {
+        'keep.txt',
+      }, reason: '除外された file は改名されないので現在名は占有名に残る');
     });
 
     test('folder ごとに持ち、跨いで混ぜない(例25d)', () async {
@@ -340,6 +346,69 @@ void main() {
     });
   });
 
+  group('回帰: prepare が覆う folder は execute の改名要求を覆う', () {
+    // **強制実行の自動解決は REQ-022 の除外を解く方向へ働く。** 同じ folder に
+    // 生成後ベース名が空になる選択 file が2件あると、2件目は ` (1)` が付いて
+    // ベース名が空でなくなり、除外されずに改名要求になる。対象 folder を
+    // 「この実行で改名される file」に狭めていると、その folder の占有名が無いまま
+    // 実行へ渡り、全域性(OQ-003)が破れて `ArgumentError` が UI へ抜ける。
+    // 独立review 1回目の P1-1。
+
+    test('空ベース名が同一 folder に2件 + 強制実行でも例外を投げない', () async {
+      final wired = _wire(
+        entries: [_file('a.txt'), _file('b.txt')],
+        rule: const RenameRule([LiteralToken('')]),
+        listNames: _lister({
+          _a: {'a.txt', 'b.txt'},
+        }),
+      );
+
+      final prepared = await wired.execution.prepare();
+      expect(
+        (prepared as OccupiedNamesReady).names.covers(_a),
+        isTrue,
+        reason: '全件除外でも対象 folder は覆う',
+      );
+
+      final outcome = await wired.execution.execute(
+        force: true,
+        occupiedNames: prepared.names,
+      );
+
+      expect(outcome, isNotNull);
+    });
+
+    testWidgets('同じ入力を UI から実行しても黙って終わらない', (tester) async {
+      // 実行ボタンは fire-and-forget なので、例外が抜けると snackbar も dialog も
+      // 出ずに**何も起きない**。結果の提示(REQ-013)が届くことで、例外が抜けて
+      // いないことが観測できる。
+      final wired = _wire(
+        entries: [_file('a.txt'), _file('b.txt')],
+        rule: const RenameRule([LiteralToken('')]),
+        listNames: _lister({
+          _a: {'a.txt', 'b.txt'},
+        }),
+      );
+      await _pump(tester, wired.files, wired.execution);
+
+      await _tapExecute(tester);
+      // 空名の警告が出るので確認を経る(REQ-011 / REQ-021)。
+      expect(
+        find.byKey(const Key('rename-confirmation-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('rename-force')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('rename-result')),
+        findsOneWidget,
+        reason: '例外が抜けると結果の提示に到達しない',
+      );
+      await _passUndoWindow(tester);
+    });
+  });
+
   group('OP-001: 占有名は実行計画にも効く(REQ-004)', () {
     test('目標名が占有名に含まれる入力は事前条件違反として弾く', () {
       final requests = [
@@ -463,22 +532,46 @@ void main() {
       await _passUndoWindow(tester);
     });
 
-    testWidgets('入れ替え(a→b, b→c)では確認を経ない(例25b)', (tester) async {
-      // 選択 file 自身の現在名を占有名へ入れると、ここで確認が出てしまう。
+    testWidgets('連番を1つずらす改名では確認を経ない(例25b)', (tester) async {
+      // **目標名が他の選択 file の現在名と一致する**入力である。
+      // `IMG_0001..0010` を1つずらすと、各目標名は隣の file の現在名になる。
+      // 選択 file 自身の現在名を占有名へ入れてしまうと、ここでほぼ全件に
+      // 重複警告が出て ` (n)` が付く(005:T04 review attempt 1 の P0)。
+      //
+      // 占有名は**実在名から導出**させる — 手で空集合を渡すと恒真になり、
+      // 導出の誤りを検出できない。
+      final names = [
+        for (var i = 1; i <= 10; i++) 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+      ];
       final wired = _wire(
-        entries: [_file('a.txt'), _file('b.txt')],
-        rule: const RenameRule([OriginalNameToken(), LiteralToken('!')]),
-        listNames: _lister({
-          _a: {'a.txt', 'b.txt'},
-        }),
+        entries: [for (final name in names) _file(name)],
+        rule: const RenameRule([
+          LiteralToken('IMG_'),
+          SequenceToken(start: 2, digits: 4),
+        ]),
+        listNames: _lister({_a: names.toSet()}),
       );
-      // ルールを「a→b, b→c」相当にするため、名前をそのまま入れ替える形で確認する。
       await _pump(tester, wired.files, wired.execution);
+
+      // 一覧の警告も0件でなければならない(REQ-026 は判定そのものに効く)。
+      await wired.execution.prepare();
+      expect(
+        wired.files.warnings.whereType<DuplicateWarning>(),
+        isEmpty,
+        reason: '選択 file 自身の現在名は占有名に含まれない',
+      );
 
       await _tapExecute(tester);
 
       expect(find.byKey(const Key('rename-confirmation-dialog')), findsNothing);
-      expect(wired.executor.names, unorderedEquals(['a!.txt', 'b!.txt']));
+      expect(
+        wired.executor.names,
+        unorderedEquals([
+          for (var i = 2; i <= 11; i++)
+            'IMG_${i.toString().padLeft(4, '0')}.jpg',
+        ]),
+        reason: '` (n)` が1件も付いていない',
+      );
       await _passUndoWindow(tester);
     });
 

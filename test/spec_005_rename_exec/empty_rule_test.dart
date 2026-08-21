@@ -194,13 +194,13 @@ void main() {
       files: [_file('a.txt')],
       rule: const RenameRule([LiteralToken('x')]),
     );
+    // 観測元と実体を同じ instance にする。別々にすると、実行で名前が変わっても
+    // lister は古い名前を返し続け、fixture が実体とずれる。
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
       files: files,
-      executor: FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'}),
-      listNames: listNamesOf(
-        FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'}),
-        folder: '/files',
-      ),
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution: execution, onEditRule: () {});
 

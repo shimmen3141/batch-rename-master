@@ -298,6 +298,13 @@
       "find": "    try {\n      return Directory(directoryPath).resolveSymbolicLinksSync();\n    } catch (_) {\n      return p.canonicalize(directoryPath);\n    }",
       "replace": "    return directoryPath;",
       "note": "folderハンドルの正規化を除去(004 REQ-013 / OQ-004)"
+    },
+    {
+      "id": "M43",
+      "file": "lib/data/rename_exec/occupied_names.dart",
+      "find": "    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    if (_hasEmptyBase(file, preview.resultName)) continue;\n    renamed.add(file);",
+      "replace": "    if (_hasEmptyBase(file, preview.resultName)) continue;\n    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    renamed.add(file);",
+      "note": "対象folderをREQ-022の除外後へ狭める(独立review 1回目のP1-1再発)"
     }
   ]
 }

@@ -95,10 +95,17 @@ typedef FolderNameLister = Future<NameListResult> Function(String folder);
 /// 対象 folder は**この実行で改名される選択 file** が属する folder だけである。
 /// 未選択 file しか無い folder は改名の行き先にならないので問い合わせない。
 ///
+/// **対象 folder は「実体ハンドルを持つ選択 file すべて」の folder である**
+/// (OP-005 の事後条件)。**「この実行で改名される file」だけに狭めない** —
+/// 強制実行の自動解決は REQ-022 の除外を**解く**方向へ働きうるからである。
+/// 生成後ベース名が空になる file が同じ folder に2件あると、2件目は ` (1)` が
+/// 付いてベース名が空でなくなり、除外されずに改名要求になる。狭めていると、
+/// その folder の占有名が無いまま実行へ渡り、全域性(OQ-003)が破れる。
+///
 /// [entries] は現在の一覧のすべての file(選択状態を [FileEntry.selected] に写した
 /// もの)。[rule] と [now] は REQ-022 の除外(生成後ベース名が空になる file)を
 /// 判別するために使う — **除外される file は改名されないので、その現在名は占有名に
-/// 含まれる**。
+/// 含まれる**。除外は**占有名から引く集合**だけを狭め、**対象 folder は狭めない**。
 ///
 /// 実体ハンドルを持たない file(起動時の UI サンプル)は改名の対象にならないため
 /// 対象 folder に数えない。
@@ -112,22 +119,22 @@ Future<OccupiedNamesResult> collectOccupiedNames({
   required DateTime now,
   required FolderNameLister listNames,
 }) async {
-  // この実行で改名される選択 file(REQ-022 の除外後)。
+  // 対象 folder(実体ハンドルを持つ選択 file すべての folder)と、占有名から引く
+  // 集合(この実行で改名される選択 file の現在名)を1回の走査で作る。
+  // **前者は REQ-022 の除外で狭めない。** 同じ folder を二度問い合わせないよう、
+  // 順序は再現できるよう出現順にする。
+  final targets = <String?>[];
   final renamed = <FileEntry>[];
   for (final preview in generatePreview(rule, entries, now)) {
     final file = preview.source;
     if (file.sourceHandle == null) continue;
+    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);
     if (_hasEmptyBase(file, preview.resultName)) continue;
     renamed.add(file);
   }
 
   final byFolder = <String?, Set<String>>{};
   final reasons = <String?, PickError>{};
-  // 同じ folder を二度問い合わせない。順序は再現できるよう出現順にする。
-  final targets = <String?>[];
-  for (final file in renamed) {
-    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);
-  }
 
   for (final folder in targets) {
     if (folder == null) {

@@ -105,6 +105,24 @@ T10が入れた判定に対応するmutationは**M30〜M42の13件**で、いず
 - M41 `listNames`の失敗を空の列挙結果へ落とす(004 REQ-014)
 - M42 folderハンドルの正規化を除去(004 REQ-013 / OQ-004)
 
+## 仕様被覆
+
+**`task.json`の`covers`は空のままにする。** このworkspaceの構造検査は`covers`を
+**所有planのspec.mdのID**として引くので(`013`のspec.mdはREQ-001〜006・INV-001〜004・
+VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のような他featureのIDを
+書くと未解決参照の警告になる。**cross-featureの被覆をこの欄では表現できない**ため、
+ここへ書く。`013:T11`(done)が空なのも同じ理由である。
+
+| 正本 | 被覆したID |
+|---|---|
+| 001 contract | REQ-007、REQ-010、REQ-012、REQ-015、INV-003、INV-005、OP-003、OP-004 |
+| 004 spec | REQ-013、REQ-014、VER-004 |
+| 005 contract | REQ-004、REQ-026、REQ-027、REQ-028、OP-001、OP-002、OP-005、SM-001 |
+
+各IDを検査する記述は上の「検証結果」のmutation(M30〜M42)と、
+`test/spec_001_rename_core/`・`test/spec_004_file_source/folder_names_test.dart`・
+`test/spec_005_rename_exec/occupied_names_test.dart`にある。
+
 ## この実装で残る限界
 
 **仕様として認めたもので、不具合ではない。** 承認の判断材料として書く。

@@ -240,21 +240,47 @@ void main() {
       expect(_of<DuplicateWarning>(warnings), isEmpty);
     });
 
-    test('入れ替え(a→b, b→c)では警告が出ない(005 例25b)', () {
-      // `b.jpg` は選択 file の現在名なので占有名に含まれない。含めてしまうと
-      // 順序で解ける入れ替えが全部 ` (n)` になる(005:T04 review attempt 1 の P0)。
-      const rule = RenameRule([OriginalNameToken(), LiteralToken('-next')]);
-      final files = [_file('a', folder: '/A'), _file('b', folder: '/A')];
+    group('連番を1つずらす改名(005 例25b)', () {
+      // 各目標名が**隣の選択 file の現在名**と一致する入力。占有名の作り方が
+      // そのまま結果を変えるので、**両方向**を固定する。片方だけでは
+      // 「常に警告する実装」と「一度も警告しない実装」のどちらかが通る。
+      const rule = RenameRule([
+        LiteralToken('IMG_'),
+        SequenceToken(start: 2, digits: 4),
+      ]);
+      final names = [
+        for (var i = 1; i <= 10; i++) 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+      ];
+      final files = [for (final name in names) _file(name, folder: '/A')];
 
-      final warnings = validate(
-        rule,
-        files,
-        _now,
-        // 実在名は {a, b} だが、両方ともこの実行で改名されるので占有名は空。
-        occupiedNames: {'/A': <String>{}},
-      );
+      test('占有名から選択 file の現在名が除かれていれば警告は出ない', () {
+        // 005 の OP-005 が作る占有名 = 実在名 − 改名される選択 file の現在名 = 空。
+        final warnings = validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {'/A': <String>{}},
+        );
 
-      expect(_of<DuplicateWarning>(warnings), isEmpty);
+        expect(_of<DuplicateWarning>(warnings), isEmpty);
+      });
+
+      test('除かずに実在名をそのまま渡すと、ほぼ全件が重複警告になる', () {
+        // 005:T04 review attempt 1 の P0 そのもの。**この向きを固定しないと、
+        // 上の test は「一度も警告しない実装」でも通る。**
+        final warnings = validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {'/A': names.toSet()},
+        );
+
+        expect(
+          _of<DuplicateWarning>(warnings).length,
+          9,
+          reason: 'IMG_0002..0010 の9件が自分たち自身の現在名と衝突する',
+        );
+      });
     });
 
     test('除外された file の現在名が占有名にあれば警告する(005 例25c)', () {
