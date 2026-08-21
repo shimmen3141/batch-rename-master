@@ -1,16 +1,22 @@
 // VER-004: 自動解決の検証(FEAT-001)。
 // 対象: REQ-010(重複回避 (n)), REQ-011(桁自動拡張), REQ-012/INV-003(結果は
-//       重複・桁不足なし), OP-004(autoResolve)。
+//       重複・桁不足なし), REQ-015(占有名を避ける), OP-004(autoResolve)。
+//
+// **判定(validate)だけでなく解決(autoResolve)も占有名を避ける**(005 REQ-026)。
+// 片方だけだと、警告は占有名で出るのに確定した名前は占有名と衝突したまま実行へ
+// 渡る。ここはその「解決側」を固定する。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-FileEntry _file(String name, {bool selected = true}) => FileEntry(
-  name: name,
-  createdAt: DateTime(2026, 1, 1),
-  modifiedAt: DateTime(2026, 1, 1),
-  size: 0,
-  selected: selected,
-);
+FileEntry _file(String name, {bool selected = true, String? folder}) =>
+    FileEntry(
+      name: name,
+      createdAt: DateTime(2026, 1, 1),
+      modifiedAt: DateTime(2026, 1, 1),
+      size: 0,
+      selected: selected,
+      sourceFolder: folder,
+    );
 
 final DateTime _now = DateTime(2026, 7, 26, 9, 8, 7);
 
@@ -92,6 +98,116 @@ void main() {
       final files = [_file('a.jpg'), _file('b.jpg')];
       final resolved = autoResolve(rule, files, _now);
       expect(_names(resolved), ['a.jpg', 'b.jpg']);
+    });
+  });
+
+  group('REQ-015: 自動解決も占有名を避ける', () {
+    test('占有名と衝突する目標名は ` (n)` で回避する(005 例25)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final resolved = autoResolve(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/A': {'keep.png'},
+        },
+      );
+
+      expect(_names(resolved), ['keep (1).png']);
+    });
+
+    test('占有名が埋まっているぶんだけ n が進む', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final resolved = autoResolve(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/A': {'keep.png', 'keep (1).png'},
+        },
+      );
+
+      expect(_names(resolved), ['keep (2).png']);
+    });
+
+    test('占有名を与えなければ ` (n)` は付かない', () {
+      // 「常に (n) を付ける実装」を排除する。
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      expect(_names(autoResolve(rule, files, _now)), ['keep.png']);
+    });
+
+    test('別 folder の占有名は避けない(005 例25d)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final resolved = autoResolve(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/A': <String>{},
+          '/B': {'keep.png'},
+        },
+      );
+
+      expect(_names(resolved), ['keep.png']);
+    });
+
+    test('確定した名前は、その folder の占有名と一致しない(OP-004 事後条件)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [
+        _file('a.png', folder: '/A'),
+        _file('b.png', folder: '/A'),
+        _file('c.png', folder: '/B'),
+      ];
+      final occupied = {
+        '/A': {'keep.png', 'keep (1).png'},
+        '/B': {'keep.png'},
+      };
+
+      final resolved = autoResolve(rule, files, _now, occupiedNames: occupied);
+
+      for (final entry in resolved) {
+        expect(
+          occupied[entry.source.sourceFolder],
+          isNot(contains(entry.resultName)),
+          reason: '${entry.source.name} -> ${entry.resultName}',
+        );
+      }
+      // 同じ folder の中では互いにも衝突しない(INV-003)。
+      expect(_names(resolved), [
+        'keep (2).png',
+        'keep (3).png',
+        'keep (1).png',
+      ]);
+    });
+  });
+
+  group('REQ-010: 解決も folder ごと(OQ-006)', () {
+    test('別 folder の未選択 file と同名でも ` (n)` を付けない', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [
+        _file('x.png', folder: '/A'),
+        _file('keep.png', selected: false, folder: '/B'),
+      ];
+
+      expect(_names(autoResolve(rule, files, _now)), ['keep.png']);
+    });
+
+    test('別 folder の選択 file どうしが同名でも ` (n)` を付けない', () {
+      const rule = RenameRule([LiteralToken('dup')]);
+      final files = [
+        _file('a.jpg', folder: '/A'),
+        _file('b.jpg', folder: '/B'),
+      ];
+
+      expect(_names(autoResolve(rule, files, _now)), ['dup.jpg', 'dup.jpg']);
     });
   });
 }

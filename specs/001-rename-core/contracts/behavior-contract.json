@@ -2,6 +2,19 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
+  "revision": "2",
+  "revision_history": [
+    {
+      "revision": "1",
+      "approved_date": "2026-08-04",
+      "meaning": "2026-07-26に承認した命名エンジンの契約に、004由来の更新(FileEntryの元場所ハンドル・表示用の場所、作成日時が不明を取りうること、REQ-014とINV-006)を加えて再承認したもの。"
+    },
+    {
+      "revision": "2",
+      "approved_date": "2026-08-21",
+      "meaning": "013:T10由来。用語folderと占有名を追加し、最終名集合をfolderごとの多重集合へ改める。REQ-007/REQ-010/REQ-012/INV-003をfolder単位へ、REQ-015(占有名を最終名集合へ含める)を追加、INV-005へsourceFolderの扱いを追記、OP-003/OP-004へoccupiedNamesを追加。005 contractのopen_questions OQ-006の決着(2026-08-20 開発者決定)を反映したもの。2026-08-21に開発者が再承認した。**このcontractでは、revision_historyの最新revisionのapproved_dateがnullである間は再承認待ちであり、statusのapprovedは直前のrevisionに対するものとして読む。**"
+    }
+  ],
   "status": "approved",
   "scope": {
     "in": [
@@ -20,7 +33,7 @@
   "terms": [
     {
       "term": "FileEntry",
-      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグに加え、任意で元場所ハンドル(sourceHandle: 取得元を一意に識別し 005 の書き戻し先を指す不透明な文字列)と表示用の場所(sourceLocation: 元フォルダを表す人間可読の文字列)を持つ。sourceHandle・sourceLocation は 004/002/005 が用いるメタデータで、命名エンジンの評価には用いない(INV-005)。作成日時は取得できない場合があり、そのときは不明(値なし)として表す。不明を更新日時などの別の値で代替してはならない(INV-006)。更新日時は常に値を持つ。"
+      "definition": "フォルダ内の1ファイルを表す入力値。フルネーム name(拡張子込み)・作成日時・更新日時・サイズ・選択フラグに加え、任意で元場所ハンドル(sourceHandle: 取得元を一意に識別し 005 の書き戻し先を指す不透明な文字列)と表示用の場所(sourceLocation: 元フォルダを表す人間可読の文字列)を持つ。sourceHandle・sourceLocation は 004/002/005 が用いるメタデータで、命名エンジンの評価には用いない(INV-005)。作成日時は取得できない場合があり、そのときは不明(値なし)として表す。不明を更新日時などの別の値で代替してはならない(INV-006)。更新日時は常に値を持つ。加えて、任意で**所属folder**(sourceFolder: そのファイルがある場所を一意に識別する不透明な文字列。004 が供給する)を持つ。sourceFolder は重複判定と自動解決の範囲を区切り占有名を引き当てるためだけに用い、生成後名の構成には用いない(INV-005)。"
     },
     {
       "term": "ベース名",
@@ -44,7 +57,15 @@
     },
     {
       "term": "最終名集合",
-      "definition": "未選択ファイルの現在の name と、選択ファイルの生成後名を合わせた多重集合。"
+      "definition": "**folder ごとの**多重集合。folder F の最終名集合は、F に属する未選択ファイルの現在の name、F に属する選択ファイルの生成後名、および F の占有名を合わせたものである。**folder を跨いで混ぜない** — 改名は同じ folder の中で完結するので、別 folder の同名とは衝突しない。混ぜると、実際には衝突しないのに重複警告と ` (n)` が出る。"
+    },
+    {
+      "term": "folder",
+      "definition": "FileEntry が属する場所の識別子。004 が供給する不透明な文字列(FileEntry の sourceFolder)で、エンジンは中身を解釈せず**等値だけ**で同一性を判定する。別表記が同じ場所を指さないことの保証(正規化)は 004 の責務である(005 契約 open_questions OQ-004 の決着)。sourceFolder を持たない FileEntry は、すべて**「不明」という単一の folder** に属するものとして扱う — 1件ずつ別の folder に分けると、読み込み元を持たない入力で重複判定が一切働かなくなるためである。"
+    },
+    {
+      "term": "占有名",
+      "definition": "ある folder で**既に使われている**とみなす名前の集合。エンジンは観測せず、呼び出し側から folder ごとの入力として受け取る(INV-004)。005 契約での作り方は「対象 folder の実在名から、その folder 内でこの実行で改名される選択ファイルの現在名を除いたもの」である。エンジンは作り方に関与せず、与えられた集合をその folder の最終名集合へ含めるだけである。占有名が与えられなかった folder は空集合として扱い、**全域性(対象となるすべての folder に値があること)の保証は呼び出し側が持つ**(005 REQ-027)。"
     },
     {
       "term": "now",
@@ -108,7 +129,7 @@
       "id": "REQ-007",
       "kind": "functional",
       "priority": "must",
-      "statement": "ドライラン検証は、選択ファイルの生成後名が最終名集合の中で2回以上出現する場合、その選択ファイルを重複として警告する。",
+      "statement": "ドライラン検証は、選択ファイルの生成後名が、**そのファイルが属する folder の**最終名集合の中で2回以上出現する場合、その選択ファイルを重複として警告する。**別 folder の同名は衝突として数えない。**",
       "observable": true,
       "verification": ["VER-003"]
     },
@@ -132,7 +153,7 @@
       "id": "REQ-010",
       "kind": "functional",
       "priority": "must",
-      "statement": "自動解決は、生成後名が最終名集合で衝突する選択ファイルに対し、リスト表示順で最初の出現はそのまま残し、以降の衝突する出現にはベース名の末尾へ半角スペースと括弧付き整数 ' (n)'(n は 1 始まり)を付与し、最終名集合で衝突しなくなる最小の n を選ぶ。",
+      "statement": "自動解決は、生成後名が**そのファイルが属する folder の**最終名集合で衝突する選択ファイルに対し、リスト表示順で最初の出現はそのまま残し、以降の衝突する出現にはベース名の末尾へ半角スペースと括弧付き整数 ' (n)'(n は 1 始まり)を付与し、**同じ folder の**最終名集合で衝突しなくなる最小の n を選ぶ。**占有名との衝突も同じ規則で回避する** — 判定だけを占有名で行い解決を占有名抜きで行うと、確定した名前が占有名と衝突したまま呼び出し側へ渡る(005 REQ-026)。",
       "observable": true,
       "verification": ["VER-004"]
     },
@@ -148,7 +169,7 @@
       "id": "REQ-012",
       "kind": "functional",
       "priority": "must",
-      "statement": "自動解決の結果が定める最終名集合は、重複を含まず、桁不足を含まない。",
+      "statement": "自動解決の結果が定める**各 folder の**最終名集合は、重複を含まず、桁不足を含まない。",
       "observable": true,
       "verification": ["VER-004"]
     },
@@ -167,6 +188,14 @@
       "statement": "ドライラン検証は、選択ファイルに対してルール内の日時トークンの基準日時が取得不能である場合、その選択ファイルと当該トークンを基準日時不明として警告する。基準日時が取得できるトークンについては警告しない。",
       "observable": true,
       "verification": ["VER-003"]
+    },
+    {
+      "id": "REQ-015",
+      "kind": "functional",
+      "priority": "must",
+      "statement": "ドライラン検証と自動解決は、入力として与えられた folder ごとの占有名を、その folder の最終名集合へ含める。占有名を観測する手段はエンジンが持たず、**入力としてのみ**受け取る(INV-004)。占有名が与えられなかった folder は空集合として扱う。",
+      "observable": true,
+      "verification": ["VER-003", "VER-004"]
     }
   ],
   "invariants": [
@@ -182,7 +211,7 @@
     },
     {
       "id": "INV-003",
-      "statement": "自動解決の出力では、最終名集合に同一の名前が2つ以上存在しない。",
+      "statement": "自動解決の出力では、**同じ folder の**最終名集合に同一の名前が2つ以上存在しない。",
       "owner": "自動解決(autoResolve)"
     },
     {
@@ -192,7 +221,7 @@
     },
     {
       "id": "INV-005",
-      "statement": "命名エンジンの各操作(buildName・generatePreview・validate・autoResolve)の出力は、FileEntry の sourceHandle・sourceLocation に依存しない。これらは識別・表示用のメタデータであり、生成後名・警告・解決結果に影響しない。",
+      "statement": "命名エンジンの各操作(buildName・generatePreview・validate・autoResolve)の出力は、FileEntry の sourceHandle・sourceLocation に依存しない。これらは識別・表示用のメタデータであり、生成後名・警告・解決結果に影響しない。**sourceFolder は buildName と generatePreview の出力に影響しない**が、validate と autoResolve では最終名集合の範囲を区切り占有名を引き当てるために用いる(REQ-007・REQ-010・REQ-015)。",
       "owner": "命名エンジン"
     },
     {
@@ -235,31 +264,39 @@
     {
       "id": "OP-003",
       "name": "validate",
-      "interface": "validate(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<Warning>",
-      "preconditions": ["files はフォルダ内ファイルの入力列である。"],
+      "interface": "validate(rule: RenameRule, files: List<FileEntry>, now: DateTime, occupiedNames: Map<folder, Set<String>>) -> List<Warning>",
+      "preconditions": [
+        "files はフォルダ内ファイルの入力列である。",
+        "occupiedNames は folder ごとの占有名である。与えられなかった folder は空集合として扱う(REQ-015)。"
+      ],
       "postconditions": [
         "重複・桁不足・空名・基準日時不明の各条件(REQ-007・REQ-008・REQ-009・REQ-014)に該当する箇所ごとに、その種別と対象を示す警告を1件含む。",
+        "重複の判定は、そのファイルが属する folder の最終名集合(占有名を含む)に対して行う(REQ-007・REQ-015)。",
         "いずれの条件にも該当しない箇所については警告を含まない。"
       ],
       "errors": [],
       "side_effects": ["none"],
       "nondeterminism": ["none"],
-      "requirements": ["REQ-007", "REQ-008", "REQ-009", "REQ-014"],
+      "requirements": ["REQ-007", "REQ-008", "REQ-009", "REQ-014", "REQ-015"],
       "verification": ["VER-003"]
     },
     {
       "id": "OP-004",
       "name": "autoResolve",
-      "interface": "autoResolve(rule: RenameRule, files: List<FileEntry>, now: DateTime) -> List<ResolvedEntry>",
-      "preconditions": ["files はフォルダ内ファイルの入力列である。"],
+      "interface": "autoResolve(rule: RenameRule, files: List<FileEntry>, now: DateTime, occupiedNames: Map<folder, Set<String>>) -> List<ResolvedEntry>",
+      "preconditions": [
+        "files はフォルダ内ファイルの入力列である。",
+        "occupiedNames は folder ごとの占有名である。与えられなかった folder は空集合として扱う(REQ-015)。"
+      ],
       "postconditions": [
         "各選択ファイルに、REQ-010 と REQ-011 に従って衝突しない最終名を割り当てる。",
-        "出力が定める最終名集合は、重複を含まず桁不足を含まない(REQ-012・INV-003)。"
+        "出力が定める**各 folder の**最終名集合は、重複を含まず桁不足を含まない(REQ-012・INV-003)。",
+        "確定した名前は、そのファイルが属する folder の占有名と一致しない(REQ-010・REQ-015)。"
       ],
       "errors": [],
       "side_effects": ["none"],
       "nondeterminism": ["none"],
-      "requirements": ["REQ-010", "REQ-011", "REQ-012"],
+      "requirements": ["REQ-010", "REQ-011", "REQ-012", "REQ-015"],
       "verification": ["VER-004"]
     }
   ],
@@ -289,13 +326,13 @@
       "id": "VER-003",
       "type": "example",
       "artifact": "test/spec_001_rename_core/validation_test.dart",
-      "covers": ["REQ-007", "REQ-008", "REQ-009", "REQ-014", "OP-003"]
+      "covers": ["REQ-007", "REQ-008", "REQ-009", "REQ-014", "REQ-015", "OP-003"]
     },
     {
       "id": "VER-004",
       "type": "property",
       "artifact": "test/spec_001_rename_core/auto_resolve_test.dart",
-      "covers": ["REQ-010", "REQ-011", "REQ-012", "INV-003", "OP-004"]
+      "covers": ["REQ-010", "REQ-011", "REQ-012", "REQ-015", "INV-003", "OP-004"]
     },
     {
       "id": "VER-005",

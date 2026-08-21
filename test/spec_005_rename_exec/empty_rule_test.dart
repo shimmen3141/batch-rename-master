@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.d
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 FileEntry _file(String name, {DateTime? createdAt}) => FileEntry(
   name: name,
@@ -16,6 +17,7 @@ FileEntry _file(String name, {DateTime? createdAt}) => FileEntry(
   modifiedAt: DateTime(2026, 8, 11),
   size: 1,
   sourceHandle: '/files/$name',
+  sourceFolder: '/files',
 );
 
 Future<void> _pump(
@@ -46,6 +48,7 @@ void main() {
       final execution = RenameExecutionController(
         files: files,
         executor: executor,
+        listNames: listNamesOf(executor, folder: '/files'),
       );
       await _pump(tester, files, execution: execution);
 
@@ -70,11 +73,12 @@ void main() {
       final execution = RenameExecutionController(
         files: files,
         executor: executor,
+        listNames: listNamesOf(executor, folder: '/files'),
       );
 
-      expect(await execution.execute(force: false), isNull);
+      expect(await prepareAndExecute(execution, force: false), isNull);
       // 強制実行(自動解決)経路でも同じく止まる。
-      expect(await execution.execute(force: true), isNull);
+      expect(await prepareAndExecute(execution, force: true), isNull);
       expect(executor.calls, isEmpty);
       expect(files.items.single.name, 'a.txt');
     });
@@ -190,9 +194,13 @@ void main() {
       files: [_file('a.txt')],
       rule: const RenameRule([LiteralToken('x')]),
     );
+    // 観測元と実体を同じ instance にする。別々にすると、実行で名前が変わっても
+    // lister は古い名前を返し続け、fixture が実体とずれる。
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
       files: files,
-      executor: FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'}),
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution: execution, onEditRule: () {});
 

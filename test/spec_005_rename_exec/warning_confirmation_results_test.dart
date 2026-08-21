@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:batch_rename_master/core/rename_engine.dart';
+import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
@@ -10,12 +11,14 @@ import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.d
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 FileEntry _file(String name) => FileEntry(
   name: name,
   modifiedAt: DateTime(2026, 8, 9),
   size: 1,
   sourceHandle: '/files/$name',
+  sourceFolder: '/files',
 );
 
 Future<void> _pump(
@@ -45,9 +48,10 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
 
-    final outcome = await execution.execute(force: true);
+    final outcome = await prepareAndExecute(execution, force: true);
 
     expect(outcome!.successes, isEmpty);
     expect(execution.excludedEmptyNames.map((file) => file.name), [
@@ -67,6 +71,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -96,6 +101,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -127,6 +133,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -166,6 +173,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -197,6 +205,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -220,6 +229,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -238,6 +248,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: const SafRenameExecutor(),
+      listNames: listNamesFixed('/files', {'a.txt'}),
     );
     await _pump(tester, files, execution);
 
@@ -259,6 +270,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -288,6 +300,7 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
     await _pump(tester, files, execution);
 
@@ -313,10 +326,20 @@ void main() {
     final execution = RenameExecutionController(
       files: files,
       executor: _DelayedExecutor(gate.future),
+      listNames: listNamesFixed('/files', {'a.txt'}),
     );
 
-    final first = execution.execute(force: false);
-    final second = await execution.execute(force: false);
+    // REQ-012 は「実行中に新たな実行を開始しない」。占有名の取得は一度で足りる
+    // (REQ-028 は要求時に取り直すことを求めるだけで、二重実行の判定には効かない)。
+    final prepared = await execution.prepare() as OccupiedNamesReady;
+    final first = execution.execute(
+      force: false,
+      occupiedNames: prepared.names,
+    );
+    final second = await execution.execute(
+      force: false,
+      occupiedNames: prepared.names,
+    );
     expect(second, isNull);
     gate.complete(const Renamed('/files/renamed.txt'));
     await first;

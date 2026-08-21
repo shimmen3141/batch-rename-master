@@ -1,6 +1,6 @@
 # コア命名エンジン(rename-core) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認 / **2026-08-21 `013:T10` 由来の更新(所属 folder・占有名・folder 単位の最終名集合)を開発者が再承認**(契約の `revision` は `2`、`revision_history` の revision 2 の `approved_date` を参照)
 - Level: Strict(**正本は `contracts/behavior-contract.json`**。本ファイルは説明・図解・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的(説明的・正誤判定には使わない)
@@ -12,7 +12,7 @@
 - 対象(in scope): 契約 `scope.in` を正とする。トークン評価・プレビュー生成・ドライラン検証・自動解決。
 - 対象外(out of scope): 契約 `scope.out` を正とする。実ファイルIO・SAF・OS別禁止文字検証・UI・トークン既定値。
 - アクター: 呼び出し側(UI 層 002/003)。
-- 入力: `RenameRule`、`List<FileEntry>`(各 name・作成/更新日時・サイズ・選択フラグ、任意で元場所ハンドル `sourceHandle`・表示用の場所 `sourceLocation`)、`now`(現在日時)。`sourceHandle`/`sourceLocation` は 004/002/005 のメタデータで命名評価には用いない(INV-005)。
+- 入力: `RenameRule`、`List<FileEntry>`(各 name・作成/更新日時・サイズ・選択フラグ、任意で元場所ハンドル `sourceHandle`・表示用の場所 `sourceLocation`・所属 folder `sourceFolder`)、`now`(現在日時)、`validate`/`autoResolve` では **folder ごとの占有名**。`sourceHandle`/`sourceLocation` は 004/002/005 のメタデータで命名評価には用いない(INV-005)。`sourceFolder` は重複判定と自動解決の範囲を区切り占有名を引き当てるためだけに用い、生成後名には影響しない(INV-005)。
 - 出力: 生成後名、プレビュー、警告リスト、自動解決後の最終名。
 - 永続化される状態: なし(純粋関数群)。
 - 外部副作用: なし(INV-004。ファイルシステムへアクセスしない)。
@@ -34,17 +34,18 @@
 ### 場合分け(プレビュー/検証/自動解決: REQ-006〜012)
 
 - プレビュー: 選択ファイルのみ・表示順保持・上から position 1,2,3…。
-- 重複警告: 選択ファイルの生成後名が最終名集合(未選択の現在名 ∪ 選択の生成後名)に2回以上出現。
+- 重複警告: 選択ファイルの生成後名が、**そのファイルの folder の**最終名集合(その folder の未選択の現在名 ∪ その folder の選択の生成後名 ∪ その folder の占有名)に2回以上出現。**別 folder の同名は数えない**(REQ-007 / REQ-015)。
 - 桁不足警告: 連番の計算値が `10^桁数` 以上。
 - 空名警告: 生成後ベース名が空。
 - 基準日時不明の警告: 選択ファイルに対し、日時トークンの基準日時が取得不能(REQ-014)。
-- 自動解決: 先頭出現は据え置き、以降の衝突に ` (n)` を付与(最小の非衝突 n)。桁不足は最大値が収まる桁へ拡張。結果の最終名集合は重複・桁不足なし。
+- 自動解決: 先頭出現は据え置き、以降の衝突に ` (n)` を付与(最小の非衝突 n)。**衝突の判定も回避も同じ folder の最終名集合(占有名を含む)に対して行う**(REQ-010 / REQ-015)。桁不足は最大値が収まる桁へ拡張。結果の各 folder の最終名集合は重複・桁不足なし。
 
 ### 性質(すべての入力で成り立つこと)
 
 - P1(REQ-005/INV-002): 生成後フルネームは対象ファイルの拡張子で終わる(拡張子が空の場合を除く)。拡張子は変化しない。
 - P2(REQ-006): プレビューの要素数 = 選択ファイル数。順序は入力の相対順を保つ。
-- P3(REQ-012/INV-003): 自動解決後、最終名集合に重複はない。
+- P3(REQ-012/INV-003): 自動解決後、**各 folder の**最終名集合に重複はない。
+- P6(REQ-015): `validate`・`autoResolve` の出力は、与えた占有名を最終名集合へ含めた結果と一致する。占有名を与えない呼び出しは、すべての folder の占有名が空である呼び出しと同じ結果になる。
 - P4(REQ-013): 同一入力 (rule, files, now) に対し出力は毎回同一。
 - P5(REQ-003): 連番出力の文字列長は `max(桁数, 計算値の桁数)` に等しい(ゼロ埋めは桁数まで、超過時は数字がそのまま伸びる)。
 
@@ -68,16 +69,20 @@
 | 12 | autoResolve: [連番 開始1 桁2] / 選択100件 / - | 桁数を3へ拡張し `001`〜`100` | 桁不足の自動拡張 |
 | 13 | [日時 作成 `YYYYMMDD`][元名] / 作成日時が不明な `x.txt` / 1 / - | `x.txt`(日時部分は空) | 基準日時不明 → 空文字列(REQ-004 / INV-006) |
 | 14 | validate: [日時 作成 `YYYYMMDD`] / 作成日時が不明な `x.txt`(選) / - | 基準日時不明の警告(加えて生成後ベース名が空なので空名警告) | REQ-014 / REQ-009 |
+| 15 | validate: [リテラル `keep`] / files=`a.png`(選、folder=`/A`) / 占有名={`/A`: {`keep.png`}} | `a.png` を重複警告 | 占有名との衝突(REQ-015) |
+| 16 | validate: [リテラル `keep`] / files=`a.png`(選、folder=`/A`) / 占有名={`/A`: {}, `/B`: {`keep.png`}} | 警告なし | 別 folder の占有名は数えない(REQ-007) |
+| 17 | validate: [リテラル `keep`] / files=`a.png`(選、folder=`/A`), `keep.png`(未選、folder=`/B`) / 占有名なし | 警告なし | 別 folder の未選択現在名は数えない(REQ-007) |
+| 18 | autoResolve: [リテラル `keep`] / files=`a.png`(選、folder=`/A`) / 占有名={`/A`: {`keep.png`}} | `keep (1).png` | 自動解決も占有名を避ける(REQ-010 / REQ-015) |
 
 ## 不変条件
 
-契約の INV-001〜006 を正とする。要点: RenameRule は任意順・重複可のトークン列(INV-001)、拡張子不変(INV-002)、自動解決後は重複なし(INV-003)、副作用なし(INV-004)、命名出力は `sourceHandle`/`sourceLocation` に依存しない(INV-005)、不明な作成日時を別の日時で代替しない(INV-006)。
+契約の INV-001〜006 を正とする。要点: RenameRule は任意順・重複可のトークン列(INV-001)、拡張子不変(INV-002)、自動解決後は**同じ folder の**最終名集合に重複なし(INV-003)、副作用なし(INV-004。占有名は観測せず入力として受け取る)、命名出力は `sourceHandle`/`sourceLocation` に依存せず `sourceFolder` は `buildName`/`generatePreview` に影響しない(INV-005)、不明な作成日時を別の日時で代替しない(INV-006)。
 
 ## 異常系
 
 | 条件 | 観測可能な結果 |
 |---|---|
-| 生成後名が最終名集合で重複 | validate が当該選択ファイルを重複警告として返す(REQ-007) |
+| 生成後名が同じ folder の最終名集合で重複(占有名との衝突を含む) | validate が当該選択ファイルを重複警告として返す(REQ-007 / REQ-015) |
 | 連番が桁数に収まらない | validate が桁不足警告を返す(REQ-008)。autoResolve は桁拡張(REQ-011) |
 | 生成後ベース名が空 | validate が空名警告を返す(REQ-009) |
 | 作成日時が不明なファイルに基準=作成日時の日時トークン | そのトークンは空文字列を出力し(REQ-004 / INV-006)、validate が基準日時不明の警告を返す(REQ-014)。更新日時では代替しない |
@@ -102,8 +107,8 @@
 |---|---|---|---|
 | VER-001 | property | test/spec_001_rename_core/token_evaluation_test.dart | REQ-001〜005, INV-002, INV-006, OP-001 |
 | VER-002 | property | test/spec_001_rename_core/preview_test.dart | REQ-006, INV-001, OP-002 |
-| VER-003 | example | test/spec_001_rename_core/validation_test.dart | REQ-007〜009, REQ-014, OP-003 |
-| VER-004 | property | test/spec_001_rename_core/auto_resolve_test.dart | REQ-010〜012, INV-003, OP-004 |
+| VER-003 | example | test/spec_001_rename_core/validation_test.dart | REQ-007〜009, REQ-014, REQ-015, OP-003 |
+| VER-004 | property | test/spec_001_rename_core/auto_resolve_test.dart | REQ-010〜012, REQ-015, INV-003, OP-004 |
 | VER-005 | property | test/spec_001_rename_core/determinism_test.dart | REQ-013, INV-004, INV-005, CON-001 |
 
 ## 反証ログ
@@ -140,3 +145,20 @@ Step 3(仕様の反証)の実施記録。
 - **INV-006 を追加**: 不明な作成日時は更新日時・now で代替されない。→ VER-001 に接続。
 
 理由: 「作成日時順ソートを残しつつ、取得できないときは警告する」(004 の決定)を成立させるには、**取得できたか否かをデータとして区別できる**必要がある。暗黙に更新日時を代入すると、ラベルと実体がずれ、警告も出せない。実装は 004 T6。
+
+### 013:T10 由来の更新(2026-08-20 作成 / **2026-08-21 開発者再承認済み**)
+
+005 contract revision 4 が定めた**占有名**(対象 folder の実在名から、その folder 内でこの実行で改名される選択ファイルの現在名を除いたもの)を、001 の重複判定と自動解決へ入力として受け取れるようにする。あわせて、契約 `open_questions` の **OQ-006**(001 の重複判定を folder 単位へ揃えるか)を「揃える」で決着させる(2026-08-20 開発者決定)。
+
+- 用語 `FileEntry`: 任意フィールド **`sourceFolder`**(所属 folder を一意に識別する不透明な文字列)を追加。004 が供給する。
+- 用語 **`folder`** を追加: 等値だけで同一性を判定する。**正規化の責務は 004** が持つ(OQ-004 の決着)。`sourceFolder` を持たない `FileEntry` は「不明」という**単一の** folder に属するものとして扱う。
+- 用語 **`占有名`** を追加: 001 は観測せず入力として受け取る(INV-004 を維持)。**全域性の保証は呼び出し側**(005 REQ-027)。
+- 用語 **`最終名集合` を folder ごとに改める**: folder F の最終名集合 = F の未選択の現在名 + F の選択の生成後名 + F の占有名。**folder を跨いで混ぜない。**
+- **REQ-007 / REQ-010 / REQ-012 / INV-003 を folder 単位へ改訂**。
+- **REQ-015 を追加**: 与えられた占有名をその folder の最終名集合へ含める。
+- **INV-005 を改訂**: `sourceFolder` は `buildName`・`generatePreview` の出力に影響しないが、`validate`・`autoResolve` では範囲の区切りと占有名の引き当てに用いる。
+- **OP-003 / OP-004 の interface に `occupiedNames` を追加**。
+
+理由: 001 の重複判定は最終名集合を**アプリへ読み込まれたファイル**だけで作るため、**読み込んでいないファイルと同じ名前になる改名を実行前に検出できない**。005 contract revision 4 の REQ-004・REQ-026 はこれを塞ぐと定めたので、占有名を受け取る経路が要る。
+
+folder 単位へ揃えた理由: 占有名は承認済み契約で folder ごとと定まっている。最終名集合を横断のまま残すと、「読み込み済み・未選択の別 folder 同名では警告が出るのに、読み込んでいない別 folder 同名では出ない」という非対称と、**実際には衝突しないのに ` (n)` を付ける自動解決**が残る(OQ-006)。単一 folder からの選択では挙動は変わらない。実装は `013:T10`。

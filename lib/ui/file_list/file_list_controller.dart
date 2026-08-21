@@ -50,6 +50,23 @@ class FileListController extends ChangeNotifier {
   /// [item] が選択されているか。
   bool selectedOf(FileEntry item) => _selected.contains(item);
 
+  /// 一覧の警告表示に用いる folder ごとの占有名(005 REQ-026 / REQ-028)。
+  ///
+  /// **表示のための値である。** 実体はいつでも変わりうるので一覧の警告は本質的に
+  /// 事後的であり、この値は読み込み時などに取った古い観測でよい。**実行の可否と
+  /// 自動解決の入力は、実行を要求した時点で取り直したものを使う**(REQ-028)。
+  OccupiedNamesByFolder _occupiedNames = const {};
+
+  OccupiedNamesByFolder get occupiedNames => _occupiedNames;
+
+  /// 一覧の警告表示に使う占有名を差し替える(REQ-026 / REQ-028)。
+  void setOccupiedNames(OccupiedNamesByFolder names) {
+    _occupiedNames = Map.unmodifiable({
+      for (final entry in names.entries) entry.key: Set.of(entry.value),
+    });
+    notifyListeners();
+  }
+
   /// [item] の選択を反転する(REQ-004)。
   void toggleSelection(FileEntry item) {
     if (!_selected.remove(item)) {
@@ -144,6 +161,9 @@ class FileListController extends ChangeNotifier {
   /// ハンドルを持たない要素([FileEntry.sourceHandle] が `null`)は同一性を
   /// 判定できないため、まとめずにそのまま並べる。
   void setFiles(List<FileEntry> entries) {
+    // 前の読み込みで取った占有名は、置き換え後の folder とは無関係になる。
+    // 残すと**別の folder の名前で警告が出る**ので捨てる(REQ-026)。
+    _occupiedNames = const {};
     final seen = <String>{};
     final next = <FileEntry>[];
     for (final entry in entries) {
@@ -252,7 +272,7 @@ class FileListController extends ChangeNotifier {
     final ordered = <FileEntry>[
       for (final item in _items) _withSelection(item, _selected.contains(item)),
     ];
-    return validate(_rule, ordered, now);
+    return validate(_rule, ordered, now, occupiedNames: _occupiedNames);
   }
 
   /// [item] の値を保ちつつ選択状態だけを [selected] にした複製。
@@ -264,5 +284,6 @@ class FileListController extends ChangeNotifier {
     selected: selected,
     sourceHandle: item.sourceHandle,
     sourceLocation: item.sourceLocation,
+    sourceFolder: item.sourceFolder,
   );
 }

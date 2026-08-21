@@ -127,31 +127,61 @@ class MissingSourceDateWarning extends Warning {
   });
 }
 
-/// ドライラン検証(OP-003 / REQ-007〜009・REQ-014)。実行はせず警告のみを返す。
+/// folder ごとの占有名(001 用語「占有名」/ REQ-015)。
 ///
-/// 最終名集合 = 未選択ファイルの現在名 ∪ 選択ファイルの生成後名。選択ファイルの
-/// 生成後名がこの集合で2回以上出現すれば重複([DuplicateWarning])。連番トークンが
-/// 選択数に対して桁不足なら [DigitShortageWarning]。生成後ベース名が空なら
-/// [EmptyNameWarning]。日時トークンの基準日時が取得不能なら
+/// key は [FileEntry.sourceFolder] と同じ値で、`null` は「不明」という単一の
+/// folder を表す。**エンジンはこの集合を観測せず、入力として受け取るだけである**
+/// (INV-004)。作り方(実在名からこの実行で改名される選択ファイルの現在名を除く)は
+/// 005 が持つ。
+typedef OccupiedNamesByFolder = Map<String?, Set<String>>;
+
+/// ドライラン検証(OP-003 / REQ-007〜009・REQ-014・REQ-015)。実行はせず警告のみを返す。
+///
+/// 最終名集合は**folder ごと**である(REQ-007 / 用語「最終名集合」)。folder F の
+/// 最終名集合 = F の未選択ファイルの現在名 + F の選択ファイルの生成後名 +
+/// F の占有名([occupiedNames])。選択ファイルの生成後名が**そのファイルの folder の**
+/// 集合で2回以上出現すれば重複([DuplicateWarning])。**別 folder の同名は数えない。**
+///
+/// 連番トークンが選択数に対して桁不足なら [DigitShortageWarning]。生成後ベース名が
+/// 空なら [EmptyNameWarning]。日時トークンの基準日時が取得不能なら
 /// [MissingSourceDateWarning]。該当が無い箇所については警告を含めない。
-List<Warning> validate(RenameRule rule, List<FileEntry> files, DateTime now) {
+///
+/// [occupiedNames] を与えなければ、すべての folder の占有名が空である場合と同じ
+/// 結果になる(REQ-015)。**全域性(対象となるすべての folder に値があること)の
+/// 保証は呼び出し側が持つ**(005 REQ-027)。
+List<Warning> validate(
+  RenameRule rule,
+  List<FileEntry> files,
+  DateTime now, {
+  OccupiedNamesByFolder occupiedNames = const {},
+}) {
   final warnings = <Warning>[];
   final preview = generatePreview(rule, files, now);
 
-  // 最終名集合: 未選択ファイルの現在名 + 選択ファイルの生成後名。
-  final counts = <String, int>{};
+  // 最終名集合(folder ごと): 占有名 + 未選択の現在名 + 選択の生成後名。
+  final counts = <(String?, String), int>{};
+  void bump(String? folder, String name) {
+    final key = (folder, name);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  for (final entry in occupiedNames.entries) {
+    for (final name in entry.value) {
+      bump(entry.key, name);
+    }
+  }
   for (final file in files) {
     if (!file.selected) {
-      counts[file.name] = (counts[file.name] ?? 0) + 1;
+      bump(file.sourceFolder, file.name);
     }
   }
   for (final entry in preview) {
-    counts[entry.resultName] = (counts[entry.resultName] ?? 0) + 1;
+    bump(entry.source.sourceFolder, entry.resultName);
   }
 
   // 重複・空名・基準日時不明は選択ファイル(プレビュー)ごとに判定する。
   for (final entry in preview) {
-    if ((counts[entry.resultName] ?? 0) >= 2) {
+    if ((counts[(entry.source.sourceFolder, entry.resultName)] ?? 0) >= 2) {
       warnings.add(
         DuplicateWarning(file: entry.source, resultName: entry.resultName),
       );
@@ -229,34 +259,43 @@ class ResolvedEntry {
   const ResolvedEntry({required this.source, required this.resultName});
 }
 
-/// 自動解決(OP-004 / REQ-010〜012 / INV-003)。強制実行時の最終名を確定する。
+/// 自動解決(OP-004 / REQ-010〜012・REQ-015 / INV-003)。強制実行時の最終名を確定する。
 ///
 /// まず連番トークンの桁不足を、選択数に対する最大値が収まる桁数まで拡張する
-/// (REQ-011)。次にプレビューを求め、最終名集合(未選択の現在名 + 確定済みの
-/// 名前)で衝突する場合は、リスト表示順で最初の出現をそのまま残し、以降の衝突には
-/// ベース名の末尾へ ' (n)'(n は1始まり)を付与して衝突しない最小の n を選ぶ
-/// (REQ-010)。結果の最終名集合は重複と桁不足を含まない(REQ-012 / INV-003)。
+/// (REQ-011)。次にプレビューを求め、**そのファイルの folder の**最終名集合
+/// (占有名 + 未選択の現在名 + 確定済みの名前)で衝突する場合は、リスト表示順で
+/// 最初の出現をそのまま残し、以降の衝突にはベース名の末尾へ ' (n)'(n は1始まり)を
+/// 付与して**同じ folder で**衝突しない最小の n を選ぶ(REQ-010)。結果の各 folder の
+/// 最終名集合は重複と桁不足を含まない(REQ-012 / INV-003)。
+///
+/// **占有名も回避する**(REQ-015 / 005 REQ-026)。[validate] だけを占有名で行い
+/// ここを占有名抜きで行うと、確認した目標名が占有名と衝突したまま実行へ渡る。
 List<ResolvedEntry> autoResolve(
   RenameRule rule,
   List<FileEntry> files,
-  DateTime now,
-) {
+  DateTime now, {
+  OccupiedNamesByFolder occupiedNames = const {},
+}) {
   final count = files.where((file) => file.selected).length;
   final expandedRule = RenameRule([
     for (final token in rule.tokens) _expandDigits(token, count),
   ]);
   final preview = generatePreview(expandedRule, files, now);
 
-  // 未選択ファイルの現在名を既使用として初期化する(上書き防止)。
-  final taken = <String>{
+  // 既使用の名前を folder ごとに持つ。占有名と未選択ファイルの現在名で初期化する
+  // (上書き防止)。**folder を跨いで混ぜない。**
+  final taken = <(String?, String)>{
+    for (final entry in occupiedNames.entries)
+      for (final name in entry.value) (entry.key, name),
     for (final file in files)
-      if (!file.selected) file.name,
+      if (!file.selected) (file.sourceFolder, file.name),
   };
 
   final resolved = <ResolvedEntry>[];
   for (final entry in preview) {
+    final folder = entry.source.sourceFolder;
     var candidate = entry.resultName;
-    if (taken.contains(candidate)) {
+    if (taken.contains((folder, candidate))) {
       final ext = entry.source.extension;
       final base = ext.isEmpty
           ? entry.resultName
@@ -265,12 +304,12 @@ List<ResolvedEntry> autoResolve(
               entry.resultName.length - ext.length - 1,
             );
       var n = 1;
-      while (taken.contains(_withSuffix(base, n, ext))) {
+      while (taken.contains((folder, _withSuffix(base, n, ext)))) {
         n += 1;
       }
       candidate = _withSuffix(base, n, ext);
     }
-    taken.add(candidate);
+    taken.add((folder, candidate));
     resolved.add(ResolvedEntry(source: entry.source, resultName: candidate));
   }
   return resolved;

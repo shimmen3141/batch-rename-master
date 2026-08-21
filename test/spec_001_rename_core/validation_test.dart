@@ -1,16 +1,22 @@
 // VER-003: ドライラン検証の検証(FEAT-001)。
 // 対象: REQ-007(重複), REQ-008(桁不足), REQ-009(空名), REQ-014(基準日時不明),
-//       OP-003(validate)。
+//       REQ-015(占有名を最終名集合へ含める), OP-003(validate)。
+//
+// REQ-007 と REQ-015 は**folder ごと**の判定である。「同じ folder なら数える」と
+// 「別 folder なら数えない」は逆向きなので両方を固定する — 片方だけでは
+// 「常に数える実装(=横断のまま)」と「一度も数えない実装」のどちらかが通る。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-FileEntry _file(String name, {bool selected = true}) => FileEntry(
-  name: name,
-  createdAt: DateTime(2026, 1, 1),
-  modifiedAt: DateTime(2026, 1, 1),
-  size: 0,
-  selected: selected,
-);
+FileEntry _file(String name, {bool selected = true, String? folder}) =>
+    FileEntry(
+      name: name,
+      createdAt: DateTime(2026, 1, 1),
+      modifiedAt: DateTime(2026, 1, 1),
+      size: 0,
+      selected: selected,
+      sourceFolder: folder,
+    );
 
 final DateTime _now = DateTime(2026, 7, 26, 9, 8, 7);
 
@@ -169,6 +175,173 @@ void main() {
       final warnings = validate(rule, [unknownCreated('x.txt')], _now);
       expect(_of<MissingSourceDateWarning>(warnings).length, 1);
       expect(_of<EmptyNameWarning>(warnings).length, 1);
+    });
+  });
+
+  group('REQ-015: 占有名を最終名集合へ含める', () {
+    test('読み込んでいない file と同じ名前になる改名を重複警告にする(005 例25)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final dups = _of<DuplicateWarning>(
+        validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {
+            '/A': {'keep.png'},
+          },
+        ),
+      ).toList();
+
+      expect(dups.single.file.name, 'a.png');
+      expect(dups.single.resultName, 'keep.png');
+    });
+
+    test('占有名を与えなければ、同じ入力で警告は出ない', () {
+      // 「常に警告する実装」を排除する。占有名は**入力**であって観測ではない
+      // (INV-004)。
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      expect(_of<DuplicateWarning>(validate(rule, files, _now)), isEmpty);
+    });
+
+    test('別 folder の占有名は数えない(005 例25d)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final warnings = validate(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/A': <String>{},
+          '/B': {'keep.png'},
+        },
+      );
+
+      expect(_of<DuplicateWarning>(warnings), isEmpty);
+    });
+
+    test('占有名が与えられなかった folder は空として扱う', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final warnings = validate(
+        rule,
+        files,
+        _now,
+        occupiedNames: {
+          '/B': {'keep.png'},
+        },
+      );
+
+      expect(_of<DuplicateWarning>(warnings), isEmpty);
+    });
+
+    group('連番を1つずらす改名(005 例25b)', () {
+      // 各目標名が**隣の選択 file の現在名**と一致する入力。占有名の作り方が
+      // そのまま結果を変えるので、**両方向**を固定する。片方だけでは
+      // 「常に警告する実装」と「一度も警告しない実装」のどちらかが通る。
+      const rule = RenameRule([
+        LiteralToken('IMG_'),
+        SequenceToken(start: 2, digits: 4),
+      ]);
+      final names = [
+        for (var i = 1; i <= 10; i++) 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+      ];
+      final files = [for (final name in names) _file(name, folder: '/A')];
+
+      test('占有名から選択 file の現在名が除かれていれば警告は出ない', () {
+        // 005 の OP-005 が作る占有名 = 実在名 − 改名される選択 file の現在名 = 空。
+        final warnings = validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {'/A': <String>{}},
+        );
+
+        expect(_of<DuplicateWarning>(warnings), isEmpty);
+      });
+
+      test('除かずに実在名をそのまま渡すと、ほぼ全件が重複警告になる', () {
+        // 005:T04 review attempt 1 の P0 そのもの。**この向きを固定しないと、
+        // 上の test は「一度も警告しない実装」でも通る。**
+        final warnings = validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {'/A': names.toSet()},
+        );
+
+        expect(
+          _of<DuplicateWarning>(warnings).length,
+          9,
+          reason: 'IMG_0002..0010 の9件が自分たち自身の現在名と衝突する',
+        );
+      });
+    });
+
+    test('除外された file の現在名が占有名にあれば警告する(005 例25c)', () {
+      // REQ-022 で除外される file は改名されないので、その現在名は占有名に残る。
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [_file('a.png', folder: '/A')];
+
+      final dups = _of<DuplicateWarning>(
+        validate(
+          rule,
+          files,
+          _now,
+          occupiedNames: {
+            '/A': {'keep.png'},
+          },
+        ),
+      ).toList();
+
+      expect(dups.single.resultName, 'keep.png');
+    });
+  });
+
+  group('REQ-007: 重複判定は folder ごと(OQ-006)', () {
+    test('別 folder の未選択 file と同名でも警告しない(005 例25f)', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [
+        _file('x.png', folder: '/A'),
+        _file('keep.png', selected: false, folder: '/B'),
+      ];
+
+      expect(_of<DuplicateWarning>(validate(rule, files, _now)), isEmpty);
+    });
+
+    test('同じ folder の未選択 file と同名なら警告する', () {
+      const rule = RenameRule([LiteralToken('keep')]);
+      final files = [
+        _file('x.png', folder: '/A'),
+        _file('keep.png', selected: false, folder: '/A'),
+      ];
+
+      final dups = _of<DuplicateWarning>(validate(rule, files, _now)).toList();
+      expect(dups.single.file.name, 'x.png');
+    });
+
+    test('別 folder の選択 file どうしが同名でも警告しない', () {
+      const rule = RenameRule([LiteralToken('dup')]);
+      final files = [
+        _file('a.jpg', folder: '/A'),
+        _file('b.jpg', folder: '/B'),
+      ];
+
+      expect(_of<DuplicateWarning>(validate(rule, files, _now)), isEmpty);
+    });
+
+    test('folder を持たない file どうしは単一の「不明」folder として数える', () {
+      // 1件ずつ別 folder に分けると、読み込み元を持たない入力で重複判定が
+      // 一切働かなくなる(001 用語 `folder`)。
+      const rule = RenameRule([LiteralToken('dup')]);
+      final files = [_file('a.jpg'), _file('b.jpg')];
+
+      expect(_of<DuplicateWarning>(validate(rule, files, _now)).length, 2);
     });
   });
 

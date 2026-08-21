@@ -127,7 +127,7 @@
     {
       "id": "M18",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "final names = <String>{...?occupied[folder]};",
+      "find": "final names = <String>{...occupied.of(folder)};",
       "replace": "final names = <String>{};",
       "note": "生存名(1)占有名除去"
     },
@@ -162,14 +162,14 @@
     {
       "id": "M23",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "if (folderOf(other) != folder) continue;",
+      "find": "if (other.folder != folder) continue;",
       "replace": "",
       "note": "folder絞り(requests)除去"
     },
     {
       "id": "M24",
       "file": "lib/data/rename_exec/rename_execution.dart",
-      "find": "if (folderOf(step.request) != folder) continue;",
+      "find": "if (step.request.folder != folder) continue;",
       "replace": "",
       "note": "folder絞り(一時名)除去"
     },
@@ -207,6 +207,104 @@
       "find": "if (renumbered.isEmpty) return Text(summary);",
       "replace": "if (true) return Text(summary);",
       "note": "REQ-024のUI提示除去"
+    },
+    {
+      "id": "M30",
+      "file": "lib/data/rename_exec/occupied_names.dart",
+      "find": "        byFolder[folder] = {...names}\n          ..removeAll([\n            for (final file in renamed)\n              if (file.sourceFolder == folder) file.name,\n          ]);",
+      "replace": "        byFolder[folder] = {...names};",
+      "note": "占有名から「改名される選択fileの現在名」を除く処理を除去(例25bのP0再発)"
+    },
+    {
+      "id": "M31",
+      "file": "lib/data/rename_exec/occupied_names.dart",
+      "find": "      case NameListFailed(:final error):\n        reasons[folder] = error;",
+      "replace": "      case NameListFailed():\n        byFolder[folder] = const {};",
+      "note": "列挙失敗を空の占有名として扱う(REQ-027の区別を潰す)"
+    },
+    {
+      "id": "M32",
+      "file": "lib/core/rename_engine.dart",
+      "find": "  for (final entry in occupiedNames.entries) {\n    for (final name in entry.value) {\n      bump(entry.key, name);\n    }\n  }\n",
+      "replace": "",
+      "note": "validateが占有名を最終名集合へ入れない(REQ-015)"
+    },
+    {
+      "id": "M33",
+      "file": "lib/core/rename_engine.dart",
+      "find": "    for (final entry in occupiedNames.entries)\n      for (final name in entry.value) (entry.key, name),\n",
+      "replace": "",
+      "note": "autoResolveが占有名を避けない(REQ-015 / REQ-026)"
+    },
+    {
+      "id": "M34",
+      "file": "lib/core/rename_engine.dart",
+      "find": "    if ((counts[(entry.source.sourceFolder, entry.resultName)] ?? 0) >= 2) {",
+      "replace": "    if (counts.entries\n            .where((c) => c.key.$2 == entry.resultName)\n            .fold<int>(0, (a, c) => a + c.value) >=\n        2) {",
+      "note": "重複判定をfolder横断へ戻す(OQ-006の決着を潰す)"
+    },
+    {
+      "id": "M35",
+      "file": "lib/data/rename_exec/occupied_names.dart",
+      "find": "    final names = _byFolder[folder];\n    if (names == null) {",
+      "replace": "    final names = _byFolder[folder] ?? const <String>{};\n    if (false) {",
+      "note": "全域性の違反を例外でなく空集合として通す(OQ-003)"
+    },
+    {
+      "id": "M36",
+      "file": "lib/data/rename_exec/rename_execution.dart",
+      "find": "  for (final request in plan.requests) {\n    occupiedNames.of(request.folder);\n  }\n",
+      "replace": "",
+      "note": "executePlanの全域性検査を除去(OQ-003)"
+    },
+    {
+      "id": "M37",
+      "file": "lib/data/rename_exec/rename_plan.dart",
+      "find": "    if (occupied.contains(r.targetName)) {",
+      "replace": "    if (false && occupied.contains(r.targetName)) {",
+      "note": "目標名が占有名と衝突する入力を通す(OP-001の事前条件)"
+    },
+    {
+      "id": "M38",
+      "file": "lib/data/rename_exec/rename_plan.dart",
+      "find": "      for (final name in occupiedNames.of(r.folder)) (r.folder, name),\n",
+      "replace": "",
+      "note": "一時名が占有名を避けない(REQ-004)"
+    },
+    {
+      "id": "M39",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          content: Text(_unavailableMessage(prepared.reasons)),",
+      "replace": "          content: const Text('実行しませんでした'),",
+      "note": "REQ-027の理由提示(どのfolderがなぜ)を除去"
+    },
+    {
+      "id": "M40",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "find": "        files.setOccupiedNames(names.asMap);",
+      "replace": "",
+      "note": "取り直した占有名を一覧の警告表示へ反映しない(REQ-026 / REQ-028)"
+    },
+    {
+      "id": "M41",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "      // **空の [NamesListed] へ落とさない。** 「取得できなかった」を「衝突が無い」と\n      // 読ませないための区別である(005 REQ-027)。\n      return NameListFailed(errorOf(error));",
+      "replace": "      return NamesListed(const {});",
+      "note": "listNamesの失敗を空の列挙結果へ落とす(004 REQ-014)"
+    },
+    {
+      "id": "M42",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "    try {\n      return Directory(directoryPath).resolveSymbolicLinksSync();\n    } catch (_) {\n      return p.canonicalize(directoryPath);\n    }",
+      "replace": "    return directoryPath;",
+      "note": "folderハンドルの正規化を除去(004 REQ-013 / OQ-004)"
+    },
+    {
+      "id": "M43",
+      "file": "lib/data/rename_exec/occupied_names.dart",
+      "find": "    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    if (_hasEmptyBase(file, preview.resultName)) continue;\n    renamed.add(file);",
+      "replace": "    if (_hasEmptyBase(file, preview.resultName)) continue;\n    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    renamed.add(file);",
+      "note": "対象folderをREQ-022の除外後へ狭める(独立review 1回目のP1-1再発)"
     }
   ]
 }

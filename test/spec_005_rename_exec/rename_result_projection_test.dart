@@ -4,6 +4,7 @@ import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 FileEntry _file(String name) => FileEntry(
   name: name,
@@ -11,6 +12,7 @@ FileEntry _file(String name) => FileEntry(
   size: 1,
   sourceHandle: '/files/$name',
   sourceLocation: 'files',
+  sourceFolder: '/files',
 );
 
 void main() {
@@ -30,9 +32,10 @@ void main() {
     final controller = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
 
-    final outcome = await controller.execute(force: false);
+    final outcome = await prepareAndExecute(controller, force: false);
 
     expect(outcome!.successes, isEmpty);
     expect(outcome.failure, isNull);
@@ -51,9 +54,10 @@ void main() {
     final controller = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
 
-    await controller.execute(force: false);
+    await prepareAndExecute(controller, force: false);
 
     final first = files.items.single;
     expect(first.name, 'first.txt');
@@ -63,7 +67,7 @@ void main() {
     expect(files.selectedOf(original), isFalse);
 
     files.setRule(const RenameRule([LiteralToken('second')]));
-    await controller.execute(force: false);
+    await prepareAndExecute(controller, force: false);
 
     expect(executor.calls, [
       '/files/a.txt -> first.txt',
@@ -94,9 +98,10 @@ void main() {
     final controller = RenameExecutionController(
       files: files,
       executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
     );
 
-    final outcome = await controller.execute(force: false);
+    final outcome = await prepareAndExecute(controller, force: false);
 
     expect(outcome!.successes, hasLength(1));
     expect(outcome.failure, isNotNull);

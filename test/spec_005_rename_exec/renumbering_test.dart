@@ -13,8 +13,18 @@ import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 const _dir = '/photos';
+
+/// この folder で「占有している名前は無い」ことを表す全域な占有名。
+///
+/// これらの test の executor は選択 file だけを持つので、実在名から改名される
+/// 現在名を除いた占有名は実際に空である(005 用語「占有名」)。
+final _noOccupied = noOccupiedIn(_dir);
+
+/// `_dir` と `/other` の2 folder について占有名が空であることを表す。
+final _noOccupiedInBoth = OccupiedNames.emptyFor(const [_dir, '/other']);
 
 List<RenameRequest> _requests(Map<String, String> renames) => [
   for (final e in renames.entries)
@@ -22,6 +32,7 @@ List<RenameRequest> _requests(Map<String, String> renames) => [
       handle: '$_dir/${e.key}',
       originalName: e.key,
       targetName: e.value,
+      folder: _dir,
     ),
 ];
 
@@ -52,7 +63,11 @@ void main() {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(['a.jpg'], failWhen: _conflictOnce('x.jpg'));
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure, isNull, reason: '再採番できたので失敗にはならない');
       expect(outcome.successes.single.newName, 'x (1).jpg');
@@ -73,7 +88,11 @@ void main() {
         },
       );
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure, isNull);
       expect(outcome.successes.single.newName, 'x (2).jpg');
@@ -92,7 +111,11 @@ void main() {
             const RenameError(RenameErrorKind.io, '注入'),
       );
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure?.error.kind, RenameErrorKind.io);
       expect(outcome.failure?.attemptedName, 'x.jpg', reason: '名前を変えて試し直さない');
@@ -109,9 +132,10 @@ void main() {
       );
 
       final outcome = await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupied),
         executor,
         renumberLimit: 3,
+        occupiedNames: _noOccupied,
       );
 
       expect(outcome.failure?.error.kind, RenameErrorKind.nameConflict);
@@ -125,9 +149,10 @@ void main() {
       final executor = _folder(['a.jpg'], failWhen: _conflictOnce('x.jpg'));
 
       final outcome = await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupied),
         executor,
         renumber: (request, liveNames) => null,
+        occupiedNames: _noOccupied,
       );
 
       expect(outcome.failure?.error.kind, RenameErrorKind.nameConflict);
@@ -143,7 +168,11 @@ void main() {
         'Photo.jpg',
       ], failWhen: _conflictOnce('photo.jpg'));
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure, isNull);
       expect(outcome.successes.single.newName, 'photo (1).jpg');
@@ -152,7 +181,7 @@ void main() {
     test('一時名への改名では再採番しない(利用者が確認していない名前を内部ステップで作らない)', () async {
       // 循環。planExecution が一時名を挿入する。
       final requests = _requests({'a.jpg': 'b.jpg', 'b.jpg': 'a.jpg'});
-      final plan = planExecution(requests);
+      final plan = planExecution(requests, occupiedNames: _noOccupied);
       expect(plan.usesTemporaryNames, isTrue);
 
       final temporaryName = plan.steps
@@ -163,7 +192,11 @@ void main() {
         'b.jpg',
       ], failWhen: _conflictOnce(temporaryName));
 
-      final outcome = await executePlan(plan, executor);
+      final outcome = await executePlan(
+        plan,
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure, isNotNull, reason: '再採番せずに失敗する');
       expect(outcome.failure!.temporary, isTrue);
@@ -181,7 +214,7 @@ void main() {
     // 能動的に検証しているのは、直前の「一時名への改名では再採番しない」だけ。
     test('停止時の復旧改名では再採番しない(構造ガード)', () async {
       final requests = _requests({'a.jpg': 'b.jpg', 'b.jpg': 'a.jpg'});
-      final plan = planExecution(requests);
+      final plan = planExecution(requests, occupiedNames: _noOccupied);
       final temporaryName = plan.steps
           .firstWhere((s) => s.kind == RenameStepKind.temporary)
           .newName;
@@ -194,7 +227,12 @@ void main() {
             : const RenameError(RenameErrorKind.nameConflict, '注入'),
       );
 
-      final outcome = await executePlan(plan, executor, renumberLimit: 1);
+      final outcome = await executePlan(
+        plan,
+        executor,
+        renumberLimit: 1,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.stranded, isNotEmpty, reason: '復旧できず一時名のまま残る');
       // 復旧改名の宛先は元の名前そのもので、' (n)' を付けた名前ではない。
@@ -209,7 +247,11 @@ void main() {
     test('巻き戻しでは再採番しない(構造ガード)', () async {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(['a.jpg']);
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       // 元の名前が埋まった状態にする。
       await executor.rename('$_dir/other.jpg', 'a.jpg');
@@ -236,7 +278,11 @@ void main() {
         'b.jpg',
       ], failWhen: _conflictOnce('x.jpg'));
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       final renamed = outcome.successes.firstWhere(
         (s) => s.originalName == 'a.jpg',
@@ -256,7 +302,11 @@ void main() {
       final requests = _requests({'a.jpg': 'x.jpg'});
       final executor = _folder(['a.jpg'], failWhen: _conflictOnce('x.jpg'));
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       // 記録した名前と実体の名前が食い違わない。
       expect(outcome.successes.single.newName, 'x (1).jpg');
@@ -273,7 +323,7 @@ void main() {
       // **これから使う予定**のものも避けないと、後続の一時名への改名が衝突して
       // 停止する(一時名は再採番の対象外なので回復できない)。
       final requests = _requests({'a.jpg': 'b.jpg', 'b.jpg': 'a.jpg'});
-      final plan = planExecution(requests);
+      final plan = planExecution(requests, occupiedNames: _noOccupied);
       final temporaryNames = {
         for (final s in plan.steps)
           if (s.kind == RenameStepKind.temporary) s.newName,
@@ -297,6 +347,7 @@ void main() {
           live ??= liveNames;
           return nextCandidateName(request.targetName, liveNames);
         },
+        occupiedNames: _noOccupied,
       );
 
       expect(live, isNotNull, reason: '再採番が呼ばれること');
@@ -319,12 +370,13 @@ void main() {
 
       final live = <Set<String>>[];
       final outcome = await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupied),
         executor,
         renumber: (request, liveNames) {
           live.add(liveNames);
           return nextCandidateName(request.targetName, liveNames);
         },
+        occupiedNames: _noOccupied,
       );
 
       // a は x (1).jpg で確定する(targetName は x.jpg のまま)。
@@ -349,7 +401,11 @@ void main() {
         'b.jpg',
       ], failWhen: _conflictOnce('x.jpg'));
 
-      final outcome = await executePlan(planExecution(requests), executor);
+      final outcome = await executePlan(
+        planExecution(requests, occupiedNames: _noOccupied),
+        executor,
+        occupiedNames: _noOccupied,
+      );
 
       expect(outcome.failure, isNull);
       final a = outcome.successes.firstWhere((s) => s.originalName == 'a.jpg');
@@ -369,12 +425,13 @@ void main() {
 
       final calls = <String>[];
       await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupied),
         executor,
         renumber: (request, liveNames) {
           calls.add(liveNames.contains('x (1).jpg') ? 'counted' : 'missed');
           return nextCandidateName(request.targetName, liveNames);
         },
+        occupiedNames: _noOccupied,
       );
 
       expect(calls, ['counted'], reason: '未実行fileの現在名を数える');
@@ -386,12 +443,12 @@ void main() {
 
       Set<String>? live;
       await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupied),
         executor,
-        occupiedNames: {
+        occupiedNames: OccupiedNames({
           _dir: {'keep.jpg'},
           '/other': {'elsewhere.jpg'},
-        },
+        }),
         renumber: (request, liveNames) {
           live ??= liveNames;
           return nextCandidateName(request.targetName, liveNames);
@@ -409,11 +466,13 @@ void main() {
           handle: '$_dir/a.jpg',
           originalName: 'a.jpg',
           targetName: 'x.jpg',
+          folder: _dir,
         ),
         RenameRequest(
           handle: '/other/b.jpg',
           originalName: 'b.jpg',
           targetName: 'elsewhere.jpg',
+          folder: '/other',
         ),
       ];
       final executor = FakeRenameExecutor(
@@ -423,12 +482,13 @@ void main() {
 
       Set<String>? live;
       await executePlan(
-        planExecution(requests),
+        planExecution(requests, occupiedNames: _noOccupiedInBoth),
         executor,
         renumber: (request, liveNames) {
           live ??= liveNames;
           return nextCandidateName(request.targetName, liveNames);
         },
+        occupiedNames: _noOccupiedInBoth,
       );
 
       expect(live, isNotNull);
@@ -444,19 +504,22 @@ void main() {
           handle: '$_dir/a.jpg',
           originalName: 'a.jpg',
           targetName: 'b.jpg',
+          folder: _dir,
         ),
         RenameRequest(
           handle: '$_dir/b.jpg',
           originalName: 'b.jpg',
           targetName: 'a.jpg',
+          folder: _dir,
         ),
         RenameRequest(
           handle: '/other/c.jpg',
           originalName: 'c.jpg',
           targetName: 'z.jpg',
+          folder: '/other',
         ),
       ];
-      final plan = planExecution(requests);
+      final plan = planExecution(requests, occupiedNames: _noOccupiedInBoth);
       final temporaryNames = {
         for (final s in plan.steps)
           if (s.kind == RenameStepKind.temporary) s.newName,
@@ -480,6 +543,7 @@ void main() {
           live ??= liveNames;
           return nextCandidateName(request.targetName, liveNames);
         },
+        occupiedNames: _noOccupiedInBoth,
       );
 
       expect(live, isNotNull);

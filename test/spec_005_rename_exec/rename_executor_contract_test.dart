@@ -8,8 +8,10 @@ import 'package:batch_rename_master/data/rename_exec/rename_execution.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'occupied_support.dart';
 
 const _opaqueHandle = 'opaque://provider/item/42';
+const _opaqueFolder = 'opaque://provider';
 const _opaqueHandleAfterRename = 'opaque://provider/item/84';
 
 String _changedOpaqueHandle(String _, String _) => _opaqueHandleAfterRename;
@@ -104,13 +106,18 @@ void main() {
       handle: _opaqueHandle,
       originalName: 'IMG_0010.jpg',
       targetName: 'IMG_0010_t8.jpg',
+      folder: _opaqueFolder,
     );
     final executor = FakeRenameExecutor(
       files: {_opaqueHandle: 'IMG_0010.jpg'},
       renamedHandle: _changedOpaqueHandle,
     );
 
-    final outcome = await executePlan(planExecution([request]), executor);
+    final outcome = await executePlan(
+      planExecution([request], occupiedNames: noOccupiedIn(_opaqueFolder)),
+      executor,
+      occupiedNames: noOccupiedIn(_opaqueFolder),
+    );
 
     final success = outcome.successes.single;
     expect(success.newName, 'IMG_0010_t8.jpg');
