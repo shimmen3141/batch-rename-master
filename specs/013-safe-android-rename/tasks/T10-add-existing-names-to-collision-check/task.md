@@ -139,10 +139,8 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 ## Current state / handoff
 
 - Last checkpoint: **独立review attempt 3 = PASS。** 仕様3件の承認を反映済み。attempt 3 のP2も2件修正した。working treeはclean
-- Blocker category: **human decision**(Androidの実機確認をmergeの必須証拠にするか)
-- Waiting for: 下記の判断1件。**PR作成は待たない**(Draftで先に出す)
-- Requested action: **Androidの実機確認をmerge前の必須証拠にするか。** `T10`以前のAndroidは実行すると`SafRenameExecutor`のunsupportedで「0 件を改名しました。失敗: …」だった。`T10`以後は`prepare()`で止まり「フォルダ内のファイル名を確認できないため実行しませんでした」になる。**利用者から観測できる文言と経路が変わる**(契約REQ-027どおりで、実体は変化しない)。
-  - 選択肢A(Agent推奨): **不要とする。** Androidの実renameはrevision 2以来「安全な未対応」で、`T10`は失敗の見え方を変えただけである。Androidの受け入れは`T07`/`T08`が別途持つ
-  - 選択肢B: **要求する。** `T10`へ`manual-verification.md`を作り、対象commitを固定して実機確認してからmergeする
+- Blocker category: なし
+- Waiting for: 独立review attempt 4(attempt 3以後の差分が範囲外のため)
+- Requested action: なし。**2026-08-21にAndroidの実機確認を不要とする判断を受領した**(plan.mdの人間の決定表)。`manualVerification`は`null`のままとする
 - Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ 最新HEAD。base は `dev@c6cbd9a`。**attempt 2 のPASSは`07fb88f`に対するもので、以後の差分はP2修正(振る舞い不変)だけである**
-- Next Agent action: **exact rangeの独立review attempt 3を通してからPRを作る。** attempt 2 のPASSは`07fb88f`に対するもので、以後にP2修正(振る舞い不変)と承認の反映が入っているため。PASSしたらDraft PR → ready化。**merge前にrequired CIとreviewを確認する。**
+- Next Agent action: **独立review attempt 4のPASSを待ってPR #142をready化する。** attempt 3のPASSは`2ee828d`に対するもので、以後にP2修正2件とPR作成が入っているため。required CIは**成功済み**(run 32497528506、`check` pass)。**merge自体はauto-mergeの7条件を確認してから行う。**
