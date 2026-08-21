@@ -72,16 +72,55 @@
 ## 作業記録
 
 - 2026-08-14 / 005 ADR-002(衝突は採番で回避する)を受けて定義。preflightを削除した`T09`の代わりに置く**わけではない** — `T09`はpreflightの実行制御で、こちらは事前検出の入力を正すtaskである。
-- 2026-08-20 / 着手。`T03`より先に進めると決めた。OQ-006を開発者へ確認し「folder単位へ揃える」で決着。001 contract + spec、004 spec、005 contract revision 5 + spec を改訂した。**実装はこの改訂の承認後に行う。**
+- 2026-08-20 / 着手。`T03`より先に進めると決めた。OQ-006を開発者へ確認し「folder単位へ揃える」で決着。001 contract + spec、004 spec、005 contract revision 5 + spec を改訂した。
+- 2026-08-20 / 実装。004が実在名と所属folderハンドルを供給し、005が占有名を組み立て、001がfolderごとの最終名集合で判定・解決する経路を通した。`handle`文字列からfolderを導出する暫定実装(`defaultFolderOf`)は削除した。
+- 2026-08-20 / 受け入れ証拠のtestを追加(402 → 460件)。**この追加で実装の不具合を1件見つけた** — `executePlan`が`occupiedNames`の全域性を**再採番のときにしか**確かめておらず、通常の実行ではkey欠損が素通りしていた。実ファイルへ触る前の検査へ移した。
+- 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。cleanなbaselineで取り直した結果が下の表である。
+
+## 検証結果
+
+| 種別 | commandと結果 |
+|---|---|
+| full regression | `flutter test` = **PASS(460件)**。T10着手前は402件 |
+| static analysis | `flutter analyze` = **PASS**(No issues found) |
+| format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
+| ASDD構造 | `python <asdd-plugin>/scripts/workspace.py check specs` = **PASS**(8 plans, 62 tasks) |
+| mutation | `python <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` = **42 mutations: 42 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| build | **未実施。** AI containerにAndroid SDK / Xcodeが無く実行できない |
+| manual | **未実施。** 実機・emulatorでの確認は行っていない |
+
+T10が入れた判定に対応するmutationは**M30〜M42の13件**で、いずれもKILLEDである。
+
+- M30 占有名から「改名される選択fileの現在名」を除く処理を除去(例25bのP0再発)
+- M31 列挙失敗を空の占有名として扱う(REQ-027の区別を潰す)
+- M32 `validate`が占有名を最終名集合へ入れない(REQ-015)
+- M33 `autoResolve`が占有名を避けない(REQ-015 / REQ-026)
+- M34 重複判定をfolder横断へ戻す(OQ-006の決着を潰す)
+- M35 全域性の違反を例外でなく空集合として通す(OQ-003)
+- M36 `executePlan`の全域性検査を除去(OQ-003)
+- M37 目標名が占有名と衝突する入力を通す(OP-001の事前条件)
+- M38 一時名が占有名を避けない(REQ-004)
+- M39 REQ-027の理由提示(どのfolderがなぜ)を除去
+- M40 取り直した占有名を一覧の警告表示へ反映しない(REQ-026 / REQ-028)
+- M41 `listNames`の失敗を空の列挙結果へ落とす(004 REQ-014)
+- M42 folderハンドルの正規化を除去(004 REQ-013 / OQ-004)
+
+## この実装で残る限界
+
+**仕様として認めたもので、不具合ではない。** 承認の判断材料として書く。
+
+- **一覧の警告に占有名が入るのは、実行を要求したあとである。** 読み込み時には実在名を取りに行かない(REQ-028が明示的に許している)。したがって利用者は「一覧に警告が無い → 実行を押す → 確認モーダルが出る」という順で見る。読み込み時にも取りに行く形は004の読み込み経路と008の提示に踏み込むので、T10では入れていない。
+- **AndroidではREQ-027により実行が止まる。** SAFは`pickFiles`で1fileずつの読み取り権限しか取らず、親folderを列挙できないため`listNames`が理由付きの失敗を返す。**Androidの実renameはrevision 2以来「安全な未対応」なので新しい制限は作っていない**が、`T07`のapp内file browserが入るまではこの状態である。
+- **folderハンドルの正規化が失敗した場合、別表記が別folderへ割れうる。** desktopはsymlinkを解決した絶対pathを使い、解決できないときだけ正規化した絶対pathへ落ちる。割れても占有名が「別folderのもの」として扱われるだけで、実在確認(REQ-025)と実行時の再採番(REQ-023)が残る。
 
 ## Current state / handoff
 
-- Last checkpoint: **仕様改訂を書き終えた。実装は未着手。** `python <asdd-plugin>/scripts/workspace.py check specs` は PASS
+- Last checkpoint: **実装・test・mutationまで完了。** working treeはclean
 - Blocker category: **human approval**
 - Waiting for: **001 contract(Strict)・004 spec・005 contract revision 5(Strict)の再承認**
-- Requested action: 下記3点の承認可否。承認されたら各 `status` を承認済みへ更新し、実装へ進む
-  1. **005 contract revision 5** — OQ-001〜OQ-008 の決着 + REQ-028(占有名の取得タイミング)+ OP-005
-  2. **001 contract** — 用語 `folder` / `占有名` の追加、最終名集合の folder 単位化、REQ-007/010/012・INV-003 の改訂、REQ-015 の追加、OP-003/OP-004 の引数追加
-  3. **004 spec** — REQ-013(所属folderハンドル)・REQ-014(`listNames`)の追加、REQ-012 の理由更新
-- Evidence revision: `dev@c6cbd9a` + branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check`
-- Next Agent action: **承認後、実装へ進む。** 順序は (a) 004 の `sourceFolder` と `listNames`、(b) 001 の `occupiedNames` 受け取りと folder 単位化、(c) 005 の `collectOccupiedNames` と `RenameRequest.folder`、`planExecution`/`executePlan` の全域性、(d) UI 結線(要求時の取り直しと REQ-027 の提示)、(e) 受け入れ証拠の test。**承認前に実装をmergeしない。**
+- Requested action: 下記3点の承認可否
+  1. **005 contract revision 5** — OQ-001〜OQ-008の決着 + REQ-028(占有名の取得タイミング)+ OP-005
+  2. **001 contract** — 用語`folder`/`占有名`の追加、最終名集合のfolder単位化、REQ-007/010/012・INV-003の改訂、REQ-015の追加、OP-003/OP-004の引数追加
+  3. **004 spec** — REQ-013(所属folderハンドル)・REQ-014(`listNames`)の追加、REQ-012の理由更新
+- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ `ebeb92d` 以降。base は `dev@c6cbd9a`
+- Next Agent action: **exact rangeの独立reviewを起動する**(`dev...HEAD`)。承認をいただけたら各`status`を承認済みへ更新し、PRを作る。**承認前に実装をmergeしない。**
