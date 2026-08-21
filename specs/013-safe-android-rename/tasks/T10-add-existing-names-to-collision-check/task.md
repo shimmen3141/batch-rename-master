@@ -76,6 +76,7 @@
 - 2026-08-20 / 実装。004が実在名と所属folderハンドルを供給し、005が占有名を組み立て、001がfolderごとの最終名集合で判定・解決する経路を通した。`handle`文字列からfolderを導出する暫定実装(`defaultFolderOf`)は削除した。
 - 2026-08-20 / 受け入れ証拠のtestを追加(402 → 460件)。**この追加で実装の不具合を1件見つけた** — `executePlan`が`occupiedNames`の全域性を**再採番のときにしか**確かめておらず、通常の実行ではkey欠損が素通りしていた。実ファイルへ触る前の検査へ移した。
 - 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。
+- 2026-08-21 / **独立review attempt 2 = PASS**(未解決P0/P1なし、P2が4件)。挙がったP2を4件とも直した — `occupied_names.dart`の自己矛盾したdoc comment(狭める方向へ誘導し、P1-1の再発を招きうる)、`001:ADR-001`と`004/plan.md`に残っていたOQ-006前の「全ファイル横断」、結果toastの固定`Key`(`showSnackBar`が`UniqueKey`をfallbackに入れる仕組みを無効化する。本文で観測する形へ戻した)、001契約に承認待ちが機械可読で無かった点(`revision` 2と`revision_history`を追加)。あわせて013 plan.mdの`covers`方針をT10/T11の実態へ合わせた。
 - 2026-08-21 / **独立review attempt 1 = FAIL(P1が1件)。** `collectOccupiedNames`が対象folderを「この実行で改名されるfile」に狭めており、**強制実行の自動解決がREQ-022の除外を解く**場合に全域性(OQ-003)が破れて`ArgumentError`が`execute()`の外へ抜けていた。実行ボタンはfire-and-forgetなので**利用者には何も起きない**状態だった(実体は無変化でdata lossは無い)。`f1f0628`で対象folderを「実体ハンドルを持つ選択fileすべて」へ広げ、回帰testを2件とmutation M43を足した。あわせてreviewが挙げたP2を4件直した。下の表は修正後に取り直したものである。
 
 ## 検証結果
@@ -135,12 +136,12 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1のFAIL(P1-1)とP2を直し、再検証まで完了。** working treeはclean
+- Last checkpoint: **独立review attempt 2 = PASS。** そこで挙がったP2 4件も修正・再検証済み。working treeはclean
 - Blocker category: **human approval**
 - Waiting for: **001 contract(Strict)・004 spec・005 contract revision 5(Strict)の再承認**
 - Requested action: 下記3点の承認可否
   1. **005 contract revision 5** — OQ-001〜OQ-008の決着 + REQ-028(占有名の取得タイミング)+ OP-005
   2. **001 contract** — 用語`folder`/`占有名`の追加、最終名集合のfolder単位化、REQ-007/010/012・INV-003の改訂、REQ-015の追加、OP-003/OP-004の引数追加
   3. **004 spec** — REQ-013(所属folderハンドル)・REQ-014(`listNames`)の追加、REQ-012の理由更新
-- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ `f1f0628`。base は `dev@c6cbd9a`
-- Next Agent action: **独立review attempt 2を起動する**(`dev...HEAD`)。承認をいただけたら各`status`を承認済みへ更新し、PRを作る。**承認前に実装をmergeしない。**
+- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ 最新HEAD。base は `dev@c6cbd9a`。**attempt 2 のPASSは`07fb88f`に対するもので、以後の差分はP2修正(振る舞い不変)だけである**
+- Next Agent action: **人間の再承認を待つ。** 承認をいただけたら 005 contract revision 5 の `approved_date`、001 contract revision 2 の `approved_date`、004 spec の Status を更新し、PRを作る。**承認前に実装をmergeしない。** P2修正は振る舞いを変えないが、reviewを跨いだ差分なので、PR ready化の前に exact range の独立reviewをもう一度通す。

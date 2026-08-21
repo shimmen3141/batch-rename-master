@@ -1,6 +1,6 @@
 # コア命名エンジン(rename-core) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認 / **2026-08-20 `013:T10` 由来の更新(所属 folder・占有名・folder 単位の最終名集合)は再承認待ち**
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認 / **2026-08-20 `013:T10` 由来の更新(所属 folder・占有名・folder 単位の最終名集合)は再承認待ち。契約の `revision` は `2`、`revision_history` の revision 2 の `approved_date` が `null` である間は未承認**
 - Level: Strict(**正本は `contracts/behavior-contract.json`**。本ファイルは説明・図解・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的(説明的・正誤判定には使わない)

@@ -401,9 +401,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const Key('rename-result')),
+        find.textContaining('件を改名しました'),
         findsOneWidget,
-        reason: '例外が抜けると結果の提示に到達しない',
+        reason: '例外が抜けると結果の提示(REQ-013)に到達しない',
       );
       await _passUndoWindow(tester);
     });

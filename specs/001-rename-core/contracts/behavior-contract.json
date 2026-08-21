@@ -2,6 +2,19 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
+  "revision": "2",
+  "revision_history": [
+    {
+      "revision": "1",
+      "approved_date": "2026-08-04",
+      "meaning": "2026-07-26に承認した命名エンジンの契約に、004由来の更新(FileEntryの元場所ハンドル・表示用の場所、作成日時が不明を取りうること、REQ-014とINV-006)を加えて再承認したもの。"
+    },
+    {
+      "revision": "2",
+      "approved_date": null,
+      "meaning": "013:T10由来。用語folderと占有名を追加し、最終名集合をfolderごとの多重集合へ改める。REQ-007/REQ-010/REQ-012/INV-003をfolder単位へ、REQ-015(占有名を最終名集合へ含める)を追加、INV-005へsourceFolderの扱いを追記、OP-003/OP-004へoccupiedNamesを追加。005 contractのopen_questions OQ-006の決着(2026-08-20 開発者決定)を反映したもの。**approved_dateがnullである間は再承認待ちであり、statusのapprovedはrevision 1に対するものである。**"
+    }
+  ],
   "status": "approved",
   "scope": {
     "in": [

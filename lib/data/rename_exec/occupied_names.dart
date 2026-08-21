@@ -92,7 +92,6 @@ typedef FolderNameLister = Future<NameListResult> Function(String folder);
 
 /// 対象 folder の実在名を集めて占有名を組み立てる(005 contract OP-005)。
 ///
-/// 対象 folder は**この実行で改名される選択 file** が属する folder だけである。
 /// 未選択 file しか無い folder は改名の行き先にならないので問い合わせない。
 ///
 /// **対象 folder は「実体ハンドルを持つ選択 file すべて」の folder である**

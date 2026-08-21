@@ -270,10 +270,11 @@ class _RenameActionBar extends StatelessWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        // 結果の提示(REQ-013)へ到達したことを観測できるようにする。実行ボタンは
-        // fire-and-forget なので、途中で例外が抜けると**何も起きない**状態と
-        // 区別が付かない。
-        key: const Key('rename-result'),
+        // **固定 key を付けない。** `showSnackBar` は key が null のときだけ
+        // `UniqueKey` を fallback に入れ、連続する snackbar が構造的に一致した
+        // ときの ink splash / highlight の持ち越しを防いでいる。結果トーストは
+        // undo ボタンを含むので、固定 key を付けるとその持ち越しが起きうる。
+        // 到達の観測は本文(「N 件を改名しました」)で足りる。
         content: _resultContent(message.toString(), renumbered),
         // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
         // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
