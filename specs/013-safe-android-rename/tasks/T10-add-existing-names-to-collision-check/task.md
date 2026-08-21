@@ -75,21 +75,22 @@
 - 2026-08-20 / 着手。`T03`より先に進めると決めた。OQ-006を開発者へ確認し「folder単位へ揃える」で決着。001 contract + spec、004 spec、005 contract revision 5 + spec を改訂した。
 - 2026-08-20 / 実装。004が実在名と所属folderハンドルを供給し、005が占有名を組み立て、001がfolderごとの最終名集合で判定・解決する経路を通した。`handle`文字列からfolderを導出する暫定実装(`defaultFolderOf`)は削除した。
 - 2026-08-20 / 受け入れ証拠のtestを追加(402 → 460件)。**この追加で実装の不具合を1件見つけた** — `executePlan`が`occupiedNames`の全域性を**再採番のときにしか**確かめておらず、通常の実行ではkey欠損が素通りしていた。実ファイルへ触る前の検査へ移した。
-- 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。cleanなbaselineで取り直した結果が下の表である。
+- 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。
+- 2026-08-21 / **独立review attempt 1 = FAIL(P1が1件)。** `collectOccupiedNames`が対象folderを「この実行で改名されるfile」に狭めており、**強制実行の自動解決がREQ-022の除外を解く**場合に全域性(OQ-003)が破れて`ArgumentError`が`execute()`の外へ抜けていた。実行ボタンはfire-and-forgetなので**利用者には何も起きない**状態だった(実体は無変化でdata lossは無い)。`f1f0628`で対象folderを「実体ハンドルを持つ選択fileすべて」へ広げ、回帰testを2件とmutation M43を足した。あわせてreviewが挙げたP2を4件直した。下の表は修正後に取り直したものである。
 
 ## 検証結果
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(460件)**。T10着手前は402件 |
+| full regression | `flutter test` = **PASS(463件)**。T10着手前は402件 |
 | static analysis | `flutter analyze` = **PASS**(No issues found) |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python <asdd-plugin>/scripts/workspace.py check specs` = **PASS**(8 plans, 62 tasks) |
-| mutation | `python <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` = **42 mutations: 42 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| mutation | `python <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` = **43 mutations: 43 KILLED, 0 SURVIVED, 0 SKIPPED** |
 | build | **未実施。** AI containerにAndroid SDK / Xcodeが無く実行できない |
 | manual | **未実施。** 実機・emulatorでの確認は行っていない |
 
-T10が入れた判定に対応するmutationは**M30〜M42の13件**で、いずれもKILLEDである。
+T10が入れた判定に対応するmutationは**M30〜M43の14件**で、いずれもKILLEDである。
 
 - M30 占有名から「改名される選択fileの現在名」を除く処理を除去(例25bのP0再発)
 - M31 列挙失敗を空の占有名として扱う(REQ-027の区別を潰す)
@@ -104,6 +105,7 @@ T10が入れた判定に対応するmutationは**M30〜M42の13件**で、いず
 - M40 取り直した占有名を一覧の警告表示へ反映しない(REQ-026 / REQ-028)
 - M41 `listNames`の失敗を空の列挙結果へ落とす(004 REQ-014)
 - M42 folderハンドルの正規化を除去(004 REQ-013 / OQ-004)
+- M43 対象folderをREQ-022の除外後へ狭める(独立review 1回目のP1-1再発)
 
 ## 仕様被覆
 
@@ -119,7 +121,7 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 | 004 spec | REQ-013、REQ-014、VER-004 |
 | 005 contract | REQ-004、REQ-026、REQ-027、REQ-028、OP-001、OP-002、OP-005、SM-001 |
 
-各IDを検査する記述は上の「検証結果」のmutation(M30〜M42)と、
+各IDを検査する記述は上の「検証結果」のmutation(M30〜M43)と、
 `test/spec_001_rename_core/`・`test/spec_004_file_source/folder_names_test.dart`・
 `test/spec_005_rename_exec/occupied_names_test.dart`にある。
 
@@ -133,12 +135,12 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 
 ## Current state / handoff
 
-- Last checkpoint: **実装・test・mutationまで完了。** working treeはclean
+- Last checkpoint: **独立review attempt 1のFAIL(P1-1)とP2を直し、再検証まで完了。** working treeはclean
 - Blocker category: **human approval**
 - Waiting for: **001 contract(Strict)・004 spec・005 contract revision 5(Strict)の再承認**
 - Requested action: 下記3点の承認可否
   1. **005 contract revision 5** — OQ-001〜OQ-008の決着 + REQ-028(占有名の取得タイミング)+ OP-005
   2. **001 contract** — 用語`folder`/`占有名`の追加、最終名集合のfolder単位化、REQ-007/010/012・INV-003の改訂、REQ-015の追加、OP-003/OP-004の引数追加
   3. **004 spec** — REQ-013(所属folderハンドル)・REQ-014(`listNames`)の追加、REQ-012の理由更新
-- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ `ebeb92d` 以降。base は `dev@c6cbd9a`
-- Next Agent action: **exact rangeの独立reviewを起動する**(`dev...HEAD`)。承認をいただけたら各`status`を承認済みへ更新し、PRを作る。**承認前に実装をmergeしない。**
+- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ `f1f0628`。base は `dev@c6cbd9a`
+- Next Agent action: **独立review attempt 2を起動する**(`dev...HEAD`)。承認をいただけたら各`status`を承認済みへ更新し、PRを作る。**承認前に実装をmergeしない。**
