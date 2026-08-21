@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T10",
   "title": "対象folderの占有名を衝突判定へ入れる",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T04"
   ],

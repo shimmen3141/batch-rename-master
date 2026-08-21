@@ -141,9 +141,12 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 5 = FAIL(P1 1件)→ PR本文の修正で解消。** 実装(`lib`/`test`)はattempt 4のPASS以後不変。working treeはclean
-- Blocker category: なし
+- Last checkpoint: **`dev`へmerge済み(merge commit `290dc14`、PR #142、2026-08-21)。** merge後の`dev`で `flutter test` = PASS(464件)、`flutter analyze` = PASS、`workspace.py check specs` = PASS を確認した
+- Blocker category: なし(完了)
 - Waiting for: なし
 - Requested action: なし。**2026-08-21にAndroidの実機確認を不要とする判断を受領した**(plan.mdの人間の決定表)。`manualVerification`は`null`のままとする
 - Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check`、base は `dev@c6cbd9a`。**独立reviewは attempt 4 が `ddc4ddc`、attempt 5 が `81e4a4e` に対して行われた。** `lib/`と`test/`の最終変更は `8a6c81a` であり、**以後のcommitは`specs/`とPR本文だけである**(相対表現ではなくcommitで書く。「最新HEAD」と書くとcommitを積むたびに嘘になる)
-- Next Agent action: **auto-mergeの7条件を1つずつ確認してmergeする。** attempt 5が未充足としたのは条件2と6で、根はP1-1ひとつ。**PR本文の修正はdiffを変えないので、本文が正本と一致したことの確認をもって条件2・6を満たす**(attempt 5の追認)。merge後は`dev`上の結果・CI・taskの可視性を確認し、`task.json`を`done`にする。
+- Next Agent action: **なし(このtaskは完了)。** 次に効く申し送りは3つある。
+  1. **`013:T03`はこのmerge後に着手できる。** 004 specを触るtaskどうしだが、`T10`はポートへ`listNames`と所属folderハンドルを足しただけで、種類の選択・選択UI・導線には触れていない
+  2. **`013:T07`が`plan.md`のAndroid受け入れの証拠元である。** `T07`の受け入れ証拠へ「`listNames`がAndroidで成功し、読み込んでいないfileとの衝突が実行前に警告として出る」を追記済み。**`T10`はこの受け入れをdesktopでしか満たしていない**
+  3. **`008`は`product-map.md`の(i)を読み直すこと。** OQ-006の決着で「別folderの同名で誤警告が出る」という前提は消えた。残るのは「複数folderが混ざること自体を知らせるか」(004 REQ-012)だけである
