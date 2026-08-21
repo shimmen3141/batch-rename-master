@@ -1,6 +1,6 @@
 # リネーム実行(rename-exec) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）、**revision 5は`013:T10`/`013:T11`が決めたOQ-001〜OQ-008を契約へ戻したもの(2026-08-21 開発者承認)**
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）、**revision 5は`013:T10`/`013:T11`が決めたOQ-001〜OQ-008を契約へ戻したもの(2026-08-21 開発者承認)、revision 5.1はOP-005の`interface`行を実装のsignatureへ揃えた記述訂正(2026-08-21 開発者承認。規範部分は不変)**
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）

@@ -76,6 +76,7 @@
 - 2026-08-20 / 実装。004が実在名と所属folderハンドルを供給し、005が占有名を組み立て、001がfolderごとの最終名集合で判定・解決する経路を通した。`handle`文字列からfolderを導出する暫定実装(`defaultFolderOf`)は削除した。
 - 2026-08-20 / 受け入れ証拠のtestを追加(402 → 460件)。**この追加で実装の不具合を1件見つけた** — `executePlan`が`occupiedNames`の全域性を**再採番のときにしか**確かめておらず、通常の実行ではkey欠損が素通りしていた。実ファイルへ触る前の検査へ移した。
 - 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。
+- 2026-08-21 / **独立review attempt 4 = PASS**(未解決P0/P1なし、P2が6件)。P2を6件とも直した — task.mdの検証結果の件数とCI run番号とEvidence revisionの陳腐化、PR本文が人間の判断を複製していた点、`T07`の受け入れ証拠にAndroidでの占有名警告の確認が無かった点、**OP-005の`interface`行が実装のsignatureとずれていた点**。最後の1件は開発者が**revision 5.1**として承認した(規範部分は不変の記述訂正)。
 - 2026-08-21 / **独立review attempt 3 = PASS**(未解決P0/P1なし、P2が4件)。P2を2件直した — plan全体の受け入れ証拠をplatformで分けた(**この受け入れはdesktopでしか成立しない**。Androidは`T07`待ち)、`sourceFolder`が無いfileをUnavailableにする分岐へtestを足した。**P2-3(OP-005の`interface`行が`rule`/`now`を含んでいない)は承認済みcontractを触るので、次に005を改訂するtaskへ送る。** P2-4は下の「人間の判断」。
 - 2026-08-21 / **開発者が 005 contract revision 5 / 001 contract revision 2 / 004 spec を承認**。両契約の `approved_date` と各 spec の Status を更新した。
 - 2026-08-21 / **独立review attempt 2 = PASS**(未解決P0/P1なし、P2が4件)。挙がったP2を4件とも直した — `occupied_names.dart`の自己矛盾したdoc comment(狭める方向へ誘導し、P1-1の再発を招きうる)、`001:ADR-001`と`004/plan.md`に残っていたOQ-006前の「全ファイル横断」、結果toastの固定`Key`(`showSnackBar`が`UniqueKey`をfallbackに入れる仕組みを無効化する。本文で観測する形へ戻した)、001契約に承認待ちが機械可読で無かった点(`revision` 2と`revision_history`を追加)。あわせて013 plan.mdの`covers`方針をT10/T11の実態へ合わせた。
@@ -85,11 +86,12 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(463件)**。T10着手前は402件 |
+| full regression | `flutter test` = **PASS(464件)**。T10着手前は402件 |
 | static analysis | `flutter analyze` = **PASS**(No issues found) |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python <asdd-plugin>/scripts/workspace.py check specs` = **PASS**(8 plans, 62 tasks) |
 | mutation | `python <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` = **43 mutations: 43 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| required CI | GitHub Actions `check` = **success**(run `32502111699`、headSha `ddc4ddc`)。以後の差分は`specs/`とPR本文だけで`lib/`と`test/`に触っていないが、ready化前に新headで再確認する |
 | build | **未実施。** AI containerにAndroid SDK / Xcodeが無く実行できない |
 | manual | **未実施。** 実機・emulatorでの確認は行っていない |
 
@@ -140,7 +142,7 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 
 - Last checkpoint: **独立review attempt 3 = PASS。** 仕様3件の承認を反映済み。attempt 3 のP2も2件修正した。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 4(attempt 3以後の差分が範囲外のため)
+- Waiting for: なし
 - Requested action: なし。**2026-08-21にAndroidの実機確認を不要とする判断を受領した**(plan.mdの人間の決定表)。`manualVerification`は`null`のままとする
-- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ 最新HEAD。base は `dev@c6cbd9a`。**attempt 2 のPASSは`07fb88f`に対するもので、以後の差分はP2修正(振る舞い不変)だけである**
-- Next Agent action: **独立review attempt 4のPASSを待ってPR #142をready化する。** attempt 3のPASSは`2ee828d`に対するもので、以後にP2修正2件とPR作成が入っているため。required CIは**成功済み**(run 32497528506、`check` pass)。**merge自体はauto-mergeの7条件を確認してから行う。**
+- Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check`。base は `dev@c6cbd9a`。**独立review attempt 4のPASSは`ddc4ddc`に対するもの**で、以後の差分は`specs/`とPR本文だけである(`lib/`と`test/`に触っていないので実装差分は不変)
+- Next Agent action: **PR #142をready化する。** attempt 4のP2修正(`specs/`とPR本文のみ)を積んだあと、CIが新headでgreenになったことを確認してからDraftを解除する。**merge自体はauto-mergeの7条件を1つずつ確認してから行う。** `task.json`の`status`はmerge完了まで`in_review`のままにする。
