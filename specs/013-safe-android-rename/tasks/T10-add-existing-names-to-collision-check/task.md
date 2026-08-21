@@ -76,6 +76,7 @@
 - 2026-08-20 / 実装。004が実在名と所属folderハンドルを供給し、005が占有名を組み立て、001がfolderごとの最終名集合で判定・解決する経路を通した。`handle`文字列からfolderを導出する暫定実装(`defaultFolderOf`)は削除した。
 - 2026-08-20 / 受け入れ証拠のtestを追加(402 → 460件)。**この追加で実装の不具合を1件見つけた** — `executePlan`が`occupiedNames`の全域性を**再採番のときにしか**確かめておらず、通常の実行ではkey欠損が素通りしていた。実ファイルへ触る前の検査へ移した。
 - 2026-08-21 / **mutation runnerを並走させ、適用中のmutation(M14)をそのままcommitしていた**ことに気づき、`ebeb92d`で戻した。REQ-023 / OQ-008の保護が無効なまま入っていた。経緯は[finding](../../../../development-findings/2026-08-21-concurrent-mutation-runners-committed-a-mutation.md)。
+- 2026-08-21 / **独立review attempt 3 = PASS**(未解決P0/P1なし、P2が4件)。P2を2件直した — plan全体の受け入れ証拠をplatformで分けた(**この受け入れはdesktopでしか成立しない**。Androidは`T07`待ち)、`sourceFolder`が無いfileをUnavailableにする分岐へtestを足した。**P2-3(OP-005の`interface`行が`rule`/`now`を含んでいない)は承認済みcontractを触るので、次に005を改訂するtaskへ送る。** P2-4は下の「人間の判断」。
 - 2026-08-21 / **開発者が 005 contract revision 5 / 001 contract revision 2 / 004 spec を承認**。両契約の `approved_date` と各 spec の Status を更新した。
 - 2026-08-21 / **独立review attempt 2 = PASS**(未解決P0/P1なし、P2が4件)。挙がったP2を4件とも直した — `occupied_names.dart`の自己矛盾したdoc comment(狭める方向へ誘導し、P1-1の再発を招きうる)、`001:ADR-001`と`004/plan.md`に残っていたOQ-006前の「全ファイル横断」、結果toastの固定`Key`(`showSnackBar`が`UniqueKey`をfallbackに入れる仕組みを無効化する。本文で観測する形へ戻した)、001契約に承認待ちが機械可読で無かった点(`revision` 2と`revision_history`を追加)。あわせて013 plan.mdの`covers`方針をT10/T11の実態へ合わせた。
 - 2026-08-21 / **独立review attempt 1 = FAIL(P1が1件)。** `collectOccupiedNames`が対象folderを「この実行で改名されるfile」に狭めており、**強制実行の自動解決がREQ-022の除外を解く**場合に全域性(OQ-003)が破れて`ArgumentError`が`execute()`の外へ抜けていた。実行ボタンはfire-and-forgetなので**利用者には何も起きない**状態だった(実体は無変化でdata lossは無い)。`f1f0628`で対象folderを「実体ハンドルを持つ選択fileすべて」へ広げ、回帰testを2件とmutation M43を足した。あわせてreviewが挙げたP2を4件直した。下の表は修正後に取り直したものである。
@@ -137,9 +138,11 @@ VER-001〜005で、権限と`renameat2`の話である)、`001:REQ-007`のよう
 
 ## Current state / handoff
 
-- Last checkpoint: **仕様3件の承認を受領し反映済み。** 独立review attempt 2 = PASS、そこで挙がったP2 4件も修正・再検証済み。working treeはclean
-- Blocker category: なし
-- Waiting for: なし(2026-08-21 に承認を受領)
-- Requested action: なし
+- Last checkpoint: **独立review attempt 3 = PASS。** 仕様3件の承認を反映済み。attempt 3 のP2も2件修正した。working treeはclean
+- Blocker category: **human decision**(Androidの実機確認をmergeの必須証拠にするか)
+- Waiting for: 下記の判断1件。**PR作成は待たない**(Draftで先に出す)
+- Requested action: **Androidの実機確認をmerge前の必須証拠にするか。** `T10`以前のAndroidは実行すると`SafRenameExecutor`のunsupportedで「0 件を改名しました。失敗: …」だった。`T10`以後は`prepare()`で止まり「フォルダ内のファイル名を確認できないため実行しませんでした」になる。**利用者から観測できる文言と経路が変わる**(契約REQ-027どおりで、実体は変化しない)。
+  - 選択肢A(Agent推奨): **不要とする。** Androidの実renameはrevision 2以来「安全な未対応」で、`T10`は失敗の見え方を変えただけである。Androidの受け入れは`T07`/`T08`が別途持つ
+  - 選択肢B: **要求する。** `T10`へ`manual-verification.md`を作り、対象commitを固定して実機確認してからmergeする
 - Evidence revision: branch `asdd/013-safe-android-rename/T10-add-existing-names-to-collision-check` @ 最新HEAD。base は `dev@c6cbd9a`。**attempt 2 のPASSは`07fb88f`に対するもので、以後の差分はP2修正(振る舞い不変)だけである**
 - Next Agent action: **exact rangeの独立review attempt 3を通してからPRを作る。** attempt 2 のPASSは`07fb88f`に対するもので、以後にP2修正(振る舞い不変)と承認の反映が入っているため。PASSしたらDraft PR → ready化。**merge前にrequired CIとreviewを確認する。**

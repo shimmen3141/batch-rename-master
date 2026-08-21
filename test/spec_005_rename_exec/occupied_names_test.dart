@@ -299,6 +299,33 @@ void main() {
       expect(reasons[_b]!.message, '権限がありません');
     });
 
+    test('実体ハンドルはあるが所属 folder が無い file は Unavailable にする', () async {
+      // 問い合わせる先が無いので「取得できなかった」として扱う。**空として通さない。**
+      // production の adapter は必ず folder を埋める(desktop / SAF とも)ので、
+      // ここは到達しない防御である。**到達しないことを理由に検査を省かない** —
+      // 将来 adapter が増えたとき、空として通す実装は静かに REQ-027 を破る。
+      const rule = RenameRule([LiteralToken('x')]);
+      final entries = [
+        FileEntry(
+          name: 'a.txt',
+          modifiedAt: _now,
+          size: 1,
+          sourceHandle: '/A/a.txt',
+          // sourceFolder は与えない。
+        ),
+      ];
+      final asked = <String>[];
+
+      final result = await _collect(entries, rule, (folder) async {
+        asked.add(folder);
+        return NamesListed(const {});
+      });
+
+      expect(asked, isEmpty, reason: '問い合わせる先が無い');
+      expect(result, isA<OccupiedNamesUnavailable>());
+      expect((result as OccupiedNamesUnavailable).reasons.keys, [null]);
+    });
+
     test('空の列挙結果は失敗ではない(区別する)', () async {
       const rule = RenameRule([OriginalNameToken(), LiteralToken('-v2')]);
       final entries = [_file('a.txt')];

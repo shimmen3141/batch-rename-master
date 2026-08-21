@@ -51,8 +51,10 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
   - 証拠: 004 spec再承認、実機確認
 - [ ] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
   - 証拠: `T08`。**`shell` uidの観測では代用しない**
-- [x] 読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
-  - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34。**desktopのみ。Androidは`listNames`が権限不足で失敗するためREQ-027で実行が止まる**(`T07`のapp内browserが入るまで)
+- [x] **desktopで**、読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
+  - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
+- [ ] **Androidで**、同じことが成立する
+  - 証拠: `T07`(app内file browser)が列挙権限を持ってから。**現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる** — 契約どおりの振る舞いだが、警告を出す段階まで到達しない。`T10`はこの受け入れをdesktopでしか満たしていない
 - [ ] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
   - 証拠: `T11`、005 spec例24/26/28〜30、VER-008
 - [x] 占有名がfolder単位で効き、実在名を取得できないfolderを含む実行は行わない
