@@ -32,7 +32,9 @@ external int _renameNoReplaceUtf16(
 /// OSの原子的な「既存名を置換しないrename」を実行する。
 ///
 /// C wrapper内でrenameとerrno/GetLastError取得を連続して行い、Dartへは安定した
-/// [NativeRenameResult]だけを返す。通常renameへのfallbackは行わない。
+/// [NativeRenameResult]だけを返す。**この関数は通常renameへのfallbackを行わない。**
+/// Androidでflagが効かないときの劣化は、実在確認を済ませた呼び出し側が持つ
+/// (`android_rename_executor.dart` の `androidRenameOperation`。013 REQ-005)。
 NativeRenameResult renameFileWithoutOverwrite(
   String source,
   String destination,
@@ -51,7 +53,10 @@ NativeRenameResult renameFileWithoutOverwrite(
       calloc.free(destinationPointer);
     }
   }
-  if (Platform.isLinux || Platform.isMacOS) {
+  // Android も UTF-8 path で同じ wrapper を呼ぶ。C 側は Android のとき**生の
+  // syscall** で `renameat2` を呼ぶので、bionic の wrapper が公開された API level に
+  // 依存しない(013 spec D-1 / `013:T05`)。
+  if (Platform.isLinux || Platform.isMacOS || Platform.isAndroid) {
     final sourcePointer = source.toNativeUtf8();
     final destinationPointer = destination.toNativeUtf8();
     try {

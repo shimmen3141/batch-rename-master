@@ -670,17 +670,83 @@ void main() {
     }
   });
 
-  test('Android/iOS native assetはdesktop rename symbolを参照しない', () async {
+  // `013:T05` で **Android は unsupported から外れた**。生の syscall で
+  // `renameat2` を呼ぶ経路に載る(013 spec D-1: minSdk は 24 のまま、対応可否は
+  // 実行時に判定する)。iOS はこのアプリの対象 platform ではないので unsupported の
+  // ままである。
+  //
+  // **Android の build はこの container で行えない**(SDK / NDK が無い)。したがって
+  // ここが検査できるのは「build 設定と C の分岐が意図どおり書かれているか」までで、
+  // **実際にコンパイル・実行できるかは `013:T08` の実機確認が見る**。
+  test('native asset の設定が Android を対象に含み、iOS だけを外す', () async {
     final hook = await File('hook/build.dart').readAsString();
     final source = await File('src/native_exclusive_rename.c').readAsString();
 
     expect(hook, contains('if (!input.config.buildCodeAssets)'));
     expect(hook, contains('final targetOS = input.config.code.targetOS'));
-    expect(hook, contains('targetOS == OS.android'));
-    expect(hook, contains('targetOS == OS.iOS'));
-    expect(hook, contains("'BRM_UNSUPPORTED_PLATFORM': null"));
+    expect(
+      hook,
+      contains("if (targetOS == OS.iOS) 'BRM_UNSUPPORTED_PLATFORM': null"),
+      reason: 'iOS だけを未対応にする',
+    );
+    expect(
+      hook.contains('targetOS == OS.android'),
+      isFalse,
+      reason: 'Android を未対応の側へ戻さない(013 REQ-005)',
+    );
     expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
     expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
+  });
+
+  test('Android は bionic の wrapper ではなく生の syscall で renameat2 を呼ぶ', () async {
+    // wrapper が公開されたのは API 30 とされるが、`013` は minSdk 24 のままと
+    // 決めた(spec D-1)。**API level を対応可否の代理指標にしない。**
+    final source = await File('src/native_exclusive_rename.c').readAsString();
+
+    expect(source, contains('#elif defined(__ANDROID__)'));
+    expect(
+      source,
+      contains(
+        'syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination',
+      ),
+      reason: 'wrapper ではなく生の syscall',
+    );
+    expect(source, contains('RENAME_NOREPLACE'));
+    // header に SYS_renameat2 が無い環境でも呼べるよう arch 別の番号を持つ。
+    // 値は kernel の uapi header と照合済み(x86_64=316、asm-generic=276)。
+    for (final entry in {
+      '__aarch64__': 276,
+      '__x86_64__': 316,
+      '__arm__': 382,
+      '__i386__': 353,
+    }.entries) {
+      expect(
+        source,
+        contains('defined(${entry.key})'),
+        reason: '${entry.key} の syscall 番号を用意する',
+      );
+      expect(source, contains('#define SYS_renameat2 ${entry.value}'));
+    }
+  });
+
+  test('EINVAL を unsupported へ写すのは Android のときだけ', () async {
+    // `renameat2` は filesystem が flag を解釈できないと EINVAL を返す。Android は
+    // 共有 storage が FUSE を経由するのでこの経路が現実的に起きる(013 REQ-005 で
+    // 劣化させる)。**desktop の写像は変えない**(013 は desktop の振る舞いを変えない)。
+    final source = await File('src/native_exclusive_rename.c').readAsString();
+    // `brm_rename_no_replace_utf8` は未対応 platform の分岐にも現れるので、
+    // errno 写像の直後にある**最後の**定義までを切り取る。
+    final mapping = source.substring(
+      source.indexOf('brm_result_from_errno'),
+      source.lastIndexOf('BRM_EXPORT int32_t brm_rename_no_replace_utf8'),
+    );
+
+    expect(mapping, contains('#if defined(__ANDROID__)'));
+    final einval = mapping.indexOf('case EINVAL:');
+    final guard = mapping.indexOf('#if defined(__ANDROID__)');
+    final endif = mapping.indexOf('#endif', guard);
+    expect(einval, greaterThan(guard), reason: 'EINVAL は Android 分岐の中にある');
+    expect(einval, lessThan(endif));
   });
 }
 

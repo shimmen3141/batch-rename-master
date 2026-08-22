@@ -305,6 +305,34 @@
       "find": "    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    if (_hasEmptyBase(file, preview.resultName)) continue;\n    renamed.add(file);",
       "replace": "    if (_hasEmptyBase(file, preview.resultName)) continue;\n    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    renamed.add(file);",
       "note": "対象folderをREQ-022の除外後へ狭める(独立review 1回目のP1-1再発)"
+    },
+    {
+      "id": "M44",
+      "file": "lib/data/rename_exec/android_rename_executor.dart",
+      "find": "    if (result != NativeRenameResult.unsupported) return result;",
+      "replace": "    if (false) return result;",
+      "note": "常に通常renameへ落とす(no-replaceを一度も使わない。013 REQ-005の逆方向)"
+    },
+    {
+      "id": "M45",
+      "file": "lib/data/rename_exec/android_rename_executor.dart",
+      "find": "    final result = await exclusiveRename(source, destination);\n    if (result != NativeRenameResult.unsupported) return result;",
+      "replace": "    final result = await exclusiveRename(source, destination);\n    return result;",
+      "note": "劣化経路を除去(flagが効かない端末で改名できなくなる。013 REQ-005)"
+    },
+    {
+      "id": "M46",
+      "file": "lib/data/rename_exec/android_rename_executor.dart",
+      "find": "  } on PathNotFoundException {\n    return NativeRenameResult.notFound;",
+      "replace": "  } on PathNotFoundException {\n    return NativeRenameResult.io;",
+      "note": "通常renameのnotFound分類を潰す"
+    },
+    {
+      "id": "M47",
+      "file": "src/native_exclusive_rename.c",
+      "find": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        RENAME_NOREPLACE);",
+      "replace": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination, 0);",
+      "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)"
     }
   ]
 }

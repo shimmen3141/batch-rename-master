@@ -13,6 +13,32 @@
 #else
 #include <fcntl.h>
 #endif
+#if defined(__ANDROID__)
+/* bionic の renameat2 wrapper が公開されたのは API 30 とされるが、生の syscall を
+ * 使えば wrapper の有無に依存しない(013:T01 の spike は android24 向けにビルドして
+ * 動作した)。制約は libc ではなく kernel と filesystem の側にある。
+ * 013 spec の D-1「minSdk は 24 のまま、対応可否を実行時に判定する」に従う。 */
+#include <sys/syscall.h>
+#include <unistd.h>
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
+/* SYS_renameat2 が header に無い環境でも呼べるよう arch 別の番号を持つ。
+ * 出典: 013:T01 の spike(検証済みの参照実装)。 */
+#ifndef SYS_renameat2
+#if defined(__aarch64__)
+#define SYS_renameat2 276
+#elif defined(__x86_64__)
+#define SYS_renameat2 316
+#elif defined(__arm__)
+#define SYS_renameat2 382
+#elif defined(__i386__)
+#define SYS_renameat2 353
+#else
+#error "SYS_renameat2 unknown for this architecture"
+#endif
+#endif
+#endif
 #endif
 
 #if defined(_WIN32)
@@ -85,6 +111,14 @@ static int32_t brm_result_from_errno(int error) {
 #ifdef ENOTSUP
     case ENOTSUP:
 #endif
+#if defined(__ANDROID__)
+    /* renameat2 は、filesystem が flag を解釈できないとき EINVAL を返す。
+     * Android では共有 storage が MediaProvider の FUSE を経由するため、この経路が
+     * 現実的に起きる。013 REQ-005 は「フラグが使えない端末でも対応外にしない」と
+     * 定めており、呼び出し側は UNSUPPORTED を見て実在確認による代替経路へ落とす。
+     * **desktop では従来どおり IO のままにする**(013 は desktop の振る舞いを変えない)。 */
+    case EINVAL:
+#endif
       return BRM_RENAME_UNSUPPORTED;
     default:
       return BRM_RENAME_IO;
@@ -96,6 +130,10 @@ BRM_EXPORT int32_t brm_rename_no_replace_utf8(const char *source,
   int result;
 #if defined(__APPLE__)
   result = renamex_np(source, destination, RENAME_EXCL);
+#elif defined(__ANDROID__)
+  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */
+  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,
+                        RENAME_NOREPLACE);
 #else
   result = renameat2(AT_FDCWD, source, AT_FDCWD, destination,
                      RENAME_NOREPLACE);
