@@ -704,14 +704,26 @@ void main() {
     final source = await File('src/native_exclusive_rename.c').readAsString();
 
     expect(source, contains('#elif defined(__ANDROID__)'));
+    // **flag が呼び出しに渡っていることまで見る。** `RENAME_NOREPLACE` が file の
+    // どこかにある(`#define` など)だけでは、呼び出しから外れても気づけない。
+    // 外れると置換 rename になり、005 INV-002 が全面的に破れる。
+    final androidBranch = source.indexOf('#elif defined(__ANDROID__)');
+    final call = source.substring(
+      androidBranch,
+      source.indexOf('#else', androidBranch),
+    );
     expect(
-      source,
+      call,
       contains(
         'syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination',
       ),
       reason: 'wrapper ではなく生の syscall',
     );
-    expect(source, contains('RENAME_NOREPLACE'));
+    expect(
+      call,
+      contains('RENAME_NOREPLACE'),
+      reason: '**この呼び出しに** flag が渡っている(外すと置換 rename になる)',
+    );
     // header に SYS_renameat2 が無い環境でも呼べるよう arch 別の番号を持つ。
     // 値は kernel の uapi header と照合済み(x86_64=316、asm-generic=276)。
     for (final entry in {

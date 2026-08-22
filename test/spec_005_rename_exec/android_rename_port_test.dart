@@ -251,11 +251,11 @@ void main() {
         '/definitely/does/not/exist-brm/b.txt',
       );
 
-      expect(result, isNot(NativeRenameResult.success));
-      expect([
+      expect(
+        result,
         NativeRenameResult.notFound,
-        NativeRenameResult.io,
-      ], contains(result));
+        reason: '`io` へ丸めない — 呼び出し側は分類で経路を分ける(005 OP-004)',
+      );
     });
   });
 
