@@ -51,7 +51,7 @@
 | C(Linux分岐) | `gcc -fsyntax-only src/native_exclusive_rename.c` = **exit 0** |
 | C(Android分岐) | `gcc -fsyntax-only -D__ANDROID__ src/native_exclusive_rename.c` = **exit 0**。**NDKが無いのでglibcのheaderで代用した syntax 検査であって、NDKでのコンパイルではない** |
 | syscall番号 | arch表を**kernelのuapi headerと照合**した。`x86_64=316`(`asm/unistd_64.h`)、`asm-generic=276`(aarch64が使う)が一致。**`__arm__`(382)と`__i386__`(353)はこの環境にheaderが無く未照合**(出典は`T01`のspike) |
-| mutation | `M44`〜`M47` = **4 KILLED, 0 SURVIVED, 0 SKIPPED**。表全体は`T08`の前に通す |
+| mutation | 表全体 = **47 mutations: 47 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M47`が`T05`分) |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** `T08`が行う |
 
