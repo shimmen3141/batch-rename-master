@@ -99,15 +99,15 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
-- 2026-08-22 / **独立review attempt 1 = FAIL(P1が2件)。** どちらも「決めたこと表には書いたが、004 specの観測可能な要求として落ちていない」型だった。(1) REQ-018が`/Android/data/`しか対象にしておらず、ADR-002が`[一次]`として挙げる`/sdcard/Android`の大半を外していた(`/Android/media`が書ける例外であることも落ちていた)。(2) REQ-015が遡行の上限を定めておらず、「system領域はそもそも辿れない」という決着が**仕様上は成立していなかった**(`/storage`や`/`まで遡れる実装が許される)。両方を直し、**REQ-018は判定ではなく注記**として書き直した — 一次資料が「大半の」としか書いておらず、厳密なpath判定にすると両方向に誤るため。あわせてreviewが挙げたP2を6件直した。
+- 2026-08-22 / **独立review attempt 1 = FAIL(P1が2件)。** どちらも「決めたこと表には書いたが、004 specの観測可能な要求として落ちていない」型だった。(1) REQ-018が`/Android/data/`しか対象にしておらず、ADR-002が`[一次]`として挙げる`/sdcard/Android`の大半を外していた(`/Android/media`が書ける例外であることも落ちていた)。(2) REQ-015が遡行の上限を定めておらず、「system領域はそもそも辿れない」という決着が**仕様上は成立していなかった**(`/storage`や`/`まで遡れる実装が許される)。両方を直し、**REQ-018は判定ではなく注記**として書き直した — 一次資料が「大半の」としか書いておらず、厳密なpath判定にすると両方向に誤るため。**REQ-015の「保存場所の内側」は判定不能語だったので、開発者の指摘を受けて「保存場所(共有ストレージのボリューム)のroot」と具体化し、それが全ファイルアクセス権限が与える範囲そのものであることを根拠として書いた。** 修正版を2026-08-22に開発者が再承認した。あわせてreviewが挙げたP2を6件直した。
 - 2026-08-22 / 着手。`T02`の権限方針(013 spec REQ-001〜004)は承認済みで依存は解けていた。決めること5件のうち**2件を開発者へ確認**(FileKind、folder跨ぎ)、**3件はADR-002と決定D-2の制約からAgentが決めた**。004 specへREQ-011の改訂とREQ-015〜019・VER-005を書いた。**実装は`T07`が行う。このtaskはspecの更新と再承認までである。**
 
 ## Current state / handoff
 
 - Last checkpoint: **004 specの更新が2026-08-22に開発者から再承認された。** Playへの提出材料(主目的の説明の草案と提出チェックリスト)も用意した。`workspace.py check specs`はPASS
 - Blocker category: なし
-- Waiting for: 独立review
+- Waiting for: 独立review attempt 2
 - Requested action: なし。**2026-08-22に004 specの再承認を受領した。** 承認時に確認した差分は3点 — Androidから「文書」が消える(REQ-011)、Androidで複数folderから集める選択ができなくなる(REQ-016)、Androidの元場所ハンドルがSAF URIから絶対pathへ変わる(REQ-002の注記)
 - **人間の作業(このtaskの完了条件ではない)**: Playへの提出。**2026-08-22に開発者が「草案で仮置きし、一通り完成してから提出する」と決定した。** 上の「Playへの提出材料」は提出前に読み直す材料である。**この判断により、`T03`はPlayの提出を待たずに完了できる**
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
-- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない
+- Next Agent action: **独立review attempt 2を通してPR #144をready化する。** attempt 1のP1 2件とP2 6件を直し、修正版の再承認も受領済み。このtaskは実装を含まないので`flutter test`等の実行結果は変わらない
