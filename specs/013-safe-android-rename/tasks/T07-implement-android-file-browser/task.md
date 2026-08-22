@@ -32,12 +32,14 @@
 
 ## 仕様被覆
 
-`T03`が004 specへ定義し、開発者が承認したREQを実装する。**`task.json`の`covers`は空のままにする** — このworkspaceの構造検査は`covers`を**所有planのspec.mdのID**として引くので、他featureのIDを書くと未解決参照の警告になる(`013:T10`で観測。[finding](../../../../development-findings/2026-08-21-covers-cannot-express-cross-feature-coverage.md))。
+`T03`が004 specへ定義し、開発者が承認したREQを実装する。**表はID だけを持つ。** 何を要求しているかは正本を読むこと — **説明を書き写すと、正本を直したときにここが古くなる**(`013:T03`で3回続いた。[finding](../../../../development-findings/2026-08-22-restating-a-requirement-outside-its-row-went-stale-twice.md))。`tool/check_normative_terms.py`が書き写しを機械的に検出する。
+
+**`013`の権限のREQ-001〜004は`T06`と分担する。** 分担の内容は`T06`の`task.md`を見ること。**`task.json`の`covers`は空のままにする** — このworkspaceの構造検査は`covers`を**所有planのspec.mdのID**として引くので、他featureのIDを書くと未解決参照の警告になる(`013:T10`で観測。[finding](../../../../development-findings/2026-08-21-covers-cannot-express-cross-feature-coverage.md))。
 
 | 正本 | 被覆するID |
 |---|---|
-| 004 spec | REQ-011(Android側)、REQ-015(app内browser)、REQ-016(選択は同一folder内)、REQ-017(そのまま見せる)、REQ-018(`/Android/data/`は改名できない旨)、REQ-019(権限が無い間は開かない)、REQ-014(`listNames`のAndroid実装)、VER-005 |
-| 013 spec | REQ-001〜004(権限の導線。`T06`と分担する) |
+| 004 spec | REQ-011、REQ-014、REQ-015、REQ-016、REQ-017、REQ-018、REQ-019、VER-005 |
+| 013 spec | REQ-001、REQ-002、REQ-003、REQ-004 |
 
 **`listNames`(004 REQ-014)のAndroid実装はこのtaskが持つ。** `013:T10`はdesktopでしか占有名を供給できておらず、`plan.md`の全体の受け入れ証拠「**Androidで**、読み込んでいないfileとの衝突が実行前に警告として出る」の証拠元はここである。
 

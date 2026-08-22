@@ -1,0 +1,60 @@
+{
+  "//": [
+    "規範の範囲を、規範の場所の外へ書き写さないための検査データ。",
+    "`013:T03` で「規範の範囲を REQ 行の外へ書き写し、それが古くなる」型の指摘が",
+    "独立review 3回連続で出たため、prose の規律に依存するのをやめて機械検出へ変えた",
+    "(2026-08-22 開発者決定。development-findings/2026-08-22-restating-a-requirement-outside-its-row-went-stale-twice.md)。",
+    "",
+    "実行: python3 tool/check_normative_terms.py",
+    "",
+    "owned:    その語は owner file の『REQ / INV / VER / OP 行』と『代表例の行』にだけ書ける。",
+    "          owner file の他の行(自由とする点、決定表、更新の要約など)へ書き写すと fail する。",
+    "          他 file では allow に挙げたものだけが書ける。",
+    "forbidden: 差し替えた古い言い回し。specs/ のどこにも残っていてはならない。",
+    "",
+    "exempt は『事実の出所』と『日付つきの記録』である。一次資料の要約(research-matrix)、",
+    "判断の記録(ADR)、review の経緯(作業記録)は、当時の記述を残すことに意味がある。"
+  ],
+  "scan": ["specs/**/*.md"],
+  "exclude": ["specs/**/history/**"],
+  "owned": [
+    {
+      "term": "/Android/data",
+      "owner": "specs/004-file-source/spec.md",
+      "allow": [
+        "specs/013-safe-android-rename/decisions/ADR-002-android-rename-storage-boundary.md",
+        "specs/013-safe-android-rename/tasks/T01-decide-storage-boundary/research-matrix.md",
+        "specs/013-safe-android-rename/tasks/T01-decide-storage-boundary/task.md",
+        "specs/013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md"
+      ],
+      "note": "REQ-018 の対象範囲。`013:T07` の仕様被覆表へ書き写して古くなった(attempt 3 の P1)。"
+    },
+    {
+      "term": "/Android/media",
+      "owner": "specs/004-file-source/spec.md",
+      "allow": [
+        "specs/013-safe-android-rename/decisions/ADR-002-android-rename-storage-boundary.md",
+        "specs/013-safe-android-rename/tasks/T01-decide-storage-boundary/research-matrix.md",
+        "specs/013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md"
+      ],
+      "note": "REQ-018 の除外。書ける例外なので、範囲を写すと必ずここも落ちる。"
+    },
+    {
+      "term": "/Android/obb",
+      "owner": "specs/004-file-source/spec.md",
+      "allow": [
+        "specs/013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md"
+      ],
+      "note": "REQ-018 が `/Android/data` に閉じないことを示す代表例 26b。"
+    }
+  ],
+  "forbidden": [
+    {
+      "phrase": "保存場所の内側",
+      "reason": "REQ-015 の遡行上限は『保存場所の root』である(2026-08-22 開発者の指摘で具体化)。『内側』は判定不能語で、差し替え前の言い回しである。",
+      "allow": [
+        "specs/013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md"
+      ]
+    }
+  ]
+}
