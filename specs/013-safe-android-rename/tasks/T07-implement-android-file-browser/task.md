@@ -30,6 +30,17 @@
 - [`manual-verification.md`](manual-verification.md)で実機の選択導線を確認する。
 - exact rangeの独立reviewがPASSする。
 
+## 仕様被覆
+
+`T03`が004 specへ定義し、開発者が承認したREQを実装する。**`task.json`の`covers`は空のままにする** — このworkspaceの構造検査は`covers`を**所有planのspec.mdのID**として引くので、他featureのIDを書くと未解決参照の警告になる(`013:T10`で観測。[finding](../../../../development-findings/2026-08-21-covers-cannot-express-cross-feature-coverage.md))。
+
+| 正本 | 被覆するID |
+|---|---|
+| 004 spec | REQ-011(Android側)、REQ-015(app内browser)、REQ-016(選択は同一folder内)、REQ-017(そのまま見せる)、REQ-018(`/Android/data/`は改名できない旨)、REQ-019(権限が無い間は開かない)、REQ-014(`listNames`のAndroid実装)、VER-005 |
+| 013 spec | REQ-001〜004(権限の導線。`T06`と分担する) |
+
+**`listNames`(004 REQ-014)のAndroid実装はこのtaskが持つ。** `013:T10`はdesktopでしか占有名を供給できておらず、`plan.md`の全体の受け入れ証拠「**Androidで**、読み込んでいないfileとの衝突が実行前に警告として出る」の証拠元はここである。
+
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
