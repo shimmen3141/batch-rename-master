@@ -84,6 +84,8 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 
 ### いつやるか
 
+**2026-08-22 開発者決定: 提出物は草案で仮置きし、一通り完成してから提出する。** したがってこの節の内容は**提出前に読み直す材料**であって、いま提出操作を行うわけではない。**`T03`の完了条件にも含めない。**
+
 **提出はAndroidが動くようになってから**(`T05` renameat2 port / `T06` 権限導線 / `T07` app内browserが揃った後)。ただし**説明文の主目的だけは先に決める**必要があった — policyが「説明文で目立つ形に訴求されていること」を求めており、後から言い換えると設計と食い違うためである。それがこの節である。
 
 **却下された場合はAndroid未対応へ戻す**(ADR-002の退避経路。`saf_rename_executor.dart`とそのnegative testを維持している理由)。
@@ -105,6 +107,6 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 - Blocker category: なし
 - Waiting for: 独立review
 - Requested action: なし。**2026-08-22に004 specの再承認を受領した。** 承認時に確認した差分は3点 — Androidから「文書」が消える(REQ-011)、Androidで複数folderから集める選択ができなくなる(REQ-016)、Androidの元場所ハンドルがSAF URIから絶対pathへ変わる(REQ-002の注記)
-- **人間の作業(このtaskの完了条件ではない)**: Playへの提出。上の「Playへの提出材料」の「提出前に人間が行うこと」4項目。**提出は`T05`/`T06`/`T07`が揃ってAndroidが動くようになってから**でよい
+- **人間の作業(このtaskの完了条件ではない)**: Playへの提出。**2026-08-22に開発者が「草案で仮置きし、一通り完成してから提出する」と決定した。** 上の「Playへの提出材料」は提出前に読み直す材料である。**この判断により、`T03`はPlayの提出を待たずに完了できる**
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
 - Next Agent action: **exact rangeの独立reviewを通してPRを作る。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない
