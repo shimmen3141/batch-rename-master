@@ -39,14 +39,14 @@ Androidのfile選択をSAFからapp内のfile browserへ変える。その振る
 
 ## 決めたこと(2026-08-22)
 
-「決めること」への回答。**正本は[004 spec](../../../004-file-source/spec.md)のREQ-011・REQ-015〜019と「013:T03 由来の更新」節**。ここは索引である。
+「決めること」への回答。**正本は[004 spec](../../../004-file-source/spec.md)のREQ-011・REQ-015〜019と「013:T03 由来の更新」節**。ここは索引であり、**決着と反映先のREQ IDだけを書く** — 範囲や強さを書き写すと正本を直したときにここが古くなる(`tool/check_normative_terms.py`が検出する)。
 
 | 論点 | 決着 | 決定者 | 反映先 |
 |---|---|---|---|
 | 1. 何を見せるか | **保存場所の一覧 + 既知の場所への近道 + folder階層のすべて。** 現在地を示し上位へ戻れる。ADR-002が「単なるfile選択画面ではなく**folderとfileを管理する導線**として作る」ことをPlayのFile managementへ寄せる手段に挙げているため | Agent | 004 REQ-015 |
 | 2. `FileKind`の扱い | **Androidでは絞らない。** 種類は「画像」「動画」「すべて」の3つで、**「文書」を出さない**。app内browserにMIME filterの手段が無く、拡張子リストを自前で持つと**リスト漏れでfileが黙って消える**。決定D-2と同じ理由 | **開発者** | 004 REQ-011 / REQ-017 |
 | 3. 複数folderを跨ぐ選択 | **同一folder内に限る。** folderを移動すると選択が解除される。004 planの2026-08-05決定に素直で、占有名の列挙が1 folderで済む。**代償: SAFの種類チップで事実上できていた跨ぎ選択ができなくなる** | **開発者** | 004 REQ-016 / REQ-012 |
-| 4. hidden fileとsystem領域 | **隠さない**(決定D-2を維持)。`/Android/`配下は書けない領域があるので**注記する**が、一次資料が「**大半の**subdirectory」としか書かず境界が文書化されていないため、**判定ではなく注記**とし可否は実行結果に委ねる(`/Android/media`は書けるので対象外)。**表示も選択も妨げない**。system領域は**REQ-015が定める遡行上限**によって到達経路を作らない(絞り込みで隠すのではない)。**範囲の定義は004 specのREQ-015とREQ-018が正本で、この表へ書き写さない** | Agent | 004 REQ-015 / REQ-017 / REQ-018 |
+| 4. hidden fileとsystem領域 | **隠さない**(決定D-2を維持)。書き込めない領域は**注記する**が、一次資料が境界を文書化していないため**判定ではなく注記**とし、可否は実行結果に委ねる。**表示も選択も妨げない**。system領域は**遡行上限**によって到達経路を作らない(絞り込みで隠すのではない) | Agent | 004 REQ-015 / REQ-017 / REQ-018 |
 | 5. desktopとの差 | **仕様として認める。** desktopはOS pickerのまま、Androidはapp内browser。**同じappで選択体験が2つになる。** desktop側を寄せる作業は行わない | Agent | 004「対象外」 |
 
 **Play policyへの寄せ方**は004 specの「013:T03 由来の更新」へ書いた。store説明文と`Permissions Declaration Form`は**人間の作業**でありspecの範囲外である。
@@ -99,6 +99,7 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
+- 2026-08-22 / **独立review attempt 4 = FAIL(P1が1件、P2が4件)。** **枠組み自体は効いていた**(reviewerが注入して確認)が、**`allow`に`T03`自身のtask.mdをfile単位で入れたのが自己免罪だった** — その中の「決めたこと」表(自ら「索引である」と書いている)に生きた書き写しが1件残っており、しかもそのセルは「この表へ書き写さない」と書きながら範囲を書き写していた。**`allow`をfile単位から節単位(`## 作業記録`のみ)へ変えた**ところ、検査がその1件を自分で捕まえた。あわせて代表例の判定を位置ベースへ直し(数字始まりの表行を無条件に許していた)、**検査の限界**(要求の"強さ"とliteralを持たない要求の範囲は検出できない)を検査自身の出力・JSON・`T07`へ明記した。
 - 2026-08-22 / **開発者が解き方Bと(a)を選択したので再開した。**
   - **B: 枠組みを変えた。** cross-taskの「仕様被覆」表から括弧書きの説明を全廃してREQ IDだけにし、**規範の範囲を規範の行の外へ書き写していないかを機械的に検査する道具**を入れた(`tool/check_normative_terms.py` / `tool/normative_terms.json`)。**検査は5件の書き写しを見つけた** — 独立reviewが挙げた2件(`T07`の仕様被覆表、`plan.md`の決定行)に加え、**指摘されていなかった2件**(004 spec自身の更新要約とAgent決定表)も含まれていた。**proseの規律では見落としていたことが、検査を作った時点で分かった。**
   - 検査が本物かを確かめた: `T07`の表へ`REQ-018(`/Android/data/`は改名できない旨)`を注入すると**FAILし、戻すとPASSする**。3回目の指摘そのものを再現できる。
@@ -113,9 +114,10 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 
 ## Current state / handoff
 
-- Last checkpoint: **解き方B(機械検出)を適用し、規範の書き写しを5件すべて消した。** `tool/check_normative_terms.py`はPASS、`workspace.py check specs`もPASS
+- Last checkpoint: **解き方Bを適用し、独立review attempt 4のP1(allowの自己免罪)も解消した。** `allow`は節単位になり、`tool/check_normative_terms.py`と`workspace.py check specs`はPASS
 - Blocker category: なし(2026-08-22に開発者が解き方Bと(a)を選択し、解除された)
-- Waiting for: 独立review attempt 4
+- Waiting for: 独立review attempt 5
 - Requested action: なし(2026-08-22に解き方Bと(a)の選択を受領した)
+- **人間の作業(このtaskの完了条件ではない)**: **`tool/check_normative_terms.py`をgateへ入れるかの判断と作業。** 現状は「思い出したときだけ走るscript」であってgateではない。組み込み先は2つあり、**どちらも人間の作業**である — `.github/workflows/ci.yml`(workflowsを含むpushは人間が行う)と`AGENTS.md`の「検証とreview」一覧(規約の正本)。**見送る場合は「案Bはscriptであってgateではない」ことを受容する判断になる。**
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
-- Next Agent action: **独立review attempt 4を通してPR #144をready化する。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。
+- Next Agent action: **独立review attempt 5を通してPR #144をready化する。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。

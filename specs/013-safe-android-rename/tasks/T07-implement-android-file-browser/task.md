@@ -34,7 +34,11 @@
 
 `T03`が004 specへ定義し、開発者が承認したREQを実装する。**表はID だけを持つ。** 何を要求しているかは正本を読むこと — **説明を書き写すと、正本を直したときにここが古くなる**(`013:T03`で3回続いた。[finding](../../../../development-findings/2026-08-22-restating-a-requirement-outside-its-row-went-stale-twice.md))。`tool/check_normative_terms.py`が書き写しを機械的に検出する。
 
-**`013`の権限のREQ-001〜004は`T06`と分担する。** 分担の内容は`T06`の`task.md`を見ること。**`task.json`の`covers`は空のままにする** — このworkspaceの構造検査は`covers`を**所有planのspec.mdのID**として引くので、他featureのIDを書くと未解決参照の警告になる(`013:T10`で観測。[finding](../../../../development-findings/2026-08-21-covers-cannot-express-cross-feature-coverage.md))。
+**`013`の権限のREQ-001〜004は`T06`と分担する。** 分担の内容は`T06`の`task.md`を見ること。
+
+**このtaskが持つのはAndroid側だけである。** 004 REQ-011はdesktopの種類選択も、REQ-014はdesktopの`listNames`も規定しており、そちらは既に`004:T09`と`013:T10`が実装済みである。**どこがAndroid側かは004 specのVER-005が示す。**
+
+**この表と機械検査は書き写しの一部しか止めない。** 検査(`tool/check_normative_terms.py`)が見るのは登録した literal の一致だけで、要求の**強さ**やliteralを持たない要求の範囲は検出できない。**実装前に正本を読むこと。****`task.json`の`covers`は空のままにする** — このworkspaceの構造検査は`covers`を**所有planのspec.mdのID**として引くので、他featureのIDを書くと未解決参照の警告になる(`013:T10`で観測。[finding](../../../../development-findings/2026-08-21-covers-cannot-express-cross-feature-coverage.md))。
 
 | 正本 | 被覆するID |
 |---|---|
