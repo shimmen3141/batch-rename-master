@@ -99,6 +99,7 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
+- 2026-08-22 / **独立review attempt 5 = PASS**(P0/P1なし、P2が6件)。挙がったP2をすべて直した — うち**`exclude`のglobが実バグ**で、`Path().glob('specs/**/history/**')`はdirectoryしか返さず、**凍結した`history/`配下のmd 20件が検査対象に入っていた**(宣言と実挙動の食い違い。道具そのものへの信頼を下げる型)。あわせて`T01`のallowも節限定へ落とし(同型の自己免罪)、死んだallowを1件消し、**検査対象が`specs/**/*.md`だけで`lib/`・`docs/`・PR本文を見ないこと**を限界へ追記した。REQ-015の更新要約とplan.mdの承認行に残っていた書き写しも消した。
 - 2026-08-22 / **独立review attempt 4 = FAIL(P1が1件、P2が4件)。** **枠組み自体は効いていた**(reviewerが注入して確認)が、**`allow`に`T03`自身のtask.mdをfile単位で入れたのが自己免罪だった** — その中の「決めたこと」表(自ら「索引である」と書いている)に生きた書き写しが1件残っており、しかもそのセルは「この表へ書き写さない」と書きながら範囲を書き写していた。**`allow`をfile単位から節単位(`## 作業記録`のみ)へ変えた**ところ、検査がその1件を自分で捕まえた。あわせて代表例の判定を位置ベースへ直し(数字始まりの表行を無条件に許していた)、**検査の限界**(要求の"強さ"とliteralを持たない要求の範囲は検出できない)を検査自身の出力・JSON・`T07`へ明記した。
 - 2026-08-22 / **開発者が解き方Bと(a)を選択したので再開した。**
   - **B: 枠組みを変えた。** cross-taskの「仕様被覆」表から括弧書きの説明を全廃してREQ IDだけにし、**規範の範囲を規範の行の外へ書き写していないかを機械的に検査する道具**を入れた(`tool/check_normative_terms.py` / `tool/normative_terms.json`)。**検査は5件の書き写しを見つけた** — 独立reviewが挙げた2件(`T07`の仕様被覆表、`plan.md`の決定行)に加え、**指摘されていなかった2件**(004 spec自身の更新要約とAgent決定表)も含まれていた。**proseの規律では見落としていたことが、検査を作った時点で分かった。**
@@ -114,10 +115,10 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 
 ## Current state / handoff
 
-- Last checkpoint: **解き方Bを適用し、独立review attempt 4のP1(allowの自己免罪)も解消した。** `allow`は節単位になり、`tool/check_normative_terms.py`と`workspace.py check specs`はPASS
+- Last checkpoint: **独立review attempt 5 = PASS。** そこで挙がったP2 6件も修正済み。`tool/check_normative_terms.py`と`workspace.py check specs`はPASS
 - Blocker category: なし(2026-08-22に開発者が解き方Bと(a)を選択し、解除された)
-- Waiting for: 独立review attempt 5
+- Waiting for: なし
 - Requested action: なし(2026-08-22に解き方Bと(a)の選択を受領した)
 - **人間の作業(このtaskの完了条件ではない)**: **`tool/check_normative_terms.py`をgateへ入れるかの判断と作業。** 現状は「思い出したときだけ走るscript」であってgateではない。組み込み先は2つあり、**どちらも人間の作業**である — `.github/workflows/ci.yml`(workflowsを含むpushは人間が行う)と`AGENTS.md`の「検証とreview」一覧(規約の正本)。**見送る場合は「案Bはscriptであってgateではない」ことを受容する判断になる。**
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
-- Next Agent action: **独立review attempt 5を通してPR #144をready化する。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。
+- Next Agent action: **PR #144をready化し、auto-mergeの7条件を1つずつ確認してmergeする。** attempt 5のPASSは`1e100e8`に対するもので、以後の差分は`specs/`と`tool/`のP2修正だけである(`lib`/`test`は不変)。**`T07`ではforward-test(検査が再発を止めるか)を観測してfindingへ追記すること。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。
