@@ -31,6 +31,16 @@
 
 **T08がbarの構成・読み込み導線・場所の提示・複数folder警告を持つ。** `clear-files-button`(「すべて外す」)の文言だけはT04が持つ。T08が先に着手した場合、この文言は現状のまま残す。詳細は[`T04のtask.md`](../T04-implement-selection-flow/task.md)。
 
+### Androidの前提が変わった(2026-08-22 / `013:T03`)
+
+**下の「先に解く設計上の食い違い」はdesktopにだけ当てはまる。** `013:T03`が004 specへREQ-016を足し、**Androidのapp内file browserでは選択が同一folder内に限られる**ようになった(folderを移動すると選択が解除される)。したがってAndroidでは:
+
+- **「選択中のfolder」が存在する**(常に1つ)。「無い状態が通常」ではない。
+- **複数folder警告(004 REQ-012)は発火しない。** 「通常経路で起きる」もdesktopの話になった。
+- 種類は「画像」「動画」「すべて」の3つで、**「文書」が無い**(REQ-011)。
+
+**着手前に[`013:T03`のtask.md](../../../013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md)と004 specのREQ-011・REQ-015〜019を読むこと。** platformで提示を分けるか、両方に成り立つ形にするかを決める必要がある。
+
 ### 先に解く設計上の食い違い
 
 参考designは「フォルダを選択 / 別フォルダへ」という**folder単位のmodel**を前提にしている。しかし004は決定D-2で**file複数選択**を採っており、さらにAndroidのDocumentsUIは種類chipがfolderを横断する(上記finding)。**現実には「選択中のfolder」が存在しない状態が通常**である。
