@@ -115,10 +115,14 @@ policyの例外条項は**3条件すべて**を要する。**(ii)だけがこの
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 5 = PASS。** そこで挙がったP2 6件も修正済み。`tool/check_normative_terms.py`と`workspace.py check specs`はPASS
-- Blocker category: なし(2026-08-22に開発者が解き方Bと(a)を選択し、解除された)
+- Last checkpoint: **`dev`へmerge済み(merge commit `601ecbb`、PR #144、2026-08-22)。** merge後の`dev`で`check_normative_terms.py` / `workspace.py check specs` / `flutter test`(464件) / `flutter analyze` がすべてPASS
+- Blocker category: なし(完了)
 - Waiting for: なし
 - Requested action: なし(2026-08-22に解き方Bと(a)の選択を受領した)
 - **人間の作業(このtaskの完了条件ではない)**: **`tool/check_normative_terms.py`をgateへ入れるかの判断と作業。** 現状は「思い出したときだけ走るscript」であってgateではない。組み込み先は2つあり、**どちらも人間の作業**である — `.github/workflows/ci.yml`(workflowsを含むpushは人間が行う)と`AGENTS.md`の「検証とreview」一覧(規約の正本)。**見送る場合は「案Bはscriptであってgateではない」ことを受容する判断になる。**
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
-- Next Agent action: **PR #144をready化し、auto-mergeの7条件を1つずつ確認してmergeする。** attempt 5のPASSは`1e100e8`に対するもので、以後の差分は`specs/`と`tool/`のP2修正だけである(`lib`/`test`は不変)。**`T07`ではforward-test(検査が再発を止めるか)を観測してfindingへ追記すること。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。
+- Next Agent action: **なし(このtaskは完了)。** 申し送りは4つある。
+  1. **`T07`が004 REQ-011・REQ-014・REQ-015〜019・VER-005を実装する。** Android受け入れの証拠元でもある(`plan.md`の全体の受け入れ証拠)
+  2. **`T07`でforward-testを観測すること。** `tool/check_normative_terms.py`が規範の書き写しの再発を止めるかを見て、[finding](../../../../development-findings/2026-08-22-restating-a-requirement-outside-its-row-went-stale-twice.md)へ追記する。`T07`は004 specと005 contractを触る予定なので機会がある
+  3. **`008:T08`はAndroidの前提が変わったことを読むこと。** 同taskのtask.mdへ節を追加済み
+  4. **人間の作業(未着手)**: `tool/check_normative_terms.py`をgateへ入れるかの判断と、`AGENTS.md`への「規範の範囲を規範の場所の外へ書き写さない」の追記。どちらも規約・workflowの正本なのでAgentは行わない このtaskは実装を含まないので`flutter test`等の実行結果は変わらない。**検証には`python3 tool/check_normative_terms.py`を加える**(解き方Bで入れた道具)。

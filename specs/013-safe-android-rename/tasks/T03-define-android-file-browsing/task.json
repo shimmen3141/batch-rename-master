@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T03",
   "title": "Androidの読み込み導線を定義する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T02"
   ],
