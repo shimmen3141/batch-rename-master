@@ -51,6 +51,43 @@ Androidのfile選択をSAFからapp内のfile browserへ変える。その振る
 
 **Play policyへの寄せ方**は004 specの「013:T03 由来の更新」へ書いた。store説明文と`Permissions Declaration Form`は**人間の作業**でありspecの範囲外である。
 
+## Playへの提出材料(人間の作業。ここは材料だけを用意する)
+
+このtaskの「配布要件でもある」節が「あわせて**このappの主目的をどう説明するか**も決める」「実装後に考えると間に合わない」と書いている。**決めた内容が下である。** 提出操作そのものはAgentが行わない — 外部の公開・配布であり、[ADR-002](../../decisions/ADR-002-android-rename-storage-boundary.md)が「配布riskの受容であり、**原文を読んだうえでの人間の判断**」と明記している。
+
+### 主目的の説明(草案)
+
+policyは`core functionality`を「appの**主目的**であり、それが無ければappは壊れている状態になるもの」と定義し、**appの説明文で目立つ形に記載・訴求されていること**を求める([research-matrix](../T01-decide-storage-boundary/research-matrix.md)のPlayのpermitted uses)。したがって説明文の**冒頭**へ置く。
+
+> 端末内のファイルとフォルダにアクセスし、**まとめて名前を変更して整理する**ためのアプリです。フォルダを辿ってファイルを一覧し、命名ルールを作り、**既存のファイルを上書きせずに**一括で改名します。
+
+**語彙を「選ぶ」から「アクセス・編集・管理」へ寄せてある。** permitted usesの**File management**の定義が「app固有storageの外にあるfileとfolderへのaccess、編集、管理」であり、invalid usesが「利用者が個々のfileを手で選ぶ file selection activity」だからである。**これで外れる保証は無い**(両立しうる読みであり、資料はどちらが優先するかを書いていない)。
+
+### Permissions Declaration Form に書くこと
+
+policyの例外条項は**3条件すべて**を要する。**(ii)だけがこのrepoの分析で埋まる。**
+
+| 条件 | 材料 | 状態 |
+|---|---|---|
+| (i) その権限が`core functionality`を成立させる | 安全な改名はfilesystemのpathを要り、pathはこの権限でしか得られない(ADR-002)。権限が無いと**改名という主目的そのものが成立しない** | **材料あり** |
+| (ii) privacy-friendlyな代替が無いか、critical featureへ実質的な悪影響を与える | **ADR-002の一次資料分析がそのまま論拠になる。** SAFの`DocumentsContract.renameDocument`はproviderが**別名を採ることを許し**、要求した名前と結果名の同一性を保証しない(005 REQ-018 / INV-003を満たせない)。MediaStoreは実質media(画像・動画・音声)に限られ、004の`document`/`all`を覆えない | **材料あり(ADR-002)** |
+| (iii) privacyへの影響がbest practiceで緩和されている | **未整理。** 材料になりうるのは「読み取りは利用者が辿ったfolderに限る」「改名以外のfile操作を持たない(004の対象外に明記)」「app外へdataを送らない」の3点だが、**このrepoで裏を取っていない** | **人間が用意する** |
+
+あわせてConsoleの申告で「SAF/MediaStoreが不十分な理由」を説明する義務が別に加わる(説明だけでは足りず、3条件と併せて要る)。
+
+### 提出前に人間が行うこと
+
+1. **Playのpolicy原文と突き合わせる。** このrepoの記述はすべて**筆者の要約**であり、原文の転記ではない(research-matrixが明記)。要約と原文がずれていないかを確かめる。
+2. **(iii)の材料を用意する。** 上表の3点でよいかを判断し、足りなければ足す。
+3. **store説明文を確定する。** 上の草案は主目的の言い回しだけを決めたもので、文章全体ではない。
+4. **提出し、承認を受ける。** 提出しない、または要件を満たさないappは**Playから削除されうる**。
+
+### いつやるか
+
+**提出はAndroidが動くようになってから**(`T05` renameat2 port / `T06` 権限導線 / `T07` app内browserが揃った後)。ただし**説明文の主目的だけは先に決める**必要があった — policyが「説明文で目立つ形に訴求されていること」を求めており、後から言い換えると設計と食い違うためである。それがこの節である。
+
+**却下された場合はAndroid未対応へ戻す**(ADR-002の退避経路。`saf_rename_executor.dart`とそのnegative testを維持している理由)。
+
 ## 他taskへの影響
 
 - **`T07`(app内file browserの実装)** — 004 REQ-011(Android側)・REQ-015〜019・REQ-014のAndroid実装を持つ。`task.md`へ「仕様被覆」節を追加済み。**`013:T10`はdesktopでしか占有名を供給できておらず、`plan.md`のAndroid受け入れの証拠元は`T07`である。**
@@ -64,12 +101,10 @@ Androidのfile選択をSAFからapp内のfile browserへ変える。その振る
 
 ## Current state / handoff
 
-- Last checkpoint: **004 specの更新を書き終えた。** `workspace.py check specs`はPASS
-- Blocker category: **human approval**
-- Waiting for: **004 specの再承認**(REQ-011の改訂、REQ-015〜019とVER-005の追加、REQ-012とREQ-002の注記)
-- Requested action: 004 specの承認可否。**承認時に効く差分**は次の3点である
-  1. **Androidから「文書」が消える**(REQ-011)。desktopは4つのまま
-  2. **Androidで複数folderから集める選択ができなくなる**(REQ-016)。SAFの種類チップで事実上できていた
-  3. **Androidの元場所ハンドルがSAF URIから絶対pathへ変わる**(REQ-002の注記。013 ADR-002の帰結)
+- Last checkpoint: **004 specの更新が2026-08-22に開発者から再承認された。** Playへの提出材料(主目的の説明の草案と提出チェックリスト)も用意した。`workspace.py check specs`はPASS
+- Blocker category: なし
+- Waiting for: 独立review
+- Requested action: なし。**2026-08-22に004 specの再承認を受領した。** 承認時に確認した差分は3点 — Androidから「文書」が消える(REQ-011)、Androidで複数folderから集める選択ができなくなる(REQ-016)、Androidの元場所ハンドルがSAF URIから絶対pathへ変わる(REQ-002の注記)
+- **人間の作業(このtaskの完了条件ではない)**: Playへの提出。上の「Playへの提出材料」の「提出前に人間が行うこと」4項目。**提出は`T05`/`T06`/`T07`が揃ってAndroidが動くようになってから**でよい
 - Evidence revision: branch `asdd/013-safe-android-rename/T03-define-android-file-browsing`、base は `dev@38bf66d`
-- Next Agent action: **承認後、004 specのStatusを承認済みへ更新し、exact rangeの独立reviewを通してPRを作る。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない
+- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** このtaskは実装を含まないので`flutter test`等の実行結果は変わらない

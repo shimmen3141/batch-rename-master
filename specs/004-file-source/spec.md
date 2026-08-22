@@ -1,6 +1,6 @@
 # ファイル読み込み(file-source) 振る舞い仕様
 
-- Status: approved <!-- draft → approved(人間が変更) → deprecated。2026-08-05: T7(読み込み導線の再設計)を再承認。**2026-08-21: `013:T10` 由来の更新(所属 folder ハンドルと実在名の列挙)を開発者が再承認。2026-08-22: `013:T03` 由来の更新(Android を app 内 file browser へ)は再承認待ち** -->
+- Status: approved <!-- draft → approved(人間が変更) → deprecated。2026-08-05: T7(読み込み導線の再設計)を再承認。**2026-08-21: `013:T10` 由来の更新(所属 folder ハンドルと実在名の列挙)を開発者が再承認。2026-08-22: `013:T03` 由来の更新(Android を app 内 file browser へ)を開発者が再承認** -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -220,7 +220,7 @@ T7(読み込み導線の再設計)で残った論点。**背景を含めて書�
 
 `T03`(Android の読み込み導線を app 内 browser へ作り直す)とは**範囲が重ならない** — こちらはポートに操作を1つ足すだけで、種類の選択・選択 UI・導線には触れない。`T03` が導線を作り直すときも、`listNames` と所属 folder ハンドルの契約はそのまま満たせばよい。実装は `013:T10`。
 
-## 013:T03 由来の更新(2026-08-22 作成・**再承認待ち**)
+## 013:T03 由来の更新(2026-08-22 作成 / **2026-08-22 開発者再承認済み**)
 
 Android のファイル選択を **SAF から app 内 file browser へ**作り直す。013 ADR-002 の「受け入れた条件2」による — `renameat2` は filesystem path を要り、SAF の URI は path へ変換できないため、候補 E を採ると Android の読み込み導線が変わる。
 
@@ -250,6 +250,6 @@ Android のファイル選択を **SAF から app 内 file browser へ**作り�
 
 ### Play policy への寄せ方(013 ADR-002 の受け入れた条件1)
 
-REQ-015 の「保存場所 → 近道 → 階層を辿り、現在地を示す」形は、permitted uses の **File management**(app 固有 storage 外のファイルとフォルダの access・編集・管理)へ寄せるための設計である。**ただし invalid uses の file selection activity を外れる保証は無い**(013 ADR-002 / 013 `spec.md` の未解決)。store 説明文と `Permissions Declaration Form` は**人間の作業**であり、この spec の範囲外である。
+REQ-015 の「保存場所 → 近道 → 階層を辿り、現在地を示す」形は、permitted uses の **File management**(app 固有 storage 外のファイルとフォルダの access・編集・管理)へ寄せるための設計である。**ただし invalid uses の file selection activity を外れる保証は無い**(013 ADR-002 / 013 `spec.md` の未解決)。**提出物そのもの(store 説明文と `Permissions Declaration Form`)は人間の作業**であり、この spec の範囲外である。**ただし「このアプリの主目的をどう説明するか」は `013:T03` が決めた** — 草案と提出チェックリストは [`T03` の task.md](../013-safe-android-rename/tasks/T03-define-android-file-browsing/task.md) の「Play への提出材料」にある。
 
 実装は `013:T07`。
