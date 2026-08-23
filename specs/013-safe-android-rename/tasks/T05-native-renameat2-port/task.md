@@ -28,6 +28,25 @@
 
 **`renameat2`が使えない端末では、005 contract REQ-025の「実在確認してから改名する」経路へ落とす。** 「対応外」にはしない。
 
+## machine検証する範囲と引き受け先(AGENTS.md の宣言)
+
+このtaskは**CIで実行できない領域**(Androidの実compile、実機挙動、host以外のarch、
+Windows)を含む。規約に従い、**どこまでをこの環境で機械検証するか**と**その外側を
+誰が引き受けるか**を宣言する。**宣言の外側の指摘は安全網の穴として扱う。**
+
+| 対象 | この環境での検証 | 引き受け先 |
+| --- | --- | --- |
+| errno から結果への写像(Android / desktop / 未対応platform) | **実行して全域観測。** shimで`syscall`/`renameat2`を差し替え、製品の関数を呼んでerrnoを`0`〜`255`まで走査する | — (ここで閉じる) |
+| 呼び出しの引数(syscall番号、flag、dirfd、path、呼び出し回数) | **実行して観測**(host arch の番号のみ) | — (番号以外はここで閉じる) |
+| host以外のarchの`SYS_renameat2`(`aarch64` / `__i386__`) | **実kernel headerと`_Static_assert`で照合**(実行はしない) | `013:T08`(実機) |
+| `__arm__`の`SYS_renameat2`(382) | **できない**(32bit ARMのheaderが無い) | `013:T08`(実機) |
+| Android向けの実compile(NDK) | **できない**(SDK/NDKが無い) | `013:T08` |
+| 実機での`renameat2`の挙動(FUSE、SDカード、case-insensitive volume) | **できない** | `013:T08` |
+| Windows分岐(`MoveFileW`、`_extendedWindowsPath`の実挙動) | **できない**(compileできない) | 005の既存manual証拠 / 将来のWindows検証 |
+| composition rootがAndroidで`DesktopRenameExecutor`を返すこと | **しない**(このtaskでは切り替えない) | `013:T07` |
+
+**Dart層は宣言の対象外**である。Linux上で普通に実行できるので、通常のtestで閉じる。
+
 ## 受け入れ証拠
 
 - targetが既にある場合に`nameConflict`を返し、**targetの内容が変わらない**ことをtestで検査する。
