@@ -231,10 +231,16 @@ reviewerは`M44`〜`M68`の25件すべてKILLEDを再現し、「ADR-003の構�
 **sourceの書き方には依存しない** — `if`文でも、呼び出し側でも、`#undef`でも、
 補助関数でも、渡る値が変われば落ちる。
 
-**観測できないもの**(独立review attempt 8 の P1-1 後段): **host(x86_64)以外の arch の
-syscall 番号**。host 上でしか実行できないためで、他 arch は `native_constants_test.dart` が
-実 kernel header と突き合わせ、`__arm__` は `013:T08` が実機で引き受ける。
-**「渡る値が変われば落ちる」は host arch についての主張である。**
+**この検査で見ていないもの**(2026-08-23 attempt 9 の指摘を受けて書き直した)。
+
+- **host(x86_64)以外の arch の syscall 番号。** host 上でしか実行できない。他archは
+  `native_constants_test.dart` が実 kernel header と `_Static_assert` で突き合わせ、
+  `__arm__` は照合手段が無いので `013:T08` が引き受ける。
+- **Android 向けの実 compile と実機挙動。** NDK が無い。`013:T08` が見る。
+- **Windows 分岐。** この環境で compile できない。
+
+**それ以外は、errno を 0〜255 まで全走査して観測している**ので、`if`文でも、呼び出し側でも、
+`#undef`でも、補助関数でも、**表に無い errno でも**、渡る値・返る値が変われば落ちる。
 
     Android: gcc -D__ANDROID__ -Dsyscall=brm_test_syscall  <source> <harness>
     desktop: gcc -Drenameat2=brm_test_renameat2            <source> <harness>

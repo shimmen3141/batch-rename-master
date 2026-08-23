@@ -564,6 +564,13 @@
       "note": "未対応platform分岐が劣化を要求する(改名できないplatformで通常renameへ落ちる。attempt 9 のR03)",
       "find": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_UNSUPPORTED;",
       "replace": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M81",
+      "file": "hook/build.dart",
+      "note": "literalを使わずAndroidを未対応へ戻す(contains検査では素通りした。attempt 9 のR04)",
+      "find": "  if (targetOS == OS.iOS) 'BRM_UNSUPPORTED_PLATFORM': null,",
+      "replace": "  if (targetOS == OS.iOS || targetOS.name == 'android')\n    'BRM_UNSUPPORTED_PLATFORM': null,"
     }
   ]
 }

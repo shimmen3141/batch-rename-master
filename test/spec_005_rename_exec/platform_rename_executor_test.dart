@@ -7,8 +7,11 @@ import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dar
 import 'package:batch_rename_master/data/rename_exec/platform_rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
+import 'package:code_assets/code_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+
+import '../../hook/build.dart';
 
 void main() {
   group('DesktopRenameExecutor.setModifiedAt (VER-006 / REQ-016)', () {
@@ -678,31 +681,31 @@ void main() {
   // **Android の build はこの container で行えない**(SDK / NDK が無い)。したがって
   // ここが検査できるのは「build 設定と C の分岐が意図どおり書かれているか」までで、
   // **実際にコンパイル・実行できるかは `013:T08` の実機確認が見る**。
-  test('native asset の設定が Android を対象に含み、iOS だけを外す', () async {
+  test('native の define は iOS だけを未対応にする(全 OS を回して振る舞いで見る)', () {
+    // **literal を文字列で見ない。** `targetOS.name == 'android'` のような別の
+    // 書き方で同じことをされると素通りする(独立review attempt 9 の P2-2)。
+    // 純関数を全 OS で回せば、書き方に依らず振る舞いで固定できる。
+    for (final os in OS.values) {
+      expect(
+        nativeDefines(os),
+        os == OS.iOS ? {'BRM_UNSUPPORTED_PLATFORM': null} : <String, String?>{},
+        reason: '$os の define',
+      );
+    }
+    // **Android を未対応の側へ戻さない**(013 REQ-005)。上のループに含まれるが、
+    // このtaskの中心的な成果なので明示しておく。
+    expect(nativeDefines(OS.android), isEmpty);
+  });
+
+  test('build hook は header も依存として宣言する', () async {
+    // 無いと `brm_renameat2_abi.h` を編集しても再 build されず、古い .so が残る
+    // (`013:T08` の Android build 反復に効く)。ここは build 設定の宣言なので
+    // 実行で観測できず、source を読むしかない。
     final hook = await File('hook/build.dart').readAsString();
-    final source = await File('src/native_exclusive_rename.c').readAsString();
 
     expect(hook, contains('if (!input.config.buildCodeAssets)'));
-    expect(hook, contains('final targetOS = input.config.code.targetOS'));
-    expect(
-      hook,
-      contains("if (targetOS == OS.iOS) 'BRM_UNSUPPORTED_PLATFORM': null"),
-      reason: 'iOS だけを未対応にする',
-    );
-    expect(
-      hook.contains('targetOS == OS.android'),
-      isFalse,
-      reason: 'Android を未対応の側へ戻さない(013 REQ-005)',
-    );
-    expect(
-      hook,
-      contains("includes: ['src']"),
-      reason:
-          'header を build 依存として宣言する。無いと `brm_renameat2_abi.h` を'
-          '編集しても再 build されず、古い .so が残る(`013:T08` の反復に効く)',
-    );
-    expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
-    expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
+    expect(hook, contains("includes: ['src']"));
+    expect(hook, contains('defines: nativeDefines(targetOS)'));
   });
 
   test('Android は bionic の wrapper ではなく生の syscall で renameat2 を呼ぶ', () async {
