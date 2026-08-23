@@ -9,8 +9,12 @@
  *
  * **自前の名前を持つ**(`RENAME_NOREPLACE` / `SYS_renameat2` へ `#ifndef` で
  * 譲らない)。譲る形だと、system が定義している環境では自前の値がそもそも
- * 展開されず、**間違っていても誰も気づけない**。一致は
- * `native_exclusive_rename.c` の `_Static_assert` が compile 時に確かめる。
+ * 展開されず、**間違っていても誰も気づけない**。
+ *
+ * `native_exclusive_rename.c` の `_Static_assert` は、**その位置での macro 値**が
+ * system 定義と一致することしか見ない(後で `#undef` されれば効かない)。
+ * **実際に syscall へ渡る値**は `test/spec_005_rename_exec/native_behaviour_test.dart`
+ * が shim 経由で観測する。独立review attempt 7 の指摘。
  */
 #ifndef BRM_RENAMEAT2_ABI_H
 #define BRM_RENAMEAT2_ABI_H
