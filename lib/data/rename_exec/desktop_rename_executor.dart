@@ -60,8 +60,9 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
   /// (013 REQ-005)。**「Androidかどうか」はここでは判定しない** — 落としてよいか
   /// どうかはOSを知っている C が結果として渡してくる(ADR-003)。
   ///
-  /// 落としてよい理由は、[_renameTo]と[_renameThroughTemporary]が**この呼び出しの
-  /// 直前に目標名の不在を確認している**ことである(REQ-025)。確認と改名の間は
+  /// 落としてよい理由は、この関数を呼ぶ3箇所([rename]、[_renameViaTemporary]、
+  /// [_rollbackAfter])が**すべて、この呼び出しの直前に目標名の不在を確認している**
+  /// ことである(REQ-025)。確認と改名の間は
   /// 原子的ではなくなるので、005 INV-002の成立範囲はその窓の分だけ狭まる
   /// (005 contract revision 4 が受容した)。
   Future<NativeRenameResult> _renameOnce(

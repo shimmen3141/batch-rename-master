@@ -46,7 +46,7 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(503件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
+| full regression | `flutter test` = **PASS(505件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
@@ -55,7 +55,7 @@
 | C(Android分岐) | `gcc -fsyntax-only -D__ANDROID__ src/native_exclusive_rename.c` = **exit 0**。**NDKが無いのでglibcのheaderで代用した syntax 検査であって、NDKでのコンパイルではない**。ただし`_Static_assert`が入ったので、**その位置でのflag値とsyscall番号が実kernel headerと違えばここで落ちる**。**実際に渡る値**は`native_behaviour_test.dart`がshim経由で観測する |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(39 file、3 rule。`flutter test`から呼ばれる) |
 | syscall番号 | **testが毎回照合する**(`native_constants_test.dart`)。archごとに`gcc -E -dM -nostdinc -D<arch>`で値を取り出し、**独立TUの`_Static_assert`**で実kernel headerと突き合わせる。`x86_64=316`(`asm/unistd_64.h`)、`i386=353`(`asm/unistd_32.h`)、`aarch64=276`(`asm-generic/unistd.h`)が一致。**未照合は`__arm__`(382)だけ**(この環境に32bit ARMのheaderが無い。出典は`T01`のspike) |
-| mutation | 表全体 = **72 mutations: 72 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M72`が`T05`分。うち`M63`〜`M72`は**独立reviewerが見つけたSURVIVEDを取り込んだもの**)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
+| mutation | 表全体 = **76 mutations: 76 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M76`が`T05`分。うち`M63`〜`M76`は**独立reviewerが見つけたSURVIVEDを取り込んだもの**)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** `T08`が行う |
 
@@ -297,7 +297,9 @@ reviewerは**shimが本物であることを確認した** — `gcc -E` の出�
   引数を渡すため、既定の側は構造的に未実行になる。「足りない test」ではなく
   「test が届かない場所を作れる設計」が根本原因である。
 
-**解き方の変更(test を足すのをやめた)。**
+**当時の解き方の変更(test を足すのをやめた)。以下は 2026-08-22 時点の設計であり、
+ADR-003 で `androidRenameOperation` と `createAndroidRenameExecutor` は削除された。
+現在の形は「独立review attempt 6 の指摘の始末」以降の節を読むこと。**
 
 1. **既定の束縛を1箇所へ集約した。** `androidRenameOperation` の中だけで `?? 既定`
    を書き、`createAndroidRenameExecutor` は引数を素通しする。束縛点が1つなら
@@ -305,9 +307,6 @@ reviewerは**shimが本物であることを確認した** — `gcc -E` の出�
 2. **fake を1つも注入しない test group を置いた。** 実 file に対して
    `createAndroidRenameExecutor()` と `androidRenameOperation()` を**引数なし**で
    呼ぶ。production の合成そのものが実行経路に入る。
-   - `androidRenameOperation()` を直接呼ぶ test が別に要る理由: executor は
-     005 REQ-025 の実在確認で先に止まるので、**排他 rename が通常 rename へ
-     すり替わっても executor 経由の結果は変わらない**。
 
 ## 作業記録
 
@@ -319,24 +318,55 @@ reviewerは**shimが本物であることを確認した** — `gcc -E` の出�
 - 2026-08-23 / **独立review attempt 3 = FAIL(P1が2件、P2が1件)。3回目のFAILなのでAGENTS.mdに従い`blocked`とする。** reviewerは表の追随(`M45`/`M49`/`M50`/`M51`)に意味の弱化が無いことと、主張した検証結果すべてを再現したうえで、**自分で足した5件のうち4件がSURVIVEDした**(control 1件はKILLED)。同じ型が**4回目**である。(P1-1) `native_exclusive_rename.dart:69`の呼び出し側を旧形へ戻しても487件が緑 — 純関数`usesUtf8NativePath`は固定したが、**分岐がその関数を使っていること**は誰も固定していない。attempt 1 の P1-2 が純関数の外側へ移動しただけだった。(P1-2) `plainRenameFile`の`on FileSystemException → io`を`success`へ変えても緑。`EISDIR`(errno 21)等が実際にこの分岐へ落ちることをreviewerが実測しており、**改名していないのに`Renamed`が返る**(005 OP-004 / INV-003)。劣化経路4分岐のうちtestが通っているのは2つだけだった。(P2-1) `catch (_)`のcatch-allが未検査。
 - 2026-08-23 / **外部AI 2件へ一般解を尋ね(人間の作業)、前提を照合して案B′を採用した**([ADR-003](../../decisions/ADR-003-os-identity-at-native-boundary.md))。2件は独立に同じ結論へ収束した — 「Dart側のOS分岐を消し、OS identityをnative境界へ閉じ込める」。**そのままは採らず**、片方が推した「全platform共通UTF-8 ABI」は**採らなかった**(testできる`_extendedWindowsPath`をsyntax checkすらできないCへ移すことになり、目的と逆。unpaired surrogateも検証手段が無い)。適用したのは、(1) OS許可リストの削除、(2) `fallbackRequired`による劣化の駆動、(3) 劣化地点の単一化、(4) 脆いsource assertの依存検査への置き換え。**Android専用のexecutor factoryは消滅し、`T07`の切り替えは「`isAndroid`の行を消す」だけになった。**
 - 2026-08-23 / mutation表を`M56`まで作り直し、**56 KILLED / 0 SURVIVED / 0 SKIPPED**。reviewerの`X1`は`M55`としてKILLED、`X3`/`X4`は**対象消滅**、`X2`はP2として受容(上表)。**testは1件減った**(483件) — 消えたのはOS分岐を見るtestで、分岐自体が無くなったからである。
-- 2026-08-23 / **独立review attempt 4 = FAIL(P1が4件、P2が6件)。** reviewerは主張した検証結果を**すべて再現**し、`M44`〜`M56`が全KILLEDであること、ADR-003の構造変更が有効に効いていることを確認したうえで、**周辺3点**(上表の`X-A`/`X-C`/`X-F`)と、**正本同士の矛盾**を指摘した。矛盾は、attempt 1 の対応で新設した`T07`の申し送りが**ADR-003適用に追随せず、削除済みの`createAndroidRenameExecutor()`を受け入れ証拠として指していた**もの。`T07`と`T05`の申し送りを「`Platform.isAndroid`の行を消す」へそろえ、`grep -rn "createAndroidRenameExecutor" specs/`の残り5件が日付つきの作業記録だけであることを確認した。P2は6件とも直した(「決めたこと」表2行、PR本文の1文、`T07`の再承認対象へREQ-025追加、`plainRenameFile`のdirectory限界注記、findingへの結果追記、`check_platform_boundary.py`の限界追記)。
+- 2026-08-23 / **独立review attempt 4 = FAIL(P1が4件、P2が6件)。** reviewerは主張した検証結果を**すべて再現**し、`M44`〜`M56`が全KILLEDであること、ADR-003の構造変更が有効に効いていることを確認したうえで、**周辺3点**(上表の`X-A`/`X-C`/`X-F`)と、**正本同士の矛盾**を指摘した。矛盾は、attempt 1 の対応で新設した`T07`の申し送りが**ADR-003適用に追随せず、削除済みの`createAndroidRenameExecutor()`を受け入れ証拠として指していた**もの。`T07`と`T05`の申し送りを「`Platform.isAndroid`の行を消す」へそろえ、`grep -rn "createAndroidRenameExecutor" specs/`の残りが、日付つきの作業記録と**削除済みと明記した当時の設計の説明**だけであることを確認した。P2は6件とも直した(「決めたこと」表2行、PR本文の1文、`T07`の再承認対象へREQ-025追加、`plainRenameFile`のdirectory限界注記、findingへの結果追記、`check_platform_boundary.py`の限界追記)。
 - 2026-08-23 / **独立review attempt 5 = FAIL(P1が1件、P2が4件)。** P1は`RENAME_NOREPLACE`の自作定義値が未検査だったこと(`(1 << 1)`にすると**2つのfileが黙って入れ替わる**)。**根本原因がattempt 4のP1-2と同じ**だったので、1件ずつ`contains`する解き方をやめ、**C で自作した定数(`#define`全件と`errno`写像全件)を表と完全一致で突き合わせる**形にした。P2は、desktop側`ENOSYS`の未検査(`M61`)、**「直した」と書いたP2が実diffに無かった件**(原因はmutation実行中の編集。finding化)、`T07/task.json`の`covers`追随漏れ、handoffの内部矛盾。
 - 2026-08-23 / **独立review attempt 6 = FAIL(P1が2件、P2が4件)。ADR-003適用後3回連続FAILなので、AGENTS.mdに従い再び`blocked`とする。** reviewerは`Z11`(desktopの呼び出しからflagを外す)がKILLEDになることで**Cが各mutationで実際にrecompileされ、desktopの挙動が本当にtestで観測されている**ことを確認し、「ADR-003の構造変更は有効で、解き方を戻す必要はない」と判定した。そのうえで、**表駆動の抽出器が「認識できなかった行を黙って捨てる」**ため「完全一致」という主張が成立していないことを5件の変異で示した — `default:` armが表に1行も無い(`Z6`)、1行形式の`case X: return Y;`が**完全に不可視**(`Z14`/`Z15`)、`#  define`(空白入り)を見落とす(`Z5`)、**コメント内の`#define`を実装として読む**(`Z8`)。**Cの自作定数・写像が代用assertから漏れるのは3回目**であり、「1件ずつ足す」対応は禁じられた。
 - 2026-08-23 / **開発者が案A′を選択。適用した。** 着手前に実測した前提はすべて成立した — `gcc -E -P`はerrno写像を数値で返し、`gcc -E -dM -nostdinc -D<arch>`はarchごとの定数を返し、独立TUの`_Static_assert`は値を1ずらすと**compile errorになる**。reviewerがSURVIVEDさせた5件を含む12件を表へ取り込み、**12件ともKILLED**を確認した。P2 4件も直した(ADR-003の記述を道具の実力へ合わせる、`task.md`の古いmutation ID参照、tool検査のCI接続、`M46`参照)。
 - 2026-08-23 / **独立review attempt 7 = FAIL(P1が2件、P2が3件)。** 漏れが「書き方の差」から「**検査している領域の外**」へ移った — `switch`の前、呼び出し側、`_Static_assert`の後での再定義、呼び出しへのflag追加。**4回目なので読み取りを賢くする方向をやめ、shimで製品の関数を実際に呼んで観測する形にした。** reviewerの`W1`〜`W4`を`M69`〜`M72`として取り込み、15件の部分表が全KILLED。P2も3件直した(`hook/build.dart`へ`includes`を足してheader編集で再buildされるように、PR本文とheader docの「compile時に確かめる」の範囲を実力へ)。
 - 2026-08-23 / **独立review attempt 8 = FAIL(P1が1件、P2が2件)。** reviewerは**shimが本物である**ことを`gcc -E`の出力で確認し(製品の呼び出し式そのものが置き換わっている)、attempt 7 の`W1`〜`W4`も全KILLEDを再現したうえで、**harnessが6引数中2つしか観測せず、最後の1回しか見ていない**ことを見つけた。引数の入れ替え・`AT_FDCWD`の差し替え・「先に別flagで1回呼ぶ」が素通りしていた。6引数と呼び出し回数を観測する形へ直し、`N06`/`N10`/`N11`/`N09`を`M73`〜`M76`として取り込んで全KILLEDを確認した。**host arch以外のsyscall番号は実行検証できない**ので、その旨を4箇所の主張へ明記した。
+- 2026-08-23 / **独立review attempt 9 = FAIL(P1が2件、P2が7件)。`blocked`。** reviewerは`M44`〜`M76`の33件すべてKILLEDを再現し、**attempt 8 のP1-1(観測する引数の範囲)は閉じている**と判定した。そのうえで、**穴が「引数の範囲」から「errnoの範囲」へ移っただけ**であることを**対照つき**で示した — `R07`(`switch`の前で`ENOSPC`を成功として返す)はSURVIVED、`R09`(**まったく同じ形**で`EEXIST`にしただけ)はKILLED。**差は「その errno が harness の手書き表に載っているか」だけ**である。実害は`ENOSPC`(disk full)で失敗したのに`Renamed`が返ること(005 INV-003 / OP-004)。P1-2は「観測できないのは他archのsyscall番号だけ」という4箇所の主張が**過大**であること。P2は7件(未対応platform分岐が未固定、`hook/build.dart`のliteral依存、`task.md`の古い件数、削除済み設計を現在形で説明、存在しないmethod名のdoc、findingの未追随、full表実行の記録)。**P2のうち3件(古い件数、削除済み設計の断り書き、method名)は先に直した。**
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 8 の指摘を反映済み。** harnessが6引数と呼び出し回数を観測する。表全体が **76 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(505)。working treeはclean
-- Blocker category: なし
-- Waiting for: 独立review attempt 9
-- Requested action: なし
+- Last checkpoint: **独立review attempt 9 = FAIL。`blocked`。** 表全体は 76 KILLED / 0 SURVIVED / 0 SKIPPED だが、**reviewerが足した6件がSURVIVED**した(対照3件はKILLED)
+- Blocker category: **人間の判断**(AGENTS.md「同じtaskで独立reviewが合計3回FAIL」。9回目である)
+- Waiting for: **errno 写像の検証枠組みの選択(下記 A′′ / B / C)**
+- Requested action: A′′ / B / C から1つ選ぶこと。**manual確認・実機作業は不要**、branch移動も不要(working treeはcleanで維持する)
+
+### 人間へ返す選択肢(attempt 9)
+
+**問題**: errno から結果への写像を検証する2つの oracle が、どちらも**有限の範囲**しか見ていない。
+
+| oracle | 見ている範囲 | 外へ出る方法 |
+| --- | --- | --- |
+| `native_constants_test._errnoMapping`(preprocessor) | `brm_result_from_errno` の**`switch`本体だけ** | `switch`の前、関数の外、呼び出し側 |
+| `renameat2_harness.c` + `native_behaviour_test`(実行) | **手書きの14 errnoだけ** | 表に無いerrno(`ENOSPC`、`EBUSY`、`EISDIR`、`ELOOP`…) |
+
+2つの穴の**交点**だけが閉じている。
+
+- **A′′(推奨). harnessから手書きの errno 表を消し、errno 空間を全走査する。**
+  `for (int e = 0; e <= 255; e++)` を回して1行ずつ出力し、Dart側は
+  **preprocessor oracle(`_errnoMapping`)から導いた期待表と全域で突き合わせる**。
+  2つの oracle が互いを検算することになり、**「switchの外」と「表に無いerrno」が同時に消える**。
+  Linuxのerrnoは`EHWPOISON`=133までなので255まで見れば全域である。
+  reviewerは「5世代目の同じ路線」と評したが、**手書きの列挙が1つも残らない**点で性質が違う —
+  範囲を広げるのではなく、**列挙をやめる**。
+- **B. Cの分類を宣言表からの lookup 1式に落とす。** `switch`の外に分類を書ける場所を無くす。
+  Cとtestが同じ表を読む。
+- **C(reviewer推奨だが前提が衝突する). 分類をCからDartへ移す。** Cは「成功したか」と
+  **生の`errno`**だけを返し、写像はDartの純関数が持つ。**衝突**: Windowsは`GetLastError`で
+  **errnoとは別の名前空間**の値を返す(`brm_result_from_windows_error`)。生の値を返すと
+  **Dartが「どちらの空間か」を判定することになり、ADR-003が消したplatform分岐がDartへ戻る**。
+  採るなら、Windowsも errno 相当へ正規化する層をCに残す(=分類がCに残る)か、
+  ADR-003を部分的に取り消すかの判断が要る。
+
+**どの案でも P1-2(4箇所の主張が過大)と P2 の残り4件は直す。**
+
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@8eeab82`
 - 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査。attempt 4 のreviewerが受容を**妥当と判定**)、`X-G`(`Platform.isWindows`分岐がLinuxで固定できない。**変更前と同型でregressionではない**)、`Y8`(`_resultOf`の範囲外分岐。attempt 5 のreviewerが「enum対応testが7値を不変条件として押さえたので到達不能であることが裏打ちされた」と判定)
 - 残余risk: **`__arm__`(382)のsyscall番号だけ照合できない。** この環境に32bit ARMのkernel headerが無い。`013:T08`の実機確認が引き受ける。**Androidの実compileと実機挙動**も同様。target OS別のbuild CIは**入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)
 - 新しい依存: **この検査は`gcc`を必要とする**(`native_constants_test.dart`、`native_behaviour_test.dart`)。AI containerとCIの`ubuntu-latest`にはある。**無い環境では黙ってskipせず`flutter test`が落ちる**(独立review attempt 7 が確認済み)
 - **人間へ回す判断(このtaskのFAIL理由ではない。`T07`/`T08`の後でよい)**: `fallbackRequired`という汎用の劣化機構ができたことで、**desktopで同じ状況が起きても劣化しない**ことが設計選択として可視化された。LinuxでNFS / CIFS / 一部FUSE上のfileを改名すると`renameat2`は`EOPNOTSUPP`を返し、現在は`unsupported`=改名が失敗する(**変更前から同じでregressionではない**)。(A) 現状維持[reviewer推奨] / (B) desktopのCでも劣化させる(005 contract再承認が要る) / (C) 劣化したことを結果として利用者へ提示する(005 / 001の仕様追加)
-- Next Agent action: **独立review attempt 9 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
+- Next Agent action: **選択が返るまで P1 に着手しない。** 返ったら reviewer の `R01`〜`R09` を `tool/mutations.json` へ取り込み(`R09` は**対照**なので落とさない)、修正後に**表全体**を回して生出力をここへ貼り、attempt 10 を起動する。**PR #146 はDraftのまま。**
 - **`T07`への申し送り**: `platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の行を消すのは`T07`である。**Android専用のexecutorは存在しない**(ADR-003) — 消すだけでAndroidも`DesktopRenameExecutor`を通り、劣化はnativeが返す`fallbackRequired`が駆動する。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。
