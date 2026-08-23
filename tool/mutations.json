@@ -316,8 +316,8 @@
     {
       "id": "M45",
       "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "    final result = await exclusiveRename(source, destination);\n    if (result != NativeRenameResult.unsupported) return result;",
-      "replace": "    final result = await exclusiveRename(source, destination);\n    return result;",
+      "find": "    final result = await exclusive(source, destination);\n    if (result != NativeRenameResult.unsupported) return result;",
+      "replace": "    final result = await exclusive(source, destination);\n    return result;",
       "note": "劣化経路を除去(flagが効かない端末で改名できなくなる。013 REQ-005)"
     },
     {
@@ -344,22 +344,22 @@
     {
       "id": "M49",
       "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "  rename: androidRenameOperation(\n    exclusiveRename: exclusiveRename ?? _exclusiveRename,\n    plainRename: plainRename ?? plainRenameFile,\n  ),",
+      "find": "  rename: androidRenameOperation(\n    exclusiveRename: exclusiveRename,\n    plainRename: plainRename,\n  ),",
       "replace": "  rename: exclusiveRename ?? _exclusiveRename,",
       "note": "production wiringから劣化経路を外す(013 REQ-005が破れる)"
     },
     {
       "id": "M50",
       "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "    exclusiveRename: exclusiveRename ?? _exclusiveRename,",
-      "replace": "    exclusiveRename: exclusiveRename ?? plainRenameFile,",
+      "find": "  final exclusive = exclusiveRename ?? _exclusiveRename;",
+      "replace": "  final exclusive = exclusiveRename ?? plainRenameFile;",
       "note": "既定のexclusiveRenameを通常renameへすり替える(RENAME_NOREPLACEを一度も使わない。005 INV-002)"
     },
     {
       "id": "M51",
       "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "    plainRename: plainRename ?? plainRenameFile,",
-      "replace": "    plainRename: plainRename ?? ((_, _) async => NativeRenameResult.unsupported),",
+      "find": "  final plain = plainRename ?? plainRenameFile;",
+      "replace": "  final plain = plainRename ?? ((_, _) async => NativeRenameResult.unsupported);",
       "note": "既定のplainRenameを潰す(flagが効かない端末で改名できない。013 REQ-005)"
     },
     {
