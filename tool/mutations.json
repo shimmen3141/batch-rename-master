@@ -333,6 +333,20 @@
       "find": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        RENAME_NOREPLACE);",
       "replace": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination, 0);",
       "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)"
+    },
+    {
+      "id": "M48",
+      "file": "lib/data/rename_exec/native_exclusive_rename.dart",
+      "find": "  'linux' || 'macos' || 'android' => true,",
+      "replace": "  'linux' || 'macos' => true,",
+      "note": "AndroidをDart側のnative呼び出しから外す(常にunsupported=常に劣化。renameat2が製品から消える)"
+    },
+    {
+      "id": "M49",
+      "file": "lib/data/rename_exec/android_rename_executor.dart",
+      "find": "  rename: androidRenameOperation(\n    exclusiveRename: exclusiveRename ?? _exclusiveRename,\n    plainRename: plainRename ?? plainRenameFile,\n  ),",
+      "replace": "  rename: exclusiveRename ?? _exclusiveRename,",
+      "note": "production wiringから劣化経路を外す(013 REQ-005が破れる)"
     }
   ]
 }

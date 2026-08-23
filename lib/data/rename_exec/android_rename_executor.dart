@@ -80,10 +80,19 @@ Future<NativeRenameResult> plainRenameFile(
 /// [androidRenameOperation] で差し替える。
 ///
 /// **desktop の振る舞いは1文字も変わらない**(013 `spec.md` の範囲外)。
+/// **引数は [androidRenameOperation] の中身を取る。** 組み立て済みの操作を丸ごと
+/// 差し替えられる形にすると、**production が通る合成そのものを test が一度も
+/// 通らない**状態になりうる(独立review attempt 1 の P1-1。`?? androidRenameOperation()`
+/// を外しても全 test が通っていた)。ここを分解しておくと、劣化する側もしない側も
+/// **factory 経由**で検査できる。
 RenameExecutor createAndroidRenameExecutor({
-  DesktopRenameOperation? rename,
+  DesktopRenameOperation? exclusiveRename,
+  PlainRenameOperation? plainRename,
   DesktopPathProbe? probe,
 }) => DesktopRenameExecutor(
-  rename: rename ?? androidRenameOperation(),
+  rename: androidRenameOperation(
+    exclusiveRename: exclusiveRename ?? _exclusiveRename,
+    plainRename: plainRename ?? plainRenameFile,
+  ),
   probe: probe,
 );

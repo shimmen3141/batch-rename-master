@@ -127,15 +127,13 @@ void main() {
       final source = await makeFile('a.txt', 'source-body');
       final keep = await makeFile('keep.txt', 'keep-body');
       final executor = createAndroidRenameExecutor(
-        rename: androidRenameOperation(
-          exclusiveRename: (from, to) async {
-            // 本物の renameat2(RENAME_NOREPLACE) と同じ意味論にする —
-            // target があれば置換せず失敗し、無ければ移す。
-            if (File(to).existsSync()) return NativeRenameResult.nameConflict;
-            File(from).renameSync(to);
-            return NativeRenameResult.success;
-          },
-        ),
+        exclusiveRename: (from, to) async {
+          // 本物の renameat2(RENAME_NOREPLACE) と同じ意味論にする —
+          // target があれば置換せず失敗し、無ければ移す。
+          if (File(to).existsSync()) return NativeRenameResult.nameConflict;
+          File(from).renameSync(to);
+          return NativeRenameResult.success;
+        },
       );
 
       final result = await executor.rename(source, 'keep.txt');
@@ -157,13 +155,13 @@ void main() {
     test('Android 固有の失敗として見せない(unsupportedPlatform を返さない)', () async {
       final source = await makeFile('a.txt');
       final executor = createAndroidRenameExecutor(
-        rename: (_, _) async => NativeRenameResult.unsupported,
+        exclusiveRename: (_, _) async => NativeRenameResult.unsupported,
+        plainRename: (_, _) async => NativeRenameResult.permissionDenied,
       );
 
       final result = await executor.rename(source, 'b.txt');
 
-      // `unsupported` は `androidRenameOperation` が受け止める前提だが、ここでは
-      // port を直接差し替えているので executor まで届く。**それでも
+      // 排他 rename も通常 rename も失敗した。**それでも
       // `unsupportedPlatform` にはしない**(013 REQ-005)。
       expect(result, isA<RenameFailed>());
       expect(
@@ -178,7 +176,7 @@ void main() {
       final source = await makeFile('a.txt', 'body');
       final probe = _Probe({source});
       final executor = createAndroidRenameExecutor(
-        rename: (from, to) async {
+        exclusiveRename: (from, to) async {
           File(from).renameSync(to);
           return NativeRenameResult.success;
         },
@@ -203,17 +201,15 @@ void main() {
       final order = <String>[];
       final probe = _Probe({source});
       final executor = createAndroidRenameExecutor(
-        rename: androidRenameOperation(
-          exclusiveRename: (_, _) async {
-            order.add('exclusive');
-            return NativeRenameResult.unsupported;
-          },
-          plainRename: (from, to) async {
-            order.add('plain');
-            File(from).renameSync(to);
-            return NativeRenameResult.success;
-          },
-        ),
+        exclusiveRename: (_, _) async {
+          order.add('exclusive');
+          return NativeRenameResult.unsupported;
+        },
+        plainRename: (from, to) async {
+          order.add('plain');
+          File(from).renameSync(to);
+          return NativeRenameResult.success;
+        },
         probe: probe,
       );
 
@@ -259,9 +255,60 @@ void main() {
     });
   });
 
-  group('composition root: Android はまだ切り替えない', () {
-    test('`createAndroidRenameExecutor` は port を組み立てられる', () {
+  group('factory が劣化経路を必ず通す(P1-1)', () {
+    test('`exclusiveRename` が unsupported を返すと通常 rename が呼ばれる', () async {
+      // **factory 経由で確かめる。** 組み立て済みの操作を丸ごと注入する形だと、
+      // production が通る合成そのものを test が一度も通らない状態になりうる。
+      final source = await makeFile('a.txt', 'body');
+      var plainCalled = false;
+      final executor = createAndroidRenameExecutor(
+        exclusiveRename: (_, _) async => NativeRenameResult.unsupported,
+        plainRename: (from, to) async {
+          plainCalled = true;
+          File(from).renameSync(to);
+          return NativeRenameResult.success;
+        },
+      );
+
+      expect(await executor.rename(source, 'b.txt'), isA<Renamed>());
+      expect(plainCalled, isTrue);
+    });
+
+    test('`exclusiveRename` が成功すれば通常 rename は呼ばれない', () async {
+      final source = await makeFile('a.txt', 'body');
+      var plainCalled = false;
+      final executor = createAndroidRenameExecutor(
+        exclusiveRename: (from, to) async {
+          File(from).renameSync(to);
+          return NativeRenameResult.success;
+        },
+        plainRename: (_, _) async {
+          plainCalled = true;
+          return NativeRenameResult.success;
+        },
+      );
+
+      expect(await executor.rename(source, 'b.txt'), isA<Renamed>());
+      expect(plainCalled, isFalse, reason: 'no-replace が効いたので落とさない');
+    });
+
+    test('既定の factory も RenameExecutor を組み立てられる', () {
       expect(createAndroidRenameExecutor(), isA<RenameExecutor>());
+    });
+  });
+
+  group('platform 分岐(P1-2)', () {
+    test('Android は UTF-8 path の wrapper を使う', () {
+      // **Android を分岐から外すと落ちる。** `Platform.isAndroid` を条件式へ直接
+      // 書いていた頃は、Linux 上の test から観測できず外しても緑のままだった。
+      expect(usesUtf8NativePath('android'), isTrue);
+    });
+
+    test('linux / macos も UTF-8、windows と未知の OS は使わない', () {
+      expect(usesUtf8NativePath('linux'), isTrue);
+      expect(usesUtf8NativePath('macos'), isTrue);
+      expect(usesUtf8NativePath('windows'), isFalse);
+      expect(usesUtf8NativePath('fuchsia'), isFalse);
     });
   });
 }

@@ -29,6 +29,20 @@ external int _renameNoReplaceUtf16(
   Pointer<Utf16> destination,
 );
 
+/// この OS が UTF-8 path の C wrapper を使うか(Windows は UTF-16)。
+///
+/// **Android を含む。** C 側は Android のとき**生の syscall** で `renameat2` を
+/// 呼ぶので、bionic の wrapper が公開された API level に依存しない
+/// (013 spec D-1 / `013:T05`)。
+///
+/// **純関数として切り出してある。** `Platform.isAndroid` を条件式へ直接書くと、
+/// Linux 上の test から Android の分岐を観測できず、**Android を分岐から外しても
+/// suite が緑のまま**になる(独立review attempt 1 の P1-2)。
+bool usesUtf8NativePath(String operatingSystem) => switch (operatingSystem) {
+  'linux' || 'macos' || 'android' => true,
+  _ => false,
+};
+
 /// OSの原子的な「既存名を置換しないrename」を実行する。
 ///
 /// C wrapper内でrenameとerrno/GetLastError取得を連続して行い、Dartへは安定した
@@ -53,10 +67,7 @@ NativeRenameResult renameFileWithoutOverwrite(
       calloc.free(destinationPointer);
     }
   }
-  // Android も UTF-8 path で同じ wrapper を呼ぶ。C 側は Android のとき**生の
-  // syscall** で `renameat2` を呼ぶので、bionic の wrapper が公開された API level に
-  // 依存しない(013 spec D-1 / `013:T05`)。
-  if (Platform.isLinux || Platform.isMacOS || Platform.isAndroid) {
+  if (usesUtf8NativePath(Platform.operatingSystem)) {
     final sourcePointer = source.toNativeUtf8();
     final destinationPointer = destination.toNativeUtf8();
     try {
