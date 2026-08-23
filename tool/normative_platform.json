@@ -1,0 +1,49 @@
+{
+  "//": [
+    "OS判定とnative宣言を書ける場所の allow list(ADR-003)。",
+    "",
+    "実行: python3 tool/check_platform_boundary.py",
+    "",
+    "`013:T05`で独立reviewが3回連続FAILし、3回とも同じ型だった —",
+    "『production が実際に通る合成を、test が一度も通らない』。Linux 1環境しか無いため、",
+    "Dart側にOS分岐がある限り、その分岐を壊しても suite は緑のままである。",
+    "",
+    "そこで ADR-003 で『OS identityをnative境界(C + hook/build.dart)へ閉じ込める』と決めた。",
+    "この検査は、その決定が**あとから静かに崩れない**ようにするためのものである。",
+    "OS判定が新しいfileへ広がると、そこがまた検査できない分岐になる。",
+    "",
+    "『この行が存在すること』ではなく『この依存が存在しないこと』を見る点が重要である。",
+    "前者は format 変更や変数の導入で壊れるが、後者は壊れない(2026-08-23 外部相談の指摘)。",
+    "",
+    "限界(PASSを『OS分岐は無い』と読まないこと):",
+    "- 文字列一致である。`const io = Platform; io.isAndroid` のような書き換えは見ない。",
+    "- 見るのは `lib/**/*.dart` だけ。test、tool、hook は対象外である。",
+    "- C の `#if defined(__ANDROID__)` は対象外。あそこは正しい置き場所である。"
+  ],
+  "scan": [
+    "lib/**/*.dart"
+  ],
+  "rules": [
+    {
+      "pattern": "Platform.is",
+      "allow": [
+        "lib/data/rename_exec/platform_rename_executor.dart",
+        "lib/data/rename_exec/native_exclusive_rename.dart",
+        "lib/data/file_source/platform_file_source.dart"
+      ],
+      "reason": "OS判定はcomposition rootとpath encodingの境界だけが持つ(ADR-003)。改名の可否・劣化の要否をOSで判定しないこと — nativeが返す結果値で決める。"
+    },
+    {
+      "pattern": "Platform.operatingSystem",
+      "allow": [],
+      "reason": "OS名の許可リストを持たない(ADR-003)。`usesUtf8NativePath`はこれで消した。復活すると、Linux上のtestから片方の枝しか観測できない分岐が戻る。"
+    },
+    {
+      "pattern": "@Native<",
+      "allow": [
+        "lib/data/rename_exec/native_exclusive_rename.dart"
+      ],
+      "reason": "native symbolの宣言を1箇所に閉じる。散ると『どのOSで解決できるか』が複数箇所の事実になる。"
+    }
+  ]
+}

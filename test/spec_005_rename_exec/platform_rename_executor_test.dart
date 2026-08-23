@@ -747,7 +747,7 @@ void main() {
     // Android SAF を未対応と規定している**(REQ-017 / OP-004)ためである。
     //
     // この test は `T07` が切り替えた時点で落ちる。**そのとき消すのではなく、
-    // 「Android が `createAndroidRenameExecutor` を返す」検査へ置き換えること。**
+    // 「Android が `DesktopRenameExecutor` を返す」検査へ置き換えること。**
     final source = await File(
       'lib/data/rename_exec/platform_rename_executor.dart',
     ).readAsString();
@@ -757,31 +757,42 @@ void main() {
       contains('if (Platform.isAndroid) return const SafRenameExecutor();'),
       reason: '退避経路(ADR-002)を wiring から外すのは `T07`',
     );
-    expect(
-      source.contains('createAndroidRenameExecutor'),
-      isTrue,
-      reason: '切り替え先と理由が doc comment に書かれている',
-    );
   });
 
-  test('EINVAL を unsupported へ写すのは Android のときだけ', () async {
+  test('EINVAL / ENOSYS を劣化要求へ写すのは Android のときだけ', () async {
     // `renameat2` は filesystem が flag を解釈できないと EINVAL を返す。Android は
     // 共有 storage が FUSE を経由するのでこの経路が現実的に起きる(013 REQ-005 で
-    // 劣化させる)。**desktop の写像は変えない**(013 は desktop の振る舞いを変えない)。
+    // 劣化させる)。**desktop は UNSUPPORTED のままにする** — あちらは「落として
+    // よい」とは言っておらず、劣化させると 005 INV-002 の保証が desktop でも
+    // 弱まる(ADR-003)。
+    //
+    // **これは source 文字列の検査である。** Android 向けにコンパイルできない以上、
+    // 他に固定する手段が無い。壊れやすさは承知のうえで、`013:T08` の実機確認が
+    // 本物の保証を持つまでの代用として置いている。
     final source = await File('src/native_exclusive_rename.c').readAsString();
-    // `brm_rename_no_replace_utf8` は未対応 platform の分岐にも現れるので、
-    // errno 写像の直後にある**最後の**定義までを切り取る。
     final mapping = source.substring(
       source.indexOf('brm_result_from_errno'),
       source.lastIndexOf('BRM_EXPORT int32_t brm_rename_no_replace_utf8'),
     );
 
-    expect(mapping, contains('#if defined(__ANDROID__)'));
-    final einval = mapping.indexOf('case EINVAL:');
     final guard = mapping.indexOf('#if defined(__ANDROID__)');
-    final endif = mapping.indexOf('#endif', guard);
-    expect(einval, greaterThan(guard), reason: 'EINVAL は Android 分岐の中にある');
-    expect(einval, lessThan(endif));
+    final elseBranch = mapping.indexOf('#else', guard);
+    expect(guard, greaterThan(-1), reason: 'Android 分岐がある');
+    final android = mapping.substring(guard, elseBranch);
+    final desktop = mapping.substring(elseBranch);
+
+    expect(android, contains('case EINVAL:'));
+    expect(android, contains('return BRM_RENAME_FALLBACK_REQUIRED;'));
+    expect(
+      desktop.contains('case EINVAL:'),
+      isFalse,
+      reason: 'desktop の EINVAL は IO のまま(013 は desktop を変えない)',
+    );
+    expect(
+      desktop,
+      contains('return BRM_RENAME_UNSUPPORTED;'),
+      reason: 'desktop は劣化を要求しない',
+    );
   });
 }
 

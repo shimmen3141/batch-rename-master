@@ -78,8 +78,8 @@
     {
       "id": "M11",
       "file": "lib/data/rename_exec/desktop_rename_executor.dart",
-      "find": "rollback = await _probe.exists(handle)\n          ? NativeRenameResult.nameConflict\n          : await _rename(temporary, handle);",
-      "replace": "rollback = await _rename(temporary, handle);",
+      "find": "rollback = await _probe.exists(handle)\n          ? NativeRenameResult.nameConflict\n          : await _renameOnce(temporary, handle);",
+      "replace": "rollback = await _renameOnce(temporary, handle);",
       "note": "巻き戻し先の実在確認除去"
     },
     {
@@ -308,73 +308,94 @@
     },
     {
       "id": "M44",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "    if (result != NativeRenameResult.unsupported) return result;",
-      "replace": "    if (false) return result;",
-      "note": "常に通常renameへ落とす(no-replaceを一度も使わない。013 REQ-005の逆方向)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "常に通常renameへ落とす(no-replaceを一度も使わない。013 REQ-005の逆方向)",
+      "find": "    final result = await _rename(source, destination);\n    if (result != NativeRenameResult.fallbackRequired) return result;\n    return _plainRename(source, destination);",
+      "replace": "    await _rename(source, destination);\n    return _plainRename(source, destination);"
     },
     {
       "id": "M45",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "    final result = await exclusive(source, destination);\n    if (result != NativeRenameResult.unsupported) return result;",
-      "replace": "    final result = await exclusive(source, destination);\n    return result;",
-      "note": "劣化経路を除去(flagが効かない端末で改名できなくなる。013 REQ-005)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "劣化経路を除去(flagが効かない端末で改名できなくなる。013 REQ-005)",
+      "find": "    if (result != NativeRenameResult.fallbackRequired) return result;\n    return _plainRename(source, destination);",
+      "replace": "    return result;"
     },
     {
       "id": "M46",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "  } on PathNotFoundException {\n    return NativeRenameResult.notFound;",
-      "replace": "  } on PathNotFoundException {\n    return NativeRenameResult.io;",
-      "note": "通常renameのnotFound分類を潰す"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "unsupportedも劣化させる(desktopで005 INV-002の保証が弱まる。013はdesktopを変えない)",
+      "find": "    if (result != NativeRenameResult.fallbackRequired) return result;",
+      "replace": "    if (result != NativeRenameResult.fallbackRequired &&\n        result != NativeRenameResult.unsupported) {\n      return result;\n    }"
     },
     {
       "id": "M47",
       "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)",
       "find": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        RENAME_NOREPLACE);",
-      "replace": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination, 0);",
-      "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)"
+      "replace": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        0);"
     },
     {
       "id": "M48",
-      "file": "lib/data/rename_exec/native_exclusive_rename.dart",
-      "find": "  'linux' || 'macos' || 'android' => true,",
-      "replace": "  'linux' || 'macos' => true,",
-      "note": "AndroidをDart側のnative呼び出しから外す(常にunsupported=常に劣化。renameat2が製品から消える)"
+      "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのEINVAL/ENOSYSを劣化要求ではなくunsupportedへ戻す(flagが効かない端末で改名できない。013 REQ-005)",
+      "find": "      return BRM_RENAME_FALLBACK_REQUIRED;",
+      "replace": "      return BRM_RENAME_UNSUPPORTED;"
     },
     {
       "id": "M49",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "  rename: androidRenameOperation(\n    exclusiveRename: exclusiveRename,\n    plainRename: plainRename,\n  ),",
-      "replace": "  rename: exclusiveRename ?? _exclusiveRename,",
-      "note": "production wiringから劣化経路を外す(013 REQ-005が破れる)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "通常の改名経路を劣化を通らない側へ戻す(013 REQ-005が破れる)",
+      "find": "      final nativeResult = await _renameOnce(handle, destination);",
+      "replace": "      final nativeResult = await _rename(handle, destination);"
     },
     {
       "id": "M50",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "  final exclusive = exclusiveRename ?? _exclusiveRename;",
-      "replace": "  final exclusive = exclusiveRename ?? plainRenameFile;",
-      "note": "既定のexclusiveRenameを通常renameへすり替える(RENAME_NOREPLACEを一度も使わない。005 INV-002)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の排他renameを通常renameへすり替える(RENAME_NOREPLACEを一度も使わない。005 INV-002)",
+      "find": "  }) : _rename = rename ?? _exclusiveRename,",
+      "replace": "  }) : _rename = rename ?? plainRenameFile,"
     },
     {
       "id": "M51",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": "  final plain = plainRename ?? plainRenameFile;",
-      "replace": "  final plain = plainRename ?? ((_, _) async => NativeRenameResult.unsupported);",
-      "note": "既定のplainRenameを潰す(flagが効かない端末で改名できない。013 REQ-005)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の通常renameを潰す(flagが効かない端末で改名できない。013 REQ-005)",
+      "find": "       _plainRename = plainRename ?? plainRenameFile,",
+      "replace": "       _plainRename =\n           plainRename ?? ((_, _) async => NativeRenameResult.unsupported),"
     },
     {
       "id": "M52",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
-      "find": ") async => renameFileWithoutOverwrite(source, destination);",
-      "replace": ") async => NativeRenameResult.unsupported;",
-      "note": "既定の排他renameを常にunsupportedにする(renameat2が製品から消える)"
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の排他renameを常にunsupportedにする(renameat2が製品から消える)",
+      "find": "  ) async => renameFileWithoutOverwrite(source, destination);",
+      "replace": "  ) async => NativeRenameResult.unsupported;"
     },
     {
       "id": "M53",
-      "file": "lib/data/rename_exec/android_rename_executor.dart",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameのpermissionDenied分類を潰す",
       "find": "  } on PathAccessException {\n    return NativeRenameResult.permissionDenied;",
-      "replace": "  } on PathAccessException {\n    return NativeRenameResult.io;",
-      "note": "通常renameのpermissionDenied分類を潰す"
+      "replace": "  } on PathAccessException {\n    return NativeRenameResult.io;"
+    },
+    {
+      "id": "M54",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameのnotFound分類を潰す",
+      "find": "  } on PathNotFoundException {\n    return NativeRenameResult.notFound;",
+      "replace": "  } on PathNotFoundException {\n    return NativeRenameResult.io;"
+    },
+    {
+      "id": "M55",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameの一般IO失敗を成功として返す(改名していないのにRenamedになる。独立review attempt 3 のX1)",
+      "find": "  } on FileSystemException {\n    return NativeRenameResult.io;",
+      "replace": "  } on FileSystemException {\n    return NativeRenameResult.success;"
+    },
+    {
+      "id": "M56",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "一時名経路だけ劣化を通さない(重複名の改名だけが効かない端末で失敗する)",
+      "find": "      final result = await _renameOnce(handle, candidate);",
+      "replace": "      final result = await _rename(handle, candidate);"
     }
   ]
 }

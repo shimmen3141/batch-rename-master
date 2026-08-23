@@ -53,7 +53,12 @@ enum brm_rename_result {
   BRM_RENAME_NOT_FOUND = 2,
   BRM_RENAME_PERMISSION_DENIED = 3,
   BRM_RENAME_UNSUPPORTED = 4,
-  BRM_RENAME_IO = 5
+  BRM_RENAME_IO = 5,
+  /* このplatformでは排他的renameを利用できなかった。呼び出し側は実在確認を済ませた
+   * うえで通常renameへ落としてよい(013 REQ-005)。**UNSUPPORTEDとは意味が違う** —
+   * UNSUPPORTEDは「この機能自体を提供しない」で、落としてよいとは言っていない。
+   * 現状これを返すのはAndroidだけである。desktopは従来どおりUNSUPPORTEDを返す。 */
+  BRM_RENAME_FALLBACK_REQUIRED = 6
 };
 
 #if defined(BRM_UNSUPPORTED_PLATFORM)
@@ -107,19 +112,28 @@ static int32_t brm_result_from_errno(int error) {
     case EPERM:
     case EROFS:
       return BRM_RENAME_PERMISSION_DENIED;
+/* 「排他 rename が使えない」を表す errno。ここから先の分岐だけが platform 依存である。
+ *
+ * Android: 通常 rename へ落としてよい(013 REQ-005)。renameat2 は filesystem が flag を
+ *   解釈できないとき EINVAL を返し、Android では共有 storage が MediaProvider の FUSE を
+ *   経由するのでこの経路が現実に起きる。**この判断は OS を知っている唯一の層である
+ *   ここで行い、Dart へは OS ではなく「落としてよい」という結果だけを渡す**(ADR-003)。
+ * desktop: 従来どおり UNSUPPORTED。落としてよいとは言わない(005 INV-002 を保つ)。
+ *   EINVAL は desktop では IO のままである(013 は desktop の振る舞いを変えない)。 */
+#if defined(__ANDROID__)
+    case EINVAL:
     case ENOSYS:
 #ifdef ENOTSUP
     case ENOTSUP:
 #endif
-#if defined(__ANDROID__)
-    /* renameat2 は、filesystem が flag を解釈できないとき EINVAL を返す。
-     * Android では共有 storage が MediaProvider の FUSE を経由するため、この経路が
-     * 現実的に起きる。013 REQ-005 は「フラグが使えない端末でも対応外にしない」と
-     * 定めており、呼び出し側は UNSUPPORTED を見て実在確認による代替経路へ落とす。
-     * **desktop では従来どおり IO のままにする**(013 は desktop の振る舞いを変えない)。 */
-    case EINVAL:
+      return BRM_RENAME_FALLBACK_REQUIRED;
+#else
+    case ENOSYS:
+#ifdef ENOTSUP
+    case ENOTSUP:
 #endif
       return BRM_RENAME_UNSUPPORTED;
+#endif
     default:
       return BRM_RENAME_IO;
   }
