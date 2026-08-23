@@ -715,17 +715,19 @@ void main() {
     expect(
       call,
       contains(
-        'syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination',
+        'syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination',
       ),
       reason: 'wrapper ではなく生の syscall',
     );
     expect(
       call,
-      contains('RENAME_NOREPLACE'),
-      reason: '**この呼び出しに** flag が渡っている(外すと置換 rename になる)',
+      contains('BRM_RENAME_NOREPLACE'),
+      reason:
+          '**この呼び出しに** flag が渡っている(外すと置換 rename になる)。'
+          '値が正しいかは `native_constants_test.dart` が実 kernel header と照合する',
     );
-    // **arch 別の番号と flag 値は、下の「自作定数の表」がまとめて見る。**
-    // ここで1件ずつ contains すると、表に載せ忘れた定数が黙って通る。
+    // **arch 別の番号と flag 値は `native_constants_test.dart` が見る。**
+    // preprocessor で arch ごとに取り出し、実 kernel header と突き合わせている。
   });
 
   test('composition root はまだ Android を切り替えていない(`T07` が切り替える)', () async {
@@ -746,131 +748,9 @@ void main() {
     );
   });
 
-  // **C の Android 分岐で自作した定数を、1つの表からまとめて検査する。**
-  //
-  // Android 向けにコンパイルできない以上、source を読む以外に固定する手段が無い。
-  // ただし「この行がある」を1件ずつ書くと、**表に載せ忘れた定数が黙って通る** —
-  // 独立review attempt 4 は `ENOSYS` の写像が、attempt 5 は `RENAME_NOREPLACE` の
-  // 自作定義値(`(1 << 0)`。`(1 << 1)` は `RENAME_EXCHANGE` で**2つの file が入れ替わる**)
-  // が、それぞれ検査から漏れていることを見つけた。**同じ根本原因が2回続いたので、
-  // 1件ずつ足すのをやめて表にした**(AGENTS.md「解き方を変える」)。
-  //
-  // 表は**完全一致**で突き合わせる。source に増えた定数は「未登録」で落ち、
-  // 表から消えた定数は「実装に無い」で落ちる。
-  group('C で自作した定数(Android 分岐)', () {
-    /// `#define NAME value` を `NAME=value` へ正規化して集める。
-    List<String> definesOf(String source) => [
-      for (final m in RegExp(
-        r'^#define[ \t]+(\w+)[ \t]*(.*)$',
-        multiLine: true,
-      ).allMatches(source))
-        '${m.group(1)}=${m.group(2)!.trim()}',
-    ]..sort();
-
-    /// `brm_result_from_errno` の `case` を、`__ANDROID__` guard の内外で分けて集める。
-    ///
-    /// `both` = guard の外(platform に依らない)、`android` / `desktop` = guard の中。
-    Map<String, String> errnoMappingOf(String source) {
-      final body = source.substring(
-        source.indexOf('static int32_t brm_result_from_errno'),
-        source.indexOf(
-          '\n}',
-          source.indexOf('static int32_t brm_result_from_errno'),
-        ),
-      );
-      final found = <String, String>{};
-      final pending = <String>[];
-      var branch = 'both';
-      var depth = 0; // guard の中で入れ子になった #if の深さ
-      for (final raw in body.split('\n')) {
-        final line = raw.trim();
-        if (line == '#if defined(__ANDROID__)' && branch == 'both') {
-          branch = 'android';
-          depth = 0;
-          continue;
-        }
-        if (branch != 'both') {
-          if (line.startsWith('#if')) {
-            depth++;
-            continue;
-          }
-          if (line == '#else' && depth == 0) {
-            branch = 'desktop';
-            continue;
-          }
-          if (line == '#endif') {
-            if (depth > 0) {
-              depth--;
-            } else {
-              branch = 'both';
-            }
-            continue;
-          }
-        }
-        final label = RegExp(r'^case\s+(\w+):$').firstMatch(line);
-        if (label != null) {
-          pending.add(label.group(1)!);
-          continue;
-        }
-        final result = RegExp(r'^return\s+(BRM_RENAME_\w+);$').firstMatch(line);
-        if (result != null) {
-          for (final errno in pending) {
-            found['$branch/$errno'] = result.group(1)!;
-          }
-          pending.clear();
-        }
-      }
-      return found;
-    }
-
-    test('自作した `#define` は表と完全に一致する', () async {
-      final source = await File('src/native_exclusive_rename.c').readAsString();
-
-      expect(
-        definesOf(source),
-        // **値まで見る。** `RENAME_NOREPLACE` を `(1 << 1)` にすると
-        // `RENAME_EXCHANGE`(交換)になり、005 INV-002 / OP-004 が破れる。
-        // syscall 番号は kernel の uapi header と照合済み
-        // (x86_64=316、i386=353、asm-generic=276。`__arm__` だけ未照合で `T08` が見る)。
-        <String>[
-          'BRM_EXPORT=__attribute__((visibility("default")))',
-          'BRM_EXPORT=__declspec(dllexport)',
-          'RENAME_NOREPLACE=(1 << 0)',
-          'SYS_renameat2=276',
-          'SYS_renameat2=316',
-          'SYS_renameat2=353',
-          'SYS_renameat2=382',
-          '_GNU_SOURCE=',
-        ],
-        reason: '未登録の自作定数が増えたか、登録した定数が実装から消えた',
-      );
-    });
-
-    test('`errno` の写像は表と完全に一致し、劣化を要求するのは Android だけである', () async {
-      final source = await File('src/native_exclusive_rename.c').readAsString();
-
-      expect(errnoMappingOf(source), {
-        // platform に依らない分類。
-        'both/EEXIST': 'BRM_RENAME_NAME_CONFLICT',
-        'both/ENOTEMPTY': 'BRM_RENAME_NAME_CONFLICT',
-        'both/ENOENT': 'BRM_RENAME_NOT_FOUND',
-        'both/ENOTDIR': 'BRM_RENAME_NOT_FOUND',
-        'both/EACCES': 'BRM_RENAME_PERMISSION_DENIED',
-        'both/EPERM': 'BRM_RENAME_PERMISSION_DENIED',
-        'both/EROFS': 'BRM_RENAME_PERMISSION_DENIED',
-        // **Android だけが「落としてよい」と言う**(013 REQ-005 / VER-005)。
-        // `EINVAL` = filesystem が flag を解釈できない(FUSE 経由の共有 storage)。
-        // `ENOSYS` = kernel に `renameat2` が無い(spec D-1 が想定した端末)。
-        'android/EINVAL': 'BRM_RENAME_FALLBACK_REQUIRED',
-        'android/ENOSYS': 'BRM_RENAME_FALLBACK_REQUIRED',
-        'android/ENOTSUP': 'BRM_RENAME_FALLBACK_REQUIRED',
-        // **desktop は劣化しない**(013 は desktop の振る舞いを変えない)。
-        // `EINVAL` は desktop では `default` の `IO` へ落ちる。
-        'desktop/ENOSYS': 'BRM_RENAME_UNSUPPORTED',
-        'desktop/ENOTSUP': 'BRM_RENAME_UNSUPPORTED',
-      }, reason: '未登録の errno が増えたか、写像先が変わった');
-    });
-  });
+  // **C で自作した定数と errno 写像は `native_constants_test.dart` が見る。**
+  // source を正規表現で読むのをやめ、preprocessor と実 kernel header を oracle に
+  // した(ADR-003 の追補、独立review attempt 6)。ここには置かない。
 
   test('C の結果 enum と Dart の [NativeRenameResult] は index が一致する', () async {
     // `_resultOf` は `NativeRenameResult.values[value]` で C の整数を素通しする。

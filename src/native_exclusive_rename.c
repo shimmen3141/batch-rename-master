@@ -20,23 +20,16 @@
  * 013 spec の D-1「minSdk は 24 のまま、対応可否を実行時に判定する」に従う。 */
 #include <sys/syscall.h>
 #include <unistd.h>
-#ifndef RENAME_NOREPLACE
-#define RENAME_NOREPLACE (1 << 0)
+/* ABI 定数は includes を持たない header が正本である(そこの注記を読むこと)。
+ * ここでは system 定義があるときに一致を compile 時に確かめる。 */
+#include "brm_renameat2_abi.h"
+#ifdef RENAME_NOREPLACE
+_Static_assert(BRM_RENAME_NOREPLACE == RENAME_NOREPLACE,
+               "BRM_RENAME_NOREPLACE does not match the kernel header");
 #endif
-/* SYS_renameat2 が header に無い環境でも呼べるよう arch 別の番号を持つ。
- * 出典: 013:T01 の spike(検証済みの参照実装)。 */
-#ifndef SYS_renameat2
-#if defined(__aarch64__)
-#define SYS_renameat2 276
-#elif defined(__x86_64__)
-#define SYS_renameat2 316
-#elif defined(__arm__)
-#define SYS_renameat2 382
-#elif defined(__i386__)
-#define SYS_renameat2 353
-#else
-#error "SYS_renameat2 unknown for this architecture"
-#endif
+#ifdef __NR_renameat2
+_Static_assert(BRM_SYS_RENAMEAT2 == __NR_renameat2,
+               "BRM_SYS_RENAMEAT2 does not match __NR_renameat2 for this arch");
 #endif
 #endif
 #endif
@@ -146,8 +139,8 @@ BRM_EXPORT int32_t brm_rename_no_replace_utf8(const char *source,
   result = renamex_np(source, destination, RENAME_EXCL);
 #elif defined(__ANDROID__)
   /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */
-  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,
-                        RENAME_NOREPLACE);
+  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,
+                        BRM_RENAME_NOREPLACE);
 #else
   result = renameat2(AT_FDCWD, source, AT_FDCWD, destination,
                      RENAME_NOREPLACE);
