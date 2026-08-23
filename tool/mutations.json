@@ -480,6 +480,34 @@
       "note": "未知archで#errorせず既定値を使う(黙って別のsyscallを呼ぶ)",
       "find": "#error \"SYS_renameat2 unknown for this architecture\"",
       "replace": "#define BRM_SYS_RENAMEAT2 316"
+    },
+    {
+      "id": "M69",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前にif文でEINVALの劣化を足す(desktopで005 INV-002が黙って外れる。attempt 7 のW1)",
+      "find": "static int32_t brm_result_from_errno(int error) {\n  switch (error) {",
+      "replace": "static int32_t brm_result_from_errno(int error) {\n  if (error == EINVAL) return BRM_RENAME_FALLBACK_REQUIRED;\n  switch (error) {"
+    },
+    {
+      "id": "M70",
+      "file": "src/native_exclusive_rename.c",
+      "note": "写像関数の外(呼び出し側)でEINVALを劣化要求へ写す(attempt 7 のW2)",
+      "find": "  const int error = errno;\n  return brm_result_from_errno(error);",
+      "replace": "  const int error = errno;\n  if (error == EINVAL) return BRM_RENAME_FALLBACK_REQUIRED;\n  return brm_result_from_errno(error);"
+    },
+    {
+      "id": "M71",
+      "file": "src/native_exclusive_rename.c",
+      "note": "_Static_assertの後でflagを再定義する(実際に渡る値が交換になる。attempt 7 のW3)",
+      "find": "               \"BRM_SYS_RENAMEAT2 does not match __NR_renameat2 for this arch\");\n#endif",
+      "replace": "               \"BRM_SYS_RENAMEAT2 does not match __NR_renameat2 for this arch\");\n#endif\n#undef BRM_RENAME_NOREPLACE\n#define BRM_RENAME_NOREPLACE (1 << 1)"
+    },
+    {
+      "id": "M72",
+      "file": "src/native_exclusive_rename.c",
+      "note": "呼び出しにRENAME_EXCHANGEを足す(名前は残るのでsource assertは通る。attempt 7 のW4)",
+      "find": "                        BRM_RENAME_NOREPLACE);",
+      "replace": "                        BRM_RENAME_NOREPLACE | (1 << 1));"
     }
   ]
 }
