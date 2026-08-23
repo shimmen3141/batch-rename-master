@@ -57,7 +57,7 @@
 - 選択したfileがどのfolderに属するかを保持する。**別の媒体(SDカード、USB)を跨いだ選択でfolderの区別が失われないこと**をtestで検査する。`T10`が対象folderの実在entry名をfolder単位で列挙し占有名を作るため、ここで潰すと衝突判定が正しい単位で行えない。
 - **`listNames`(004 REQ-014)がAndroidで成功し、読み込んでいないfileとの衝突が実行前に警告として出ることを確認する**(005 REQ-026 / 例25)。**`T10`はこの受け入れをdesktopでしか満たしていない** — SAFは`pickFiles`で1fileずつの読み取り権限しか取らず親folderを列挙できないため、現在の`SafFileSource.listNames`は理由付きの失敗を返し、REQ-027により実行が止まる。app内browserが持つ列挙権限で`listNames`を実装し直すのはこのtaskである。`plan.md`の全体の受け入れ証拠「**Androidで**、同じことが成立する」はここが証拠元になる。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
-- **Androidで`createPlatformRenameExecutor()`が`DesktopRenameExecutor`を返す**ことをtestで検査する(013 REQ-005 / REQ-006 が製品の経路に載る)。`platform_rename_executor_test.dart`の「composition rootはまだAndroidを切り替えていない」testは**消さずにこの検査へ置き換える**。
+- **Androidで`createPlatformRenameExecutor()`が`DesktopRenameExecutor`を返す**ことをtestで検査する(013 REQ-005 / REQ-006 が製品の経路に載る)。- **`T05`が受容した残余riskのうち2件を再判定する。** `T05`の「受容した残余risk」表の1行目(CのAndroid分岐の実挙動)と4行目(劣化経路)は、**このtaskが切り替えた時点で条件1(製品経路に載っている)が成立する**。AGENTS.mdの3条件で判定し直し、満たすものはここで閉じる(満たさないものは`T08`へ渡す)。`platform_rename_executor_test.dart`の「composition rootはまだAndroidを切り替えていない」testは**消さずにこの検査へ置き換える**。
 - **`saf_rename_executor.dart`のnegative testが継続PASSする**(退避経路の維持)。
 - **005 contractの再承認を得ている**(REQ-017 / OP-004 / REQ-025 / 用語「ハンドル」)。
 - [`manual-verification.md`](manual-verification.md)で実機の選択導線を確認する。

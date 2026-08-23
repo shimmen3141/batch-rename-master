@@ -29,7 +29,7 @@ AGENTS.mdの「同じtaskで独立reviewが合計3回FAILしたら`blocked`に�
 | 外部案の前提 | このrepoの実際 | 採否 |
 | --- | --- | --- |
 | Dart側のOS許可リストを消すと、未知OSで**symbol解決に失敗する**のが唯一の代償 | `hook/build.dart`はiOSにだけ`BRM_UNSUPPORTED_PLATFORM`を付け、**全targetOSで同じsymbolをbuildする**。native assetがbundleされるOSでは必ずexportされる | **採る。**懸念は実質消える |
-| 全platform共通UTF-8 ABI(WindowsもUTF-8で渡しC内でUTF-16へ変換) | Dart側のWindows分岐には`_extendedWindowsPath`(`\\?\` prefix)が同居しており、**これは純関数として既にtestされている**。ABIを統一するとこれもCへ移る = **testできるDartコードを、この環境では`gcc -fsyntax-only`すら通せないC(`windows.h`不在)へ移す** | **採らない。**目的と逆方向 |
+| 全platform共通UTF-8 ABI(WindowsもUTF-8で渡しC内でUTF-16へ変換) | Dart側のWindows分岐には`_extendedWindowsPath`(`\\?\` prefix)が同居している。**これはDartの純関数なので、Linux上でtestできる形にある**(現時点でtestは書かれていない)。ABIを統一するとこれもCへ移る = **testできる場所にあるDartコードを、この環境では`gcc -fsyntax-only`すら通せないC(`windows.h`不在)へ移す** | **採らない。**目的と逆方向 |
 | 同上。unpaired surrogateの往復欠損に注意が要る | Windows実機が無く**検証手段が無い**。005のWindows manual証拠も再取得が必要になる | **採らない。**未検証のまま交換できない |
 | `unsupported`を「機能が無い」と「fallbackしてよい」に割り、OS identityを結果値へ変える | Cの`EINVAL`写像は既に`#if defined(__ANDROID__)`限定 = **OS判定は最初からC側にある**。desktopは`unsupported → RenameError`のまま維持できる | **採る** |
 | 「この行が存在する」source assertではなく「禁止された依存が存在しない」検査にする | `platform_rename_executor_test.dart`に、**まさにその避けるべき形のassertが18件**ある(`T05`のreview対応で自分が足したもの) | **採る** |
