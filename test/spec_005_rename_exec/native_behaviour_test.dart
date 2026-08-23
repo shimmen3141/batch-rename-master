@@ -9,8 +9,15 @@
 // 読み取りを賢くする方向では閉じない。**読める範囲の外**が毎回残るからである。
 //
 // ここでは `test/native/renameat2_harness.c` が `syscall` / `renameat2` を shim へ
-// 差し替えて製品の関数をそのまま呼び、**実際に渡った syscall 番号と flag**、
-// **errno から返る結果**を観測する。書き方に一切依存しない。
+// 差し替えて製品の関数をそのまま呼び、**この関数の入口と出口**を観測する —
+// 渡った syscall 番号・flag・dirfd・path、呼び出し回数、errno から返る結果。
+// source の書き方には依存しない。
+//
+// **観測できないもの**(独立review attempt 8 の P1-1): host(x86_64)以外の arch の
+// syscall 番号。host 上でしか実行できないので、他 arch の値は
+// `native_constants_test.dart` が実 kernel header と突き合わせ、`__arm__` は
+// `013:T08` の実機確認が引き受ける。**「渡る値が変われば必ず落ちる」は
+// host arch についての主張である。**
 //
 // **Android 向けの実 compile と実機挙動はここでは見ない**(AI container に NDK が
 // 無い)。`renameat2` が本当に効くかは `013:T08` が実機で見る。
@@ -26,10 +33,19 @@ import 'package:path/path.dart' as p;
 const _source = 'src/native_exclusive_rename.c';
 const _harness = 'test/native/renameat2_harness.c';
 
-/// 観測1件。
+/// 観測1件。**6引数すべてと呼び出し回数を持つ。**
+///
+/// 番号と flag だけを見ていたときは、引数の入れ替え・dirfd の差し替え・
+/// 「先に別の flag で1回呼ぶ」が素通りした(独立review attempt 8 の P1-1)。
 typedef _Observation = ({
   int syscallNumber,
   int flags,
+  int oldDirFd,
+  int newDirFd,
+  String oldPath,
+  String newPath,
+  int calls,
+  int atFdCwd,
   NativeRenameResult result,
 });
 
@@ -64,19 +80,27 @@ Map<String, _Observation> _observe({required bool android}) {
   final observations = <String, _Observation>{};
   for (final line in (run.stdout as String).trim().split('\n')) {
     final match = RegExp(
-      r'^(\w+) nr=(-?\d+) flags=(\d+) result=(-?\d+)$',
+      r'^(\w+) nr=(-?\d+) flags=(\d+) olddirfd=(-?\d+) newdirfd=(-?\d+) '
+      r'oldpath=(\S*) newpath=(\S*) calls=(\d+) atfdcwd=(-?\d+) '
+      r'result=(-?\d+)$',
     ).firstMatch(line.trim());
     if (match == null) {
       // **読めない行を捨てない。** それが4回続いた漏れの作り方である。
       throw StateError('harness の出力を読めない: `$line`');
     }
-    final code = int.parse(match.group(4)!);
+    final code = int.parse(match.group(10)!);
     if (code < 0 || code >= NativeRenameResult.values.length) {
       throw StateError('未知の結果コード $code が返った: `$line`');
     }
     observations[match.group(1)!] = (
       syscallNumber: int.parse(match.group(2)!),
       flags: int.parse(match.group(3)!),
+      oldDirFd: int.parse(match.group(4)!),
+      newDirFd: int.parse(match.group(5)!),
+      oldPath: match.group(6)!,
+      newPath: match.group(7)!,
+      calls: int.parse(match.group(8)!),
+      atFdCwd: int.parse(match.group(9)!),
       result: NativeRenameResult.values[code],
     );
   }
@@ -112,6 +136,19 @@ void main() {
           1,
           reason: '${entry.key} の呼び出しで flag が 1 ではない',
         );
+      }
+    });
+
+    test('引数は「現在のdirectory基準で source を destination へ」1回だけである', () {
+      for (final entry in observed.entries) {
+        final o = entry.value;
+        expect(o.calls, 1, reason: '${entry.key}: 呼び出し回数が1ではない');
+        expect(o.oldPath, 'source', reason: '${entry.key}: 元の path');
+        expect(o.newPath, 'destination', reason: '${entry.key}: 目標の path');
+        // 入れ替わると改名が逆向きになり、013 REQ-005 / REQ-006 が製品として
+        // 一切成立しない(常に notFound)。
+        expect(o.oldDirFd, o.atFdCwd, reason: '${entry.key}: 元の dirfd');
+        expect(o.newDirFd, o.atFdCwd, reason: '${entry.key}: 目標の dirfd');
       }
     });
 
@@ -159,6 +196,19 @@ void main() {
           isNot(NativeRenameResult.fallbackRequired),
           reason: '${entry.key} が desktop で劣化を要求している',
         );
+      }
+    });
+
+    test('引数は「現在のdirectory基準で source を destination へ」1回だけである', () {
+      for (final entry in observed.entries) {
+        final o = entry.value;
+        expect(o.calls, 1, reason: '${entry.key}: 呼び出し回数が1ではない');
+        expect(o.oldPath, 'source', reason: '${entry.key}: 元の path');
+        expect(o.newPath, 'destination', reason: '${entry.key}: 目標の path');
+        // 入れ替わると改名が逆向きになり、013 REQ-005 / REQ-006 が製品として
+        // 一切成立しない(常に notFound)。
+        expect(o.oldDirFd, o.atFdCwd, reason: '${entry.key}: 元の dirfd');
+        expect(o.newDirFd, o.atFdCwd, reason: '${entry.key}: 目標の dirfd');
       }
     });
 

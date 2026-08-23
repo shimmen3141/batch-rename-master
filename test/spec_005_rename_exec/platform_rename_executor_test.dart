@@ -694,6 +694,13 @@ void main() {
       isFalse,
       reason: 'Android を未対応の側へ戻さない(013 REQ-005)',
     );
+    expect(
+      hook,
+      contains("includes: ['src']"),
+      reason:
+          'header を build 依存として宣言する。無いと `brm_renameat2_abi.h` を'
+          '編集しても再 build されず、古い .so が残る(`013:T08` の反復に効く)',
+    );
     expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
     expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
   });

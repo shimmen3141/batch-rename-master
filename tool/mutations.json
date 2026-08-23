@@ -508,6 +508,34 @@
       "note": "呼び出しにRENAME_EXCHANGEを足す(名前は残るのでsource assertは通る。attempt 7 のW4)",
       "find": "                        BRM_RENAME_NOREPLACE);",
       "replace": "                        BRM_RENAME_NOREPLACE | (1 << 1));"
+    },
+    {
+      "id": "M73",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐で先にRENAME_EXCHANGEで1回呼ぶ(2つのfileが黙って入れ替わる。harnessが最後の呼び出ししか見ていないと素通りする。attempt 8 のN06)",
+      "find": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);",
+      "replace": "  (void)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                (1 << 1));\n  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);"
+    },
+    {
+      "id": "M74",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐でAT_FDCWDを0へ再定義する(source文字列は変わらない。相対pathの基準が壊れる。attempt 8 のN10)",
+      "find": "#elif defined(__ANDROID__)\n  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */",
+      "replace": "#elif defined(__ANDROID__)\n#undef AT_FDCWD\n#define AT_FDCWD 0\n  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */"
+    },
+    {
+      "id": "M75",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐でsourceとdestinationを実行時に入れ替える(source文字列は変わらない。改名が逆向きになり013 REQ-005/006が成立しない。attempt 8 のN11)",
+      "find": "  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */\n  result = (int)syscall(",
+      "replace": "  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */\n  { const char *brm_t = source; source = destination; destination = brm_t; }\n  result = (int)syscall("
+    },
+    {
+      "id": "M76",
+      "file": "hook/build.dart",
+      "note": "headerの依存宣言を取り除く(header編集で再buildされず古い.soが残る。attempt 8 のN09)",
+      "find": "      includes: ['src'],",
+      "replace": ""
     }
   ]
 }
