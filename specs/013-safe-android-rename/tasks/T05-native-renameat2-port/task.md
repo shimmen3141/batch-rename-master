@@ -414,19 +414,20 @@ ADR-003 で `androidRenameOperation` と `createAndroidRenameExecutor` は削除
 - 2026-08-23 / **独立review attempt 8 = FAIL(P1が1件、P2が2件)。** reviewerは**shimが本物である**ことを`gcc -E`の出力で確認し(製品の呼び出し式そのものが置き換わっている)、attempt 7 の`W1`〜`W4`も全KILLEDを再現したうえで、**harnessが6引数中2つしか観測せず、最後の1回しか見ていない**ことを見つけた。引数の入れ替え・`AT_FDCWD`の差し替え・「先に別flagで1回呼ぶ」が素通りしていた。6引数と呼び出し回数を観測する形へ直し、`N06`/`N10`/`N11`/`N09`を`M73`〜`M76`として取り込んで全KILLEDを確認した。**host arch以外のsyscall番号は実行検証できない**ので、その旨を4箇所の主張へ明記した。
 - 2026-08-23 / **独立review attempt 9 = FAIL(P1が2件、P2が7件)。`blocked`。** reviewerは`M44`〜`M76`の33件すべてKILLEDを再現し、**attempt 8 のP1-1(観測する引数の範囲)は閉じている**と判定した。そのうえで、**穴が「引数の範囲」から「errnoの範囲」へ移っただけ**であることを**対照つき**で示した — `R07`(`switch`の前で`ENOSPC`を成功として返す)はSURVIVED、`R09`(**まったく同じ形**で`EEXIST`にしただけ)はKILLED。**差は「その errno が harness の手書き表に載っているか」だけ**である。実害は`ENOSPC`(disk full)で失敗したのに`Renamed`が返ること(005 INV-003 / OP-004)。P1-2は「観測できないのは他archのsyscall番号だけ」という4箇所の主張が**過大**であること。P2は7件(未対応platform分岐が未固定、`hook/build.dart`のliteral依存、`task.md`の古い件数、削除済み設計を現在形で説明、存在しないmethod名のdoc、findingの未追随、full表実行の記録)。**P2のうち3件(古い件数、削除済み設計の断り書き、method名)は先に直した。**
 - 2026-08-23 / **開発者が案A′′を選択。適用した。** harnessから手書きのerrno表を消し、`0`〜`255`を全走査する。期待値はDart側の総関数(仕様)が持つ。未対応platform分岐も`-DBRM_UNSUPPORTED_PLATFORM`で実行して固定し、`hook/build.dart`のdefines判定は純関数へ出して**全OSを回して振る舞いで**検査する形にした。reviewerの`R01`〜`R08`を`M77`〜`M81`として取り込み(`R09`は`R07`の**対照**であり、errno全走査によって`M77`が同じ役割を果たすので表へは足さない)、**表全体81件が全KILLED**。P1-2(4箇所の主張が過大)とP2の残りも直した。
+- 2026-08-23 / **PR #146 を merge した**(auto-mergeの7条件をすべて確認。`dev@e3f89ea`)。`dev`上で全testと構造検査がPASSすることを確認した。
 - 2026-08-23 / **独立review attempt 10 = PASS。** 改訂後のAGENTS.md(成果物の欠陥 / 安全網の穴の分類)を適用した最初のreviewである。**成果物の欠陥はP0/P1なし、P2が3件**(ADR-003が`_extendedWindowsPath`を「既にtestされている」と書いていた、`R09`の扱いが表と記録で食い違っていた、`Evidence revision`のbaseが古かった)。**安全網の穴は複数あるが、いずれも3条件を満たさない**のでreviewerは残余riskとして報告し、FAILにしなかった。reviewerは宣言表の妥当性も実測で確認している(mingw-w64・cross toolchain・32bit ARM headerがいずれも不在で、「できない」の記載が事実と一致)。P2を3件直し、残余riskを表として記録し、`T07`へ再判定を申し送った。
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 10 = PASS。** 表全体が **81 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(509)。working treeはclean
+- Last checkpoint: **PR #146 を merge した(`dev@e3f89ea`)。** `dev`上で `flutter test` = PASS(509)、`flutter analyze` = PASS、構造検査 = PASS を確認済み
 - Blocker category: なし
-- Waiting for: PR #146 のready化とmerge
+- Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@d7f6b85`(AGENTS.md改訂の取り込みでmergeした)。**merge以降、code / dependency / build設定の差分は無い** — `git diff e18e079 HEAD -- lib src hook test tool` が空なので、81 KILLED と 509 PASS は現在のHEADのcodeに対応する
 - 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査。attempt 4 のreviewerが受容を**妥当と判定**)、`X-G`(`Platform.isWindows`分岐がLinuxで固定できない。**変更前と同型でregressionではない**)、`Y8`(`_resultOf`の範囲外分岐。attempt 5 のreviewerが「enum対応testが7値を不変条件として押さえたので到達不能であることが裏打ちされた」と判定)
 - 残余risk: **`__arm__`(382)のsyscall番号だけ照合できない。** この環境に32bit ARMのkernel headerが無い。`013:T08`の実機確認が引き受ける。**Androidの実compileと実機挙動**も同様。target OS別のbuild CIは**入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)
 - 新しい依存: **この検査は`gcc`を必要とする**(`native_constants_test.dart`、`native_behaviour_test.dart`)。AI containerとCIの`ubuntu-latest`にはある。**無い環境では黙ってskipせず`flutter test`が落ちる**(独立review attempt 7 が確認済み)
 - **人間へ回す判断(このtaskのFAIL理由ではない。`T07`/`T08`の後でよい)**: `fallbackRequired`という汎用の劣化機構ができたことで、**desktopで同じ状況が起きても劣化しない**ことが設計選択として可視化された。LinuxでNFS / CIFS / 一部FUSE上のfileを改名すると`renameat2`は`EOPNOTSUPP`を返し、現在は`unsupported`=改名が失敗する(**変更前から同じでregressionではない**)。(A) 現状維持[reviewer推奨] / (B) desktopのCでも劣化させる(005 contract再承認が要る) / (C) 劣化したことを結果として利用者へ提示する(005 / 001の仕様追加)
-- Next Agent action: **PR #146 をready化し、auto-mergeの7条件を確認してmergeする。** merge後は`dev`上の結果とCIを確認する
+- Next Agent action: なし。**このtaskは完了した。** 受容した残余riskの再判定は`T07`(製品経路へ載せる)と`T08`(実機)が引き受ける
 - **`T07`への申し送り**: `platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の行を消すのは`T07`である。**Android専用のexecutorは存在しない**(ADR-003) — 消すだけでAndroidも`DesktopRenameExecutor`を通り、劣化はnativeが返す`fallbackRequired`が駆動する。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。
