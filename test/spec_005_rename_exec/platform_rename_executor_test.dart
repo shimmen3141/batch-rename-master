@@ -741,6 +741,29 @@ void main() {
     }
   });
 
+  test('composition root はまだ Android を切り替えていない(`T07` が切り替える)', () async {
+    // **切り替えは `013:T07` の受け入れ証拠である。** Android のハンドルがまだ SAF の
+    // document URI で path として解釈できず、**005 contract revision 5.1 が今なお
+    // Android SAF を未対応と規定している**(REQ-017 / OP-004)ためである。
+    //
+    // この test は `T07` が切り替えた時点で落ちる。**そのとき消すのではなく、
+    // 「Android が `createAndroidRenameExecutor` を返す」検査へ置き換えること。**
+    final source = await File(
+      'lib/data/rename_exec/platform_rename_executor.dart',
+    ).readAsString();
+
+    expect(
+      source,
+      contains('if (Platform.isAndroid) return const SafRenameExecutor();'),
+      reason: '退避経路(ADR-002)を wiring から外すのは `T07`',
+    );
+    expect(
+      source.contains('createAndroidRenameExecutor'),
+      isTrue,
+      reason: '切り替え先と理由が doc comment に書かれている',
+    );
+  });
+
   test('EINVAL を unsupported へ写すのは Android のときだけ', () async {
     // `renameat2` は filesystem が flag を解釈できないと EINVAL を返す。Android は
     // 共有 storage が FUSE を経由するのでこの経路が現実的に起きる(013 REQ-005 で
