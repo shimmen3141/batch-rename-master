@@ -79,6 +79,11 @@ testは意味がない。呼び出し部分だけを切り出して検査する�
 
 - **Androidで実際に動くかは未確認である。** container にSDK・NDKが無く、compileすら
   していない(`gcc -fsyntax-only`はglibcのheaderでの構文検査)。**`T08`が実機で見る。**
+- **他 arch の syscall 番号は host 上で実行検証できない。** shim harness は host(x86_64)で
+  しか動かないので、`aarch64` / `__arm__` / `__i386__` の番号が**実際に呼ばれるところ**は
+  見ていない。`native_constants_test.dart` が実 kernel header と `_Static_assert` で
+  突き合わせるところまでが限界で、**`__arm__` はその照合すらできない**(header が無い)。
+  `013:T08` の実機確認が引き受ける。
 - **`__arm__`のsyscall番号だけ照合できていない。** 出典は`T01`のspikeである。
   `x86_64=316`(`asm/unistd_64.h`)、`asm-generic=276`(aarch64)、`i386=353`
   (`asm/unistd_32.h`)はこの環境のkernel headerと一致した。**32bit ARM の header は
@@ -221,9 +226,15 @@ reviewerは`M44`〜`M68`の25件すべてKILLEDを再現し、「ADR-003の構�
 **解き方の変更(4回目なので、読み取りを賢くする方向をやめた)。**
 
 `test/native/renameat2_harness.c` が `syscall` / `renameat2` を shim へ差し替え、
-**製品の関数をそのままLinux上で呼ぶ**。観測するのは実際に渡った syscall 番号と flag、
-そして errno から返る結果である。**sourceの書き方に一切依存しない** — `if`文でも、
-呼び出し側でも、`#undef`でも、補助関数でも、渡る値が変われば必ず落ちる。
+**製品の関数をそのままLinux上で呼ぶ**。観測するのは**この関数の入口と出口**である —
+渡った syscall 番号・flag・dirfd・path、呼び出し回数、errno から返る結果。
+**sourceの書き方には依存しない** — `if`文でも、呼び出し側でも、`#undef`でも、
+補助関数でも、渡る値が変われば落ちる。
+
+**観測できないもの**(独立review attempt 8 の P1-1 後段): **host(x86_64)以外の arch の
+syscall 番号**。host 上でしか実行できないためで、他 arch は `native_constants_test.dart` が
+実 kernel header と突き合わせ、`__arm__` は `013:T08` が実機で引き受ける。
+**「渡る値が変われば落ちる」は host arch についての主張である。**
 
     Android: gcc -D__ANDROID__ -Dsyscall=brm_test_syscall  <source> <harness>
     desktop: gcc -Drenameat2=brm_test_renameat2            <source> <harness>
@@ -236,6 +247,34 @@ desktop は `EINVAL`→`io`、`ENOSYS`/`ENOTSUP`→`unsupported`、**劣化を�
 
 `native_constants_test.dart` の arch別`_Static_assert`と`#error`の検査は**有効なので残す** —
 他archの番号はhost上で実行できないため、あちらが唯一の照合手段である。
+
+## 独立review attempt 8 の指摘の始末
+
+reviewerは**shimが本物であることを確認した** — `gcc -E` の出力に
+`result = (int)brm_test_syscall(316, ...)` が現れ、**製品の呼び出し式そのもの**が
+置き換わっている。別経路の再実装ではない。attempt 7 の`W1`〜`W4`も再度当てて全KILLED。
+
+そのうえで、**harnessが6引数のうち2つ(番号とflag)しか観測せず、しかも最後の1回しか
+見ていない**ことを見つけた。
+
+| reviewerの変異 | 内容 | 始末 |
+| --- | --- | --- |
+| `N11`(**P1**) | Android分岐で`source`と`destination`を**実行時に**入れ替える(source文字列は1 byteも変わらない) | **潰した。** `M75`。効くと改名が逆向きになり、**013 REQ-005 / REQ-006が製品として一切成立しない**(常に`notFound`) |
+| `N10`(**P1**) | `AT_FDCWD`を`0`へ再定義する | **潰した。** `M74`。相対pathの基準が壊れる |
+| `N06`(**P1**) | **先に**`RENAME_EXCHANGE`で1回呼び、後から正しいflagで呼ぶ | **潰した。** `M73`。効くと2つのfileが黙って入れ替わる |
+| `N09`(P2) | `hook/build.dart`の`includes: ['src']`を取り除く | **潰した。** `M76`。testへ1行足した |
+| `N12` | Android armでのみsyscall番号をx86_64の値へ固定する | **殺せない。** host上でしか実行できない。**主張の方を実力へ書き直した**(下記) |
+| `N01`〜`N05`/`N07`/`N08`(control) | — | 元からKILLED |
+
+**直したこと。** harnessが`olddirfd` / `oldpath` / `newdirfd` / `newpath` / **呼び出し回数**も
+記録し、`AT_FDCWD`を**harness側のheaderから**独立に取って出力する。testは
+「現在のdirectory基準で`source`を`destination`へ**1回だけ**」を両分岐で検査する。
+
+**主張を実力へそろえた。** 「渡る値が変われば必ず落ちる」「値の正しさはすべて実行側が持つ」は
+**host arch についての主張**である。他archのsyscall番号は`native_constants_test.dart`が
+実kernel headerと`_Static_assert`で突き合わせるところまでが限界で、`__arm__`はその照合も
+できない(headerが無い)。`013:T08`が引き受ける。harness、`native_behaviour_test.dart`、
+`task.md`、PR本文の4箇所を直した。
 
 ## 同じ型を2回作った理由(独立review attempt 2 の要求)
 
@@ -285,18 +324,19 @@ desktop は `EINVAL`→`io`、`ENOSYS`/`ENOTSUP`→`unsupported`、**劣化を�
 - 2026-08-23 / **独立review attempt 6 = FAIL(P1が2件、P2が4件)。ADR-003適用後3回連続FAILなので、AGENTS.mdに従い再び`blocked`とする。** reviewerは`Z11`(desktopの呼び出しからflagを外す)がKILLEDになることで**Cが各mutationで実際にrecompileされ、desktopの挙動が本当にtestで観測されている**ことを確認し、「ADR-003の構造変更は有効で、解き方を戻す必要はない」と判定した。そのうえで、**表駆動の抽出器が「認識できなかった行を黙って捨てる」**ため「完全一致」という主張が成立していないことを5件の変異で示した — `default:` armが表に1行も無い(`Z6`)、1行形式の`case X: return Y;`が**完全に不可視**(`Z14`/`Z15`)、`#  define`(空白入り)を見落とす(`Z5`)、**コメント内の`#define`を実装として読む**(`Z8`)。**Cの自作定数・写像が代用assertから漏れるのは3回目**であり、「1件ずつ足す」対応は禁じられた。
 - 2026-08-23 / **開発者が案A′を選択。適用した。** 着手前に実測した前提はすべて成立した — `gcc -E -P`はerrno写像を数値で返し、`gcc -E -dM -nostdinc -D<arch>`はarchごとの定数を返し、独立TUの`_Static_assert`は値を1ずらすと**compile errorになる**。reviewerがSURVIVEDさせた5件を含む12件を表へ取り込み、**12件ともKILLED**を確認した。P2 4件も直した(ADR-003の記述を道具の実力へ合わせる、`task.md`の古いmutation ID参照、tool検査のCI接続、`M46`参照)。
 - 2026-08-23 / **独立review attempt 7 = FAIL(P1が2件、P2が3件)。** 漏れが「書き方の差」から「**検査している領域の外**」へ移った — `switch`の前、呼び出し側、`_Static_assert`の後での再定義、呼び出しへのflag追加。**4回目なので読み取りを賢くする方向をやめ、shimで製品の関数を実際に呼んで観測する形にした。** reviewerの`W1`〜`W4`を`M69`〜`M72`として取り込み、15件の部分表が全KILLED。P2も3件直した(`hook/build.dart`へ`includes`を足してheader編集で再buildされるように、PR本文とheader docの「compile時に確かめる」の範囲を実力へ)。
+- 2026-08-23 / **独立review attempt 8 = FAIL(P1が1件、P2が2件)。** reviewerは**shimが本物である**ことを`gcc -E`の出力で確認し(製品の呼び出し式そのものが置き換わっている)、attempt 7 の`W1`〜`W4`も全KILLEDを再現したうえで、**harnessが6引数中2つしか観測せず、最後の1回しか見ていない**ことを見つけた。引数の入れ替え・`AT_FDCWD`の差し替え・「先に別flagで1回呼ぶ」が素通りしていた。6引数と呼び出し回数を観測する形へ直し、`N06`/`N10`/`N11`/`N09`を`M73`〜`M76`として取り込んで全KILLEDを確認した。**host arch以外のsyscall番号は実行検証できない**ので、その旨を4箇所の主張へ明記した。
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 7 の指摘を反映済み。** Cの振る舞いを「読む」から「実行する」へ変えた。表全体が **72 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(503)。working treeはclean
+- Last checkpoint: **独立review attempt 8 の指摘を反映済み。** harnessが6引数と呼び出し回数を観測する。表全体が **76 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(505)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 8
+- Waiting for: 独立review attempt 9
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@8eeab82`
 - 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査。attempt 4 のreviewerが受容を**妥当と判定**)、`X-G`(`Platform.isWindows`分岐がLinuxで固定できない。**変更前と同型でregressionではない**)、`Y8`(`_resultOf`の範囲外分岐。attempt 5 のreviewerが「enum対応testが7値を不変条件として押さえたので到達不能であることが裏打ちされた」と判定)
 - 残余risk: **`__arm__`(382)のsyscall番号だけ照合できない。** この環境に32bit ARMのkernel headerが無い。`013:T08`の実機確認が引き受ける。**Androidの実compileと実機挙動**も同様。target OS別のbuild CIは**入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)
 - 新しい依存: **この検査は`gcc`を必要とする**(`native_constants_test.dart`、`native_behaviour_test.dart`)。AI containerとCIの`ubuntu-latest`にはある。**無い環境では黙ってskipせず`flutter test`が落ちる**(独立review attempt 7 が確認済み)
 - **人間へ回す判断(このtaskのFAIL理由ではない。`T07`/`T08`の後でよい)**: `fallbackRequired`という汎用の劣化機構ができたことで、**desktopで同じ状況が起きても劣化しない**ことが設計選択として可視化された。LinuxでNFS / CIFS / 一部FUSE上のfileを改名すると`renameat2`は`EOPNOTSUPP`を返し、現在は`unsupported`=改名が失敗する(**変更前から同じでregressionではない**)。(A) 現状維持[reviewer推奨] / (B) desktopのCでも劣化させる(005 contract再承認が要る) / (C) 劣化したことを結果として利用者へ提示する(005 / 001の仕様追加)
-- Next Agent action: **独立review attempt 8 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
+- Next Agent action: **独立review attempt 9 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
 - **`T07`への申し送り**: `platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の行を消すのは`T07`である。**Android専用のexecutorは存在しない**(ADR-003) — 消すだけでAndroidも`DesktopRenameExecutor`を通り、劣化はnativeが返す`fallbackRequired`が駆動する。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。
