@@ -29,16 +29,21 @@ typedef PlainRenameOperation =
 /// (`src/native_exclusive_rename.c`。**Android のときだけ** `EINVAL` を含める)。
 /// `EEXIST` は [NativeRenameResult.nameConflict] になり、呼び出し側が 005 contract
 /// REQ-023 に従って再採番する(013 REQ-006。**Android 固有の失敗として見せない**)。
+/// **既定の束縛はここ1箇所だけである。** 同じ `?? 既定` を factory 側にも置くと、
+/// 一方を test が通っても他方が通らない状態が作れる(独立review attempt 2 の P1-1。
+/// 束縛が2箇所あり、factory 側の既定をすり替えても suite が緑のままだった)。
 DesktopRenameOperation androidRenameOperation({
-  DesktopRenameOperation exclusiveRename = _exclusiveRename,
-  PlainRenameOperation plainRename = plainRenameFile,
+  DesktopRenameOperation? exclusiveRename,
+  PlainRenameOperation? plainRename,
 }) {
+  final exclusive = exclusiveRename ?? _exclusiveRename;
+  final plain = plainRename ?? plainRenameFile;
   return (String source, String destination) async {
-    final result = await exclusiveRename(source, destination);
+    final result = await exclusive(source, destination);
     if (result != NativeRenameResult.unsupported) return result;
     // flag が効かない環境。**直前の実在確認だけを頼りに**通常 rename で進める。
     // ここが 005 INV-002 の TOCTOU の窓である(005 contract revision 4 が受容した)。
-    return plainRename(source, destination);
+    return plain(source, destination);
   };
 }
 
@@ -90,9 +95,11 @@ RenameExecutor createAndroidRenameExecutor({
   PlainRenameOperation? plainRename,
   DesktopPathProbe? probe,
 }) => DesktopRenameExecutor(
+  // **既定をここで束縛し直さない。** 束縛は `androidRenameOperation` の1箇所に
+  // 集める(上の注記)。
   rename: androidRenameOperation(
-    exclusiveRename: exclusiveRename ?? _exclusiveRename,
-    plainRename: plainRename ?? plainRenameFile,
+    exclusiveRename: exclusiveRename,
+    plainRename: plainRename,
   ),
   probe: probe,
 );

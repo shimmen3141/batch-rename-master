@@ -312,6 +312,33 @@ void main() {
       expect((result as RenameFailed).error.kind, RenameErrorKind.notFound);
     });
 
+    test('既定の操作そのものが、実在する目標名を置換しない', () async {
+      // **executor を通さずに操作を直接呼ぶ。** executor は実在確認(005 REQ-025)で
+      // 先に止めるので、**排他 rename が通常 rename にすり替わっても結果は変わらない**
+      // — 005 INV-002 が「flag が効くのは TOCTOU の窓だけ」と書いているとおりである。
+      // したがって「no-replace が本当に使われているか」は、**確認を挟まない操作を
+      // 直接叩く**ことでしか観測できない。
+      //
+      // この test が無いと、既定の排他 rename を通常 rename へすり替えても、
+      // 既定を常に `unsupported` にしても、suite は緑のままになる。
+      final source = await makeFile('a.txt', 'source-body');
+      final keep = await makeFile('keep.txt', 'keep-body');
+
+      final result = await androidRenameOperation()(source, keep);
+
+      expect(
+        result,
+        NativeRenameResult.nameConflict,
+        reason: '実の renameat2(RENAME_NOREPLACE) が効いている',
+      );
+      expect(
+        await File(keep).readAsString(),
+        'keep-body',
+        reason: '既存の実体を置換しない(005 INV-002)',
+      );
+      expect(await File(source).readAsString(), 'source-body');
+    });
+
     test('`plainRename` を省いても、劣化経路が実 file を改名する', () async {
       // **`plainRename` の既定だけを検査する。** 排他 rename が使えない環境を作れ
       // ないので、そこだけ注入して**既定を1つ残す**。
