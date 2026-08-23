@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'native_exclusive_rename.dart';
+import 'plain_rename.dart';
 import 'rename_executor.dart';
 
 typedef DesktopRenameOperation =
@@ -36,12 +37,15 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
   DesktopRenameExecutor({
     DesktopRenameOperation? rename,
     DesktopSetModifiedAt? setModifiedAt,
+    PlainRenameOperation? plainRename,
     DesktopPathProbe? probe,
   }) : _rename = rename ?? _exclusiveRename,
+       _plainRename = plainRename ?? plainRenameFile,
        _setModifiedAt = setModifiedAt ?? _setLastModified,
        _probe = probe ?? const _RealPathProbe();
 
   final DesktopRenameOperation _rename;
+  final PlainRenameOperation _plainRename;
   final DesktopSetModifiedAt _setModifiedAt;
   final DesktopPathProbe _probe;
 
@@ -49,6 +53,26 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     String source,
     String destination,
   ) async => renameFileWithoutOverwrite(source, destination);
+
+  /// 改名を1回行う。**すべての改名はここを通る。**
+  ///
+  /// nativeが[NativeRenameResult.fallbackRequired]を返したら、通常renameへ落とす
+  /// (013 REQ-005)。**「Androidかどうか」はここでは判定しない** — 落としてよいか
+  /// どうかはOSを知っている C が結果として渡してくる(ADR-003)。
+  ///
+  /// 落としてよい理由は、この関数を呼ぶ3箇所([rename]、[_renameViaTemporary]、
+  /// [_rollbackAfter])が**すべて、この呼び出しの直前に目標名の不在を確認している**
+  /// ことである(REQ-025)。確認と改名の間は
+  /// 原子的ではなくなるので、005 INV-002の成立範囲はその窓の分だけ狭まる
+  /// (005 contract revision 4 が受容した)。
+  Future<NativeRenameResult> _renameOnce(
+    String source,
+    String destination,
+  ) async {
+    final result = await _rename(source, destination);
+    if (result != NativeRenameResult.fallbackRequired) return result;
+    return _plainRename(source, destination);
+  }
 
   static Future<void> _setLastModified(String path, DateTime value) =>
       File(path).setLastModified(value);
@@ -120,7 +144,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         return await _renameViaTemporary(handle, destination, newName);
       }
 
-      final nativeResult = await _rename(handle, destination);
+      final nativeResult = await _renameOnce(handle, destination);
       if (nativeResult == NativeRenameResult.success) {
         return Renamed(File(destination).absolute.path, name: newName);
       }
@@ -171,7 +195,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       if (await _probe.exists(candidate)) continue;
       // ここで例外が出ても外側の`try`が受ける(`return await`)。**内側に
       // catchを置かない** — 冗長でtestが固定できず、「検査済み」と誤認させる。
-      final result = await _rename(handle, candidate);
+      final result = await _renameOnce(handle, candidate);
       if (result == NativeRenameResult.success) {
         temporary = candidate;
         break;
@@ -222,7 +246,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
         );
       }
 
-      final forward = await _rename(temporary, destination);
+      final forward = await _renameOnce(temporary, destination);
       if (forward == NativeRenameResult.success) {
         return Renamed(File(destination).absolute.path, name: newName);
       }
@@ -257,7 +281,7 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
     try {
       rollback = await _probe.exists(handle)
           ? NativeRenameResult.nameConflict
-          : await _rename(temporary, handle);
+          : await _renameOnce(temporary, handle);
     } catch (_) {
       rollback = NativeRenameResult.io;
     }
@@ -341,6 +365,12 @@ class DesktopRenameExecutor implements RenameExecutor, ModifiedAtWriter {
       NativeRenameResult.io => RenameError(
         RenameErrorKind.io,
         '排他的renameに失敗しました: $source',
+      ),
+      // [_renameOnce]が通常renameへ落とすので、ここへは届かない。
+      // 届いたときは劣化が行われなかったということなので、握りつぶさず失敗にする。
+      NativeRenameResult.fallbackRequired => RenameError(
+        RenameErrorKind.io,
+        '通常renameへの切り替えが行われませんでした: $source',
       ),
     };
   }

@@ -7,8 +7,11 @@ import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dar
 import 'package:batch_rename_master/data/rename_exec/platform_rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
+import 'package:code_assets/code_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+
+import '../../hook/build.dart';
 
 void main() {
   group('DesktopRenameExecutor.setModifiedAt (VER-006 / REQ-016)', () {
@@ -670,17 +673,143 @@ void main() {
     }
   });
 
-  test('Android/iOS native assetはdesktop rename symbolを参照しない', () async {
+  // `013:T05` で **Android は unsupported から外れた**。生の syscall で
+  // `renameat2` を呼ぶ経路に載る(013 spec D-1: minSdk は 24 のまま、対応可否は
+  // 実行時に判定する)。iOS はこのアプリの対象 platform ではないので unsupported の
+  // ままである。
+  //
+  // **Android の build はこの container で行えない**(SDK / NDK が無い)。したがって
+  // ここが検査できるのは「build 設定と C の分岐が意図どおり書かれているか」までで、
+  // **実際にコンパイル・実行できるかは `013:T08` の実機確認が見る**。
+  test('native の define は iOS だけを未対応にする(全 OS を回して振る舞いで見る)', () {
+    // **literal を文字列で見ない。** `targetOS.name == 'android'` のような別の
+    // 書き方で同じことをされると素通りする(独立review attempt 9 の P2-2)。
+    // 純関数を全 OS で回せば、書き方に依らず振る舞いで固定できる。
+    for (final os in OS.values) {
+      expect(
+        nativeDefines(os),
+        os == OS.iOS ? {'BRM_UNSUPPORTED_PLATFORM': null} : <String, String?>{},
+        reason: '$os の define',
+      );
+    }
+    // **Android を未対応の側へ戻さない**(013 REQ-005)。上のループに含まれるが、
+    // このtaskの中心的な成果なので明示しておく。
+    expect(nativeDefines(OS.android), isEmpty);
+  });
+
+  test('build hook は header も依存として宣言する', () async {
+    // 無いと `brm_renameat2_abi.h` を編集しても再 build されず、古い .so が残る
+    // (`013:T08` の Android build 反復に効く)。ここは build 設定の宣言なので
+    // 実行で観測できず、source を読むしかない。
     final hook = await File('hook/build.dart').readAsString();
-    final source = await File('src/native_exclusive_rename.c').readAsString();
 
     expect(hook, contains('if (!input.config.buildCodeAssets)'));
-    expect(hook, contains('final targetOS = input.config.code.targetOS'));
-    expect(hook, contains('targetOS == OS.android'));
-    expect(hook, contains('targetOS == OS.iOS'));
-    expect(hook, contains("'BRM_UNSUPPORTED_PLATFORM': null"));
-    expect(source, contains('#if defined(BRM_UNSUPPORTED_PLATFORM)'));
-    expect(source, contains('return BRM_RENAME_UNSUPPORTED;'));
+    expect(hook, contains("includes: ['src']"));
+    expect(hook, contains('defines: nativeDefines(targetOS)'));
+  });
+
+  test('Android は bionic の wrapper ではなく生の syscall で renameat2 を呼ぶ', () async {
+    // wrapper が公開されたのは API 30 とされるが、`013` は minSdk 24 のままと
+    // 決めた(spec D-1)。**API level を対応可否の代理指標にしない。**
+    final source = await File('src/native_exclusive_rename.c').readAsString();
+
+    expect(source, contains('#elif defined(__ANDROID__)'));
+    // **flag が呼び出しに渡っていることまで見る。** `RENAME_NOREPLACE` が file の
+    // どこかにある(`#define` など)だけでは、呼び出しから外れても気づけない。
+    // 外れると置換 rename になり、005 INV-002 が全面的に破れる。
+    final androidBranch = source.indexOf('#elif defined(__ANDROID__)');
+    final call = source.substring(
+      androidBranch,
+      source.indexOf('#else', androidBranch),
+    );
+    expect(
+      call,
+      contains(
+        'syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination',
+      ),
+      reason: 'wrapper ではなく生の syscall',
+    );
+    expect(
+      call,
+      contains('BRM_RENAME_NOREPLACE'),
+      reason:
+          '**この呼び出しに** flag が渡っている(外すと置換 rename になる)。'
+          '値が正しいかは `native_constants_test.dart` が実 kernel header と照合する',
+    );
+    // **arch 別の番号と flag 値は `native_constants_test.dart` が見る。**
+    // preprocessor で arch ごとに取り出し、実 kernel header と突き合わせている。
+  });
+
+  test('composition root はまだ Android を切り替えていない(`T07` が切り替える)', () async {
+    // **切り替えは `013:T07` の受け入れ証拠である。** Android のハンドルがまだ SAF の
+    // document URI で path として解釈できず、**005 contract revision 5.1 が今なお
+    // Android SAF を未対応と規定している**(REQ-017 / OP-004)ためである。
+    //
+    // この test は `T07` が切り替えた時点で落ちる。**そのとき消すのではなく、
+    // 「Android が `DesktopRenameExecutor` を返す」検査へ置き換えること。**
+    final source = await File(
+      'lib/data/rename_exec/platform_rename_executor.dart',
+    ).readAsString();
+
+    expect(
+      source,
+      contains('if (Platform.isAndroid) return const SafRenameExecutor();'),
+      reason: '退避経路(ADR-002)を wiring から外すのは `T07`',
+    );
+  });
+
+  // **C で自作した定数と errno 写像は `native_constants_test.dart` が見る。**
+  // source を正規表現で読むのをやめ、preprocessor と実 kernel header を oracle に
+  // した(ADR-003 の追補、独立review attempt 6)。ここには置かない。
+
+  test('C の結果 enum と Dart の [NativeRenameResult] は index が一致する', () async {
+    // `_resultOf` は `NativeRenameResult.values[value]` で C の整数を素通しする。
+    // **並びがずれると、意味が静かに入れ替わる。** たとえば C の `IO`(5) が Dart の
+    // `fallbackRequired` へ写ると、**desktop で本物の I/O 失敗が通常 rename へ
+    // 劣化し**、005 INV-002 の原子的保証が黙って外れる。
+    //
+    // ADR-003 は「既存の値の index を変えない(末尾へ追加する)」と書いているが、
+    // **それを守るものが無い**まま `fallbackRequired` を足した。ここで押さえる。
+    final source = await File('src/native_exclusive_rename.c').readAsString();
+    final body = source.substring(
+      source.indexOf('enum brm_rename_result {'),
+      source.indexOf('};', source.indexOf('enum brm_rename_result {')),
+    );
+
+    final entries = <String, int>{};
+    for (final match in RegExp(
+      r'(BRM_RENAME_[A-Z_]+)\s*=\s*(\d+)',
+    ).allMatches(body)) {
+      entries[match.group(1)!] = int.parse(match.group(2)!);
+    }
+
+    const expected = {
+      'BRM_RENAME_SUCCESS': NativeRenameResult.success,
+      'BRM_RENAME_NAME_CONFLICT': NativeRenameResult.nameConflict,
+      'BRM_RENAME_NOT_FOUND': NativeRenameResult.notFound,
+      'BRM_RENAME_PERMISSION_DENIED': NativeRenameResult.permissionDenied,
+      'BRM_RENAME_UNSUPPORTED': NativeRenameResult.unsupported,
+      'BRM_RENAME_IO': NativeRenameResult.io,
+      'BRM_RENAME_FALLBACK_REQUIRED': NativeRenameResult.fallbackRequired,
+    };
+
+    expect(
+      entries.keys.toSet(),
+      expected.keys.toSet(),
+      reason: 'C の enum に増減があれば Dart 側も合わせる',
+    );
+    expect(
+      entries.length,
+      NativeRenameResult.values.length,
+      reason: '両側の値の数が一致する',
+    );
+    expected.forEach((name, dartValue) {
+      expect(
+        entries[name],
+        dartValue.index,
+        reason: '$name は ${dartValue.name}(index ${dartValue.index})へ写る',
+      );
+    });
   });
 }
 

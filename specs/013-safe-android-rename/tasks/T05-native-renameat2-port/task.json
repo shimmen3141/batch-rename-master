@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T05",
   "title": "renameat2のnative portを実装する",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T04"
   ],
@@ -11,6 +11,6 @@
     "REQ-006"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 146,
   "manualVerification": null
 }

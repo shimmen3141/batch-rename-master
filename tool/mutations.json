@@ -78,8 +78,8 @@
     {
       "id": "M11",
       "file": "lib/data/rename_exec/desktop_rename_executor.dart",
-      "find": "rollback = await _probe.exists(handle)\n          ? NativeRenameResult.nameConflict\n          : await _rename(temporary, handle);",
-      "replace": "rollback = await _rename(temporary, handle);",
+      "find": "rollback = await _probe.exists(handle)\n          ? NativeRenameResult.nameConflict\n          : await _renameOnce(temporary, handle);",
+      "replace": "rollback = await _renameOnce(temporary, handle);",
       "note": "巻き戻し先の実在確認除去"
     },
     {
@@ -305,6 +305,272 @@
       "find": "    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    if (_hasEmptyBase(file, preview.resultName)) continue;\n    renamed.add(file);",
       "replace": "    if (_hasEmptyBase(file, preview.resultName)) continue;\n    if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);\n    renamed.add(file);",
       "note": "対象folderをREQ-022の除外後へ狭める(独立review 1回目のP1-1再発)"
+    },
+    {
+      "id": "M44",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "常に通常renameへ落とす(no-replaceを一度も使わない。013 REQ-005の逆方向)",
+      "find": "    final result = await _rename(source, destination);\n    if (result != NativeRenameResult.fallbackRequired) return result;\n    return _plainRename(source, destination);",
+      "replace": "    await _rename(source, destination);\n    return _plainRename(source, destination);"
+    },
+    {
+      "id": "M45",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "劣化経路を除去(flagが効かない端末で改名できなくなる。013 REQ-005)",
+      "find": "    if (result != NativeRenameResult.fallbackRequired) return result;\n    return _plainRename(source, destination);",
+      "replace": "    return result;"
+    },
+    {
+      "id": "M46",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "unsupportedも劣化させる(desktopで005 INV-002の保証が弱まる。013はdesktopを変えない)",
+      "find": "    if (result != NativeRenameResult.fallbackRequired) return result;",
+      "replace": "    if (result != NativeRenameResult.fallbackRequired &&\n        result != NativeRenameResult.unsupported) {\n      return result;\n    }"
+    },
+    {
+      "id": "M47",
+      "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)",
+      "find": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);",
+      "replace": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        0);"
+    },
+    {
+      "id": "M48",
+      "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのEINVAL/ENOSYSを劣化要求ではなくunsupportedへ戻す(flagが効かない端末で改名できない。013 REQ-005)",
+      "find": "      return BRM_RENAME_FALLBACK_REQUIRED;",
+      "replace": "      return BRM_RENAME_UNSUPPORTED;"
+    },
+    {
+      "id": "M49",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "通常の改名経路を劣化を通らない側へ戻す(013 REQ-005が破れる)",
+      "find": "      final nativeResult = await _renameOnce(handle, destination);",
+      "replace": "      final nativeResult = await _rename(handle, destination);"
+    },
+    {
+      "id": "M50",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の排他renameを通常renameへすり替える(RENAME_NOREPLACEを一度も使わない。005 INV-002)",
+      "find": "  }) : _rename = rename ?? _exclusiveRename,",
+      "replace": "  }) : _rename = rename ?? plainRenameFile,"
+    },
+    {
+      "id": "M51",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の通常renameを潰す(flagが効かない端末で改名できない。013 REQ-005)",
+      "find": "       _plainRename = plainRename ?? plainRenameFile,",
+      "replace": "       _plainRename =\n           plainRename ?? ((_, _) async => NativeRenameResult.unsupported),"
+    },
+    {
+      "id": "M52",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "既定の排他renameを常にunsupportedにする(renameat2が製品から消える)",
+      "find": "  ) async => renameFileWithoutOverwrite(source, destination);",
+      "replace": "  ) async => NativeRenameResult.unsupported;"
+    },
+    {
+      "id": "M53",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameのpermissionDenied分類を潰す",
+      "find": "  } on PathAccessException {\n    return NativeRenameResult.permissionDenied;",
+      "replace": "  } on PathAccessException {\n    return NativeRenameResult.io;"
+    },
+    {
+      "id": "M54",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameのnotFound分類を潰す",
+      "find": "  } on PathNotFoundException {\n    return NativeRenameResult.notFound;",
+      "replace": "  } on PathNotFoundException {\n    return NativeRenameResult.io;"
+    },
+    {
+      "id": "M55",
+      "file": "lib/data/rename_exec/plain_rename.dart",
+      "note": "通常renameの一般IO失敗を成功として返す(改名していないのにRenamedになる。独立review attempt 3 のX1)",
+      "find": "  } on FileSystemException {\n    return NativeRenameResult.io;",
+      "replace": "  } on FileSystemException {\n    return NativeRenameResult.success;"
+    },
+    {
+      "id": "M56",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "一時名経路だけ劣化を通さない(重複名の改名だけが効かない端末で失敗する)",
+      "find": "      final result = await _renameOnce(handle, candidate);",
+      "replace": "      final result = await _rename(handle, candidate);"
+    },
+    {
+      "id": "M57",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "一時名経路の2段目だけ劣化を通さない(case-only改名がflagの効かない端末で失敗する。attempt 4 のX-A)",
+      "find": "      final forward = await _renameOnce(temporary, destination);",
+      "replace": "      final forward = await _rename(temporary, destination);"
+    },
+    {
+      "id": "M58",
+      "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのENOSYSを劣化要求から外す(kernelにrenameat2が無い端末で改名できない。013 VER-005。attempt 4 のX-C)",
+      "find": "    case EINVAL:\n    case ENOSYS:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_FALLBACK_REQUIRED;",
+      "replace": "    case EINVAL:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M59",
+      "file": "lib/data/rename_exec/native_exclusive_rename.dart",
+      "note": "Dart enumのio/fallbackRequiredを入れ替える(CのIO=5がfallbackRequiredへ写り、desktopで本物のIO失敗が通常renameへ劣化する。attempt 4 のX-F)",
+      "find": "  unsupported,\n  io,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n",
+      "replace": "  unsupported,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n  io,\n"
+    },
+    {
+      "id": "M60",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "RENAME_NOREPLACEの自作定義値を(1<<1)=RENAME_EXCHANGEへ(2つのfileが黙って入れ替わる。005 INV-002/OP-004。attempt 5 のY2)",
+      "find": "#define BRM_RENAME_NOREPLACE (1 << 0)",
+      "replace": "#define BRM_RENAME_NOREPLACE (1 << 1)"
+    },
+    {
+      "id": "M61",
+      "file": "src/native_exclusive_rename.c",
+      "note": "desktop側のENOSYSをunsupportedから外す(013が「変えない」と宣言したdesktopの写像が変わる。attempt 5 のY4)",
+      "find": "#else\n    case ENOSYS:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_UNSUPPORTED;",
+      "replace": "#else\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_UNSUPPORTED;"
+    },
+    {
+      "id": "M62",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "arch別のsyscall番号を1つずらす(x86_64が別のsyscallを呼ぶ。表に載せた値そのものを固定する)",
+      "find": "#define BRM_SYS_RENAMEAT2 316",
+      "replace": "#define BRM_SYS_RENAMEAT2 317"
+    },
+    {
+      "id": "M63",
+      "file": "src/native_exclusive_rename.c",
+      "note": "desktop分岐へ1行形式でEINVALの劣化を足す(desktopで005 INV-002が黙って外れる。attempt 6 のZ15)",
+      "find": "#else\n    case ENOSYS:",
+      "replace": "#else\n    case EINVAL: return BRM_RENAME_FALLBACK_REQUIRED;\n    case ENOSYS:"
+    },
+    {
+      "id": "M64",
+      "file": "src/native_exclusive_rename.c",
+      "note": "errno写像のdefault armを劣化要求へ(未知errnoがdesktopでも通常renameへ落ちる。attempt 6 のZ6)",
+      "find": "      return BRM_RENAME_UNSUPPORTED;\n#endif\n    default:\n      return BRM_RENAME_IO;",
+      "replace": "      return BRM_RENAME_UNSUPPORTED;\n#endif\n    default:\n      return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M65",
+      "file": "src/native_exclusive_rename.c",
+      "note": "1行形式でEXDEVを劣化要求へ足す(表駆動の抽出器には完全に不可視だった。attempt 6 のZ14)",
+      "find": "    case ENOENT:",
+      "replace": "    case EXDEV: return BRM_RENAME_FALLBACK_REQUIRED;\n    case ENOENT:"
+    },
+    {
+      "id": "M66",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "空白入りの#  defineでflag値を差し替える(書式差で抽出器をすり抜けた。attempt 6 のZ5)",
+      "find": "#define BRM_RENAME_NOREPLACE (1 << 0)\n\n/* 出典",
+      "replace": "#  define BRM_RENAME_NOREPLACE (1 << 1)\n\n/* 出典"
+    },
+    {
+      "id": "M67",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "x86_64とi386のsyscall番号を入れ替える(値の集合は同じ。arch↔番号の対応が固定されているか。attempt 6 のZ9)",
+      "find": "#elif defined(__x86_64__)\n#define BRM_SYS_RENAMEAT2 316",
+      "replace": "#elif defined(__x86_64__)\n#define BRM_SYS_RENAMEAT2 353"
+    },
+    {
+      "id": "M68",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "未知archで#errorせず既定値を使う(黙って別のsyscallを呼ぶ)",
+      "find": "#error \"SYS_renameat2 unknown for this architecture\"",
+      "replace": "#define BRM_SYS_RENAMEAT2 316"
+    },
+    {
+      "id": "M69",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前にif文でEINVALの劣化を足す(desktopで005 INV-002が黙って外れる。attempt 7 のW1)",
+      "find": "static int32_t brm_result_from_errno(int error) {\n  switch (error) {",
+      "replace": "static int32_t brm_result_from_errno(int error) {\n  if (error == EINVAL) return BRM_RENAME_FALLBACK_REQUIRED;\n  switch (error) {"
+    },
+    {
+      "id": "M70",
+      "file": "src/native_exclusive_rename.c",
+      "note": "写像関数の外(呼び出し側)でEINVALを劣化要求へ写す(attempt 7 のW2)",
+      "find": "  const int error = errno;\n  return brm_result_from_errno(error);",
+      "replace": "  const int error = errno;\n  if (error == EINVAL) return BRM_RENAME_FALLBACK_REQUIRED;\n  return brm_result_from_errno(error);"
+    },
+    {
+      "id": "M71",
+      "file": "src/native_exclusive_rename.c",
+      "note": "_Static_assertの後でflagを再定義する(実際に渡る値が交換になる。attempt 7 のW3)",
+      "find": "               \"BRM_SYS_RENAMEAT2 does not match __NR_renameat2 for this arch\");\n#endif",
+      "replace": "               \"BRM_SYS_RENAMEAT2 does not match __NR_renameat2 for this arch\");\n#endif\n#undef BRM_RENAME_NOREPLACE\n#define BRM_RENAME_NOREPLACE (1 << 1)"
+    },
+    {
+      "id": "M72",
+      "file": "src/native_exclusive_rename.c",
+      "note": "呼び出しにRENAME_EXCHANGEを足す(名前は残るのでsource assertは通る。attempt 7 のW4)",
+      "find": "                        BRM_RENAME_NOREPLACE);",
+      "replace": "                        BRM_RENAME_NOREPLACE | (1 << 1));"
+    },
+    {
+      "id": "M73",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐で先にRENAME_EXCHANGEで1回呼ぶ(2つのfileが黙って入れ替わる。harnessが最後の呼び出ししか見ていないと素通りする。attempt 8 のN06)",
+      "find": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);",
+      "replace": "  (void)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                (1 << 1));\n  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);"
+    },
+    {
+      "id": "M74",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐でAT_FDCWDを0へ再定義する(source文字列は変わらない。相対pathの基準が壊れる。attempt 8 のN10)",
+      "find": "#elif defined(__ANDROID__)\n  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */",
+      "replace": "#elif defined(__ANDROID__)\n#undef AT_FDCWD\n#define AT_FDCWD 0\n  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */"
+    },
+    {
+      "id": "M75",
+      "file": "src/native_exclusive_rename.c",
+      "note": "Android分岐でsourceとdestinationを実行時に入れ替える(source文字列は変わらない。改名が逆向きになり013 REQ-005/006が成立しない。attempt 8 のN11)",
+      "find": "  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */\n  result = (int)syscall(",
+      "replace": "  /* wrapper ではなく生の syscall を呼ぶ。API level に依存しない(上の注記)。 */\n  { const char *brm_t = source; source = destination; destination = brm_t; }\n  result = (int)syscall("
+    },
+    {
+      "id": "M76",
+      "file": "hook/build.dart",
+      "note": "headerの依存宣言を取り除く(header編集で再buildされず古い.soが残る。attempt 8 のN09)",
+      "find": "      includes: ['src'],",
+      "replace": ""
+    },
+    {
+      "id": "M77",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前でENOSPC(disk full)を成功として返す(改名していないのにRenamedが返る。005 INV-003。attempt 9 のR07)",
+      "find": "static int32_t brm_result_from_errno(int error) {\n  switch (error) {",
+      "replace": "static int32_t brm_result_from_errno(int error) {\n  if (error == ENOSPC) return BRM_RENAME_SUCCESS;\n  switch (error) {"
+    },
+    {
+      "id": "M78",
+      "file": "src/native_exclusive_rename.c",
+      "note": "呼び出し側でEBUSYを成功として返す(写像関数の外。attempt 9 のR08)",
+      "find": "  const int error = errno;\n  return brm_result_from_errno(error);",
+      "replace": "  const int error = errno;\n  if (error == EBUSY) return BRM_RENAME_SUCCESS;\n  return brm_result_from_errno(error);"
+    },
+    {
+      "id": "M79",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前でEBUSYを劣化要求へ写す(desktopで005 INV-002が黙って外れる。attempt 9 のR01)",
+      "find": "  switch (error) {\n    case EEXIST:",
+      "replace": "  if (error == EBUSY) return BRM_RENAME_FALLBACK_REQUIRED;\n  switch (error) {\n    case EEXIST:"
+    },
+    {
+      "id": "M80",
+      "file": "src/native_exclusive_rename.c",
+      "note": "未対応platform分岐が劣化を要求する(改名できないplatformで通常renameへ落ちる。attempt 9 のR03)",
+      "find": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_UNSUPPORTED;",
+      "replace": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M81",
+      "file": "hook/build.dart",
+      "note": "literalを使わずAndroidを未対応へ戻す(contains検査では素通りした。attempt 9 のR04)",
+      "find": "  if (targetOS == OS.iOS) 'BRM_UNSUPPORTED_PLATFORM': null,",
+      "replace": "  if (targetOS == OS.iOS || targetOS.name == 'android')\n    'BRM_UNSUPPORTED_PLATFORM': null,"
     }
   ]
 }

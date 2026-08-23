@@ -8,7 +8,9 @@
     "T06"
   ],
   "covers": [
-    "REQ-001"
+    "REQ-001",
+    "REQ-005",
+    "REQ-006"
   ],
   "issue": null,
   "pullRequest": null,

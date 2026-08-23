@@ -19,6 +19,36 @@
 
 **desktopは変えない。** OS pickerのままである(ADR-002 / `T03`)。
 
+## 013 REQ-005 / REQ-006 を製品として観測可能にする(`T05`から引き継ぐ)
+
+**`T05`は改名portを作ったが、composition rootは切り替えていない。** したがって
+**Androidは今も`SafRenameExecutor`(安全な未対応)のまま**で、`renameat2`は製品の
+経路に載っていない。`T05`が切り替えなかった理由は2つある。
+
+1. Androidのハンドルがまだ**SAFのdocument URI**で、pathとして解釈できない。切り替えても
+   `p.dirname()`がURIを分解して`notFound`になるだけである。**このtaskが絶対pathを
+   供給して初めて成立する。**
+2. **005 contract revision 5.1が今なおAndroid SAFを未対応と規定している**
+   (REQ-017、OP-004の`errors`、用語「ハンドル」)。いま切り替えると**承認済み契約に
+   反する。**
+
+**したがって013 REQ-005 / REQ-006 を製品として観測可能にするのはこのtaskである。**
+
+## 変更範囲(`T05`から引き継いだ分)
+
+- **`platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の
+  行を消す。** これだけでAndroidも`DesktopRenameExecutor`を通る。Android専用のexecutorは
+  存在しない — 劣化は native が返す`fallbackRequired`が駆動する([ADR-003](../../decisions/ADR-003-os-identity-at-native-boundary.md))。
+  同fileのdoc commentに理由と切り替え条件が書いてある。
+- **005 contractの再承認を取る。** REQ-017とOP-004の`errors`から「Android SAF経路は
+  revision 2の未対応を維持する」を、用語「ハンドル」の「Androidは SAF の document URI」を、
+  実態へ合わせる。**REQ-025も対象へ含める** — 劣化経路の通常renameは既存fileを置換しうる
+  ので、「一度も上書きrenameを使わない」がAndroidでは文字どおりには成立しない
+  (INV-002の環境依存条項と013 REQ-005が実質を認めているが、**製品経路に載せるのはこのtask
+  なので、ここで明文化する**)。**規範を触るので人間の再承認が要る。**
+- **`saf_rename_executor.dart`はwiringから外れるが削除しない**(ADR-002の退避経路。
+  Playの宣言が却下されたらAndroid未対応へ戻す)。negative testも維持する。
+
 ## 受け入れ証拠
 
 - browserの操作(階層移動、選択、確定、cancel)が004 specどおりであることをwidget testで検査する。
@@ -27,6 +57,9 @@
 - 選択したfileがどのfolderに属するかを保持する。**別の媒体(SDカード、USB)を跨いだ選択でfolderの区別が失われないこと**をtestで検査する。`T10`が対象folderの実在entry名をfolder単位で列挙し占有名を作るため、ここで潰すと衝突判定が正しい単位で行えない。
 - **`listNames`(004 REQ-014)がAndroidで成功し、読み込んでいないfileとの衝突が実行前に警告として出ることを確認する**(005 REQ-026 / 例25)。**`T10`はこの受け入れをdesktopでしか満たしていない** — SAFは`pickFiles`で1fileずつの読み取り権限しか取らず親folderを列挙できないため、現在の`SafFileSource.listNames`は理由付きの失敗を返し、REQ-027により実行が止まる。app内browserが持つ列挙権限で`listNames`を実装し直すのはこのtaskである。`plan.md`の全体の受け入れ証拠「**Androidで**、同じことが成立する」はここが証拠元になる。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
+- **Androidで`createPlatformRenameExecutor()`が`DesktopRenameExecutor`を返す**ことをtestで検査する(013 REQ-005 / REQ-006 が製品の経路に載る)。- **`T05`が受容した残余riskのうち2件を再判定する。** `T05`の「受容した残余risk」表の1行目(CのAndroid分岐の実挙動)と4行目(劣化経路)は、**このtaskが切り替えた時点で条件1(製品経路に載っている)が成立する**。AGENTS.mdの3条件で判定し直し、満たすものはここで閉じる(満たさないものは`T08`へ渡す)。`platform_rename_executor_test.dart`の「composition rootはまだAndroidを切り替えていない」testは**消さずにこの検査へ置き換える**。
+- **`saf_rename_executor.dart`のnegative testが継続PASSする**(退避経路の維持)。
+- **005 contractの再承認を得ている**(REQ-017 / OP-004 / REQ-025 / 用語「ハンドル」)。
 - [`manual-verification.md`](manual-verification.md)で実機の選択導線を確認する。
 - exact rangeの独立reviewがPASSする。
 
@@ -43,7 +76,7 @@
 | 正本 | 被覆するID |
 |---|---|
 | 004 spec | REQ-011、REQ-014、REQ-015、REQ-016、REQ-017、REQ-018、REQ-019、VER-005 |
-| 013 spec | REQ-001、REQ-002、REQ-003、REQ-004 |
+| 013 spec | REQ-001、REQ-002、REQ-003、REQ-004、REQ-005、REQ-006 |
 
 **`listNames`(004 REQ-014)のAndroid実装はこのtaskが持つ。** `013:T10`はdesktopでしか占有名を供給できておらず、`plan.md`の全体の受け入れ証拠「**Androidで**、読み込んでいないfileとの衝突が実行前に警告として出る」の証拠元はここである。
 
