@@ -536,6 +536,34 @@
       "note": "headerの依存宣言を取り除く(header編集で再buildされず古い.soが残る。attempt 8 のN09)",
       "find": "      includes: ['src'],",
       "replace": ""
+    },
+    {
+      "id": "M77",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前でENOSPC(disk full)を成功として返す(改名していないのにRenamedが返る。005 INV-003。attempt 9 のR07)",
+      "find": "static int32_t brm_result_from_errno(int error) {\n  switch (error) {",
+      "replace": "static int32_t brm_result_from_errno(int error) {\n  if (error == ENOSPC) return BRM_RENAME_SUCCESS;\n  switch (error) {"
+    },
+    {
+      "id": "M78",
+      "file": "src/native_exclusive_rename.c",
+      "note": "呼び出し側でEBUSYを成功として返す(写像関数の外。attempt 9 のR08)",
+      "find": "  const int error = errno;\n  return brm_result_from_errno(error);",
+      "replace": "  const int error = errno;\n  if (error == EBUSY) return BRM_RENAME_SUCCESS;\n  return brm_result_from_errno(error);"
+    },
+    {
+      "id": "M79",
+      "file": "src/native_exclusive_rename.c",
+      "note": "switchの前でEBUSYを劣化要求へ写す(desktopで005 INV-002が黙って外れる。attempt 9 のR01)",
+      "find": "  switch (error) {\n    case EEXIST:",
+      "replace": "  if (error == EBUSY) return BRM_RENAME_FALLBACK_REQUIRED;\n  switch (error) {\n    case EEXIST:"
+    },
+    {
+      "id": "M80",
+      "file": "src/native_exclusive_rename.c",
+      "note": "未対応platform分岐が劣化を要求する(改名できないplatformで通常renameへ落ちる。attempt 9 のR03)",
+      "find": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_UNSUPPORTED;",
+      "replace": "  (void)source;\n  (void)destination;\n  return BRM_RENAME_FALLBACK_REQUIRED;"
     }
   ]
 }

@@ -11,16 +11,24 @@
 // ここでは `test/native/renameat2_harness.c` が `syscall` / `renameat2` を shim へ
 // 差し替えて製品の関数をそのまま呼び、**この関数の入口と出口**を観測する —
 // 渡った syscall 番号・flag・dirfd・path、呼び出し回数、errno から返る結果。
-// source の書き方には依存しない。
 //
-// **観測できないもの**(独立review attempt 8 の P1-1): host(x86_64)以外の arch の
-// syscall 番号。host 上でしか実行できないので、他 arch の値は
-// `native_constants_test.dart` が実 kernel header と突き合わせ、`__arm__` は
-// `013:T08` の実機確認が引き受ける。**「渡る値が変われば必ず落ちる」は
-// host arch についての主張である。**
+// **入力空間を全走査する。** errno を 0〜255 まで回す(Linux の errno は
+// `EHWPOISON` = 133 まで)。**手書きの errno 表を持たない** — attempt 9 は、表に
+// 載っていない errno で分類を書き換えると誰も気づかないことを対照実験で示した。
+// 手書きにしてよいのは「何が正しいか」(下の [_expected] = 仕様)であって、
+// 「どれを調べるか」ではない。
 //
-// **Android 向けの実 compile と実機挙動はここでは見ない**(AI container に NDK が
-// 無い)。`renameat2` が本当に効くかは `013:T08` が実機で見る。
+// **この検査で見ていないもの。**
+//
+// - **host(x86_64)以外の arch の syscall 番号。** host 上でしか実行できない。
+//   他 arch は `native_constants_test.dart` が実 kernel header と突き合わせ、
+//   `__arm__` は照合手段が無いので `013:T08` の実機確認が引き受ける。
+// - **Android 向けの実 compile と実機挙動。** NDK が無い。`013:T08` が見る。
+// - **Windows 分岐。** この環境で compile できない。
+//
+// それ以外については、**渡る値・返る値が変われば落ちる** — `if` 文でも、
+// 呼び出し側でも、`#undef` でも、補助関数でも、表に無い errno でも。
+
 @Tags(['native'])
 library;
 
@@ -49,8 +57,37 @@ typedef _Observation = ({
   NativeRenameResult result,
 });
 
-/// harness を組み立てて実行し、`errno 名 -> 観測` を返す。
-Map<String, _Observation> _observe({required bool android}) {
+/// この関数が満たすべき写像(**仕様**)。errno の全域に対する総関数である。
+///
+/// **手書きなのは仕様だから**である。どの入力を調べるかは機械が決める(全走査)。
+NativeRenameResult _expected(int errno, {required bool android}) =>
+    switch (errno) {
+      0 => NativeRenameResult.success,
+      17 /* EEXIST */ || 39 /* ENOTEMPTY */ => NativeRenameResult.nameConflict,
+      2 /* ENOENT */ || 20 /* ENOTDIR */ => NativeRenameResult.notFound,
+      1 /* EPERM */ ||
+      13 /* EACCES */ ||
+      30 /* EROFS */ => NativeRenameResult.permissionDenied,
+      // `EINVAL` = filesystem が flag を解釈できない(FUSE 経由の共有 storage)。
+      // `ENOSYS` = kernel に `renameat2` が無い(013 spec D-1 が想定した端末)。
+      // `ENOTSUP`(= `EOPNOTSUPP` = 95)も同じ扱い。
+      // **Android だけが「落としてよい」と言う**(013 REQ-005 / VER-005)。
+      // desktop では `EINVAL` は `io`、`ENOSYS` / `ENOTSUP` は `unsupported` である。
+      22 /* EINVAL */ =>
+        android ? NativeRenameResult.fallbackRequired : NativeRenameResult.io,
+      38 /* ENOSYS */ || 95 /* ENOTSUP */ =>
+        android
+            ? NativeRenameResult.fallbackRequired
+            : NativeRenameResult.unsupported,
+      // **残りはすべて `io`。** 上へ書き足さない限り、どの errno も劣化を要求しない。
+      _ => NativeRenameResult.io,
+    };
+
+/// harness を組み立てて実行し、`errno -> 観測` を返す。
+Map<int, _Observation> _observe({
+  required bool android,
+  bool unsupported = false,
+}) {
   final dir = Directory.systemTemp.createTempSync('brm-harness-');
   addTearDown(() => dir.deleteSync(recursive: true));
   final binary = p.join(dir.path, 'harness');
@@ -58,7 +95,10 @@ Map<String, _Observation> _observe({required bool android}) {
   final build = Process.runSync('gcc', [
     '-o',
     binary,
-    if (android) ...[
+    // 未対応 platform 分岐は OS を呼ばないので shim も要らない。
+    if (unsupported)
+      '-DBRM_UNSUPPORTED_PLATFORM'
+    else if (android) ...[
       '-D__ANDROID__',
       '-Dsyscall=brm_test_syscall',
     ]
@@ -77,10 +117,10 @@ Map<String, _Observation> _observe({required bool android}) {
     throw StateError('harness の実行に失敗した:\n${run.stderr}');
   }
 
-  final observations = <String, _Observation>{};
+  final observations = <int, _Observation>{};
   for (final line in (run.stdout as String).trim().split('\n')) {
     final match = RegExp(
-      r'^(\w+) nr=(-?\d+) flags=(\d+) olddirfd=(-?\d+) newdirfd=(-?\d+) '
+      r'^errno=(\d+) nr=(-?\d+) flags=(\d+) olddirfd=(-?\d+) newdirfd=(-?\d+) '
       r'oldpath=(\S*) newpath=(\S*) calls=(\d+) atfdcwd=(-?\d+) '
       r'result=(-?\d+)$',
     ).firstMatch(line.trim());
@@ -92,7 +132,7 @@ Map<String, _Observation> _observe({required bool android}) {
     if (code < 0 || code >= NativeRenameResult.values.length) {
       throw StateError('未知の結果コード $code が返った: `$line`');
     }
-    observations[match.group(1)!] = (
+    observations[int.parse(match.group(1)!)] = (
       syscallNumber: int.parse(match.group(2)!),
       flags: int.parse(match.group(3)!),
       oldDirFd: int.parse(match.group(4)!),
@@ -114,126 +154,77 @@ void main() {
     }
   });
 
-  group('Android: 実際に呼ばれる syscall と flag', () {
-    late Map<String, _Observation> observed;
-    setUpAll(() {
-      observed = _observe(android: true);
-    });
+  for (final android in [true, false]) {
+    final label = android ? 'Android' : 'desktop';
+    group('$label: 製品の関数を実際に呼んで観測する', () {
+      late Map<int, _Observation> observed;
+      setUpAll(() {
+        observed = _observe(android: android);
+      });
 
-    test('`renameat2` を x86_64 の番号で呼ぶ(wrapper を経由しない)', () {
-      // host が x86_64 なのでこの値になる。他 arch の番号は
-      // `native_constants_test.dart` が実 kernel header と突き合わせる。
-      expect(observed['SUCCESS']!.syscallNumber, 316);
-    });
+      test('errno の全域(0〜255)を観測している', () {
+        expect(observed.keys.toSet(), {for (var e = 0; e <= 255; e++) e});
+      });
 
-    test('`RENAME_NOREPLACE` だけを渡す(`RENAME_EXCHANGE` を混ぜない)', () {
-      // **実際に渡った値**を見る。`1` 以外はすべて別の意味になる —
-      // `2` は交換(2つの file が黙って入れ替わる)、`3` は kernel が `EINVAL` を
-      // 返して常時劣化する。005 INV-002 / OP-004。
-      for (final entry in observed.entries) {
+      test('`RENAME_NOREPLACE` だけを渡す(`RENAME_EXCHANGE` を混ぜない)', () {
+        // **実際に渡った値**を見る。`1` 以外はすべて別の意味になる —
+        // `2` は交換(2つの file が黙って入れ替わる)、`3` は kernel が `EINVAL` を
+        // 返して常時劣化する。005 INV-002 / OP-004。
+        for (final entry in observed.entries) {
+          expect(entry.value.flags, 1, reason: 'errno=${entry.key}');
+        }
+      });
+
+      test('引数は「現在のdirectory基準で source を destination へ」1回だけである', () {
+        for (final entry in observed.entries) {
+          final o = entry.value;
+          expect(o.calls, 1, reason: 'errno=${entry.key}: 呼び出し回数');
+          expect(o.oldPath, 'source', reason: 'errno=${entry.key}: 元の path');
+          expect(
+            o.newPath,
+            'destination',
+            reason: 'errno=${entry.key}: 目標の path',
+          );
+          // 入れ替わると改名が逆向きになり、013 REQ-005 / REQ-006 が製品として
+          // 一切成立しない(常に notFound)。
+          expect(o.oldDirFd, o.atFdCwd, reason: 'errno=${entry.key}: 元の dirfd');
+          expect(
+            o.newDirFd,
+            o.atFdCwd,
+            reason: 'errno=${entry.key}: 目標の dirfd',
+          );
+        }
+      });
+
+      test('errno から結果への写像が、全域で仕様どおりである', () {
         expect(
-          entry.value.flags,
-          1,
-          reason: '${entry.key} の呼び出しで flag が 1 ではない',
+          {for (final e in observed.entries) e.key: e.value.result},
+          {
+            for (var errno = 0; errno <= 255; errno++)
+              errno: _expected(errno, android: android),
+          },
         );
+      });
+
+      if (android) {
+        test('`renameat2` を host arch の番号で呼ぶ(wrapper を経由しない)', () {
+          // 他 arch の番号は `native_constants_test.dart` が実 kernel header と
+          // 突き合わせる(host 上では実行できないため)。
+          expect(observed[0]!.syscallNumber, 316);
+        });
+      } else {
+        test('劣化を一度も要求しない(005 INV-002 の保証を弱めない)', () {
+          for (final entry in observed.entries) {
+            expect(
+              entry.value.result,
+              isNot(NativeRenameResult.fallbackRequired),
+              reason: 'errno=${entry.key} が desktop で劣化を要求している',
+            );
+          }
+        });
       }
     });
-
-    test('引数は「現在のdirectory基準で source を destination へ」1回だけである', () {
-      for (final entry in observed.entries) {
-        final o = entry.value;
-        expect(o.calls, 1, reason: '${entry.key}: 呼び出し回数が1ではない');
-        expect(o.oldPath, 'source', reason: '${entry.key}: 元の path');
-        expect(o.newPath, 'destination', reason: '${entry.key}: 目標の path');
-        // 入れ替わると改名が逆向きになり、013 REQ-005 / REQ-006 が製品として
-        // 一切成立しない(常に notFound)。
-        expect(o.oldDirFd, o.atFdCwd, reason: '${entry.key}: 元の dirfd');
-        expect(o.newDirFd, o.atFdCwd, reason: '${entry.key}: 目標の dirfd');
-      }
-    });
-
-    test('errno の分類(劣化を要求するのは3つだけ)', () {
-      expect(
-        {for (final e in observed.entries) e.key: e.value.result},
-        {
-          'SUCCESS': NativeRenameResult.success,
-          'EEXIST': NativeRenameResult.nameConflict,
-          'ENOTEMPTY': NativeRenameResult.nameConflict,
-          'ENOENT': NativeRenameResult.notFound,
-          'ENOTDIR': NativeRenameResult.notFound,
-          'EACCES': NativeRenameResult.permissionDenied,
-          'EPERM': NativeRenameResult.permissionDenied,
-          'EROFS': NativeRenameResult.permissionDenied,
-          // flag を解釈できない filesystem(FUSE 経由の共有 storage)。
-          'EINVAL': NativeRenameResult.fallbackRequired,
-          // kernel に `renameat2` が無い(013 spec D-1 が想定した端末)。
-          'ENOSYS': NativeRenameResult.fallbackRequired,
-          'ENOTSUP': NativeRenameResult.fallbackRequired,
-          'EIO': NativeRenameResult.io,
-          'EXDEV': NativeRenameResult.io,
-          'ENAMETOOLONG': NativeRenameResult.io,
-        },
-      );
-    });
-  });
-
-  group('desktop: 013 は振る舞いを変えない', () {
-    late Map<String, _Observation> observed;
-    setUpAll(() {
-      observed = _observe(android: false);
-    });
-
-    test('`RENAME_NOREPLACE` だけを渡す', () {
-      for (final entry in observed.entries) {
-        expect(entry.value.flags, 1, reason: '${entry.key} の flag が 1 ではない');
-      }
-    });
-
-    test('劣化を一度も要求しない(005 INV-002 の保証を弱めない)', () {
-      for (final entry in observed.entries) {
-        expect(
-          entry.value.result,
-          isNot(NativeRenameResult.fallbackRequired),
-          reason: '${entry.key} が desktop で劣化を要求している',
-        );
-      }
-    });
-
-    test('引数は「現在のdirectory基準で source を destination へ」1回だけである', () {
-      for (final entry in observed.entries) {
-        final o = entry.value;
-        expect(o.calls, 1, reason: '${entry.key}: 呼び出し回数が1ではない');
-        expect(o.oldPath, 'source', reason: '${entry.key}: 元の path');
-        expect(o.newPath, 'destination', reason: '${entry.key}: 目標の path');
-        // 入れ替わると改名が逆向きになり、013 REQ-005 / REQ-006 が製品として
-        // 一切成立しない(常に notFound)。
-        expect(o.oldDirFd, o.atFdCwd, reason: '${entry.key}: 元の dirfd');
-        expect(o.newDirFd, o.atFdCwd, reason: '${entry.key}: 目標の dirfd');
-      }
-    });
-
-    test('errno の分類(`EINVAL` は io、`ENOSYS` は unsupported)', () {
-      expect(
-        {for (final e in observed.entries) e.key: e.value.result},
-        {
-          'SUCCESS': NativeRenameResult.success,
-          'EEXIST': NativeRenameResult.nameConflict,
-          'ENOTEMPTY': NativeRenameResult.nameConflict,
-          'ENOENT': NativeRenameResult.notFound,
-          'ENOTDIR': NativeRenameResult.notFound,
-          'EACCES': NativeRenameResult.permissionDenied,
-          'EPERM': NativeRenameResult.permissionDenied,
-          'EROFS': NativeRenameResult.permissionDenied,
-          'ENOSYS': NativeRenameResult.unsupported,
-          'ENOTSUP': NativeRenameResult.unsupported,
-          'EINVAL': NativeRenameResult.io,
-          'EIO': NativeRenameResult.io,
-          'EXDEV': NativeRenameResult.io,
-          'ENAMETOOLONG': NativeRenameResult.io,
-        },
-      );
-    });
-  });
+  }
 
   test('Android と desktop の差は「劣化してよいか」だけである', () {
     final android = _observe(android: true);
@@ -242,9 +233,27 @@ void main() {
       for (final key in android.keys)
         if (android[key]!.result != desktop[key]!.result) key,
     };
-    expect(changed, {'EINVAL', 'ENOSYS', 'ENOTSUP'});
+    expect(changed, {22 /* EINVAL */, 38 /* ENOSYS */, 95 /* ENOTSUP */});
     for (final key in changed) {
       expect(android[key]!.result, NativeRenameResult.fallbackRequired);
+    }
+  });
+
+  test('未対応 platform は OS を一切呼ばず、常に unsupported を返す', () {
+    // `hook/build.dart` が iOS へ渡す `BRM_UNSUPPORTED_PLATFORM` の分岐。
+    // ここが劣化を要求すると、**改名できない platform で通常 rename へ落ちる**
+    // (独立review attempt 9 の P2-1。source assert は desktop 分岐の同じ文字列で
+    // 満たされていて、この分岐を固定していなかった)。
+    final observed = _observe(android: false, unsupported: true);
+
+    expect(observed.keys.toSet(), {for (var e = 0; e <= 255; e++) e});
+    for (final entry in observed.entries) {
+      expect(
+        entry.value.result,
+        NativeRenameResult.unsupported,
+        reason: 'errno=${entry.key}',
+      );
+      expect(entry.value.calls, 0, reason: 'errno=${entry.key}: OS を呼んでいる');
     }
   });
 }

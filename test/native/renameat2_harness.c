@@ -47,7 +47,9 @@ static int scripted_errno = 0;
 
 int32_t brm_rename_no_replace_utf8(const char *source, const char *destination);
 
-#if defined(__ANDROID__)
+#if defined(BRM_UNSUPPORTED_PLATFORM)
+/* 未対応 platform 分岐は OS を一切呼ばない。shim も要らない。 */
+#elif defined(__ANDROID__)
 /* `unistd.h` の `long syscall(long, ...)` がこの名前に置き換わっている。 */
 long brm_test_syscall(long number, ...) {
   va_list args;
@@ -83,20 +85,19 @@ int brm_test_renameat2(int olddirfd, const char *oldpath, int newdirfd,
 }
 #endif
 
-/* 観測したい errno。名前ではなく **compile される値** で回す。 */
-static const struct {
-  const char *name;
-  int value;
-} cases[] = {
-    {"SUCCESS", 0},   {"EPERM", EPERM},     {"ENOENT", ENOENT},
-    {"EIO", EIO},     {"EACCES", EACCES},   {"EEXIST", EEXIST},
-    {"EXDEV", EXDEV}, {"ENOTDIR", ENOTDIR}, {"EINVAL", EINVAL},
-    {"EROFS", EROFS}, {"ENOSYS", ENOSYS},   {"ENOTEMPTY", ENOTEMPTY},
-    {"ENOTSUP", ENOTSUP}, {"ENAMETOOLONG", ENAMETOOLONG},
-};
+/* **手書きの errno 表を持たない。** 独立review attempt 9 は、表に載っていない errno
+ * (`ENOSPC` など)で分類を書き換えると誰も気づかないことを**対照実験**で示した —
+ * `switch` の前で `ENOSPC` を成功にした変異は SURVIVED、まったく同じ形で `EEXIST` に
+ * しただけの変異は KILLED だった。差は「表に載っているか」だけである。
+ *
+ * 検査に手書きの列挙が1つでも残っていると、そこが次の穴になる(4世代・9回)。
+ * **入力空間を全走査する。** Linux の errno は `EHWPOISON` = 133 までなので、
+ * 0〜255 を回せば**全域**である。期待値は Dart 側が手書きの**仕様**として持つ —
+ * 手書きにしてよいのは「何が正しいか」であって、「どれを調べるか」ではない。 */
+#define BRM_TEST_ERRNO_MAX 255
 
 int main(void) {
-  for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+  for (int scripted = 0; scripted <= BRM_TEST_ERRNO_MAX; scripted++) {
     observed_nr = -1;
     observed_flags = 0xffffffffu;
     observed_olddirfd = 0x7fffffff;
@@ -104,13 +105,13 @@ int main(void) {
     observed_oldpath[0] = '\0';
     observed_newpath[0] = '\0';
     observed_calls = 0;
-    scripted_errno = cases[i].value;
+    scripted_errno = scripted;
     errno = 0;
     const int32_t result = brm_rename_no_replace_utf8("source", "destination");
     /* `AT_FDCWD` は harness 側の header から取る(製品と独立した oracle)。 */
-    printf("%s nr=%ld flags=%u olddirfd=%d newdirfd=%d oldpath=%s newpath=%s "
-           "calls=%d atfdcwd=%d result=%d\n",
-           cases[i].name, observed_nr, observed_flags, observed_olddirfd,
+    printf("errno=%d nr=%ld flags=%u olddirfd=%d newdirfd=%d oldpath=%s "
+           "newpath=%s calls=%d atfdcwd=%d result=%d\n",
+           scripted, observed_nr, observed_flags, observed_olddirfd,
            observed_newdirfd, observed_oldpath, observed_newpath,
            observed_calls, AT_FDCWD, (int)result);
   }
