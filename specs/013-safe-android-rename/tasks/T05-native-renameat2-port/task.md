@@ -124,14 +124,36 @@ testは意味がない。呼び出し部分だけを切り出して検査する�
 - 2026-08-22 / mutation `M44`〜`M47`を追加し、**2件がSURVIVEDしたのでtestを直した**(上記)。
 - 2026-08-23 / **独立review attempt 1 = FAIL(P1が3件、P2が4件)。** **reviewerが自分でmutationを2件足してSURVIVEDを見つけた** — `M47`で直したのと**同じ型が2つ残っていた**。(1) `createAndroidRenameExecutor`の既定wiringを通るtestが無く、**外すとproductionから劣化経路が丸ごと消える**のに緑のままだった。(2) `renameFileWithoutOverwrite`のAndroid分岐が固定されておらず、**外すとrenameat2が製品から消える**のに緑のままだった。factoryの引数を分解し、platform分岐を純関数`usesUtf8NativePath`へ切り出して両方をfactory経由/直接検査できるようにし、`M48`/`M49`として表へ足した。(3) composition rootを切り替えない判断は**妥当と認められた**(reviewerは005 contract revision 5.1がAndroid SAFを未対応と規定していることを根拠に加えた)が、**受け取り側の`T07`に1行も記録が無く**、`T05`がdoneになると013 REQ-005 / REQ-006を製品として観測可能にするtaskが消える状態だった。`T07`へ節を追加した。P2も4件直した。
 - 2026-08-23 / **独立review attempt 2 = FAIL(P1が1件、P2が3件)。** reviewerが`R1`〜`R5`を足し、**`?? 既定`の右辺が一度も評価されない**ことでSURVIVEDを4件見つけた。attempt 1 と同じ型が3回目なので、reviewerは「表へ行を足すだけの対応にしないこと」「なぜ2回とも同じ型を作ったかを先に整理すること」を条件に付けた。上の節へ整理し、**既定の束縛を1箇所へ集約**して**fakeを注入しないtest group**を置いた。表は`M50`〜`M53`まで拡張し、集約に伴い`M45`/`M49`/`M50`/`M51`のfind文字列を新実装へ追随させた。P2(`__i386__`の記述、`flutter test`件数、handoff)も直した。
+- 2026-08-23 / **独立review attempt 3 = FAIL(P1が2件、P2が1件)。3回目のFAILなのでAGENTS.mdに従い`blocked`とする。** reviewerは表の追随(`M45`/`M49`/`M50`/`M51`)に意味の弱化が無いことと、主張した検証結果すべてを再現したうえで、**自分で足した5件のうち4件がSURVIVEDした**(control 1件はKILLED)。同じ型が**4回目**である。(P1-1) `native_exclusive_rename.dart:69`の呼び出し側を旧形へ戻しても487件が緑 — 純関数`usesUtf8NativePath`は固定したが、**分岐がその関数を使っていること**は誰も固定していない。attempt 1 の P1-2 が純関数の外側へ移動しただけだった。(P1-2) `plainRenameFile`の`on FileSystemException → io`を`success`へ変えても緑。`EISDIR`(errno 21)等が実際にこの分岐へ落ちることをreviewerが実測しており、**改名していないのに`Renamed`が返る**(005 OP-004 / INV-003)。劣化経路4分岐のうちtestが通っているのは2つだけだった。(P2-1) `catch (_)`のcatch-allが未検査。
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 2 の指摘を反映済み。** 既定の束縛を1箇所へ集約し、fakeを注入しないtest groupを追加。mutation表全体が **53 KILLED / 0 SURVIVED / 0 SKIPPED**
-- Blocker category: なし
-- Waiting for: 独立review
-- Requested action: なし
+- Last checkpoint: **独立review attempt 3 = FAIL。`blocked`。** 表全体は 53 KILLED / 0 SURVIVED / 0 SKIPPED だが、**reviewerが足した4件がSURVIVEDした**ので、これは「表が尽きている」ことを意味しない
+- Blocker category: **人間の判断**(AGENTS.md「同じtaskで独立reviewが合計3回FAIL」)
+- Waiting for: **解き方の選択(下記A / B / C)**
+- Requested action: A / B / C から1つ選ぶこと。**manual確認・実機作業は不要**、branch移動も不要(working treeはcleanで維持する)
+
+### 人間へ返す選択肢
+
+同じ型(production が通る合成を test が一度も通らない)が**毎回別の場所で再生産**されている。
+現路線は「指摘された seam へ test を1件足す」であり、次の seam が次の指摘になる。
+
+- **A. 現路線を続ける。** `X1`(劣化経路の一般IO失敗)と`X3`(分岐の呼び出し側)を潰し、
+  P2-1の受容理由を書いて attempt 4 へ。最小コストだが、**Dart側にplatform分岐が残る限り
+  同じ型の seam は残る**。
+- **B(reviewer推奨). 枠組みを変える — Dart側のplatform allow-listを消す。**
+  `renameFileWithoutOverwrite` を「Windowsなら UTF-16、**それ以外は常にUTF-8 symbolを呼ぶ**」に
+  し、「対応するか」の判断を **C と `hook/build.dart` の1層だけ**へ集める(iOSは
+  `BRM_UNSUPPORTED_PLATFORM` で C が `UNSUPPORTED` を返すので**結果は今と同じ**)。
+  `usesUtf8NativePath` は不要になり、`X3`/`X4`/`M48` の seam は潰すのではなく**消える**。
+  確認が要るのは未知OS(fuchsia等)でのsymbol解決だけ。
+- **C. この経緯を知らない相手へ一般解を尋ねる。** 「実行環境で走らせられないplatform分岐を、
+  regressionを検出できる形で書く一般的な方法」を外部へ聞き、得た案を**ケース表で前提照合して
+  から**採る。A / B のどちらとも併用できる。
+
+**どの案でも `X1`(劣化経路の偽の成功)は塞ぐ必要がある** — これは platform 分岐とは別の
+seam であり、B で消えるのは `X3`/`X4` 側だけである。
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@8eeab82`(merge-base を実測した値。当初`601ecbb`と書いていたのは誤り)
-- Next Agent action: **独立review attempt 3 を起動する。** 3回目のFAILならAGENTS.mdに従い`blocked`にして人間へ返す。PASSならPR #146 をready化し、auto-mergeの7条件を確認する。
+- Next Agent action: **選択が返るまで実装を進めない。** 返ったら `X1`〜`X4` を `tool/mutations.json` へ正式に取り込み(B なら `X3`/`X4`/`M48` は対象消滅として外す理由を書く)、修正後に**表全体**を回して生出力をここへ貼り、attempt 4 を起動する。**PR #146 はDraftのまま。**
 - **`T07`への申し送り**: `platform_rename_executor.dart`のAndroid分岐を`createAndroidRenameExecutor()`へ切り替えるのは`T07`である。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。
