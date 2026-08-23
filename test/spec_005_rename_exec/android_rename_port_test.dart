@@ -255,10 +255,84 @@ void main() {
     });
   });
 
-  group('factory が劣化経路を必ず通す(P1-1)', () {
+  // ---------------------------------------------------------------------------
+  // **fake を一切使わずに、production が組み立てる object をそのまま動かす。**
+  //
+  // このtaskは「production が通る経路を test が通らない」型の指摘を**3回**受けた
+  // (`M47` → `M48`/`M49` → `R1`/`R2`/`R3`)。3回とも、振る舞いを見る test が
+  // すべて依存を注入しており、**`?? 既定` の右辺が一度も評価されない**ことが原因
+  // だった。穴は合成から既定へ、既定から別の既定へ移動しただけである。
+  //
+  // したがって mutation を足すのをやめ、**引数を1つも渡さない factory を実 file
+  // に対して動かす**群を置く。Linux の `flutter test` では実の `renameat2` が動く
+  // (`platform_rename_executor_test.dart` が既にそれを使っている)ので、
+  // **出荷するものそのものを検査できる。**
+  //
+  // 規則: **optional な依存を持つ factory には、その依存を省いた test を必ず置く。**
+  group('production の既定を fake 無しで動かす', () {
+    test('既定だけで実 file を改名できる(排他 rename が本当に呼ばれている)', () async {
+      final source = await makeFile('a.txt', 'body');
+      final executor = createAndroidRenameExecutor();
+
+      final result = await executor.rename(source, 'b.txt');
+
+      expect(result, isA<Renamed>());
+      expect(await File(p.join(dir.path, 'b.txt')).readAsString(), 'body');
+      expect(File(source).existsSync(), isFalse);
+    });
+
+    test('既定だけで、目標名が実在すると置換せず nameConflict を返す', () async {
+      // **既定の `exclusiveRename` が通常 rename にすり替わると、ここで上書きして
+      // 成功してしまう。** 005 INV-002 の核心を、fake 無しで固定する。
+      final source = await makeFile('a.txt', 'source-body');
+      final keep = await makeFile('keep.txt', 'keep-body');
+      final executor = createAndroidRenameExecutor();
+
+      final result = await executor.rename(source, 'keep.txt');
+
+      expect(result, isA<RenameFailed>());
+      expect((result as RenameFailed).error.kind, RenameErrorKind.nameConflict);
+      expect(
+        await File(keep).readAsString(),
+        'keep-body',
+        reason: '既存の実体を置換しない(005 INV-002)',
+      );
+      expect(await File(source).readAsString(), 'source-body');
+    });
+
+    test('既定だけで、対象が無ければ notFound を返す', () async {
+      final executor = createAndroidRenameExecutor();
+
+      final result = await executor.rename(
+        p.join(dir.path, 'missing.txt'),
+        'b.txt',
+      );
+
+      expect(result, isA<RenameFailed>());
+      expect((result as RenameFailed).error.kind, RenameErrorKind.notFound);
+    });
+
+    test('`plainRename` を省いても、劣化経路が実 file を改名する', () async {
+      // **`plainRename` の既定だけを検査する。** 排他 rename が使えない環境を作れ
+      // ないので、そこだけ注入して**既定を1つ残す**。
+      final source = await makeFile('a.txt', 'body');
+      final executor = createAndroidRenameExecutor(
+        exclusiveRename: (_, _) async => NativeRenameResult.unsupported,
+      );
+
+      final result = await executor.rename(source, 'b.txt');
+
+      expect(
+        result,
+        isA<Renamed>(),
+        reason: '既定の `plainRenameFile` が実 file を動かしている(013 REQ-005)',
+      );
+      expect(await File(p.join(dir.path, 'b.txt')).readAsString(), 'body');
+    });
+  });
+
+  group('factory が劣化経路を必ず通す', () {
     test('`exclusiveRename` が unsupported を返すと通常 rename が呼ばれる', () async {
-      // **factory 経由で確かめる。** 組み立て済みの操作を丸ごと注入する形だと、
-      // production が通る合成そのものを test が一度も通らない状態になりうる。
       final source = await makeFile('a.txt', 'body');
       var plainCalled = false;
       final executor = createAndroidRenameExecutor(
@@ -291,13 +365,9 @@ void main() {
       expect(await executor.rename(source, 'b.txt'), isA<Renamed>());
       expect(plainCalled, isFalse, reason: 'no-replace が効いたので落とさない');
     });
-
-    test('既定の factory も RenameExecutor を組み立てられる', () {
-      expect(createAndroidRenameExecutor(), isA<RenameExecutor>());
-    });
   });
 
-  group('platform 分岐(P1-2)', () {
+  group('platform 分岐', () {
     test('Android は UTF-8 path の wrapper を使う', () {
       // **Android を分岐から外すと落ちる。** `Platform.isAndroid` を条件式へ直接
       // 書いていた頃は、Linux 上の test から観測できず外しても緑のままだった。
@@ -309,6 +379,43 @@ void main() {
       expect(usesUtf8NativePath('macos'), isTrue);
       expect(usesUtf8NativePath('windows'), isFalse);
       expect(usesUtf8NativePath('fuchsia'), isFalse);
+    });
+  });
+
+  group('`plainRenameFile` の errno 写像', () {
+    test('対象が無ければ notFound', () async {
+      final result = await plainRenameFile(
+        p.join(dir.path, 'missing.txt'),
+        p.join(dir.path, 'b.txt'),
+      );
+
+      expect(
+        result,
+        NativeRenameResult.notFound,
+        reason: '`io` へ丸めない — 呼び出し側は分類で経路を分ける(005 OP-004)',
+      );
+    });
+
+    test('書き込めない folder では permissionDenied', () async {
+      // 受け入れ証拠「権限が無い場合…の分類をtestで検査する」。
+      // read-only directory は非 root でも作れる(EACCES)。
+      final locked = Directory(p.join(dir.path, 'locked'))..createSync();
+      final source = File(p.join(locked.path, 'a.txt'))..writeAsStringSync('x');
+      await Process.run('chmod', ['555', locked.path]);
+      addTearDown(() async {
+        await Process.run('chmod', ['755', locked.path]);
+      });
+
+      final result = await plainRenameFile(
+        source.path,
+        p.join(locked.path, 'b.txt'),
+      );
+
+      expect(
+        result,
+        NativeRenameResult.permissionDenied,
+        reason: '`io` へ丸めない(005 OP-004 の errors)',
+      );
     });
   });
 }
