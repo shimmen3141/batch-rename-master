@@ -331,8 +331,8 @@
       "id": "M47",
       "file": "src/native_exclusive_rename.c",
       "note": "AndroidのRENAME_NOREPLACEを外す(置換renameになる。005 INV-002)",
-      "find": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        RENAME_NOREPLACE);",
-      "replace": "  result = (int)syscall(SYS_renameat2, AT_FDCWD, source, AT_FDCWD, destination,\n                        0);"
+      "find": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        BRM_RENAME_NOREPLACE);",
+      "replace": "  result = (int)syscall(BRM_SYS_RENAMEAT2, AT_FDCWD, source, AT_FDCWD, destination,\n                        0);"
     },
     {
       "id": "M48",
@@ -420,10 +420,10 @@
     },
     {
       "id": "M60",
-      "file": "src/native_exclusive_rename.c",
+      "file": "src/brm_renameat2_abi.h",
       "note": "RENAME_NOREPLACEの自作定義値を(1<<1)=RENAME_EXCHANGEへ(2つのfileが黙って入れ替わる。005 INV-002/OP-004。attempt 5 のY2)",
-      "find": "#define RENAME_NOREPLACE (1 << 0)",
-      "replace": "#define RENAME_NOREPLACE (1 << 1)"
+      "find": "#define BRM_RENAME_NOREPLACE (1 << 0)",
+      "replace": "#define BRM_RENAME_NOREPLACE (1 << 1)"
     },
     {
       "id": "M61",
@@ -434,10 +434,52 @@
     },
     {
       "id": "M62",
-      "file": "src/native_exclusive_rename.c",
+      "file": "src/brm_renameat2_abi.h",
       "note": "arch別のsyscall番号を1つずらす(x86_64が別のsyscallを呼ぶ。表に載せた値そのものを固定する)",
-      "find": "#define SYS_renameat2 316",
-      "replace": "#define SYS_renameat2 317"
+      "find": "#define BRM_SYS_RENAMEAT2 316",
+      "replace": "#define BRM_SYS_RENAMEAT2 317"
+    },
+    {
+      "id": "M63",
+      "file": "src/native_exclusive_rename.c",
+      "note": "desktop分岐へ1行形式でEINVALの劣化を足す(desktopで005 INV-002が黙って外れる。attempt 6 のZ15)",
+      "find": "#else\n    case ENOSYS:",
+      "replace": "#else\n    case EINVAL: return BRM_RENAME_FALLBACK_REQUIRED;\n    case ENOSYS:"
+    },
+    {
+      "id": "M64",
+      "file": "src/native_exclusive_rename.c",
+      "note": "errno写像のdefault armを劣化要求へ(未知errnoがdesktopでも通常renameへ落ちる。attempt 6 のZ6)",
+      "find": "      return BRM_RENAME_UNSUPPORTED;\n#endif\n    default:\n      return BRM_RENAME_IO;",
+      "replace": "      return BRM_RENAME_UNSUPPORTED;\n#endif\n    default:\n      return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M65",
+      "file": "src/native_exclusive_rename.c",
+      "note": "1行形式でEXDEVを劣化要求へ足す(表駆動の抽出器には完全に不可視だった。attempt 6 のZ14)",
+      "find": "    case ENOENT:",
+      "replace": "    case EXDEV: return BRM_RENAME_FALLBACK_REQUIRED;\n    case ENOENT:"
+    },
+    {
+      "id": "M66",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "空白入りの#  defineでflag値を差し替える(書式差で抽出器をすり抜けた。attempt 6 のZ5)",
+      "find": "#define BRM_RENAME_NOREPLACE (1 << 0)\n\n/* 出典",
+      "replace": "#  define BRM_RENAME_NOREPLACE (1 << 1)\n\n/* 出典"
+    },
+    {
+      "id": "M67",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "x86_64とi386のsyscall番号を入れ替える(値の集合は同じ。arch↔番号の対応が固定されているか。attempt 6 のZ9)",
+      "find": "#elif defined(__x86_64__)\n#define BRM_SYS_RENAMEAT2 316",
+      "replace": "#elif defined(__x86_64__)\n#define BRM_SYS_RENAMEAT2 353"
+    },
+    {
+      "id": "M68",
+      "file": "src/brm_renameat2_abi.h",
+      "note": "未知archで#errorせず既定値を使う(黙って別のsyscallを呼ぶ)",
+      "find": "#error \"SYS_renameat2 unknown for this architecture\"",
+      "replace": "#define BRM_SYS_RENAMEAT2 316"
     }
   ]
 }
