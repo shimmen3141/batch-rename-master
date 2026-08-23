@@ -46,7 +46,7 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(485件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
+| full regression | `flutter test` = **PASS(486件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
@@ -55,7 +55,7 @@
 | C(Android分岐) | `gcc -fsyntax-only -D__ANDROID__ src/native_exclusive_rename.c` = **exit 0**。**NDKが無いのでglibcのheaderで代用した syntax 検査であって、NDKでのコンパイルではない** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(39 file、3 rule) |
 | syscall番号 | arch表を**kernelのuapi headerと照合**した。`x86_64=316`(`asm/unistd_64.h`)、`asm-generic=276`(aarch64が使う)、**`i386=353`(`asm/unistd_32.h`)**が一致。**未照合は`__arm__`(382)だけ**(出典は`T01`のspike)。※当初「i386も未照合」と書いていたが誤りで、この環境に header がある(独立review attempt 1 の P2-1) |
-| mutation | 表全体 = **59 mutations: 59 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M59`が`T05`分)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
+| mutation | 表全体 = **62 mutations: 62 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M62`が`T05`分)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** `T08`が行う |
 
@@ -204,7 +204,7 @@ reviewerは主張した検証結果を**すべて再現**し、`M57`/`M58`/`M59`
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 5 の指摘を反映済み。** C で自作した定数を表駆動の完全一致検査へ置き換えた。表全体が **62 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(487)。working treeはclean
+- Last checkpoint: **独立review attempt 5 の指摘を反映済み。** C で自作した定数を表駆動の完全一致検査へ置き換えた。表全体が **62 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(486)。working treeはclean
 - Blocker category: なし
 - Waiting for: 独立review attempt 6
 - Requested action: なし
