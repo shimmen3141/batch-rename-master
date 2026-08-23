@@ -15,6 +15,8 @@ ASDD plugin 側の共有 script ではない。
 ## この検査で捕まらないもの(PASS を「OS分岐は無い」と読まないこと)
 
 - **文字列一致である。** `const io = Platform; io.isAndroid` のような間接化は見ない。
+- **見るのは登録した pattern だけ。** `Platform.is*` と `Platform.operatingSystem` は
+  禁止できるが、`Platform.pathSeparator` など他のメンバで OS を判定する書き方は捕まらない。
 - **見るのは `lib/**/*.dart` だけ。** test、`tool/`、`hook/build.dart` は対象外。
 - **C の `#if defined(__ANDROID__)` は対象外。** あそこは正しい置き場所である。
   C の Android 分岐が実際に動くかは `013:T08` の実機確認が見る。

@@ -1,7 +1,7 @@
 # 同じ型の欠陥が「消えた」のではなく「移動した」ことを、修正側が自己判定できなかった
 
 - 発生: `013:T05`(renameat2のnative port)
-- 状態: `blocked`。3回FAIL規律により人間へ返した(2026-08-23)
+- 状態: **解決済み(2026-08-23)。** 3回FAIL規律で人間へ返し、外部相談を経て[ADR-003](../specs/013-safe-android-rename/decisions/ADR-003-os-identity-at-native-boundary.md)を採用した
 
 ## 観測
 
@@ -43,3 +43,24 @@ reviewerの5件中4件がSURVIVED、control 1件はKILLED)。
 3. **独立reviewerが足したmutationを、実装側の表へ取り込むことを手順にする。**
    今回は3回とも reviewer の指摘を受けてから表へ足しており、次のreviewerは
    「前回のreviewerが見た範囲」を再度見るところから始めている。
+
+## 改善の結果(2026-08-23 追記)
+
+**変更先**: [`specs/013-safe-android-rename/decisions/ADR-003-os-identity-at-native-boundary.md`](../specs/013-safe-android-rename/decisions/ADR-003-os-identity-at-native-boundary.md)、
+`tool/check_platform_boundary.py` + `tool/normative_platform.json`。
+
+OS identity を native 境界へ閉じ込め、劣化を「Androidか」ではなく **native が返す結果値**で
+駆動するようにした。**seam を潰すのではなく、書けなくした。**
+
+**forward-test の結果**: 独立review attempt 4 で reviewer が新たに mutation を7件足したところ、
+**同じ型は3件残っていた**。ただし性質が変わっている。
+
+- 前3回: 劣化を駆動する合成**そのもの**が未実行だった
+- attempt 4: 中核(`fallbackRequired`→通常rename)は fake 無しで実行されている。
+  残ったのは**周辺3点**(一時名経路の2段目、CのENOSYS、C enum↔Dart enumのindex対応)で、
+  いずれもLinux上で安価に固定でき、reviewerも「解き方の変更は要らない」と判定した。
+
+**つまり構造変更は効いたが、「表に載っていない seam」は依然として自分では見つけられていない。**
+上の改善案3(独立reviewerが足したmutationを実装側の表へ取り込むことを手順にする)は
+**まだ未実施**であり、4回連続で「reviewerが足して初めて見つかる」が続いている。
+ここが次の改善対象である。

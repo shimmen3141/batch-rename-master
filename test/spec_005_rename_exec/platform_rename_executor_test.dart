@@ -781,7 +781,16 @@ void main() {
     final android = mapping.substring(guard, elseBranch);
     final desktop = mapping.substring(elseBranch);
 
-    expect(android, contains('case EINVAL:'));
+    // **`EINVAL` だけでなく `ENOSYS` も見る。** 013 VER-005 は両方を名指しして
+    // いる。`ENOSYS` は kernel に `renameat2` が無い端末 — spec D-1 が
+    // 「minSdk 24 のまま実行時に判定する」と決めた当の対象である。
+    for (final errno in const [
+      'case EINVAL:',
+      'case ENOSYS:',
+      'case ENOTSUP:',
+    ]) {
+      expect(android, contains(errno), reason: '$errno が劣化要求へ写る');
+    }
     expect(android, contains('return BRM_RENAME_FALLBACK_REQUIRED;'));
     expect(
       desktop.contains('case EINVAL:'),
@@ -793,6 +802,56 @@ void main() {
       contains('return BRM_RENAME_UNSUPPORTED;'),
       reason: 'desktop は劣化を要求しない',
     );
+  });
+
+  test('C の結果 enum と Dart の [NativeRenameResult] は index が一致する', () async {
+    // `_resultOf` は `NativeRenameResult.values[value]` で C の整数を素通しする。
+    // **並びがずれると、意味が静かに入れ替わる。** たとえば C の `IO`(5) が Dart の
+    // `fallbackRequired` へ写ると、**desktop で本物の I/O 失敗が通常 rename へ
+    // 劣化し**、005 INV-002 の原子的保証が黙って外れる。
+    //
+    // ADR-003 は「既存の値の index を変えない(末尾へ追加する)」と書いているが、
+    // **それを守るものが無い**まま `fallbackRequired` を足した。ここで押さえる。
+    final source = await File('src/native_exclusive_rename.c').readAsString();
+    final body = source.substring(
+      source.indexOf('enum brm_rename_result {'),
+      source.indexOf('};', source.indexOf('enum brm_rename_result {')),
+    );
+
+    final entries = <String, int>{};
+    for (final match in RegExp(
+      r'(BRM_RENAME_[A-Z_]+)\s*=\s*(\d+)',
+    ).allMatches(body)) {
+      entries[match.group(1)!] = int.parse(match.group(2)!);
+    }
+
+    const expected = {
+      'BRM_RENAME_SUCCESS': NativeRenameResult.success,
+      'BRM_RENAME_NAME_CONFLICT': NativeRenameResult.nameConflict,
+      'BRM_RENAME_NOT_FOUND': NativeRenameResult.notFound,
+      'BRM_RENAME_PERMISSION_DENIED': NativeRenameResult.permissionDenied,
+      'BRM_RENAME_UNSUPPORTED': NativeRenameResult.unsupported,
+      'BRM_RENAME_IO': NativeRenameResult.io,
+      'BRM_RENAME_FALLBACK_REQUIRED': NativeRenameResult.fallbackRequired,
+    };
+
+    expect(
+      entries.keys.toSet(),
+      expected.keys.toSet(),
+      reason: 'C の enum に増減があれば Dart 側も合わせる',
+    );
+    expect(
+      entries.length,
+      NativeRenameResult.values.length,
+      reason: '両側の値の数が一致する',
+    );
+    expected.forEach((name, dartValue) {
+      expect(
+        entries[name],
+        dartValue.index,
+        reason: '$name は ${dartValue.name}(index ${dartValue.index})へ写る',
+      );
+    });
   });
 }
 

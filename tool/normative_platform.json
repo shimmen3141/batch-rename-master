@@ -17,6 +17,7 @@
     "",
     "限界(PASSを『OS分岐は無い』と読まないこと):",
     "- 文字列一致である。`const io = Platform; io.isAndroid` のような書き換えは見ない。",
+    "- 見るのは `Platform.is*` と `Platform.operatingSystem` だけ。`Platform.pathSeparator` など他のメンバでOSを判定する書き方は捕まらない。",
     "- 見るのは `lib/**/*.dart` だけ。test、tool、hook は対象外である。",
     "- C の `#if defined(__ANDROID__)` は対象外。あそこは正しい置き場所である。"
   ],

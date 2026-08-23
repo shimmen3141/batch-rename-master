@@ -47,6 +47,22 @@ class _BlindProbe implements DesktopPathProbe {
   Future<bool> exists(String path) async => false;
 }
 
+/// 1回目だけ「実在する」と答える probe。
+///
+/// 大文字小文字を区別しない volume での case-only 改名を模す。1回目(改名前)は
+/// 目標名が実在し、退避で元の名前が空くと 2回目(退避後)には消える。
+/// **`RENAME_NOREPLACE` が効かない volume(FAT / exFAT / FUSE)と同じ集合**なので、
+/// Android ではこの組み合わせが例外ではなく典型である。
+class _VanishingProbe implements DesktopPathProbe {
+  final Set<String> asked = {};
+
+  @override
+  Future<bool> exists(String path) async {
+    if (path.contains('renaming-swap-')) return false;
+    return asked.add(path);
+  }
+}
+
 /// 通常 rename が呼ばれたかを見る spy。既定では実体を動かさず成功だけ返す。
 class _PlainSpy {
   _PlainSpy({this.result = NativeRenameResult.success, this.real = false});
@@ -147,6 +163,28 @@ void main() {
 
       expect(failure, isA<RenameFailed>());
       expect((failure as RenameFailed).error.kind, RenameErrorKind.io);
+    });
+
+    test('一時名経路の2段目(前進)も劣化する(case-only 改名が失敗しない)', () async {
+      // 1回目のprobeで目標名が実在し、退避後には消えている経路。ここが劣化しない
+      // と、**flagが効かない volume での case-only 改名だけが `io` で失敗する** —
+      // `nameConflict` ではないので 005 REQ-023 の再採番も拾わず、実行全体が止まる。
+      final source = await makeFile('a.txt', 'body');
+      final plain = _PlainSpy(real: true);
+
+      final result = await DesktopRenameExecutor(
+        rename: _Rename(
+          const {},
+          fallback: NativeRenameResult.fallbackRequired,
+        ).call,
+        plainRename: plain.call,
+        probe: _VanishingProbe(),
+      ).rename(source, 'A.txt');
+
+      expect(result, isA<Renamed>());
+      expect(await File(p.join(dir.path, 'A.txt')).readAsString(), 'body');
+      // 退避(1段目)と前進(2段目)の両方が通常 rename を通っている。
+      expect(plain.calls, hasLength(2));
     });
 
     test('一時名を経由する経路も劣化する(改名経路が1つ残らず通る)', () async {

@@ -36,11 +36,16 @@
 
 ## 変更範囲(`T05`から引き継いだ分)
 
-- **`platform_rename_executor.dart`のAndroid分岐を`createAndroidRenameExecutor()`へ
-  切り替える。** 同fileのdoc commentに理由と切り替え条件が書いてある。
+- **`platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の
+  行を消す。** これだけでAndroidも`DesktopRenameExecutor`を通る。Android専用のexecutorは
+  存在しない — 劣化は native が返す`fallbackRequired`が駆動する([ADR-003](../../decisions/ADR-003-os-identity-at-native-boundary.md))。
+  同fileのdoc commentに理由と切り替え条件が書いてある。
 - **005 contractの再承認を取る。** REQ-017とOP-004の`errors`から「Android SAF経路は
   revision 2の未対応を維持する」を、用語「ハンドル」の「Androidは SAF の document URI」を、
-  実態へ合わせる。**規範を触るので人間の再承認が要る。**
+  実態へ合わせる。**REQ-025も対象へ含める** — 劣化経路の通常renameは既存fileを置換しうる
+  ので、「一度も上書きrenameを使わない」がAndroidでは文字どおりには成立しない
+  (INV-002の環境依存条項と013 REQ-005が実質を認めているが、**製品経路に載せるのはこのtask
+  なので、ここで明文化する**)。**規範を触るので人間の再承認が要る。**
 - **`saf_rename_executor.dart`はwiringから外れるが削除しない**(ADR-002の退避経路。
   Playの宣言が却下されたらAndroid未対応へ戻す)。negative testも維持する。
 
@@ -52,9 +57,9 @@
 - 選択したfileがどのfolderに属するかを保持する。**別の媒体(SDカード、USB)を跨いだ選択でfolderの区別が失われないこと**をtestで検査する。`T10`が対象folderの実在entry名をfolder単位で列挙し占有名を作るため、ここで潰すと衝突判定が正しい単位で行えない。
 - **`listNames`(004 REQ-014)がAndroidで成功し、読み込んでいないfileとの衝突が実行前に警告として出ることを確認する**(005 REQ-026 / 例25)。**`T10`はこの受け入れをdesktopでしか満たしていない** — SAFは`pickFiles`で1fileずつの読み取り権限しか取らず親folderを列挙できないため、現在の`SafFileSource.listNames`は理由付きの失敗を返し、REQ-027により実行が止まる。app内browserが持つ列挙権限で`listNames`を実装し直すのはこのtaskである。`plan.md`の全体の受け入れ証拠「**Androidで**、同じことが成立する」はここが証拠元になる。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
-- **Androidで`createPlatformRenameExecutor()`が`createAndroidRenameExecutor()`を返す**ことをtestで検査する(013 REQ-005 / REQ-006 が製品の経路に載る)。
+- **Androidで`createPlatformRenameExecutor()`が`DesktopRenameExecutor`を返す**ことをtestで検査する(013 REQ-005 / REQ-006 が製品の経路に載る)。`platform_rename_executor_test.dart`の「composition rootはまだAndroidを切り替えていない」testは**消さずにこの検査へ置き換える**。
 - **`saf_rename_executor.dart`のnegative testが継続PASSする**(退避経路の維持)。
-- **005 contractの再承認を得ている**(REQ-017 / OP-004 / 用語「ハンドル」)。
+- **005 contractの再承認を得ている**(REQ-017 / OP-004 / REQ-025 / 用語「ハンドル」)。
 - [`manual-verification.md`](manual-verification.md)で実機の選択導線を確認する。
 - exact rangeの独立reviewがPASSする。
 

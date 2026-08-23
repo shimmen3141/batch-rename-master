@@ -46,7 +46,7 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(483件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
+| full regression | `flutter test` = **PASS(485件)**。T05着手前は464件。ADR-003の適用で**testは1件減った** — 消えたのは`usesUtf8NativePath`のようなOS分岐を見るtestで、**分岐自体が無くなった**からである |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
@@ -55,7 +55,7 @@
 | C(Android分岐) | `gcc -fsyntax-only -D__ANDROID__ src/native_exclusive_rename.c` = **exit 0**。**NDKが無いのでglibcのheaderで代用した syntax 検査であって、NDKでのコンパイルではない** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(39 file、3 rule) |
 | syscall番号 | arch表を**kernelのuapi headerと照合**した。`x86_64=316`(`asm/unistd_64.h`)、`asm-generic=276`(aarch64が使う)、**`i386=353`(`asm/unistd_32.h`)**が一致。**未照合は`__arm__`(382)だけ**(出典は`T01`のspike)。※当初「i386も未照合」と書いていたが誤りで、この環境に header がある(独立review attempt 1 の P2-1) |
-| mutation | 表全体 = **56 mutations: 56 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M56`が`T05`分)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
+| mutation | 表全体 = **59 mutations: 59 KILLED, 0 SURVIVED, 0 SKIPPED**(`M44`〜`M59`が`T05`分)。**独立review attempt 3 でreviewerが見つけた4件のうち3件は、mutation pointごと消滅した**(下表)。残る`X1`は`M55`としてKILLEDである |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** `T08`が行う |
 
@@ -71,8 +71,8 @@ testは意味がない。呼び出し部分だけを切り出して検査する�
 | 論点 | 決着 | 理由 |
 |---|---|---|
 | wrapperか生syscallか | **生のsyscall** | bionicのwrapperはAPI 30とされるが、013 spec D-1は「minSdkは24のまま、対応可否を実行時に判定する」と決めている。**API levelを対応可否の代理指標にしない** |
-| `EINVAL`の扱い | **Androidのときだけ`unsupported`へ写す** | `renameat2`はfilesystemがflagを解釈できないとき`EINVAL`を返す。Androidは共有storageがFUSEを経由するので現実的に起きる。**desktopの写像は変えない**(013 spec の範囲外に「desktopの振る舞い。何も変えない」とある) |
-| 劣化をどこに置くか | **`androidRenameOperation`(port側)** | `DesktopRenameExecutor`へflagを足す案もあったが、**desktopの実装を1文字も変えない**方を採った。`tool/mutations.json`の17件がこのfileを対象にしており、触ると表ごと揺れる |
+| `EINVAL` / `ENOSYS` の扱い | **Androidのときだけ`BRM_RENAME_FALLBACK_REQUIRED`へ写す**(2026-08-23 ADR-003で更新。当初は`unsupported`だった) | `renameat2`はfilesystemがflagを解釈できないとき`EINVAL`を返す。Androidは共有storageがFUSEを経由するので現実的に起きる。**`unsupported`と別の値にする**のは、あちらが「機能が無い」であって「落としてよい」とは言っていないからである。**desktopの写像は変えない** — desktopは従来どおり`ENOSYS`/`ENOTSUP`で`unsupported`を返し、劣化しない(013 spec の範囲外に「desktopの振る舞い。何も変えない」とある) |
+| 劣化をどこに置くか | **`DesktopRenameExecutor._renameOnce`(単一地点)**(2026-08-23 ADR-003で更新。当初はAndroid専用のport側だった) | 当初は「desktopの実装を1文字も変えない」ことを優先してport側へ置いたが、**その分離のためにoptionalな既定引数の合成が要り、それが3回続いた「productionが通る合成をtestが一度も通らない」の温床だった**。ADR-003では逆に、劣化を共有経路の1箇所へ集めて**Android専用の合成を無くした**。**desktopの利用者から見た振る舞いは変わらない**(`fallbackRequired`をdesktopのCが返さない)が、**実装は変わった** — `_renameOnce`、`_plainRename`、constructor引数が入った |
 | composition rootの切り替え | **このtaskでは行わない** | Androidのハンドルはまだ**SAFのdocument URI**で、pathとして解釈できない。いま切り替えると、実体は壊れないが(対象が見つからず失敗する)revision 2以来の「理由付きの安全な未対応」より分かりにくい失敗になる。**`T07`が絶対pathを供給してから切り替える。** `platform_rename_executor.dart`のdoc commentとtestで固定した |
 
 ## この実装で残る限界
@@ -104,6 +104,28 @@ reviewerが自分で足した5件(control 1件を含む)のうち**4件がSURVIV
 **`X2`を受容する理由。** これは「testが足りない」ではなく「この環境では起こせない」型で
 ある。無理に殺すと注入用の穴を production へ開けることになり、**それこそが4回続いた型の
 作り方**である(ADR-003 の Why not)。
+
+## 独立review attempt 4 の指摘の始末
+
+reviewerが自分で足した7件のうち**5件がSURVIVED**した(control 2件はKILLED)。
+**同じ型が3件残っていた**が、reviewerは「性質が違う」と判定した — 前3回は劣化を駆動する
+**合成そのもの**が未実行だったのに対し、今回は中核(`fallbackRequired`→通常rename)が
+fake無しで実行されており、残ったのは**周辺3点**だった。「解き方の変更は要らず、
+この3点を足せば閉じる」。
+
+| reviewerの変異 | 内容 | 始末 |
+| --- | --- | --- |
+| `X-A` | 一時名経路の**2段目(前進)**だけ劣化を通さない | **潰した。** `M57`。`_VanishingProbe`(1回目だけ実在)でcase-only改名を模すtestを足してKILLED |
+| `X-C` | AndroidのENOSYSを劣化要求から外す | **潰した。** `M58`。source assertが`EINVAL`しか見ていなかった(**test名は「EINVAL / ENOSYS」なのに**)。3つのerrnoを見るよう直してKILLED |
+| `X-F` | Dart enumの`io`と`fallbackRequired`を入れ替える | **潰した。** `M59`。C enumの`= 数値`を読んでDartの`index`と突き合わせるtestを足してKILLED。**ADR-003が「indexは変えない」と書きながら、それを守るものが無かった** |
+| `X-E` | 劣化されなかった`fallbackRequired`を`nameConflict`へ写す | **表へ足さない。** `_renameOnce`が必ず先に劣化させるので**production では到達不能**な防御である。到達不能な分岐にtestを当てると、そのために注入穴を開けることになる |
+| `X-G` | `Platform.isWindows`分岐を潰す | **受容。** Linux上でWindows分岐は実行できない。**変更前と同型でregressionではない**(reviewerも同判定) |
+| `X-B` / `X-D`(control) | 巻き戻し / EINVAL | 元からKILLED |
+
+**`X-F`が一番重い。** 入れ替わると**desktopで本物のI/O失敗が「劣化してよい」と解釈され**、
+013が「何も変えない」と宣言した当のdesktopで005 INV-002の原子的保証が黙って外れる。
+`fallbackRequired`を足したことで、enumの順序が「単なる値の並び」から**劣化するかどうかを
+決める負荷のかかった対応**へ変わっていた。
 
 ## 同じ型を2回作った理由(独立review attempt 2 の要求)
 
@@ -148,16 +170,18 @@ reviewerが自分で足した5件(control 1件を含む)のうち**4件がSURVIV
 - 2026-08-23 / **独立review attempt 3 = FAIL(P1が2件、P2が1件)。3回目のFAILなのでAGENTS.mdに従い`blocked`とする。** reviewerは表の追随(`M45`/`M49`/`M50`/`M51`)に意味の弱化が無いことと、主張した検証結果すべてを再現したうえで、**自分で足した5件のうち4件がSURVIVEDした**(control 1件はKILLED)。同じ型が**4回目**である。(P1-1) `native_exclusive_rename.dart:69`の呼び出し側を旧形へ戻しても487件が緑 — 純関数`usesUtf8NativePath`は固定したが、**分岐がその関数を使っていること**は誰も固定していない。attempt 1 の P1-2 が純関数の外側へ移動しただけだった。(P1-2) `plainRenameFile`の`on FileSystemException → io`を`success`へ変えても緑。`EISDIR`(errno 21)等が実際にこの分岐へ落ちることをreviewerが実測しており、**改名していないのに`Renamed`が返る**(005 OP-004 / INV-003)。劣化経路4分岐のうちtestが通っているのは2つだけだった。(P2-1) `catch (_)`のcatch-allが未検査。
 - 2026-08-23 / **外部AI 2件へ一般解を尋ね(人間の作業)、前提を照合して案B′を採用した**([ADR-003](../../decisions/ADR-003-os-identity-at-native-boundary.md))。2件は独立に同じ結論へ収束した — 「Dart側のOS分岐を消し、OS identityをnative境界へ閉じ込める」。**そのままは採らず**、片方が推した「全platform共通UTF-8 ABI」は**採らなかった**(testできる`_extendedWindowsPath`をsyntax checkすらできないCへ移すことになり、目的と逆。unpaired surrogateも検証手段が無い)。適用したのは、(1) OS許可リストの削除、(2) `fallbackRequired`による劣化の駆動、(3) 劣化地点の単一化、(4) 脆いsource assertの依存検査への置き換え。**Android専用のexecutor factoryは消滅し、`T07`の切り替えは「`isAndroid`の行を消す」だけになった。**
 - 2026-08-23 / mutation表を`M56`まで作り直し、**56 KILLED / 0 SURVIVED / 0 SKIPPED**。reviewerの`X1`は`M55`としてKILLED、`X3`/`X4`は**対象消滅**、`X2`はP2として受容(上表)。**testは1件減った**(483件) — 消えたのはOS分岐を見るtestで、分岐自体が無くなったからである。
+- 2026-08-23 / **独立review attempt 4 = FAIL(P1が4件、P2が6件)。** reviewerは主張した検証結果を**すべて再現**し、`M44`〜`M56`が全KILLEDであること、ADR-003の構造変更が有効に効いていることを確認したうえで、**周辺3点**(上表の`X-A`/`X-C`/`X-F`)と、**正本同士の矛盾**を指摘した。矛盾は、attempt 1 の対応で新設した`T07`の申し送りが**ADR-003適用に追随せず、削除済みの`createAndroidRenameExecutor()`を受け入れ証拠として指していた**もの。`T07`と`T05`の申し送りを「`Platform.isAndroid`の行を消す」へそろえ、`grep -rn "createAndroidRenameExecutor" specs/`の残り5件が日付つきの作業記録だけであることを確認した。P2は6件とも直した(「決めたこと」表2行、PR本文の1文、`T07`の再承認対象へREQ-025追加、`plainRenameFile`のdirectory限界注記、findingへの結果追記、`check_platform_boundary.py`の限界追記)。
 
 ## Current state / handoff
 
-- Last checkpoint: **ADR-003(案B′)を適用済み。** 表全体が **56 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(483)。working treeはclean
+- Last checkpoint: **独立review attempt 4 の指摘を反映済み。** 表全体が **59 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(485)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 4
+- Waiting for: 独立review attempt 5
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@8eeab82`
-- 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査)。`dart:io`経由で非`FileSystemException`を起こす手段が無く、注入なしでは殺せない。**受容する**(上表の理由)
-- 残余risk: **CのAndroid分岐はLinux CIで検証できない。** target OS別のbuild CIは**今回入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)。`013:T08`の実機確認が引き受ける
+- 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査。attempt 4 のreviewerが受容を**妥当と判定**)、`X-G`(`Platform.isWindows`分岐がLinuxで固定できない。**変更前と同型でregressionではない**)
+- 残余risk: **CのAndroid分岐はLinux CIで検証できない。** target OS別のbuild CIは**入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)。`013:T08`の実機確認が引き受ける
+- **人間へ回す判断(このtaskのFAIL理由ではない。`T07`/`T08`の後でよい)**: `fallbackRequired`という汎用の劣化機構ができたことで、**desktopで同じ状況が起きても劣化しない**ことが設計選択として可視化された。LinuxでNFS / CIFS / 一部FUSE上のfileを改名すると`renameat2`は`EOPNOTSUPP`を返し、現在は`unsupported`=改名が失敗する(**変更前から同じでregressionではない**)。(A) 現状維持[reviewer推奨] / (B) desktopのCでも劣化させる(005 contract再承認が要る) / (C) 劣化したことを結果として利用者へ提示する(005 / 001の仕様追加)
 - Next Agent action: **独立review attempt 4 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
-- **`T07`への申し送り**: `platform_rename_executor.dart`のAndroid分岐を`createAndroidRenameExecutor()`へ切り替えるのは`T07`である。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
+- **`T07`への申し送り**: `platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の行を消すのは`T07`である。**Android専用のexecutorは存在しない**(ADR-003) — 消すだけでAndroidも`DesktopRenameExecutor`を通り、劣化はnativeが返す`fallbackRequired`が駆動する。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。

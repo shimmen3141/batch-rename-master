@@ -396,6 +396,27 @@
       "note": "一時名経路だけ劣化を通さない(重複名の改名だけが効かない端末で失敗する)",
       "find": "      final result = await _renameOnce(handle, candidate);",
       "replace": "      final result = await _rename(handle, candidate);"
+    },
+    {
+      "id": "M57",
+      "file": "lib/data/rename_exec/desktop_rename_executor.dart",
+      "note": "一時名経路の2段目だけ劣化を通さない(case-only改名がflagの効かない端末で失敗する。attempt 4 のX-A)",
+      "find": "      final forward = await _renameOnce(temporary, destination);",
+      "replace": "      final forward = await _rename(temporary, destination);"
+    },
+    {
+      "id": "M58",
+      "file": "src/native_exclusive_rename.c",
+      "note": "AndroidのENOSYSを劣化要求から外す(kernelにrenameat2が無い端末で改名できない。013 VER-005。attempt 4 のX-C)",
+      "find": "    case EINVAL:\n    case ENOSYS:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_FALLBACK_REQUIRED;",
+      "replace": "    case EINVAL:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_FALLBACK_REQUIRED;"
+    },
+    {
+      "id": "M59",
+      "file": "lib/data/rename_exec/native_exclusive_rename.dart",
+      "note": "Dart enumのio/fallbackRequiredを入れ替える(CのIO=5がfallbackRequiredへ写り、desktopで本物のIO失敗が通常renameへ劣化する。attempt 4 のX-F)",
+      "find": "  unsupported,\n  io,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n",
+      "replace": "  unsupported,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n  io,\n"
     }
   ]
 }
