@@ -127,6 +127,35 @@ fake無しで実行されており、残ったのは**周辺3点**だった。�
 `fallbackRequired`を足したことで、enumの順序が「単なる値の並び」から**劣化するかどうかを
 決める負荷のかかった対応**へ変わっていた。
 
+## 独立review attempt 5 の指摘の始末
+
+reviewerは主張した検証結果を**すべて再現**し、`M57`/`M58`/`M59`が`X-A`/`X-C`/`X-F`を
+忠実に写していること(弱い変異へのすり替えが無いこと)を1件ずつ確認したうえで、
+**P1を1件**見つけた。
+
+| reviewerの変異 | 内容 | 始末 |
+| --- | --- | --- |
+| `Y2`(**P1**) | `RENAME_NOREPLACE`の**自作定義値**を`(1 << 1)`(= `RENAME_EXCHANGE`)へ | **潰した。** `M60`。効くと**2つのfileが黙って入れ替わる**(005 INV-002 / OP-004) |
+| `Y4`(P2) | desktop側の`case ENOSYS:`を外す | **潰した。** `M61`。「desktopの写像は変えない」という宣言を守るものが無かった |
+| `Y8` | 範囲外のnative戻り値をsuccessとして扱う | **表へ足さない。** reviewerが「`M59`のenum対応testが7値であることを不変条件として押さえたので、到達不能であること自体が裏打ちされた。逃げではない」と判定 |
+| `Y1`/`Y3`/`Y6`/`Y7`(control) | 巻き戻し / C enumずらし / build hook / composition root | 元からKILLED |
+
+**`Y2`の根本原因は`X-C`(attempt 4)と同じである** — 「Cの Android 分岐にある**自作の定数**が、
+代用のsource assertから漏れている」。attempt 4 は errno 1件を足して閉じたが、**類は閉じて
+いなかった**。AGENTS.md の「同じ根本原因が修正後も2回続いたら、同じ種類の修正を繰り返さず
+解き方を変える」に該当するので、**1件ずつ`contains`するのをやめて表にした**。
+
+- `#define` を全件抽出し、**値まで含めて**表と**完全一致**で突き合わせる。
+- `errno`写像を`__ANDROID__` guardの内外で分けて全件抽出し、写像先まで表と完全一致で
+  突き合わせる。
+- **完全一致なので、表に載せ忘れた定数が増えれば「未登録」で落ちる。** 1件ずつの
+  `contains`では、増えた分は黙って通っていた。
+- `M62`(arch別のsyscall番号を1つずらす)を足して、表そのものが効いていることを確認した。
+
+**P2 4件も直した。** うち`P2-2`は「`task.md`が『直した』と書いたP2が実diffに無い」という
+指摘で、原因は**mutation実行中にその fileを編集し、runnerの復元で消えたこと**だった。
+別途 [`development-findings/2026-08-23-edited-a-file-while-a-mutation-runner-was-restoring-it.md`](../../../../development-findings/2026-08-23-edited-a-file-while-a-mutation-runner-was-restoring-it.md) へ記録した。
+
 ## 同じ型を2回作った理由(独立review attempt 2 の要求)
 
 **3回とも同じ型である**: 「production が実際に通る合成を、test が一度も通らない」。
@@ -171,17 +200,18 @@ fake無しで実行されており、残ったのは**周辺3点**だった。�
 - 2026-08-23 / **外部AI 2件へ一般解を尋ね(人間の作業)、前提を照合して案B′を採用した**([ADR-003](../../decisions/ADR-003-os-identity-at-native-boundary.md))。2件は独立に同じ結論へ収束した — 「Dart側のOS分岐を消し、OS identityをnative境界へ閉じ込める」。**そのままは採らず**、片方が推した「全platform共通UTF-8 ABI」は**採らなかった**(testできる`_extendedWindowsPath`をsyntax checkすらできないCへ移すことになり、目的と逆。unpaired surrogateも検証手段が無い)。適用したのは、(1) OS許可リストの削除、(2) `fallbackRequired`による劣化の駆動、(3) 劣化地点の単一化、(4) 脆いsource assertの依存検査への置き換え。**Android専用のexecutor factoryは消滅し、`T07`の切り替えは「`isAndroid`の行を消す」だけになった。**
 - 2026-08-23 / mutation表を`M56`まで作り直し、**56 KILLED / 0 SURVIVED / 0 SKIPPED**。reviewerの`X1`は`M55`としてKILLED、`X3`/`X4`は**対象消滅**、`X2`はP2として受容(上表)。**testは1件減った**(483件) — 消えたのはOS分岐を見るtestで、分岐自体が無くなったからである。
 - 2026-08-23 / **独立review attempt 4 = FAIL(P1が4件、P2が6件)。** reviewerは主張した検証結果を**すべて再現**し、`M44`〜`M56`が全KILLEDであること、ADR-003の構造変更が有効に効いていることを確認したうえで、**周辺3点**(上表の`X-A`/`X-C`/`X-F`)と、**正本同士の矛盾**を指摘した。矛盾は、attempt 1 の対応で新設した`T07`の申し送りが**ADR-003適用に追随せず、削除済みの`createAndroidRenameExecutor()`を受け入れ証拠として指していた**もの。`T07`と`T05`の申し送りを「`Platform.isAndroid`の行を消す」へそろえ、`grep -rn "createAndroidRenameExecutor" specs/`の残り5件が日付つきの作業記録だけであることを確認した。P2は6件とも直した(「決めたこと」表2行、PR本文の1文、`T07`の再承認対象へREQ-025追加、`plainRenameFile`のdirectory限界注記、findingへの結果追記、`check_platform_boundary.py`の限界追記)。
+- 2026-08-23 / **独立review attempt 5 = FAIL(P1が1件、P2が4件)。** P1は`RENAME_NOREPLACE`の自作定義値が未検査だったこと(`(1 << 1)`にすると**2つのfileが黙って入れ替わる**)。**根本原因がattempt 4のP1-2と同じ**だったので、1件ずつ`contains`する解き方をやめ、**C で自作した定数(`#define`全件と`errno`写像全件)を表と完全一致で突き合わせる**形にした。P2は、desktop側`ENOSYS`の未検査(`M61`)、**「直した」と書いたP2が実diffに無かった件**(原因はmutation実行中の編集。finding化)、`T07/task.json`の`covers`追随漏れ、handoffの内部矛盾。
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 4 の指摘を反映済み。** 表全体が **59 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(485)。working treeはclean
+- Last checkpoint: **独立review attempt 5 の指摘を反映済み。** C で自作した定数を表駆動の完全一致検査へ置き換えた。表全体が **62 KILLED / 0 SURVIVED / 0 SKIPPED**、`flutter test` = PASS(487)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 5
+- Waiting for: 独立review attempt 6
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T05-native-renameat2-port`、base は `dev@8eeab82`
 - 未解決P2: `X2`(`plainRenameFile`のcatch-allが未検査。attempt 4 のreviewerが受容を**妥当と判定**)、`X-G`(`Platform.isWindows`分岐がLinuxで固定できない。**変更前と同型でregressionではない**)
 - 残余risk: **CのAndroid分岐はLinux CIで検証できない。** target OS別のbuild CIは**入れない**(2026-08-23 開発者決定、`.github/workflows`は人間のみ)。`013:T08`の実機確認が引き受ける
 - **人間へ回す判断(このtaskのFAIL理由ではない。`T07`/`T08`の後でよい)**: `fallbackRequired`という汎用の劣化機構ができたことで、**desktopで同じ状況が起きても劣化しない**ことが設計選択として可視化された。LinuxでNFS / CIFS / 一部FUSE上のfileを改名すると`renameat2`は`EOPNOTSUPP`を返し、現在は`unsupported`=改名が失敗する(**変更前から同じでregressionではない**)。(A) 現状維持[reviewer推奨] / (B) desktopのCでも劣化させる(005 contract再承認が要る) / (C) 劣化したことを結果として利用者へ提示する(005 / 001の仕様追加)
-- Next Agent action: **独立review attempt 4 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
+- Next Agent action: **独立review attempt 6 を起動する。** PASSならPR #146 をready化し、auto-mergeの7条件を確認する
 - **`T07`への申し送り**: `platform_rename_executor.dart`から`if (Platform.isAndroid) return const SafRenameExecutor();`の行を消すのは`T07`である。**Android専用のexecutorは存在しない**(ADR-003) — 消すだけでAndroidも`DesktopRenameExecutor`を通り、劣化はnativeが返す`fallbackRequired`が駆動する。同fileのdoc commentに理由を書いてある。切り替えたら`saf_rename_executor.dart`は**wiringから外れるが削除しない**(ADR-002の退避経路)。
 - **`T08`への申し送り**: NDKでのcompileと実機での`renameat2`挙動の観測。`__arm__`のsyscall番号の照合もここで取れる。

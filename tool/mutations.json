@@ -417,6 +417,27 @@
       "note": "Dart enumのio/fallbackRequiredを入れ替える(CのIO=5がfallbackRequiredへ写り、desktopで本物のIO失敗が通常renameへ劣化する。attempt 4 のX-F)",
       "find": "  unsupported,\n  io,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n",
       "replace": "  unsupported,\n\n  /// このplatformでは排他的renameを利用できなかった。**呼び出し側は、目標名が実在\n  /// しないことを確認済みなら通常renameへ落としてよい**(013 REQ-005)。\n  ///\n  /// [unsupported]とは意味が違う — あちらは「この機能自体を提供しない」であって、\n  /// 落としてよいとは言っていない。**どのOSがこれを返すかをDartは知らない**\n  /// (ADR-003)。現状返すのはAndroidのCだけだが、それはC側の事実である。\n  fallbackRequired,\n  io,\n"
+    },
+    {
+      "id": "M60",
+      "file": "src/native_exclusive_rename.c",
+      "note": "RENAME_NOREPLACEの自作定義値を(1<<1)=RENAME_EXCHANGEへ(2つのfileが黙って入れ替わる。005 INV-002/OP-004。attempt 5 のY2)",
+      "find": "#define RENAME_NOREPLACE (1 << 0)",
+      "replace": "#define RENAME_NOREPLACE (1 << 1)"
+    },
+    {
+      "id": "M61",
+      "file": "src/native_exclusive_rename.c",
+      "note": "desktop側のENOSYSをunsupportedから外す(013が「変えない」と宣言したdesktopの写像が変わる。attempt 5 のY4)",
+      "find": "#else\n    case ENOSYS:\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_UNSUPPORTED;",
+      "replace": "#else\n#ifdef ENOTSUP\n    case ENOTSUP:\n#endif\n      return BRM_RENAME_UNSUPPORTED;"
+    },
+    {
+      "id": "M62",
+      "file": "src/native_exclusive_rename.c",
+      "note": "arch別のsyscall番号を1つずらす(x86_64が別のsyscallを呼ぶ。表に載せた値そのものを固定する)",
+      "find": "#define SYS_renameat2 316",
+      "replace": "#define SYS_renameat2 317"
     }
   ]
 }
