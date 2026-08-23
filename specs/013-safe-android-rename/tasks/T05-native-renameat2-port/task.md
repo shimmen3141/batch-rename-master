@@ -59,7 +59,7 @@
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** `T08`が行う |
 
-**mutationで2件がSURVIVEDしてから直した。** `M46`(通常renameのnotFound分類)は
+**mutationで2件がSURVIVEDしてから直した。**(以下のIDは**当時の表**のもので、現在の表とは対応しない。通常renameのnotFound分類は現在`M54`である。)当時の`M46`(通常renameのnotFound分類)は
 `expect([notFound, io], contains(result))`という曖昧なassertionで、どちらでも通って
 いた。`M47`(**AndroidのRENAME_NOREPLACEを外す**)は`expect(source, contains('RENAME_NOREPLACE'))`
 がfile全体を見ており、`#define`の行があるので**呼び出しからflagが消えても通っていた**。

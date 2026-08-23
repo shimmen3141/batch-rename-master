@@ -48,7 +48,10 @@ AGENTS.mdの「同じtaskで独立reviewが合計3回FAILしたら`blocked`に�
 3. **劣化はDartの単一地点で行う。** `DesktopRenameExecutor`が`_rename`の結果を受けて
    `fallbackRequired`なら通常renameへ落とす。**optionalな既定引数による合成を作らない。**
 4. **source assertは「禁止された依存が無い」検査へ置き換える。**
-   `Platform.`と`@Native`は指定fileの外に書けない、を`tool/check_platform_boundary.py`が検査する。
+   **`Platform.is*`、`Platform.operatingSystem`、`@Native`**は指定fileの外に書けない、を
+   `tool/check_platform_boundary.py`が検査する。**`Platform.pathSeparator`など他のメンバは
+   対象外**である(道具側のdocstringと`normative_terms`の限界節を正本とする)。
+   検査は`test/tooling/repo_checks_test.dart`から呼ばれ、CIの`flutter test`で必ず走る。
 
 ## Consequences
 
