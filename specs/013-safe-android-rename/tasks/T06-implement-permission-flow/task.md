@@ -64,12 +64,12 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(532件)**。T06着手前は509件 |
+| full regression | `flutter test` = **PASS(535件)**。T06着手前は509件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
-| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、4 rule、1 required line) |
-| mutation | `M82`〜`M100`(T06分)= **19 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`は**独立reviewerが足したもの**(`M98`は対照) |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、4 rule) |
+| mutation | `M82`〜`M101`(T06分)= **20 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`は**独立reviewerが足したもの** |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -120,7 +120,7 @@
 | `Evidence revision`のbaseが実際の分岐点と違う | 成果物の欠陥 P2 | **直した。** `dev@b318251`(`git merge-base`の実測値) |
 | manualの節番号と手順番号が衝突 | 成果物の欠陥 P2 | **直した。** 「ボタンを押すと」「アプリへ戻ってきた直後」など、番号に依らない書き方にした |
 
-**reviewerが認めた点**: `undo()`のゲートが**すべての書き込み経路を覆っている**こと
+**reviewerが認めた点**(ただし「`required`にしたことによる別の抜け道が無い」はattempt 3で覆った — 下記): `undo()`のゲートが**すべての書き込み経路を覆っている**こと
 (`_shiftModifiedAtOfSuccesses`は`execute`のゲート後、一時名は`executePlan`の内側、
 `prepare()`はread)、`required`にしたことによる別の抜け道が無いこと、既存testへ足した
 `permission`の明示が**変更前の既定値と同じ値**でassertionを1つも緩めていないこと、
@@ -131,8 +131,8 @@
 押す前と同じ状態を読むだけ)。**観測できない処理を残すより取り除き**、`M88`は
 「開けなかったことを表示へ反映しない」変異へ差し替えた。
 
-**`M98`は対照である。** 「意味を変えない書き換え(1行→block)でも`required`は落ちる」ことを
-固定して忘れないようにしている。**KILLEDが期待値**で、これは`required`の代償の記録である。
+**`M98`は attempt 3 で対象が変わった。** `required`を撤去したので「意味を変えない書き換えでも
+落ちる」対照は不要になり、「写像でdesktopをAndroid側へ倒す」変異へ差し替えた。
 
 **受容した残余risk(追加)**
 
@@ -140,6 +140,43 @@
 | --- | --- | --- |
 | `execute-permission-denied` / `undo-permission-denied`のSnackBar分岐にtestが無い | 2(通り抜けても「黙って何も起きない」だけで、実体には触れていない) | `013:T07`(実行経路がAndroidで観測可能になる時点でまとめて) |
 | 既存test 6 fileのimport順 | — (`directives_ordering`を有効にしていないので機械検出されない) | 次に触るときに直す |
+
+## 独立review attempt 3 の指摘の始末
+
+**成果物の欠陥のP0/P1は無かった。** FAILの理由は安全網の穴1件(3条件をすべて満たす)である。
+**AGENTS.mdの「安全網の穴だけのFAIL」の1回目**にあたる — 次も同種なら3回目は起動せず、
+残余riskとして受容して人間へ報告する運用になる。
+
+| 指摘 | 分類 | 始末 |
+| --- | --- | --- |
+| `required`検査は**コメント行を除外しない**ので、Android分岐を関数の外へ出して同じ行をdoc commentへ残せば騙せる | **安全網の穴(3条件を満たす)P1** | **解き方を変えた**(下記) |
+| `required`の保証が実際より強く書かれている(コメント一致で「在る」と判定することが限界に書かれていない) | 成果物の欠陥 P2 | **消滅。** `required`自体をやめた |
+| `undo()`の`_clearUndo()`が`await`の後ろへ移り、期限判定に窓ができた | 成果物の欠陥 P2 | **直した。** `check()`のあとで期限を読み直す(`M101`) |
+| manualの「設定→アプリ→…」が機種によって辿れない | 成果物の欠陥 P2 | **直した。** 「特別なアプリアクセス」経由の代替を足した |
+| manual手順2の期待は単独では反証にならない(再起動でも同じ見え方) | 観察 | **手順3が対照であることを明記した** |
+
+**解き方の変更(3周目なのでpinを足すのをやめた)。**
+
+同じ根本原因 —「composition rootのplatform分岐が消えたことをLinux上で観測できない」— が
+attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attempt 3(その`required`が
+騙せる)と**3周した**。行の存在を文字列で見る限りこの往復は終わらない。
+
+- **写像を純関数`storagePermissionFor({required bool isAndroid})`へ切り出した。**
+  「Androidならどのportか」は文字列一致ではなく**振る舞い**で固定できる(`M96`/`M98`)。
+- **`required`検査を撤去した。** (a)意味を変えない書き換えでも落ち、(b)コメントで騙せる。
+  代償だけが残る仕組みだった。`rules`(依存の不在)側は残す — こちらは書き換えで壊れない。
+- **残るのは`createPlatformStoragePermission`の実引数1箇所だけ**である。これは
+  **兄弟のcomposition root(`createPlatformFileSource` / `createPlatformRenameExecutor`)が
+  元から抱えているのと同じ露出**で、それらにpinは無い。**このtaskだけ3つのうち1つを、
+  実際には保持しない仕組みで守る**のは整合しないので、同じ扱いに揃えて受容する。
+
+**受容した残余risk(追加)**
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| `createPlatformStoragePermission`の`Platform.isAndroid`が消えても、Linux上のCIでは気づけない | 3(**行の存在を文字列で見る以外の手段が無く、それは2回defeatされた**。兄弟2つも同じ露出を持つ) | `013:T08`(実機で門が効くことを確認する) |
+| `lib/`に`implements StoragePermissionPort`の素通しclassを自作してcomposition rootで配る | 3(抜け道の列挙に終わりが無い。**新しいproduction classの追加は差分reviewで必ず見える**) | `013:T07`(同じportをapp内browserへ配る側) |
+| `AndroidStoragePermission`をdesktopで直接構築する | 2(channelの相手が居ないので`denied`へ倒れ、desktopが読み込めなくなって**すぐ気づく**。門が静かに消える型ではない) | — |
 
 ## 作業記録
 
@@ -154,12 +191,12 @@
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 2 の指摘を反映済み。** `flutter test` = PASS(532)。working treeはclean
+- Last checkpoint: **独立review attempt 3 の指摘を反映済み。** `flutter test` = PASS(535)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 3
+- Waiting for: 独立review attempt 4
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **独立review attempt 3 を起動する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
+- Next Agent action: **独立review attempt 4 を起動する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは

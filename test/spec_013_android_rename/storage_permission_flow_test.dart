@@ -34,9 +34,13 @@ class _FakePermission implements StoragePermissionPort {
   /// 取り消された」を模す(013 REQ-004 が想定している状況)。
   StoragePermissionState? stateAfterNextCheck;
 
+  /// `check` を待たせる。channel 往復に時間がかかる状況を模す。
+  Duration checkDelay = Duration.zero;
+
   @override
   Future<StoragePermissionState> check() async {
     checks++;
+    if (checkDelay > Duration.zero) await Future<void>.delayed(checkDelay);
     final current = state;
     if (stateAfterNextCheck != null) {
       state = stateAfterNextCheck!;
@@ -529,6 +533,40 @@ void main() {
 
       expect(undone, isNotNull);
       expect(controller.permissionDenied, isFalse);
+    });
+
+    test('権限確認の待ちの間に期限が切れたら、undoしない', () async {
+      // `check()` は channel 往復を含むので、その待ちの間に期限が切れうる
+      // (独立review attempt 3 の F3)。**期限を読み直さないと、切れたあとに
+      // 実体を書き換える。**
+      final executor = _RecordingExecutor();
+      final files = FileListController(
+        files: [_entry('a.txt', handle: '/tmp/a.txt')],
+      );
+      files.setRule(const RenameRule([LiteralToken('renamed')]));
+      final permission = _FakePermission(StoragePermissionState.granted);
+      final controller = RenameExecutionController(
+        files: files,
+        executor: executor,
+        listNames: (_) async => NamesListed(const {}),
+        permission: permission,
+        undoWindow: const Duration(milliseconds: 200),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.execute(
+        force: false,
+        occupiedNames: OccupiedNames.emptyFor(const [null]),
+      );
+      final afterExecute = executor.calls.length;
+      expect(controller.canUndo, isTrue);
+
+      // 期限内に押すが、権限確認の往復が期限をまたぐ。
+      permission.checkDelay = const Duration(milliseconds: 300);
+      final undone = await controller.undo();
+
+      expect(undone, isNull, reason: '期限が切れているので戻さない');
+      expect(executor.calls.length, afterExecute, reason: '**書き込みを1件も試みない**');
     });
 
     test('実行のたびに確認する(読み込み時の結果を持ち回らない)', () async {
