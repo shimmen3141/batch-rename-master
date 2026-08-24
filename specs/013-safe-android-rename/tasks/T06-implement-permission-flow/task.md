@@ -64,12 +64,12 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(536件)**。T06着手前は509件 |
+| full regression | `flutter test` = **PASS(540件)**。T06着手前は509件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、4 rule) |
-| mutation | `M82`〜`M101`(T06分)= **20 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`は**独立reviewerが足したもの** |
+| mutation | `M82`〜`M102`(T06分)= **21 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`と`M102`は**独立reviewerが足したもの** |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -178,6 +178,27 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 | `lib/`に`implements StoragePermissionPort`の素通しclassを自作してcomposition rootで配る | 3(抜け道の列挙に終わりが無い。**新しいproduction classの追加は差分reviewで必ず見える**) | `013:T07`(同じportをapp内browserへ配る側) |
 | `AndroidStoragePermission`をdesktopで直接構築する | 2(channelの相手が居ないので`denied`へ倒れ、desktopが読み込めなくなって**すぐ気づく**。門が静かに消える型ではない) | — |
 
+## 独立review attempt 4 の指摘の始末(判定は PASS)
+
+**成果物の欠陥のP0/P1は無く、3条件をすべて満たす安全網の穴も無かった。** 残ったP2 3件を直した。
+
+| 指摘 | 分類 | 始末 |
+| --- | --- | --- |
+| `undo()`の期限再評価が`canUndo`より1瞬だけ厳しい(`now == deadline`でボタンが出ているのに黙って戻らない) | 成果物の欠陥 P2 | **直した。** 005 contractの用語「巻き戻し期限」は「期限を**過ぎた**ら巻き戻せない」なので、ちょうどはまだ内側である。**述語`isWithinUndoWindow`を切り出して両方が同じものを使う**形にし、境界をtestで固定した(`M102`) |
+| `normative_platform.json`の説明配列に空文字列の残骸 | 成果物の欠陥 P2 | 直した |
+| manualが「この版のbuildがインストール済み」を前提にしていた | 成果物の欠陥 P2 | **直した。** 「すべてのファイルへのアクセス」の項目はこのアプリを入れて初めて設定画面に現れる。先に入れて一度起動する手順を足した |
+
+**reviewerの`R02`を`M102`として取り込んだ。** reviewerは「到達しない差なのでtestで固定
+できない」と見ていたが、**述語を切り出せばLinux上で固定できる**ので、対照(SURVIVEDが
+期待値)ではなくKILLEDになる形にした。`R01`(説明文を空にする)は下の残余riskに記録する。
+
+**受容した残余risk(追加。reviewerが3条件で整理したもの)**
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| 将来`loadFilesInto` / `executePlan`の**新しい呼び出し元**が足されても、門を通っているかをCIが見ない | 3(呼び出しの**場所**はpinできても**門が先に通ること**は固定できない。`required`がdefeatされたのと同じ型) | `013:T07` |
+| REQ-001の説明文の**中身**がpinされていない(空にしてもtestが落ちない。reviewerの`R01`) | 2(伝わらないだけで、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊のいずれでもない) | `013:T08`(manual手順1「説明を読んで伝わるか」) |
+
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
@@ -191,12 +212,12 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3 の指摘を反映済み。** `M82`〜`M101`が20 KILLED、`flutter test` = PASS(536)。working treeはclean
+- Last checkpoint: **独立review attempt 4 = PASS。** そのP2 3件も反映済み。`M82`〜`M102`が21 KILLED、`flutter test` = PASS(540)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 4
+- Waiting for: PRのCIと、人間のmanual確認
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **独立review attempt 4 を起動する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
+- Next Agent action: **PRを作り、CIの成功を確認してから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
