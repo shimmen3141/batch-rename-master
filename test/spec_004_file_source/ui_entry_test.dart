@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FileEntry _entry(String name, {required String handle, String? location}) =>
@@ -47,7 +48,11 @@ Future<void> _pump(
       home: Scaffold(
         body: Column(
           children: [
-            FileSourceBar(source: source, controller: controller),
+            FileSourceBar(
+              source: source,
+              controller: controller,
+              permission: const UnrestrictedStoragePermission(),
+            ),
             if (withList) Expanded(child: FileListView(controller: controller)),
           ],
         ),

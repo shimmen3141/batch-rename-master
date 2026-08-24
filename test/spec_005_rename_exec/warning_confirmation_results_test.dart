@@ -10,6 +10,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'occupied_support.dart';
 
@@ -46,6 +47,7 @@ void main() {
       files: {'/files/empty.txt': 'empty.txt'},
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -69,6 +71,7 @@ void main() {
       files: {'/files/a.txt': 'a.txt', '/files/b.txt': 'b.txt'},
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -99,6 +102,7 @@ void main() {
     );
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -131,6 +135,7 @@ void main() {
       },
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -171,6 +176,7 @@ void main() {
       },
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -203,6 +209,7 @@ void main() {
     );
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -227,6 +234,7 @@ void main() {
           const RenameError(RenameErrorKind.permissionDenied, '権限がありません'),
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -246,6 +254,7 @@ void main() {
       rule: const RenameRule([LiteralToken('renamed')]),
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: const SafRenameExecutor(),
       listNames: listNamesFixed('/files', {'a.txt'}),
@@ -268,6 +277,7 @@ void main() {
     );
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -298,6 +308,7 @@ void main() {
     );
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -324,6 +335,7 @@ void main() {
       rule: const RenameRule([LiteralToken('renamed')]),
     );
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: _DelayedExecutor(gate.future),
       listNames: listNamesFixed('/files', {'a.txt'}),

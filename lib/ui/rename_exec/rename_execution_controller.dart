@@ -4,10 +4,22 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
+import '../../data/permission/storage_permission.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../../data/rename_exec/rename_executor.dart';
 import '../../data/rename_exec/rename_plan.dart';
 import '../file_list/file_list_controller.dart';
+
+/// 巻き戻し期限の内側か(005 contract 用語「巻き戻し期限」)。
+///
+/// **契約は「期限を*過ぎた*実行結果は巻き戻せない」**なので、ちょうどの瞬間は
+/// まだ内側である。[RenameExecutionController.canUndo] と `undo()` の再評価が
+/// **同じ述語を使う**ようにしてある — 片方だけ厳しいと、ボタンが出ているのに
+/// 黙って戻らない瞬間ができる(独立review attempt 4 の F1)。
+///
+/// [deadline] が `null`(提示していない / 期限切れで捨てた)なら内側ではない。
+bool isWithinUndoWindow({required DateTime now, DateTime? deadline}) =>
+    deadline != null && !now.isAfter(deadline);
 
 /// UI から既存の rename orchestration を一度だけ起動する状態境界。
 class RenameExecutionController extends ChangeNotifier {
@@ -15,6 +27,7 @@ class RenameExecutionController extends ChangeNotifier {
     required this.files,
     required this.executor,
     required this.listNames,
+    required this.permission,
     this._clock = DateTime.now,
     this.undoWindow = const Duration(seconds: 5),
     this.modifiedAtInterval = const Duration(seconds: 1),
@@ -29,10 +42,28 @@ class RenameExecutionController extends ChangeNotifier {
   /// 検出できない(005 REQ-026)。**既定値を置かない** — 既定で「列挙しない」に
   /// できると、結線を忘れた経路が黙って REQ-026 を素通りする。
   final FolderNameLister listNames;
+
+  /// 全ファイルアクセスの判定(013 REQ-004 / INV-002)。
+  ///
+  /// **実行の直前に毎回確認する。** 読み込み時に許可されていても、設定から
+  /// 取り消されうる。Android を制限するのは composition root の仕事で、ここは
+  /// platform を判定しない。
+  ///
+  /// **既定値を置かない。** 既定で「制限しない」にできると、結線を忘れた経路が
+  /// 黙って REQ-001 / REQ-004 / INV-002 を素通りする(`listNames` と同じ理由。
+  /// 独立review attempt 1 の P1-3 — 結線を外しても test が1件も落ちなかった)。
+  final StoragePermissionPort permission;
   final DateTime Function() _clock;
   final Duration undoWindow;
   bool _running = false;
   bool get isRunning => _running;
+
+  /// 直前の実行が権限不足で止まったか(013 REQ-004 / INV-002)。
+  ///
+  /// UI がこれを見て、実行できなかった理由を提示する。`execute` を呼ぶたびに
+  /// 更新するので、**古い値を持ち回らない**。
+  bool _permissionDenied = false;
+  bool get permissionDenied => _permissionDenied;
 
   RenameOutcome? _undoableOutcome;
   DateTime? _undoDeadline;
@@ -44,8 +75,7 @@ class RenameExecutionController extends ChangeNotifier {
     return !_running &&
         outcome != null &&
         outcome.successes.any(_changedRename) &&
-        deadline != null &&
-        !_clock().isAfter(deadline);
+        isWithinUndoWindow(now: _clock(), deadline: deadline);
   }
 
   List<FileEntry> _excludedEmptyNames = const [];
@@ -128,13 +158,27 @@ class RenameExecutionController extends ChangeNotifier {
     required bool force,
     required OccupiedNames occupiedNames,
   }) async {
+    // **早期returnでも古い値を残さない。** 残すと、次に別の理由で止まったときに
+    // 前回の「権限が無い」を根拠にした説明が出る。
+    _permissionDenied = false;
     if (_running || files.isRuleEmpty) return null;
-    _clearUndo();
+    // **`_running` は最初の `await` より前に立てる。** 権限確認を先に置くと、
+    // その待ちの間に2回目の実行が門を通り抜ける(REQ-012 が禁じている二重起動)。
     _running = true;
     _excludedEmptyNames = const [];
     _modifiedAtFailures = const [];
     notifyListeners();
     try {
+      // **実行の直前に確認する**(013 REQ-004)。読み込み時の結果を持ち回らない。
+      // 未許可なら**何も起動しない** — 013 INV-002 は「権限が無い状態で filesystem
+      // へ書き込みを試みない」であり、`executor` にも `listNames` にも触れない。
+      if (await permission.check() == StoragePermissionState.denied) {
+        _permissionDenied = true;
+        return null;
+      }
+      // **門を通ってから undo を捨てる。** 権限不足で断ったときに前回の undo を
+      // 消すと、何もしていないのに戻せなくなる。
+      _clearUndo();
       final entries = _entriesWithSelection();
       final now = _clock();
       final resolved = force
@@ -196,13 +240,32 @@ class RenameExecutionController extends ChangeNotifier {
   }
 
   /// 直前の実行で成功したrenameを期限内に一度だけ逆順で戻す。
+  ///
+  /// **undoも書き込みである。** 013 INV-002 は「権限が無い状態で filesystem へ
+  /// 書き込みを試みない」であり、**戻す方向も例外にしない**。実行後に設定から
+  /// 権限を取り消されても undo の提示は期限まで残る(断っても undo を消さないと
+  /// 決めたため)ので、**押された時点で確かめる**(013 REQ-004)。
   Future<UndoOutcome?> undo() async {
+    _permissionDenied = false;
     if (!canUndo) return null;
     final outcome = _undoableOutcome!;
-    _clearUndo();
+    // **`_running` は最初の `await` より前に立てる**(`execute` と同じ理由)。
     _running = true;
     notifyListeners();
     try {
+      if (await permission.check() == StoragePermissionState.denied) {
+        _permissionDenied = true;
+        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。
+        return null;
+      }
+      // **期限を読み直す。** `check()` は channel 往復を含むので、その待ちの間に
+      // 期限が切れうる(独立review attempt 3 の F3)。切れていたら戻さない。
+      // **境界は[canUndo]と同じ述語で判定する。** ここだけ厳しくすると、
+      // ボタンが出ているのに黙って戻らない瞬間ができる(独立review attempt 4 のF1)。
+      if (!isWithinUndoWindow(now: _clock(), deadline: _undoDeadline)) {
+        return null;
+      }
+      _clearUndo();
       final undoOutcome = await undoSuccessfulRenames(
         outcome.successes.where(_changedRename).toList(),
         executor,

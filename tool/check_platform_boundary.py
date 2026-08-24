@@ -9,6 +9,14 @@
 **「この行が存在すること」ではなく「この依存が存在しないこと」を見る。** 前者は format
 変更や変数の導入で壊れ、semantic regression ではなく refactoring を検出してしまう。
 
+**一度「必ず在る行」の検査(`required`)を入れて、やめた。** composition root の
+`if (Platform.isAndroid) ...` が消えたことを Linux 上で捕まえたかったが、
+(a) 意味を変えない書き換えでも落ち、(b) **同じ行をコメントに残せば騙せた**
+(独立review attempt 3 の F1)。行の存在を文字列で見る限りこの往復は終わらないので、
+**写像を純関数へ切り出して振る舞いで固定する**方向へ変えた。
+残る `Platform.isAndroid` の実引数1箇所は、兄弟の composition root と同じ露出として
+受容している(`013:T08` が引き受ける)。
+
 対象と許可は `tool/normative_platform.json` が持つ。project-native の道具であり、
 ASDD plugin 側の共有 script ではない。
 

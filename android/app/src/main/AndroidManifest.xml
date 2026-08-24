@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 全ファイルアクセス(013 REQ-001)。安全な rename は filesystem の path を
+         要り、path はこの権限でしか得られない(013 decisions/ADR-002)。
+         API 30 未満にはこの権限が無いので、maxSdkVersion は付けず、実行時に
+         Environment.isExternalStorageManager() で判定する(MainActivity.kt)。 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application
         android:label="batch_rename_master"
         android:name="${applicationName}"

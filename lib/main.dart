@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/rename_engine.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
+import 'data/permission/storage_permission.dart';
 import 'data/rename_exec/platform_rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
@@ -75,10 +76,16 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource]
   /// (Android=SAF / デスクトップ=OS ピッカー)を注入する(T4)。
   late final FileSource _source = createPlatformFileSource();
+
+  /// 全ファイルアクセスの判定(013 REQ-001〜004)。**ここが唯一の platform 判定**で、
+  /// UI も controller も自分では OS を見ない。
+  late final StoragePermissionPort _permission =
+      createPlatformStoragePermission();
   late final RenameExecutionController _renameExecution =
       RenameExecutionController(
         files: _files,
         executor: createPlatformRenameExecutor(),
+        permission: _permission,
         // 占有名の材料は 004 が供給する(004 REQ-014 / 005 REQ-026)。
         listNames: _source.listNames,
       );
@@ -89,7 +96,11 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
       appBar: AppBar(title: const Text('一括リネーム')),
       body: Column(
         children: [
-          FileSourceBar(source: _source, controller: _files),
+          FileSourceBar(
+            source: _source,
+            controller: _files,
+            permission: _permission,
+          ),
           Expanded(
             child: RuleBuilderWorkspace(
               fileList: _files,
