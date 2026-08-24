@@ -6,13 +6,16 @@
 無いのにDart側へOS分岐を書ける**という構造だった。ADR-003でOS identityをnative境界
 (C と `hook/build.dart`)へ閉じ込めると決め、この検査でその決定を固定する。
 
-**原則は「この依存が存在しないこと」を見る。**「この行が存在すること」は format 変更や
-変数の導入で壊れ、semantic regression ではなく refactoring を検出してしまうためである。
+**「この行が存在すること」ではなく「この依存が存在しないこと」を見る。** 前者は format
+変更や変数の導入で壊れ、semantic regression ではなく refactoring を検出してしまう。
 
-**例外は `required` だけ**である。Linux 上では**振る舞いで観測できない** platform 分岐
-(composition root の `if (Platform.isAndroid) ...`)を固定する手段が他に無いので、
-そこだけ行の存在を見る。**代償は承知している** — 意味を変えない書き換えでも落ちる。
-だから `required` は増やさず、閉じられるものは `rules`(依存の不在)側で閉じる。
+**一度「必ず在る行」の検査(`required`)を入れて、やめた。** composition root の
+`if (Platform.isAndroid) ...` が消えたことを Linux 上で捕まえたかったが、
+(a) 意味を変えない書き換えでも落ち、(b) **同じ行をコメントに残せば騙せた**
+(独立review attempt 3 の F1)。行の存在を文字列で見る限りこの往復は終わらないので、
+**写像を純関数へ切り出して振る舞いで固定する**方向へ変えた。
+残る `Platform.isAndroid` の実引数1箇所は、兄弟の composition root と同じ露出として
+受容している(`013:T08` が引き受ける)。
 
 対象と許可は `tool/normative_platform.json` が持つ。project-native の道具であり、
 ASDD plugin 側の共有 script ではない。
@@ -20,9 +23,6 @@ ASDD plugin 側の共有 script ではない。
 ## この検査で捕まらないもの(PASS を「OS分岐は無い」と読まないこと)
 
 - **文字列一致である。** `const io = Platform; io.isAndroid` のような間接化は見ない。
-  `required` も同じで、**同じ意味を別の書き方で満たしても「無い」と判定する**。
-  壊れやすさは承知のうえで、Linux 上では振る舞いで観測できない platform 分岐を
-  固定する手段が他に無いために置いている。
 - **見るのは登録した pattern だけ。** `Platform.is*` と `Platform.operatingSystem` は
   禁止できるが、`Platform.pathSeparator` など他のメンバで OS を判定する書き方は捕まらない。
 - **見るのは `lib/**/*.dart` だけ。** test、`tool/`、`hook/build.dart` は対象外。
@@ -84,37 +84,19 @@ def main() -> int:
                         f"{rule['reason']}"
                     )
 
-    # **必ず在る行**の検査。allow(禁止)の逆で、消えたら落ちる。
-    # Linux 上では振る舞いで観測できない platform 分岐(composition root)を固定する。
-    for rule in config.get("required", []):
-        path = Path(rule["file"])
-        if not path.exists():
-            violations.append(f"{rule['file']}: file がありません")
-            continue
-        if rule["pattern"] not in path.read_text(encoding="utf-8"):
-            violations.append(
-                f"{rule['file']}: 必ず在るはずの行がありません: "
-                f"`{rule['pattern']}`。{rule['reason']}"
-            )
-
     if violations:
         for v in violations:
             print(f"FAIL: {v}")
         print(
             f"\n{len(violations)} violation(s). "
-            f"scanned {len(paths)} file(s), {len(config['rules'])} rule(s), "
-            f"{len(config.get('required', []))} required line(s)."
+            f"scanned {len(paths)} file(s), {len(config['rules'])} rule(s)."
         )
         return 1
 
+    print(f"PASS: {len(paths)} file(s), {len(config['rules'])} rule(s), 0 violations.")
     print(
-        f"PASS: {len(paths)} file(s), {len(config['rules'])} rule(s), "
-        f"{len(config.get('required', []))} required line(s), 0 violations."
-    )
-    print(
-        "注意: この検査は文字列一致で「禁止された依存が無いこと」と"
-        "「必ず在る行があること」だけを見る。間接化した OS 判定や、"
-        "C 側の platform 分岐は対象外である。"
+        "注意: この検査は文字列一致で「禁止された依存が無いこと」だけを見る。"
+        "間接化した OS 判定や、C 側の platform 分岐は対象外である。"
     )
     return 0
 

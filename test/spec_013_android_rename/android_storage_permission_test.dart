@@ -13,6 +13,31 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  group('どの platform がどの port を使うか', () {
+    // **Androidだけが制限を持つ**(013 REQ-001)。desktopは素通しで、013は
+    // desktopの振る舞いを変えない。`Platform.isAndroid`を条件式へ直接書くと、
+    // この写像をLinux上で固定できない(独立review attempt 1 / 2 / 3)。
+    test('Android は channel 越しの port を使う', () {
+      expect(
+        storagePermissionFor(isAndroid: true),
+        isA<AndroidStoragePermission>(),
+      );
+    });
+
+    test('Android 以外は素通しの port を使う', () {
+      expect(
+        storagePermissionFor(isAndroid: false),
+        isA<UnrestrictedStoragePermission>(),
+      );
+    });
+
+    test('素通しの port は制限しない(desktop の振る舞いを変えない)', () async {
+      final port = storagePermissionFor(isAndroid: false);
+      expect(await port.check(), StoragePermissionState.notApplicable);
+      expect(await port.openSettings(), isFalse, reason: '開く設定画面が無い');
+    });
+  });
+
   const permission = AndroidStoragePermission();
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;

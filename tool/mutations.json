@@ -646,8 +646,8 @@
       "id": "M92",
       "file": "lib/ui/rename_exec/rename_execution_controller.dart",
       "note": "undoの権限確認を外す(未許可で実際に書き込む。013 INV-002。attempt 1 のP1-1)",
-      "find": "      if (await permission.check() == StoragePermissionState.denied) {\n        _permissionDenied = true;\n        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。\n        return null;\n      }\n      _clearUndo();",
-      "replace": "      _clearUndo();"
+      "find": "      if (await permission.check() == StoragePermissionState.denied) {\n        _permissionDenied = true;\n        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。\n        return null;\n      }\n      // **期限を読み直す。**",
+      "replace": "      // **期限を読み直す。**"
     },
     {
       "id": "M93",
@@ -673,9 +673,9 @@
     {
       "id": "M96",
       "file": "lib/data/permission/storage_permission.dart",
-      "note": "platform選択からAndroid分岐を落とす(Androidでも常に制限しないportが配られる。attempt 1 のMR03)",
-      "find": "  if (Platform.isAndroid) return const AndroidStoragePermission();\n",
-      "replace": ""
+      "note": "写像でAndroidを素通しの側へ倒す(Androidでも制限しないportが配られる。attempt 1 のMR03)",
+      "find": "    isAndroid\n    ? const AndroidStoragePermission()\n    : const UnrestrictedStoragePermission();",
+      "replace": "    const UnrestrictedStoragePermission();"
     },
     {
       "id": "M97",
@@ -687,9 +687,9 @@
     {
       "id": "M98",
       "file": "lib/data/permission/storage_permission.dart",
-      "note": "[対照] Android分岐を意味を変えずにblockへ書き換える。**KILLEDが期待値** — requiredはrefactoringも落とすので、その代償を固定して忘れないようにする(attempt 2 のMR05)",
-      "find": "  if (Platform.isAndroid) return const AndroidStoragePermission();",
-      "replace": "  if (Platform.isAndroid) {\n    return const AndroidStoragePermission();\n  }"
+      "note": "写像でdesktopをAndroid側へ倒す(013はdesktopの振る舞いを変えない)",
+      "find": "    ? const AndroidStoragePermission()\n    : const UnrestrictedStoragePermission();",
+      "replace": "    ? const AndroidStoragePermission()\n    : const AndroidStoragePermission();"
     },
     {
       "id": "M99",
@@ -704,6 +704,13 @@
       "note": "一度も確認していないうちから復帰で確認しに行く(013 REQ-002。目的を持つ前に権限を問う)",
       "find": "    if (_lastSeen == null) return;\n    _checkPermission();",
       "replace": "    _checkPermission();"
+    },
+    {
+      "id": "M101",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "undoの期限をawaitのあとで読み直さない(channel往復の間に切れても戻してしまう。attempt 3 のF3)",
+      "find": "      if (_undoDeadline == null || !_clock().isBefore(_undoDeadline!)) {\n        return null;\n      }\n",
+      "replace": ""
     }
   ]
 }

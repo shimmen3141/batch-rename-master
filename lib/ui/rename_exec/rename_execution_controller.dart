@@ -248,6 +248,11 @@ class RenameExecutionController extends ChangeNotifier {
         // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。
         return null;
       }
+      // **期限を読み直す。** `check()` は channel 往復を含むので、その待ちの間に
+      // 期限が切れうる(独立review attempt 3 の F3)。切れていたら戻さない。
+      if (_undoDeadline == null || !_clock().isBefore(_undoDeadline!)) {
+        return null;
+      }
       _clearUndo();
       final undoOutcome = await undoSuccessfulRenames(
         outcome.successes.where(_changedRename).toList(),

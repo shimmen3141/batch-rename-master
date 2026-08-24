@@ -56,11 +56,25 @@ class UnrestrictedStoragePermission implements StoragePermissionPort {
   Future<bool> openSettings() async => false;
 }
 
-/// 現在の platform に合う port を選ぶ composition root。
+/// どの platform がどの port を使うかの写像。
 ///
 /// **Android だけが制限を持つ。** desktop は [UnrestrictedStoragePermission] で
 /// 素通しする — 013 は desktop の振る舞いを変えない。
-StoragePermissionPort createPlatformStoragePermission() {
-  if (Platform.isAndroid) return const AndroidStoragePermission();
-  return const UnrestrictedStoragePermission();
-}
+///
+/// **純関数として切り出してある。** `Platform.isAndroid` を条件式へ直接書くと、
+/// 「Androidならどの port か」を Linux 上の test で固定できず、**分岐が消えても
+/// 誰も気づかない**(独立review attempt 1 / 2 / 3 が3回続けてこの型を指摘した)。
+/// ここを引数にすれば、写像そのものは**振る舞いで**固定できる。
+///
+/// **残るのは [createPlatformStoragePermission] の実引数1箇所だけ**である。
+/// そこは Linux 上では観測できない — 兄弟の composition root
+/// (`createPlatformFileSource` / `createPlatformRenameExecutor`)が元から
+/// 抱えているのと**同じ露出**であり、`013:T08` の実機確認が引き受ける。
+StoragePermissionPort storagePermissionFor({required bool isAndroid}) =>
+    isAndroid
+    ? const AndroidStoragePermission()
+    : const UnrestrictedStoragePermission();
+
+/// 現在の platform に合う port を選ぶ composition root。
+StoragePermissionPort createPlatformStoragePermission() =>
+    storagePermissionFor(isAndroid: Platform.isAndroid);

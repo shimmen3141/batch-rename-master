@@ -20,9 +20,7 @@
     "- 見るのは `Platform.is*` と `Platform.operatingSystem` だけ。`Platform.pathSeparator` など他のメンバでOSを判定する書き方は捕まらない。",
     "- 見るのは `lib/**/*.dart` だけ。test、tool、hook は対象外である。",
     "- C の `#if defined(__ANDROID__)` は対象外。あそこは正しい置き場所である。",
-    "",
-    "required: その file に**必ず在る**行。allow(禁止)の逆で、消えたら落ちる。",
-    "Linux上では振る舞いで観測できないplatform分岐の composition root を固定するために使う。"
+    ""
   ],
   "scan": [
     "lib/**/*.dart"
@@ -56,13 +54,6 @@
         "lib/data/permission/storage_permission.dart"
       ],
       "reason": "素通しの権限portをproductionで構築しない(013 REQ-001)。配るのはcreatePlatformStoragePermissionだけである。どこかで直接構築できると、Androidでも制限しないportが配られ、REQ-001 / REQ-004 / INV-002の門が静かに消える(独立review attempt 2 のF2)。**行の存在ではなく依存の不在**を見るので、書き換えでは壊れない。"
-    }
-  ],
-  "required": [
-    {
-      "file": "lib/data/permission/storage_permission.dart",
-      "pattern": "if (Platform.isAndroid) return const AndroidStoragePermission();",
-      "reason": "Androidだけが全ファイルアクセスの制限を持つ(013 REQ-001)。この行が消えるとAndroidでも制限しないportが配られ、REQ-001 / REQ-004 / INV-002の門が静かに消える。Linux上では振る舞いで区別できないので、ここで固定する(独立review attempt 1 のMR03)。"
     }
   ]
 }
