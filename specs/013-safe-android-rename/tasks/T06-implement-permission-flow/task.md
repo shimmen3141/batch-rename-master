@@ -86,11 +86,18 @@
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 
+- 2026-08-24 / **独立review attempt 1 = FAIL(P1が3件、P2が6件)。** 改訂後のAGENTS.md(成果物の欠陥 / 安全網の穴)を適用した判定である。
+  - **P1-1(成果物の欠陥)**: **`undo()`に権限確認が無く、未許可の状態で実際に書き込む**(INV-002違反)。しかも「権限不足で断ってもundoを消さない」という**このtask自身の決定**が、「deniedと確認済みなのにundoが生きている」状態を作っている。reviewerがprobeで実測: `executor calls after undo=[rename ..., rename ...]`。
+  - **P1-2(成果物の欠陥)**: `manual-verification.md`手順3の期待が**現revisionのAndroidでは発生しない**。実行の前に`prepare()`→`listNames`を通り、`SafFileSource.listNames`は権限に関係なく常に失敗するので、REQ-027の分岐に入って`execute()`へ到達しない。この文面で依頼すると、正しく動いている実装をFAILと報告されうる。
+  - **P1-3(安全網の穴。3条件をすべて満たすのでFAIL)**: **composition rootのport結線を外してもtestが1件も落ちない**。`permission`に既定値`UnrestrictedStoragePermission()`があるため、結線が消えるとAndroidでREQ-001とREQ-004の門が**静かに両方消える**。同じfileの`listNames`が「既定値を置かない」理由を既に書いており、**同じ形で閉じられる**。
+  - P2: manual手順の内部用語とbranch確認(referenceの明文の禁止)、専用fixtureなしの破壊的操作、dartdocが`ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`を書いていない、`_permissionDenied`の早期returnでの持ち回り、design土台の適用範囲が未記載、**起動直後は未許可でも説明が出ない**(仕様解釈。人間の判断へ)。
+  - reviewerが認めた点: `_running`を最初の`await`より前へ立てた判断、channel失敗を`denied`へ倒して4種を閉じたこと、desktopの振る舞いが変わっていないこと。
+
 ## Current state / handoff
 
-- Last checkpoint: **実装とtestが揃い、`M82`〜`M91`が10 KILLED。** working treeはclean
+- Last checkpoint: **独立review attempt 1 = FAIL。** 指摘を反映中
 - Blocker category: なし
-- Waiting for: 独立review
+- Waiting for: attempt 1 の指摘の反映
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@e3f89ea`
 - Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら
