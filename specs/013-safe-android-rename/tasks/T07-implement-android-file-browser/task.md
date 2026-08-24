@@ -102,6 +102,23 @@
 
 **`listNames`(004 REQ-014)のAndroid実装はこのtaskが持つ。** `013:T10`はdesktopでしか占有名を供給できておらず、`plan.md`の全体の受け入れ証拠「**Androidで**、読み込んでいないfileとの衝突が実行前に警告として出る」の証拠元はここである。
 
+## `T05`が受容した残余riskの再判定(2026-08-24)
+
+**このtaskがcomposition rootを切り替えたので、条件1(製品経路に載っている)が成立した。**
+AGENTS.mdの3条件で判定し直した。
+
+| `T05`が受容した穴 | 1. 製品経路 | 2. 失敗の種類 | 3. CIで閉じる | 判定 |
+| --- | --- | --- | --- | --- |
+| CのAndroid分岐(生syscall、flag、errno写像)の**実挙動** | **✓ 成立した** | ✓ 無断置換・偽の成功 | **✗** NDK・実機が要る | **受容を維持。** `013:T08`が引き受ける。**Dart側から見える範囲は`T05`が実行して閉じている**(shim harnessでerrno全域)ので、残るのは「Androidの実kernelで本当に効くか」だけである |
+| 劣化経路(`plain_rename.dart`、`_renameOnce`の劣化枝、`_nativeError`の`fallbackRequired`)が**今日は到達しない** | **✓ 成立した** | ✓ | ✓ | **閉じた。** Androidが`DesktopRenameExecutor`を通るようになり、劣化経路は製品経路上にある。`M44`〜`M56`が既に固定しており、**新たに足すものは無い** |
+
+**`T05`の宣言表のうち、このtaskで状況が変わったもの。**
+
+- 「composition rootがAndroidで`DesktopRenameExecutor`を返すこと」は`T05`では「しない」
+  だったが、**このtaskで閉じた**(`M103`)。
+- 「`__arm__`のsyscall番号」「Android向けの実compile」「実機での`renameat2`の挙動」は
+  **変わらず`013:T08`**である。
+
 ## 他の正本への申し送り
 
 - **004 spec の SAF 由来の理由文が2箇所 stale になる。** REQ-003 の「SAF には作成日時の列が無いため」と検証節の「SAF は常に不明を返すため」は、Android が直接 path access へ移ると前提が変わる(`stat` にも作成時刻は無いので**結論は変わらない**が、理由が違う)。**要求そのものは有効**なので `T03` では触っていない。このtaskで Android の実装を入れる時点で理由文を直すこと。
@@ -112,11 +129,42 @@
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 - 2026-08-24 / **着手。** `008`は全taskが未着手なので、**`013:T07`が先**である(`task.md`の「008との作業重複を先に確認する」への回答)。`008:T08`の「T07との分担」節が「T07が先の場合、T08は重複しない粒度を選ぶ」と定めているので、**行ごとの場所の提示はこのtaskが確定させ、一覧全体の提示は`008:T08`が後から合わせる**。
 
+## 決めたこと
+
+| 論点 | 決着 | 理由 |
+|---|---|---|
+| browserのUIをportにするか | **一覧だけをportにし、画面はUI層に置く** | `FileSource`が`Navigator`を知ると、testがwidgetを要るようになる。`BrowserPicker`(選択を返す関数)だけを受け取れば、`AndroidFileSource`は実fileで閉じられる |
+| rootより上へ辿らせない方法 | **辿れないことで達成する**(絞り込みで隠さない) | 004 REQ-015の要求そのもの。rootで「上へ」を押すと保存場所の一覧へ戻り、`/storage`を列挙しに行かない — testで確認済み |
+| 保存場所の列挙 | **`/storage`の中身から作る**(`emulated`と`self`は除く) | 内部共有ストレージは`/storage/emulated/0`、取り外し可能なボリュームは`/storage/<id>`。**列挙に失敗しても内部ストレージだけは返す** — 空にすると「保存場所が無い」と見える |
+| 並び順 | **フォルダが先、その中で名前順** | 辿るための並べ替えであって、絞り込み(REQ-017が禁じている)ではない |
+| 作成日時 | **取得しない**(`null`) | POSIXの`stat`に作成時刻が無い。**SAFに列が無かったのと結論は同じだが理由が違う**ので、004 specの理由文を言い直した |
+| 選んだ直後に消えていたfile | **落とす**(`Picked`に含めない) | 読めないものをentryにすると、以後の経路が`notFound`で落ちる。**空リストで「決定した」と混同しない**型は保たれる |
+
+## 検証結果
+
+| 種別 | commandと結果 |
+|---|---|
+| full regression | `flutter test` = **PASS(571件)**。T07着手前は540件 |
+| static analysis | `flutter analyze` = **PASS** |
+| format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
+| ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
+| 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(46 file、4 rule) |
+| mutation | `M103`〜`M112`(T07分)= **10 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| **Android build** | **未実施。** AI containerにSDK・NDKが無い |
+| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+
+**mutationで2件がSURVIVEDしてから直した。** `M111`(所属folderをハンドルから導出する)は
+`sourceFolder`と`p.dirname(handle)`が一致するfixtureしか使っておらず、**導出に変えても
+通っていた**。`.`を含むpathで区別できるようにした。`M112`(Androidにも「文書」を出す)は
+`fileKindsFor`にtestが1本も無かった。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手。検証範囲を宣言した
+- Last checkpoint: **実装とtestが揃い、`M103`〜`M112`が10 KILLED。** 005 contract revision 6 は開発者承認済み(2026-08-24)。working treeはclean
 - Blocker category: なし
-- Waiting for: なし(`T03`は承認済み、`T06`はdone)
+- Waiting for: 独立review
 - Requested action: なし
-- Evidence revision: `dev@ec2e74f` + ADR-002
-- Next Agent action: **browserのportとUIを実装する。** 005 contractの再承認は、差分が具体になった時点で人間へ出す(承認前にcomposition rootを切り替えない)。
+- Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
+- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら[`manual-verification.md`](manual-verification.md)を人間へ依頼する。
+- **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
