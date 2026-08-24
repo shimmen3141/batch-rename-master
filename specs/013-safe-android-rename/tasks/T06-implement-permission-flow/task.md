@@ -34,8 +34,8 @@
 | 要求のタイミング(REQ-002: 起動時に飛ばさない、読み込み操作で初めて確認する) | **widget testで閉じる。** portへの呼び出し順を観測する | — |
 | 直前確認(REQ-004: 読み込み直前と実行直前に毎回確認する) | **widget test / unit testで閉じる。** 状態を途中で変えて再確認されることを観測する | — |
 | **INV-002 / VER-003**(未許可でfilesystemへ書き込まない) | **testで閉じる。** 権限portを未許可に固定し、**書き込み側のportへの呼び出しが1件も無い**ことを観測する | — |
-| `MANAGE_EXTERNAL_STORAGE`の実際の付与・取り消し | **できない**(実機が要る) | `013:T08` / [`manual-verification.md`](manual-verification.md) |
-| 設定画面(`ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`)への遷移と復帰 | **できない**(実機が要る) | `013:T08` / [`manual-verification.md`](manual-verification.md) |
+| `MANAGE_EXTERNAL_STORAGE`の実際の付与・取り消し | **できない**(実機が要る)。**2026-08-24にmanualで確認済み** | `013:T08` / [`manual-verification.md`](manual-verification.md) |
+| 設定画面への遷移と復帰 | **できない**(実機が要る)。**2026-08-24にmanualで確認済み**(アプリ個別画面が直接開いた。一覧へ落ちる分岐は未確認) | `013:T08` / [`manual-verification.md`](manual-verification.md) |
 | `AndroidManifest.xml`の宣言が効くこと、Android build | **できない**(SDK/NDKが無い) | `013:T08`(host側のbuild) |
 | platform channel の Kotlin 側実装 | **できない**(compileできない)。Dart側は port の fake で閉じる | `013:T08` |
 | Playの審査に通るか | **できない** | 人間(`spec.md`の未解決。通らなければADR-002の退避経路へ) |
@@ -71,7 +71,7 @@
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、4 rule) |
 | mutation | `M82`〜`M102`(T06分)= **21 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`と`M102`は**独立reviewerが足したもの** |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
-| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+| **実機確認** | **PASS**(2026-08-24 開発者)。対象commitは **`3576740`**(codeが最後に変わったcommit。以後はdocsのみで、`git diff 3576740..HEAD -- lib android src hook test tool` が空)。手順1〜4がすべて想定どおり。**「設定を開いて許可する」で、このアプリの「すべてのファイルへのアクセス」の画面が直接開いた**(端末によってはアプリ一覧が開きうると書いていたが、この端末では個別画面だった)。**説明文も伝わった** |
 
 **mutationで2件がSURVIVEDしてから直した。** `M84`(権限不足で断ったときにundoを捨てる)は、
 断った側しかtestしておらず、**`_clearUndo()`を丸ごと外しても通っていた** — 前回のtimerが
@@ -197,11 +197,31 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 | 残余risk | 満たさない条件 | 引き受け先 |
 | --- | --- | --- |
 | 将来`loadFilesInto` / `executePlan`の**新しい呼び出し元**が足されても、門を通っているかをCIが見ない | 3(呼び出しの**場所**はpinできても**門が先に通ること**は固定できない。`required`がdefeatされたのと同じ型) | `013:T07` |
-| REQ-001の説明文の**中身**がpinされていない(空にしてもtestが落ちない。reviewerの`R01`) | 2(伝わらないだけで、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊のいずれでもない) | `013:T08`(manual手順1「説明を読んで伝わるか」) |
+| REQ-001の説明文の**中身**がpinされていない(空にしてもtestが落ちない。reviewerの`R01`) | 2(伝わらないだけで、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊のいずれでもない) | **現在の文面は2026-08-24の実機確認で「伝わった」と確認済み。**今後の変更は`013:T08`のmanualが見る |
+
+## 実機確認の結果(2026-08-24)
+
+**対象commit `3576740`。** 以後のcommitはdocsのみで、`lib` / `android` / `src` / `hook` /
+`test` / `tool` に差分が無いことを確認済み(証拠は現在のHEADに対応する)。
+
+- **手順1〜4はすべて想定どおり。** 未許可でシートが開かず説明が出ること、許可して戻ると
+  押し直さずに説明が消えること、許可せず戻ると残ること、狭い画面での見え方。
+- **「設定を開いて許可する」で、このアプリの「すべてのファイルへのアクセス」の画面が
+  直接開いた。** `MainActivity.kt` が先に試す
+  `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` が解決されている。
+  一覧へ落ちる分岐は**この端末では通っていない**ので、そちらは未確認のまま
+  (`013:T08` が別端末で見る)。
+- **説明文は伝わった。** `R01`(説明文を空にしてもtestが落ちない)の残余riskは、
+  少なくとも現在の文面については実機で確かめられた。
+
+**手順2が対照(手順3)とセットで成立したので、「復帰時に確認し直している」ことが
+実機で観測できた** — 独立review attempt 2 の F1 で入れた仕組みが効いている。
 
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
+- 2026-08-24 / **開発者が案(a)を承認。** 013 spec の REQ-001 へ「利用者が読み込もうとして以降」を明記した。**要求の範囲は変えず、曖昧だった点を確定させただけ**である(実装もtestも変わらない)。
+- 2026-08-24 / **実機確認 PASS**(上記)。
 
 - 2026-08-24 / **独立review attempt 1 = FAIL(P1が3件、P2が6件)。** 改訂後のAGENTS.md(成果物の欠陥 / 安全網の穴)を適用した判定である。
   - **P1-1(成果物の欠陥)**: **`undo()`に権限確認が無く、未許可の状態で実際に書き込む**(INV-002違反)。しかも「権限不足で断ってもundoを消さない」という**このtask自身の決定**が、「deniedと確認済みなのにundoが生きている」状態を作っている。reviewerがprobeで実測: `executor calls after undo=[rename ..., rename ...]`。
@@ -212,12 +232,12 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 4 = PASS。** そのP2 3件も反映済み。`M82`〜`M102`が21 KILLED、`flutter test` = PASS(540)。working treeはclean
+- Last checkpoint: **実機確認 PASS(2026-08-24、対象commit `3576740`)。** 独立review attempt 4 = PASS、`M82`〜`M102`が21 KILLED、`flutter test` = PASS(540)
 - Blocker category: なし
-- Waiting for: PRのCIと、人間のmanual確認
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: PR #149、branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **PRを作り、CIの成功を確認してから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
+- Next Agent action: **auto-mergeの7条件を確認してPR #149 をmergeする。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
