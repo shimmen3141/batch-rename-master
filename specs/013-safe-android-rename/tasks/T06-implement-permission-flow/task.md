@@ -44,15 +44,61 @@
 - [`manual-verification.md`](manual-verification.md)で、実機の許可・拒否・設定画面往復を確認する。
 - exact rangeの独立reviewがPASSする。
 
+## 決めたこと
+
+| 論点 | 決着 | 理由 |
+|---|---|---|
+| 「未要求」と「拒否」を分けるか | **分けない**(`denied` の1つ) | 設定画面で与える種類の権限で、1回きりのdialogが無い。013 REQ-003 は拒否後も同じ説明と導線を出し続けることを求めており、**区別しても利用者へ見せるものが同じ**である |
+| 確認結果をどこに持つか | **判定には持たない。** 表示のためだけに`_lastSeen`を持つ | 013 REQ-004「一度確認した結果を持ち回らない」。読み込みと実行の可否は毎回`check()`を呼んで決める |
+| channelが答えられないとき | **`denied`へ倒す** | 013 INV-002 は「権限が無い状態でfilesystemへ書き込まない」。**分からないときに通す実装はこの不変条件を破りうる**。`null`・型違い・`PlatformException`・`MissingPluginException`をすべて`denied`にした |
+| API 30未満の端末 | **`denied`として扱う**(読み込ませない) | `MANAGE_EXTERNAL_STORAGE`はAPI 30で入った権限で、それ未満には**存在しない**。spec D-1の「API levelを対応可否の代理指標にしない」は`renameat2`の話で、こちらは権限そのものが無いので事情が違う |
+| 権限確認を`execute`のどこへ置くか | **`_running`を立てた後** | 先に置くと、その`await`の間に2回目の実行が門を通り抜ける(005 REQ-012の二重起動)。**実装中に実際に踏んで、既存testが検出した** |
+| 断ったときのundo | **消さない** | 何もしていないのに戻せなくなるのは、利用者から見て実体の損失に近い |
+
+## 検証結果
+
+| 種別 | commandと結果 |
+|---|---|
+| full regression | `flutter test` = **PASS(528件)**。T06着手前は509件 |
+| static analysis | `flutter analyze` = **PASS** |
+| format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
+| ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、3 rule) |
+| mutation | `M82`〜`M91`(T06分)= **10 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| **Android build** | **未実施。** AI containerにSDK・NDKが無い |
+| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+
+**mutationで2件がSURVIVEDしてから直した。** `M84`(権限不足で断ったときにundoを捨てる)は、
+断った側しかtestしておらず、**`_clearUndo()`を丸ごと外しても通っていた** — 前回のtimerが
+生き残り、2回目のundoを期限前に消す型である。時間を測るtestを足した。
+`M91`(channelの失敗を`granted`へ倒す)は、`AndroidStoragePermission`にtestが1本も
+無かった。`TestDefaultBinaryMessenger`でLinux上から閉じられるので、**宣言表の
+「ここで閉じる」側**へ入れて4種類の失敗を検査した。
+
+## 実装中に踏んだ退行
+
+**権限確認を`_running`より前に置いたら、005 REQ-012(実行中は二重に開始しない)の
+既存testがtimeoutで落ちた。** 最初の`await`が門の外にあると、その待ちの間に2回目が
+通り抜ける。**実体を二重に変更しうる**ので、これは安全網の穴ではなく成果物の欠陥だった。
+`_running`を先に立てる形へ直し、`M83`として表へ入れた。
+
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T02`の仕様承認
+- Last checkpoint: **実装とtestが揃い、`M82`〜`M91`が10 KILLED。** working treeはclean
+- Blocker category: なし
+- Waiting for: 独立review
 - Requested action: なし
-- Evidence revision: `dev@ec2e74f` + ADR-002
-- Next Agent action: `T02`承認後に着手する。権限判定をportにしてからUIを書く
+- Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@e3f89ea`
+- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら
+  [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
+  変わると証拠が失効するので、**reviewを先に通す**)。
+- **`T07`への申し送り**: app内file browserも**読み込み導線**なので、013 REQ-001が同じく効く。
+  `FileSourceBar`と同じく、browserを開く前に`StoragePermissionPort.check()`を通すこと。
+  port は composition root(`main.dart`の`_permission`)から配られている。
+- **`T08`への申し送り**: 実機での付与・取り消し、設定画面への遷移と復帰、
+  `AndroidManifest.xml`の宣言が効くこと、Kotlin側(`MainActivity.kt`)が動くこと。
+  API 30未満の端末での見え方も見られるとよい(`denied`固定で読み込ませない)。
