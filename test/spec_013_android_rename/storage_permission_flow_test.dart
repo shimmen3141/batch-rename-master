@@ -393,6 +393,41 @@ void main() {
       expect(executor.calls, hasLength(1));
     });
 
+    test('新しい実行のundo期限が、前回の残り時間で切れない', () async {
+      // `_clearUndo()` を落とすと**前回のtimerが生き残り**、2回目のundoを
+      // 期限前に消してしまう。利用者から見ると「戻せるはずが戻せない」。
+      final executor = _RecordingExecutor();
+      final files = FileListController(
+        files: [_entry('a.txt', handle: '/tmp/a.txt')],
+      );
+      // **毎回名前が変わるルール**にする。同じ名前だと2回目は改名が起きず、
+      // undo の対象にならない。
+      files.setRule(const RenameRule([OriginalNameToken(), LiteralToken('x')]));
+      final controller = RenameExecutionController(
+        files: files,
+        executor: executor,
+        listNames: (_) async => NamesListed(const {}),
+        permission: _FakePermission(StoragePermissionState.granted),
+        undoWindow: const Duration(milliseconds: 300),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.execute(
+        force: false,
+        occupiedNames: OccupiedNames.emptyFor(const [null]),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await controller.execute(
+        force: false,
+        occupiedNames: OccupiedNames.emptyFor(const [null]),
+      );
+      // 2回目から 200ms。2回目の期限(300ms)にはまだ届かないが、
+      // 1回目の期限(通算 300ms)は過ぎている。
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(controller.canUndo, isTrue, reason: '2回目のundoは生きている');
+    });
+
     test('実行のたびに確認する(読み込み時の結果を持ち回らない)', () async {
       final executor = _RecordingExecutor();
       final files = FileListController(
