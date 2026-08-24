@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/rename_engine.dart';
+import 'dart:io';
+import 'data/file_source/android_file_source.dart';
+import 'data/file_source/android_storage_browser.dart';
+import 'ui/file_source/file_kind.dart';
+import 'ui/file_source/storage_browser_view.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
 import 'data/permission/storage_permission.dart';
@@ -75,7 +80,23 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource]
   /// (Android=SAF / デスクトップ=OS ピッカー)を注入する(T4)。
-  late final FileSource _source = createPlatformFileSource();
+  /// Android の app 内 file browser を開く(004 REQ-015)。
+  ///
+  /// **権限が無ければ browser を開かない**(004 REQ-019)のは [FileSourceBar] の
+  /// 側で、ここまで来た時点では確認が済んでいる。
+  Future<BrowserSelection?> _pickInBrowser() async {
+    final navigator = Navigator.of(context);
+    return navigator.push<BrowserSelection>(
+      MaterialPageRoute(
+        builder: (_) =>
+            const StorageBrowserView(browser: AndroidStorageBrowser()),
+      ),
+    );
+  }
+
+  late final FileSource _source = createPlatformFileSource(
+    pick: _pickInBrowser,
+  );
 
   /// 全ファイルアクセスの判定(013 REQ-001〜004)。**ここが唯一の platform 判定**で、
   /// UI も controller も自分では OS を見ない。
@@ -100,6 +121,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
             source: _source,
             controller: _files,
             permission: _permission,
+            kinds: fileKindsFor(isAndroid: Platform.isAndroid),
           ),
           Expanded(
             child: RuleBuilderWorkspace(

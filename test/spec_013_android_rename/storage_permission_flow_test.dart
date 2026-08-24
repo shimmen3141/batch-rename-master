@@ -93,6 +93,7 @@ Future<void> _pump(
           source: source,
           controller: controller,
           permission: permission,
+          kinds: FileKind.values,
         ),
       ),
     ),

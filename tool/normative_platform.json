@@ -31,9 +31,10 @@
         "lib/data/rename_exec/platform_rename_executor.dart",
         "lib/data/rename_exec/native_exclusive_rename.dart",
         "lib/data/file_source/platform_file_source.dart",
-        "lib/data/permission/storage_permission.dart"
+        "lib/data/permission/storage_permission.dart",
+        "lib/main.dart"
       ],
-      "reason": "OS判定はcomposition rootとpath encodingの境界だけが持つ(ADR-003)。`storage_permission.dart`は権限portのcomposition rootである(013 REQ-001)。改名の可否・劣化の要否をOSで判定しないこと — nativeが返す結果値で決める。"
+      "reason": "OS判定はcomposition rootとpath encodingの境界だけが持つ(ADR-003)。`storage_permission.dart`は権限portのcomposition rootである(013 REQ-001)。`main.dart`はapp全体のcomposition rootで、どのportを配るかをここで決める。改名の可否・劣化の要否をOSで判定しないこと — nativeが返す結果値で決める。"
     },
     {
       "pattern": "Platform.operatingSystem",

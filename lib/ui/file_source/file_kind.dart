@@ -18,6 +18,21 @@ enum FileKind {
   all,
 }
 
+/// このplatformで出す種類(004 REQ-011)。
+///
+/// **desktop は4つ、Android は3つ**である。**Android に「文書」は出さない** —
+/// app 内 browser には MIME filter の手段が無く、拡張子で絞る判定を新設しない
+/// (REQ-017)。
+///
+/// **純関数として切り出してある。** `Platform.isAndroid` を条件式へ直接書くと、
+/// この写像を Linux 上の test で固定できない(ADR-003 と同じ理由)。
+List<FileKind> fileKindsFor({required bool isAndroid}) => [
+  FileKind.image,
+  FileKind.video,
+  if (!isAndroid) FileKind.document,
+  FileKind.all,
+];
+
 extension FileKindLabel on FileKind {
   /// 種類の表示名。
   String get label => switch (this) {

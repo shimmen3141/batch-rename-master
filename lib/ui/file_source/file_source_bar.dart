@@ -27,6 +27,7 @@ class FileSourceBar extends StatefulWidget {
     required this.source,
     required this.controller,
     required this.permission,
+    required this.kinds,
   });
 
   /// 読み込み元(実装は Android SAF / デスクトップのピッカー、テストでは fake)。
@@ -34,6 +35,12 @@ class FileSourceBar extends StatefulWidget {
 
   /// 置き換え先のリスト。
   final FileListController controller;
+
+  /// このplatformで出す種類(004 REQ-011)。
+  ///
+  /// **Android は3つ、desktop は4つ。** 判定は composition root が行う —
+  /// ここが platform を見ない。
+  final List<FileKind> kinds;
 
   /// 全ファイルアクセスの判定(013 REQ-001〜004)。
   ///
@@ -200,7 +207,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                   ),
                 ),
               ),
-              for (final kind in FileKind.values)
+              for (final kind in widget.kinds)
                 ListTile(
                   key: Key('file-kind-${kind.name}'),
                   leading: Icon(_iconOf(kind), color: colors.primary, size: 20),

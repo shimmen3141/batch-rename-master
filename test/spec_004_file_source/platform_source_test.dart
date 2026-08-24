@@ -8,6 +8,7 @@ import 'package:batch_rename_master/data/file_source/desktop_file_source.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/data/file_source/platform_file_source.dart';
 import 'package:batch_rename_master/data/file_source/saf_file_source.dart';
+import 'package:batch_rename_master/data/file_source/android_file_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saf_util/saf_util_platform_interface.dart';
 
@@ -236,13 +237,41 @@ void main() {
   });
 
   group('createPlatformFileSource / UnsupportedFileSource(REQ-001)', () {
+    Future<BrowserSelection?> noPick() async => null;
+
     test('実行中のプラットフォームに対して FileSource を返す', () {
-      expect(createPlatformFileSource(), isA<FileSource>());
+      expect(createPlatformFileSource(pick: noPick), isA<FileSource>());
     });
 
     test('サンドボックス(Linux)ではデスクトップ実装が選ばれる', () {
-      expect(createPlatformFileSource(), isA<DesktopFileSource>());
+      expect(createPlatformFileSource(pick: noPick), isA<DesktopFileSource>());
     }, skip: !Platform.isLinux);
+
+    group('どの platform がどの FileSource を使うか(004 REQ-011 / REQ-015)', () {
+      // **Android は app 内 file browser**、desktop は OS ピッカーのまま。
+      // `Platform.isAndroid` を条件式へ直接書くと、この写像を Linux 上で
+      // 固定できない(ADR-003 と同じ理由)。
+      test('Android は app 内 browser を使う', () {
+        expect(
+          fileSourceFor(isAndroid: true, isDesktop: false, pick: noPick),
+          isA<AndroidFileSource>(),
+        );
+      });
+
+      test('desktop は OS ピッカーのまま(013 は desktop を変えない)', () {
+        expect(
+          fileSourceFor(isAndroid: false, isDesktop: true, pick: noPick),
+          isA<DesktopFileSource>(),
+        );
+      });
+
+      test('どちらでもない platform は Failed を返す実装', () {
+        expect(
+          fileSourceFor(isAndroid: false, isDesktop: false, pick: noPick),
+          isA<UnsupportedFileSource>(),
+        );
+      });
+    });
 
     test('未対応プラットフォームでは例外を投げず Failed を返す', () async {
       const source = UnsupportedFileSource();

@@ -49,6 +49,28 @@
 - **`saf_rename_executor.dart`はwiringから外れるが削除しない**(ADR-002の退避経路。
   Playの宣言が却下されたらAndroid未対応へ戻す)。negative testも維持する。
 
+## machine検証する範囲と引き受け先(AGENTS.md の宣言)
+
+このtaskは**CIで実行できない領域**(Androidの実storage、mount、実機のUI)を含む。
+**どこまでをこの環境で機械検証するか**と**その外側を誰が引き受けるか**を先に宣言する。
+**宣言の外側の指摘は安全網の穴として扱う。**
+
+| 対象 | この環境での検証 | 引き受け先 |
+| --- | --- | --- |
+| browserの操作(保存場所→近道→階層移動、現在地の提示、上位へ戻る、選択、確定、cancel) | **widget testで閉じる。** 一覧をportにしてfakeで再現する | — |
+| 選択が同一folderに限られること(移動で解除。REQ-016) | **widget testで閉じる** | — |
+| 絞り込まないこと(隠しfile・サブfolderもそのまま並ぶ。REQ-017) | **widget testで閉じる** | — |
+| 改名できない可能性の注記(004 REQ-018)。**どの場所で出し、どこでは出さないかは004 specが正本** | **unit / widget testで閉じる。** pathの判定は純関数 | — |
+| 保存場所のrootより上へ辿れないこと(REQ-015) | **testで閉じる。** 上位への遷移可否は純関数 | — |
+| 未許可ならbrowserを開かないこと(REQ-019 / 013 REQ-001) | **widget testで閉じる**(`T06`のportをfakeにする) | — |
+| `listNames`のAndroid実装(004 REQ-014 / 005 REQ-026) | **実fileで閉じる。** Linuxのtemp directoryで実際に列挙する。**Androidと同じ`dart:io`のAPI**を使う | — |
+| Androidで`createPlatformRenameExecutor()`が`DesktopRenameExecutor`を返すこと | **testで閉じる**(写像を純関数へ出す。ADR-003と同じ形) | — |
+| **実機のmount構成**(内部共有ストレージ / SDカード / USBの実際のpathと列挙結果) | **できない** | `013:T08` |
+| **実機での書き込み可否**(004 REQ-018 が注記であって判定でないのはこのため — 注記が出る場所で成功しうるし、出ない場所で失敗しうる) | **できない** | `013:T08` |
+| **実機でのbrowserの操作感**(tap範囲、狭幅、長いpathの見え方) | **できない** | [`manual-verification.md`](manual-verification.md) |
+| **CのAndroid分岐の実挙動**(`T05`が受容した残余riskの再判定) | **できない**(NDK・実機が要る) | `013:T08` |
+| Playの審査 | **できない** | 人間(`spec.md`の未解決) |
+
 ## 受け入れ証拠
 
 - browserの操作(階層移動、選択、確定、cancel)が004 specどおりであることをwidget testで検査する。
@@ -88,12 +110,13 @@
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
+- 2026-08-24 / **着手。** `008`は全taskが未着手なので、**`013:T07`が先**である(`task.md`の「008との作業重複を先に確認する」への回答)。`008:T08`の「T07との分担」節が「T07が先の場合、T08は重複しない粒度を選ぶ」と定めているので、**行ごとの場所の提示はこのtaskが確定させ、一覧全体の提示は`008:T08`が後から合わせる**。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T03`の仕様承認と`T06`の権限導線
+- Last checkpoint: 着手。検証範囲を宣言した
+- Blocker category: なし
+- Waiting for: なし(`T03`は承認済み、`T06`はdone)
 - Requested action: なし
 - Evidence revision: `dev@ec2e74f` + ADR-002
-- Next Agent action: `T03`承認後に着手する。008との作業重複を先に確認する
+- Next Agent action: **browserのportとUIを実装する。** 005 contractの再承認は、差分が具体になった時点で人間へ出す(承認前にcomposition rootを切り替えない)。
