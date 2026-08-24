@@ -159,12 +159,59 @@ AGENTS.mdの3条件で判定し直した。
 通っていた**。`.`を含むpathで区別できるようにした。`M112`(Androidにも「文書」を出す)は
 `fileKindsFor`にtestが1本も無かった。
 
+## 独立review attempt 1 の結果(2026-08-24)= FAIL
+
+range は **`57c5e69...b42e116`**(reviewerが実測した `git merge-base dev HEAD`)。
+**依頼時に渡した `b318251` は誤り**で、T06 merge 後の分岐点は `57c5e69` である(P2-1)。
+
+**中核は仕様どおりと確認された。** browserの階層・選択・注記・`listNames`・composition root の
+切り替えはいずれも反証を通り、`M103`〜`M112` の10件も再現された。**005 contract revision 6 の
+REQ-025 への追記は「既に受容済みの窓の明文化であって、新しい保証の緩和ではない」と判定された**
+(INV-002 の環境依存条項と同一の窓であること、他の要求を1つも削っていないこと、
+非劣化時の強さが保たれることを根拠に挙げている)。
+
+| # | 指摘 | 分類 | 対応方針 |
+| --- | --- | --- | --- |
+| P1-1 | **005 contract が自己矛盾している。** `scope.in` と `OP-004.nondeterminism` に「Android SAF **production経路**は未対応/成功を返さない」が revision 2 のまま残る | 成果物の欠陥 | **案(A)で直す**(下記)。規範なので**人間の承認が要る** |
+| P1-2 | **005 `spec.md` が revision 6 に一切追随していない。** Status行の版列挙、外部依存表(出典のREQ-017/OP-004から消えた文を引用)、代表例23、「未完成な点」、検証節、`createdAt` の理由文。`product-map.md:15` も同型 | 成果物の欠陥 | 同上 |
+| P1-3 | **004 spec の VER-004 / VER-005 が指す成果物ディレクトリ(`test/spec_004_file_source/`)に、その検査が無い。** 新testは `test/spec_013_android_rename/` に置いた。先例(`013:T10`)は004側へ置いている | 成果物の欠陥 | **testを `test/spec_004_file_source/` へ移す**(spec を触らずに済む側を採る) |
+| P1-4 | **`AndroidStorageBrowser` に test が1本も無い。** reviewerの`RV01`(列挙失敗を空の一覧へ落とす=**読めないfolderが空のfolderに見える**)がSURVIVED。**3条件をすべて満たす**(製品経路 ✓ / 偽の成功 ✓ / `primaryRoot`が注入可能なのでtempで閉じられる ✓) | 安全網の穴(FAIL) | **temp directoryを root にした test を足す。** `RV01`〜`RV04` を表へ取り込む(`RV03`/`RV04`は対照として残す) |
+| P2-1 | `Evidence revision` の base が「実測値」と称して実測と違う | 成果物の欠陥 | 直した |
+| P2-2 | **004 代表例 26d は「root で上位へ戻る操作は無いか無効」**だが、実装は有効なまま出して保存場所一覧へ戻る。安全側(`/storage`へ辿れない)は満たす | 成果物の欠陥 | **実装を代表例へ寄せる**(root では `browser-up` を出さない)。manual の該当期待も直す |
+| P2-3 | `lib/` に stale な doc comment(`main.dart` の「Android=SAF」、`file_source_bar.dart` の「Android SAF」「文書」) | 成果物の欠陥 | 直す |
+| P2-4 | **manual が現revisionでは観測できない期待を含む。** §5 の `/Android` 直下は通常 file が無く、`data`/`obb` は列挙が拒まれうる。§3 の重複警告、§4 の fixture reset が未記載 | 成果物の欠陥 | 直す。**PASS するまで人間へ渡さない** |
+| P2-5 | Android 側の `sourceFolder` を正規化していない(desktop は `folderHandleOf` で正規化)。**今日は割れない**が、その論拠がどこにも無い | 記録の欠陥 + 安全網の穴 | **論拠を書いて受容**(`list(followLinks: false)` により symlink を辿れず、folder 文字列の出所が2つしか無い)。legacy symlink 端末は `013:T08` |
+| P2-6 | `task.json.covers` と `task.md` の記述が三方向で食い違う(`[]` にすると書きながら `["REQ-001","REQ-005","REQ-006"]`) | 成果物の欠陥 | 直す |
+| P2-7 | 置き換えで ADR-003 追補の注記が巻き添えで消えた | 記録の欠陥 | 戻す |
+| P2-8 | 内部共有ストレージ root から選ぶと行の「場所」が `0` になる(004 REQ-009 は人間可読を要求) | 成果物の欠陥(軽微) | 直す(browser と同じく保存場所名へ置き換える) |
+
+**reviewerの補足**: `SafFileSource` も wiring から外れたが、ADR-002 が退避経路として明記して
+いるのは**改名側だけ**である。読み込み側も残す理由を1行書くとよい。
+
+### P1-1 / P1-2 の方針(人間の承認が要る)
+
+**案(A)を採る**: **005 contract を revision 6.1 とし、記述訂正だけを行う。**
+
+- `scope.in` と `OP-004.nondeterminism` の「Android SAF **production**経路は未対応」を、
+  **退避経路として保持する**という書き方へ言い直す。
+- 005 `spec.md` の Status 行・外部依存表・代表例23・「未完成な点」・検証節・`createdAt` の
+  理由文と、`product-map.md` の 005 行を revision 6 へ揃える。
+- **要求(must)は1つも変えない。** revision 5.1 と同じ「記述訂正だけ」の扱いにできる。
+
+**案(B)(spec.md を後続taskへ送る)を採らない理由**: merge 後しばらく契約と spec.md が
+食い違ったまま `dev` に載る。013 の残 task がこの spec.md を読むので、`013:T10` の
+OQ-007/008 と同じ型の誤りを招く。
+
+**案(C)(spec.md の該当表を契約から生成する / 出典列を機械検査へ入れる)は今回採らない**が、
+**この型の指摘が `013:T03` から繰り返し出ている**のは事実なので、finding へ記録して
+plan完了時に判断する。
+
 ## Current state / handoff
 
-- Last checkpoint: **実装とtestが揃い、`M103`〜`M112`が10 KILLED。** 005 contract revision 6 は開発者承認済み(2026-08-24)。working treeはclean
+- Last checkpoint: **独立review attempt 1 = FAIL(P1が4件、P2が8件)。** 中核は仕様どおりと確認された。指摘の対応方針は上表のとおり決めてある
 - Blocker category: なし
-- Waiting for: 独立review
+- Waiting for: **P1-1 / P1-2 の方針(案A)の承認**。それ以外は承認を待たずに着手できる
 - Requested action: なし
-- Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら[`manual-verification.md`](manual-verification.md)を人間へ依頼する。
+- Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
+- Next Agent action: **上表の対応方針どおり直す。** 順序は (1) P1-4 の test と `RV01`〜`RV04` の取り込み、(2) P1-3 の test 移動、(3) P2-2〜P2-8、(4) 承認が下りたら P1-1 / P1-2 を revision 6.1 として直す。そのあと attempt 2 を起動し、PASS してから manual を依頼する。**range は `57c5e69...HEAD` で取ること。**
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
