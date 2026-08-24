@@ -220,7 +220,7 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
-- 2026-08-24 / **開発者が案(a)を承認。** 013 spec の REQ-001 へ「利用者が読み込もうとして以降」を明記した。**要求の範囲は変えず、曖昧だった点を確定させただけ**である(実装もtestも変わらない)。
+- 2026-08-24 / **開発者が案(a)を承認。** 013 spec の REQ-001 へ「利用者が読み込もうとして以降」を明記した。**採らなかった読み(起動直後から説明を出す)を明示的に排除した**もので、実装もtestも元からこの側であり変更していない。
 - 2026-08-24 / **実機確認 PASS**(上記)。
 
 - 2026-08-24 / **独立review attempt 1 = FAIL(P1が3件、P2が6件)。** 改訂後のAGENTS.md(成果物の欠陥 / 安全網の穴)を適用した判定である。
@@ -234,10 +234,10 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 
 - Last checkpoint: **実機確認 PASS(2026-08-24、対象commit `3576740`)。** 独立review attempt 4 = PASS、`M82`〜`M102`が21 KILLED、`flutter test` = PASS(540)
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: `final-evidence` の独立review
 - Requested action: なし
 - Evidence revision: PR #149、branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **auto-mergeの7条件を確認してPR #149 をmergeする。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
+- Next Agent action: **`final-evidence` の独立reviewを通し、auto-mergeの7条件を確認してPR #149 をmergeする。**
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
