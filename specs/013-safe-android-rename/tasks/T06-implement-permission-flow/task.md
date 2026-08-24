@@ -239,15 +239,16 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
   - reviewerが認めた点: `_running`を最初の`await`より前へ立てた判断、channel失敗を`denied`へ倒して4種を閉じたこと、desktopの振る舞いが変わっていないこと。
 - 2026-08-24 / **独立review `final-evidence` 1回目 = FAIL(P1が2件、P2が3件)。** range `b318251...b6cbf7c`。**実装・testへの指摘は無く、すべて記録側**だった。(P1-1) **PR #149 の本文が「実機確認は未実施」と主張したまま残っていた** — 正本(`task.md`)だけを直し、派生(PR本文)を再評価しなかった。`development-findings/2026-08-14-fixes-stopped-at-git-tracked-files.md`の**3回目のFAIL**である。(P1-2) manual証拠に**環境が記録されておらず**、`T08`が「別端末」を判定できなかった。P2は handoff の残骸、`plan.md`決定表と`T02`への未接続、「範囲を変えていない」という自己評価の弱め方。
 - 2026-08-24 / **独立review `final-evidence` 2回目 = PASS。** range `b318251...e61950f`。未解決P0/P1なし、**auto-mergeの7条件すべて充足**を確認した。残ったP2 5件(handoffの残骸、review試行の未記録、PR本文のreview range書き写し、build/manifestが実際には覆われている点、emulator限定の表への未伝播)は**docsのみで閉じてからmergeする**。
+- 2026-08-24 / **PR #149 を merge した**(auto-mergeの7条件をすべて確認。`dev@8efa115`)。`dev`上で全testと構造検査がPASSすることを確認した。
 
 ## Current state / handoff
 
-- Last checkpoint: **実機確認 PASS(2026-08-24、対象commit `3576740`)。** 独立review attempt 4 = PASS、`M82`〜`M102`が21 KILLED、`flutter test` = PASS(540)
+- Last checkpoint: **PR #149 を merge した(`dev@8efa115`)。** `dev`上で `flutter test` = PASS(540)、`flutter analyze` = PASS、構造検査 = PASS を確認済み
 - Blocker category: なし
-- Waiting for: `final-evidence` の独立review
+- Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: PR #149、branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **PR #149 をmergeする**(auto-mergeの7条件は`final-evidence` 2回目で充足を確認済み)。merge後は`dev`上の結果を確認し、`done`にしてworktreeを整理する。
+- Next Agent action: なし。**このtaskは完了した。** 実機で覆えていない範囲(設定画面の一覧へ落ちる分岐、API 30未満、emulatorでない実機)は`013:T08`が引き受ける。
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
