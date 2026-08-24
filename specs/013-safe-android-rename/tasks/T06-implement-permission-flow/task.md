@@ -64,7 +64,7 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(535件)**。T06着手前は509件 |
+| full regression | `flutter test` = **PASS(536件)**。T06着手前は509件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
@@ -191,7 +191,7 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3 の指摘を反映済み。** `flutter test` = PASS(535)。working treeはclean
+- Last checkpoint: **独立review attempt 3 の指摘を反映済み。** `M82`〜`M101`が20 KILLED、`flutter test` = PASS(536)。working treeはclean
 - Blocker category: なし
 - Waiting for: 独立review attempt 4
 - Requested action: なし
