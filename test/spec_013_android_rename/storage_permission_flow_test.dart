@@ -100,6 +100,38 @@ Future<void> _pump(
 }
 
 void main() {
+  group('巻き戻し期限の境界(005 contract 用語「巻き戻し期限」)', () {
+    final deadline = DateTime(2026, 8, 24, 12, 0, 0);
+
+    test('期限ちょうどはまだ内側(「過ぎた」ではない)', () {
+      expect(isWithinUndoWindow(now: deadline, deadline: deadline), isTrue);
+    });
+
+    test('1マイクロ秒でも過ぎたら外側', () {
+      expect(
+        isWithinUndoWindow(
+          now: deadline.add(const Duration(microseconds: 1)),
+          deadline: deadline,
+        ),
+        isFalse,
+      );
+    });
+
+    test('期限前は内側', () {
+      expect(
+        isWithinUndoWindow(
+          now: deadline.subtract(const Duration(seconds: 1)),
+          deadline: deadline,
+        ),
+        isTrue,
+      );
+    });
+
+    test('提示していない(期限が無い)なら内側ではない', () {
+      expect(isWithinUndoWindow(now: deadline, deadline: null), isFalse);
+    });
+  });
+
   group('REQ-002: 起動しただけでは確認も遷移もしない', () {
     testWidgets('最初の描画では権限を確認せず、説明も出さない', (tester) async {
       final permission = _FakePermission(StoragePermissionState.denied);

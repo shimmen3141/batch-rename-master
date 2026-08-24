@@ -709,8 +709,15 @@
       "id": "M101",
       "file": "lib/ui/rename_exec/rename_execution_controller.dart",
       "note": "undoの期限をawaitのあとで読み直さない(channel往復の間に切れても戻してしまう。attempt 3 のF3)",
-      "find": "      if (_undoDeadline == null || !_clock().isBefore(_undoDeadline!)) {\n        return null;\n      }\n",
+      "find": "      if (!isWithinUndoWindow(now: _clock(), deadline: _undoDeadline)) {\n        return null;\n      }\n",
       "replace": ""
+    },
+    {
+      "id": "M102",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "巻き戻し期限の境界を厳しくする(ちょうどの瞬間に、ボタンが出ているのに黙って戻らない。attempt 4 のR02)",
+      "find": "    deadline != null && !now.isAfter(deadline);",
+      "replace": "    deadline != null && now.isBefore(deadline);"
     }
   ]
 }

@@ -10,6 +10,17 @@ import '../../data/rename_exec/rename_executor.dart';
 import '../../data/rename_exec/rename_plan.dart';
 import '../file_list/file_list_controller.dart';
 
+/// 巻き戻し期限の内側か(005 contract 用語「巻き戻し期限」)。
+///
+/// **契約は「期限を*過ぎた*実行結果は巻き戻せない」**なので、ちょうどの瞬間は
+/// まだ内側である。[RenameExecutionController.canUndo] と `undo()` の再評価が
+/// **同じ述語を使う**ようにしてある — 片方だけ厳しいと、ボタンが出ているのに
+/// 黙って戻らない瞬間ができる(独立review attempt 4 の F1)。
+///
+/// [deadline] が `null`(提示していない / 期限切れで捨てた)なら内側ではない。
+bool isWithinUndoWindow({required DateTime now, DateTime? deadline}) =>
+    deadline != null && !now.isAfter(deadline);
+
 /// UI から既存の rename orchestration を一度だけ起動する状態境界。
 class RenameExecutionController extends ChangeNotifier {
   RenameExecutionController({
@@ -64,8 +75,7 @@ class RenameExecutionController extends ChangeNotifier {
     return !_running &&
         outcome != null &&
         outcome.successes.any(_changedRename) &&
-        deadline != null &&
-        !_clock().isAfter(deadline);
+        isWithinUndoWindow(now: _clock(), deadline: deadline);
   }
 
   List<FileEntry> _excludedEmptyNames = const [];
@@ -250,7 +260,9 @@ class RenameExecutionController extends ChangeNotifier {
       }
       // **期限を読み直す。** `check()` は channel 往復を含むので、その待ちの間に
       // 期限が切れうる(独立review attempt 3 の F3)。切れていたら戻さない。
-      if (_undoDeadline == null || !_clock().isBefore(_undoDeadline!)) {
+      // **境界は[canUndo]と同じ述語で判定する。** ここだけ厳しくすると、
+      // ボタンが出ているのに黙って戻らない瞬間ができる(独立review attempt 4 のF1)。
+      if (!isWithinUndoWindow(now: _clock(), deadline: _undoDeadline)) {
         return null;
       }
       _clearUndo();
