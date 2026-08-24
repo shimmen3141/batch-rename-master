@@ -428,6 +428,69 @@ void main() {
       expect(controller.canUndo, isTrue, reason: '2回目のundoは生きている');
     });
 
+    test('undo も権限を確認する(戻す方向も書き込みである)', () async {
+      // 実行後に権限を取り消されても undo の提示は期限まで残る(断っても undo を
+      // 消さないと決めたため)。**押された時点で確かめないと、権限が無いのに
+      // 書き込む**(013 INV-002。独立review attempt 1 の P1-1)。
+      final executor = _RecordingExecutor();
+      final files = FileListController(
+        files: [_entry('a.txt', handle: '/tmp/a.txt')],
+      );
+      files.setRule(const RenameRule([LiteralToken('renamed')]));
+      final permission = _FakePermission(StoragePermissionState.granted);
+      final controller = RenameExecutionController(
+        files: files,
+        executor: executor,
+        listNames: (_) async => NamesListed(const {}),
+        permission: permission,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.execute(
+        force: false,
+        occupiedNames: OccupiedNames.emptyFor(const [null]),
+      );
+      expect(controller.canUndo, isTrue);
+      final afterExecute = executor.calls.length;
+
+      // 設定から取り消される。
+      permission.state = StoragePermissionState.denied;
+      final undone = await controller.undo();
+
+      expect(undone, isNull, reason: '戻さない');
+      expect(controller.permissionDenied, isTrue, reason: '理由を提示できる形で断る');
+      expect(executor.calls.length, afterExecute, reason: '**書き込みを1件も試みない**');
+      expect(controller.canUndo, isTrue, reason: '権限が戻れば期限内はまだ戻せる');
+    });
+
+    test('権限が戻れば undo できる(断り方が過剰でない)', () async {
+      final executor = _RecordingExecutor();
+      final files = FileListController(
+        files: [_entry('a.txt', handle: '/tmp/a.txt')],
+      );
+      files.setRule(const RenameRule([LiteralToken('renamed')]));
+      final permission = _FakePermission(StoragePermissionState.granted);
+      final controller = RenameExecutionController(
+        files: files,
+        executor: executor,
+        listNames: (_) async => NamesListed(const {}),
+        permission: permission,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.execute(
+        force: false,
+        occupiedNames: OccupiedNames.emptyFor(const [null]),
+      );
+      permission.state = StoragePermissionState.denied;
+      await controller.undo();
+      permission.state = StoragePermissionState.granted;
+      final undone = await controller.undo();
+
+      expect(undone, isNotNull);
+      expect(controller.permissionDenied, isFalse);
+    });
+
     test('実行のたびに確認する(読み込み時の結果を持ち回らない)', () async {
       final executor = _RecordingExecutor();
       final files = FileListController(

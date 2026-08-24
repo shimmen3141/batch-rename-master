@@ -26,7 +26,7 @@ class FileSourceBar extends StatefulWidget {
     super.key,
     required this.source,
     required this.controller,
-    this.permission = const UnrestrictedStoragePermission(),
+    required this.permission,
   });
 
   /// 読み込み元(実装は Android SAF / デスクトップのピッカー、テストでは fake)。
@@ -37,8 +37,11 @@ class FileSourceBar extends StatefulWidget {
 
   /// 全ファイルアクセスの判定(013 REQ-001〜004)。
   ///
-  /// 既定は制限しない port である。**Android を制限するのは composition root の
-  /// 仕事**で、ここが platform を判定しない。
+  /// **Android を制限するのは composition root の仕事**で、ここが platform を
+  /// 判定しない。
+  ///
+  /// **既定値を置かない。** 既定で「制限しない」にできると、結線を忘れた経路が
+  /// 黙って REQ-001 を素通りする(独立review attempt 1 の P1-3)。
   final StoragePermissionPort permission;
 
   @override

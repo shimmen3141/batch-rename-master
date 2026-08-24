@@ -8,6 +8,7 @@ import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'occupied_support.dart';
 
@@ -46,6 +47,7 @@ void main() {
       final files = FileListController(files: [_file('a.txt')]);
       final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
       final execution = RenameExecutionController(
+        permission: const UnrestrictedStoragePermission(),
         files: files,
         executor: executor,
         listNames: listNamesOf(executor, folder: '/files'),
@@ -71,6 +73,7 @@ void main() {
       final files = FileListController(files: [_file('a.txt')]);
       final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
       final execution = RenameExecutionController(
+        permission: const UnrestrictedStoragePermission(),
         files: files,
         executor: executor,
         listNames: listNamesOf(executor, folder: '/files'),
@@ -198,6 +201,7 @@ void main() {
     // lister は古い名前を返し続け、fixture が実体とずれる。
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),

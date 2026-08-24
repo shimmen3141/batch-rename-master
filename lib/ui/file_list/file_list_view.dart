@@ -310,8 +310,25 @@ class _RenameActionBar extends StatelessWidget {
   }
 
   Future<void> _undo(BuildContext context) async {
-    final outcome = await execution!.undo();
-    if (outcome == null || !context.mounted) return;
+    final execution = this.execution!;
+    final outcome = await execution.undo();
+    if (!context.mounted) return;
+    // undo も書き込みなので、権限が取り消されていれば断る(013 INV-002)。
+    // **黙って何も起きない**のは「壊れている」ように見えるので理由を出す。
+    if (execution.permissionDenied) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          key: const Key('undo-permission-denied'),
+          content: const Text(
+            '「すべてのファイルへのアクセス」が許可されていないため、元に戻せませんでした。'
+            '端末の設定で許可してから、もう一度お試しください。',
+          ),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
+    if (outcome == null) return;
     final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');
     final failure = outcome.failure;
     if (failure != null) {

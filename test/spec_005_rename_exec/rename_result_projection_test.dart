@@ -3,6 +3,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'occupied_support.dart';
 
@@ -30,6 +31,7 @@ void main() {
       files: {'IMG_0009.jpg': 'IMG_0009.jpg'},
     );
     final controller = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -52,6 +54,7 @@ void main() {
     );
     final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
     final controller = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),
@@ -96,6 +99,7 @@ void main() {
           : null,
     );
     final controller = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNamesOf(executor, folder: '/files'),

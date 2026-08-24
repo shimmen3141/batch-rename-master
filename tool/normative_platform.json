@@ -19,7 +19,10 @@
     "- 文字列一致である。`const io = Platform; io.isAndroid` のような書き換えは見ない。",
     "- 見るのは `Platform.is*` と `Platform.operatingSystem` だけ。`Platform.pathSeparator` など他のメンバでOSを判定する書き方は捕まらない。",
     "- 見るのは `lib/**/*.dart` だけ。test、tool、hook は対象外である。",
-    "- C の `#if defined(__ANDROID__)` は対象外。あそこは正しい置き場所である。"
+    "- C の `#if defined(__ANDROID__)` は対象外。あそこは正しい置き場所である。",
+    "",
+    "required: その file に**必ず在る**行。allow(禁止)の逆で、消えたら落ちる。",
+    "Linux上では振る舞いで観測できないplatform分岐の composition root を固定するために使う。"
   ],
   "scan": [
     "lib/**/*.dart"
@@ -46,6 +49,13 @@
         "lib/data/rename_exec/native_exclusive_rename.dart"
       ],
       "reason": "native symbolの宣言を1箇所に閉じる。散ると『どのOSで解決できるか』が複数箇所の事実になる。"
+    }
+  ],
+  "required": [
+    {
+      "file": "lib/data/permission/storage_permission.dart",
+      "pattern": "if (Platform.isAndroid) return const AndroidStoragePermission();",
+      "reason": "Androidだけが全ファイルアクセスの制限を持つ(013 REQ-001)。この行が消えるとAndroidでも制限しないportが配られ、REQ-001 / REQ-004 / INV-002の門が静かに消える。Linux上では振る舞いで区別できないので、ここで固定する(独立review attempt 1 のMR03)。"
     }
   ]
 }

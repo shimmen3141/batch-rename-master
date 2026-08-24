@@ -16,7 +16,7 @@ class RenameExecutionController extends ChangeNotifier {
     required this.files,
     required this.executor,
     required this.listNames,
-    this.permission = const UnrestrictedStoragePermission(),
+    required this.permission,
     this._clock = DateTime.now,
     this.undoWindow = const Duration(seconds: 5),
     this.modifiedAtInterval = const Duration(seconds: 1),
@@ -35,8 +35,12 @@ class RenameExecutionController extends ChangeNotifier {
   /// 全ファイルアクセスの判定(013 REQ-004 / INV-002)。
   ///
   /// **実行の直前に毎回確認する。** 読み込み時に許可されていても、設定から
-  /// 取り消されうる。既定は制限しない port で、Android を制限するのは
-  /// composition root の仕事である。
+  /// 取り消されうる。Android を制限するのは composition root の仕事で、ここは
+  /// platform を判定しない。
+  ///
+  /// **既定値を置かない。** 既定で「制限しない」にできると、結線を忘れた経路が
+  /// 黙って REQ-001 / REQ-004 / INV-002 を素通りする(`listNames` と同じ理由。
+  /// 独立review attempt 1 の P1-3 — 結線を外しても test が1件も落ちなかった)。
   final StoragePermissionPort permission;
   final DateTime Function() _clock;
   final Duration undoWindow;
@@ -224,13 +228,25 @@ class RenameExecutionController extends ChangeNotifier {
   }
 
   /// 直前の実行で成功したrenameを期限内に一度だけ逆順で戻す。
+  ///
+  /// **undoも書き込みである。** 013 INV-002 は「権限が無い状態で filesystem へ
+  /// 書き込みを試みない」であり、**戻す方向も例外にしない**。実行後に設定から
+  /// 権限を取り消されても undo の提示は期限まで残る(断っても undo を消さないと
+  /// 決めたため)ので、**押された時点で確かめる**(013 REQ-004)。
   Future<UndoOutcome?> undo() async {
     if (!canUndo) return null;
     final outcome = _undoableOutcome!;
-    _clearUndo();
+    // **`_running` は最初の `await` より前に立てる**(`execute` と同じ理由)。
     _running = true;
+    _permissionDenied = false;
     notifyListeners();
     try {
+      if (await permission.check() == StoragePermissionState.denied) {
+        _permissionDenied = true;
+        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。
+        return null;
+      }
+      _clearUndo();
       final undoOutcome = await undoSuccessfulRenames(
         outcome.successes.where(_changedRename).toList(),
         executor,

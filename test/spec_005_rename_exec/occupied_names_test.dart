@@ -19,6 +19,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'occupied_support.dart';
@@ -86,6 +87,7 @@ _wire({
     files: files,
     executor: executor,
     execution: RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
       files: files,
       executor: executor,
       listNames: listNames,
