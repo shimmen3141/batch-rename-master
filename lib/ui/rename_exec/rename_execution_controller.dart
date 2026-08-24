@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
+import '../../data/permission/storage_permission.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../../data/rename_exec/rename_executor.dart';
 import '../../data/rename_exec/rename_plan.dart';
@@ -15,6 +16,7 @@ class RenameExecutionController extends ChangeNotifier {
     required this.files,
     required this.executor,
     required this.listNames,
+    this.permission = const UnrestrictedStoragePermission(),
     this._clock = DateTime.now,
     this.undoWindow = const Duration(seconds: 5),
     this.modifiedAtInterval = const Duration(seconds: 1),
@@ -29,10 +31,24 @@ class RenameExecutionController extends ChangeNotifier {
   /// 検出できない(005 REQ-026)。**既定値を置かない** — 既定で「列挙しない」に
   /// できると、結線を忘れた経路が黙って REQ-026 を素通りする。
   final FolderNameLister listNames;
+
+  /// 全ファイルアクセスの判定(013 REQ-004 / INV-002)。
+  ///
+  /// **実行の直前に毎回確認する。** 読み込み時に許可されていても、設定から
+  /// 取り消されうる。既定は制限しない port で、Android を制限するのは
+  /// composition root の仕事である。
+  final StoragePermissionPort permission;
   final DateTime Function() _clock;
   final Duration undoWindow;
   bool _running = false;
   bool get isRunning => _running;
+
+  /// 直前の実行が権限不足で止まったか(013 REQ-004 / INV-002)。
+  ///
+  /// UI がこれを見て、実行できなかった理由を提示する。`execute` を呼ぶたびに
+  /// 更新するので、**古い値を持ち回らない**。
+  bool _permissionDenied = false;
+  bool get permissionDenied => _permissionDenied;
 
   RenameOutcome? _undoableOutcome;
   DateTime? _undoDeadline;
@@ -129,12 +145,24 @@ class RenameExecutionController extends ChangeNotifier {
     required OccupiedNames occupiedNames,
   }) async {
     if (_running || files.isRuleEmpty) return null;
-    _clearUndo();
+    // **`_running` は最初の `await` より前に立てる。** 権限確認を先に置くと、
+    // その待ちの間に2回目の実行が門を通り抜ける(REQ-012 が禁じている二重起動)。
     _running = true;
+    _permissionDenied = false;
     _excludedEmptyNames = const [];
     _modifiedAtFailures = const [];
     notifyListeners();
     try {
+      // **実行の直前に確認する**(013 REQ-004)。読み込み時の結果を持ち回らない。
+      // 未許可なら**何も起動しない** — 013 INV-002 は「権限が無い状態で filesystem
+      // へ書き込みを試みない」であり、`executor` にも `listNames` にも触れない。
+      if (await permission.check() == StoragePermissionState.denied) {
+        _permissionDenied = true;
+        return null;
+      }
+      // **門を通ってから undo を捨てる。** 権限不足で断ったときに前回の undo を
+      // 消すと、何もしていないのに戻せなくなる。
+      _clearUndo();
       final entries = _entriesWithSelection();
       final now = _clock();
       final resolved = force

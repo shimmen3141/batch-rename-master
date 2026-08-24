@@ -571,6 +571,76 @@
       "note": "literalを使わずAndroidを未対応へ戻す(contains検査では素通りした。attempt 9 のR04)",
       "find": "  if (targetOS == OS.iOS) 'BRM_UNSUPPORTED_PLATFORM': null,",
       "replace": "  if (targetOS == OS.iOS || targetOS.name == 'android')\n    'BRM_UNSUPPORTED_PLATFORM': null,"
+    },
+    {
+      "id": "M82",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "実行直前の権限確認を外す(013 REQ-004 / INV-002。未許可でも書き込む)",
+      "find": "      if (await permission.check() == StoragePermissionState.denied) {\n        _permissionDenied = true;\n        return null;\n      }",
+      "replace": ""
+    },
+    {
+      "id": "M83",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "権限確認を_runningより前へ戻す(待ちの間に二重起動できる。005 REQ-012)",
+      "find": "    _running = true;\n    _permissionDenied = false;",
+      "replace": "    await permission.check();\n    _running = true;\n    _permissionDenied = false;"
+    },
+    {
+      "id": "M84",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "権限不足で断ったときにundoを捨てる(何もしていないのに戻せなくなる)",
+      "find": "      _clearUndo();\n      final entries = _entriesWithSelection();",
+      "replace": "      final entries = _entriesWithSelection();"
+    },
+    {
+      "id": "M85",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "読み込み前の権限確認を外す(013 REQ-001。未許可でも読み込める)",
+      "find": "    if (await _checkPermission() == StoragePermissionState.denied) return;",
+      "replace": "    await _checkPermission();"
+    },
+    {
+      "id": "M86",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "起動時に権限を確認しに行く(013 REQ-002。目的を持つ前に権限を問う)",
+      "find": "  StoragePermissionState? _lastSeen;",
+      "replace": "  StoragePermissionState? _lastSeen;\n\n  @override\n  void initState() {\n    super.initState();\n    _checkPermission();\n  }"
+    },
+    {
+      "id": "M87",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "未許可の説明を出さない(013 REQ-001 / REQ-003。黙って何も起きない)",
+      "find": "            if (_lastSeen == StoragePermissionState.denied)",
+      "replace": "            if (false)"
+    },
+    {
+      "id": "M88",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "設定画面から戻ったあとの再確認を外す(許可しても説明が残り続ける)",
+      "find": "    setState(() => _settingsUnavailable = !opened);\n    // 戻ってきた直後に再確認する。設定画面から許可して戻る導線がこれである。\n    await _checkPermission();",
+      "replace": "    setState(() => _settingsUnavailable = !opened);"
+    },
+    {
+      "id": "M89",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "未許可でも設定画面を自動で開く(013 REQ-003が禁じている押し付け)",
+      "find": "    if (await _checkPermission() == StoragePermissionState.denied) return;",
+      "replace": "    if (await _checkPermission() == StoragePermissionState.denied) {\n      await _openSettings();\n      return;\n    }"
+    },
+    {
+      "id": "M90",
+      "file": "lib/data/permission/storage_permission.dart",
+      "note": "desktopをAndroidと同じ制限へ倒す(013はdesktopの振る舞いを変えない)",
+      "find": "  Future<StoragePermissionState> check() async =>\n      StoragePermissionState.notApplicable;",
+      "replace": "  Future<StoragePermissionState> check() async =>\n      StoragePermissionState.denied;"
+    },
+    {
+      "id": "M91",
+      "file": "lib/data/permission/android_storage_permission.dart",
+      "note": "channelの失敗をgrantedへ倒す(分からないときに通すとINV-002が破れる)",
+      "find": "    } catch (_) {\n      return StoragePermissionState.denied;\n    }",
+      "replace": "    } catch (_) {\n      return StoragePermissionState.granted;\n    }"
     }
   ]
 }

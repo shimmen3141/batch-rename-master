@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T06",
   "title": "権限取得導線を実装する",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T02"
   ],

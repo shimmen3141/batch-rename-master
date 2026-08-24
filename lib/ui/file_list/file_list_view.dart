@@ -244,7 +244,23 @@ class _RenameActionBar extends StatelessWidget {
       force: force,
       occupiedNames: occupiedNames,
     );
-    if (outcome == null || !context.mounted) return;
+    if (!context.mounted) return;
+    // 権限が取り消されていた場合(013 REQ-004)。**黙って何も起きない**のは
+    // 「壊れている」ように見えるので、理由を出す。実体には触れていない(INV-002)。
+    if (execution.permissionDenied) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          key: const Key('execute-permission-denied'),
+          content: const Text(
+            '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'
+            '端末の設定で許可してから、もう一度お試しください。',
+          ),
+          backgroundColor: context.colors.danger,
+        ),
+      );
+      return;
+    }
+    if (outcome == null) return;
     final message = StringBuffer('${outcome.successes.length} 件を改名しました');
     final excluded = execution.excludedEmptyNames.length;
     if (excluded > 0) message.write('。名前が空になるため $excluded 件を除外しました');
