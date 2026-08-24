@@ -50,6 +50,31 @@ void main() {
       expect(entry.createdAt, isNull);
     });
 
+    test('所属folderはbrowserが確定した値で、ハンドルから導出しない', () async {
+      // **導出すると、browser が「どの folder を見ていたか」が失われる**
+      // (004 REQ-013 / OQ-004)。symlink や `.` を含む path では `dirname` と
+      // 確定値が一致しない。005 の衝突判定は folder 単位なので、ここがずれると
+      // 別 folder の名前を同じ folder のものとして数えうる。
+      final a = await makeFile('a.txt');
+      final viaDot = p.join(dir.path, '.');
+      final source = AndroidFileSource(
+        pick: () async => BrowserSelection(folder: viaDot, paths: [a]),
+      );
+
+      final result = await source.pickFiles() as Picked;
+
+      expect(
+        result.entries.single.sourceFolder,
+        viaDot,
+        reason: 'browser が確定した値をそのまま持つ',
+      );
+      expect(
+        result.entries.single.sourceFolder,
+        isNot(p.dirname(a)),
+        reason: 'ハンドルから導出していない',
+      );
+    });
+
     test('別の保存場所を跨いでもfolderの区別が失われない', () async {
       // browser の選択は同一 folder 内に限るので、跨ぐのは**読み込みを重ねた**
       // ときである。`sourceFolder` が別なら、005 の衝突判定は folder 単位で

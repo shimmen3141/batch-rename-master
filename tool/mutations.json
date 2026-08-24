@@ -660,8 +660,8 @@
       "id": "M94",
       "file": "lib/main.dart",
       "note": "composition rootでFileSourceBarへのport結線を外す(Androidで読み込みの門が静かに消える。attempt 1 のMR01)",
-      "find": "            permission: _permission,\n          ),",
-      "replace": "          ),"
+      "find": "            permission: _permission,\n            kinds: fileKindsFor(isAndroid: Platform.isAndroid),",
+      "replace": "            kinds: fileKindsFor(isAndroid: Platform.isAndroid),"
     },
     {
       "id": "M95",
@@ -718,6 +718,76 @@
       "note": "巻き戻し期限の境界を厳しくする(ちょうどの瞬間に、ボタンが出ているのに黙って戻らない。attempt 4 のR02)",
       "find": "    deadline != null && !now.isAfter(deadline);",
       "replace": "    deadline != null && now.isBefore(deadline);"
+    },
+    {
+      "id": "M103",
+      "file": "lib/data/rename_exec/platform_rename_executor.dart",
+      "note": "Androidを未対応の側へ戻す(013 REQ-005/006が製品経路から消える。005 revision 6の逆)",
+      "find": "  if (isAndroid || isDesktop) return DesktopRenameExecutor();",
+      "replace": "  if (isDesktop) return DesktopRenameExecutor();"
+    },
+    {
+      "id": "M104",
+      "file": "lib/data/file_source/platform_file_source.dart",
+      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015)",
+      "find": "  if (isAndroid) return AndroidFileSource(pick: pick);\n",
+      "replace": ""
+    },
+    {
+      "id": "M105",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "note": "保存場所のrootより上へ辿れるようにする(/storageや/へ到達経路ができる。004 REQ-015)",
+      "find": "  if (normalized == normalizedRoot) return false;\n  return p.isWithin(normalizedRoot, normalized);",
+      "replace": "  return normalized != '/';"
+    },
+    {
+      "id": "M106",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "note": "書き込める場所でも注記を出す(004 REQ-018が示さないと定めた場所)",
+      "find": "  return rest.first != 'media';",
+      "replace": "  return true;"
+    },
+    {
+      "id": "M107",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "note": "注記を一切出さない(改名できない可能性が伝わらない。004 REQ-018)",
+      "find": "  final index = parts.indexOf('Android');\n  if (index < 0) return false;",
+      "replace": "  final index = parts.indexOf('Android');\n  if (index < 0) return false;\n  return false;"
+    },
+    {
+      "id": "M108",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "folderを移動しても選択を残す(親folderが複数になりうる。004 REQ-016)",
+      "find": "      // **移動したら選択を捨てる**(REQ-016)。\n      _selected.clear();",
+      "replace": ""
+    },
+    {
+      "id": "M109",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "rootからさらに上のpathへ辿る(004 REQ-015の上限が消える)",
+      "find": "    if (!canGoUp(folder: folder, root: location.root)) {",
+      "replace": "    if (false) {"
+    },
+    {
+      "id": "M110",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "note": "listNamesの失敗を空の列挙へ落とす(取得できなかったfolderを「衝突が無い」と読む。004 REQ-014/005 REQ-027)",
+      "find": "    } on PathAccessException catch (error) {\n      return NameListFailed(\n        PickError(PickErrorKind.permissionDenied, error.message),\n      );",
+      "replace": "    } on PathAccessException catch (_) {\n      return NamesListed(const {});"
+    },
+    {
+      "id": "M111",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "note": "所属folderをハンドルから導出する(browserが確定した値を使わない。004 REQ-013/OQ-004)",
+      "find": "        sourceFolder: folder,",
+      "replace": "        sourceFolder: p.dirname(path),"
+    },
+    {
+      "id": "M112",
+      "file": "lib/ui/file_source/file_kind.dart",
+      "note": "Androidにも「文書」を出す(MIME filterの手段が無いのに出す。004 REQ-011/REQ-017)",
+      "find": "  if (!isAndroid) FileKind.document,",
+      "replace": "  FileKind.document,"
     }
   ]
 }

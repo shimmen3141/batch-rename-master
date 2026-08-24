@@ -10,6 +10,7 @@
 import 'package:batch_rename_master/data/file_source/android_file_source.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/data/file_source/storage_browser.dart';
+import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/storage_browser_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -103,6 +104,27 @@ Future<_Result> _open(WidgetTester tester, StorageBrowserPort browser) async {
 const _root = '/storage/emulated/0';
 
 void main() {
+  group('004 REQ-011: 種類はplatformで異なる', () {
+    // **Android に「文書」は出さない** — app 内 browser には MIME filter の手段が
+    // 無く、拡張子で絞る判定を新設しない(REQ-017)。
+    test('Android は3つで、文書を含まない', () {
+      expect(fileKindsFor(isAndroid: true), [
+        FileKind.image,
+        FileKind.video,
+        FileKind.all,
+      ]);
+    });
+
+    test('desktop は4つで、文書を含む(013 は desktop を変えない)', () {
+      expect(fileKindsFor(isAndroid: false), [
+        FileKind.image,
+        FileKind.video,
+        FileKind.document,
+        FileKind.all,
+      ]);
+    });
+  });
+
   group('REQ-015: 保存場所から始まり、近道を示し、階層を辿れる', () {
     testWidgets('保存場所の一覧が出て、選ぶと中身と近道が出る', (tester) async {
       final browser = _FakeBrowser(
