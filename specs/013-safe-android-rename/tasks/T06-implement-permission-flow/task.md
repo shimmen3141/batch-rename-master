@@ -64,12 +64,12 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(530件)**。T06着手前は509件 |
+| full regression | `flutter test` = **PASS(532件)**。T06着手前は509件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
-| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、3 rule、1 required line) |
-| mutation | `M82`〜`M96`(T06分)= **15 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M96`は**独立reviewerが見つけたSURVIVEDを取り込んだもの** |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、4 rule、1 required line) |
+| mutation | `M82`〜`M100`(T06分)= **19 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M98`は**独立reviewerが足したもの**(`M98`は対照) |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -110,6 +110,32 @@
 | 種類シートを開いたまま権限を取り消されても再確認しない | 2(いまのAndroidの読み込みはSAFで、この権限を必要としないので権限逸脱にならない) | `013:T07`(読み込み導線をapp内browserへ置き換える側) |
 | `prepare()`(`listNames`)が権限確認より前に走る | 2(readでありINV-002の「書き込み」ではない) | `013:T07` |
 
+## 独立review attempt 2 の指摘の始末
+
+| 指摘 | 分類 | 始末 |
+| --- | --- | --- |
+| 「設定画面から戻ると説明が消える」が**起きない**。manual・comment・testの3箇所が同じ誤りを主張していた | **成果物の欠陥 P1** | **実装を主張へ寄せた。** `openSettings`は`startActivity`が画面を出しただけで即座に返るので、その時点ではまだ許可されていない。`WidgetsBindingObserver`で**app復帰**を見る形にした(`M99`)。**一度も確認していないうちは復帰しても確認しに行かない**(REQ-002。`M100`)。`handleAppLifecycleStateChanged`でLinux上のwidget testに閉じられる |
+| composition rootのport選択を素通しへ差し替えてもtestが落ちない | **安全網の穴(3条件を満たす)P1** | **pinを増やさず閉じた。** `UnrestrictedStoragePermission`を`@visibleForTesting`にし、`check_platform_boundary.py`の**`rules`(依存の不在)**側で`lib/`の他fileでの構築を禁じた。**行の存在ではなく依存の不在**を見るので書き換えでは壊れない(`M97`) |
+| `check_platform_boundary.py`のdocstringが、自分が新設した`required`と矛盾 | 成果物の欠陥 P2 | **直した。** 「原則は依存の不在。例外は`required`だけで、代償は承知のうえ。だから増やさない」と書いた |
+| `Evidence revision`のbaseが実際の分岐点と違う | 成果物の欠陥 P2 | **直した。** `dev@b318251`(`git merge-base`の実測値) |
+| manualの節番号と手順番号が衝突 | 成果物の欠陥 P2 | **直した。** 「ボタンを押すと」「アプリへ戻ってきた直後」など、番号に依らない書き方にした |
+
+**reviewerが認めた点**: `undo()`のゲートが**すべての書き込み経路を覆っている**こと
+(`_shiftModifiedAtOfSuccesses`は`execute`のゲート後、一時名は`executePlan`の内側、
+`prepare()`はread)、`required`にしたことによる別の抜け道が無いこと、既存testへ足した
+`permission`の明示が**変更前の既定値と同じ値**でassertionを1つも緩めていないこと、
+005 REQ-012とundo期限とdesktopの振る舞いが保たれていること。
+
+**`M98`は対照である。** 「意味を変えない書き換え(1行→block)でも`required`は落ちる」ことを
+固定して忘れないようにしている。**KILLEDが期待値**で、これは`required`の代償の記録である。
+
+**受容した残余risk(追加)**
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| `execute-permission-denied` / `undo-permission-denied`のSnackBar分岐にtestが無い | 2(通り抜けても「黙って何も起きない」だけで、実体には触れていない) | `013:T07`(実行経路がAndroidで観測可能になる時点でまとめて) |
+| 既存test 6 fileのimport順 | — (`directives_ordering`を有効にしていないので機械検出されない) | 次に触るときに直す |
+
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
@@ -123,12 +149,12 @@
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 の指摘を反映済み。** `M82`〜`M96`が15 KILLED、`flutter test` = PASS(530)。working treeはclean
+- Last checkpoint: **独立review attempt 2 の指摘を反映済み。** `flutter test` = PASS(532)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 2
+- Waiting for: 独立review attempt 3
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: **独立review attempt 2 を起動する。** そのあとPRを作る。 PASSしたら
+- Next Agent action: **独立review attempt 3 を起動する。** そのあとPRを作り、reviewがPASSしてから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは

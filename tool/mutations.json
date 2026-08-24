@@ -617,9 +617,9 @@
     {
       "id": "M88",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "note": "設定画面を開いた直後の確認を外す(開けなかった端末で状態が古いまま残る)",
-      "find": "    setState(() => _settingsUnavailable = !opened);\n    // **開いた直後にも確認する。**",
-      "replace": "    setState(() => _settingsUnavailable = !opened);\n    return;\n    // **開いた直後にも確認する。**"
+      "note": "設定画面を開けなかったことを表示へ反映しない(次の手が示されず、利用者が詰まる。013 REQ-003)",
+      "find": "    setState(() => _settingsUnavailable = !opened);",
+      "replace": "    setState(() => _settingsUnavailable = false);"
     },
     {
       "id": "M89",

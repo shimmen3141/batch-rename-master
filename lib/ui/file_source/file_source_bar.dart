@@ -119,11 +119,10 @@ class _FileSourceBarState extends State<FileSourceBar>
   Future<void> _openSettings() async {
     final opened = await widget.permission.openSettings();
     if (!mounted) return;
+    // **ここでは確認し直さない。** `openSettings` は画面を出しただけで即座に返るので、
+    // この時点の状態は押す前と同じである。許可して戻ってきたことに気づくのは
+    // [didChangeAppLifecycleState] の仕事で、開けなかった端末では状態が変わらない。
     setState(() => _settingsUnavailable = !opened);
-    // **開いた直後にも確認する。** 設定画面が出せなかった端末では復帰が起きない
-    // ので、ここで確認しないと状態が古いまま残る。許可して戻ってきた場合は
-    // [didChangeAppLifecycleState] が拾う。
-    await _checkPermission();
   }
 
   Future<void> _load(BuildContext context, FileKind kind) async {
