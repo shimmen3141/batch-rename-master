@@ -6,7 +6,9 @@ import 'storage_permission.dart';
 /// (013 REQ-001〜004)。
 ///
 /// Kotlin 側は `Environment.isExternalStorageManager()` で状態を答え、
-/// `Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION` で設定画面を開く。
+/// **`Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`(このアプリの画面)を
+/// 先に試し、解決できない端末でだけ** `ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`
+/// (アプリ一覧)へ落とす。どちらも開けなければ `false` を返す。
 ///
 /// **この class は Linux 上の test で実行できない**(channel の相手が居ない)。
 /// `TestDefaultBinaryMessenger` で channel を差し替えれば Dart 側の写像は

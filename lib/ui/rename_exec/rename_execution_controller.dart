@@ -148,11 +148,13 @@ class RenameExecutionController extends ChangeNotifier {
     required bool force,
     required OccupiedNames occupiedNames,
   }) async {
+    // **早期returnでも古い値を残さない。** 残すと、次に別の理由で止まったときに
+    // 前回の「権限が無い」を根拠にした説明が出る。
+    _permissionDenied = false;
     if (_running || files.isRuleEmpty) return null;
     // **`_running` は最初の `await` より前に立てる。** 権限確認を先に置くと、
     // その待ちの間に2回目の実行が門を通り抜ける(REQ-012 が禁じている二重起動)。
     _running = true;
-    _permissionDenied = false;
     _excludedEmptyNames = const [];
     _modifiedAtFailures = const [];
     notifyListeners();
@@ -234,11 +236,11 @@ class RenameExecutionController extends ChangeNotifier {
   /// 権限を取り消されても undo の提示は期限まで残る(断っても undo を消さないと
   /// 決めたため)ので、**押された時点で確かめる**(013 REQ-004)。
   Future<UndoOutcome?> undo() async {
+    _permissionDenied = false;
     if (!canUndo) return null;
     final outcome = _undoableOutcome!;
     // **`_running` は最初の `await` より前に立てる**(`execute` と同じ理由)。
     _running = true;
-    _permissionDenied = false;
     notifyListeners();
     try {
       if (await permission.check() == StoragePermissionState.denied) {

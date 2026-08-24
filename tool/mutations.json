@@ -583,8 +583,8 @@
       "id": "M83",
       "file": "lib/ui/rename_exec/rename_execution_controller.dart",
       "note": "権限確認を_runningより前へ戻す(待ちの間に二重起動できる。005 REQ-012)",
-      "find": "    _running = true;\n    _permissionDenied = false;",
-      "replace": "    await permission.check();\n    _running = true;\n    _permissionDenied = false;"
+      "find": "    if (_running || files.isRuleEmpty) return null;\n    // **`_running` は最初の `await` より前に立てる。**",
+      "replace": "    if (_running || files.isRuleEmpty) return null;\n    await permission.check();\n    // **`_running` は最初の `await` より前に立てる。**"
     },
     {
       "id": "M84",
@@ -641,6 +641,41 @@
       "note": "channelの失敗をgrantedへ倒す(分からないときに通すとINV-002が破れる)",
       "find": "    } catch (_) {\n      return StoragePermissionState.denied;\n    }",
       "replace": "    } catch (_) {\n      return StoragePermissionState.granted;\n    }"
+    },
+    {
+      "id": "M92",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "undoの権限確認を外す(未許可で実際に書き込む。013 INV-002。attempt 1 のP1-1)",
+      "find": "      if (await permission.check() == StoragePermissionState.denied) {\n        _permissionDenied = true;\n        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。\n        return null;\n      }\n      _clearUndo();",
+      "replace": "      _clearUndo();"
+    },
+    {
+      "id": "M93",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "note": "undoが断るときにundoも捨てる(権限が戻っても戻せなくなる)",
+      "find": "        // **undo は消さない。** 権限が戻れば期限内はまだ戻せる。\n        return null;",
+      "replace": "        _clearUndo();\n        return null;"
+    },
+    {
+      "id": "M94",
+      "file": "lib/main.dart",
+      "note": "composition rootでFileSourceBarへのport結線を外す(Androidで読み込みの門が静かに消える。attempt 1 のMR01)",
+      "find": "            permission: _permission,\n          ),",
+      "replace": "          ),"
+    },
+    {
+      "id": "M95",
+      "file": "lib/main.dart",
+      "note": "composition rootでRenameExecutionControllerへのport結線を外す(実行直前確認が静かに消える。attempt 1 のMR02)",
+      "find": "        executor: createPlatformRenameExecutor(),\n        permission: _permission,",
+      "replace": "        executor: createPlatformRenameExecutor(),"
+    },
+    {
+      "id": "M96",
+      "file": "lib/data/permission/storage_permission.dart",
+      "note": "platform選択からAndroid分岐を落とす(Androidでも常に制限しないportが配られる。attempt 1 のMR03)",
+      "find": "  if (Platform.isAndroid) return const AndroidStoragePermission();\n",
+      "replace": ""
     }
   ]
 }

@@ -15,6 +15,11 @@
 - 権限状態を持つcontrollerと、未許可時の表示。
 - 設定画面への誘導と、そこから戻ったときの再確認。
 
+**design土台の適用範囲**: [`docs/design/Bulk Renamer.html`](../../../../docs/design/Bulk%20Renamer.html)に
+**該当する画面が無い**(権限の説明帯は土台が想定していない要素である)。読み込み導線の
+**上**に帯を足す形にした — 導線そのものを置き換えると、許可されたときに戻す動きが増え、
+土台の配置から離れる幅が大きくなる。**土台からの逸脱ではなく、土台の外側への追加**である。
+
 **「なぜこの権限が要るか」を利用者へ説明する文言を必ず置く。** 「すべてのファイルへのアクセス」は強い権限で、説明なく求めるappは信用されない。文言は`T02`で承認された仕様に従う。
 
 ## machine検証する範囲と引き受け先(AGENTS.md の宣言)
@@ -103,7 +108,12 @@
 - Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
-- **`T07`への申し送り**: app内file browserも**読み込み導線**なので、013 REQ-001が同じく効く。
+- **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
+  end-to-endで観測できない。** 実行の前に`prepare()`→`listNames`を通り、`SafFileSource.listNames`は
+  権限に関係なく常に失敗するのでREQ-027の分岐で止まり、`execute()`へ到達しないためである。
+  **app内browserが`listNames`を実装し直した時点で観測可能になる**ので、`T07`のmanualへ含めること。
+  unit testでは固定済み(`storage_permission_flow_test.dart`)。
+- **`T07`への申し送り(2)**: app内file browserも**読み込み導線**なので、013 REQ-001が同じく効く。
   `FileSourceBar`と同じく、browserを開く前に`StoragePermissionPort.check()`を通すこと。
   port は composition root(`main.dart`の`_permission`)から配られている。
 - **`T08`への申し送り**: 実機での付与・取り消し、設定画面への遷移と復帰、
