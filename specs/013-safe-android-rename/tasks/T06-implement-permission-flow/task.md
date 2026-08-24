@@ -127,7 +127,7 @@
 - Blocker category: なし
 - Waiting for: 独立review attempt 2
 - Requested action: なし
-- Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@e3f89ea`
+- Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
 - Next Agent action: **独立review attempt 2 を起動する。** そのあとPRを作る。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。

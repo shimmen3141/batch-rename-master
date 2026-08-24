@@ -617,9 +617,9 @@
     {
       "id": "M88",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "note": "設定画面から戻ったあとの再確認を外す(許可しても説明が残り続ける)",
-      "find": "    setState(() => _settingsUnavailable = !opened);\n    // 戻ってきた直後に再確認する。設定画面から許可して戻る導線がこれである。\n    await _checkPermission();",
-      "replace": "    setState(() => _settingsUnavailable = !opened);"
+      "note": "設定画面を開いた直後の確認を外す(開けなかった端末で状態が古いまま残る)",
+      "find": "    setState(() => _settingsUnavailable = !opened);\n    // **開いた直後にも確認する。**",
+      "replace": "    setState(() => _settingsUnavailable = !opened);\n    return;\n    // **開いた直後にも確認する。**"
     },
     {
       "id": "M89",
@@ -676,6 +676,34 @@
       "note": "platform選択からAndroid分岐を落とす(Androidでも常に制限しないportが配られる。attempt 1 のMR03)",
       "find": "  if (Platform.isAndroid) return const AndroidStoragePermission();\n",
       "replace": ""
+    },
+    {
+      "id": "M97",
+      "file": "lib/main.dart",
+      "note": "composition rootでplatform選択をやめ素通しのportを直接渡す(Androidで門が静かに消える。attempt 2 のMR04)",
+      "find": "      createPlatformStoragePermission();",
+      "replace": "      const UnrestrictedStoragePermission();"
+    },
+    {
+      "id": "M98",
+      "file": "lib/data/permission/storage_permission.dart",
+      "note": "[対照] Android分岐を意味を変えずにblockへ書き換える。**KILLEDが期待値** — requiredはrefactoringも落とすので、その代償を固定して忘れないようにする(attempt 2 のMR05)",
+      "find": "  if (Platform.isAndroid) return const AndroidStoragePermission();",
+      "replace": "  if (Platform.isAndroid) {\n    return const AndroidStoragePermission();\n  }"
+    },
+    {
+      "id": "M99",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "復帰時の再確認を外す(設定画面から許可して戻っても説明が残り続ける。attempt 2 のF1)",
+      "find": "    if (state != AppLifecycleState.resumed) return;\n    if (_lastSeen == null) return;\n    _checkPermission();",
+      "replace": "    if (state != AppLifecycleState.resumed) return;"
+    },
+    {
+      "id": "M100",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "一度も確認していないうちから復帰で確認しに行く(013 REQ-002。目的を持つ前に権限を問う)",
+      "find": "    if (_lastSeen == null) return;\n    _checkPermission();",
+      "replace": "    _checkPermission();"
     }
   ]
 }

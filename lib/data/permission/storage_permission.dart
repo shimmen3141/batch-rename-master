@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'android_storage_permission.dart';
 
 /// 全ファイルアクセス権限(`MANAGE_EXTERNAL_STORAGE`)の状態(013 REQ-001〜004)。
@@ -35,6 +37,13 @@ abstract interface class StoragePermissionPort {
 }
 
 /// 権限の概念が無い platform 用(013 spec 範囲外「desktopの振る舞い。何も変えない」)。
+///
+/// **production から直接構築しないこと。** 配るのは
+/// [createPlatformStoragePermission] だけである。どこかで直接構築できると、
+/// **Android でも制限しない port が配られて門が静かに消える**(独立review
+/// attempt 1 の P1-3 / attempt 2 の F2)。`tool/check_platform_boundary.py` が
+/// `lib/` の他 file での構築を禁じ、`@visibleForTesting` が analyzer 側でも止める。
+@visibleForTesting
 class UnrestrictedStoragePermission implements StoragePermissionPort {
   const UnrestrictedStoragePermission();
 

@@ -183,7 +183,7 @@ void main() {
   });
 
   group('REQ-003: 拒否されたあとも黙らない', () {
-    testWidgets('設定画面は利用者が押したときだけ開き、戻ったら再確認する', (tester) async {
+    testWidgets('設定画面は利用者が押したときだけ開く', (tester) async {
       final permission = _FakePermission(StoragePermissionState.denied);
       await _pump(
         tester,
@@ -194,16 +194,56 @@ void main() {
 
       await tester.tap(_pickFiles);
       await tester.pumpAndSettle();
-      expect(permission.opens, 0);
+      expect(permission.opens, 0, reason: '説明を出すだけで開かない');
 
-      // 設定画面で許可して戻ってくる流れ。押した時点ではもう許可されている。
-      permission.state = StoragePermissionState.granted;
       await tester.tap(_openSettings);
       await tester.pumpAndSettle();
-
       expect(permission.opens, 1);
-      expect(permission.checks, 2, reason: '戻った直後に再確認する');
-      expect(_notice, findsNothing, reason: '許可されたので説明を引っ込める');
+    });
+
+    testWidgets('許可して戻ってくると、押し直さなくても説明が消える', (tester) async {
+      // **`openSettings` の直後では足りない。** `startActivity` は画面を出しただけで
+      // 即座に返るので、その時点ではまだ許可されていない。**利用者が許可して
+      // 戻ってきた瞬間**に気づくには app の復帰を見るしかない
+      // (独立review attempt 2 の F1)。
+      final permission = _FakePermission(StoragePermissionState.denied);
+      await _pump(
+        tester,
+        FakeFileSource(fileResults: const []),
+        FileListController(files: const []),
+        permission,
+      );
+
+      await tester.tap(_pickFiles);
+      await tester.pumpAndSettle();
+      await tester.tap(_openSettings);
+      await tester.pumpAndSettle();
+      expect(_notice, findsOneWidget, reason: '開いた時点ではまだ許可されていない');
+
+      // 設定画面で許可し、アプリへ戻ってくる。
+      permission.state = StoragePermissionState.granted;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(_notice, findsNothing, reason: '押し直さなくても消える');
+    });
+
+    testWidgets('一度も確認していないうちは、復帰しても確認しに行かない', (tester) async {
+      // 起動直後の復帰で確認すると、目的を持つ前に権限を問うことになる
+      // (013 REQ-002)。
+      final permission = _FakePermission(StoragePermissionState.denied);
+      await _pump(
+        tester,
+        FakeFileSource(fileResults: const []),
+        FileListController(files: const []),
+        permission,
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(permission.checks, 0);
+      expect(_notice, findsNothing);
     });
 
     testWidgets('拒否のままなら説明と導線を出し続ける', (tester) async {

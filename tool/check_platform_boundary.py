@@ -6,8 +6,13 @@
 無いのにDart側へOS分岐を書ける**という構造だった。ADR-003でOS identityをnative境界
 (C と `hook/build.dart`)へ閉じ込めると決め、この検査でその決定を固定する。
 
-**「この行が存在すること」ではなく「この依存が存在しないこと」を見る。** 前者は format
-変更や変数の導入で壊れ、semantic regression ではなく refactoring を検出してしまう。
+**原則は「この依存が存在しないこと」を見る。**「この行が存在すること」は format 変更や
+変数の導入で壊れ、semantic regression ではなく refactoring を検出してしまうためである。
+
+**例外は `required` だけ**である。Linux 上では**振る舞いで観測できない** platform 分岐
+(composition root の `if (Platform.isAndroid) ...`)を固定する手段が他に無いので、
+そこだけ行の存在を見る。**代償は承知している** — 意味を変えない書き換えでも落ちる。
+だから `required` は増やさず、閉じられるものは `rules`(依存の不在)側で閉じる。
 
 対象と許可は `tool/normative_platform.json` が持つ。project-native の道具であり、
 ASDD plugin 側の共有 script ではない。

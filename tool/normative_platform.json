@@ -49,6 +49,13 @@
         "lib/data/rename_exec/native_exclusive_rename.dart"
       ],
       "reason": "native symbolの宣言を1箇所に閉じる。散ると『どのOSで解決できるか』が複数箇所の事実になる。"
+    },
+    {
+      "pattern": "UnrestrictedStoragePermission(",
+      "allow": [
+        "lib/data/permission/storage_permission.dart"
+      ],
+      "reason": "素通しの権限portをproductionで構築しない(013 REQ-001)。配るのはcreatePlatformStoragePermissionだけである。どこかで直接構築できると、Androidでも制限しないportが配られ、REQ-001 / REQ-004 / INV-002の門が静かに消える(独立review attempt 2 のF2)。**行の存在ではなく依存の不在**を見るので、書き換えでは壊れない。"
     }
   ],
   "required": [

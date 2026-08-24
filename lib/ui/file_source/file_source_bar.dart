@@ -67,7 +67,8 @@ class FileSourceBar extends StatefulWidget {
       .length;
 }
 
-class _FileSourceBarState extends State<FileSourceBar> {
+class _FileSourceBarState extends State<FileSourceBar>
+    with WidgetsBindingObserver {
   /// 直近の確認結果。**判定には使わない** — 表示を決めるためだけに持つ。
   ///
   /// 013 REQ-004 は「一度確認した結果を持ち回らない」と定めている。読み込みと
@@ -77,6 +78,35 @@ class _FileSourceBarState extends State<FileSourceBar> {
 
   /// 直前に設定画面を開けなかったか。
   bool _settingsUnavailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // **ここでは確認しない**(013 REQ-002: 起動しただけでは確認も遷移もしない)。
+    // 登録するのは、設定画面から**戻ってきたとき**に気づくためである。
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 設定画面から戻ってきたら確認し直す(013 REQ-004)。
+  ///
+  /// **`openSettings` の直後では足りない。** `startActivity` は画面を出しただけで
+  /// 即座に返るので、その時点ではまだ許可されていない。**利用者が許可して戻って
+  /// きた瞬間**に気づくには、app の復帰を見るしかない(独立review attempt 2 の F1)。
+  ///
+  /// **一度も確認していないうちは何もしない**(013 REQ-002)。起動直後の復帰で
+  /// 確認しに行くと、目的を持つ前に権限を問うことになる。
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_lastSeen == null) return;
+    _checkPermission();
+  }
 
   /// 権限を**その場で**確かめ、表示も更新する(013 REQ-004)。
   Future<StoragePermissionState> _checkPermission() async {
@@ -90,7 +120,9 @@ class _FileSourceBarState extends State<FileSourceBar> {
     final opened = await widget.permission.openSettings();
     if (!mounted) return;
     setState(() => _settingsUnavailable = !opened);
-    // 戻ってきた直後に再確認する。設定画面から許可して戻る導線がこれである。
+    // **開いた直後にも確認する。** 設定画面が出せなかった端末では復帰が起きない
+    // ので、ここで確認しないと状態が古いまま残る。許可して戻ってきた場合は
+    // [didChangeAppLifecycleState] が拾う。
     await _checkPermission();
   }
 
