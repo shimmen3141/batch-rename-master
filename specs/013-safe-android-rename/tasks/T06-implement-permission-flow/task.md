@@ -64,12 +64,12 @@
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(528件)**。T06着手前は509件 |
+| full regression | `flutter test` = **PASS(530件)**。T06着手前は509件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
-| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、3 rule) |
-| mutation | `M82`〜`M91`(T06分)= **10 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(42 file、3 rule、1 required line) |
+| mutation | `M82`〜`M96`(T06分)= **15 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M94`〜`M96`は**独立reviewerが見つけたSURVIVEDを取り込んだもの** |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -87,6 +87,29 @@
 通り抜ける。**実体を二重に変更しうる**ので、これは安全網の穴ではなく成果物の欠陥だった。
 `_running`を先に立てる形へ直し、`M83`として表へ入れた。
 
+## 独立review attempt 1 の指摘の始末
+
+| 指摘 | 分類 | 始末 |
+| --- | --- | --- |
+| `undo()`に権限確認が無く、未許可で実際に書き込む | **成果物の欠陥 P1** | **直した。** `undo()`にも実行直前の確認を入れた(`M92`)。**INV-002は戻す方向も例外にしない。** 断ってもundoは消さない(権限が戻れば期限内はまだ戻せる。`M93`) |
+| `manual-verification.md`手順3が現revisionのAndroidで成立しない | **成果物の欠陥 P1** | **手順を`T07`へ送った。** いまの版は`listNames`の段階で止まるので、許可の有無を実行経路で観測できない。`T07`への申し送りへ明記した |
+| composition rootのport結線を外してもtestが落ちない | **安全網の穴(3条件を満たす)P1** | **型で塞いだ。** `permission`の既定値を外して`required`にし、結線が消えたら**compilerが止める**(`M94`/`M95`)。Linux上で観測できないplatform分岐は`check_platform_boundary.py`の**`required`検査**を新設して固定した(`M96`) |
+| manualに内部用語とbranch確認 | 成果物の欠陥 P2 | **直した。** IDと`git branch`を落とし、日本語の観測事実だけにした |
+| manualが専用fixtureなしの破壊的操作 | 成果物の欠陥 P2 | **消滅。** 実行の手順自体を`T07`へ送ったので、改名を伴う操作が無くなった |
+| dartdocが`ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`を書いていない | 成果物の欠陥 P2 | **直した。** アプリ個別画面を先に試し、解決できない端末でだけ一覧へ落ちることを書いた |
+| `_permissionDenied`が早期returnで持ち回られる | 成果物の欠陥 P2 | **直した。** `execute`/`undo`とも入口で落とす |
+| design土台の適用範囲が未記載 | 成果物の欠陥 P2 | **直した。** 土台に該当画面が無く、**土台の外側への追加**であることを書いた |
+| 起動直後は未許可でも説明が出ない | 仕様解釈 | **人間の判断へ回す**(下記) |
+
+**受容した残余risk**(AGENTS.mdの3条件を満たさない。引き受け先つき)
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| `MainActivity.kt`のcompileと実行、Intentの解決、`AndroidManifest.xml`の効き方、API 30未満の見え方 | 3(実機・SDKが要る) | `013:T08` |
+| Play policyの審査 | 3 | 人間(`spec.md`の未解決。通らなければADR-002の退避経路) |
+| 種類シートを開いたまま権限を取り消されても再確認しない | 2(いまのAndroidの読み込みはSAFで、この権限を必要としないので権限逸脱にならない) | `013:T07`(読み込み導線をapp内browserへ置き換える側) |
+| `prepare()`(`listNames`)が権限確認より前に走る | 2(readでありINV-002の「書き込み」ではない) | `013:T07` |
+
 ## 作業記録
 
 - 2026-08-13 / ADR-002の採用決定を受けて定義。
@@ -100,12 +123,12 @@
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 = FAIL。** 指摘を反映中
+- Last checkpoint: **独立review attempt 1 の指摘を反映済み。** `M82`〜`M96`が15 KILLED、`flutter test` = PASS(530)。working treeはclean
 - Blocker category: なし
-- Waiting for: attempt 1 の指摘の反映
+- Waiting for: 独立review attempt 2
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@e3f89ea`
-- Next Agent action: **exact rangeの独立reviewを通してPRを作る。** PASSしたら
+- Next Agent action: **独立review attempt 2 を起動する。** そのあとPRを作る。 PASSしたら
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは
