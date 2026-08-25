@@ -134,5 +134,5 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
 - Waiting for: 独立review → そのあと人間の端末確認
 - Requested action: なし
-- Evidence revision: base は `dev@ae59859`(`git merge-base dev HEAD`)。branch `asdd/013-safe-android-rename/T08-verify-device-coverage`
+- Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@ae59859`(`git merge-base dev HEAD` の実測値)
 - Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。結果を受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**
