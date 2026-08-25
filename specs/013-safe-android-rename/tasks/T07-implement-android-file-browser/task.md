@@ -312,12 +312,52 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 `docs/development/emulator-verification.md` の既存の警告(2026-08-05)は branch の確認で
 閉じている。
 
+## manual 実行2回目(2026-08-25)= 全手順が期待どおり
+
+**このtaskの受け入れのうち、実機でしか確かめられないものが観測された。**
+
+| 項目 | 値 |
+| --- | --- |
+| 環境 | Android emulator(`sdk_gphone16k_x86_64`)。Windows host、`flutter run` |
+| 対象commit | `56b6a0e`(手順0で確認を求めた値)。**`287a03d` 以降 `lib/` `android/` `test/` `pubspec.*` に差分は無い**ので、この範囲のどのcommitでbuildしても同じcodeである |
+| 実行者 | 開発者(人間) |
+
+| 手順 | 結果 |
+| --- | --- |
+| 1 保存場所と階層 | **期待どおり。** 近道(Download / DCIM / Pictures / Documents / Movies / Music)が上に並び、階層を辿れ、現在地が出て、rootより上へは行けない |
+| 2 選択して読み込む | **期待どおり。** 絞り込まれず、選んだ分だけが一覧に入る |
+| 3 名前を変更する | **期待どおり。Androidで実際にfileの名前が変わった**(013 REQ-005 / REQ-006 が製品経路で観測された) |
+| 4 読み込んでいないfileとの衝突 | **期待どおり。** 実行前に警告が出て、`keep.txt` は上書きされず番号が付いた(004 REQ-014 / 005 REQ-026 がAndroidで成立)。Download に過去のfolderが残っていたが影響なし |
+| 5 アプリごとの保存領域 | **期待どおり。** 注記が出て、`data` は「このフォルダを開けませんでした」になった(REQ-018 / REQ-014 の区別) |
+| 6 操作感 | 手順書の項目は問題なし。**別途UIの改善点を6件受領**(下記) |
+
+**1回目(旧build)の観測は無効である。** 上の表が有効な証拠である。
+
+### 受領したUIの改善点(このtaskでは直さない)
+
+**`008` が受け皿である**(`008/plan.md`「実機で触って出るUIの指摘は今後も増える前提で、
+新しい指摘は原則このplanへtaskとして足す」)。**ここで直すと、いま得た実機証拠が
+対象commitに対応しなくなり、manualをもう一度依頼することになる**(AGENTS.md
+「manual証拠は対象commit以後にcode、dependency、build設定が変わったら再利用しない」)。
+
+| # | 指摘 | 送り先 |
+| --- | --- | --- |
+| U1 | 保存場所が1つしかないなら、最初からその中に入った状態にしたい | **`008`(004 REQ-015 の変更を伴う)。** 現在の REQ-015 は「保存場所の一覧から始まる」を **must** で要求しており、**実装の裁量では変えられない**。仕様更新taskと実装taskを分ける |
+| U2 | 近道(★)と実体のfolderが同じ列に並び、区別が付かない。**★を通常のfileだと思った**。同名のfolderが下にも出るので違和感がある | **`008`。** REQ-015 は「近道を示す」までを要求し、示し方は規定していない |
+| U3 | 上へ戻る矢印は `↑` より `←` の方が馴染む | `008` |
+| U4 | fileのcheckboxに加えて、画像やテキストのpreviewを出したい | `008`(新規の提示。**MediaStore を使わない範囲で何ができるかの調査が要る**) |
+| U5 | modalの文言と見せ方に改善の余地 | `008`(**どのmodalかの特定が要る**) |
+| U6 | 「すべて」を開き直すと毎回rootへ戻る。前回の場所と選択を復元したい | **将来候補**(本人が「ふとした思い付き」と明示)。`product-map.md` の将来候補へ置く |
+
+**`008` への登録はこのPRでは行わない** — T07 の review 範囲へ別 plan の task を混ぜない。
+**merge 後に `dev` から別branchで登録する。**
+
 ## Current state / handoff
 
-- Last checkpoint: **manual 実行1回目が旧buildで無効になり、手順書へ build identity の確認(`## 0.`)を足した**(上記)。その前に manual の fixture 準備を PowerShell(`adb`)へ置き換えている。その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: 人間のmanual確認(**2回目**。`flutter run` で入れ直したbuildに対して)
+- Waiting for: `final-evidence` の独立review(exact range `57c5e69...HEAD`)
 - Requested action: なし
 - Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **人間のmanual結果(2回目)を待つ。** 受領したら環境(端末/API level、commit)つきで`task.md`へ記録し、`final-evidence`のreviewを通してmergeする。
+- Next Agent action: **`final-evidence` の独立reviewがPASSしたらmergeする**(AGENTS.mdのauto-merge 7条件を満たすか確認したうえで)。その後 `dev` から別branchで `008` へ U1〜U5 を登録し、U6 を `product-map.md` の将来候補へ置く。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
