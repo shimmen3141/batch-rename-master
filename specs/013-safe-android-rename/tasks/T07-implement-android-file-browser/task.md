@@ -350,7 +350,7 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 | U6 | 「すべて」を開き直すと毎回rootへ戻る。前回の場所と選択を復元したい | **将来候補**(本人が「ふとした思い付き」と明示)。`product-map.md` の将来候補へ置く |
 
 **`008` への登録はこのPRでは行わない** — T07 の review 範囲へ別 plan の task を混ぜない。
-**merge 後に `dev` から別branchで登録する。**
+**merge 後に `dev` から別branchで登録する。**(2026-08-25 merge 済み。登録は`008`側の作業)
 
 ## 独立review attempt 3(`final-evidence`、2026-08-25)= PASS
 
@@ -383,12 +383,22 @@ current revision に実在することを file:line で確認した。**観測�
 禁じるのは「code、dependency、build設定が変わったとき」で、ここで変わったのは test の
 説明文である)。念のため `flutter test` を再実行して589件のPASSを確認した。
 
+## merge(2026-08-25)
+
+**PR #151 を merge した**(`dev@019775d`、merge commit)。AGENTS.md の auto-merge 7条件は
+`final-evidence` の独立reviewが充足を確認しており、CI `check` は最終HEAD `d9fa1a6` で
+success、`mergeStateStatus` は `CLEAN`、未解決threadは無かった。
+
+merge 後の `dev` で `flutter test` = **PASS(589)** を確認した。
+
+**`013:T08`(実機での検証範囲)がこれで着手可能になった。**
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3(`final-evidence`)= PASS**。P2 3件も反映済み。その前が **manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **PR #151 を merge した(`dev@019775d`)。** `dev`上で `flutter test` = PASS(589) を確認済み。その前が独立review attempt 3(`final-evidence`)= PASS と、**manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: なし(merge可能)
+- Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **`final-evidence` の独立reviewがPASSしたらmergeする**(AGENTS.mdのauto-merge 7条件を満たすか確認したうえで)。その後 `dev` から別branchで `008` へ U1〜U5 を登録し、U6 を `product-map.md` の将来候補へ置く。
+- Next Agent action: なし。**このtaskは完了した。** 受領したUIの改善点(U1〜U6)の登録は`008`側の作業として別branchで行う。実機で覆えていない範囲(mount構成、`/Android/`配下の書き込み可否、CのAndroid分岐、Android build)は`013:T08`が引き受ける。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
