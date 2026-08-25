@@ -18,7 +18,7 @@ manual確認をやり直させることになる。**着手した最初の質問
 | 1 | `lib/ui/file_list/file_list_view.dart:157` の `AlertDialog` | 警告があるまま実行するかの確認 | **このtask** |
 | 2 | `lib/ui/file_source/file_source_bar.dart:192` の `showModalBottomSheet` | 読み込む種類の選択(画像 / 動画 / すべて) | **`T08`**(読み込み導線の一部として確定させる)。**このtaskは文言だけを後から合わせる** — 分担は`T08`の`task.md`にも書いた |
 | 3 | `lib/ui/rule_builder/token_editors.dart:13` の `showModalBottomSheet` | tokenの編集 | **`T05`/`T06`**(token追加の確定手順)。**このtaskでは触らない** |
-| 4 | `lib/ui/rule_builder/rule_builder_workspace.dart:76` の `showModalBottomSheet` | **ルール構築画面まるごと**(mobileの下部バー「ルール設定」から開く。中身は`RuleBuilderView`) | **このtask。** **Androidではルールの編集は必ずこのsheet越しなので、U5がこれを指す可能性が高い**(実機確認の手順3で開発者が実際に操作している)。**sheetの中にあるtoken追加・編集のmodalだけが`T05`/`T06`** |
+| 4 | `lib/ui/rule_builder/rule_builder_workspace.dart:76` の `showModalBottomSheet` | **ルール構築画面まるごと**(mobileの下部バー「ルール設定」から開く。中身は`RuleBuilderView`) | **このtask。** **狭幅(`breakpoint` = 840dp 未満。実機確認に使った phone を含む)ではルールの編集が必ずこのsheet越しなので、U5がこれを指す可能性が高い**(実機確認の手順3で開発者が実際に操作している)。**sheetの中にあるtoken追加・編集のmodalだけが`T05`/`T06`** |
 
 **3(token編集)が対象だった場合は、このtaskで直さず`T05`/`T06`へ送る**(同じ画面を
 2つのtaskが別々に変えない)。**4は入れ物であって token の modal ではない**ので、
