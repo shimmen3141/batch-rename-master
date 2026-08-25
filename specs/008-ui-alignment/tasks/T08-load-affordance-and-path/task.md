@@ -29,7 +29,7 @@
 
 ### `file_source_bar.dart`の分担(T04と共有する)
 
-**T08がbarの構成・読み込み導線・場所の提示・複数folder警告を持つ。** `clear-files-button`(「すべて外す」)の文言だけはT04が持つ。T08が先に着手した場合、この文言は現状のまま残す。詳細は[`T04のtask.md`](../T04-implement-selection-flow/task.md)。
+**T08がbarの構成・読み込み導線・場所の提示・複数folder警告を持つ。** **種類選択のbottom sheet(`file_source_bar.dart:192`)もT08が持つ** — `T14`(modalの文言と見せ方)の表はこれを「T08と分担を確認する」としているが、**導線の一部なのでT08が確定させ、T14は文言だけを後から合わせる**(2026-08-25)。 `clear-files-button`(「すべて外す」)の文言だけはT04が持つ。T08が先に着手した場合、この文言は現状のまま残す。詳細は[`T04のtask.md`](../T04-implement-selection-flow/task.md)。
 
 ### Androidの前提が変わった(2026-08-22 / `013:T03`)
 

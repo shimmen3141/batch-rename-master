@@ -33,7 +33,7 @@
 ## 方針
 
 - **仕様を変えるものは、仕様更新taskと実装taskを分ける。** 002/003/004はいずれもLightだがapprovedなので、外部から観測できる振る舞いを変えるには人間の再承認が要る。承認前に実装を始めない。
-- **`covers`は仕様更新taskが埋める。** 全taskの`covers`は現在空である。REQ IDが確定するのはT01/T03/T05の承認時なので、その3taskの受け入れ証拠に「対応する実装taskの`covers`を書く」ことを入れてある。T07/T08/T10は仕様を変えないため、空のままが正しい。
+- **`covers`は仕様更新taskが埋める。** 全taskの`covers`は現在空である。REQ IDが確定するのはT01/T03/T05/**T11**の承認時なので、その4taskの受け入れ証拠に「対応する実装taskの`covers`を書く」ことを入れてある。T07/T08/T10/**T13/T14**は仕様を変えないため、空のままが正しい。
 - **判定は動かさない。** 001の重複・桁不足・空名・基準日時不明の判定、005の実行可否、004の読み込み契約はそのまま。008が変えるのは**提示と操作の導線**である。
 - 参考design `docs/design/Bulk Renamer.html` は配置・導線・情報階層の正本(AGENTS.md)。各taskは適用する画面範囲を`task.md`へ書く。
 - 実機で触らないと判断できない項目があるため、実装taskはmanual確認を持つ。手順は実装後にcurrent revisionと照合して具体化する。
@@ -55,6 +55,10 @@
   - 証拠: widget test、両platformでの手動確認
 - [ ] 余白と文字の階層がapp全体で一貫し、値がthemeへ寄っている
   - 証拠: 既存widget testの継続PASS、diff、両platformでの手動確認
+- [ ] Androidのapp内file browserで、どこから読み込もうとしているか・近道と実体のfolderの違い・ファイルの中身が読み取れる
+  - 証拠: 004 specの更新と再承認(入口と近道)、widget test、Android実機での手動確認。**`013:T07`が実機で確かめた要求(階層、選択、注記、rootの上限)を弱めていないこと**
+- [ ] modalが、何を聞かれているか・実行すると何が起きるか・結果がどうなったかを、件数が多いときにも読み取れる
+  - 証拠: widget test、Android実機での手動確認
 - [ ] `python <asdd-plugin>/scripts/workspace.py check specs`、`flutter test`、`flutter analyze`、`dart format --output=none --set-exit-if-changed .` がPASS
 - [ ] 001の判定、004の読み込み契約、005の実行・undo・警告の判定を変えていない(既存testの継続PASS)
 
@@ -77,6 +81,7 @@
 ## review記録
 
 - Review attempt 1: `ea1dd04..d9d6bb2` — FAIL — P1: T09の`dependsOn`がtask.md本文の前提(T02によるREQ-014廃止)を宣言していない。P2×6: 引用節名の陳腐化、`008-ui-polish` slugの残存、`file_source_bar.dart`の担当重複、T07/T08の場所の提示の分担未定、`covers`を埋める時期の未定義、product-mapの到達点が古い。
+- Review attempt 3(T11〜T14の登録): `ae59859...8726de6` — FAIL — **P1-1: `T14`のmodal一覧の4行目が誤り。** `rule_builder_workspace.dart:76`を「tokenの追加 / `T05`/`T06`が持つ」と書いたが、実体は**ルール構築画面まるごとのbottom sheet**(mobileの下部バー「ルール設定」)で、`T05`/`T06`はこれを持っていない。**Androidではルールの編集が必ずこのsheet越し**なので、U5がこれを指していた場合に**どのtaskも拾わないまま落ちる**ところだった。P2×5: 種類選択sheetの分担を片側だけで宣言、`covers`の方針段落が新taskに未追随、境界に足した2行に対応する全体の受け入れ条件が無い、`T13→T12`の依存にした理由が未記載、`T11`のU2に「そもそも要求を足さない」案が無い。**すべて直した**(下の日付の決定表を参照)。
 - Review attempt 2: `ea1dd04..72dd5f8` — PASS — 未解決P0/P1なし。残P2×3(行widgetのT04/T07/T09間の分担未宣言、T08 task.mdの内部矛盾、product-mapのlive status寄り記述)は`ec2e74f`のmerge後に解消した。
 
 ## タスク
