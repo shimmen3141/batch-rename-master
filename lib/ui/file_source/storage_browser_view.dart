@@ -82,7 +82,10 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
         : const <BrowserEntry>[];
     final listing = await widget.browser.list(target);
     if (!mounted) return;
-    widget.onLocationName?.call(target, location.name);
+    // **場所は「保存場所名 + rootからの相対」**である(004 REQ-009)。
+    // 保存場所名だけにすると、どのfolderから読み込んでも同じ表示になる
+    // (独立review attempt 2 のP2-1)。root の basename `0` も出さない。
+    widget.onLocationName?.call(target, _displayPathOf(location, target));
     setState(() {
       _shortcuts = shortcuts;
       _listing = listing;
@@ -199,8 +202,9 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   }
 
   /// 表示用の場所。root は保存場所の名前に置き換える(生の path を主役にしない)。
-  String _displayPath(String folder) {
-    final location = _location!;
+  String _displayPath(String folder) => _displayPathOf(_location!, folder);
+
+  static String _displayPathOf(StorageLocation location, String folder) {
     if (folder == location.root) return location.name;
     return '${location.name}/${p.relative(folder, from: location.root)}';
   }

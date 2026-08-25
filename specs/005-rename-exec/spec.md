@@ -20,7 +20,7 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 | 供給元 | 実際に供給できる値 | 出典 |
 |---|---|---|
 | `saf_util.rename`(Android) | 成功時にURIが変わり、戻り名が空になりうることは観測済み。ただし`DocumentsContract.renameDocument`はproviderによる別名を許し、原子的no-replaceを保証しないため、revision 2のproduction renameには使わない | 2026-08-05 実機スパイク、`decisions/ADR-001-android-saf-rename-safety.md` |
-| Androidの実rename | **desktopと同じ排他rename経路を通る**(revision 6)。`renameat2`が使えない環境では実在確認の水準へ劣化する | revision 6 / REQ-025 / 013 REQ-005 |
+| Androidの実rename | **desktopと同じ排他rename経路を通る**(revision 6)。`renameat2`が使えない環境では実在確認の水準へ劣化する | **Dart側は`013:T05`のshim harnessで観測(2026-08-23)。実機は`013:T08`が未実施** — この行はまだ実機で確かめた事実ではない |
 | 退避経路の`SafRenameExecutor` | provider APIを呼ぶ前に`unsupportedPlatform`を返す。**wiringから外れているので製品経路では呼ばれない** | revision 6 / ADR-002 |
 | `File.rename`(デスクトップ) | 成功時、改名後の `File`。ハンドルは絶対パスなので**名前の変更に伴って変わる** | `dart:io` の API。パスがファイル名を含むことによる |
 | SAF(Android) | **更新日時を設定する API が無い**(`File.setLastModified` はスコープドストレージ非対応) | discovery.md 005 節の技術制約 |

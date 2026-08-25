@@ -830,6 +830,27 @@
       "note": "表示用の場所をbasenameへ戻す(内部共有ストレージのrootが「0」になる。004 REQ-009。attempt 1 のP2-8)",
       "find": "        sourceLocation: locationNameOf?.call(folder) ?? p.basename(folder),",
       "replace": "        sourceLocation: p.basename(folder),"
+    },
+    {
+      "id": "M119",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "表示用の場所を辿ったfolderではなくrootへ紐づける(どのfolderから読み込んでも同じ表示になる。004 REQ-009。attempt 2 のRV05)",
+      "find": "    widget.onLocationName?.call(target, _displayPathOf(location, target));",
+      "replace": "    widget.onLocationName?.call(location.root, location.name);"
+    },
+    {
+      "id": "M120",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "表示用の場所を一切知らせない(行の場所がbasenameへ落ち、rootが「0」になる。attempt 2 のRV06)",
+      "find": "    widget.onLocationName?.call(target, _displayPathOf(location, target));\n",
+      "replace": ""
+    },
+    {
+      "id": "M121",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "note": "[対照] /Android直下で注記を出さない(004 REQ-018。attempt 2 のRV07)",
+      "find": "  if (rest.isEmpty) return true;",
+      "replace": "  if (rest.isEmpty) return false;"
     }
   ]
 }

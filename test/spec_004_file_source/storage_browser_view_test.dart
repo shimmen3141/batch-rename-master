@@ -159,6 +159,46 @@ void main() {
       expect(find.byKey(const Key('browser-file-memo.txt')), findsOneWidget);
     });
 
+    testWidgets('辿ったfolderごとに、表示用の場所を知らせる(004 REQ-009)', (tester) async {
+      // 行の「場所」に使う。**保存場所名だけにすると、どのfolderから読み込んでも
+      // 同じ表示になる**(独立review attempt 2 のP2-1)。root のときは保存場所名、
+      // その下では「保存場所名/相対path」。
+      final named = <String, String>{};
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'DCIM')],
+          '$_root/DCIM': [_dir('$_root/DCIM', 'Camera')],
+          '$_root/DCIM/Camera': [_file('$_root/DCIM/Camera', 'p.jpg')],
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: StorageBrowserView(
+            browser: browser,
+            onLocationName: (folder, name) => named[folder] = name,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      expect(named[_root], '内部ストレージ');
+
+      await tester.tap(find.byKey(const Key('browser-folder-DCIM')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-Camera')));
+      await tester.pumpAndSettle();
+
+      expect(named['$_root/DCIM'], '内部ストレージ/DCIM');
+      expect(
+        named['$_root/DCIM/Camera'],
+        '内部ストレージ/DCIM/Camera',
+        reason: '辿った先ごとに違う値になる',
+      );
+    });
+
     testWidgets('近道は保存場所の始まりだけに出す', (tester) async {
       // 004 REQ-015 は「保存場所の一覧から始まり、既知の場所への**近道**を示し、
       // そこからフォルダ階層を辿れる」と定めている。**辿った先にも出すと、

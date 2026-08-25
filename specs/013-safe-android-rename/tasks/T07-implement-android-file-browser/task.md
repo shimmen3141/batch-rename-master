@@ -138,6 +138,7 @@ AGENTS.mdの3条件で判定し直した。
 | 保存場所の列挙 | **`/storage`の中身から作る**(`emulated`と`self`は除く) | 内部共有ストレージは`/storage/emulated/0`、取り外し可能なボリュームは`/storage/<id>`。**列挙に失敗しても内部ストレージだけは返す** — 空にすると「保存場所が無い」と見える |
 | 並び順 | **フォルダが先、その中で名前順** | 辿るための並べ替えであって、絞り込み(REQ-017が禁じている)ではない |
 | 作成日時 | **取得しない**(`null`) | POSIXの`stat`に作成時刻が無い。**SAFに列が無かったのと結論は同じだが理由が違う**ので、004 specの理由文を言い直した |
+| ADR-003のallow listを広げるか | **`lib/main.dart`を`Platform.is`のallowへ足した** | app全体のcomposition rootで、どのportを配るかをここで決める(種類の写像`fileKindsFor(isAndroid:)`)。**ガードレールを1file分広げた**ので記録する(独立review attempt 2 のP2-6)。`platform_file_source.dart`側へ寄せれば広げずに済んだが、種類はUIの関心なのでcomposition rootに置いた |
 | 選んだ直後に消えていたfile | **落とす**(`Picked`に含めない) | 読めないものをentryにすると、以後の経路が`notFound`で落ちる。**空リストで「決定した」と混同しない**型は保たれる |
 
 ## 検証結果
