@@ -2,7 +2,7 @@
  "schema_version": "1.0",
  "feature_id": "FEAT-005",
  "title": "リネーム実行(rename-exec)",
- "revision": "6",
+ "revision": "6.1",
  "revision_history": [
   {
    "revision": "1",
@@ -38,6 +38,11 @@
    "revision": "6",
    "approved_date": "2026-08-24",
    "meaning": "**Androidを「安全な未対応」から外す。** `013:T07`がapp内file browserを入れ、元場所ハンドルが絶対パスになったので、revision 2以来の退避状態を実態へ合わせた。(1) 用語「ハンドル」を**どのplatformでも絶対パス**へ、(2) REQ-017からAndroid SAF経路の`unsupportedPlatform`の文を削除、(3) OP-004の`errors`から「Android SAF経路はrevision 2の未対応を維持する」を削除、(4) REQ-025へ**既に受容済みの窓の明文化**を追加 — フラグが効かない環境では実在確認のあとの改名が通常renameになり、「一度も上書きrenameを使わない」は文字どおりには成立しない。**新しい保証を弱めてはいない** — この窓はINV-002の環境依存条項が2026-08-14に受容済みで、Androidを製品経路へ載せるにあたり明文化しただけである。`saf_rename_executor.dart`はwiringから外れるがcodeとnegative testは退避経路として残す(ADR-002。Playの宣言が却下されたらAndroid未対応へ戻す)。"
+  },
+  {
+   "revision": "6.1",
+   "approved_date": "2026-08-25",
+   "meaning": "**記述訂正だけである。要求(must)は1つも変えていない。** revision 6が`REQ-017`と`OP-004.errors`からAndroid SAF経路の未対応記述を消したのに、`scope.in`と`OP-004.nondeterminism`に同じ趣旨が残って**契約が自己矛盾していた**(`013:T07`の独立review attempt 1のP1-1)。2箇所を「SAFのrename APIを呼ぶ改名経路を、退避経路として保持する」という書き方へ言い直した。あわせて005 `spec.md`と`product-map.md`をrevision 6へ追随させた(同P1-2)。"
   }
  ],
  "status": "approved",
@@ -49,7 +54,7 @@
    "実行直後の限られた期間に、成功した改名を元の名前へ戻す操作(単一ステップ)。",
    "001 の検証が返す警告の提示と、警告がある状態での実行可否の制御。",
    "改名に成功したファイルの更新日時を、表示順に一定間隔でずらす任意機能。",
-   "原子的no-replaceを保証できないAndroid SAF production経路を、実体を変更せず理由付きの未対応として扱う。",
+   "SAFのrename APIを呼ぶ改名経路(`SafRenameExecutor`)を、実体を変更せず理由付きの未対応として扱う。**revision 6でwiringから外れ、退避経路として保持している**(ADR-002。Playの宣言が却下されたらAndroid未対応へ戻す)。",
    "実行時の衝突(nameConflict)を、001の自動解決規則に従って次の候補名へ進めて再試行すること。",
    "対象folderの実在名を004から受け取り、**folderごとの占有名**(実在名から、そのfolder内でこの実行で改名される選択fileの現在名を除いたもの)を作って001の検証へ渡すこと。実在名を取得できないfolderを含む実行を行わないこと(REQ-027)。"
   ],
@@ -613,7 +618,7 @@
     "実ファイルの改名"
    ],
    "nondeterminism": [
-    "成功可能な実装で、改名後のハンドルが改名前と等しいかどうかは実装依存である。呼び出し側はどちらでも壊れてはならない。Android SAF production経路はrevision 2では成功を返さない。",
+    "成功可能な実装で、改名後のハンドルが改名前と等しいかどうかは実装依存である。呼び出し側はどちらでも壊れてはならない。退避経路の`SafRenameExecutor`は成功を返さない(revision 6でwiringから外れている)。",
     "原子的no-replaceを提供するかどうかは環境依存である。提供しない環境では実在確認で代替し、`nameConflict`の判定精度がTOCTOUの分だけ下がる(INV-002)。"
    ],
    "requirements": [

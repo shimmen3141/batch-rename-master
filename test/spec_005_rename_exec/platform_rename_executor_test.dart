@@ -740,6 +740,10 @@ void main() {
     // preprocessor で arch ごとに取り出し、実 kernel header と突き合わせている。
   });
 
+  // **C で自作した定数と errno 写像は `native_constants_test.dart` が見る。**
+  // source を正規表現で読むのをやめ、preprocessor と実 kernel header を oracle に
+  // した(ADR-003 の追補、独立review attempt 6)。ここには置かない。
+
   group('どの platform がどの改名 adapter を使うか(005 revision 6)', () {
     // **`013:T07` で Android を切り替えた。** app 内 file browser により元場所
     // ハンドルが絶対 path になり、005 contract revision 6(2026-08-24 承認)が

@@ -19,19 +19,25 @@ FileSource fileSourceFor({
   required bool isAndroid,
   required bool isDesktop,
   required BrowserPicker pick,
+  String Function(String folder)? locationNameOf,
 }) {
-  if (isAndroid) return AndroidFileSource(pick: pick);
+  if (isAndroid) {
+    return AndroidFileSource(pick: pick, locationNameOf: locationNameOf);
+  }
   if (isDesktop) return const DesktopFileSource();
   return const UnsupportedFileSource();
 }
 
 /// 実行中のプラットフォームに合う [FileSource] を返す。
-FileSource createPlatformFileSource({required BrowserPicker pick}) =>
-    fileSourceFor(
-      isAndroid: Platform.isAndroid,
-      isDesktop: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
-      pick: pick,
-    );
+FileSource createPlatformFileSource({
+  required BrowserPicker pick,
+  String Function(String folder)? locationNameOf,
+}) => fileSourceFor(
+  isAndroid: Platform.isAndroid,
+  isDesktop: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
+  pick: pick,
+  locationNameOf: locationNameOf,
+);
 
 /// 未対応プラットフォーム用の [FileSource]。常に [Failed] を返す(REQ-001/008)。
 class UnsupportedFileSource implements FileSource {

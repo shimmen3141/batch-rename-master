@@ -18,9 +18,19 @@ import '../theme/app_colors.dart';
 /// **entry は絞り込まずにそのまま見せる**(REQ-017)。隠しファイルもサブフォルダも
 /// 並ぶ。不要なものは読み込んだあとに 002 で選択解除する。
 class StorageBrowserView extends StatefulWidget {
-  const StorageBrowserView({super.key, required this.browser});
+  const StorageBrowserView({
+    super.key,
+    required this.browser,
+    this.onLocationName,
+  });
 
   final StorageBrowserPort browser;
+
+  /// 辿った folder と、それが属する保存場所の名前を知らせる(004 REQ-009)。
+  ///
+  /// 行の「場所」を人間可読にするために composition root が受け取る。
+  /// **browser 自身は使わない。**
+  final void Function(String folder, String locationName)? onLocationName;
 
   @override
   State<StorageBrowserView> createState() => _StorageBrowserViewState();
@@ -72,6 +82,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
         : const <BrowserEntry>[];
     final listing = await widget.browser.list(target);
     if (!mounted) return;
+    widget.onLocationName?.call(target, location.name);
     setState(() {
       _shortcuts = shortcuts;
       _listing = listing;
@@ -79,21 +90,24 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     });
   }
 
-  /// 上位フォルダへ戻る。**root からは保存場所の一覧へ戻る**(REQ-015)。
+  /// 上位フォルダへ戻る。**root では呼ばない**(そこでは button を出さない)。
   Future<void> _goUp() async {
     final location = _location!;
     final folder = _folder!;
-    if (!canGoUp(folder: folder, root: location.root)) {
-      setState(() {
-        _location = null;
-        _folder = null;
-        _listing = null;
-        _shortcuts = const [];
-        _selected.clear();
-      });
-      return;
-    }
+    // **上限は保存場所の root**(REQ-015)。`/storage` や `/` へは辿れない。
+    if (!canGoUp(folder: folder, root: location.root)) return;
     await _enter(location, folder: parentOf(folder));
+  }
+
+  /// 保存場所の一覧へ戻る。**上位 path へ辿るのではない**(REQ-015)。
+  void _backToLocations() {
+    setState(() {
+      _location = null;
+      _folder = null;
+      _listing = null;
+      _shortcuts = const [];
+      _selected.clear();
+    });
   }
 
   void _toggle(BrowserEntry entry) {
@@ -151,12 +165,23 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       ),
       child: Row(
         children: [
-          if (_location != null)
+          // **root では出さない**(004 代表例 26d「上位へ戻る操作は無いか無効」)。
+          // 保存場所の一覧へは、この画面を閉じてから選び直す。
+          if (_location != null &&
+              _folder != null &&
+              canGoUp(folder: _folder!, root: _location!.root))
             IconButton(
               key: const Key('browser-up'),
               icon: const Icon(Icons.arrow_upward, size: 18),
               tooltip: '上のフォルダへ',
               onPressed: _goUp,
+            )
+          else if (_location != null)
+            IconButton(
+              key: const Key('browser-locations'),
+              icon: const Icon(Icons.sd_storage, size: 18),
+              tooltip: '保存場所を選び直す',
+              onPressed: _backToLocations,
             ),
           Expanded(
             child: Text(

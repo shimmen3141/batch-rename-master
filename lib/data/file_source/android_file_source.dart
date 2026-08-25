@@ -31,9 +31,17 @@ typedef BrowserPicker = Future<BrowserSelection?> Function();
 /// 選択 UI 自体はここに持たない。[BrowserPicker] を受け取るだけで、画面は UI 層が
 /// 供給する — port が `Navigator` を知ると test が widget を要るようになる。
 class AndroidFileSource implements FileSource {
-  const AndroidFileSource({required this.pick});
+  const AndroidFileSource({required this.pick, this.locationNameOf});
 
   final BrowserPicker pick;
+
+  /// 表示用の場所の名前(004 REQ-009: **人間可読の文字列**)。
+  ///
+  /// `folder` の basename をそのまま使うと、内部共有ストレージの root
+  /// (`/storage/emulated/0`)が `0` になって意味を持たない
+  /// (独立review attempt 1 の P2-8)。browser は保存場所の名前を知っているので、
+  /// composition root がそれを渡す。渡されなければ basename を使う。
+  final String Function(String folder)? locationNameOf;
 
   /// **`mimeTypes` は使わない。** Android の browser には MIME filter の手段が
   /// 無く、拡張子で絞る判定も新設しない(004 REQ-011 / REQ-017)。
@@ -99,7 +107,7 @@ class AndroidFileSource implements FileSource {
         // 所属 folder ハンドル(004 REQ-013)。**ハンドルから導出しない** —
         // browser が確定した値をそのまま持つ。
         sourceFolder: folder,
-        sourceLocation: p.basename(folder),
+        sourceLocation: locationNameOf?.call(folder) ?? p.basename(folder),
       );
     } catch (_) {
       return null;

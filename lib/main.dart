@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/rename_engine.dart';
@@ -78,24 +79,39 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     super.dispose();
   }
 
-  /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource]
-  /// (Android=SAF / デスクトップ=OS ピッカー)を注入する(T4)。
-  /// Android の app 内 file browser を開く(004 REQ-015)。
+  /// 読み込み入口。実行中のプラットフォームに合う実 [FileSource] を注入する
+  /// (**Android = app 内 file browser** / デスクトップ = OS ピッカー。
+  /// 004 REQ-015 / 013 ADR-002)。
+  ///
+  /// Android の app 内 file browser を開く。
   ///
   /// **権限が無ければ browser を開かない**(004 REQ-019)のは [FileSourceBar] の
   /// 側で、ここまで来た時点では確認が済んでいる。
   Future<BrowserSelection?> _pickInBrowser() async {
     final navigator = Navigator.of(context);
-    return navigator.push<BrowserSelection>(
+    final selection = await navigator.push<BrowserSelection>(
       MaterialPageRoute(
-        builder: (_) =>
-            const StorageBrowserView(browser: AndroidStorageBrowser()),
+        builder: (_) => StorageBrowserView(
+          browser: const AndroidStorageBrowser(),
+          onLocationName: (folder, name) => _locationNames[folder] = name,
+        ),
       ),
     );
+    return selection;
   }
+
+  /// browser が確定した保存場所の名前。行の「場所」に使う(004 REQ-009)。
+  ///
+  /// **root の basename は `0` になって意味を持たない**ので、保存場所名へ
+  /// 置き換える(独立review attempt 1 の P2-8)。
+  final _locationNames = <String, String>{};
+
+  String _locationNameOf(String folder) =>
+      _locationNames[folder] ?? p.basename(folder);
 
   late final FileSource _source = createPlatformFileSource(
     pick: _pickInBrowser,
+    locationNameOf: _locationNameOf,
   );
 
   /// 全ファイルアクセスの判定(013 REQ-001〜004)。**ここが唯一の platform 判定**で、

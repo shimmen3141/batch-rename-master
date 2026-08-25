@@ -4,6 +4,11 @@
 // 示し、上位へ戻れるが**保存場所の root より上へは辿れない**。選択は同一フォルダ内に
 // 限り、移動すると解除される。entry は絞り込まずにそのまま並ぶ。
 //
+// **`test/spec_004_file_source/` に置く。** 004 spec の VER-005 が成果物を
+// 「ディレクトリ + 種別」で指定しており、そこが規範側の locator である
+// (独立review attempt 1 の P1-3)。port の実装は
+// `android_storage_browser_test.dart` が見る。
+//
 // 一覧を port にしてあるので、階層も失敗も Linux 上で再現できる。
 // **実機の mount 構成と実際の書き込み可否は `013:T08`** が引き受ける
 // (`task.md` の宣言表)。
@@ -184,7 +189,33 @@ void main() {
       expect(find.byKey(const Key('browser-file-a.txt')), findsOneWidget);
     });
 
-    testWidgets('上位へ戻れるが、rootからは保存場所の一覧へ戻る', (tester) async {
+    testWidgets('rootでは「上へ」を出さない(004 代表例 26d)', (tester) async {
+      // **上位へ戻る操作は無いか無効。** 代わりに保存場所を選び直す導線を出す
+      // (上位 path へ辿るのではない)。
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+          '$_root/A': [_file('$_root/A', 'a.txt')],
+        },
+      );
+      final _ = await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('browser-up')), findsNothing);
+      expect(find.byKey(const Key('browser-locations')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('browser-up')),
+        findsOneWidget,
+        reason: 'rootの下では出す',
+      );
+      expect(find.byKey(const Key('browser-locations')), findsNothing);
+    });
+
+    testWidgets('上位へ戻れる。保存場所を選び直しても上位pathを辿らない', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A')],
@@ -201,8 +232,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('browser-folder-A')), findsOneWidget);
 
-      // root からもう一度押すと、**上位の path ではなく保存場所の一覧**へ戻る。
-      await tester.tap(find.byKey(const Key('browser-up')));
+      // root では保存場所を選び直す導線になる。**上位の path は辿らない。**
+      await tester.tap(find.byKey(const Key('browser-locations')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('browser-location-内部ストレージ')), findsOneWidget);
       // **`/storage` を列挙しに行っていない。**
