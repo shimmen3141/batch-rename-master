@@ -15,6 +15,10 @@
     "tasks/T07-row-and-warning-presentation",
     "tasks/T08-load-affordance-and-path",
     "tasks/T09-list-display-modes",
-    "tasks/T10-spacing-and-typography"
+    "tasks/T10-spacing-and-typography",
+    "tasks/T11-define-browser-entry-and-shortcuts",
+    "tasks/T12-implement-browser-presentation",
+    "tasks/T13-browser-file-preview",
+    "tasks/T14-modal-wording-and-presentation"
   ]
 }

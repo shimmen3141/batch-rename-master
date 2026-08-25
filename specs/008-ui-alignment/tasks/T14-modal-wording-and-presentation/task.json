@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T14",
+  "title": "modalの文言と見せ方を整える",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
