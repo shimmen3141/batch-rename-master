@@ -851,6 +851,34 @@
       "note": "[対照] /Android直下で注記を出さない(004 REQ-018。attempt 2 のRV07)",
       "find": "  if (rest.isEmpty) return true;",
       "replace": "  if (rest.isEmpty) return false;"
+    },
+    {
+      "id": "M122",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測 harness が「目標名が置換された」を見逃す(013:T08。これを見逃すと、実機で005 INV-002が破れていてもPASSして返る)",
+      "find": "    if (observedTargetBody != targetBody) {",
+      "replace": "    if (false && observedTargetBody != targetBody) {"
+    },
+    {
+      "id": "M123",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測 harness が対照(通常 rename)の成立を確かめない(013:T01の初回spikeが対照を欠いてP1になった型を、harnessが再現しないことの固定)",
+      "find": "    if (control != NativeRenameResult.success ||\n        observedControlBody != sourceBody) {",
+      "replace": "    if (false) {"
+    },
+    {
+      "id": "M124",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[対照] 劣化(fallbackRequired)を欠陥として扱う(005 contract revision 4が受容した劣化を「壊れている」と誤報しないことの固定)",
+      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired) {",
+      "replace": "    if (exclusive != NativeRenameResult.nameConflict) {"
+    },
+    {
+      "id": "M125",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測に使った file を消さない(実機の共有ストレージに残骸が残る。013:T07のmanualで人間が片付ける羽目になる)",
+      "find": "  await cleanUpProbeFiles(all);\n\n  return ProbeRow(",
+      "replace": "\n  return ProbeRow("
     }
   ]
 }
