@@ -1,21 +1,43 @@
 import 'dart:io';
 
+import 'android_file_source.dart';
 import 'desktop_file_source.dart';
 import 'file_source.dart';
-import 'saf_file_source.dart';
 
-/// 実行中のプラットフォームに合う [FileSource] を返す(T4)。
+/// どの platform がどの [FileSource] を使うかの写像(004 REQ-011 / REQ-015)。
 ///
-/// Android は SAF([SafFileSource])、Windows などのデスクトップは OS ピッカー
-/// ([DesktopFileSource])。それ以外(未対応プラットフォーム)は、契約どおり
-/// [Failed] を返す実装にフォールバックする(例外は投げない。004 REQ-001)。
-FileSource createPlatformFileSource() {
-  if (Platform.isAndroid) return SafFileSource();
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    return const DesktopFileSource();
+/// **Android は app 内 file browser**([AndroidFileSource])。SAF のファイル選択
+/// 画面は使わない(004 REQ-015 / 013 ADR-002)。desktop は OS ピッカー
+/// ([DesktopFileSource])のままで、**013 は desktop の振る舞いを変えない**。
+/// それ以外は契約どおり [Failed] を返す(例外は投げない。004 REQ-001)。
+///
+/// **純関数として切り出してある。** `Platform.isAndroid` を条件式へ直接書くと、
+/// この写像を Linux 上の test で固定できない(ADR-003)。
+///
+/// [pick] は Android の browser を開く操作。UI 層が供給する。
+FileSource fileSourceFor({
+  required bool isAndroid,
+  required bool isDesktop,
+  required BrowserPicker pick,
+  String Function(String folder)? locationNameOf,
+}) {
+  if (isAndroid) {
+    return AndroidFileSource(pick: pick, locationNameOf: locationNameOf);
   }
+  if (isDesktop) return const DesktopFileSource();
   return const UnsupportedFileSource();
 }
+
+/// 実行中のプラットフォームに合う [FileSource] を返す。
+FileSource createPlatformFileSource({
+  required BrowserPicker pick,
+  String Function(String folder)? locationNameOf,
+}) => fileSourceFor(
+  isAndroid: Platform.isAndroid,
+  isDesktop: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
+  pick: pick,
+  locationNameOf: locationNameOf,
+);
 
 /// 未対応プラットフォーム用の [FileSource]。常に [Failed] を返す(REQ-001/008)。
 class UnsupportedFileSource implements FileSource {

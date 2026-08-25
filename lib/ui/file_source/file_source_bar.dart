@@ -10,8 +10,10 @@ import 'file_kind.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
 ///
-/// 「ファイルを選ぶ」→ **種類(画像 / 動画 / 文書 / すべて)を選ぶ** →
-/// 種類に応じた選択 UI で**フォルダを辿ってファイルを複数選択** → 確定した集合で
+/// 「ファイルを選ぶ」→ **種類を選ぶ**(desktop は画像 / 動画 / 文書 / すべて、
+/// **Android は文書を除く3つ**。004 REQ-011)→
+/// 種類に応じた選択 UI(Android は app 内 browser)で**フォルダを辿って
+/// ファイルを複数選択** → 確定した集合で
 /// 002 のリストを**置き換える**(蓄積しない)。
 /// [Cancelled] はリスト無変化・通知なし、[Failed] は無変化のまま理由を通知する。
 /// 選択が**複数の親フォルダに跨っていたら警告**する(REQ-012)。
@@ -27,13 +29,21 @@ class FileSourceBar extends StatefulWidget {
     required this.source,
     required this.controller,
     required this.permission,
+    required this.kinds,
   });
 
-  /// 読み込み元(実装は Android SAF / デスクトップのピッカー、テストでは fake)。
+  /// 読み込み元(実装は **Android = app 内 file browser** / デスクトップのピッカー、
+  /// テストでは fake)。
   final FileSource source;
 
   /// 置き換え先のリスト。
   final FileListController controller;
+
+  /// このplatformで出す種類(004 REQ-011)。
+  ///
+  /// **Android は3つ、desktop は4つ。** 判定は composition root が行う —
+  /// ここが platform を見ない。
+  final List<FileKind> kinds;
 
   /// 全ファイルアクセスの判定(013 REQ-001〜004)。
   ///
@@ -200,7 +210,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                   ),
                 ),
               ),
-              for (final kind in FileKind.values)
+              for (final kind in widget.kinds)
                 ListTile(
                   key: Key('file-kind-${kind.name}'),
                   leading: Icon(_iconOf(kind), color: colors.primary, size: 20),

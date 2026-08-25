@@ -740,27 +740,54 @@ void main() {
     // preprocessor で arch ごとに取り出し、実 kernel header と突き合わせている。
   });
 
-  test('composition root はまだ Android を切り替えていない(`T07` が切り替える)', () async {
-    // **切り替えは `013:T07` の受け入れ証拠である。** Android のハンドルがまだ SAF の
-    // document URI で path として解釈できず、**005 contract revision 5.1 が今なお
-    // Android SAF を未対応と規定している**(REQ-017 / OP-004)ためである。
-    //
-    // この test は `T07` が切り替えた時点で落ちる。**そのとき消すのではなく、
-    // 「Android が `DesktopRenameExecutor` を返す」検査へ置き換えること。**
-    final source = await File(
-      'lib/data/rename_exec/platform_rename_executor.dart',
-    ).readAsString();
-
-    expect(
-      source,
-      contains('if (Platform.isAndroid) return const SafRenameExecutor();'),
-      reason: '退避経路(ADR-002)を wiring から外すのは `T07`',
-    );
-  });
-
   // **C で自作した定数と errno 写像は `native_constants_test.dart` が見る。**
   // source を正規表現で読むのをやめ、preprocessor と実 kernel header を oracle に
   // した(ADR-003 の追補、独立review attempt 6)。ここには置かない。
+
+  group('どの platform がどの改名 adapter を使うか(005 revision 6)', () {
+    // **`013:T07` で Android を切り替えた。** app 内 file browser により元場所
+    // ハンドルが絶対 path になり、005 contract revision 6(2026-08-24 承認)が
+    // 「安全な未対応」を外した。**Android 専用の executor は存在しない** —
+    // 劣化は native が返す `fallbackRequired` が駆動する(ADR-003)。
+    test('Android は desktop と同じ実装を通る(013 REQ-005 / REQ-006 が製品経路に載る)', () {
+      expect(
+        renameExecutorFor(isAndroid: true, isDesktop: false),
+        isA<DesktopRenameExecutor>(),
+      );
+    });
+
+    test('desktop は変わらない(013 は desktop の振る舞いを変えない)', () {
+      expect(
+        renameExecutorFor(isAndroid: false, isDesktop: true),
+        isA<DesktopRenameExecutor>(),
+      );
+    });
+
+    test('どちらでもない platform は未対応のまま', () {
+      expect(
+        renameExecutorFor(isAndroid: false, isDesktop: false),
+        isA<UnsupportedRenameExecutor>(),
+      );
+    });
+
+    test('`SafRenameExecutor` は wiring から外れるが、退避経路として残っている', () async {
+      // ADR-002 の退避経路。Play の宣言が却下されたら Android 未対応へ戻す。
+      // **削除しない** — negative test も維持する。
+      final source = await File(
+        'lib/data/rename_exec/platform_rename_executor.dart',
+      ).readAsString();
+      expect(
+        source.contains('SafRenameExecutor()'),
+        isFalse,
+        reason: 'wiring からは外れている',
+      );
+      expect(
+        File('lib/data/rename_exec/saf_rename_executor.dart').existsSync(),
+        isTrue,
+        reason: 'code は残す',
+      );
+    });
+  });
 
   test('C の結果 enum と Dart の [NativeRenameResult] は index が一致する', () async {
     // `_resultOf` は `NativeRenameResult.values[value]` で C の整数を素通しする。

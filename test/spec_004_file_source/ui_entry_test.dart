@@ -52,6 +52,7 @@ Future<void> _pump(
               source: source,
               controller: controller,
               permission: const UnrestrictedStoragePermission(),
+              kinds: FileKind.values,
             ),
             if (withList) Expanded(child: FileListView(controller: controller)),
           ],

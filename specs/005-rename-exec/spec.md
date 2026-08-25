@@ -1,6 +1,6 @@
 # リネーム実行(rename-exec) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）、**revision 5は`013:T10`/`013:T11`が決めたOQ-001〜OQ-008を契約へ戻したもの(2026-08-21 開発者承認)、revision 5.1はOP-005の`interface`行を実装のsignatureへ揃えた記述訂正(2026-08-21 開発者承認。規範部分は不変)**
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。revision 1は`bd1fc46750284baa229eb7338d6779b9547cc80f`、revision 2は2026-08-09の開発者判断（Android SAFを安全な未対応にする）、revision 3は2026-08-12の開発者判断（巻き戻しは名前だけを戻し、更新日時はずらした値のまま残ることを対象外として明記）、revision 4は2026-08-14の開発者判断（衝突を失敗ではなく採番で回避する。`ADR-002`）（占有名のfolder単位化とREQ-027を含む最終形で、2026-08-14に承認されている）、**revision 5は`013:T10`/`013:T11`が決めたOQ-001〜OQ-008を契約へ戻したもの(2026-08-21 開発者承認)、revision 5.1はOP-005の`interface`行を実装のsignatureへ揃えた記述訂正(2026-08-21 開発者承認。規範部分は不変)、revision 6は`013:T07`がAndroidを「安全な未対応」から外したもの(2026-08-24 開発者承認。用語「ハンドル」をどのplatformでも絶対パスへ、REQ-017とOP-004からSAF経路の未対応記述を削除、REQ-025へ既に受容済みの窓を明文化)、revision 6.1はrevision 6の削除漏れ2箇所の記述訂正(2026-08-25 開発者承認。要求は不変)**
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）
@@ -20,10 +20,11 @@ fake がここに書いた範囲を超えると、その差分の上に乗った
 | 供給元 | 実際に供給できる値 | 出典 |
 |---|---|---|
 | `saf_util.rename`(Android) | 成功時にURIが変わり、戻り名が空になりうることは観測済み。ただし`DocumentsContract.renameDocument`はproviderによる別名を許し、原子的no-replaceを保証しないため、revision 2のproduction renameには使わない | 2026-08-05 実機スパイク、`decisions/ADR-001-android-saf-rename-safety.md` |
-| Android SAF production rename | provider APIを呼ぶ前に`unsupportedPlatform`を返す。URIが指す実体は変化しない | revision 2 / REQ-017 / OP-004 |
+| Androidの実rename | **desktopと同じ排他rename経路を通る**(revision 6)。`renameat2`が使えない環境では実在確認の水準へ劣化する | **Dart側は`013:T05`のshim harnessで観測(2026-08-23)。実機は`013:T08`が未実施** — この行はまだ実機で確かめた事実ではない |
+| 退避経路の`SafRenameExecutor` | provider APIを呼ぶ前に`unsupportedPlatform`を返す。**wiringから外れているので製品経路では呼ばれない** | revision 6 / ADR-002 |
 | `File.rename`(デスクトップ) | 成功時、改名後の `File`。ハンドルは絶対パスなので**名前の変更に伴って変わる** | `dart:io` の API。パスがファイル名を含むことによる |
 | SAF(Android) | **更新日時を設定する API が無い**(`File.setLastModified` はスコープドストレージ非対応) | discovery.md 005 節の技術制約 |
-| 004 の `FileEntry.createdAt` | **常に不明(null)**。SAF に列が無く、デスクトップ実装も設定していない | `ADR-001` の**決定** 4、`lib/data/file_source/*_file_source.dart` |
+| 004 の `FileEntry.createdAt` | **常に不明(null)**。**Androidはapp内browserへ移ってもPOSIXの`stat`に作成時刻が無く**、デスクトップ実装も設定していない(結論は同じで理由が違う。2026-08-24) | `ADR-001` の**決定** 4、`lib/data/file_source/*_file_source.dart` |
 
 revision 1ではSAFの成功値域から、改名のたびのハンドル更新(REQ-001 / INV-005)と要求名の使用(REQ-018)を導いた。しかしproviderの競合意味論は本物より強いfakeで隠れていた。revision 2ではINV-002を優先し、Android SAF production renameを副作用のない未対応とする。
 
@@ -60,7 +61,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 | 20 | 作成日時が不明なファイルに、作成日時トークンだけのルール | 空名と基準日時不明を**1件にまとめて**提示する(結果と原因を1行で) | REQ-021 |
 | 21 | 例20 の状態で強制実行 | そのファイルは**改名されず**、除外した件数と理由が出る | REQ-022 |
 | 22 | 9件中1件だけ空名になる状態で強制実行 | 残り8件は改名され、1件が除外される | REQ-022 |
-| 23 | Android SAFで改名を要求 | provider renameを呼ばず`unsupportedPlatform`で停止し、URIが指す全fileの名前・内容・個数は変わらない | REQ-017, OP-004, INV-001, INV-002 |
+| 23 | 退避経路の`SafRenameExecutor`へ改名を要求する(**製品経路では起きない**。revision 6でwiringから外れた) | provider renameを呼ばず`unsupportedPlatform`で停止し、URIが指す全fileの名前・内容・個数は変わらない | REQ-017, OP-004, INV-001, INV-002 |
 | 24 | desktopで既存名との競合中に別processが目標を作成 | 排他的renameが`nameConflict`で失敗し、sourceと既存targetの内容は変わらない。**その改名要求は失敗として記録されず、次の候補名で再試行される** | OP-004, INV-002, REQ-023 |
 | 25 | 対象folderに、アプリへ読み込んでいない`keep.jpg`があり、改名先が`keep.jpg`になる | **実行前に重複警告として提示される**(読み込んでいないfileとの衝突も検出する)。**他に警告が無くても、確認を経ずに実行へ入らない** | REQ-026, REQ-011 |
 | 25b | `a.jpg`(選)を`b.jpg`へ、`b.jpg`(選)を`c.jpg`へ改名する | **警告は出ない。** `b.jpg`は選択fileの現在名なので占有名に含まれず、REQ-004が`b→c`を先に行う順序を与える | REQ-004, REQ-026 |
@@ -95,7 +96,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 
 ## この機能だけでは未完成な点
 
-- **Android SAFによる実renameは安全な未対応**。SAF以外のstorage方式、provider制限、配布上の権限制約は`013-safe-android-rename:T01`で調査し、実装を約束せず設計判断を出す。
+- ~~**Android SAFによる実renameは安全な未対応**~~ **解消した(revision 6、2026-08-24)。** `013:T07`がapp内file browserを入れて元場所ハンドルを絶対パスにし、Androidも`DesktopRenameExecutor`を通るようになった。`SafRenameExecutor`は退避経路として残る(ADR-002)。**実機での確認は`013:T08`が持つ。**
 - **作成日時トークンは、実データでは常に空になる**。005 は「なぜ空か」を警告として説明できるようにするが(REQ-009)、**値そのものを供給できるようにはしない**。取得経路が入るまで、利用者から見た「作成日時での命名」は使えないままである。→ 010-photo-source
 - **警告・確認・結果の見た目は素のまま**。参考デザインへの追い込みは行わない。→ 008-ui-alignment
 - **Windows の D&D からの読み込みは無い**ため、デスクトップでの実行はファイル選択画面からの経路に限られる。→ 006-windows-dnd
@@ -131,7 +132,7 @@ revision 1ではSAFの成功値域から、改名のたびのハンドル更新(
 
 - **VER-008(REQ-023 / REQ-024 / REQ-025)の test は `013:T11` が追加した**(`test/spec_005_rename_exec/renumbering_test.dart` ほか)。**REQ-026 / REQ-027 / REQ-028 と OP-005 に対応する test は `013:T10` が追加する** — 占有名の供給元を作るのがそのタスクだからである。005 のタスクはすべて `done` なので、ここを読んだだけでは被覆済みに見える。
 - 上表は契約の `verification` の写しで、**正本は契約側**。「対象」は照合用の ID 列のみで、観点の説明は各テストファイル冒頭のコメントに置く。
-- revision 2 の VER-001 は、Android production 経路が provider API を呼ばず理由付きの未対応結果を返す negative test、desktop の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は revision 2 の production 証拠として扱わない。
+- VER-001 は、**退避経路**の`SafRenameExecutor`が provider API を呼ばず理由付きの未対応結果を返す negative test(revision 6でwiringから外れたが維持する)、desktop と Android の実 native no-replace / error mapping、opaque handle を扱う共通 port contract を分けて検証する。revision 1 の SAF rename 成功 fake は production 証拠として扱わない。
 
 ## 反証ログ
 
