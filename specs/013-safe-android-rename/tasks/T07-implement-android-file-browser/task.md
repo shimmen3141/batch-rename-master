@@ -259,6 +259,6 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 - Blocker category: なし
 - Waiting for: PRのCIと、人間のmanual確認
 - Requested action: なし
-- Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
+- Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
 - Next Agent action: **PRを作り、CIの成功を確認してから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。** そのあと`final-evidence`のreviewを通してmergeする。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
