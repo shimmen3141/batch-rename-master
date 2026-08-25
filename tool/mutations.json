@@ -764,9 +764,9 @@
     {
       "id": "M109",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "保存場所を選び直す導線から選択の解除を外す(別の保存場所へ移っても前の選択が残る。004 REQ-016)",
-      "find": "      _listing = null;\n      _shortcuts = const [];\n      _selected.clear();",
-      "replace": "      _listing = null;\n      _shortcuts = const [];"
+      "note": "近道をrootでない場所でも出す(004 REQ-015は保存場所の始まりで示すと定めている)",
+      "find": "    final shortcuts = target == location.root\n        ? await widget.browser.shortcuts(location)\n        : const <BrowserEntry>[];",
+      "replace": "    final shortcuts = await widget.browser.shortcuts(location);"
     },
     {
       "id": "M110",

@@ -159,6 +159,31 @@ void main() {
       expect(find.byKey(const Key('browser-file-memo.txt')), findsOneWidget);
     });
 
+    testWidgets('近道は保存場所の始まりだけに出す', (tester) async {
+      // 004 REQ-015 は「保存場所の一覧から始まり、既知の場所への**近道**を示し、
+      // そこからフォルダ階層を辿れる」と定めている。**辿った先にも出すと、
+      // どこにいるのか分からなくなる。**
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+          '$_root/A': [_file('$_root/A', 'a.txt')],
+        },
+        shortcutNames: const ['Download'],
+      );
+      final _ = await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('browser-shortcut-Download')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('browser-shortcut-Download')), findsNothing);
+    });
+
     testWidgets('現在地を常に示し、階層を辿ると更新される', (tester) async {
       final browser = _FakeBrowser(
         tree: {

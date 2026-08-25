@@ -100,13 +100,15 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   }
 
   /// 保存場所の一覧へ戻る。**上位 path へ辿るのではない**(REQ-015)。
+  ///
+  /// **ここで選択を捨てる必要は無い。** 次に保存場所を選べば [_enter] が捨てる
+  /// (REQ-016)。観測できない処理を残さない。
   void _backToLocations() {
     setState(() {
       _location = null;
       _folder = null;
       _listing = null;
       _shortcuts = const [];
-      _selected.clear();
     });
   }
 
