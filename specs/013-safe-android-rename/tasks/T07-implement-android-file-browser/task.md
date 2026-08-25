@@ -144,13 +144,13 @@ AGENTS.mdの3条件で判定し直した。
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(571件)**。T07着手前は540件 |
+| full regression | `flutter test` = **PASS(588件)**。T07着手前は540件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
 | 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(46 file、4 rule) |
-| mutation | `M103`〜`M112`(T07分)= **10 KILLED, 0 SURVIVED, 0 SKIPPED** |
+| mutation | `M103`〜`M118`(T07分)= **16 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M113`〜`M116`は**独立reviewerが足したもの**(`M115`/`M116`は対照) |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -206,12 +206,39 @@ OQ-007/008 と同じ型の誤りを招く。
 **この型の指摘が `013:T03` から繰り返し出ている**のは事実なので、finding へ記録して
 plan完了時に判断する。
 
+## 独立review attempt 1 の指摘の始末(2026-08-25)
+
+| # | 始末 |
+| --- | --- |
+| P1-1 / P1-2 | **contract を revision 6.1 として記述訂正**(2026-08-25 開発者承認、案A)。`scope.in` と `OP-004.nondeterminism` の「Android SAF **production**経路」を「SAFのrename APIを呼ぶ改名経路を**退避経路として保持する**」へ言い直した。005 `spec.md`(Status行の版列挙、外部依存表、代表例23、「未完成な点」、検証節、`createdAt`の理由文)と `product-map.md` を revision 6 へ追随させた。**要求(must)は1つも変えていない** |
+| P1-3 | **testを `test/spec_004_file_source/` へ移した。** 004 spec の VER が成果物を「ディレクトリ + 種別」で指定しており、そこが規範側のlocatorである。spec を触らずに済む側を採った |
+| P1-4 | **`android_storage_browser_test.dart` を新設**(12件)。temp directory を保存場所に見立てて、保存場所の列挙・近道の実在確認・絞り込まないこと・**「読めなかった」と「entryが無い」の区別**を実 file で閉じた。reviewer の `RV01`〜`RV04` を `M113`〜`M116` として取り込んだ(`RV03`/`RV04` は**対照**として残す) |
+| P2-1 | `Evidence revision` の base を実測値 `57c5e69` へ直した |
+| P2-2 | **実装を代表例26dへ寄せた。** root では「上へ」を出さず、保存場所を選び直す導線に替えた(`M117`)。manual の期待も直した |
+| P2-3 | `main.dart` と `file_source_bar.dart` の stale な doc comment(「Android=SAF」「文書」)を直した |
+| P2-4 | manual を直した。§3 は元の名前を含むルールにして重複ダイアログを避け、§4 は**fixture の reset を明記**、§5 は `/Android` 直下に file が無いこと・`data` が開けないことがあることを**期待に含めた** |
+| P2-5 | **受容する**(下記) |
+| P2-6 | `task.json.covers` を `task.md` の指示どおり `[]` にした |
+| P2-7 | ADR-003 追補の注記を戻した |
+| P2-8 | **行の「場所」を人間可読にした。** browser が保存場所名を composition root へ知らせ、`AndroidFileSource` がそれを使う(`M118`)。root の basename `0` は出ない |
+
+**mutationで2件がSURVIVEDしてから直した。** `M118`(表示用の場所)は test が無かった。
+`M109` は代表例26d対応で対象が到達不能になったので、**冗長な処理を外して**
+「近道は保存場所の始まりだけに出す」へ差し替えた。
+
+### 受容した残余risk
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| Android側の`sourceFolder`を正規化していない(desktopは`folderHandleOf`で正規化する)。**今日は割れない** — browserがfolder文字列を作る経路は`StorageLocation.root`と`Directory.list`の返すpathだけで、`list(followLinks: false)`によりsymlinkは`Directory`と判定されず**辿れない**ので、同じ場所への表記は1つしか生じない | 3(**割れる表記が実際に現れるかが実機のmount構成に依存する**。`/storage`直下に`sdcard0`のようなlegacy symlinkがある端末では、同じボリュームが2つの保存場所として並びうる) | `013:T08`(宣言表の「実機のmount構成」に含まれる) |
+| `SafFileSource`もwiringから外れたが、`saf_file_source.dart`とtestは残している。**ADR-002が退避経路として明記しているのは改名側だけ** | — | **読み込み側も同じ理由で残す。** Playの宣言が却下されたらAndroid未対応へ戻すので、改名側だけ残しても復帰できない。ADR-002の趣旨に沿う判断であり、`013:T08`の実機確認が済むまで削除しない |
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 = FAIL(P1が4件、P2が8件)。** 中核は仕様どおりと確認された。指摘の対応方針は上表のとおり決めてある
+- Last checkpoint: **独立review attempt 1 の指摘をすべて反映済み。** `M103`〜`M118`が16 KILLED、`flutter test` = PASS(588)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: **P1-1 / P1-2 の方針(案A)の承認**。それ以外は承認を待たずに着手できる
+- Waiting for: 独立review attempt 2
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **上表の対応方針どおり直す。** 順序は (1) P1-4 の test と `RV01`〜`RV04` の取り込み、(2) P1-3 の test 移動、(3) P2-2〜P2-8、(4) 承認が下りたら P1-1 / P1-2 を revision 6.1 として直す。そのあと attempt 2 を起動し、PASS してから manual を依頼する。**range は `57c5e69...HEAD` で取ること。**
+- Next Agent action: **独立review attempt 2 を起動する**(range は `57c5e69...HEAD`)。PASSしたらPRを作り、[`manual-verification.md`](manual-verification.md)を人間へ依頼する。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
