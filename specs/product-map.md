@@ -14,7 +14,7 @@
 | 004 ファイルsource | Android SAFとdesktop pickerからファイルを読み込み、一覧へ渡せる | [`004-file-source/`](004-file-source/) |
 | 005 リネーム実行 | 警告を確認して実行し、結果と5秒以内のundoを提示できる。desktopは安全な実rename・更新日時ずらし、**Androidも同じ経路で実renameできる**(contract revision 6) | [`005-rename-exec/`](005-rename-exec/) |
 | 007 ルール永続化 | 直近のルールを保存し、process再起動後に復元できる | [`007-rule-persistence/`](007-rule-persistence/) |
-| 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyをT01〜T10へ分解した。今後のUI調整の受け皿でもある | [`008-ui-alignment/`](008-ui-alignment/) |
+| 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyをT01〜T10へ分解し、`013:T07`の実機確認で出たapp内file browserの提示とmodalの見せ方をT11〜T14として足した。今後のUI調整の受け皿でもある | [`008-ui-alignment/`](008-ui-alignment/) |
 | 013 Android安全rename | **Androidで実renameできるようになった**(contract revision 6、2026-08-24)。実機確認は`T08`が持つ。`renameat2(RENAME_NOREPLACE)`による対応を採用と決め(ADR-002)、権限導線・app内file browser・契約更新をT02〜T08へ分解した | [`013-safe-android-rename/`](013-safe-android-rename/) |
 
 ## 主な依存
@@ -37,6 +37,7 @@
 | 011 保存schema移行 | 保存済みruleをschema変更後も失わず変換する | 利用者資産を増やす前に必要性を判断する |
 | 012 隠し・system file filter | 識別可能なplatformで対象外fileを除外する | 信頼できるAPIとfallbackが必要 |
 | 元名のcase変換 | keep/upper/lowerをtokenへ追加する | 001 Strict contractの意味変更と人間承認が必要 |
+| 読み込み画面の状態復元 | 「すべて」を開き直したときに、前回の場所を開き、前回選んだfileを選択済みにする | `013:T07`の実機確認で開発者が挙げた(2026-08-25)。**本人が「ふとした思い付き」と明示**しており、良い解き方かは未判断。004 REQ-004(蓄積しない)と両立するかを先に確かめる — 復元は「前回の選択を残す」ではなく「選び直しの初期値」である必要がある |
 | 中断した改名の残骸の検出 | process強制終了・電源断で残った一時名(`*.renaming-swap-N`)を次回起動時に検出し、利用者へ提示する | 005 spec「一時名が残ったときの提示」。**folderの走査を伴うので、013のpreflightで失敗した設計を繰り返さないこと**。元の名前は空くため実行は妨げられず、優先度は低い |
 
 ### 008へ引き継いだ人間の決定(planへ反映済み)

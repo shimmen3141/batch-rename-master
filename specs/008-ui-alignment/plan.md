@@ -15,6 +15,8 @@
 - token追加を「既定値で即追加してから編集」から「modalで設定を終えてから追加」へ変える。
 - 行のサブ情報と警告帯の情報階層。狭幅で必要な情報が読めなくなる問題を含む。ファイル種別アイコンとリッチな行layoutを含む。
 - 読み込み導線と場所の提示。
+- **Androidのapp内file browserの提示**(入口、近道の見分け、上位へ戻る操作、行のpreview)。`013:T07`が画面を新設し、実機確認で指摘が出た。
+- modalの文言と見せ方(結果の提示手段を含む)。
 - リスト表示modeの切替。
 - 全体の余白・階層・typography。
 - 上記に伴う002/003/004 specの更新と、人間の再承認。
@@ -67,6 +69,7 @@
 | 2026-08-12 | 行サブ情報の見切れ | 狭幅で`作成日時: 不明`の文字列が読めない件を、UI調整として008で扱う(識別自体は警告アイコンで成立しており仕様違反ではない) | 開発者 |
 | 2026-08-13 | (a)〜(d)の扱い | 他のplanが拾わないため**008の対象へ入れる**。T07へ(b)を統合し、(c)(a)(d)をT08/T09/T10として足す。あわせて008を今後のUI調整の受け皿と位置づける | 開発者 |
 | 2026-08-15 | 再採番結果の提示方法 | **`013:T11`が結果toastへ入れた「旧 → 新」の全件表示を、008で見直す。** 件数が多いとtoastが縦に伸びる(現在は高さ96pxで打ち切ってscroll)。**modalの方が向いている**という指摘を受けたが、005 contract REQ-024が求めるのは「どの項目がどの名前になったかを示す」ことで、提示手段は自由(005 spec「自由とする点」)。**振る舞いは変えず提示手段だけを動かすので008の範囲**である | 開発者 |
+| 2026-08-25 | `013:T07`のUI指摘 | app内file browserの実機確認で出たU1〜U5を**008へtask化する**(T11〜T14)。U6(「すべて」を開き直したときに前回の場所と選択を復元する)は本人が「ふとした思い付き」としたため`product-map.md`の将来候補へ置く | 開発者 |
 | 2026-08-13 | 計画の承認 | 状態 draft → **approved**。task分割、対象外の範囲、(a)〜(d)を含めた構成に個別異議なし | 開発者承認 |
 
 出典: `specs/product-map.md`の「008へ引き継いだ人間の決定(planへ反映済み)」節。原文は凍結した[`specs/history/asdd-0.x-discovery.md`](../history/asdd-0.x-discovery.md)の44〜48行。
@@ -92,3 +95,7 @@
 | T08 | [task.md](tasks/T08-load-affordance-and-path/task.md) |
 | T09 | [task.md](tasks/T09-list-display-modes/task.md) |
 | T10 | [task.md](tasks/T10-spacing-and-typography/task.md) |
+| T11 | [task.md](tasks/T11-define-browser-entry-and-shortcuts/task.md) |
+| T12 | [task.md](tasks/T12-implement-browser-presentation/task.md) |
+| T13 | [task.md](tasks/T13-browser-file-preview/task.md) |
+| T14 | [task.md](tasks/T14-modal-wording-and-presentation/task.md) |
