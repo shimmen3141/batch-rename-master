@@ -145,13 +145,13 @@ AGENTS.mdの3条件で判定し直した。
 
 | 種別 | commandと結果 |
 |---|---|
-| full regression | `flutter test` = **PASS(588件)**。T07着手前は540件 |
+| full regression | `flutter test` = **PASS(589件)**。T07着手前は540件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `python3 <asdd-plugin>/scripts/workspace.py check specs` = **PASS** |
 | 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(46 file、4 rule) |
-| mutation | `M103`〜`M118`(T07分)= **16 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M113`〜`M116`は**独立reviewerが足したもの**(`M115`/`M116`は対照) |
+| mutation | `M103`〜`M121`(T07分)= **19 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M113`〜`M116`と`M119`〜`M121`は**独立reviewerが足したもの**(`M115`/`M116`/`M121`は対照) |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -234,12 +234,31 @@ plan完了時に判断する。
 | Android側の`sourceFolder`を正規化していない(desktopは`folderHandleOf`で正規化する)。**今日は割れない** — browserがfolder文字列を作る経路は`StorageLocation.root`と`Directory.list`の返すpathだけで、`list(followLinks: false)`によりsymlinkは`Directory`と判定されず**辿れない**ので、同じ場所への表記は1つしか生じない | 3(**割れる表記が実際に現れるかが実機のmount構成に依存する**。`/storage`直下に`sdcard0`のようなlegacy symlinkがある端末では、同じボリュームが2つの保存場所として並びうる) | `013:T08`(宣言表の「実機のmount構成」に含まれる) |
 | `SafFileSource`もwiringから外れたが、`saf_file_source.dart`とtestは残している。**ADR-002が退避経路として明記しているのは改名側だけ** | — | **読み込み側も同じ理由で残す。** Playの宣言が却下されたらAndroid未対応へ戻すので、改名側だけ残しても復帰できない。ADR-002の趣旨に沿う判断であり、`013:T08`の実機確認が済むまで削除しない |
 
+## 独立review attempt 2 の指摘の始末(2026-08-25)= PASS
+
+**未解決のP0/P1は無く、P2が6件**だった。reviewerは attempt 1 の P1 4件がすべて閉じたことを
+確認している — contract revision 6.1 の差分を切り出して「**`requirements[]` の `statement` は
+1つも変わっていない。記述訂正だけは事実**」と検証し、`android_storage_browser_test.dart` の
+assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱めていないことも確かめた。
+
+| 指摘 | 始末 |
+| --- | --- |
+| **P2-1**: 行の「場所」が、どのfolderから読み込んでも保存場所名になる | **直した。**「保存場所名 + rootからの相対」にした(`内部ストレージ/DCIM/Camera`)。**attempt 1 の P2-8 でrootを直したときに非rootを壊していた**(`M119`/`M120`) |
+| **P2-2**: manual §4 がそのとおり実行しても警告が出ない | **直した。**(a) 拡張子は変わらないので**`.txt`を読み込む**と明記、(b) 007のルール永続化で前回のルールが復元されるので**トークンを全部外してから作り直す**と明記 |
+| **P2-3**: manual に current revision に無いUI名 | **直した。**「＋ 元の名前」「＋ 自由テキスト」(実装と一致を確認)、保存場所を選び直すアイコンの説明 |
+| **P2-4**: `product-map.md` の013行が追随漏れ | 直した |
+| **P2-5**: 外部依存表の新しい行の出典が観測ではなく契約の版 | **直した。**「Dart側は`013:T05`のshim harnessで観測。実機は`013:T08`が未実施 — この行はまだ実機で確かめた事実ではない」 |
+| **P2-6**: ADR-003 の allow list を広げたことが記録に無い | **直した。**「決めたこと」表へ足した |
+
+**`RV05`〜`RV07` を `M119`〜`M121` として取り込んだ**(`RV07` は対照)。P2-1 を直したので
+`RV05`/`RV06` は KILLED になった。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 の指摘をすべて反映済み。** `M103`〜`M118`が16 KILLED、`flutter test` = PASS(588)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **独立review attempt 2 = PASS。** そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: 独立review attempt 2
+- Waiting for: PRのCIと、人間のmanual確認
 - Requested action: なし
 - Evidence revision: branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **独立review attempt 2 を起動する**(range は `57c5e69...HEAD`)。PASSしたらPRを作り、[`manual-verification.md`](manual-verification.md)を人間へ依頼する。
+- Next Agent action: **PRを作り、CIの成功を確認してから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。** そのあと`final-evidence`のreviewを通してmergeする。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
