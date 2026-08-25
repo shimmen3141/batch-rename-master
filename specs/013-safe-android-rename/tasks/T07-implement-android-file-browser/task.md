@@ -253,12 +253,43 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 **`RV05`〜`RV07` を `M119`〜`M121` として取り込んだ**(`RV07` は対照)。P2-1 を直したので
 `RV05`/`RV06` は KILLED になった。
 
+## manual の準備手順を PowerShell へ置き換えた(2026-08-25)
+
+**エミュレータのファイルアプリでは新しいファイルを作れない**ことを、人間が実際に
+試して確認した。[`manual-verification.md`](manual-verification.md) は fixture の用意を
+「PC から転送しても、端末のファイルアプリで作ってもよい」としていたため、**そのままでは
+手順1に入れなかった。**
+
+`005:T05` と `docs/development/emulator-verification.md` の先例に合わせ、`adb` を
+`$adbPath` へ束ねた PowerShell を各手順へ置いた。
+
+- 準備: `test1.txt` / `test2.jpg` / `test3.pdf` を temp へ作って `adb push` する。
+- 手順3・手順4の確認: **ファイルアプリではなく `adb shell ls -l` と `cat` を正とする**。
+  `adb push` したファイルは端末のメディア索引にすぐ載らず、ファイルアプリの表示が
+  実体と食い違うためである(アプリ側は索引ではなく filesystem を直接見るので影響を
+  受けない — **選択画面に出なければ不具合**、と手順書へ書いた)。
+- 手順4: fixture の reset と `keep.txt` の設置を1つの block にまとめ、衝突後の期待を
+  `keep (1).txt`(`_withSuffix` の実装)まで具体化した。
+- 手順5: **fixture は用意しない**と明記した。注記が出る側はアプリから読めないことが
+  多く、置いても手順3と同じ「開けませんでした」になるだけである(実機の境界は `013:T08`)。
+  **一度は `Android` 配下へ file を置く block を書いたが、`tool/check_normative_terms.py`
+  が5件の違反として落とした** — 注記の範囲は 004 spec が正本で、path の literal を manual
+  へ書けない。**自分の task file を allow へ足すのは `013:T03` attempt 4 が指摘した
+  自己免罪の型なので採らず、手順を元の形へ戻した。**
+- 後片付けの block を足した。
+
+経緯は [finding](../../../../development-findings/2026-08-25-manual-preconditions-were-not-executable-on-the-verification-device.md) へ記録した。
+
+**変更したのは manual だけで、実装・test・仕様は触っていない。** attempt 2 の PASS 判定は
+実装差分に対するものなので取り消さないが、**この差分は `final-evidence` の review 範囲に
+含まれる**(base は変わらず `dev@57c5e69`)。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 2 = PASS。** そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **manual の fixture 準備を PowerShell(`adb`)へ置き換えた**(上記)。その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
 - Waiting for: PRのCIと、人間のmanual確認
 - Requested action: なし
 - Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **PRを作り、CIの成功を確認してから[`manual-verification.md`](manual-verification.md)を人間へ依頼する。** そのあと`final-evidence`のreviewを通してmergeする。
+- Next Agent action: **人間のmanual結果を待つ。** 受領したら環境(端末/API level、commit)つきで`task.md`へ記録し、`final-evidence`のreviewを通してmergeする。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。

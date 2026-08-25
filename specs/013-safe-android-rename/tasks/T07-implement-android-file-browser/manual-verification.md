@@ -17,9 +17,40 @@
 
 ## 準備するファイル
 
-端末の「Download」フォルダに、**捨ててよいファイルを3つ**作る。名前は何でもよいが、
-**拡張子が違うもの**を混ぜてほしい(例: `test1.txt` / `test2.jpg` / `test3.pdf`)。
-PC から転送しても、端末のファイルアプリで作ってもよい。
+端末の「Download」フォルダに、**捨ててよいファイルを3つ**置く(`test1.txt` /
+`test2.jpg` / `test3.pdf`)。**拡張子が違うもの**が要る — アプリが拡張子で絞り込まない
+ことを見るためである。
+
+**エミュレータのファイルアプリでは、新しいファイルを作れない。** ホストの PowerShell
+から置いてほしい。
+
+```powershell
+$adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+$fixturePath = Join-Path $env:TEMP 'asdd-013-t07'
+Remove-Item -Recurse -Force -LiteralPath $fixturePath -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path $fixturePath | Out-Null
+Set-Content -LiteralPath (Join-Path $fixturePath 'test1.txt') -Value 'test1-original'
+Set-Content -LiteralPath (Join-Path $fixturePath 'test2.jpg') -Value 'test2-original'
+Set-Content -LiteralPath (Join-Path $fixturePath 'test3.pdf') -Value 'test3-original'
+& $adbPath shell "rm -f /sdcard/Download/test1.txt /sdcard/Download/test2.jpg /sdcard/Download/test3.pdf /sdcard/Download/keep.txt"
+& $adbPath push "$fixturePath/." /sdcard/Download/
+& $adbPath shell ls -l /sdcard/Download
+```
+
+**期待**: 最後の `ls` に `test1.txt` `test2.jpg` `test3.pdf` の3つが出る。
+
+**このあとのコマンドは `$adbPath` と `$fixturePath` を使う。同じ PowerShell を開いた
+まま**進めてほしい。閉じてしまったら、上の最初の2行だけをもう一度実行すれば続けられる
+(`Remove-Item` 以降は不要)。
+
+`test2.jpg` と `test3.pdf` の**中身はただの文字列**である。ここでは中身を開かないので
+それで構わない。
+
+**端末のファイルアプリには、この3つがすぐ出ないことがある。** `adb push` で置いた
+ファイルは端末のメディア索引にすぐ載らないためである。**この確認では、ファイルアプリ
+ではなく `adb shell ls` の結果を正とする。** アプリは索引ではなくファイルシステムを
+直接見るので、索引に無くても選択画面には出るはずである — **選択画面に出なければ
+それは不具合なので書いてほしい。**
 
 ## 1. 保存場所と階層
 
@@ -57,21 +88,45 @@ PC から転送しても、端末のファイルアプリで作ってもよい�
    元の名前を含む形にしておく — 固定の文字列だけにすると2つが同じ名前になり、
    確認のダイアログが1つ増える(それ自体は正しい動きだが、ここで見たいことではない)。
 2. 実行する。**確認のダイアログが出たら、そのまま実行を選ぶ。**
-3. 端末のファイルアプリで「Download」を開いて確かめる。
+3. PowerShell で実体を確かめる。
+
+```powershell
+& $adbPath shell ls -l /sdcard/Download
+& $adbPath shell cat /sdcard/Download/test3.pdf
+```
 
 **こうなってほしい**
 
-- **実際にファイルの名前が変わっている。** これが確認できれば、Android で名前を変更
-  できるようになったことになる(これまでは「対応していません」で止まっていた)。
-- 変えていない3つ目のファイルは、名前も中身もそのままである。
+- **実際にファイルの名前が変わっている。** 選んだ2つが `test1-x.txt` のように
+  **拡張子はそのままで**名前だけ変わっている。これが確認できれば、Android で名前を
+  変更できるようになったことになる(これまでは「対応していません」で止まっていた)。
+- 変えていない3つ目のファイルは、名前も中身(`test3-original`)もそのままである。
+  **3つ目に `.pdf` 以外を選んだ場合は、`cat` の対象をそのファイルに読み替えてほしい。**
 - 結果の表示に「元に戻す」が出るなら押してみて、**名前が元へ戻る**ことも見てほしい。
 
 ## 4. 読み込んでいないファイルとの衝突
 
-**この手順は 3 の続きではない。** はじめに「Download」の中を片付け、**手順3で名前が
-変わったファイルを消すか、名前を戻して**から始める。
+**この手順は 3 の続きではない。** はじめに「Download」の中を片付け、はじめの3つへ
+戻してから始める。PowerShell で次を実行してほしい(手順3で名前が変わったファイルを
+消し、`keep.txt` を置くところまで一度に行う)。
 
-1. 「Download」に、**読み込んでいない**ファイル `keep.txt` を1つ用意する。
+```powershell
+& $adbPath shell "rm -f /sdcard/Download/test* /sdcard/Download/keep*"
+& $adbPath push "$fixturePath/." /sdcard/Download/
+Set-Content -LiteralPath (Join-Path $env:TEMP 'keep.txt') -Value 'keep-original'
+& $adbPath push "$env:TEMP\keep.txt" /sdcard/Download/keep.txt
+& $adbPath shell ls -l /sdcard/Download
+```
+
+**期待**: `test1.txt` `test2.jpg` `test3.pdf` `keep.txt` の**4つだけ**が出る。
+手順3で付いた `-x` の名前は、上の `rm` が `test*` でまとめて消している。
+**それ以外の名前が残っていたら手で消してほしい**
+(`& $adbPath shell "rm -f '/sdcard/Download/<残った名前>'"`)。
+
+**アプリを開いたままここへ来た場合は、一覧を読み込み直してほしい** — アプリが持って
+いる一覧は、上のコマンドで消したファイルを指したままだからである。
+
+1. 「Download」に、**読み込んでいない**ファイル `keep.txt` が置かれている(上で置いた)。
 2. アプリで **`.txt` のファイルを1つだけ**読み込む(拡張子は変わらないので、
    `.jpg` を選ぶと `keep.jpg` になってしまい、この手順の目的から外れる)。
 3. **ルールのトークンをすべて外し**、「＋ 自由テキスト」で `keep` だけにする。
@@ -82,8 +137,16 @@ PC から転送しても、端末のファイルアプリで作ってもよい�
 **こうなってほしい**
 
 - 実行の前に、**同じ名前がすでにあることが警告として出る**。
-- そのまま実行すると、`keep.txt` は**上書きされず**、新しい名前に番号が付く。
-- **`keep.txt` の中身が変わっていない**ことをファイルアプリで確かめてほしい。
+- そのまま実行すると、`keep.txt` は**上書きされず**、新しい名前に番号が付く
+  (`keep (1).txt`)。
+- **`keep.txt` の中身が変わっていない**ことを PowerShell で確かめてほしい。
+
+```powershell
+& $adbPath shell ls -l /sdcard/Download
+& $adbPath shell cat /sdcard/Download/keep.txt
+```
+
+**期待**: `keep.txt` の中身が `keep-original` のままで、`keep (1).txt` が増えている。
 
 ## 5. アプリごとの保存領域
 
@@ -101,15 +164,25 @@ PC から転送しても、端末のファイルアプリで作ってもよい�
   そうなっても正しい — 許可があっても読めない場所があるためである。
   **開けたか開けなかったかを書いてほしい。**
 
-余裕があれば、注記が出る場所にファイルがある端末で、それを選んで実行し、**成功するか
-失敗するか**を書いてほしい。**どちらでも構わない** — この注記は「できないかもしれない」
-という案内で、できる場所とできない場所の境界が公式には決まっていないためである。
+**この手順ではファイルを用意しない。** 注記が出る側(`Android` 直下や `data`)は
+Android 11 以上ではアプリから読めないことが多く、置いても手順3と同じ
+「開けませんでした」になるだけである。**注記が出る場所での改名が成功するかどうかは、
+実機の構成に依存する** — この確認では扱わず、`013:T08` が引き受ける。
 
 ## 6. 操作感
 
 - 画面が狭いときに、フォルダ名やファイル名が読めるか。
 - チェックを付ける範囲が押しやすいか。
 - 深い階層まで辿ったとき、現在地の表示が長すぎて読めなくならないか。
+
+## 後片付け
+
+確認が終わったら、置いたファイルを消してよい。
+
+```powershell
+& $adbPath shell "rm -f /sdcard/Download/test* /sdcard/Download/keep*"
+Remove-Item -Recurse -Force -LiteralPath $fixturePath -ErrorAction SilentlyContinue
+```
 
 ## 報告
 
