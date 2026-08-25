@@ -1,6 +1,6 @@
 // 004 VER-005: 実 filesystem を辿る [StorageBrowserPort](REQ-015 / REQ-017)。
 //
-// **browser の view は fake の port で検査してある**(`storage_browser_test.dart`)。
+// **browser の view は fake の port で検査してある**(`storage_browser_view_test.dart`)。
 // ここで閉じるのは**その port の実装**である — 実 filesystem を触るのはこの class
 // だけで、ここが「読めない folder」を「空の folder」として返すと、**利用者は
 // 区別できない**(独立review attempt 1 の P1-4)。

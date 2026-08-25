@@ -153,7 +153,7 @@ AGENTS.mdの3条件で判定し直した。
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(46 file、4 rule) |
 | mutation | `M103`〜`M121`(T07分)= **19 KILLED, 0 SURVIVED, 0 SKIPPED**。うち`M113`〜`M116`と`M119`〜`M121`は**独立reviewerが足したもの**(`M115`/`M116`/`M121`は対照) |
 | **Android build** | **未実施。** AI containerにSDK・NDKが無い |
-| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+| **実機確認** | **実施済み(2026-08-25)。** [`manual-verification.md`](manual-verification.md) の手順1〜6が期待どおり。環境 `sdk_gphone16k_x86_64`、対象commit `56b6a0e`(下の「manual 実行2回目」) |
 
 **mutationで2件がSURVIVEDしてから直した。** `M111`(所属folderをハンドルから導出する)は
 `sourceFolder`と`p.dirname(handle)`が一致するfixtureしか使っておらず、**導出に変えても
@@ -352,11 +352,42 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 **`008` への登録はこのPRでは行わない** — T07 の review 範囲へ別 plan の task を混ぜない。
 **merge 後に `dev` から別branchで登録する。**
 
+## 独立review attempt 3(`final-evidence`、2026-08-25)= PASS
+
+range は `57c5e69...5393e06`。**未解決のP0/P1は無く、P2が3件。** reviewer は
+**実機証拠の真正性**を自分で確かめている — 「`287a03d` 以降 code 差分なし」を実測し、
+`56b6a0e..HEAD` が `task.md` 1件だけであること、**人間が読んだ手順書と現在の手順書が
+同一**であること、手順書に書いたUI文言・`keep (1).txt` の形式・失敗表示が
+current revision に実在することを file:line で確認した。**観測していないことを観測した
+ように書いた箇所は無い**と判定している。
+
+**U2(近道★の見分け)は 004 REQ-015 違反ではない**と判定された。REQ-015 が課すのは
+「実在する既知の場所への近道を**示し**、そこから階層を辿れる」ことで、手順1の観測で
+成立している。**近道の並べ方・選択の示し方は 004 spec が自由と明示している範囲**
+(`specs/004-file-source/spec.md:135`)であり、★という示し方は実装裁量の側にある。
+「認識できること」を規範にしたいなら REQ-015 の変更(=仕様更新task)が要る、という
+整理も支持された。**U1〜U6 の送り先はいずれも妥当**と判定されている。
+
+**auto-merge の7条件はすべて充足**と判定された(CI `check` = success on `5393e06`、
+`mergeStateStatus: CLEAN`、未解決thread 0、`origin/dev` = `57c5e69` で分岐なし、
+`flutter test` = 589 PASS、変更pathに `.github/workflows/` も権限規約も含まない)。
+
+| 指摘 | 分類 | 始末 |
+| --- | --- | --- |
+| **P2-1**: 検証結果表の「実機確認 = 未実施」が、後半の manual 記録と矛盾する。PR本文にも同じstaleが残る | 成果物の欠陥(記録) | **直した。** 表を実施済み(環境・対象commit つき)へ更新し、PR本文の該当行も落とした。**Android build 未実施の行はそのまま** |
+| **P2-2**: 004 spec の Status 行に、このtaskが 2026-08-24 に入れた理由文訂正が載っていない。005 は revision を承認日つきで列挙しており、扱いが揃っていない | 成果物の欠陥(記録) | **直した。** 既存の追記形式に合わせ、「要求(must)を変えない範囲」と明記して一文を足した。**再承認は求めていない** |
+| **P2-3**: `android_storage_browser_test.dart:3` が存在しない file 名を参照(`storage_browser_test.dart` → `storage_browser_view_test.dart`) | 成果物の欠陥(記録) | **直した** |
+
+**P2-3 は `test/` の comment 1行だが、実機証拠の identity は保たれる。** `lib/` と
+`android/` に差分は無く、**app の build に一切入らない**ためである(AGENTS.mdが再利用を
+禁じるのは「code、dependency、build設定が変わったとき」で、ここで変わったのは test の
+説明文である)。念のため `flutter test` を再実行して589件のPASSを確認した。
+
 ## Current state / handoff
 
-- Last checkpoint: **manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **独立review attempt 3(`final-evidence`)= PASS**。P2 3件も反映済み。その前が **manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: `final-evidence` の独立review(exact range `57c5e69...HEAD`)
+- Waiting for: なし(merge可能)
 - Requested action: なし
 - Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
 - Next Agent action: **`final-evidence` の独立reviewがPASSしたらmergeする**(AGENTS.mdのauto-merge 7条件を満たすか確認したうえで)。その後 `dev` から別branchで `008` へ U1〜U5 を登録し、U6 を `product-map.md` の将来候補へ置く。
