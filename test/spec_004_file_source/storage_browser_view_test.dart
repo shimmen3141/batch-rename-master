@@ -297,6 +297,36 @@ void main() {
       expect(find.byKey(const Key('browser-file-a1.txt')), findsNothing);
     });
 
+    testWidgets('保存場所を選び直しても選択は残らない', (tester) async {
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_file(_root, 'r.txt')],
+          '/storage/1A2B': [_file('/storage/1A2B', 's.txt')],
+        },
+        locationList: const [
+          StorageLocation(name: '内部ストレージ', root: _root),
+          StorageLocation(name: 'SD カード', root: '/storage/1A2B'),
+        ],
+      );
+      final _ = await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-file-r.txt')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('browser-locations')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-location-SD カード')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('browser-selected-count')))
+            .data,
+        '0 件を選択中',
+      );
+    });
+
     testWidgets('確定すると、選んだfileとその親フォルダが1つ返る', (tester) async {
       final browser = _FakeBrowser(
         tree: {

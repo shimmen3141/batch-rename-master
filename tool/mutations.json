@@ -764,9 +764,9 @@
     {
       "id": "M109",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "rootからさらに上のpathへ辿る(004 REQ-015の上限が消える)",
-      "find": "    if (!canGoUp(folder: folder, root: location.root)) return;",
-      "replace": ""
+      "note": "保存場所を選び直す導線から選択の解除を外す(別の保存場所へ移っても前の選択が残る。004 REQ-016)",
+      "find": "      _listing = null;\n      _shortcuts = const [];\n      _selected.clear();",
+      "replace": "      _listing = null;\n      _shortcuts = const [];"
     },
     {
       "id": "M110",

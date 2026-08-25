@@ -106,6 +106,33 @@ void main() {
       );
     });
 
+    test('表示用の場所は人間可読にする(rootのbasenameは意味を持たない)', () async {
+      // `/storage/emulated/0` の basename は `0` で、行に出しても意味が無い
+      // (004 REQ-009 は人間可読を求めている)。browser が知っている保存場所名を
+      // 使う(独立review attempt 1 の P2-8)。
+      final a = await makeFile('a.txt');
+      final source = AndroidFileSource(
+        pick: () async => BrowserSelection(folder: dir.path, paths: [a]),
+        locationNameOf: (folder) =>
+            folder == dir.path ? '内部ストレージ' : p.basename(folder),
+      );
+
+      final result = await source.pickFiles() as Picked;
+
+      expect(result.entries.single.sourceLocation, '内部ストレージ');
+    });
+
+    test('保存場所名が分からなければ basename へ落とす', () async {
+      final a = await makeFile('a.txt');
+      final source = AndroidFileSource(
+        pick: () async => BrowserSelection(folder: dir.path, paths: [a]),
+      );
+
+      final result = await source.pickFiles() as Picked;
+
+      expect(result.entries.single.sourceLocation, p.basename(dir.path));
+    });
+
     test('選んだ直後に消えていたfileは落とす(空リストで混同しない)', () async {
       final a = await makeFile('a.txt');
       final missing = p.join(dir.path, 'gone.txt');
