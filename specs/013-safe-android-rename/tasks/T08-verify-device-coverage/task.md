@@ -46,11 +46,93 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
   (b) **API 30未満**の端末での見え方(`MANAGE_EXTERNAL_STORAGE` が存在しない)、
   (c) `x86_64` なので**emulatorだった可能性が高く、実機での遷移先**。
 
+## machine検証する範囲と引き受け先(AGENTS.md の宣言。2026-08-25 着手時)
+
+**このtaskは本質的にCIで実行できない。** 端末が要る。**宣言の外側の指摘は安全網の穴と
+して扱う。**
+
+| 対象 | この環境での検証 | 引き受け先 |
+| --- | --- | --- |
+| 観測 harness の中身(`probeDirectory`、`defect` の判定、観測対象の作り方、報告の形) | **host の実 filesystem で閉じる。** `test/spec_013_android_rename/storage_probe_test.dart` が temp directory を使って実際に排他 rename と通常 rename を呼ぶ | — |
+| harness が**保証の破れを見逃さない**こと | **mutationで固定する**(`M122`〜`M125`) | — |
+| **Androidの実 mount view での排他 renameの可否**(項目1) | **できない** | **人間**([`manual-verification.md`](manual-verification.md) 手順2) |
+| **失敗時のsource側**(項目2) | harness が観測して欠陥判定に含める。**実機での値**は取れない | 同上 |
+| **filesystemの種別**(項目3・4) | **できない**(`stat -f` / `mount`) | 同上 手順3 |
+| **API levelの幅・実機・FAT系**(項目5〜7) | **できない** | 同上 手順4〜6 |
+| **Android build** | **できない**(SDKが無い) | 同上 手順7 |
+
+## 観測の設計(2026-08-25)
+
+### なぜ製品の画面から観測できないか
+
+**画面をどう操作しても、フラグが効いているかどうかで見え方は変わらない。**
+`DesktopRenameExecutor.rename` は目標名が実在すれば改名の前に気づいて
+`_renameViaTemporary` へ行き、劣化経路でも実在確認を挟む。**劣化は設計どおり透過**
+なので、外から差が出ない。
+
+実在確認と syscall の間(TOCTOU の窓)を人間の操作で突くことも考えたが、**窓はミリ秒**で
+あり、確認dialogを開いている間に file を作っても実在確認の側で捕まる。**手で再現できない。**
+
+### 採った手段: 端末で走る integration test
+
+`integration_test/android_storage_probe_test.dart` を足した。**製品と同じ package・
+同じ権限・同じ mount view**で走り、port(`renameFileWithoutOverwrite`)を直接呼ぶ。
+`test/spec_005_rename_exec/android_rename_port_test.dart` が Linux で同じことをしている
+(`_BlindProbe` と同じ理由)。
+
+- **製品codeへdebug用の口を作らない。** `integration_test/` は release buildに入らない。
+- **観測対象は `AndroidStorageBrowser.locations()` から作る** — 製品と同じ列挙なので、
+  SDカード・USBを挿していれば**項目7が自動で埋まる**。
+- **volume ごとに `flags=0` の対照を取る**(`plainRenameFile` が実際に置換することを
+  確かめてから、排他 renameの結果を読む)。`013:T01`の初回spikeが対照を欠いてreviewで
+  P1になった型を繰り返さない。
+- **「効いた」も「劣化した」も正常**として扱い、**保証が破れたときだけ**失敗にする
+  (目標名が変わった / 改名されていないのにsourceが変わった / 対照が成立しない)。
+
+### harness自体をCIで確かめる
+
+**人間へ依頼してから harness の誤りに気づくと、実機の時間を捨てる**
+([finding](../../../../development-findings/2026-08-25-manual-preconditions-were-not-executable-on-the-verification-device.md))。
+そこで観測の核を `integration_test/storage_probe.dart` へ出し、**host の test が同じ核を
+実 filesystem で回す**。`M122`〜`M125` は、その test が**harnessの手抜きを実際に落とす**
+ことを固定する(見逃し2件と対照2件)。
+
+**この host test の PASS は「Androidで効く」を一切意味しない。** Linuxのext4はフラグを
+解釈するので当然通る。確かめているのは harness であって Android ではない。
+
+## 手順と7項目の対応
+
+| 項目(`research-matrix`「S-2で残った未検証」) | 手順 |
+| --- | --- |
+| 1 appのmount view | 手順2 |
+| 2 失敗時のsource側 | 手順2(`source の中身`) |
+| 3 `/data/local/tmp`のfilesystem種別 | 手順3 |
+| 4 下位filesystem | 手順3(`stat -f` と `mount`) |
+| 5 API levelの幅 | 手順4(**端末が無ければ埋まらない**) |
+| 6 実機 | 手順5(同上) |
+| 7 FAT系 | 手順6(同上。挿さっていれば手順2の出力に自動で並ぶ) |
+
+**5〜7は端末の有無で決まる。** 埋まらなければ「埋まらなかった」と記録する
+(`task.md`の受け入れ証拠「Agentが推測で埋めない」)。
+
+## 検証結果
+
+| 種別 | commandと結果 |
+| --- | --- |
+| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(18件)** |
+| full regression | `flutter test` = **PASS** |
+| static analysis | `flutter analyze` = **PASS** |
+| format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
+| ASDD構造 | `workspace.py check specs` = **PASS** |
+| mutation | `M122`〜`M125` = **4 KILLED / 0 SURVIVED / 0 SKIPPED** |
+| **端末での観測** | **未実施。** 人間へ依頼する |
+| **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
+
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T05`と`T07`の実装
+- Last checkpoint: **観測 harness を実装し、host で dry-run した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(18)、`M122`〜`M125` = 4 KILLED)。manual手順を current revision に合わせて書いた
+- Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
+- Waiting for: 独立review → そのあと人間の端末確認
 - Requested action: なし
-- Evidence revision: `dev@4fd6ab1` + ADR-002 + spike S-2(Android 17 emulator、x86_64、shell uid) + `spec.md`(approved 2026-08-14)+ 005 contract revision 4
-- Next Agent action: `T05`/`T07`完了後、実行できるmanual手順を書いてから人間へ依頼する。**依頼前にdry-runする**
+- Evidence revision: base は `dev@ae59859`(`git merge-base dev HEAD`)。branch `asdd/013-safe-android-rename/T08-verify-device-coverage`
+- Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。結果を受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**

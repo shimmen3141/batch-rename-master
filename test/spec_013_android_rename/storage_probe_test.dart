@@ -185,10 +185,7 @@ void main() {
         ),
       );
 
-      expect(
-        targets.map((target) => target.directory),
-        contains(sdCard.path),
-      );
+      expect(targets.map((target) => target.directory), contains(sdCard.path));
     });
 
     test('--dart-define で足した場所を観測対象にする', () async {

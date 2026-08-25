@@ -34,6 +34,9 @@ const _extraDirs = String.fromEnvironment('BRM_PROBE_DIRS');
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // **既定の `debugPrint` は throttle するので、長い報告が千切れて届く。**
+  // 人間がそのまま貼れることがこの runner の成果物なので、同期出力へ替える。
+  debugPrint = debugPrintSynchronously;
 
   testWidgets('共有ストレージの各 volume で排他 rename が効くかを観測する', (tester) async {
     final targets = await androidProbeTargets(extraDirs: _extraDirs);

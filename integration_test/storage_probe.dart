@@ -121,8 +121,14 @@ class ProbeRow {
 Future<ProbeRow> probeDirectory(ProbeTarget target) async {
   final source = p.join(target.directory, '${probePrefix}source.txt');
   final destination = p.join(target.directory, '${probePrefix}target.txt');
-  final controlSource = p.join(target.directory, '${probePrefix}control-source.txt');
-  final controlTarget = p.join(target.directory, '${probePrefix}control-target.txt');
+  final controlSource = p.join(
+    target.directory,
+    '${probePrefix}control-source.txt',
+  );
+  final controlTarget = p.join(
+    target.directory,
+    '${probePrefix}control-target.txt',
+  );
   final all = [source, destination, controlSource, controlTarget];
 
   try {
