@@ -284,12 +284,40 @@ assertion が弱くないこと、`RV01`〜`RV04` の取り込みが意味を弱
 実装差分に対するものなので取り消さないが、**この差分は `final-evidence` の review 範囲に
 含まれる**(base は変わらず `dev@57c5e69`)。
 
+## manual 実行1回目(2026-08-25)= 旧buildのため無効
+
+**人間が6手順すべてを実行したが、端末に入っていたアプリは `dev`(`57c5e69`)のbuild
+だった。** このtaskの成果は1つも観測されていない。**再実行が要る。**
+
+旧buildと一致した観測(参考として残す)。
+
+| 手順 | 観測 | 旧buildの何か |
+| --- | --- | --- |
+| 1 | ハンバーガーメニュー、サイドバー、パンくず、`sdk_gphone16k_x86_64`、前回の場所を復元、上向き矢印が無い | **Android標準のファイル選択画面**。`createPlatformFileSource()` が `SafFileSource` を返す `dev` の wiring |
+| 3 / 4 | 「フォルダ内のファイル名を確認できないため実行しませんでした。`content://com.android.externalstorage.documents/...`: SAF ではフォルダ内のファイル名を一覧できません」 | `saf_file_source.dart:99`。**`013:T10` が入れた仕様どおりの停止**(005 REQ-027)であり、旧buildとしては正しい |
+| 5 | `Android` 直下でも注記が出ない、`data` が無い | 注記も階層も app 内 browser の機能。旧buildには無い |
+| 6 | 1つ目のtapでそのまま確定、複数選択に長押しが要る | DocumentsUI の挙動 |
+
+**このbranchの wiring は正しい**ことを確認した — `lib/main.dart:94` が
+`StorageBrowserView(browser: const AndroidStorageBrowser())` を渡し、
+`platform_file_source.dart:25` が `AndroidFileSource` を返す。`dev` 側は
+`SafFileSource()` である(`git show dev:lib/data/file_source/platform_file_source.dart`)。
+
+**manual へ `## 0. いま動いているのが、このタスクのビルドか確かめる` を足した。**
+新旧の画面を両方書き、旧buildだと手順3でどう見えるかまで書いた。経緯は
+[finding](../../../../development-findings/2026-08-25-manual-verification-ran-against-a-stale-build.md)。
+
+**`git branch --show-current` では検出できない事故である** — host と container は作業
+ツリーを共有しているので **branch は最初から正しかった**。古いのは端末の APK だけで、
+`docs/development/emulator-verification.md` の既存の警告(2026-08-05)は branch の確認で
+閉じている。
+
 ## Current state / handoff
 
-- Last checkpoint: **manual の fixture 準備を PowerShell(`adb`)へ置き換えた**(上記)。その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
+- Last checkpoint: **manual 実行1回目が旧buildで無効になり、手順書へ build identity の確認(`## 0.`)を足した**(上記)。その前に manual の fixture 準備を PowerShell(`adb`)へ置き換えている。その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean
 - Blocker category: なし
-- Waiting for: PRのCIと、人間のmanual確認
+- Waiting for: 人間のmanual確認(**2回目**。`flutter run` で入れ直したbuildに対して)
 - Requested action: なし
 - Evidence revision: PR #151、branch `asdd/013-safe-android-rename/T07-implement-android-file-browser`、base は `dev@57c5e69`(`git merge-base dev HEAD` の実測値。当初 `b318251` と書いたのは誤りで、T06 merge 後の分岐点はこちらである)
-- Next Agent action: **人間のmanual結果を待つ。** 受領したら環境(端末/API level、commit)つきで`task.md`へ記録し、`final-evidence`のreviewを通してmergeする。
+- Next Agent action: **人間のmanual結果(2回目)を待つ。** 受領したら環境(端末/API level、commit)つきで`task.md`へ記録し、`final-evidence`のreviewを通してmergeする。
 - **`T08`への申し送り**: このtaskで**Androidが`DesktopRenameExecutor`を通るようになった**ので、`T05`が受容した「CのAndroid分岐の実挙動」は**製品経路上のrisk**になった。実機で`renameat2`が効くか、効かない端末で通常renameへ落ちるかを確認すること。あわせて**実機のmount構成**(保存場所の一覧が正しいか)と**`/Android/`配下の実際の書き込み可否**も見ること。
