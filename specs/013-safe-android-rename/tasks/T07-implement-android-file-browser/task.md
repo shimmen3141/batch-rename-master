@@ -393,6 +393,19 @@ merge 後の `dev` で `flutter test` = **PASS(589)** を確認した。
 
 **`013:T08`(実機での検証範囲)がこれで着手可能になった。**
 
+## 後から分かった欠陥(2026-08-26、`T08` の実機観測)
+
+**この実装は、装着されている SD カード・USB を保存場所として並べられない。**
+`AndroidStorageBrowser.locations()` は `/storage` の中身から保存場所を作るが、
+**app からは `EACCES` で列挙できない**(全ファイルアクセス権限があっても)。
+004 REQ-015 と代表例26e に対する欠陥である。
+
+**この環境では検出できなかった。** 宣言表の「実機の mount 構成」を `013:T08` へ渡して
+いた範囲そのもので、`T08` がその役割を果たした形である。
+
+**`013:T12` が引き受ける**(2026-08-26、開発者の判断で新設)。要求は変えず、列挙の手段
+だけを差し替える。
+
 ## Current state / handoff
 
 - Last checkpoint: **PR #151 を merge した(`dev@019775d`)。** `dev`上で `flutter test` = PASS(589) を確認済み。その前が独立review attempt 3(`final-evidence`)= PASS と、**manual 実行2回目 = 全手順が期待どおり**(2026-08-25、`sdk_gphone16k_x86_64`、`56b6a0e`)。**Androidで実際に改名できることを初めて実機で確認した。** UIの改善点6件は `008` と将来候補へ送る(このPRでは直さない)その前は**独立review attempt 2 = PASS**で、そのP2 6件も反映済み。`M103`〜`M121`が19 KILLED、`flutter test` = PASS(589)。005 contract は revision 6.1(2026-08-25 開発者承認)。working treeはclean

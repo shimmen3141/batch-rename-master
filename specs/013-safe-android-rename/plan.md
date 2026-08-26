@@ -110,5 +110,8 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 | T08 | [task.md](tasks/T08-verify-device-coverage/task.md) |
 | T10 | [task.md](tasks/T10-add-existing-names-to-collision-check/task.md) |
 | T11 | [task.md](tasks/T11-implement-renumbering-execution/task.md) |
+| T12 | [task.md](tasks/T12-enumerate-storage-volumes/task.md) |
 
 `T09`(preflightの実行制御)は**2026-08-14に削除した**。preflightそのものが不要になったため。IDは再利用しない。
+
+`T12`(保存場所の列挙の作り直し)は**2026-08-26に追加した**。`T08`の実機観測で、app が `/storage` を `EACCES` で列挙できず、**装着されている SD カード・USB が保存場所に並ばない**ことが判明したためである(004 REQ-015 / 代表例26e に対する `T07` の欠陥)。**要求は変えず、列挙の手段だけを差し替える**(手段は 004 spec が自由としている)。開発者の判断(2026-08-26)。
