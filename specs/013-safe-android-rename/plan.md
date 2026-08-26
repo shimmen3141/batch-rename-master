@@ -45,16 +45,16 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - [x] 長期的なWhy/Why notを持つdecision recordで採否を判断できる([ADR-002](decisions/ADR-002-android-rename-storage-boundary.md))
 - [x] Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である
   - 証拠: 005 contract revision 4、仕様由来test、`T08`の端末確認(2026-08-26、**emulator** API 37。`Download`・app ごとの保存領域・非FUSE の対照の3箇所で `nameConflict`、目標名と source は無傷、**同じ場所で通常 rename は置換した**)
-- [ ] `MANAGE_EXTERNAL_STORAGE`の要否と、許可されないときの振る舞いが利用者から観測できる
-  - 証拠: `T02`で承認された仕様、widget test、実機確認
-- [ ] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
-  - 証拠: 004 spec再承認、実機確認
+- [x] `MANAGE_EXTERNAL_STORAGE`の要否と、許可されないときの振る舞いが利用者から観測できる
+  - 証拠: `T02`で承認された仕様、widget test、`T06`の端末確認(2026-08-24、対象commit `3576740`。許可・拒否・設定画面の往復が想定どおり)。**未確認の分岐は`T06`が記録している** — 設定画面が**アプリ一覧へ落ちる**分岐(この端末では個別画面が直接開いた)と、**API 30未満**の端末
+- [x] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
+  - 証拠: 004 spec再承認、`T07`の端末確認(2026-08-25、`sdk_gphone16k_x86_64`、対象commit `56b6a0e`)。**app内browserで選び、実際にfileの名前が変わった。** undoは「元に戻す」が出た場合の確認として手順に含まれ、開発者は当該手順の期待をすべて再現したと報告している
 - [x] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
   - 証拠: `T08`(2026-08-26)。**`shell` uidの観測では代用していない** — 製品と同じpackage・権限・mount viewで走る `integration_test/` から観測した。**成立範囲は API 37 emulator まで**で、API level の幅・実機・FAT 系は`T08`が引き受け先つきで受容した残余riskである
 - [x] **desktopで**、読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
   - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
-- [ ] **Androidで**、同じことが成立する
-  - 証拠: `T07`(app内file browser)が列挙権限を持ってから。**現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる** — 契約どおりの振る舞いだが、警告を出す段階まで到達しない。`T10`はこの受け入れをdesktopでしか満たしていない
+- [x] **Androidで**、同じことが成立する
+  - 証拠: `T07`の端末確認(2026-08-25、対象commit `56b6a0e`)。**読み込んでいない`keep.txt`との衝突が実行前に警告として出て、そのまま実行しても上書きされず`keep (1).txt`が作られた。** ~~現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる~~ **この前提は`T07`が解消した** — app内browserの列挙権限で`listNames`がAndroidで成功する
 - [ ] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
   - 証拠: `T11`、005 spec例24/26/28〜30、VER-008
 - [x] 占有名がfolder単位で効き、実在名を取得できないfolderを含む実行は行わない
