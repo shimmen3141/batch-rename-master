@@ -316,25 +316,36 @@ void main() {
       );
     });
 
-    test('**辿れない volume があっても投げず、他の観測対象を返す**(P1-2)', () async {
+    test('**辿れない volume があっても、後続の volume の観測を捨てない**(P1-2)', () async {
       // `/storage` には辿れない entry(取り外し済み・別 user・stale mount)が
       // 並びうる。`Directory.exists()` はそこで **`false` を返さず投げる**。
-      final volume = Directory(p.join(dir.path, 'unreadable'));
-      await volume.create(recursive: true);
-      final result = await Process.run('chmod', ['000', volume.path]);
+      //
+      // **辿れない側を `primaryRoot` にする** — `locations()` が必ず先頭へ置くので、
+      // 守っていなければ**このあとの volume が丸ごと落ちる**。後続が残ることまで
+      // 見ないと、守りの有無を区別できない(M138 が SURVIVED した)。
+      final unreadable = Directory(p.join(dir.path, 'unreadable'));
+      await unreadable.create(recursive: true);
+      final volumes = Directory(p.join(dir.path, 'storage'));
+      final good = Directory(p.join(volumes.path, 'sd-card'));
+      await Directory(p.join(good.path, 'Download')).create(recursive: true);
+      final result = await Process.run('chmod', ['000', unreadable.path]);
       expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
-      addTearDown(() => Process.run('chmod', ['700', volume.path]));
+      addTearDown(() => Process.run('chmod', ['700', unreadable.path]));
 
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
-          primaryRoot: volume.path,
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          primaryRoot: unreadable.path,
+          volumesDirectory: volumes.path,
         ),
       );
 
-      // **報告をゼロにしない。** root と非FUSE の対照は残る。
       final directories = targets.map((target) => target.directory).toList();
-      expect(directories, contains(volume.path));
+      // 辿れない側も root としては観測対象に残る(理由つきで skip される)。
+      expect(directories, contains(unreadable.path));
+      // **後続の volume を捨てない。** ここが守りの有無を分ける。
+      expect(directories, contains(good.path));
+      expect(directories, contains(p.join(good.path, 'Download')));
+      // **報告をゼロにしない。**
       expect(directories, contains(Directory.systemTemp.path));
     });
 
