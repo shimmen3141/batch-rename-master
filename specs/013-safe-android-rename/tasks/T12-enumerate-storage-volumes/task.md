@@ -293,11 +293,19 @@ range は `cc5f031...84a3cf4`。**実装と実機観測そのものには欠陥�
 **auto-merge の7条件は 5/7 で、落ちている2つ(条件2・6)はどちらも P1-1 に起因する**と
 判定された。**code を触らずに記録を直せば揃う。**
 
+## merge(2026-08-26)
+
+**PR #156 を merge した**(`dev@854366f`、merge commit)。`final-evidence` の独立review
+attempt 4 が auto-merge の7条件すべての充足を確認しており、CI は最終HEAD `0dec9a5` で
+success、`mergeStateStatus` は `CLEAN`、未解決threadは無かった。
+
+merge 後の `dev` で `flutter test` = **PASS(660)** を確認した。
+
 ## Current state / handoff
 
-- Last checkpoint: **実機確認が期待どおり**(2026-08-26、`sdk_gphone16k_x86_64` / API 37、対象commit `225f5db`)。**SDカードが保存場所として並び、そこで `RENAME_NOREPLACE` も効いた**(`013:T08` の項目7が閉じた)。**`__arm__` の照合は閉じていない**(独立review attempt 3 の P1-1)
+- Last checkpoint: **PR #156 を merge した(`dev@854366f`)。** `dev`上で `flutter test` = PASS(660) を確認済み。その前が**実機確認が期待どおり**(2026-08-26、`sdk_gphone16k_x86_64` / API 37、対象commit `225f5db`)。**SDカードが保存場所として並び、そこで `RENAME_NOREPLACE` も効いた**(`013:T08` の項目7が閉じた)。**`__arm__` の照合は閉じていない**(独立review attempt 3 の P1-1)
 - Blocker category: なし
-- Waiting for: `final-evidence` の独立review(attempt 4)
+- Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: PR #156(ready)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
-- Next Agent action: **`final-evidence` の独立reviewを通して merge する。** merge後は `008:T11` へ「保存場所が2つ並ぶ端末が実在する」ことを申し送る(あちらの「保存場所が1つなら一覧を挟まない」の判断材料が変わった)
+- Next Agent action: なし。**このtaskは完了した。** `008:T11` への申し送りは同じPRで済ませた
