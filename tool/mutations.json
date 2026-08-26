@@ -1061,6 +1061,62 @@
       "note": "保存場所の欠落を画面に出さない(利用者が「媒体が無い」と「列挙できていない」を区別できない。013:T12の目的そのもの)",
       "find": "      if (_locations?.failure case final failure?)",
       "replace": "      if (false && _locations?.failure != null)"
+    },
+    {
+      "id": "M152",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV01] _primaryOnly の守りを外す(拠り所の exists() が投げると locations() が投げ、browserが読み込み中で止まる)",
+      "find": "    } catch (_) {\n      // 拠り所も読めない。**空で返す** — 呼び出し側は `failure` で理由を出す。\n    }",
+      "replace": "    } catch (_) {\n      rethrow;\n    }"
+    },
+    {
+      "id": "M153",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "[reviewer追加 RV02] 空の名前をそのまま保存場所名にする(無名の行が並ぶ)",
+      "find": "          name: name is String && name.isNotEmpty ? name : path,",
+      "replace": "          name: name is String ? name : path,"
+    },
+    {
+      "id": "M154",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV03][対照] platformが返した名前を捨てて固定名にする",
+      "find": "            StorageLocation(name: volume.name, root: volume.path),",
+      "replace": "            StorageLocation(name: '内部ストレージ', root: volume.path),"
+    },
+    {
+      "id": "M155",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV04][対照] 取得できていても欠落の注記を出す(偽の警告)",
+      "find": "        if (found.isNotEmpty) return StorageLocations(found);",
+      "replace": "        if (found.isNotEmpty) {\n          return StorageLocations(found, failure: '取得できませんでした');\n        }"
+    },
+    {
+      "id": "M156",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "[reviewer追加 RV05][対照] 注記から理由を落とす(何が起きたか分からない)",
+      "find": "                  '$failure。ここに出ていない保存場所があるかもしれません。',",
+      "replace": "                  'ここに出ていない保存場所があるかもしれません。',"
+    },
+    {
+      "id": "M157",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV06][対照] probeが欠落を報告しない",
+      "find": "    if (found.failure != null) buffer.writeln('欠落: ${found.failure}');\n",
+      "replace": ""
+    },
+    {
+      "id": "M158",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "[reviewer追加 RV07] channel名をKotlin側とずらす(MissingPluginExceptionで列挙が常に失敗する。Dart単体のtestは自分自身と一致するので検出できない)",
+      "find": "    'com.example.batch_rename_master/storage_volumes',",
+      "replace": "    'com.example.batch_rename_master/storage_volumes_TYPO',"
+    },
+    {
+      "id": "M159",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "画面側でportの例外を受けない(読み込み中のまま止まる。独立review attempt 1 のP3-1)",
+      "find": "    } catch (error) {\n      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );\n    }",
+      "replace": "    } catch (error) {\n      rethrow;\n    }"
     }
   ]
 }

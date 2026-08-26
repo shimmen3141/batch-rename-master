@@ -344,6 +344,16 @@ void main() {
       expect(find.text('内部ストレージ'), findsOneWidget);
     });
 
+    testWidgets('**port が投げても読み込み中で止まらない**(理由を出す)', (tester) async {
+      await _open(tester, _ThrowingBrowser());
+
+      expect(
+        find.byKey(const Key('browser-locations-failure')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('browser-loading')), findsNothing);
+    });
+
     testWidgets('取得できていれば出さない', (tester) async {
       await _open(tester, _FakeBrowser(tree: const {_root: []}));
 
@@ -573,4 +583,17 @@ void main() {
       expect(find.byKey(const Key('browser-listing-failed')), findsOneWidget);
     });
   });
+}
+
+/// **約束を破って投げる** browser。守りが構造で入っているかを見るために使う。
+class _ThrowingBrowser implements StorageBrowserPort {
+  @override
+  Future<StorageLocations> locations() async => throw StateError('列挙が落ちた');
+
+  @override
+  Future<List<BrowserEntry>> shortcuts(StorageLocation location) async => [];
+
+  @override
+  Future<DirectoryListing> list(String folder) async =>
+      const DirectoryListed([]);
 }

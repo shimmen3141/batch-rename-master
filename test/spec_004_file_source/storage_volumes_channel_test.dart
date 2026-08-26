@@ -88,6 +88,22 @@ void main() {
       );
     });
 
+    test('**空の name も path へ落とす**(無名の行が並ばない)', () async {
+      // `getDescription()` が空文字を返す端末がありうる。
+      answerWith(
+        (call) async => [
+          {'path': '/storage/1A2B-3C4D', 'name': ''},
+        ],
+      );
+
+      final result = await port.list();
+
+      expect(
+        (result as VolumesListed).volumes.single.name,
+        '/storage/1A2B-3C4D',
+      );
+    });
+
     test('Map でない行は落とす', () async {
       answerWith(
         (call) async => [

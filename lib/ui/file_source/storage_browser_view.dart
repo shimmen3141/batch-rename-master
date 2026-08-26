@@ -60,7 +60,18 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   }
 
   Future<void> _loadLocations() async {
-    final locations = await widget.browser.locations();
+    // **port が投げても読み込み中で止まらない。** 製品の実装は投げない構造に
+    // してあるが、**約束に頼らずここでも閉じる**(独立review attempt 1 の P3-1。
+    // `013:T08` で「例外が保護の外にある」型を2回踏んでいる)。
+    StorageLocations locations;
+    try {
+      locations = await widget.browser.locations();
+    } catch (error) {
+      locations = StorageLocations(
+        const [],
+        failure: '保存場所を取得できませんでした: $error',
+      );
+    }
     if (!mounted) return;
     setState(() {
       _locations = locations;

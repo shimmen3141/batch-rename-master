@@ -5,7 +5,7 @@
 // だけで、ここが「読めない folder」を「空の folder」として返すと、**利用者は
 // 区別できない**(独立review attempt 1 の P1-4)。
 //
-// `primaryRoot` / `volumesDirectory` を注入できるので、Linux の temp directory を
+// `primaryRoot` と保存場所の port を注入できるので、Linux の temp directory を
 // 保存場所として扱えば全域を実 file で確かめられる。
 // **実機の mount 構成は `013:T08`** が引き受ける(`task.md` の宣言表)。
 import 'dart:io';
@@ -95,6 +95,24 @@ void main() {
 
       expect(result.locations.map((l) => l.name), ['内部ストレージ']);
       expect(result.failure, contains('列挙が落ちた'));
+    });
+
+    test('**拠り所の親が辿れなくても投げない**(exists は false ではなく投げる)', () async {
+      // `Directory.exists()` は親を辿れないと **`false` を返さず投げる**。
+      // ここで抜けると browser が読み込み中のまま止まる。
+      final parent = Directory(p.join(dir.path, 'unreadable-parent'));
+      await Directory(p.join(parent.path, '0')).create(recursive: true);
+      final chmod = await Process.run('chmod', ['000', parent.path]);
+      expect(chmod.exitCode, 0, reason: 'chmod できないと前提が崩れる');
+      addTearDown(() => Process.run('chmod', ['700', parent.path]));
+
+      final result = await AndroidStorageBrowser(
+        primaryRoot: p.join(parent.path, '0'),
+        volumes: const _FakeVolumes(VolumesUnavailable('EACCES')),
+      ).locations();
+
+      expect(result.locations, isEmpty);
+      expect(result.failure, contains('EACCES'));
     });
 
     test('取得できず、内部ストレージも読めなければ空になる', () async {

@@ -52,8 +52,12 @@ class MainActivity : FlutterActivity() {
      * `StorageManager.getStorageVolumes()` は**プラットフォームが持っている一覧**を
      * そのまま返す。
      *
-     * **mount されているものだけ返す。** 取り外し済みの volume を保存場所として
-     * 並べると、開いた時点で失敗する。
+     * **開ける volume だけ返す。** 取り外し済み・未 mount のものを保存場所として
+     * 並べると、開いた時点で失敗する。**読み取り専用で mount されているものは並べる** —
+     * 004 REQ-015 の「装着されている」に当たり、開いて辿れるからである。書き込め
+     * ないことは 004 REQ-018 の注記と 005 REQ-013 の実行結果が示す。**列挙から
+     * 落とすのは「判定で機能を止める」側**で、004 の方針と逆向きである
+     * (独立review attempt 1 の P1-1)。
      *
      * **失敗を空の一覧にしない。** `error` を返して Dart 側へ理由を渡す — 空の成功と
      * 区別できないと、「媒体が無い」と「取得できていない」が混ざる(013:T12)。
@@ -77,7 +81,12 @@ class MainActivity : FlutterActivity() {
                 return
             }
             val volumes = manager.storageVolumes.mapNotNull { volume ->
-                if (volume.state != Environment.MEDIA_MOUNTED) return@mapNotNull null
+                val state = volume.state
+                if (state != Environment.MEDIA_MOUNTED &&
+                    state != Environment.MEDIA_MOUNTED_READ_ONLY
+                ) {
+                    return@mapNotNull null
+                }
                 val directory = volume.directory ?: return@mapNotNull null
                 mapOf(
                     "path" to directory.absolutePath,
