@@ -111,7 +111,7 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 | 1 appのmount view | 手順2 |
 | 2 失敗時のsource側 | 手順2(`source の中身`) |
 | 3 `/data/local/tmp`のfilesystem種別 | 手順3 |
-| 4 下位filesystem | 手順2の**非FUSE の対照**(app の内部領域は `/data` 上で FUSE を経由しない。同じ app プロセスで比べられる)+ 手順3(`stat -f` と `mount`)。**媒体が増えれば手順6でさらに進む** |
+| 4 下位filesystem | **一段進んだ(2026-08-26、`013:T12`)** — 下位が ext4 の FUSE でも、**下位が vfat の FUSE でも**、非FUSE の ext4 でも効いた。**可否は下位 filesystem の種別に依存しない。** 手順2の**非FUSE の対照**(app の内部領域は `/data` 上で FUSE を経由しない。同じ app プロセスで比べられる)+ 手順3(`stat -f` と `mount`)。**媒体が増えれば手順6でさらに進む** |
 | 5 API levelの幅 | 手順4(**端末が無ければ埋まらない**) |
 | 6 実機 | 手順5(同上) |
 | 7 FAT系 | 手順6(同上。挿さっていれば手順2の出力に自動で並ぶ) |
@@ -366,10 +366,13 @@ Running Gradle task 'assembleDebug'...
 | --- | --- | --- |
 | **項目5: API level の幅。** Android 11〜16 で `RENAME_NOREPLACE` が効くかは未観測。観測できたのは API 37 だけで、`T01` の S-2 と同じ level である。**MediaProvider の FUSE 実装は version ごとに変わる** | 3(**CIで閉じられない**。別の API level の端末が要る) | **人間**。[`manual-verification.md`](manual-verification.md) の手順4がそのまま使える。**端末が増えたときに再実行する** |
 | **項目6: 実機。** emulator のみ。vendor kernel や f2fs で挙動が変わりうる | 3(同上) | **人間**。手順5 |
-| **`__arm__` の syscall 番号(382)が実 kernel header と照合されたか。** `T05` から引き継いだ。**通った可能性が高いが、artifact を見ていない** | 3(このprojectのCIで閉じられない。32bit ARM の header がこの環境に無い) | **`013:T12`**。次に Android build を行うときに、APK の `lib/armeabi-v7a/` か `--target-platform android-arm` で確かめる |
-| **項目7: FAT 系の媒体で効くか。** 端末には vfat の volume が装着されているが、**app からは保存場所として見えない**ので観測できなかった | 3(同上)。**加えて、見えるようにすること自体が別taskである** | **`013:T12`**(列挙の作り直し)。**T12 が入れば、この probe が自動で観測対象に入れる** — `T12` の実機確認で項目7 も埋まる |
+| ~~**`__arm__` の syscall 番号(382)が実 kernel header と照合されたか**~~ | — | **閉じた(2026-08-26)。** `013:T12` の手順4 で `flutter build apk --debug --target-platform android-arm` が通った = 32bit ARM 向けの compile で `_Static_assert` が評価され、一致した |
+| ~~**項目7: FAT 系の媒体で効くか**~~ | — | **閉じた(2026-08-26)。** `013:T12` が列挙を直した結果、**この probe が `/storage/0000-0000` を自動で観測対象に入れ**(4件→6件)、**そこでも `nameConflict` になり目標名は無傷だった**。下位は `mount` によれば `vfat` である。**媒体を「対応外」にする必要は無い** |
 
-**この3つは製品の可否を左右しない。** 005 contract revision 4 により、フラグが効かない
+**2件は `013:T12` の実機確認(2026-08-26)で閉じた**(上の表)。**残るのは項目5と項目6だけ**で、
+どちらも端末が増えるまで観測できない。
+
+**これらは製品の可否を左右しない。** 005 contract revision 4 により、フラグが効かない
 環境では実在確認へ劣化するだけで機能する。**分からないのは保証の水準である。**
 
 **`T08` の受け入れ証拠「1または2がNGなら…」「7がNGなら…」には当たらない** —

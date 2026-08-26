@@ -135,8 +135,8 @@
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(47 file、4 rule) |
 | 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
 | mutation | `M114`・`M143`・`M144`〜`M162` = **21 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M152`〜`M158`と`M160`〜`M162`は**独立reviewerが足したもの**(`M154`〜`M157`は対照)。表全体は `--list` = **162 mutations, 0 with an unexpected match count** |
-| **Kotlin 側** | **未検証。** CI では1行も実行されない |
-| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+| **Kotlin 側** | **実機で確認済み(2026-08-26)。** CI では1行も実行されないが、手順2・3で `getStorageVolumes()` が2件返すことを観測した |
+| **実機確認** | **実施済み(2026-08-26)。** 手順1〜4がすべて期待どおり。詳細は下の節 |
 
 **`M114` と `M143` は消さずに言い直した。** 列挙の手段が変わって元の find が消えたので、
 **同じ意図を新しい構造の上で押さえ直した**(`M114` = 保存場所の root を volume の上位に
@@ -203,11 +203,73 @@ C 側が **`EROFS` を `permissionDenied` へ写す**(`src/native_exclusive_rena
 取り込んでいない** — **期待値が SURVIVED の観測用**(CIがKotlinを1行も実行しないことの
 確認)で、表の「0 with an unexpected match count」と混ざるためである。
 
+## 実機確認(2026-08-26)= 期待どおり
+
+| 項目 | 値 |
+| --- | --- |
+| 環境 | Android emulator `sdk_gphone16k_x86_64`、API 37、`CP31.260623.005 dev-keys` |
+| 対象commit | `225f5db`(`1482655` 以降 `lib/` `src/` `android/` `hook/` `test/` `integration_test/` `pubspec.yaml` に差分なし) |
+| 実行者 | 開発者(人間) |
+
+### 手順2(画面)
+
+- **`SDCARD` が内部ストレージと並んで表示された。** 004 REQ-015 / 代表例26e が
+  **実機で成立した** — `013:T07` の実装では1件も出せなかったものである。
+- **「保存場所を取得できませんでした」の注記は出ていない**(欠落が無い)。
+- **SD カードの中を辿れ、その root では上矢印が出なかった**(REQ-015 の遡行上限が
+  SD カード側でも成立している。代表例26e の後半)。
+
+### 手順3(probe)
+
+```
+--- app が列挙した保存場所 ---
+platform が返した volume: 2 件
+  内部共有ストレージ = /storage/emulated/0
+  SDCARD = /storage/0000-0000
+保存場所として採用: 2 件
+```
+
+**観測対象が4件から6件に増え、6件すべてで `nameConflict`**(目標名・source とも無傷、
+対照は全箇所で置換)。増えた2件は `/storage/0000-0000` とその `Download` である。
+
+**`volume.getDescription()` が返した名前は `内部共有ストレージ` と `SDCARD` だった。**
+`013:T07` が固定文字列で出していた「内部ストレージ」とは違う — **端末が決める名前を
+そのまま使う**という設計どおりである。
+
+### 手順4(armeabi-v7a のビルド)
+
+```
+flutter build apk --debug --target-platform android-arm
+✓ Built build\app\outputs\flutter-apk\app-debug.apk
+```
+
+**`013:T05` から `T08` を経由して引き継いだ `__arm__` の syscall 番号(382)の照合が
+閉じた。** `src/native_exclusive_rename.c` の `_Static_assert(BRM_SYS_RENAMEAT2 == __NR_renameat2)`
+は 32bit ARM 向けの compile で評価されるので、**build が通った = 実 kernel header と
+一致した**ということである。
+
+## この確認が `013:T08` の残余riskを2件閉じた
+
+**`T08` は3件を引き受け先つきで受容していた。** そのうち2件がここで閉じた。
+
+| `T08` が受容した残余risk | 結果 |
+| --- | --- |
+| **項目7: FAT 系の媒体で `RENAME_NOREPLACE` が効くか** | **効いた。** `/storage/0000-0000` は `mount` によれば下位が `vfat`(`(null) on /mnt/media_rw/0000-0000 type vfat`)で、そこでも `nameConflict` になり目標名は無傷だった。**媒体を「対応外」にする必要は無い** |
+| **`__arm__` の syscall 番号(382)の照合** | **閉じた**(手順4) |
+| 項目5(API level の幅)・項目6(実機) | **変わらず未観測。** 端末が増えるまで `T08` の手順4・5 が引き受ける |
+
+### 項目4(FUSE 自身か下位への委譲か)も一段進んだ
+
+**下位が ext4 の FUSE でも、下位が vfat の FUSE でも、非FUSE の ext4 でも効いた。**
+したがって **`RENAME_NOREPLACE` の可否は下位 filesystem の種別に依存していない。**
+「FUSE 自身が判定しているのか」を直接観測したわけではないが、**下位を変えても結果が
+変わらない**という対照は取れた。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 2 = PASS。** reviewerの mutation 3件も取り込み済み(`flutter test` = PASS(660)、mutation 21 KILLED)。**Kotlin 側の実挙動と実機は未検証**
+- Last checkpoint: **実機確認が期待どおり**(2026-08-26、`sdk_gphone16k_x86_64` / API 37、対象commit `225f5db`)。**SDカードが保存場所として並び、そこで `RENAME_NOREPLACE` も効いた。** `013:T08` の残余risk 2件がここで閉じた
 - Blocker category: なし
-- Waiting for: **人間の実機確認**([`manual-verification.md`](manual-verification.md))
+- Waiting for: `final-evidence` の独立review
 - Requested action: なし
 - Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
-- Next Agent action: **人間の実機確認の結果を待つ。** 受けたら記録し、`final-evidence` の review を通して merge する。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる。** 手順4で `013:T05` から引き継いだ `__arm__`(382) の照合も閉じる。**このbranchは動かさない**
+- Next Agent action: **`final-evidence` の独立reviewを通して merge する。** merge後は `008:T11` へ「保存場所が2つ並ぶ端末が実在する」ことを申し送る(あちらの「保存場所が1つなら一覧を挟まない」の判断材料が変わった)
