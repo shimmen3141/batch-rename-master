@@ -128,13 +128,13 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 | 種別 | commandと結果 |
 | --- | --- |
-| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(48件)** |
-| full regression | `flutter test` = **PASS(637件)**。T08着手前は589件 |
+| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(52件)** |
+| full regression | `flutter test` = **PASS(641件)**。T08着手前は589件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
-| mutation | `M122`〜`M142` = **21 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`・`M133`〜`M137`・`M140`〜`M142`は**独立reviewerが足したもの**(`M129`/`M135`は対照)。表全体は `--list` = **142 mutations, 0 with an unexpected match count** |
-| **端末での観測** | **未実施。** 人間へ依頼する |
+| mutation | `M122`〜`M143` = **22 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`・`M133`〜`M137`・`M140`〜`M142`は**独立reviewerが足したもの**(`M129`/`M135`は対照)。表全体は `--list` = **143 mutations, 0 with an unexpected match count** |
+| **端末での観測** | **1回目を受領(2026-08-26)。** 項目1〜4が埋まり、5〜7は未了。詳細は下の節 |
 | **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
 
 ## 独立review attempt 1(2026-08-25)= FAIL
@@ -223,11 +223,64 @@ range は `5307fa7...b150fa9`。**未解決のP0/P1は無い。** reviewerは at
 SURVIVED になり、表の意味(「落ちること」を約束する)が壊れる。**runnerがhostで閉じて
 いないことは宣言表に書いてある。**
 
+## 端末での観測 1回目(2026-08-26)
+
+| 項目 | 値 |
+| --- | --- |
+| 環境 | Android emulator `sdk_gphone16k_x86_64`、**API 37**、`CP31.260623.005 dev-keys` |
+| 対象commit | `7dd4018`(PR #154) |
+| 実行者 | 開発者(人間) |
+
+**4箇所すべてで `RENAME_NOREPLACE` が効いた。**
+
+| 場所 | 排他 rename | 目標名 | source | 対照(通常 rename) |
+| --- | --- | --- | --- | --- |
+| `/storage/emulated/0`(内部ストレージ root) | **`nameConflict`** | 無傷 | 無傷 | `success` かつ置換 |
+| `/storage/emulated/0/Download` | **`nameConflict`** | 無傷 | 無傷 | `success` かつ置換 |
+| app ごとの保存領域 | **`nameConflict`** | 無傷 | 無傷 | `success` かつ置換 |
+| `/data/user/0/com.example.batch_rename_master/code_cache`(**非FUSE の対照**) | **`nameConflict`** | 無傷 | 無傷 | `success` かつ置換 |
+
+**対照が全箇所で置換している**ので、「フラグが効いた」は因果として読める。
+
+### 7項目の埋まり方
+
+| 項目 | 状態 |
+| --- | --- |
+| 1 appのmount view | **埋まった。** `MANAGE_EXTERNAL_STORAGE` を持つ app 自身の mount view で `EEXIST` になり、target は無傷だった。**S-2 が `shell` uid でしか見ていなかった穴が閉じた** |
+| 2 失敗時のsource側 | **埋まった。** `EEXIST` からの推論ではなく、**source の中身を実測**して無傷を確認した |
+| 3 `/data/local/tmp` の種別 | **埋まった。** `ext3/4` |
+| 4 下位filesystem | **一段進んだ。** `/sdcard` は FUSE(`Type: 0x65735546`)で、`mount` によれば下は `/dev/block/dm-6` の **ext4**。**非FUSE の `/data`(ext4)でも同じく効いた**ので、**FUSE は少なくともフラグを阻んでいない**。**FUSE 自身が判定したのか下位へ委譲したのかは、まだ切り分いていない** — 下位が FAT の媒体で観測できて初めて分かる(項目7) |
+| 5 API levelの幅 | **埋まらなかった。** API 37 のみで、`T01` の S-2 と同じ level である。**Android 11〜16 は未観測のまま** |
+| 6 実機 | **埋まらなかった。** emulator のみ |
+| 7 FAT系 | **埋まらなかった。しかも観測できない理由が分かっていない**(下記) |
+
+### 端末に vfat の volume があるのに、app が観測していない
+
+`mount` の出力に **`(null) on /mnt/media_rw/0000-0000 type vfat`** と
+**`/dev/fuse on /storage/0000-0000 type fuse`** があり、**この emulator には仮想 SD
+カードが装着されている**。ところが probe の観測対象は4件で、`/storage/0000-0000` が
+入っていない。
+
+**これが「app の mount view にそもそも無い」のか「列挙に失敗した」のかを、現在の
+出力からは区別できない。** `AndroidStorageBrowser.locations()` は
+**列挙に失敗しても内部ストレージだけは返す**設計だからである(`android_storage_browser.dart`
+の「空にして『保存場所が無い』と見せない」)。
+
+**区別が付かないままだと、004 REQ-015(装着されている SD カード・USB を保存場所として
+出す)を満たしているかを判定できない。** そこで **app から見た `/storage` の生の列挙結果**を
+報告へ足した(`storageViewOf`。`M143` で「読めなかった」を「空」と混同しないことを固定)。
+**2回目の観測を依頼する。**
+
+- `0000-0000` が**出るのに保存場所へ採用されていない** → **`013:T07` の欠陥**(実装が
+  取りこぼしている)。修正は別taskで引き受ける。
+- `0000-0000` が**出ない** → app の mount view にそもそも無い。**004 REQ-015 の
+  「装着されている」の意味を、権限モデルに照らして詰め直す**必要がある(仕様側の論点)。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3 = PASS。** そのP3 5件も反映済み(related = PASS(48)、`flutter test` = PASS(637)、mutation = 21 KILLED)
+- Last checkpoint: **端末での観測1回目を受領した**(2026-08-26、API 37 emulator、対象commit `7dd4018`)。**項目1〜4が埋まり、5〜7は埋まらなかった。** 取り外し可能な volume が観測されない理由を切り分けるため、`storageViewOf` を足して2回目を依頼する
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: **人間の端末確認**([`manual-verification.md`](manual-verification.md))
+- Waiting for: **人間の端末確認 2回目**(手順2だけ。`storageViewOf` の出力)
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
 - Next Agent action: **人間の観測結果を待つ。** 受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**(Agentが推測で埋めない)。そのあと`final-evidence`のreviewを通してmergeする。**このbranchは動かさない**
