@@ -45,7 +45,11 @@ void main() {
     // 囲んだところ、attempt 2 で列挙(`androidProbeTargets`)に同じ穴が見つかった。
     // ここで落ちると**人間は1行も報告を得られず、端末に残骸が残る**。
     final rows = <ProbeRow>[];
+    // **app から見た `/storage` を先に控える。** 取り外し可能な volume が
+    // 「無い」のか「見えない」のかは、これが無いと区別できない(項目1・項目7)。
+    var storageView = '(取得できなかった)';
     try {
+      storageView = await storageViewOf();
       final targets = await androidProbeTargets(extraDirs: _extraDirs);
       for (final target in targets) {
         try {
@@ -57,7 +61,7 @@ void main() {
     } finally {
       // **報告を先に出す。** `finally` の中で報告より前に filesystem 操作を置くと、
       // その1行が新しい窓になる(独立review attempt 3 の P3-5)。
-      debugPrint(reportOf(rows));
+      debugPrint('$storageView\n${reportOf(rows)}');
       await cleanUpProbeDirectory(
         mediaProbeDirectoryOf(const AndroidStorageBrowser().primaryRoot),
       );

@@ -998,6 +998,13 @@
       "note": "[reviewer追加 RVC-5] app ごとの保存領域の場所をmediaからdataへ変える(004 REQ-018で書ける側はmediaである。取り違えるとこの観測対象が黙ってskipになる)",
       "find": "    p.join(primaryRoot, 'Android', 'media', probePackage);",
       "replace": "    p.join(primaryRoot, 'Android', 'data', probePackage);"
+    },
+    {
+      "id": "M143",
+      "file": "integration_test/storage_probe.dart",
+      "note": "app から見た/storageの列挙失敗を「空」として報告する(「取り外し可能なvolumeが無い」と「見えていない」を混同する。2026-08-26の観測でこの区別が実際に要った)",
+      "find": "  } catch (error) {\n    // **握りつぶさない。** 「読めなかった」と「空だった」は別の事実である。\n    buffer.writeln('列挙できなかった: $error');\n  }",
+      "replace": "  } catch (error) {\n    buffer.writeln('(空)');\n  }"
     }
   ]
 }

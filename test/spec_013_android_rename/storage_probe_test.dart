@@ -408,6 +408,80 @@ void main() {
     });
   });
 
+  group('storageViewOf(app から見た /storage)', () {
+    test('列挙できた entry と、採用された保存場所を出す', () async {
+      final volumes = Directory(p.join(dir.path, 'storage'));
+      await Directory(
+        p.join(volumes.path, '0000-0000'),
+      ).create(recursive: true);
+      await Directory(p.join(volumes.path, 'emulated')).create(recursive: true);
+      final primary = Directory(p.join(dir.path, 'primary'));
+      await primary.create(recursive: true);
+
+      final view = await storageViewOf(
+        browser: AndroidStorageBrowser(
+          primaryRoot: primary.path,
+          volumesDirectory: volumes.path,
+        ),
+      );
+
+      expect(view, contains('0000-0000 (directory)'));
+      // **除外された `emulated` も「見えている」側に出す。** 採用の結果とは別に、
+      // 何が見えていたかを残す。
+      expect(view, contains('emulated (directory)'));
+      expect(view, contains('保存場所として採用: 2 件'));
+      expect(view, contains(p.join(volumes.path, '0000-0000')));
+    });
+
+    test('**読めなかったことを「空」と混同しない**', () async {
+      final volumes = Directory(p.join(dir.path, 'unreadable-storage'));
+      await volumes.create(recursive: true);
+      final result = await Process.run('chmod', ['000', volumes.path]);
+      expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
+      addTearDown(() => Process.run('chmod', ['700', volumes.path]));
+      final primary = Directory(p.join(dir.path, 'primary2'));
+      await primary.create(recursive: true);
+
+      final view = await storageViewOf(
+        browser: AndroidStorageBrowser(
+          primaryRoot: primary.path,
+          volumesDirectory: volumes.path,
+        ),
+      );
+
+      expect(view, contains('列挙できなかった'));
+      expect(view, isNot(contains('(空)')));
+    });
+
+    test('本当に空なら「空」と出す', () async {
+      final volumes = Directory(p.join(dir.path, 'empty-storage'));
+      await volumes.create(recursive: true);
+      final primary = Directory(p.join(dir.path, 'primary3'));
+      await primary.create(recursive: true);
+
+      final view = await storageViewOf(
+        browser: AndroidStorageBrowser(
+          primaryRoot: primary.path,
+          volumesDirectory: volumes.path,
+        ),
+      );
+
+      expect(view, contains('(空)'));
+      expect(view, isNot(contains('列挙できなかった')));
+    });
+
+    test('例外を投げない', () async {
+      final view = await storageViewOf(
+        browser: AndroidStorageBrowser(
+          primaryRoot: p.join(dir.path, 'missing'),
+          volumesDirectory: p.join(dir.path, 'missing-too'),
+        ),
+      );
+
+      expect(view, isNotEmpty);
+    });
+  });
+
   group('mediaProbeDirectoryOf', () {
     test('**書ける側(`Android/media`)を指す**(004 REQ-018。P3-4)', () {
       // `data` / `obb` は許可があっても読めない・書けないことがある側である。

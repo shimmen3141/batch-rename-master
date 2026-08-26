@@ -281,6 +281,52 @@ Future<List<ProbeTarget>> androidProbeTargets({
   return targets;
 }
 
+/// **app から見た `/storage` の中身**を、そのまま報告する。
+///
+/// これが項目1「appのmount view」そのものである。`AndroidStorageBrowser.locations()` は
+/// **列挙に失敗しても内部ストレージだけは返す**(`android_storage_browser.dart` の
+/// 「空にして『保存場所が無い』と見せない」)ので、外からは**「取り外し可能な volume が
+/// 無い」と「見えていない」を区別できない**。
+///
+/// 2026-08-26 の観測で実際にこれが問題になった — 端末の `mount` には vfat の volume が
+/// あるのに、app が採用した保存場所は内部ストレージだけだった。**どちらなのかが
+/// 分からなかった。**
+///
+/// **この関数は例外を投げない。** 読めなかったことも観測結果である。
+Future<String> storageViewOf({
+  AndroidStorageBrowser browser = const AndroidStorageBrowser(),
+}) async {
+  final buffer = StringBuffer()
+    ..writeln('--- app から見た ${browser.volumesDirectory} ---');
+  try {
+    final entries = Directory(browser.volumesDirectory).listSync();
+    if (entries.isEmpty) {
+      buffer.writeln('(空)');
+    }
+    for (final entry in entries) {
+      final kind = switch (entry) {
+        Directory() => 'directory',
+        Link() => 'link',
+        _ => 'file',
+      };
+      buffer.writeln('  ${p.basename(entry.path)} ($kind)');
+    }
+  } catch (error) {
+    // **握りつぶさない。** 「読めなかった」と「空だった」は別の事実である。
+    buffer.writeln('列挙できなかった: $error');
+  }
+  try {
+    final locations = await browser.locations();
+    buffer.writeln('保存場所として採用: ${locations.length} 件');
+    for (final location in locations) {
+      buffer.writeln('  ${location.name} = ${location.root}');
+    }
+  } catch (error) {
+    buffer.writeln('保存場所を作れなかった: $error');
+  }
+  return buffer.toString();
+}
+
 /// 人間がそのまま貼れる形の報告。
 String reportOf(List<ProbeRow> rows) {
   final buffer = StringBuffer()
