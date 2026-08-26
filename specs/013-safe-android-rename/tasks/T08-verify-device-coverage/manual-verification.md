@@ -45,14 +45,22 @@
 リポジトリのルートで、**デバイスIDを確認してから**実行する。
 
 ```powershell
+flutter pub get
 flutter devices
 flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 ```
 
-**期待**: 端末にアプリが入り、`=== 013:T08 排他 rename の観測 ===` から
-`=== ここまで ===` までの出力が出る。**その範囲をそのまま貼って返してほしい。**
+**`flutter pub get` を飛ばさないでほしい。** このタスクで依存(`integration_test`)が
+増えており、**コンテナとホストで `.pub-cache` が別**なので、ホスト側では取り直しが要る
+([`emulator-verification.md`](../../../../docs/development/emulator-verification.md))。
 
-出力には、mount されている保存場所ごとに次が並ぶ。
+**期待**: 端末にアプリが入り、`=== 013:T08 排他 rename の観測 ===` から
+`=== ここまで。この出力をそのまま貼って返してください ===` までの出力が出る。
+**その範囲をそのまま貼って返してほしい。**
+
+出力には、mount されている保存場所ごとに次が並ぶ。**共有ストレージ(FUSE)だけでなく、
+比較用に「app の内部領域(非FUSE の対照)」も1件出る** — フラグを解釈しているのが FUSE 自身
+なのか下の filesystem なのかを、後から切り分けるためである。
 
 - `排他 rename:` — `nameConflict` なら**フラグが効いている**。`fallbackRequired` なら
   **効かないので通常 rename へ落ちる**。**どちらでも正常である。**
@@ -70,10 +78,13 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 消してよい(残っていたことも書いてほしい)。
 
 ```powershell
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell "ls /sdcard/brm-t08-* /sdcard/Download/brm-t08-* 2>/dev/null"
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell "ls /sdcard/brm-t08-* /sdcard/Download/brm-t08-* /sdcard/Android/*/com.example.batch_rename_master/ 2>/dev/null"
 ```
 
 **期待**: 何も出ない(`No such file or directory` でよい)。
+
+**SDカードやUSBを挿している場合は、手順2の出力に出た場所も同じように見てほしい**
+(場所は端末によって変わるので、ここに書けない)。
 
 ## 手順3 — filesystem の種別を記録する
 
@@ -121,6 +132,7 @@ FAT系のfilesystemはフラグを扱えない可能性がある。**扱えな�
 コンテナにはAndroid SDKが無く、**Agentはビルドを1度も実行できていない。**
 
 ```powershell
+flutter pub get
 flutter build apk --debug
 ```
 

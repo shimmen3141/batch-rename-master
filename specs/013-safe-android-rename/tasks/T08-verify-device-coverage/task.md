@@ -107,7 +107,7 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 | 1 appのmount view | 手順2 |
 | 2 失敗時のsource側 | 手順2(`source の中身`) |
 | 3 `/data/local/tmp`のfilesystem種別 | 手順3 |
-| 4 下位filesystem | 手順3(`stat -f` と `mount`) |
+| 4 下位filesystem | 手順2の**非FUSE の対照**(app の内部領域は `/data` 上で FUSE を経由しない。同じ app プロセスで比べられる)+ 手順3(`stat -f` と `mount`)。**媒体が増えれば手順6でさらに進む** |
 | 5 API levelの幅 | 手順4(**端末が無ければ埋まらない**) |
 | 6 実機 | 手順5(同上) |
 | 7 FAT系 | 手順6(同上。挿さっていれば手順2の出力に自動で並ぶ) |
@@ -115,24 +115,56 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 **5〜7は端末の有無で決まる。** 埋まらなければ「埋まらなかった」と記録する
 (`task.md`の受け入れ証拠「Agentが推測で埋めない」)。
 
+**項目4は `T01` が「この観測では切り分けられない」と結論した所である。** `stat -f` と
+`mount` を採り直すだけでは前進しないので、**同じ app プロセスの中に非FUSE の観測対象を
+1つ置いた**(独立review attempt 1 の P2-3)。FAT 系の媒体があれば手順6でさらに進むが、
+**媒体が無くても1段は進む**形にしてある。
+
 ## 検証結果
 
 | 種別 | commandと結果 |
 | --- | --- |
-| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(18件)** |
-| full regression | `flutter test` = **PASS** |
+| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(28件)** |
+| full regression | `flutter test` = **PASS(617件)**。T08着手前は589件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
-| mutation | `M122`〜`M125` = **4 KILLED / 0 SURVIVED / 0 SKIPPED** |
+| mutation | `M122`〜`M132` = **11 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`は**独立reviewerが足したもの**(`M129`は対照) |
 | **端末での観測** | **未実施。** 人間へ依頼する |
 | **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
 
+## 独立review attempt 1(2026-08-25)= FAIL
+
+range は `5307fa7...6d03fff`。**P1が1件、P2が8件。** reviewerは主張の3点を自分でcodeを
+読んで確かめている — 「製品の画面からは観測できない」(実在確認と劣化の透過性、
+`unsupported`がAndroidでは返らないこと、フラグの状態を出すUIが無いこと)、
+「対照が成立している」、「CI・release buildへ影響しない」(`.flutter-plugins-dependencies`で
+`integration_test`が`dev_dependency: true`であること)。**7項目との対応にも漏れなし**と
+判定された。
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| **P1-1** | **nativeの呼び出しだけが`try`の外**にあり、投げると報告が1行も出ないまま端末に残骸が残る。`@Native`のsymbol解決失敗は`FileSystemException`ではない | 成果物の欠陥 | **直した。** 呼び出しを保護し、**注入できるようにして**host testで固定した(`M132`)。runnerのloop側にも保険を置き、**何が起きても報告へ到達する** |
+| P2-1 | `Evidence revision`のbaseが「実測値」と書いてあるのに実測値でない(`ae59859`) | 成果物の欠陥 | 直した(`5307fa7`) |
+| P2-2 | manualに`flutter pub get`が無い。**このtaskは`pubspec.yaml`を変えており**、containerとhostで`.pub-cache`が別 | 成果物の欠陥 | 直した(手順2と手順7) |
+| P2-3 | 項目4を手順3へ割り当てているが、手順3は`T01`が「切り分けられない」と結論した出力を採り直すだけ | 成果物の欠陥 | **直した(reviewerの推奨案a)。** 同じappプロセスに**非FUSEの観測対象**を1つ足した。媒体が無くても1段進む |
+| P2-4 | **`RV-N1`がSURVIVED** — 劣化した行で保証が破れても落ちない。`fallbackRequired`は**Androidで最も起きやすい結果** | 安全網の穴 | **直した。** 劣化した行での破れをtestで固定(`M126`) |
+| P2-5 | `permissionDenied`の免除が実体検査の**前**にあり、目標名とsourceを見ずに抜ける | 安全網の穴 | 直した。免除は**対照だけ**にした(`M129`が対照として残る) |
+| P2-6 | runnerのguardが`permissionDenied`も「観測できた」と数える。全volumeがそれでも緑になる | 安全網の穴 | 直した。`answersTheQuestion`で数える(`M131`) |
+| P2-7 | 残骸確認が観測対象の一部しか見ない。`Android/media/<pkg>`も消えない | 成果物の欠陥(軽微) | 直した。**空なら消す**(元からあった場所は巻き添えにしない)。manualの確認commandも足した |
+| P2-8 | manualの終端行がcurrent revisionと一致しない | 成果物の欠陥(軽微) | 直した |
+
+**`RV-N1`〜`RV-N5`を`M126`〜`M130`として取り込んだ**(AGENTS.md「独立reviewが足した
+mutationは実装側へ取り込む。対照として置いたものも落とさない」)。
+
+**mutation実行中に事故が1件**あった。詳細と再発防止は
+[finding](../../../../development-findings/2026-08-23-edited-a-file-while-a-mutation-runner-was-restoring-it.md)へ追記した。
+
 ## Current state / handoff
 
-- Last checkpoint: **観測 harness を実装し、host で dry-run した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(18)、`M122`〜`M125` = 4 KILLED)。manual手順を current revision に合わせて書いた
+- Last checkpoint: **独立review attempt 1 の P1 1件と P2 8件を直した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(28)、`M122`〜`M132` = 11 KILLED)
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: 独立review → そのあと人間の端末確認
+- Waiting for: 独立review attempt 2 → そのあと人間の端末確認
 - Requested action: なし
-- Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@ae59859`(`git merge-base dev HEAD` の実測値)
+- Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
 - Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。結果を受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**
