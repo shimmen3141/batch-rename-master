@@ -252,7 +252,7 @@ SURVIVED になり、表の意味(「落ちること」を約束する)が壊れ
 | 4 下位filesystem | **一段進んだ。** `/sdcard` は FUSE(`Type: 0x65735546`)で、`mount` によれば下は `/dev/block/dm-6` の **ext4**。**非FUSE の `/data`(ext4)でも同じく効いた**ので、**FUSE は少なくともフラグを阻んでいない**。**FUSE 自身が判定したのか下位へ委譲したのかは、まだ切り分いていない** — 下位が FAT の媒体で観測できて初めて分かる(項目7) |
 | 5 API levelの幅 | **埋まらなかった。** API 37 のみで、`T01` の S-2 と同じ level である。**Android 11〜16 は未観測のまま** |
 | 6 実機 | **埋まらなかった。** emulator のみ |
-| 7 FAT系 | **埋まらなかった。しかも観測できない理由が分かっていない**(下記) |
+| 7 FAT系 | **埋まらなかった。理由は判明した** — app が `/storage` を列挙できないので、装着されていても保存場所にならない(下記)。**媒体側の可否は依然として未観測** |
 
 ### 端末に vfat の volume があるのに、app が観測していない
 
@@ -276,11 +276,61 @@ SURVIVED になり、表の意味(「落ちること」を約束する)が壊れ
 - `0000-0000` が**出ない** → app の mount view にそもそも無い。**004 REQ-015 の
   「装着されている」の意味を、権限モデルに照らして詰め直す**必要がある(仕様側の論点)。
 
+## 端末での観測 2回目(2026-08-26)= 切り分けが付いた
+
+対象commit は `16d6b24`(`storageViewOf` を足したもの)。環境は1回目と同じ
+`sdk_gphone16k_x86_64` / API 37。
+
+```
+--- app から見た /storage ---
+列挙できなかった: PathAccessException: Directory listing failed, path = '/storage/'
+  (OS Error: Permission denied, errno = 13)
+保存場所として採用: 1 件
+  内部ストレージ = /storage/emulated/0
+```
+
+### 分かったこと(1): **app は `/storage` を列挙できない**
+
+**全ファイルアクセス権限があっても `EACCES` である。** したがって現在の実装
+(`AndroidStorageBrowser.locations()` が `/storage` の中身から保存場所を作る)は、
+**この端末で取り外し可能な volume を1つも列挙できない。** `mount` には
+`(null) on /mnt/media_rw/0000-0000 type vfat` があり、**媒体は実際に装着されている。**
+
+**これは 004 REQ-015 と代表例26e に対する成果物の欠陥である**(`013:T07` の実装)。
+
+- REQ-015 は保存場所を「内部共有ストレージ**と、装着されている SD カード・USB
+  ストレージのそれぞれ**」と定めている。
+- 代表例26e は「SD カードが装着されている端末で browser を開く → 内部共有ストレージと
+  SD カードが**それぞれ保存場所として並ぶ**」を期待としている。
+- **列挙の手段は 004 spec が「自由とする点」に挙げている**(`StorageManager.getStorageVolumes`、
+  `getExternalFilesDirs` からの導出、その他)。**自由なのは手段であって、結果ではない。**
+  選んだ手段(`/storage` の列挙)が要求を満たさないことが実機で判明した。
+
+**この欠陥は `T08` では直さない**(T08 の範囲は観測である)。**引き受け先を人間へ諮る。**
+
+### 分かったこと(2): 内部共有ストレージの **root 直下に file を作れない**ことがある
+
+2回目は `/storage/emulated/0` が `観測できず: fixture を置けない: Operation not permitted`
+になった。**1回目は同じ場所で成功していた**(`nameConflict`)。差分は権限付与
+(`appops set`)の直後かどうかだけである。原因は未特定である。
+
+- **004 spec と矛盾しない。** REQ-018 は「**注記が出ない場所でも改名に失敗しうる**」と
+  明記しており、可否は実行結果が示す(005 REQ-013)。
+- **`Download` と app ごとの保存領域では両回とも成功している**ので、利用者が実際に使う
+  場所での改名には影響しない。
+- **harness は落ちずに理由つきで skip した。** 独立review attempt 1〜3 で固めた
+  「報告へ必ず到達する」構造が、実際にこの経路で働いた。
+
+### 2回目でも変わらなかったこと
+
+`Download`・app ごとの保存領域・非FUSE の対照の3箇所は、**両回とも `nameConflict` /
+目標名無傷 / source 無傷 / 対照は置換**だった。**項目1・2・4 の結論は変わらない。**
+
 ## Current state / handoff
 
-- Last checkpoint: **端末での観測1回目を受領した**(2026-08-26、API 37 emulator、対象commit `7dd4018`)。**項目1〜4が埋まり、5〜7は埋まらなかった。** 取り外し可能な volume が観測されない理由を切り分けるため、`storageViewOf` を足して2回目を依頼する
+- Last checkpoint: **端末での観測2回目で切り分けが付いた**(2026-08-26)。**app は `/storage` を列挙できない(`EACCES`)** ため、現在の実装は取り外し可能な volume を1つも保存場所にできない — **004 REQ-015 / 代表例26e に対する `013:T07` の欠陥**である。項目1〜4は埋まり、5〜7は埋まらなかった
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: **人間の端末確認 2回目**(手順2だけ。`storageViewOf` の出力)
+- Waiting for: **人間の判断**(保存場所の列挙をどう直すか)と、**手順7**(`flutter build apk --debug`)
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
 - Next Agent action: **人間の観測結果を待つ。** 受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**(Agentが推測で埋めない)。そのあと`final-evidence`のreviewを通してmergeする。**このbranchは動かさない**
