@@ -134,7 +134,7 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
 | mutation | `M122`〜`M143` = **22 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`・`M133`〜`M137`・`M140`〜`M142`は**独立reviewerが足したもの**(`M129`/`M135`は対照)。表全体は `--list` = **143 mutations, 0 with an unexpected match count** |
-| **端末での観測** | **2回受領(2026-08-26)。** 項目1〜4が埋まり、**5〜7は受容した残余risk**。詳細は下の節 |
+| **端末での観測** | **2回受領(2026-08-26)。** 項目1〜3が埋まり、**項目4は一段進んだ**(切り分けは未了)。**5〜7は受容した残余risk**。詳細は下の節 |
 | **Android build** | **成功(2026-08-26)。** `flutter build apk --debug` が host で通った |
 
 ## 独立review attempt 1(2026-08-25)= FAIL
@@ -219,7 +219,7 @@ range は `5307fa7...b150fa9`。**未解決のP0/P1は無い。** reviewerは at
 | P3-4 | `mediaProbeDirectoryOf`の場所が固定されていない(`RVC-5` SURVIVED) | 安全網の穴 | 直した(`M142`) |
 | P3-5 | runnerの`finally`で後片付けが報告より**前**にある。**その1行が新しい窓になる** | 安全網の穴 | **依頼前に直した**(端末で走るcodeなので、manual後に直すと実機の観測をやり直すことになる) |
 
-**`M143`(P3-5 の対照)は置かなかった。** runner は host の test で走らないので恒久的に
+**P3-5 の対照にあたる mutation は置かなかった。** runner は host の test で走らないので恒久的に
 SURVIVED になり、表の意味(「落ちること」を約束する)が壊れる。**runnerがhostで閉じて
 いないことは宣言表に書いてある。**
 
@@ -311,8 +311,9 @@ SURVIVED になり、表の意味(「落ちること」を約束する)が壊れ
 ### 分かったこと(2): 内部共有ストレージの **root 直下に file を作れない**ことがある
 
 2回目は `/storage/emulated/0` が `観測できず: fixture を置けない: Operation not permitted`
-になった。**1回目は同じ場所で成功していた**(`nameConflict`)。差分は権限付与
-(`appops set`)の直後かどうかだけである。原因は未特定である。
+になった。**1回目は同じ場所で成功していた**(`nameConflict`)。1回目との差分には
+権限付与(`appops set`)の直後かどうかと、**対象commitの違い**(`7dd4018` → `16d6b24`)が
+ある。**原因は未特定である。**
 
 - **004 spec と矛盾しない。** REQ-018 は「**注記が出ない場所でも改名に失敗しうる**」と
   明記しており、可否は実行結果が示す(005 REQ-013)。
@@ -338,15 +339,34 @@ Running Gradle task 'assembleDebug'...
 (`hook/build.dart` 経由の C)と `T07` の変更を含めて、**host で Android build が通ることを
 初めて確認した。**
 
+**対象revision**: `16d6b24` 以降 `lib/` `src/` `hook/` `test/` `tool/` `integration_test/`
+`pubspec.*` `android/` に差分は無いので、**この build は現在の HEAD の製品codeに対応する**
+(`git diff --name-only 16d6b24 HEAD -- <上記>` が空)。
+
+### `T05` から引き継いだ `__arm__` の syscall 番号(382)
+
+`T05` は「**NDK build 時に `_Static_assert` が armeabi-v7a で自動照合する**」として
+`T08` へ渡していた(`T05/task.md` の宣言表)。**閉じたとは言い切らない。**
+
+- `flutter build apk` は既定で `android-arm` / `android-arm64` / `android-x64` を対象に
+  するので、**armeabi-v7a 向けの compile が行われ、`_Static_assert` が通ったはずである。**
+- **ただし artifact を確認していない。** container からは host の build 成果物が見えない
+  (`build/` は container 専用 volume。`compose.ai.yml`)。**「はずである」を観測に
+  格上げしない。**
+- **閉じるのに要るのは1つだけ**: APK の `lib/armeabi-v7a/` に `.so` があること、または
+  `--target-platform android-arm` を明示した build が通ること。**`013:T12` が Android build を
+  行うので、そこで確かめる。**
+
 ## 受容した残余risk
 
-**7項目のうち3つは埋まらなかった。** AGENTS.md のとおり、**引き受け先を添えて受容する**
+**7項目のうち3つは埋まらず、項目4は途中までである。** AGENTS.md のとおり、**引き受け先を添えて受容する**
 (受容の記録は reviewer ではなく task 所有 Agent が行う)。
 
 | 残余risk | 満たさない条件 | 引き受け先 |
 | --- | --- | --- |
 | **項目5: API level の幅。** Android 11〜16 で `RENAME_NOREPLACE` が効くかは未観測。観測できたのは API 37 だけで、`T01` の S-2 と同じ level である。**MediaProvider の FUSE 実装は version ごとに変わる** | 3(**CIで閉じられない**。別の API level の端末が要る) | **人間**。[`manual-verification.md`](manual-verification.md) の手順4がそのまま使える。**端末が増えたときに再実行する** |
 | **項目6: 実機。** emulator のみ。vendor kernel や f2fs で挙動が変わりうる | 3(同上) | **人間**。手順5 |
+| **`__arm__` の syscall 番号(382)が実 kernel header と照合されたか。** `T05` から引き継いだ。**通った可能性が高いが、artifact を見ていない** | 3(このprojectのCIで閉じられない。32bit ARM の header がこの環境に無い) | **`013:T12`**。次に Android build を行うときに、APK の `lib/armeabi-v7a/` か `--target-platform android-arm` で確かめる |
 | **項目7: FAT 系の媒体で効くか。** 端末には vfat の volume が装着されているが、**app からは保存場所として見えない**ので観測できなかった | 3(同上)。**加えて、見えるようにすること自体が別taskである** | **`013:T12`**(列挙の作り直し)。**T12 が入れば、この probe が自動で観測対象に入れる** — `T12` の実機確認で項目7 も埋まる |
 
 **この3つは製品の可否を左右しない。** 005 contract revision 4 により、フラグが効かない
@@ -367,11 +387,34 @@ Running Gradle task 'assembleDebug'...
 既に証拠が揃っているが、このPRでは触らない** — 別taskの証拠を T08 の review range へ
 混ぜない。**merge 後に記録だけのPRで揃える。**
 
+## 独立review attempt 4(`final-evidence`、2026-08-26)= PASS
+
+range は `5307fa7...7e18647`。**未解決のP0/P1は無い。** reviewerは**人間が返した生の出力**と
+`task.md` の記録を逐条で突き合わせ、「**貼られた出力に無いことを観測したと書いている箇所は
+無い**」「**丸め方はむしろ自分に不利な向き**」と判定した(1回目に成功していた root を、
+2回目で失敗したため `plan.md` の証拠から外して3箇所に絞っている点)。
+
+**auto-merge の7条件すべて充足**と判定された。**`plan.md` の `[x]` 2件も過大ではない**
+(`T08` を証拠に名指しした行だけを触っており、他3件の証拠行は `T02`/`004 spec再承認`/`T07` を
+指している)。**項目7 の引き受け先 `013:T12` の論拠も code で確認された** —
+`androidProbeTargets` は `locations()` の結果から観測対象を作るので、`T12` が直せば
+`/storage/0000-0000` が**自動で観測対象に入る**。
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| P2-14 | **PR本文が陳腐化していた**(`18件`、`M122`〜`M125`、「端末での観測は未実施」「Android build は未実施」)。**生きた値を正本の外へ書き写した型の3箇所目** | 成果物の欠陥 | **直した。** 件数と範囲は**削って**`task.md`の表へ寄せ、観測の結果を本文へ書いた |
+| P2-15 | **`T05` が渡した `__arm__`(382)の始末が記録されていない。** build成功は書いてあるが、armeabi-v7a を含んだか(=`_Static_assert`が通ったか)に触れていない | 成果物の欠陥 | **残余riskとして受容した**(上の表)。「通ったはずである」を観測に格上げせず、**閉じるのに要る1手**(`lib/armeabi-v7a/` の確認か `--target-platform android-arm`)を書いて`013:T12`へ渡した |
+| P3-6 | 検証結果表の「項目1〜4が埋まり」が、本文の「項目4は一段進んだ」と食い違う。**要約の側だけが自分に有利へ動いていた** | 成果物の欠陥(軽微) | 直した |
+| P3-7 | 2回目のroot失敗で「差分は…**だけ**である」が裏を持たない(対象commitも違う) | 成果物の欠陥(軽微) | 直した。範囲語を外し、commit差も書いた |
+| P3-8 | `M143` の指す先が2箇所で食い違う | 成果物の欠陥(軽微) | 直した(番号を外した) |
+| P3-9 | Android build の対象revisionが記録されていない | 成果物の欠陥(軽微) | 直した(`16d6b24`以降 code差分なし) |
+| P3-10 | `plan.md` の `[x]` 1件目が「実機確認」の字面のまま(実体はemulator) | 成果物の欠陥(軽微) | 直した(「端末確認」+ **emulator** を強調) |
+
 ## Current state / handoff
 
-- Last checkpoint: **7項目の観測と Android build が済んだ**(2026-08-26)。項目1〜4が埋まり、**5〜7は引き受け先つきで受容**した。`/storage` が `EACCES` である件は `013:T12` が引き受ける
+- Last checkpoint: **独立review attempt 4(`final-evidence`)= PASS。** そのP2 2件とP3 5件も反映済み。項目1〜3が埋まり項目4は一段進み、**残りは引き受け先つきで受容**した
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: `final-evidence` の独立review
+- Waiting for: なし(merge可能)
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
-- Next Agent action: **`final-evidence` の独立reviewを通してmergeする。** merge後は (1) `plan.md` の受け入れ条件のうち `T06`/`T07` の証拠で埋まる3件を記録だけのPRで揃える、(2) `013:T12` へ進む(この観測が見つけた欠陥の修正)
+- Next Agent action: **merge する**(独立review attempt 4 = PASS、auto-merge 7条件充足)。merge後は (1) `plan.md` の受け入れ条件のうち `T06`/`T07` の証拠で埋まる3件を記録だけのPRで揃える — **そのとき「Androidで、同じことが成立する」の証拠行が「現在はSAFが親folderを列挙できないため`listNames`が失敗し」のままで、`T07` が SAF を捨てた後の事実と合わない**ので一緒に直す(独立review attempt 4 の range外の観測)、(2) `013:T12` へ進む(この観測が見つけた欠陥の修正)

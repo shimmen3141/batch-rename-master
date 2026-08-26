@@ -44,7 +44,7 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - [x] permissionと配布制約が公式資料に接続される(`T01`)
 - [x] 長期的なWhy/Why notを持つdecision recordで採否を判断できる([ADR-002](decisions/ADR-002-android-rename-storage-boundary.md))
 - [x] Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である
-  - 証拠: 005 contract revision 4、仕様由来test、`T08`の実機確認(2026-08-26、emulator API 37。`Download`・app ごとの保存領域・非FUSE の対照の3箇所で `nameConflict`、目標名と source は無傷、**同じ場所で通常 rename は置換した**)
+  - 証拠: 005 contract revision 4、仕様由来test、`T08`の端末確認(2026-08-26、**emulator** API 37。`Download`・app ごとの保存領域・非FUSE の対照の3箇所で `nameConflict`、目標名と source は無傷、**同じ場所で通常 rename は置換した**)
 - [ ] `MANAGE_EXTERNAL_STORAGE`の要否と、許可されないときの振る舞いが利用者から観測できる
   - 証拠: `T02`で承認された仕様、widget test、実機確認
 - [ ] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
