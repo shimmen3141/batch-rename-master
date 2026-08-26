@@ -262,7 +262,7 @@ syscall 番号(382)の照合は、これでは閉じない**(独立review attemp
 | `T08` が受容した残余risk | 結果 |
 | --- | --- |
 | **項目7: FAT 系の媒体で `RENAME_NOREPLACE` が効くか** | **効いた。** `/storage/0000-0000` は `mount` によれば下位が `vfat`(`(null) on /mnt/media_rw/0000-0000 type vfat`)で、そこでも `nameConflict` になり目標名は無傷だった。**媒体を「対応外」にする必要は無い** |
-| **`__arm__` の syscall 番号(382)の照合** | **閉じていない。** build は通ったが、`_Static_assert` は `#ifdef __NR_renameat2` の下にあり、artifact も見ていない(上記)。**`T08` の表へ戻した** |
+| **`__arm__` の syscall 番号(382)の照合** | **閉じていない。** build は通ったが、`_Static_assert` は `#ifdef __NR_renameat2` の下にあり、artifact も見ていない(上記)。**`T08` の表へ戻し、2026-08-26 に開発者が残余riskとして受容した**(番号が違っても `ENOSYS` → `fallbackRequired` → 実在確認付きの通常 rename へ劣化する。32bit専用端末は減っている) |
 | 項目5(API level の幅)・項目6(実機) | **変わらず未観測。** 端末が増えるまで `T08` の手順4・5 が引き受ける |
 
 ### 項目4(FUSE 自身か下位への委譲か)も一段進んだ

@@ -129,6 +129,16 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 実機はvendorのkernelとfilesystem(f2fs等)で挙動が変わりうる。エミュレータの結果は
 実機の証拠にならない。
 
+## 手順5b — 32bit ARM の端末(あれば)
+
+**32bit 専用(armeabi-v7a)の Android 端末があれば**、手順1・2を実行してほしい。
+無ければ「無い」で構わない。
+
+このアプリは 32bit ARM 向けの syscall 番号を**この環境では照合できていない**
+(`task.md` の残余risk)。**手順2 の出力で `排他 rename:` が `効かない(通常 rename へ劣化する)`
+になっていたら、番号が違っている可能性がある**(そうでない可能性もある — 端末側で
+`renameat2` が使えないだけのこともある)。**どちらでも安全側に倒れる**が、記録したい。
+
 ## 手順6 — SDカード / USB(あれば)
 
 **SDカードやUSBメモリを挿せる端末があれば**、挿した状態で**手順2**を実行する。
