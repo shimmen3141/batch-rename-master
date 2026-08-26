@@ -71,14 +71,74 @@
 - `python3 tool/check_platform_boundary.py` が PASS。
 - exact range の独立review が PASS する。
 
-## machine検証する範囲と引き受け先(着手時に更新する)
+## machine検証する範囲と引き受け先(2026-08-26 着手時に確定)
 
 | 対象 | この環境での検証 | 引き受け先 |
 | --- | --- | --- |
-| Dart 側の列挙(port の結果を保存場所へ写す、失敗の区別) | **testで閉じる** | — |
-| **Kotlin 側の channel と `getStorageVolumes()` の実挙動** | **できない**(SDKが無い) | 人間(manual) |
-| **SD カード・USB が実際に並ぶこと** | **できない** | 人間(manual) |
-| Android build | **できない** | 人間(manual) |
+| Dart 側の列挙(port の結果を保存場所へ写す、欠落の区別、拠り所へ落ちる条件) | **testで閉じる**(`android_storage_browser_test.dart`) | — |
+| channel から返った値の**読み方**(型・欠損・失敗) | **testで閉じる**(`storage_volumes_channel_test.dart`。`TestDefaultBinaryMessenger` で相手を差し替える) | — |
+| **欠落を画面に出すこと** | **widget testで閉じる**(`storage_browser_view_test.dart`) | — |
+| `locations()` が**投げないこと** | **testで閉じる**(約束を破って投げる port を注入する) | — |
+| 上記を**手抜きできないこと** | **mutationで固定する**(範囲と件数は下の「検証結果」表が持つ) | — |
+| **Kotlin 側の channel と `getStorageVolumes()` の実挙動** | **できない**(SDKが無い。`MainActivity.kt` は CI で1行も実行されない) | **人間**([`manual-verification.md`](manual-verification.md) 手順3) |
+| **SD カード・USB が実際に並ぶこと** | **できない** | **人間**(手順2・手順3) |
+| **`volume.getDescription()` が返す名前** | **できない**(端末が決める) | **人間**(手順2) |
+| Android build(`armeabi-v7a` を含む) | **できない** | **人間**(手順4。`013:T08` から引き継いだ `__arm__` の照合もここで閉じる) |
+
+## 実装(2026-08-26)
+
+### 列挙の手段
+
+`StorageManager.getStorageVolumes()` を platform channel
+(`com.example.batch_rename_master/storage_volumes`)越しに読む。**`013:T06` の
+権限 channel と同じ形**で、`MainActivity` に handler を1つ足した。
+
+- **mount されているものだけ返す**(`state != MEDIA_MOUNTED` は落とす)。取り外し済みを
+  保存場所として並べると、開いた時点で失敗する。
+- **API 30 未満は `error` を返す。** `StorageVolume.getDirectory()` が API 30 からで、
+  `MANAGE_EXTERNAL_STORAGE` も API 30 からなので、**この経路は API 30 未満では到達しない**
+  (013 REQ-001 で browser が開かない)。
+- **失敗を空の一覧にしない。** `result.error` で理由を渡す。
+
+### 欠落を隠さない
+
+**これが今回の欠陥が長く隠れた原因である。** `013:T07` の実装は列挙に失敗しても内部
+ストレージだけを返し、**利用者からも Agent からも「媒体が無い端末」と区別できなかった。**
+
+- `StorageVolumesResult` を `VolumesListed` / `VolumesUnavailable` の sealed 型にした
+  (**004 REQ-014 が `listNames` に課しているのと同じ規律**)。
+- `StorageBrowserPort.locations()` の戻り値を `StorageLocations`(見つかった一覧 +
+  欠落の理由)へ変えた。**保存場所は内部共有ストレージだけでも成立する**ので、
+  取得の失敗は全滅ではなく**欠落**である。
+- **画面に注記を出す**(`browser-locations-failure`)。004 spec は提示の仕方を自由と
+  しているので要求は増えていないが、**区別を持たないことが実際に問題を隠した**以上、
+  持たせる方を採った。
+- **`locations()` は投げない。** 投げると browser が読み込み中のまま止まる
+  (`013:T08` で「例外が保護の外にある」型を2回踏んだ)。
+
+### `013:T08` の probe も新しい手段へ合わせた
+
+`storageViewOf` が **platform が返した生の volume と、保存場所として採用した結果の
+両方**を出す。**次の実機確認で、`0000-0000` が出るかどうかが直接分かる。**
+
+## 検証結果
+
+| 種別 | commandと結果 |
+| --- | --- |
+| related test | `flutter test test/spec_004_file_source/` = **PASS(139件)**、`test/spec_013_android_rename/storage_probe_test.dart` = **PASS(52件)** |
+| full regression | `flutter test` = **PASS(654件)**。T12着手前は641件 |
+| static analysis | `flutter analyze` = **PASS** |
+| format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
+| ASDD構造 | `workspace.py check specs` = **PASS(8 plans, 67 tasks)** |
+| OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(47 file、4 rule) |
+| 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
+| mutation | `M114`・`M143`・`M144`〜`M151` = **10 KILLED / 0 SURVIVED / 0 SKIPPED**。表全体は `--list` = **151 mutations, 0 with an unexpected match count** |
+| **Kotlin 側** | **未検証。** CI では1行も実行されない |
+| **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
+
+**`M114` と `M143` は消さずに言い直した。** 列挙の手段が変わって元の find が消えたので、
+**同じ意図を新しい構造の上で押さえ直した**(`M114` = 保存場所の root を volume の上位に
+する、`M143` = 取得できなかったことを「0 件」と報告する)。
 
 ## 仕様被覆
 
@@ -94,10 +154,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
+- Last checkpoint: **実装し、host で閉じられる範囲を固めた**(`flutter test` = PASS(654)、mutation 10 KILLED)。**Kotlin 側と実機は未検証**
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: 独立review → そのあと人間の実機確認
 - Requested action: なし
 - Evidence revision: `dev@5307fa7` + `T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)
-- Next Agent action: **着手前に、`013:T06` が持つ platform channel を再利用できるかを見ること。**
-  そのうえで列挙を port にし、fake で閉じてから実機を依頼する
+- Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる**
