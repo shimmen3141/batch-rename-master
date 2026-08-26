@@ -410,11 +410,16 @@ range は `5307fa7...7e18647`。**未解決のP0/P1は無い。** reviewerは**�
 | P3-9 | Android build の対象revisionが記録されていない | 成果物の欠陥(軽微) | 直した(`16d6b24`以降 code差分なし) |
 | P3-10 | `plan.md` の `[x]` 1件目が「実機確認」の字面のまま(実体はemulator) | 成果物の欠陥(軽微) | 直した(「端末確認」+ **emulator** を強調) |
 
+## merge(2026-08-26)
+
+**PR #154 を merge した**(`dev@8c2a35e`、merge commit)。merge 後の `dev` で
+`flutter test` = **PASS(641)** を確認した。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 4(`final-evidence`)= PASS。** そのP2 2件とP3 5件も反映済み。項目1〜3が埋まり項目4は一段進み、**残りは引き受け先つきで受容**した
+- Last checkpoint: **PR #154 を merge した(`dev@8c2a35e`)。** `dev`上で `flutter test` = PASS(641) を確認済み
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: なし(merge可能)
+- Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
-- Next Agent action: **merge する**(独立review attempt 4 = PASS、auto-merge 7条件充足)。merge後は (1) `plan.md` の受け入れ条件のうち `T06`/`T07` の証拠で埋まる3件を記録だけのPRで揃える — **そのとき「Androidで、同じことが成立する」の証拠行が「現在はSAFが親folderを列挙できないため`listNames`が失敗し」のままで、`T07` が SAF を捨てた後の事実と合わない**ので一緒に直す(独立review attempt 4 の range外の観測)、(2) `013:T12` へ進む(この観測が見つけた欠陥の修正)
+- Next Agent action: なし。**このtaskは完了した。** 残るのは (1) `plan.md` の受け入れ条件のうち `T06`/`T07` の証拠で埋まる3件を記録だけのPRで揃える — **そのとき「Androidで、同じことが成立する」の証拠行が「現在はSAFが親folderを列挙できないため`listNames`が失敗し」のままで、`T07` が SAF を捨てた後の事実と合わない**ので一緒に直す(独立review attempt 4 の range外の観測)、(2) `013:T12` へ進む(この観測が見つけた欠陥の修正)
