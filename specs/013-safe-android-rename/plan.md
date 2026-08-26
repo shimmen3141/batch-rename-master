@@ -55,11 +55,12 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
   - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
 - [x] **Androidで**、同じことが成立する
   - 証拠: `T07`の端末確認(2026-08-25、対象commit `56b6a0e`)。**読み込んでいない`keep.txt`との衝突が実行前に警告として出て、そのまま実行しても上書きされず`keep (1).txt`が作られた。** ~~現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる~~ **この前提は`T07`が解消した** — app内browserの列挙権限で`listNames`がAndroidで成功する
-- [ ] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
-  - 証拠: `T11`、005 spec例24/26/28〜30、VER-008
+- [x] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
+  - 証拠: `T11`(independent review attempt 14 = PASS、PR #139)、005 spec例24/26/28〜30、VER-008。`test/spec_005_rename_exec/renumbering_test.dart`(22件。**再採番する側としない側の両方**を固定 — 一時名・復旧改名・巻き戻しでは再採番しない)と`test/spec_005_rename_exec/warning_confirmation_results_test.dart`(結果に**全件**を「旧 → 新」で出し、先頭数件で打ち切らない)
 - [x] 占有名がfolder単位で効き、実在名を取得できないfolderを含む実行は行わない
   - 証拠: `T10`(2026-08-21)/`T11`、005 spec例25d/25e、REQ-026/REQ-027、OQ-001〜OQ-008の決着(revision 5として承認済み)。mutation M23/M24/M34/M38/M41/M43
-- [ ] 005の安全なunsupportedとnegative testを弱めない(退避経路の維持)
+- [x] 005の安全なunsupportedとnegative testを弱めない(退避経路の維持)
+  - 証拠: `test/spec_005_rename_exec/platform_rename_executor_test.dart`。`SafRenameExecutor`は**providerを呼ばず理由付きunsupportedを返す**(REQ-017 / INV-002)negative testを維持し、**`013:T07`でwiringから外れた後も code とtestを残している**ことを検査している(ADR-002の退避経路。Playの宣言が却下されたらAndroid未対応へ戻す)
 
 ## 人間の決定
 
@@ -87,6 +88,13 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 | 2026-08-24 | **013 REQ-001の明記** | **approved。** 「**利用者が読み込もうとして以降**、読み込み導線の位置に説明と設定導線を示す」を追記した。旧文面は「付与されていない**間**」としか書いておらず、**起動直後から出すのかが読み手に委ねられていた**。**採らなかった読み(起動直後から出す)を明示的に排除したもので、実装もtestも元からこの側であり変更していない。** 範囲の定義は013 `spec.md` REQ-001が正本 | 開発者承認 |
 
 `T02`が問うた論点は**4件**で、正本は[`T02`](tasks/T02-define-permission-and-api-level/task.md)の「決めること」である。ここへ複製せず、そこを見る。**4件はいずれも`spec.md`で決着した。**
+
+**全体の受け入れ条件は 2026-08-26 に12件すべてが埋まった。** ただし
+**[`spec.md`](spec.md) の「未解決」は残っている** — **Playのpolicyに該当しうるか、
+および審査に通るか**である。これは実装で閉じられる論点ではなく、**通らなければ
+ADR-002 の退避経路(Android未対応へ戻す)へ落とす**という設計になっている。
+`SafRenameExecutor` と `SafFileSource` を残しているのはそのためで、
+受け入れ条件の最後の1件がそれを固定している。
 
 **`spec.md`は2026-08-14に`approved`。** preflightを削除し、権限のREQ-001〜004だけを残した。**この表は「承認した論点」の記録であり、状態の正本は[`spec.md`](spec.md)の`Status`と各`task.json`である。**
 
