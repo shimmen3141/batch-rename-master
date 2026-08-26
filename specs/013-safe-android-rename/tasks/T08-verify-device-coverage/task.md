@@ -134,8 +134,8 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
 | mutation | `M122`〜`M143` = **22 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`・`M133`〜`M137`・`M140`〜`M142`は**独立reviewerが足したもの**(`M129`/`M135`は対照)。表全体は `--list` = **143 mutations, 0 with an unexpected match count** |
-| **端末での観測** | **1回目を受領(2026-08-26)。** 項目1〜4が埋まり、5〜7は未了。詳細は下の節 |
-| **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
+| **端末での観測** | **2回受領(2026-08-26)。** 項目1〜4が埋まり、**5〜7は受容した残余risk**。詳細は下の節 |
+| **Android build** | **成功(2026-08-26)。** `flutter build apk --debug` が host で通った |
 
 ## 独立review attempt 1(2026-08-25)= FAIL
 
@@ -326,11 +326,52 @@ SURVIVED になり、表の意味(「落ちること」を約束する)が壊れ
 `Download`・app ごとの保存領域・非FUSE の対照の3箇所は、**両回とも `nameConflict` /
 目標名無傷 / source 無傷 / 対照は置換**だった。**項目1・2・4 の結論は変わらない。**
 
+## Android build(手順7、2026-08-26)= 成功
+
+```
+flutter build apk --debug
+Running Gradle task 'assembleDebug'...
+✓ Built build\app\outputs\flutter-apk\app-debug.apk
+```
+
+**AI container では一度も実行できていなかった**(SDK が無い)。`013:T05` の native asset
+(`hook/build.dart` 経由の C)と `T07` の変更を含めて、**host で Android build が通ることを
+初めて確認した。**
+
+## 受容した残余risk
+
+**7項目のうち3つは埋まらなかった。** AGENTS.md のとおり、**引き受け先を添えて受容する**
+(受容の記録は reviewer ではなく task 所有 Agent が行う)。
+
+| 残余risk | 満たさない条件 | 引き受け先 |
+| --- | --- | --- |
+| **項目5: API level の幅。** Android 11〜16 で `RENAME_NOREPLACE` が効くかは未観測。観測できたのは API 37 だけで、`T01` の S-2 と同じ level である。**MediaProvider の FUSE 実装は version ごとに変わる** | 3(**CIで閉じられない**。別の API level の端末が要る) | **人間**。[`manual-verification.md`](manual-verification.md) の手順4がそのまま使える。**端末が増えたときに再実行する** |
+| **項目6: 実機。** emulator のみ。vendor kernel や f2fs で挙動が変わりうる | 3(同上) | **人間**。手順5 |
+| **項目7: FAT 系の媒体で効くか。** 端末には vfat の volume が装着されているが、**app からは保存場所として見えない**ので観測できなかった | 3(同上)。**加えて、見えるようにすること自体が別taskである** | **`013:T12`**(列挙の作り直し)。**T12 が入れば、この probe が自動で観測対象に入れる** — `T12` の実機確認で項目7 も埋まる |
+
+**この3つは製品の可否を左右しない。** 005 contract revision 4 により、フラグが効かない
+環境では実在確認へ劣化するだけで機能する。**分からないのは保証の水準である。**
+
+**`T08` の受け入れ証拠「1または2がNGなら…」「7がNGなら…」には当たらない** —
+1・2 は OK で、7 は NG ではなく**未観測**である。媒体側の可否は `T12` 以後に判明する。
+
+## plan の受け入れ条件のうち、この観測で埋まったもの
+
+`plan.md` の「全体の受け入れ条件」で、**証拠として `T08` を名指ししている2件**が埋まった。
+このPRで `[x]` にする。
+
+- 「Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である」
+- 「実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した」
+
+**他の3件(権限導線・改名とundo・Androidでの衝突警告)は `T06` / `T07` の実機確認で
+既に証拠が揃っているが、このPRでは触らない** — 別taskの証拠を T08 の review range へ
+混ぜない。**merge 後に記録だけのPRで揃える。**
+
 ## Current state / handoff
 
-- Last checkpoint: **端末での観測2回目で切り分けが付いた**(2026-08-26)。**app は `/storage` を列挙できない(`EACCES`)** ため、現在の実装は取り外し可能な volume を1つも保存場所にできない — **004 REQ-015 / 代表例26e に対する `013:T07` の欠陥**である。項目1〜4は埋まり、5〜7は埋まらなかった
+- Last checkpoint: **7項目の観測と Android build が済んだ**(2026-08-26)。項目1〜4が埋まり、**5〜7は引き受け先つきで受容**した。`/storage` が `EACCES` である件は `013:T12` が引き受ける
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: **人間の判断**(保存場所の列挙をどう直すか)と、**手順7**(`flutter build apk --debug`)
+- Waiting for: `final-evidence` の独立review
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
-- Next Agent action: **人間の観測結果を待つ。** 受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**(Agentが推測で埋めない)。そのあと`final-evidence`のreviewを通してmergeする。**このbranchは動かさない**
+- Next Agent action: **`final-evidence` の独立reviewを通してmergeする。** merge後は (1) `plan.md` の受け入れ条件のうち `T06`/`T07` の証拠で埋まる3件を記録だけのPRで揃える、(2) `013:T12` へ進む(この観測が見つけた欠陥の修正)

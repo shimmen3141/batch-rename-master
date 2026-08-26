@@ -43,14 +43,14 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - [x] 候補ごとの原子的no-replace、失敗時不変、handle継続性が一次資料とspikeで区別される(`T01`)
 - [x] permissionと配布制約が公式資料に接続される(`T01`)
 - [x] 長期的なWhy/Why notを持つdecision recordで採否を判断できる([ADR-002](decisions/ADR-002-android-rename-storage-boundary.md))
-- [ ] Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である
-  - 証拠: 005 contract revision 4、仕様由来test、`T08`の実機確認
+- [x] Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である
+  - 証拠: 005 contract revision 4、仕様由来test、`T08`の実機確認(2026-08-26、emulator API 37。`Download`・app ごとの保存領域・非FUSE の対照の3箇所で `nameConflict`、目標名と source は無傷、**同じ場所で通常 rename は置換した**)
 - [ ] `MANAGE_EXTERNAL_STORAGE`の要否と、許可されないときの振る舞いが利用者から観測できる
   - 証拠: `T02`で承認された仕様、widget test、実機確認
 - [ ] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
   - 証拠: 004 spec再承認、実機確認
-- [ ] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
-  - 証拠: `T08`。**`shell` uidの観測では代用しない**
+- [x] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
+  - 証拠: `T08`(2026-08-26)。**`shell` uidの観測では代用していない** — 製品と同じpackage・権限・mount viewで走る `integration_test/` から観測した。**成立範囲は API 37 emulator まで**で、API level の幅・実機・FAT 系は`T08`が引き受け先つきで受容した残余riskである
 - [x] **desktopで**、読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
   - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
 - [ ] **Androidで**、同じことが成立する
