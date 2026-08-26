@@ -158,5 +158,5 @@
 - Blocker category: なし
 - Waiting for: 独立review → そのあと人間の実機確認
 - Requested action: なし
-- Evidence revision: `dev@5307fa7` + `T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)
+- Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
 - Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる**
