@@ -876,9 +876,9 @@
     {
       "id": "M125",
       "file": "integration_test/storage_probe.dart",
-      "note": "観測に使った file を消さない(実機の共有ストレージに残骸が残る。013:T07のmanualで人間が片付ける羽目になる)",
-      "find": "  await cleanUpProbeFiles(all);\n\n  return ProbeRow(",
-      "replace": "\n  return ProbeRow("
+      "note": "観測に使った file を消さない(実機の共有ストレージに残骸が残る。013:T07のmanualで人間が片付ける羽目になる)。attempt 2 で後片付けを finally へ移したので対象を言い直した",
+      "find": "  } finally {\n    await cleanUpProbeFiles(all);\n  }",
+      "replace": "  } finally {\n    // 後片付けをしない\n  }"
     },
     {
       "id": "M126",
@@ -925,9 +925,58 @@
     {
       "id": "M132",
       "file": "integration_test/storage_probe.dart",
-      "note": "nativeを呼べなかったときに後片付けをしない(端末の共有ストレージに残骸が残る。独立review attempt 1 のP1-1)",
-      "find": "    await cleanUpProbeFiles(all);\n    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');",
-      "replace": "    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');"
+      "note": "nativeを呼べなかったことを観測結果にせず、例外を伝播させる(報告が丸ごと消える。独立review attempt 1 のP1-1)。attempt 2 の構造変更で対象を言い直した",
+      "find": "      return ProbeRow.skipped(target, '排他 rename を呼べない: $error');",
+      "replace": "      rethrow;"
+    },
+    {
+      "id": "M133",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-1] 劣化した場所(fallbackRequired)ではsourceの検査を飛ばす",
+      "find": "    if (observedSourceBody != sourceBody) {",
+      "replace": "    if (exclusive == NativeRenameResult.nameConflict &&\n        observedSourceBody != sourceBody) {"
+    },
+    {
+      "id": "M134",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-2] 対照の免除をfallbackRequiredへ広げる。Androidで最も起きやすい結果がこれなので、広げると『その場所の結果を読めない』を見逃す",
+      "find": "    if (exclusive == NativeRenameResult.permissionDenied) return null;",
+      "replace": "    if (exclusive == NativeRenameResult.permissionDenied ||\n        exclusive == NativeRenameResult.fallbackRequired) {\n      return null;\n    }"
+    },
+    {
+      "id": "M135",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-3][対照] M131の逆向き。劣化した行を「分かっていない」と数える(全volumeが劣化する端末で偽の失敗になる)",
+      "find": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict ||\n      exclusive == NativeRenameResult.fallbackRequired;",
+      "replace": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict;"
+    },
+    {
+      "id": "M136",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-4] 後片付けのdirectory削除を再帰にする(元からあった中身を巻き添えにする=データ損失)",
+      "find": "    await Directory(path).delete();",
+      "replace": "    await Directory(path).delete(recursive: true);"
+    },
+    {
+      "id": "M137",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-5] nativeの保護をFileSystemExceptionへ狭める(P1-1が戻る。@Nativeのsymbol解決失敗はFileSystemExceptionではない)",
+      "find": "      exclusive = exclusiveRename(source, destination);\n    } catch (error) {",
+      "replace": "      exclusive = exclusiveRename(source, destination);\n    } on FileSystemException catch (error) {"
+    },
+    {
+      "id": "M138",
+      "file": "integration_test/storage_probe.dart",
+      "note": "辿れないvolumeのDownloadを見にいく処理を無防備へ戻す(Directory.existsが投げ、観測対象の列挙ごと落ちて報告がゼロになる。独立review attempt 2 のP1-2)",
+      "find": "      try {\n        final download = p.join(location.root, 'Download');\n        if (await Directory(download).exists()) {\n          targets.add(ProbeTarget(download, '${location.name} の Download'));\n        }\n      } catch (_) {",
+      "replace": "      {\n        final download = p.join(location.root, 'Download');\n        if (await Directory(download).exists()) {\n          targets.add(ProbeTarget(download, '${location.name} の Download'));\n        }\n      }\n      if (false) {"
+    },
+    {
+      "id": "M139",
+      "file": "integration_test/storage_probe.dart",
+      "note": "対照の保護をFileSystemExceptionへ狭める(注入された実装が別の例外を投げると観測結果ではなく例外になる。独立review attempt 2 のP2-13)",
+      "find": "    } catch (_) {\n      // 対照を実行できなかったことは `defect` が拾う。",
+      "replace": "    } on FileSystemException {\n      // 対照を実行できなかったことは `defect` が拾う。"
     }
   ]
 }

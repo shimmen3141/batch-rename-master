@@ -40,22 +40,26 @@ void main() {
   debugPrint = debugPrintSynchronously;
 
   testWidgets('共有ストレージの各 volume で排他 rename が効くかを観測する', (tester) async {
-    final targets = await androidProbeTargets(extraDirs: _extraDirs);
+    // **報告と後片付けを `finally` で保証する。** 個別の `await` を囲む形は、
+    // `await` を1つ足すたびに漏れる — 独立review attempt 1 で native の呼び出しを
+    // 囲んだところ、attempt 2 で列挙(`androidProbeTargets`)に同じ穴が見つかった。
+    // ここで落ちると**人間は1行も報告を得られず、端末に残骸が残る**。
     final rows = <ProbeRow>[];
-    for (final target in targets) {
-      try {
-        rows.add(await probeDirectory(target));
-      } catch (error) {
-        // **報告へ必ず到達させる。** 1つの場所で何が起きても、他の場所の観測と
-        // 出力を捨てない(独立review attempt 1 の P1-1)。
-        rows.add(ProbeRow.skipped(target, '観測中に例外: $error'));
+    try {
+      final targets = await androidProbeTargets(extraDirs: _extraDirs);
+      for (final target in targets) {
+        try {
+          rows.add(await probeDirectory(target));
+        } catch (error) {
+          rows.add(ProbeRow.skipped(target, '観測中に例外: $error'));
+        }
       }
+    } finally {
+      await cleanUpProbeDirectory(
+        mediaProbeDirectoryOf(const AndroidStorageBrowser().primaryRoot),
+      );
+      debugPrint(reportOf(rows));
     }
-    await cleanUpProbeDirectory(
-      mediaProbeDirectoryOf(const AndroidStorageBrowser().primaryRoot),
-    );
-
-    debugPrint(reportOf(rows));
 
     // **フラグについて何も分からなければ失敗にする。** 「対象が無かった」
     // 「どこも書けなかった」を「問題なし」と読ませない(`013:T07` の listNames と

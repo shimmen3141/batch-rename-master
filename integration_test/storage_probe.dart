@@ -166,54 +166,61 @@ Future<ProbeRow> probeDirectory(
   );
   final all = [source, destination, controlSource, controlTarget];
 
+  // **後片付けは `finally` に置く。** 個別の `await` を catch で囲む形は、
+  // **`await` を1つ足すたびに漏れる** — 独立review attempt 1 の P1-1 を「native の
+  // 呼び出しだけ囲む」で直したところ、attempt 2 で列挙側(`androidProbeTargets`)に
+  // 同じ穴が見つかった。このprojectは同じ結論に既に達している
+  // (`lib/data/rename_exec/desktop_rename_executor.dart` の「個別のawaitをcatchで
+  // 囲むのではなく、まとめて囲む」)。
   try {
-    await cleanUpProbeFiles(all);
-    await File(source).writeAsString(sourceBody, flush: true);
-    await File(destination).writeAsString(targetBody, flush: true);
-  } on FileSystemException catch (error) {
-    return ProbeRow.skipped(
-      target,
-      'fixture を置けない: ${error.osError?.message ?? error.message}',
+    try {
+      await cleanUpProbeFiles(all);
+      await File(source).writeAsString(sourceBody, flush: true);
+      await File(destination).writeAsString(targetBody, flush: true);
+    } on FileSystemException catch (error) {
+      return ProbeRow.skipped(
+        target,
+        'fixture を置けない: ${error.osError?.message ?? error.message}',
+      );
+    }
+
+    // (1) 排他 rename。**目標名は実在している。**
+    final NativeRenameResult exclusive;
+    try {
+      exclusive = exclusiveRename(source, destination);
+    } catch (error) {
+      return ProbeRow.skipped(target, '排他 rename を呼べない: $error');
+    }
+
+    // (2) 実体がどうなったか。
+    final observedTargetBody = await _read(destination);
+    final observedSourceBody = await _read(source);
+
+    // (3) 対照。同じ場所で**通常 rename が置換する**ことを確かめる。これが起きない
+    //     場所では、(1) の結果を「フラグが効いた」と読めない。
+    NativeRenameResult? control;
+    String? observedControlBody;
+    try {
+      await File(controlSource).writeAsString(sourceBody, flush: true);
+      await File(controlTarget).writeAsString(targetBody, flush: true);
+      control = await plainRename(controlSource, controlTarget);
+      observedControlBody = await _read(controlTarget);
+    } catch (_) {
+      // 対照を実行できなかったことは `defect` が拾う。**注入された実装が
+      // `FileSystemException` 以外を投げても同じ**(P2-13)。
+    }
+
+    return ProbeRow(
+      target: target,
+      exclusive: exclusive,
+      observedTargetBody: observedTargetBody,
+      observedSourceBody: observedSourceBody,
+      control: control,
+      observedControlBody: observedControlBody,
     );
-  }
-
-  // (1) 排他 rename。**目標名は実在している。**
-  final NativeRenameResult exclusive;
-  try {
-    exclusive = exclusiveRename(source, destination);
-  } catch (error) {
-    // **後片付けを必ず通す。** ここで抜けると端末に残骸が残る。
+  } finally {
     await cleanUpProbeFiles(all);
-    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');
   }
-
-  // (2) 実体がどうなったか。
-  final observedTargetBody = await _read(destination);
-  final observedSourceBody = await _read(source);
-
-  // (3) 対照。同じ場所で**通常 rename が置換する**ことを確かめる。これが起きない
-  //     場所では、(1) の結果を「フラグが効いた」と読めない。
-  NativeRenameResult? control;
-  String? observedControlBody;
-  try {
-    await File(controlSource).writeAsString(sourceBody, flush: true);
-    await File(controlTarget).writeAsString(targetBody, flush: true);
-    control = await plainRename(controlSource, controlTarget);
-    observedControlBody = await _read(controlTarget);
-  } on FileSystemException {
-    // 対照を実行できなかったことは `defect` が拾う。
-  }
-
-  await cleanUpProbeFiles(all);
-
-  return ProbeRow(
-    target: target,
-    exclusive: exclusive,
-    observedTargetBody: observedTargetBody,
-    observedSourceBody: observedSourceBody,
-    control: control,
-    observedControlBody: observedControlBody,
-  );
 }
 
 /// Android で観測する場所。
@@ -226,12 +233,26 @@ Future<List<ProbeTarget>> androidProbeTargets({
   String extraDirs = '',
 }) async {
   final targets = <ProbeTarget>[];
-  for (final location in await browser.locations()) {
-    targets.add(ProbeTarget(location.root, '${location.name} の root'));
-    final download = p.join(location.root, 'Download');
-    if (await Directory(download).exists()) {
-      targets.add(ProbeTarget(download, '${location.name} の Download'));
+  // **1つの volume で失敗しても、他の volume の観測を捨てない。**
+  // `/storage` には辿れない entry(取り外し済み・別 user・stale mount)が並びうる。
+  // `Directory.exists()` はそこで `PathAccessException` を投げる — **`false` を
+  // 返すのではない**(独立review attempt 2 の P1-2 が実測した)。
+  try {
+    for (final location in await browser.locations()) {
+      targets.add(ProbeTarget(location.root, '${location.name} の root'));
+      try {
+        final download = p.join(location.root, 'Download');
+        if (await Directory(download).exists()) {
+          targets.add(ProbeTarget(download, '${location.name} の Download'));
+        }
+      } catch (_) {
+        // この volume の Download は観測しない。root は観測対象に残っており、
+        // 読めなければ `probeDirectory` が理由つきで skip を返す。
+      }
     }
+  } catch (_) {
+    // 列挙そのものが落ちても、以降の観測対象(app の保存領域・非FUSE の対照・
+    // `--dart-define` で足した場所)は作る。**報告をゼロにしない。**
   }
 
   // app ごとの保存領域。共有ストレージの一部だが FUSE の扱いが違いうるので、
@@ -240,7 +261,7 @@ Future<List<ProbeTarget>> androidProbeTargets({
   try {
     await Directory(media).create(recursive: true);
     targets.add(ProbeTarget(media, 'app ごとの保存領域'));
-  } on FileSystemException {
+  } catch (_) {
     // 作れなければ観測しない。理由は runner の出力に出ない — **`/Android/` 配下は
     // 読めないことがある**という既知の事実で、`013:T07` の manual で確認済みである。
   }

@@ -75,6 +75,23 @@ void main() {
       expect(left, isEmpty);
     });
 
+    test('**対照が投げても後片付けする**(後片付けを finally に置いた)', () async {
+      final row = await probeDirectory(
+        ProbeTarget(dir.path, 'host'),
+        plainRename: (source, destination) async =>
+            throw ArgumentError('通常 rename を呼べない'),
+      );
+
+      // 対照が取れなかったことは defect が拾う。
+      expect(row.defect, contains('対照'));
+      final left = dir
+          .listSync()
+          .map((entity) => p.basename(entity.path))
+          .where((name) => name.startsWith(probePrefix))
+          .toList();
+      expect(left, isEmpty);
+    });
+
     test('書けない場所は skip として返し、例外を投げない', () async {
       final missing = p.join(dir.path, 'no-such-directory');
 
@@ -87,7 +104,10 @@ void main() {
     });
   });
 
-  group('defect の判定', () {
+  // **升目で回す。** 1件ずつ足す形は、隣が空いたまま残る — attempt 1 で
+  // `fallbackRequired` × 目標名 を足したら、attempt 2 で `fallbackRequired` × 対照 が
+  // 空いていた(独立review attempt 2 の P2-9)。**結果 × 破れ方**を表にして埋める。
+  group('defect の判定(結果 × 破れ方)', () {
     ProbeRow rowWith({
       NativeRenameResult exclusive = NativeRenameResult.nameConflict,
       String? observedTargetBody = targetBody,
@@ -103,84 +123,64 @@ void main() {
       observedControlBody: observedControlBody,
     );
 
-    test('劣化(fallbackRequired)は欠陥ではない', () {
-      expect(
-        rowWith(exclusive: NativeRenameResult.fallbackRequired).defect,
-        isNull,
-      );
-    });
+    /// **観測できた結果**の3種。この3つ以外は「想定外」で捕まる。
+    const results = [
+      NativeRenameResult.nameConflict,
+      NativeRenameResult.fallbackRequired,
+      NativeRenameResult.permissionDenied,
+    ];
 
-    test('**劣化した場所でも、目標名が置換されたら欠陥**(RV-N1)', () {
-      // `fallbackRequired` は **Android で最も起きやすい結果**である。ここで検査を
-      // 飛ばすと、実機の観測が丸ごと空振りになる。
-      expect(
-        rowWith(
-          exclusive: NativeRenameResult.fallbackRequired,
-          observedTargetBody: sourceBody,
-        ).defect,
-        contains('目標名'),
-      );
-    });
+    /// 実体の破れ方。**どの結果でも欠陥である**(005 INV-002 / REQ-016)。
+    final bodyBreakages = <String, ProbeRow Function(NativeRenameResult)>{
+      '目標名が置換された': (result) =>
+          rowWith(exclusive: result, observedTargetBody: sourceBody),
+      '目標名が消えた': (result) =>
+          rowWith(exclusive: result, observedTargetBody: null),
+      'source が変わった': (result) =>
+          rowWith(exclusive: result, observedSourceBody: 'changed'),
+      'source が消えた': (result) =>
+          rowWith(exclusive: result, observedSourceBody: null),
+    };
 
-    test('**劣化した場所でも、source が変わったら欠陥**(RV-N1)', () {
-      expect(
-        rowWith(
-          exclusive: NativeRenameResult.fallbackRequired,
-          observedSourceBody: null,
-        ).defect,
-        contains('source'),
-      );
-    });
+    /// 対照の破れ方。**書けない場所では免除する**(そこでは対照も失敗して当然)。
+    final controlBreakages = <String, ProbeRow Function(NativeRenameResult)>{
+      '対照が失敗した': (result) => rowWith(
+        exclusive: result,
+        control: NativeRenameResult.io,
+        observedControlBody: targetBody,
+      ),
+      '対照が取れなかった': (result) =>
+          rowWith(exclusive: result, control: null, observedControlBody: null),
+      '対照が success でも置換していない': (result) =>
+          rowWith(exclusive: result, observedControlBody: targetBody),
+    };
 
-    test('**目標名が置換されたら欠陥**(005 INV-002)', () {
-      expect(rowWith(observedTargetBody: sourceBody).defect, contains('目標名'));
-    });
+    for (final result in results) {
+      test('${result.name}: 破れていなければ欠陥にしない', () {
+        expect(rowWith(exclusive: result).defect, isNull);
+      });
 
-    test('**目標名が消えていても欠陥**(置換の一形態を見逃さない)', () {
-      expect(rowWith(observedTargetBody: null).defect, contains('目標名'));
-    });
+      for (final entry in bodyBreakages.entries) {
+        test('${result.name} × ${entry.key} は欠陥', () {
+          expect(entry.value(result).defect, isNotNull);
+        });
+      }
 
-    test('**改名されていないのに source が変わったら欠陥**(005 REQ-016)', () {
-      expect(rowWith(observedSourceBody: null).defect, contains('source'));
-    });
-
-    test('**対照が置換しなければ欠陥**(因果を読めない)', () {
-      expect(
-        rowWith(
-          control: NativeRenameResult.io,
-          observedControlBody: targetBody,
-        ).defect,
-        contains('対照'),
-      );
-    });
-
-    test('対照が success でも置換していなければ欠陥', () {
-      expect(rowWith(observedControlBody: targetBody).defect, contains('対照'));
-    });
+      for (final entry in controlBreakages.entries) {
+        final exempt = result == NativeRenameResult.permissionDenied;
+        test('${result.name} × ${entry.key} は'
+            '${exempt ? '欠陥にしない(書けない場所なので免除)' : '欠陥'}', () {
+          final defect = entry.value(result).defect;
+          expect(defect, exempt ? isNull : contains('対照'));
+        });
+      }
+    }
 
     test('想定外の結果は欠陥', () {
       expect(rowWith(exclusive: NativeRenameResult.io).defect, contains('想定外'));
-    });
-
-    test('書けない場所(permissionDenied)は、対照が無くても欠陥にしない', () {
       expect(
-        rowWith(
-          exclusive: NativeRenameResult.permissionDenied,
-          control: NativeRenameResult.permissionDenied,
-          observedControlBody: targetBody,
-        ).defect,
-        isNull,
-      );
-    });
-
-    test('**書けない場所でも、目標名が置換されていたら欠陥**(P2-5)', () {
-      // fixture を置けた場所でしかここへ来ない。免除するのは対照だけである。
-      expect(
-        rowWith(
-          exclusive: NativeRenameResult.permissionDenied,
-          observedTargetBody: sourceBody,
-        ).defect,
-        contains('目標名'),
+        rowWith(exclusive: NativeRenameResult.success).defect,
+        contains('想定外'),
       );
     });
 
@@ -314,6 +314,28 @@ void main() {
         targets.map((target) => target.directory),
         contains(Directory.systemTemp.path),
       );
+    });
+
+    test('**辿れない volume があっても投げず、他の観測対象を返す**(P1-2)', () async {
+      // `/storage` には辿れない entry(取り外し済み・別 user・stale mount)が
+      // 並びうる。`Directory.exists()` はそこで **`false` を返さず投げる**。
+      final volume = Directory(p.join(dir.path, 'unreadable'));
+      await volume.create(recursive: true);
+      final result = await Process.run('chmod', ['000', volume.path]);
+      expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
+      addTearDown(() => Process.run('chmod', ['700', volume.path]));
+
+      final targets = await androidProbeTargets(
+        browser: AndroidStorageBrowser(
+          primaryRoot: volume.path,
+          volumesDirectory: p.join(dir.path, 'no-volumes'),
+        ),
+      );
+
+      // **報告をゼロにしない。** root と非FUSE の対照は残る。
+      final directories = targets.map((target) => target.directory).toList();
+      expect(directories, contains(volume.path));
+      expect(directories, contains(Directory.systemTemp.path));
     });
 
     test('--dart-define で足した場所を観測対象にする', () async {
