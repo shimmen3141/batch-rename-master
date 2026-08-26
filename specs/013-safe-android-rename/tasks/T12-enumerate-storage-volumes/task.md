@@ -93,8 +93,10 @@
 (`com.example.batch_rename_master/storage_volumes`)越しに読む。**`013:T06` の
 権限 channel と同じ形**で、`MainActivity` に handler を1つ足した。
 
-- **mount されているものだけ返す**(`state != MEDIA_MOUNTED` は落とす)。取り外し済みを
-  保存場所として並べると、開いた時点で失敗する。
+- **開ける volume だけ返す。** 取り外し済み・未 mount は落とすが、**読み取り専用で
+  mount されているものは並べる** — 装着されている以上 REQ-015 の保存場所で、開いて
+  辿れる(独立review attempt 1 の P1-1)。書けないことは REQ-018 の注記と 005 REQ-013 の
+  実行結果が示す。**列挙から落とすのは「判定で機能を止める」側**である。
 - **API 30 未満は `error` を返す。** `StorageVolume.getDirectory()` が API 30 からで、
   `MANAGE_EXTERNAL_STORAGE` も API 30 からなので、**この経路は API 30 未満では到達しない**
   (013 REQ-001 で browser が開かない)。
@@ -125,14 +127,14 @@
 
 | 種別 | commandと結果 |
 | --- | --- |
-| related test | `flutter test test/spec_004_file_source/` = **PASS(139件)**、`test/spec_013_android_rename/storage_probe_test.dart` = **PASS(52件)** |
-| full regression | `flutter test` = **PASS(654件)**。T12着手前は641件 |
+| related test | `flutter test test/spec_004_file_source/` = **PASS(147件)**、`test/spec_013_android_rename/storage_probe_test.dart` = **PASS(52件)**、`test/tooling/platform_channel_names_test.dart` = **PASS(3件)** |
+| full regression | `flutter test` = **PASS(660件)**。T12着手前は641件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS(8 plans, 67 tasks)** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(47 file、4 rule) |
 | 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
-| mutation | `M114`・`M143`・`M144`〜`M151` = **10 KILLED / 0 SURVIVED / 0 SKIPPED**。表全体は `--list` = **151 mutations, 0 with an unexpected match count** |
+| mutation | `M114`・`M143`・`M144`〜`M159` = **18 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M152`〜`M158`は**独立reviewerが足したもの**(`M154`〜`M157`は対照)。表全体は `--list` = **159 mutations, 0 with an unexpected match count** |
 | **Kotlin 側** | **未検証。** CI では1行も実行されない |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -152,11 +154,33 @@
   開発者が「013 に新task を立てて直す」と決定して定義。**ID は `T12`** —
   `T09` は2026-08-14に削除済みで**再利用しない**、`T10`/`T11` は使用中である。
 
+## 独立review attempt 1(2026-08-26)= FAIL
+
+range は `cc5f031...6fb1c6d`。**方針は正しいと確認された** — 004 `spec.md` に差分が無く、
+`StorageManager.getStorageVolumes` は「自由とする点」に**名指しで**載っている。reviewer は
+AOSP の一次資料(`StorageVolume.java` / `StorageManager.java`)に当たり、`getDirectory()` の
+nullable、`getStorageVolumes()` に権限要件が無いこと、`getDescription()` の扱いも確かめている。
+
+**しかし、このtaskが消しに来た型が Kotlin に1行残っていた。**
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| **P1-1** | **`MEDIA_MOUNTED_READ_ONLY` の媒体が、注記も無しに消える。** 書き込み保護のSDカードなどが該当し、**落とされた volume は `failure` も付かない**ので画面は「理由なしで内部ストレージだけ」になる — **`013:T08` で見たのと同じ絵**である。004 REQ-018 の「隠さず注記する。判定で機能を止めない」とも逆向き | 成果物の欠陥 | **並べる側へ直した。** 装着されている以上 REQ-015 の保存場所であり、開いて辿れる。書けないことは注記(REQ-018)と実行結果(005 REQ-013)が示す。**要求を弱める側ではない**ので、reviewer の推奨どおりこの選択を採った |
+| P2-1 | `013:T08` の手順書の期待出力が現revisionと一致しなくなった(`--- app から見た /storage ---`) | 成果物の欠陥 | 直した。あわせて**SDカードの確認は`T12`の手順書の方が新しい**ことも書いた |
+| P2-2 | testのヘッダが存在しない注入口(`volumesDirectory`)を説明していた | 成果物の欠陥 | 直した |
+| P2-3 | **`_primaryOnly()` の守りが test を1度も通らない**(`RV01` SURVIVED)。宣言表は「`locations()` が投げないこと = testで閉じる」と宣言している | 安全網の穴 | **塞いだ。** `chmod 000` の親 directory で test を置いた(`M152`) |
+| P2-4 | 空の volume 名を弾く分岐が未検査(`RV02` SURVIVED) | 安全網の穴 | 塞いだ(`M153`) |
+| P2-5 | **channel 名の Kotlin↔Dart 一致を CI が1度も見ていない**(`RV07` SURVIVED)。ずれると機能が丸ごと死ぬが、Dart の test は mock 相手なので**自分自身と常に一致する** | 安全網の穴 | **受容せず塞いだ。** `test/tooling/platform_channel_names_test.dart` が **Kotlin の source を読んで**突き合わせる。**権限 channel(`013:T06`)も一緒に守られる**(`M158`) |
+| P3-1 | 画面側 `_loadLocations` が port の例外を受けない | 安全網の穴 | **受容せず塞いだ**(3行。`M159`) |
+
+**`RV01`〜`RV07` を `M152`〜`M158` として取り込んだ**(`M154`〜`M157` は対照)。
+**P2-5 と P3-1 は reviewer が「受容してよい」としたが、どちらも数行で閉じられるので塞いだ。**
+
 ## Current state / handoff
 
-- Last checkpoint: **実装し、host で閉じられる範囲を固めた**(`flutter test` = PASS(654)、mutation 10 KILLED)。**Kotlin 側と実機は未検証**
+- Last checkpoint: **独立review attempt 1 の P1 1件と P2/P3 6件を直した**(`flutter test` = PASS(660)、mutation 18 KILLED)。**Kotlin 側と実機は未検証**
 - Blocker category: なし
-- Waiting for: 独立review → そのあと人間の実機確認
+- Waiting for: 独立review attempt 2 → そのあと人間の実機確認
 - Requested action: なし
 - Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
 - Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる**
