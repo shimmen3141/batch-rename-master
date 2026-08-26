@@ -50,7 +50,7 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - [x] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
   - 証拠: 004 spec再承認、`T07`の端末確認(2026-08-25、`sdk_gphone16k_x86_64`、対象commit `56b6a0e`)。**app内browserで選び、実際にfileの名前が変わった。** undoは「元に戻す」が出た場合の確認として手順に含まれ、開発者は当該手順の期待をすべて再現したと報告している
 - [x] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
-  - 証拠: `T08`(2026-08-26)。**`shell` uidの観測では代用していない** — 製品と同じpackage・権限・mount viewで走る `integration_test/` から観測した。**成立範囲は API 37 emulator まで**。**FAT 系(`vfat` の SD カード)でも効くことは 2026-08-26 に `T12` の実機確認で確かめた** — 下位が ext4 でも vfat でも非FUSE でも結果が変わらなかった。**API level の幅と実機は`T08`が引き受け先つきで受容した残余risk**である
+  - 証拠: `T08`(2026-08-26)。**`shell` uidの観測では代用していない** — 製品と同じpackage・権限・mount viewで走る `integration_test/` から観測した。**成立範囲は API 37 emulator まで**。**FAT 系(`vfat` の SD カード)でも効くことは 2026-08-26 に `T12` の実機確認で確かめた** — 観測した2種(ext4 / vfat)では下位の種別で結果が変わらなかった(`f2fs` は未観測)。**API level の幅と実機は`T08`が引き受け先つきで受容した残余risk**である
 - [x] **desktopで**、読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
   - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
 - [x] **Androidで**、同じことが成立する

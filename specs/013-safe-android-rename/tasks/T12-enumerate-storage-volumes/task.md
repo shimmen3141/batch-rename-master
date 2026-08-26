@@ -243,10 +243,17 @@ flutter build apk --debug --target-platform android-arm
 ✓ Built build\app\outputs\flutter-apk\app-debug.apk
 ```
 
-**`013:T05` から `T08` を経由して引き継いだ `__arm__` の syscall 番号(382)の照合が
-閉じた。** `src/native_exclusive_rename.c` の `_Static_assert(BRM_SYS_RENAMEAT2 == __NR_renameat2)`
-は 32bit ARM 向けの compile で評価されるので、**build が通った = 実 kernel header と
-一致した**ということである。
+**armeabi-v7a を対象にした build は通った。しかし `013:T05` から引き継いだ `__arm__` の
+syscall 番号(382)の照合は、これでは閉じない**(独立review attempt 3 の P1-1)。
+
+- **`_Static_assert` は `#ifdef __NR_renameat2` の下にある**(`src/native_exclusive_rename.c:30`)。
+  bionic の arm header がこの macro を定義しなければ**静かに飛ばされ、build は同じように
+  通る**。実装は生 syscall を使うので `__NR_renameat2` を必要としない — **「system 定義が
+  あるときに確かめる」と C 側自身が書いている。**
+- **hook が armeabi-v7a 向けに C を compile した artifact を見ていない。** build の出力は
+  2行だけで、`.so` の ABI は写っていない。
+
+**「未確定」という印を、支えの無い推論で消さない。** 残余riskとして `T08` の表へ戻した。
 
 ## この確認が `013:T08` の残余riskを2件閉じた
 
@@ -255,21 +262,42 @@ flutter build apk --debug --target-platform android-arm
 | `T08` が受容した残余risk | 結果 |
 | --- | --- |
 | **項目7: FAT 系の媒体で `RENAME_NOREPLACE` が効くか** | **効いた。** `/storage/0000-0000` は `mount` によれば下位が `vfat`(`(null) on /mnt/media_rw/0000-0000 type vfat`)で、そこでも `nameConflict` になり目標名は無傷だった。**媒体を「対応外」にする必要は無い** |
-| **`__arm__` の syscall 番号(382)の照合** | **閉じた**(手順4) |
+| **`__arm__` の syscall 番号(382)の照合** | **閉じていない。** build は通ったが、`_Static_assert` は `#ifdef __NR_renameat2` の下にあり、artifact も見ていない(上記)。**`T08` の表へ戻した** |
 | 項目5(API level の幅)・項目6(実機) | **変わらず未観測。** 端末が増えるまで `T08` の手順4・5 が引き受ける |
 
 ### 項目4(FUSE 自身か下位への委譲か)も一段進んだ
 
 **下位が ext4 の FUSE でも、下位が vfat の FUSE でも、非FUSE の ext4 でも効いた。**
-したがって **`RENAME_NOREPLACE` の可否は下位 filesystem の種別に依存していない。**
-「FUSE 自身が判定しているのか」を直接観測したわけではないが、**下位を変えても結果が
-変わらない**という対照は取れた。
+**観測した2種では、下位の種別で結果が変わらなかった。** `f2fs` は未観測なので、
+**「種別に依存しない」と言い切れる範囲ではない**(独立review attempt 3 の P2-1)。
+「FUSE 自身が判定しているのか」も直接は観測していない。
+
+## 独立review attempt 3(`final-evidence`、2026-08-26)= FAIL
+
+range は `cc5f031...84a3cf4`。**実装と実機観測そのものには欠陥が無く、指摘はすべて記録
+側**だった。reviewer は生の出力と記録を逐条で突き合わせ、**「観測していないことを観測した
+ように書いている箇所は P1-1 以外に無い」**と判定している。
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| **P1-1** | **`__arm__`(382)の照合を「閉じた」としたのは導けない。** `_Static_assert` は `#ifdef __NR_renameat2` の下にあり(`src/native_exclusive_rename.c:30`)、**macro が無ければ静かに飛ばされて build は同じように通る**。hook が armeabi-v7a 向けに compile した artifact も見ていない。**「未確定」の印を支えの無い推論で消した** | 成果物の欠陥 | **残余riskへ戻した。** 閉じるのに要る2つ((i) artifact、(ii) `#ifdef`)を分けて書いた |
+| P2-1 | 「可否は下位 filesystem の種別に依存しない」が過大。**観測は ext4 と vfat の2種だけ**で、`f2fs` は未観測。**同じ file の項目6 が「f2fs で変わりうる」と書いている** | 成果物の欠陥 | 直した(観測した2種に限る言い方へ) |
+| P2-2 | PR本文に偽になった記述が残る(「SDカードが実際に並ぶことは未確認」) | 成果物の欠陥 | 直した。**結果は複製せず、偽の行を落とした** |
+| P3-1 | `task.json.status` が `in_progress` のまま | 成果物の欠陥(軽微) | `in_review` にした |
+
+**reviewer が確認した「妥当」な点**: 項目7 が閉じたこと(vfat との接続は `T08` が同じ
+`mount` 出力の両方の行を記録しているので推論ではない)、004 代表例26e が実機で満たされた
+こと(並ぶ + root より上へ辿れない の両方)、**`T08`(done)の記録をこの range で更新したのが
+妥当**であること(`T08` 自身が引き受け先を `T12` と名指しして受容していた handoff だから)。
+
+**auto-merge の7条件は 5/7 で、落ちている2つ(条件2・6)はどちらも P1-1 に起因する**と
+判定された。**code を触らずに記録を直せば揃う。**
 
 ## Current state / handoff
 
-- Last checkpoint: **実機確認が期待どおり**(2026-08-26、`sdk_gphone16k_x86_64` / API 37、対象commit `225f5db`)。**SDカードが保存場所として並び、そこで `RENAME_NOREPLACE` も効いた。** `013:T08` の残余risk 2件がここで閉じた
+- Last checkpoint: **実機確認が期待どおり**(2026-08-26、`sdk_gphone16k_x86_64` / API 37、対象commit `225f5db`)。**SDカードが保存場所として並び、そこで `RENAME_NOREPLACE` も効いた**(`013:T08` の項目7が閉じた)。**`__arm__` の照合は閉じていない**(独立review attempt 3 の P1-1)
 - Blocker category: なし
-- Waiting for: `final-evidence` の独立review
+- Waiting for: `final-evidence` の独立review(attempt 4)
 - Requested action: なし
 - Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
 - Next Agent action: **`final-evidence` の独立reviewを通して merge する。** merge後は `008:T11` へ「保存場所が2つ並ぶ端末が実在する」ことを申し送る(あちらの「保存場所が1つなら一覧を挟まない」の判断材料が変わった)
