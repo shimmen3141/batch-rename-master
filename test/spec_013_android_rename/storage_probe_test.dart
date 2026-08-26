@@ -54,6 +54,27 @@ void main() {
       expect(left, isEmpty);
     });
 
+    test('**排他 rename が投げても skip として返し、後片付けする**(P1-1)', () async {
+      // native の symbol 解決に失敗する経路。**この構成は端末で一度も走らせて
+      // いない**ので、投げたときに報告が消えないことを host で固定する。
+      final row = await probeDirectory(
+        ProbeTarget(dir.path, 'host'),
+        exclusiveRename: (source, destination) =>
+            throw ArgumentError('native を呼べない'),
+      );
+
+      expect(row.observed, isFalse);
+      expect(row.skipReason, contains('排他 rename を呼べない'));
+      expect(row.defect, isNull);
+      // **残骸を残さない。** 端末では共有ストレージに残る。
+      final left = dir
+          .listSync()
+          .map((entity) => p.basename(entity.path))
+          .where((name) => name.startsWith(probePrefix))
+          .toList();
+      expect(left, isEmpty);
+    });
+
     test('書けない場所は skip として返し、例外を投げない', () async {
       final missing = p.join(dir.path, 'no-such-directory');
 
@@ -89,6 +110,28 @@ void main() {
       );
     });
 
+    test('**劣化した場所でも、目標名が置換されたら欠陥**(RV-N1)', () {
+      // `fallbackRequired` は **Android で最も起きやすい結果**である。ここで検査を
+      // 飛ばすと、実機の観測が丸ごと空振りになる。
+      expect(
+        rowWith(
+          exclusive: NativeRenameResult.fallbackRequired,
+          observedTargetBody: sourceBody,
+        ).defect,
+        contains('目標名'),
+      );
+    });
+
+    test('**劣化した場所でも、source が変わったら欠陥**(RV-N1)', () {
+      expect(
+        rowWith(
+          exclusive: NativeRenameResult.fallbackRequired,
+          observedSourceBody: null,
+        ).defect,
+        contains('source'),
+      );
+    });
+
     test('**目標名が置換されたら欠陥**(005 INV-002)', () {
       expect(rowWith(observedTargetBody: sourceBody).defect, contains('目標名'));
     });
@@ -119,13 +162,25 @@ void main() {
       expect(rowWith(exclusive: NativeRenameResult.io).defect, contains('想定外'));
     });
 
-    test('書けない場所(permissionDenied)は欠陥にしない', () {
+    test('書けない場所(permissionDenied)は、対照が無くても欠陥にしない', () {
       expect(
         rowWith(
           exclusive: NativeRenameResult.permissionDenied,
-          observedTargetBody: targetBody,
+          control: NativeRenameResult.permissionDenied,
+          observedControlBody: targetBody,
         ).defect,
         isNull,
+      );
+    });
+
+    test('**書けない場所でも、目標名が置換されていたら欠陥**(P2-5)', () {
+      // fixture を置けた場所でしかここへ来ない。免除するのは対照だけである。
+      expect(
+        rowWith(
+          exclusive: NativeRenameResult.permissionDenied,
+          observedTargetBody: sourceBody,
+        ).defect,
+        contains('目標名'),
       );
     });
 
@@ -134,6 +189,62 @@ void main() {
         ProbeRow.skipped(const ProbeTarget('/x', 'test'), '理由').defect,
         isNull,
       );
+    });
+  });
+
+  group('answersTheQuestion(runner の guard が数える対象)', () {
+    ProbeRow rowOf(NativeRenameResult? exclusive) => exclusive == null
+        ? ProbeRow.skipped(const ProbeTarget('/x', 'test'), '理由')
+        : ProbeRow(
+            target: const ProbeTarget('/x', 'test'),
+            exclusive: exclusive,
+            observedTargetBody: targetBody,
+            observedSourceBody: sourceBody,
+            control: NativeRenameResult.success,
+            observedControlBody: sourceBody,
+          );
+
+    test('効いた場合と劣化した場合だけ、フラグについて分かったと数える', () {
+      expect(rowOf(NativeRenameResult.nameConflict).answersTheQuestion, isTrue);
+      expect(
+        rowOf(NativeRenameResult.fallbackRequired).answersTheQuestion,
+        isTrue,
+      );
+    });
+
+    test('**書けない場所と skip は数えない**(緑でも収穫ゼロなので)', () {
+      expect(
+        rowOf(NativeRenameResult.permissionDenied).answersTheQuestion,
+        isFalse,
+      );
+      expect(rowOf(null).answersTheQuestion, isFalse);
+      // observed とは別物である。permissionDenied は「観測できた」ではある。
+      expect(rowOf(NativeRenameResult.permissionDenied).observed, isTrue);
+    });
+  });
+
+  group('cleanUpProbeDirectory', () {
+    test('空の directory は消す', () async {
+      final target = Directory(p.join(dir.path, 'empty'));
+      await target.create();
+
+      await cleanUpProbeDirectory(target.path);
+
+      expect(await target.exists(), isFalse);
+    });
+
+    test('**中身があれば消さない**(元からあった場所を巻き添えにしない)', () async {
+      final target = Directory(p.join(dir.path, 'not-empty'));
+      await target.create();
+      await File(p.join(target.path, 'keep.txt')).writeAsString('keep');
+
+      await cleanUpProbeDirectory(target.path);
+
+      expect(await target.exists(), isTrue);
+    });
+
+    test('存在しない directory でも例外を投げない', () async {
+      await cleanUpProbeDirectory(p.join(dir.path, 'missing'));
     });
   });
 
@@ -186,6 +297,23 @@ void main() {
       );
 
       expect(targets.map((target) => target.directory), contains(sdCard.path));
+    });
+
+    test('**非FUSE の対照(app の内部領域)も観測対象にする**(項目4)', () async {
+      final primary = Directory(p.join(dir.path, 'primary'));
+      await primary.create(recursive: true);
+
+      final targets = await androidProbeTargets(
+        browser: AndroidStorageBrowser(
+          primaryRoot: primary.path,
+          volumesDirectory: p.join(dir.path, 'no-volumes'),
+        ),
+      );
+
+      expect(
+        targets.map((target) => target.directory),
+        contains(Directory.systemTemp.path),
+      );
     });
 
     test('--dart-define で足した場所を観測対象にする', () async {

@@ -870,7 +870,7 @@
       "id": "M124",
       "file": "integration_test/storage_probe.dart",
       "note": "[対照] 劣化(fallbackRequired)を欠陥として扱う(005 contract revision 4が受容した劣化を「壊れている」と誤報しないことの固定)",
-      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired) {",
+      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired &&\n        exclusive != NativeRenameResult.permissionDenied) {",
       "replace": "    if (exclusive != NativeRenameResult.nameConflict) {"
     },
     {
@@ -879,6 +879,55 @@
       "note": "観測に使った file を消さない(実機の共有ストレージに残骸が残る。013:T07のmanualで人間が片付ける羽目になる)",
       "find": "  await cleanUpProbeFiles(all);\n\n  return ProbeRow(",
       "replace": "\n  return ProbeRow("
+    },
+    {
+      "id": "M126",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N1] 劣化した場所(fallbackRequired)では目標名の検査を飛ばす。Androidで最も起きやすい結果がこれなので、飛ばされると実機の観測が空振りになる",
+      "find": "    if (observedTargetBody != targetBody) {",
+      "replace": "    if (exclusive == NativeRenameResult.nameConflict &&\n        observedTargetBody != targetBody) {"
+    },
+    {
+      "id": "M127",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N2] 失敗したのにsourceが変わったことを見逃す(005 REQ-016。task.mdの項目2そのもの)",
+      "find": "    if (observedSourceBody != sourceBody) {",
+      "replace": "    if (false && observedSourceBody != sourceBody) {"
+    },
+    {
+      "id": "M128",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N3] M124の逆向き。想定外の結果(successで黙って置換した等)を欠陥にしない",
+      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired &&\n        exclusive != NativeRenameResult.permissionDenied) {",
+      "replace": "    if (false) {"
+    },
+    {
+      "id": "M129",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N4][対照] permissionDeniedの免除を外す。免除自体がtestで固定されているかを見る",
+      "find": "    if (exclusive == NativeRenameResult.permissionDenied) return null;",
+      "replace": ""
+    },
+    {
+      "id": "M130",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N5] 観測できなかった場所を「観測できた」と報告する(skipを問題なしと読ませる型)",
+      "find": "  bool get observed => exclusive != null;",
+      "replace": "  bool get observed => true;"
+    },
+    {
+      "id": "M131",
+      "file": "integration_test/storage_probe.dart",
+      "note": "runnerのguardが「フラグについて分かった行」ではなく「観測できた行」を数える(全volumeがpermissionDeniedでも緑になる。独立review attempt 1 のP2-6)",
+      "find": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict ||\n      exclusive == NativeRenameResult.fallbackRequired;",
+      "replace": "  bool get answersTheQuestion => exclusive != null;"
+    },
+    {
+      "id": "M132",
+      "file": "integration_test/storage_probe.dart",
+      "note": "nativeを呼べなかったときに後片付けをしない(端末の共有ストレージに残骸が残る。独立review attempt 1 のP1-1)",
+      "find": "    await cleanUpProbeFiles(all);\n    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');",
+      "replace": "    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');"
     }
   ]
 }

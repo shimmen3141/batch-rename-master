@@ -26,6 +26,12 @@ const probePrefix = 'brm-t08-';
 /// 全ファイルアクセスがあれば書ける場所である(004 REQ-018 が注記を出さない側)。
 const probePackage = 'com.example.batch_rename_master';
 
+/// app ごとの保存領域のうち、この観測が使う directory。
+///
+/// **runner が後片付けに使う**ので関数として出してある(独立review attempt 1 の P2-7)。
+String mediaProbeDirectoryOf(String primaryRoot) =>
+    p.join(primaryRoot, 'Android', 'media', probePackage);
+
 /// 観測する場所と、報告に出す説明。
 class ProbeTarget {
   const ProbeTarget(this.directory, this.label);
@@ -76,6 +82,16 @@ class ProbeRow {
 
   bool get observed => exclusive != null;
 
+  /// **フラグについて何か分かった行か。**
+  ///
+  /// `permissionDenied` や skip は「観測できた」ではあっても、
+  /// **`RENAME_NOREPLACE` が効くかどうかを何も言っていない**。全 volume がこれだと
+  /// 緑になっても収穫はゼロなので、runner はこちらで数える
+  /// (独立review attempt 1 の P2-6)。
+  bool get answersTheQuestion =>
+      exclusive == NativeRenameResult.nameConflict ||
+      exclusive == NativeRenameResult.fallbackRequired;
+
   /// 排他 rename が実際に効いたか。**判定ではなく観測の言い換えである。**
   String get verdict => switch (exclusive) {
     null => '観測できず',
@@ -95,11 +111,15 @@ class ProbeRow {
   ///   初回 spike が対照を欠いて review で P1 になった型)
   String? get defect {
     if (skipReason != null) return null;
-    if (exclusive == NativeRenameResult.permissionDenied) return null;
     if (exclusive != NativeRenameResult.nameConflict &&
-        exclusive != NativeRenameResult.fallbackRequired) {
+        exclusive != NativeRenameResult.fallbackRequired &&
+        exclusive != NativeRenameResult.permissionDenied) {
       return '排他 rename が想定外の結果を返した: ${exclusive?.name}';
     }
+    // **実体の検査は書けない場所でも飛ばさない。** fixture を置けた場所でしか
+    // ここへ来ないので、`permissionDenied` でも「目標名と source は無傷」は
+    // 成り立たなければならない(独立review attempt 1 の P2-5)。免除するのは
+    // **対照だけ**である。
     if (observedTargetBody != targetBody) {
       return '**目標名の中身が変わった**(005 INV-002)。'
           'expected=$targetBody actual=$observedTargetBody';
@@ -108,6 +128,7 @@ class ProbeRow {
       return '**改名されなかったのに source が変わった**(005 REQ-016)。'
           'expected=$sourceBody actual=$observedSourceBody';
     }
+    if (exclusive == NativeRenameResult.permissionDenied) return null;
     if (control != NativeRenameResult.success ||
         observedControlBody != sourceBody) {
       return '対照(通常 rename)が置換しなかった。この場所の結果は因果を示せない。'
@@ -117,8 +138,22 @@ class ProbeRow {
   }
 }
 
+/// 排他 rename の呼び出し。**test から差し替えられるようにしてある** — 失敗経路
+/// (native を呼べない)を host で固定するため(独立review attempt 1 の P1-1)。
+typedef ExclusiveRenameOperation =
+    NativeRenameResult Function(String source, String destination);
+
 /// [target] を観測する。**この関数は例外を投げない** — 観測できない理由も結果である。
-Future<ProbeRow> probeDirectory(ProbeTarget target) async {
+///
+/// **native の呼び出しも保護する。** `@Native` の symbol 解決に失敗すると
+/// `FileSystemException` ではない例外が飛び、**報告が1行も出ないまま端末に残骸が
+/// 残る**(独立review attempt 1 の P1-1)。この構成は端末で一度も走らせていないので、
+/// **失敗経路も観測結果として返す**。
+Future<ProbeRow> probeDirectory(
+  ProbeTarget target, {
+  ExclusiveRenameOperation exclusiveRename = renameFileWithoutOverwrite,
+  PlainRenameOperation plainRename = plainRenameFile,
+}) async {
   final source = p.join(target.directory, '${probePrefix}source.txt');
   final destination = p.join(target.directory, '${probePrefix}target.txt');
   final controlSource = p.join(
@@ -143,7 +178,14 @@ Future<ProbeRow> probeDirectory(ProbeTarget target) async {
   }
 
   // (1) 排他 rename。**目標名は実在している。**
-  final exclusive = renameFileWithoutOverwrite(source, destination);
+  final NativeRenameResult exclusive;
+  try {
+    exclusive = exclusiveRename(source, destination);
+  } catch (error) {
+    // **後片付けを必ず通す。** ここで抜けると端末に残骸が残る。
+    await cleanUpProbeFiles(all);
+    return ProbeRow.skipped(target, '排他 rename を呼べない: $error');
+  }
 
   // (2) 実体がどうなったか。
   final observedTargetBody = await _read(destination);
@@ -156,7 +198,7 @@ Future<ProbeRow> probeDirectory(ProbeTarget target) async {
   try {
     await File(controlSource).writeAsString(sourceBody, flush: true);
     await File(controlTarget).writeAsString(targetBody, flush: true);
-    control = await plainRenameFile(controlSource, controlTarget);
+    control = await plainRename(controlSource, controlTarget);
     observedControlBody = await _read(controlTarget);
   } on FileSystemException {
     // 対照を実行できなかったことは `defect` が拾う。
@@ -194,7 +236,7 @@ Future<List<ProbeTarget>> androidProbeTargets({
 
   // app ごとの保存領域。共有ストレージの一部だが FUSE の扱いが違いうるので、
   // 内部共有ストレージの root とは別に観測する。
-  final media = p.join(browser.primaryRoot, 'Android', 'media', probePackage);
+  final media = mediaProbeDirectoryOf(browser.primaryRoot);
   try {
     await Directory(media).create(recursive: true);
     targets.add(ProbeTarget(media, 'app ごとの保存領域'));
@@ -202,6 +244,12 @@ Future<List<ProbeTarget>> androidProbeTargets({
     // 作れなければ観測しない。理由は runner の出力に出ない — **`/Android/` 配下は
     // 読めないことがある**という既知の事実で、`013:T07` の manual で確認済みである。
   }
+
+  // **非FUSE の対照。** ここまでの対象はすべて共有ストレージ(MediaProvider の FUSE)
+  // である。`013:T01` の項目4「FUSE 自身が判定したのか下位へ委譲したのか」は、
+  // FUSE を経由しない場所と**同じ app プロセスで**比べて初めて前進する。
+  // app の内部領域は `/data` 上にあり FUSE を経由しない(実際の path は報告に出る)。
+  targets.add(ProbeTarget(Directory.systemTemp.path, 'app の内部領域(非FUSE の対照)'));
 
   for (final extra in extraDirs.split(',')) {
     final trimmed = extra.trim();
@@ -247,6 +295,17 @@ Future<String?> _read(String path) async {
     return await File(path).readAsString();
   } on FileSystemException {
     return null;
+  }
+}
+
+/// 観測のために作った directory を消す。**空のときだけ消える**(非再帰)。
+///
+/// 元からあった directory を巻き添えにしないため、中身があれば何もしない。
+Future<void> cleanUpProbeDirectory(String path) async {
+  try {
+    await Directory(path).delete();
+  } on FileSystemException {
+    // 元からあった / 中身がある / 消す権限が無い。**どれでも観測には影響しない。**
   }
 }
 

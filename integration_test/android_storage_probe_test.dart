@@ -20,6 +20,7 @@
 // 排他 rename が効いているかどうかで見え方は変わらない** — 劣化は設計どおり透過で
 // ある。だから port を直接呼ぶ。
 
+import 'package:batch_rename_master/data/file_source/android_storage_browser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -42,17 +43,28 @@ void main() {
     final targets = await androidProbeTargets(extraDirs: _extraDirs);
     final rows = <ProbeRow>[];
     for (final target in targets) {
-      rows.add(await probeDirectory(target));
+      try {
+        rows.add(await probeDirectory(target));
+      } catch (error) {
+        // **報告へ必ず到達させる。** 1つの場所で何が起きても、他の場所の観測と
+        // 出力を捨てない(独立review attempt 1 の P1-1)。
+        rows.add(ProbeRow.skipped(target, '観測中に例外: $error'));
+      }
     }
+    await cleanUpProbeDirectory(
+      mediaProbeDirectoryOf(const AndroidStorageBrowser().primaryRoot),
+    );
 
     debugPrint(reportOf(rows));
 
-    // **1件も観測できなければ失敗にする。** 「対象が無かった」を「問題なし」と
-    // 読ませない(`013:T07` の listNames と同じ型の取り違え)。
+    // **フラグについて何も分からなければ失敗にする。** 「対象が無かった」
+    // 「どこも書けなかった」を「問題なし」と読ませない(`013:T07` の listNames と
+    // 同じ型の取り違え)。`observed` ではなく `answersTheQuestion` で数えるのは、
+    // `permissionDenied` の行が収穫ゼロだからである(P2-6)。
     expect(
-      rows.where((row) => row.observed).isNotEmpty,
+      rows.where((row) => row.answersTheQuestion).isNotEmpty,
       isTrue,
-      reason: '観測できた場所が1つもない。上の出力の理由を読むこと',
+      reason: '排他 rename の可否が分かった場所が1つもない。上の出力の理由を読むこと',
     );
 
     final broken = rows.where((row) => row.defect != null).toList();
