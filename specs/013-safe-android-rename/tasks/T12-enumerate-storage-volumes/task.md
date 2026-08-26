@@ -134,7 +134,7 @@
 | ASDD構造 | `workspace.py check specs` = **PASS(8 plans, 67 tasks)** |
 | OS境界 | `python3 tool/check_platform_boundary.py` = **PASS**(47 file、4 rule) |
 | 規範の書き写し | `python3 tool/check_normative_terms.py` = **PASS** |
-| mutation | `M114`・`M143`・`M144`〜`M159` = **18 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M152`〜`M158`は**独立reviewerが足したもの**(`M154`〜`M157`は対照)。表全体は `--list` = **159 mutations, 0 with an unexpected match count** |
+| mutation | `M114`・`M143`・`M144`〜`M162` = **21 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M152`〜`M158`と`M160`〜`M162`は**独立reviewerが足したもの**(`M154`〜`M157`は対照)。表全体は `--list` = **162 mutations, 0 with an unexpected match count** |
 | **Kotlin 側** | **未検証。** CI では1行も実行されない |
 | **実機確認** | **未実施。** [`manual-verification.md`](manual-verification.md) を人間へ依頼する |
 
@@ -176,11 +176,38 @@ nullable、`getStorageVolumes()` に権限要件が無いこと、`getDescriptio
 **`RV01`〜`RV07` を `M152`〜`M158` として取り込んだ**(`M154`〜`M157` は対照)。
 **P2-5 と P3-1 は reviewer が「受容してよい」としたが、どちらも数行で閉じられるので塞いだ。**
 
+## 独立review attempt 2(2026-08-26)= PASS
+
+range は `cc5f031...1482655`。**未解決のP0/P1は無く、成果物の欠陥も無い。**
+
+**reviewerが自分で経路を追って副作用を否定した。** 読み取り専用の媒体で改名まで進むと、
+C 側が **`EROFS` を `permissionDenied` へ写す**(`src/native_exclusive_rename.c`)ので
+**`fallbackRequired`(危険な通常renameへの劣化)には落ちない** — データ損失・偽の成功の
+経路は無く、005 REQ-013 が理由を出して終わる。実機 probe も RO volume で落ちない
+(`defect` が `permissionDenied` の行で対照を免除する)。
+
+**他の mount state に同じ型が残っていないことも確認された** — 残りはすべて mount されて
+おらず、`getDirectory()` が `null` を返すので次の行でも落ちる。**述語は「開ける volume」と
+一致した。**
+
+**channel名testの逆向きも検証された。** 私が入れた `M158` は Dart 側の literal を動かす
+向きだけで、**Kotlin 側が動いた場合は未検証**だった。reviewer が `MainActivity.kt` を直接
+壊す mutation を2件足し、どちらも KILLED になった(`M160`/`M161` として取り込み)。
+`013:T06` の権限 channel も本当に一緒に守られている。
+
+**この検査で何を検出できないかも確かめられた** — literal が Kotlin のコメントとしてだけ
+残る場合、method 名(`"list"`)の一致、handler の登録そのもの。**test 自身の header に
+書いてあるので過大な安心は与えていない**と判定された。
+
+`RW01`〜`RW03` を `M160`〜`M162` として取り込んだ。**`RW04`(P1-1 の直しを取り消す)は
+取り込んでいない** — **期待値が SURVIVED の観測用**(CIがKotlinを1行も実行しないことの
+確認)で、表の「0 with an unexpected match count」と混ざるためである。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 の P1 1件と P2/P3 6件を直した**(`flutter test` = PASS(660)、mutation 18 KILLED)。**Kotlin 側と実機は未検証**
+- Last checkpoint: **独立review attempt 2 = PASS。** reviewerの mutation 3件も取り込み済み(`flutter test` = PASS(660)、mutation 21 KILLED)。**Kotlin 側の実挙動と実機は未検証**
 - Blocker category: なし
-- Waiting for: 独立review attempt 2 → そのあと人間の実機確認
+- Waiting for: **人間の実機確認**([`manual-verification.md`](manual-verification.md))
 - Requested action: なし
 - Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
-- Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる**
+- Next Agent action: **人間の実機確認の結果を待つ。** 受けたら記録し、`final-evidence` の review を通して merge する。**手順3でSDカードが並べば、`013:T08` が埋められなかった項目7もそこで埋まる。** 手順4で `013:T05` から引き継いだ `__arm__`(382) の照合も閉じる。**このbranchは動かさない**
