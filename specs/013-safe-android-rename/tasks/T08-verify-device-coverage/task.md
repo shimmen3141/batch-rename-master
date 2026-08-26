@@ -128,12 +128,12 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 | 種別 | commandと結果 |
 | --- | --- |
-| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(44件)** |
-| full regression | `flutter test` = **PASS(633件)**。T08着手前は589件 |
+| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(48件)** |
+| full regression | `flutter test` = **PASS(637件)**。T08着手前は589件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
-| mutation | `M122`〜`M139` = **18 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`と`M133`〜`M137`は**独立reviewerが足したもの**(`M129`/`M135`は対照) |
+| mutation | `M122`〜`M142` = **21 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`・`M133`〜`M137`・`M140`〜`M142`は**独立reviewerが足したもの**(`M129`/`M135`は対照)。表全体は `--list` = **142 mutations, 0 with an unexpected match count** |
 | **端末での観測** | **未実施。** 人間へ依頼する |
 | **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
 
@@ -200,11 +200,34 @@ attempt 2 で列挙側に同じ穴が見つかった。`await` を1つ足すた�
 (守りが無くても外側のcatchが拾い、assertionが通ってしまう)。**辿れない側を`primaryRoot`に
 して「後続のvolumeが残ること」まで見る**形に変えて、KILLEDになった。
 
+## 独立review attempt 3(2026-08-26)= PASS
+
+range は `5307fa7...b150fa9`。**未解決のP0/P1は無い。** reviewerは attempt 2 の6件がすべて
+閉じたことを確認し、**`M138` が KILLED になったこと**(testが穴を実際に落とすこと)、
+**`M125`/`M132` の言い直しが元の意図を保っていること**、**P2-9 の升目に抜けが無いこと**を
+自分で確かめている。
+
+**reviewerが自分のmutationの誤りを1件開示した** — attempt 3 の `RVC-1` は `try {` を
+`if (true) {` へ置換したため構文エラーになり、`KILLED` は「testが落とした」ではなく
+「compileできなかった」だった。作り直した `RVC-1b` では **SURVIVED** で、それがP3-3である。
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| P3-1 | 同じfileの3箇所目のmutation範囲だけが古い。**同じ型が3回目** | 成果物の欠陥 | **生きた値の正本を検証結果表の1箇所へ寄せた。** 他は「表を見る」とだけ書く(2026-08-22 のfindingと同じ解) |
+| P3-2 | 実体を読めなかったことを「無傷」と読み替えても落ちない(`RVC-2` SURVIVED) | 安全網の穴 | 直した。目標名を消す実装を注入してtestで固定(`M140`) |
+| P3-3 | **列挙そのものが落ちたときの外側の守りが固定されていない**(`RVC-1b` SURVIVED)。`primaryRoot`の**親**が辿れない場合 | 安全網の穴 | **reviewer推奨の(b)を採った** — `androidProbeTargets`の本体をまとめて囲み、構造で閉じた(`M141`) |
+| P3-4 | `mediaProbeDirectoryOf`の場所が固定されていない(`RVC-5` SURVIVED) | 安全網の穴 | 直した(`M142`) |
+| P3-5 | runnerの`finally`で後片付けが報告より**前**にある。**その1行が新しい窓になる** | 安全網の穴 | **依頼前に直した**(端末で走るcodeなので、manual後に直すと実機の観測をやり直すことになる) |
+
+**`M143`(P3-5 の対照)は置かなかった。** runner は host の test で走らないので恒久的に
+SURVIVED になり、表の意味(「落ちること」を約束する)が壊れる。**runnerがhostで閉じて
+いないことは宣言表に書いてある。**
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 2 の P1 1件と P2 5件を直した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(44)、`M122`〜`M139` = 18 KILLED)
+- Last checkpoint: **独立review attempt 3 = PASS。** そのP3 5件も反映済み(related = PASS(48)、`flutter test` = PASS(637)、mutation = 21 KILLED)
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: 独立review attempt 3 → そのあと人間の端末確認
+- Waiting for: **人間の端末確認**([`manual-verification.md`](manual-verification.md))
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
-- Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。結果を受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**
+- Next Agent action: **人間の観測結果を待つ。** 受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**(Agentが推測で埋めない)。そのあと`final-evidence`のreviewを通してmergeする。**このbranchは動かさない**
