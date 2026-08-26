@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:batch_rename_master/data/file_source/android_storage_browser.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/data/file_source/storage_browser.dart';
+import 'package:batch_rename_master/data/file_source/storage_volumes.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,72 +28,98 @@ void main() {
     if (await dir.exists()) await dir.delete(recursive: true);
   });
 
-  /// [dir] を `/storage` に見立てた browser。
-  AndroidStorageBrowser browserOf({String? primary}) => AndroidStorageBrowser(
+  /// 保存場所を返す fake。**実 filesystem を歩かない** — プラットフォームが
+  /// 列挙した結果を写すのがこの実装の役目である(`013:T12`)。
+  AndroidStorageBrowser browserOf({
+    StorageVolumesResult volumes = const VolumesListed([]),
+    String? primary,
+  }) => AndroidStorageBrowser(
     primaryRoot: primary ?? p.join(dir.path, 'emulated', '0'),
-    volumesDirectory: dir.path,
+    volumes: _FakeVolumes(volumes),
   );
 
   group('REQ-015: 保存場所の一覧', () {
-    test('内部共有ストレージと、装着されているボリュームが並ぶ', () async {
-      await Directory(
-        p.join(dir.path, 'emulated', '0'),
-      ).create(recursive: true);
-      await Directory(p.join(dir.path, '1A2B-3C4D')).create();
+    test('プラットフォームが列挙したボリュームがそのまま並ぶ', () async {
+      final result = await browserOf(
+        volumes: VolumesListed([
+          StorageVolume(
+            path: p.join(dir.path, 'emulated', '0'),
+            name: '内部ストレージ',
+          ),
+          StorageVolume(path: p.join(dir.path, '1A2B-3C4D'), name: 'SD カード'),
+        ]),
+      ).locations();
 
-      final locations = await browserOf().locations();
-
-      expect(locations.map((l) => l.name), ['内部ストレージ', '1A2B-3C4D']);
-      expect(locations.first.root, p.join(dir.path, 'emulated', '0'));
+      expect(result.locations.map((l) => l.name), ['内部ストレージ', 'SD カード']);
+      expect(result.locations.first.root, p.join(dir.path, 'emulated', '0'));
+      expect(result.failure, isNull);
     });
 
-    test('`emulated` と `self` は保存場所にしない', () async {
-      // **内部共有ストレージの上位を保存場所にすると、その root から
-      // 兄弟 profile へ辿れてしまう**(REQ-015 の上限が破れる)。
-      await Directory(
-        p.join(dir.path, 'emulated', '0'),
-      ).create(recursive: true);
-      await Directory(p.join(dir.path, 'self')).create();
-
-      final locations = await browserOf().locations();
-
-      expect(locations.map((l) => l.name), ['内部ストレージ']);
-      expect(
-        locations.map((l) => l.root),
-        isNot(contains(p.join(dir.path, 'emulated'))),
-      );
-    });
-
-    test('fileは保存場所にしない', () async {
-      await Directory(
-        p.join(dir.path, 'emulated', '0'),
-      ).create(recursive: true);
-      await File(p.join(dir.path, 'not-a-volume')).writeAsString('x');
-
-      final locations = await browserOf().locations();
-
-      expect(locations.map((l) => l.name), ['内部ストレージ']);
-    });
-
-    test('列挙できなくても内部ストレージだけは返す(「保存場所が無い」と見せない)', () async {
+    test('**取得できなければ理由を返す**(「保存場所が無い」と見せない)', () async {
+      // `013:T07` は `/storage` を列挙していたが、app からは `EACCES` である。
+      // **黙って内部ストレージだけ返すと、装着されている媒体が無いように見える**
+      // (`013:T08` の実機観測)。
       final primary = p.join(dir.path, 'emulated', '0');
       await Directory(primary).create(recursive: true);
-      final browser = AndroidStorageBrowser(
-        primaryRoot: primary,
-        volumesDirectory: p.join(dir.path, 'missing'),
-      );
 
-      final locations = await browser.locations();
+      final result = await browserOf(
+        volumes: const VolumesUnavailable('取得できませんでした: EACCES'),
+        primary: primary,
+      ).locations();
 
-      expect(locations.map((l) => l.name), ['内部ストレージ']);
+      expect(result.locations.map((l) => l.name), ['内部ストレージ']);
+      expect(result.failure, contains('EACCES'));
     });
 
-    test('内部ストレージが無ければ出さない', () async {
-      await Directory(p.join(dir.path, '1A2B-3C4D')).create();
+    test('**1件も返らないのも欠落として扱う**', () async {
+      final primary = p.join(dir.path, 'emulated', '0');
+      await Directory(primary).create(recursive: true);
 
-      final locations = await browserOf().locations();
+      final result = await browserOf(
+        volumes: const VolumesListed([]),
+        primary: primary,
+      ).locations();
 
-      expect(locations.map((l) => l.name), ['1A2B-3C4D']);
+      expect(result.locations.map((l) => l.name), ['内部ストレージ']);
+      expect(result.failure, isNotNull);
+    });
+
+    test('**port が投げても、この関数は投げない**(browserが読み込み中で止まる)', () async {
+      final primary = p.join(dir.path, 'emulated', '0');
+      await Directory(primary).create(recursive: true);
+
+      final result = await AndroidStorageBrowser(
+        primaryRoot: primary,
+        volumes: const _ThrowingVolumes(),
+      ).locations();
+
+      expect(result.locations.map((l) => l.name), ['内部ストレージ']);
+      expect(result.failure, contains('列挙が落ちた'));
+    });
+
+    test('取得できず、内部ストレージも読めなければ空になる', () async {
+      final result = await browserOf(
+        volumes: const VolumesUnavailable('理由'),
+        primary: p.join(dir.path, 'missing'),
+      ).locations();
+
+      expect(result.locations, isEmpty);
+      expect(result.failure, isNotNull);
+    });
+
+    test('**拠り所へ落ちるのは欠落のときだけ**(取得できたら内部ストレージを足さない)', () async {
+      // 足すと、プラットフォームが返した名前と二重に並ぶ。
+      final primary = p.join(dir.path, 'emulated', '0');
+      await Directory(primary).create(recursive: true);
+
+      final result = await browserOf(
+        volumes: VolumesListed([
+          StorageVolume(path: primary, name: 'Internal shared storage'),
+        ]),
+        primary: primary,
+      ).locations();
+
+      expect(result.locations.map((l) => l.name), ['Internal shared storage']);
     });
   });
 
@@ -194,4 +221,22 @@ void main() {
       expect(listing, isA<DirectoryListingFailed>());
     });
   });
+}
+
+/// 保存場所の列挙を差し替える fake。
+class _FakeVolumes implements StorageVolumesPort {
+  const _FakeVolumes(this.result);
+
+  final StorageVolumesResult result;
+
+  @override
+  Future<StorageVolumesResult> list() async => result;
+}
+
+/// **約束を破って投げる** port。守りが構造で入っているかを見るために使う。
+class _ThrowingVolumes implements StorageVolumesPort {
+  const _ThrowingVolumes();
+
+  @override
+  Future<StorageVolumesResult> list() async => throw StateError('列挙が落ちた');
 }

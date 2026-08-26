@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import 'file_source.dart';
 import 'storage_browser.dart';
+import 'storage_volumes.dart';
 
 /// 実 filesystem を辿る [StorageBrowserPort](004 REQ-015 / REQ-017)。
 ///
@@ -17,38 +18,73 @@ import 'storage_browser.dart';
 class AndroidStorageBrowser implements StorageBrowserPort {
   const AndroidStorageBrowser({
     this.primaryRoot = '/storage/emulated/0',
-    this.volumesDirectory = '/storage',
+    this.volumes = const MethodChannelStorageVolumes(),
   });
 
   /// 内部共有ストレージの root。利用者から「内部ストレージ」と見える場所。
+  ///
+  /// **保存場所が1件も返らなかったときの拠り所**である。ここが読めるなら、
+  /// 少なくとも内部ストレージは辿れる。
   final String primaryRoot;
 
-  /// 取り外し可能なボリュームが現れる directory。
-  final String volumesDirectory;
+  /// 保存場所のボリュームを供給する port。
+  final StorageVolumesPort volumes;
 
-  /// **`/storage` の中身を列挙して保存場所を作る。**
+  /// **プラットフォームに列挙させる**(004 REQ-015)。
   ///
-  /// `emulated` と `self` は内部共有ストレージの実体・別名なので除く。
-  /// 残りが SD カード・USB である(volume id が名前になる)。
+  /// **`/storage` を歩いて探さない。** それは `013:T07` が採った手段だが、
+  /// **app からは `EACCES` で列挙できず、装着されている媒体を1つも見つけられない**
+  /// ことが `013:T08` の実機観測で分かった(2026-08-26、API 37 emulator。端末の
+  /// `mount` には vfat の volume があるのに、保存場所は内部ストレージだけだった)。
+  ///
+  /// **列挙の手段は 004 spec が「自由とする点」に挙げている。** 自由なのは手段で
+  /// あって、結果ではない。
+  ///
+  /// **この関数は投げない。** 投げると browser の画面が読み込み中のまま止まる
+  /// (`_loadLocations` は結果を待って `setState` する)。port は投げない約束だが、
+  /// **約束に頼らず、ここで閉じる**(`013:T08` で「例外が保護の外にあり報告が
+  /// 丸ごと消える」型を2回踏んだ)。
   @override
-  Future<List<StorageLocation>> locations() async {
-    final found = <StorageLocation>[
-      if (await Directory(primaryRoot).exists())
-        StorageLocation(name: '内部ストレージ', root: primaryRoot),
-    ];
+  Future<StorageLocations> locations() async {
+    final StorageVolumesResult result;
     try {
-      final volumes = Directory(volumesDirectory).listSync();
-      for (final volume in volumes) {
-        final name = p.basename(volume.path);
-        if (name == 'emulated' || name == 'self') continue;
-        if (volume is! Directory) continue;
-        found.add(StorageLocation(name: name, root: volume.path));
-      }
-    } on FileSystemException {
-      // 列挙できなくても内部ストレージだけは返す。**空にして「保存場所が無い」と
-      // 見せない** — 取り外し可能なボリュームが読めないだけである。
+      result = await volumes.list();
+    } catch (error) {
+      return StorageLocations(
+        await _primaryOnly(),
+        failure: '保存場所を取得できませんでした: $error',
+      );
     }
-    return found;
+    switch (result) {
+      case VolumesListed(:final volumes):
+        final found = [
+          for (final volume in volumes)
+            StorageLocation(name: volume.name, root: volume.path),
+        ];
+        if (found.isNotEmpty) return StorageLocations(found);
+        // **1件も返らないのは異常である。** 内部共有ストレージは常にあるので、
+        // 拠り所へ落としたうえで**欠落を隠さない**。
+        return StorageLocations(
+          await _primaryOnly(),
+          failure: '保存場所を1件も取得できませんでした',
+        );
+      case VolumesUnavailable(:final reason):
+        return StorageLocations(await _primaryOnly(), failure: reason);
+    }
+  }
+
+  /// 拠り所の内部共有ストレージだけ。**読めなければ空**である。
+  ///
+  /// `exists()` は親を辿れないと `false` ではなく**投げる**ので、ここでも閉じる。
+  Future<List<StorageLocation>> _primaryOnly() async {
+    try {
+      if (await Directory(primaryRoot).exists()) {
+        return [StorageLocation(name: '内部ストレージ', root: primaryRoot)];
+      }
+    } catch (_) {
+      // 拠り所も読めない。**空で返す** — 呼び出し側は `failure` で理由を出す。
+    }
+    return const [];
   }
 
   /// **実在するものだけ**返す(004 REQ-015)。

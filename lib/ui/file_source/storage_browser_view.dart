@@ -37,7 +37,7 @@ class StorageBrowserView extends StatefulWidget {
 }
 
 class _StorageBrowserViewState extends State<StorageBrowserView> {
-  List<StorageLocation>? _locations;
+  StorageLocations? _locations;
 
   /// いま辿っている保存場所。`null` なら保存場所の一覧を出している。
   StorageLocation? _location;
@@ -295,7 +295,29 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
 
   Widget _locationList(AppColors colors) => ListView(
     children: [
-      for (final location in _locations ?? const <StorageLocation>[])
+      // **取れなかったことを黙らせない。** 「媒体が無い端末」と「列挙できていない」を
+      // 利用者が区別できないと、装着している SD カードが並ばないことに気づけない
+      // (`013:T08` の実機観測で実際に起きた)。
+      if (_locations?.failure case final failure?)
+        Container(
+          key: const Key('browser-locations-failure'),
+          padding: const EdgeInsets.all(12),
+          color: colors.surfaceElevated,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 16, color: colors.info),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$failure。ここに出ていない保存場所があるかもしれません。',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      for (final location in _locations?.locations ?? const <StorageLocation>[])
         ListTile(
           key: Key('browser-location-${location.name}'),
           leading: Icon(Icons.sd_storage, color: colors.primary, size: 20),

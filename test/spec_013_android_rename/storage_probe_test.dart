@@ -11,6 +11,7 @@
 import 'dart:io';
 
 import 'package:batch_rename_master/data/file_source/android_storage_browser.dart';
+import 'package:batch_rename_master/data/file_source/storage_volumes.dart';
 import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -272,7 +273,9 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: volume.path,
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          volumes: _FakeVolumes(
+            VolumesListed([StorageVolume(path: volume.path, name: '内部ストレージ')]),
+          ),
         ),
       );
 
@@ -288,7 +291,9 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: volume.path,
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          volumes: _FakeVolumes(
+            VolumesListed([StorageVolume(path: volume.path, name: '内部ストレージ')]),
+          ),
         ),
       );
 
@@ -308,7 +313,12 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: volumes.path,
+          volumes: _FakeVolumes(
+            VolumesListed([
+              StorageVolume(path: primary.path, name: '内部ストレージ'),
+              StorageVolume(path: sdCard.path, name: 'SD カード'),
+            ]),
+          ),
         ),
       );
 
@@ -322,7 +332,9 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          volumes: _FakeVolumes(
+            VolumesListed([StorageVolume(path: primary.path, name: '内部ストレージ')]),
+          ),
         ),
       );
 
@@ -341,8 +353,7 @@ void main() {
       // 見ないと、守りの有無を区別できない(M138 が SURVIVED した)。
       final unreadable = Directory(p.join(dir.path, 'unreadable'));
       await unreadable.create(recursive: true);
-      final volumes = Directory(p.join(dir.path, 'storage'));
-      final good = Directory(p.join(volumes.path, 'sd-card'));
+      final good = Directory(p.join(dir.path, 'storage', 'sd-card'));
       await Directory(p.join(good.path, 'Download')).create(recursive: true);
       final result = await Process.run('chmod', ['000', unreadable.path]);
       expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
@@ -351,7 +362,12 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: unreadable.path,
-          volumesDirectory: volumes.path,
+          volumes: _FakeVolumes(
+            VolumesListed([
+              StorageVolume(path: unreadable.path, name: '辿れない volume'),
+              StorageVolume(path: good.path, name: 'SD カード'),
+            ]),
+          ),
         ),
       );
 
@@ -365,19 +381,13 @@ void main() {
       expect(directories, contains(Directory.systemTemp.path));
     });
 
-    test('**列挙そのものが落ちても投げず、観測対象を返す**(P3-3)', () async {
-      // `primaryRoot` の**親**が辿れないと、`locations()` の中で投げる。
-      // P1-2 の test は `primaryRoot` 自身を 000 にしているので、この層に届かない。
-      final parent = Directory(p.join(dir.path, 'unreadable-parent'));
-      await Directory(p.join(parent.path, 'volume')).create(recursive: true);
-      final result = await Process.run('chmod', ['000', parent.path]);
-      expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
-      addTearDown(() => Process.run('chmod', ['700', parent.path]));
-
+    test('**列挙が丸ごと落ちても投げず、観測対象を返す**(P3-3)', () async {
+      // port が約束を破って投げても、観測対象の後半(非FUSE の対照・追加指定)は
+      // 作る。**報告をゼロにしない。**
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
-          primaryRoot: p.join(parent.path, 'volume'),
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          primaryRoot: p.join(dir.path, 'primary'),
+          volumes: const _ThrowingVolumes(),
         ),
         extraDirs: '/storage/1234-ABCD',
       );
@@ -396,7 +406,9 @@ void main() {
       final targets = await androidProbeTargets(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: p.join(dir.path, 'no-volumes'),
+          volumes: _FakeVolumes(
+            VolumesListed([StorageVolume(path: primary.path, name: '内部ストレージ')]),
+          ),
         ),
         extraDirs: '/storage/1234-ABCD, ',
       );
@@ -408,73 +420,64 @@ void main() {
     });
   });
 
-  group('storageViewOf(app から見た /storage)', () {
-    test('列挙できた entry と、採用された保存場所を出す', () async {
-      final volumes = Directory(p.join(dir.path, 'storage'));
-      await Directory(
-        p.join(volumes.path, '0000-0000'),
-      ).create(recursive: true);
-      await Directory(p.join(volumes.path, 'emulated')).create(recursive: true);
+  group('storageViewOf(app が列挙した保存場所)', () {
+    test('platform が返した volume と、採用された保存場所を両方出す', () async {
       final primary = Directory(p.join(dir.path, 'primary'));
       await primary.create(recursive: true);
 
       final view = await storageViewOf(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: volumes.path,
+          volumes: _FakeVolumes(
+            VolumesListed([
+              StorageVolume(path: primary.path, name: '内部ストレージ'),
+              StorageVolume(path: '/storage/1234-ABCD', name: 'SD カード'),
+            ]),
+          ),
         ),
       );
 
-      expect(view, contains('0000-0000 (directory)'));
-      // **除外された `emulated` も「見えている」側に出す。** 採用の結果とは別に、
-      // 何が見えていたかを残す。
-      expect(view, contains('emulated (directory)'));
+      expect(view, contains('platform が返した volume: 2 件'));
+      expect(view, contains('SD カード = /storage/1234-ABCD'));
       expect(view, contains('保存場所として採用: 2 件'));
-      expect(view, contains(p.join(volumes.path, '0000-0000')));
     });
 
-    test('**読めなかったことを「空」と混同しない**', () async {
-      final volumes = Directory(p.join(dir.path, 'unreadable-storage'));
-      await volumes.create(recursive: true);
-      final result = await Process.run('chmod', ['000', volumes.path]);
-      expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
-      addTearDown(() => Process.run('chmod', ['700', volumes.path]));
+    test('**取得できなかったことを「0 件」と混同しない**', () async {
       final primary = Directory(p.join(dir.path, 'primary2'));
       await primary.create(recursive: true);
 
       final view = await storageViewOf(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: volumes.path,
+          volumes: const _FakeVolumes(VolumesUnavailable('EACCES')),
         ),
       );
 
-      expect(view, contains('列挙できなかった'));
-      expect(view, isNot(contains('(空)')));
+      expect(view, contains('platform から取得できなかった: EACCES'));
+      // **欠落も出す。** 内部ストレージだけ採用されたことが分かるようにする。
+      expect(view, contains('欠落:'));
     });
 
-    test('本当に空なら「空」と出す', () async {
-      final volumes = Directory(p.join(dir.path, 'empty-storage'));
-      await volumes.create(recursive: true);
+    test('本当に 0 件なら 0 件と出す', () async {
       final primary = Directory(p.join(dir.path, 'primary3'));
       await primary.create(recursive: true);
 
       final view = await storageViewOf(
         browser: AndroidStorageBrowser(
           primaryRoot: primary.path,
-          volumesDirectory: volumes.path,
+          volumes: const _FakeVolumes(VolumesListed([])),
         ),
       );
 
-      expect(view, contains('(空)'));
-      expect(view, isNot(contains('列挙できなかった')));
+      expect(view, contains('platform が返した volume: 0 件'));
+      expect(view, isNot(contains('取得できなかった')));
     });
 
     test('例外を投げない', () async {
       final view = await storageViewOf(
         browser: AndroidStorageBrowser(
           primaryRoot: p.join(dir.path, 'missing'),
-          volumesDirectory: p.join(dir.path, 'missing-too'),
+          volumes: const _ThrowingVolumes(),
         ),
       );
 
@@ -521,4 +524,22 @@ void main() {
       expect(report, contains('保証が破れた'));
     });
   });
+}
+
+/// 保存場所の列挙を差し替える fake。
+class _FakeVolumes implements StorageVolumesPort {
+  const _FakeVolumes(this.result);
+
+  final StorageVolumesResult result;
+
+  @override
+  Future<StorageVolumesResult> list() async => result;
+}
+
+/// **約束を破って投げる** port。守りが構造で入っているかを見るために使う。
+class _ThrowingVolumes implements StorageVolumesPort {
+  const _ThrowingVolumes();
+
+  @override
+  Future<StorageVolumesResult> list() async => throw StateError('列挙が丸ごと落ちた');
 }

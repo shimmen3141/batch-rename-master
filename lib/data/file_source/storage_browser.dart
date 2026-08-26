@@ -18,6 +18,24 @@ class StorageLocation {
   final String root;
 }
 
+/// [StorageBrowserPort.locations] の結果。
+///
+/// **「これだけは分かった」と「取れなかった」を1つの値で運ぶ。** 保存場所は
+/// 内部共有ストレージだけでも成立するので、取得の失敗は**全滅ではなく欠落**である。
+///
+/// **黙って欠落させない。** `013:T08` の実機観測まで、「取り外し可能な媒体が無い
+/// 端末」と「列挙できていない」を誰も区別できず、**装着されている SD カードが
+/// 保存場所に並ばないことに気づけなかった**(004 REQ-015 / 代表例26e)。
+class StorageLocations {
+  const StorageLocations(this.locations, {this.failure});
+
+  /// 見つかった保存場所。**空にはしない** — 内部共有ストレージは常に返す。
+  final List<StorageLocation> locations;
+
+  /// 一部を取得できなかったときの理由。取得できていれば `null`。
+  final String? failure;
+}
+
 /// browser に並ぶ1件(004 REQ-017: 絞り込まずにそのまま見せる)。
 class BrowserEntry {
   const BrowserEntry({
@@ -56,7 +74,7 @@ class DirectoryListingFailed extends DirectoryListing {
 /// Linux 上の test で階層移動・選択・注記をすべて再現できる。
 abstract interface class StorageBrowserPort {
   /// 保存場所の一覧(004 REQ-015)。
-  Future<List<StorageLocation>> locations();
+  Future<StorageLocations> locations();
 
   /// [location] の中で**実在する**既知の場所への近道(004 REQ-015)。
   ///

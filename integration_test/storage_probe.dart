@@ -12,6 +12,7 @@ import 'dart:io';
 
 import 'package:batch_rename_master/data/file_source/android_storage_browser.dart';
 import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dart';
+import 'package:batch_rename_master/data/file_source/storage_volumes.dart';
 import 'package:batch_rename_master/data/rename_exec/plain_rename.dart';
 import 'package:path/path.dart' as p;
 
@@ -238,7 +239,8 @@ Future<List<ProbeTarget>> androidProbeTargets({
   // `Directory.exists()` はそこで `PathAccessException` を投げる — **`false` を
   // 返すのではない**(独立review attempt 2 の P1-2 が実測した)。
   try {
-    for (final location in await browser.locations()) {
+    final found = await browser.locations();
+    for (final location in found.locations) {
       targets.add(ProbeTarget(location.root, '${location.name} の root'));
       try {
         final download = p.join(location.root, 'Download');
@@ -281,46 +283,44 @@ Future<List<ProbeTarget>> androidProbeTargets({
   return targets;
 }
 
-/// **app から見た `/storage` の中身**を、そのまま報告する。
+/// **app が列挙した保存場所**を、そのまま報告する。
 ///
-/// これが項目1「appのmount view」そのものである。`AndroidStorageBrowser.locations()` は
-/// **列挙に失敗しても内部ストレージだけは返す**(`android_storage_browser.dart` の
-/// 「空にして『保存場所が無い』と見せない」)ので、外からは**「取り外し可能な volume が
-/// 無い」と「見えていない」を区別できない**。
+/// これが項目1「appのmount view」そのものである。**platform が返した生の volume と、
+/// 保存場所として採用した結果の両方**を出す — 片方だけだと、`013:T08` の
+/// 2026-08-26 の観測と同じ袋小路に入る(端末の `mount` には vfat の volume が
+/// あるのに app が採用した保存場所は内部ストレージだけで、**「無い」のか
+/// 「見えていない」のか分からなかった**)。
 ///
-/// 2026-08-26 の観測で実際にこれが問題になった — 端末の `mount` には vfat の volume が
-/// あるのに、app が採用した保存場所は内部ストレージだけだった。**どちらなのかが
-/// 分からなかった。**
+/// `013:T12` で列挙の手段が `/storage` の走査から `StorageManager` へ変わったので、
+/// **見る場所もそれに合わせてある**。
 ///
-/// **この関数は例外を投げない。** 読めなかったことも観測結果である。
+/// **この関数は例外を投げない。** 取れなかったことも観測結果である。
 Future<String> storageViewOf({
   AndroidStorageBrowser browser = const AndroidStorageBrowser(),
 }) async {
-  final buffer = StringBuffer()
-    ..writeln('--- app から見た ${browser.volumesDirectory} ---');
+  final buffer = StringBuffer()..writeln('--- app が列挙した保存場所 ---');
   try {
-    final entries = Directory(browser.volumesDirectory).listSync();
-    if (entries.isEmpty) {
-      buffer.writeln('(空)');
-    }
-    for (final entry in entries) {
-      final kind = switch (entry) {
-        Directory() => 'directory',
-        Link() => 'link',
-        _ => 'file',
-      };
-      buffer.writeln('  ${p.basename(entry.path)} ($kind)');
+    final volumes = await browser.volumes.list();
+    switch (volumes) {
+      case VolumesListed(volumes: final listed):
+        buffer.writeln('platform が返した volume: ${listed.length} 件');
+        for (final volume in listed) {
+          buffer.writeln('  ${volume.name} = ${volume.path}');
+        }
+      case VolumesUnavailable(:final reason):
+        // **握りつぶさない。** 「取れなかった」と「無かった」は別の事実である。
+        buffer.writeln('platform から取得できなかった: $reason');
     }
   } catch (error) {
-    // **握りつぶさない。** 「読めなかった」と「空だった」は別の事実である。
-    buffer.writeln('列挙できなかった: $error');
+    buffer.writeln('platform から取得できなかった(例外): $error');
   }
   try {
-    final locations = await browser.locations();
-    buffer.writeln('保存場所として採用: ${locations.length} 件');
-    for (final location in locations) {
+    final found = await browser.locations();
+    buffer.writeln('保存場所として採用: ${found.locations.length} 件');
+    for (final location in found.locations) {
       buffer.writeln('  ${location.name} = ${location.root}');
     }
+    if (found.failure != null) buffer.writeln('欠落: ${found.failure}');
   } catch (error) {
     buffer.writeln('保存場所を作れなかった: $error');
   }

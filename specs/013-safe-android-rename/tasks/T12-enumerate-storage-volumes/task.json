@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T12",
   "title": "保存場所の列挙を、appから見える手段へ作り直す",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T07"
   ],
