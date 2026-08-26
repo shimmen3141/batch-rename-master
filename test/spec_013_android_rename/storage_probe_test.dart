@@ -92,6 +92,22 @@ void main() {
       expect(left, isEmpty);
     });
 
+    test('**実体を読めなければ「無傷」ではなく破れとして扱う**(P3-2)', () async {
+      // 排他 rename が目標名を消してしまった状況。`_read` は `null` を返し、
+      // それを「変わっていない」と読み替えると、**実機で目標名が消えていても
+      // 「無傷」と報告される。**
+      final row = await probeDirectory(
+        ProbeTarget(dir.path, 'host'),
+        exclusiveRename: (source, destination) {
+          File(destination).deleteSync();
+          return NativeRenameResult.nameConflict;
+        },
+      );
+
+      expect(row.observedTargetBody, isNull);
+      expect(row.defect, contains('目標名'));
+    });
+
     test('書けない場所は skip として返し、例外を投げない', () async {
       final missing = p.join(dir.path, 'no-such-directory');
 
@@ -349,6 +365,30 @@ void main() {
       expect(directories, contains(Directory.systemTemp.path));
     });
 
+    test('**列挙そのものが落ちても投げず、観測対象を返す**(P3-3)', () async {
+      // `primaryRoot` の**親**が辿れないと、`locations()` の中で投げる。
+      // P1-2 の test は `primaryRoot` 自身を 000 にしているので、この層に届かない。
+      final parent = Directory(p.join(dir.path, 'unreadable-parent'));
+      await Directory(p.join(parent.path, 'volume')).create(recursive: true);
+      final result = await Process.run('chmod', ['000', parent.path]);
+      expect(result.exitCode, 0, reason: 'chmod できないと前提が崩れる');
+      addTearDown(() => Process.run('chmod', ['700', parent.path]));
+
+      final targets = await androidProbeTargets(
+        browser: AndroidStorageBrowser(
+          primaryRoot: p.join(parent.path, 'volume'),
+          volumesDirectory: p.join(dir.path, 'no-volumes'),
+        ),
+        extraDirs: '/storage/1234-ABCD',
+      );
+
+      // **報告をゼロにしない。** 列挙の後ろにある観測対象は残る。
+      expect(
+        targets.map((target) => target.directory),
+        contains('/storage/1234-ABCD'),
+      );
+    });
+
     test('--dart-define で足した場所を観測対象にする', () async {
       final primary = Directory(p.join(dir.path, 'primary'));
       await primary.create(recursive: true);
@@ -365,6 +405,21 @@ void main() {
         targets.map((target) => target.directory),
         contains('/storage/1234-ABCD'),
       );
+    });
+  });
+
+  group('mediaProbeDirectoryOf', () {
+    test('**書ける側(`Android/media`)を指す**(004 REQ-018。P3-4)', () {
+      // `data` / `obb` は許可があっても読めない・書けないことがある側である。
+      // 取り違えると、この観測対象が黙って skip になる。
+      expect(
+        mediaProbeDirectoryOf('/storage/emulated/0'),
+        '/storage/emulated/0/Android/media/$probePackage',
+      );
+    });
+
+    test('package はこの app のものである', () {
+      expect(probePackage, 'com.example.batch_rename_master');
     });
   });
 

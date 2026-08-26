@@ -250,27 +250,28 @@ Future<List<ProbeTarget>> androidProbeTargets({
         // 読めなければ `probeDirectory` が理由つきで skip を返す。
       }
     }
-  } catch (_) {
-    // 列挙そのものが落ちても、以降の観測対象(app の保存領域・非FUSE の対照・
-    // `--dart-define` で足した場所)は作る。**報告をゼロにしない。**
-  }
 
-  // app ごとの保存領域。共有ストレージの一部だが FUSE の扱いが違いうるので、
-  // 内部共有ストレージの root とは別に観測する。
-  final media = mediaProbeDirectoryOf(browser.primaryRoot);
-  try {
-    await Directory(media).create(recursive: true);
-    targets.add(ProbeTarget(media, 'app ごとの保存領域'));
-  } catch (_) {
-    // 作れなければ観測しない。理由は runner の出力に出ない — **`/Android/` 配下は
-    // 読めないことがある**という既知の事実で、`013:T07` の manual で確認済みである。
-  }
+    // app ごとの保存領域。共有ストレージの一部だが FUSE の扱いが違いうるので、
+    // 内部共有ストレージの root とは別に観測する。
+    final media = mediaProbeDirectoryOf(browser.primaryRoot);
+    try {
+      await Directory(media).create(recursive: true);
+      targets.add(ProbeTarget(media, 'app ごとの保存領域'));
+    } catch (_) {
+      // 作れなければ観測しない。**`/Android/` 配下は読めないことがある**という
+      // 既知の事実で、`013:T07` の manual で確認済みである。
+    }
 
-  // **非FUSE の対照。** ここまでの対象はすべて共有ストレージ(MediaProvider の FUSE)
-  // である。`013:T01` の項目4「FUSE 自身が判定したのか下位へ委譲したのか」は、
-  // FUSE を経由しない場所と**同じ app プロセスで**比べて初めて前進する。
-  // app の内部領域は `/data` 上にあり FUSE を経由しない(実際の path は報告に出る)。
-  targets.add(ProbeTarget(Directory.systemTemp.path, 'app の内部領域(非FUSE の対照)'));
+    // **非FUSE の対照。** ここまでの対象はすべて共有ストレージ(MediaProvider の
+    // FUSE)である。`013:T01` の項目4「FUSE 自身が判定したのか下位へ委譲したのか」は、
+    // FUSE を経由しない場所と**同じ app プロセスで**比べて初めて前進する。
+    // app の内部領域は `/data` 上にあり FUSE を経由しない(実際の path は報告に出る)。
+    targets.add(ProbeTarget(Directory.systemTemp.path, 'app の内部領域(非FUSE の対照)'));
+  } catch (_) {
+    // **本体をまとめて囲む。** 個別の文を囲む形は、`await` を1つ足すたびに漏れる
+    // (独立review attempt 1 → 2 → 3 で同じ型を3回踏んだ)。ここまでに作れた
+    // 観測対象を返して先へ進む — **報告をゼロにしない。**
+  }
 
   for (final extra in extraDirs.split(',')) {
     final trimmed = extra.trim();

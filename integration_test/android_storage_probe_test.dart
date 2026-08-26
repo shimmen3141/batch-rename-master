@@ -55,10 +55,12 @@ void main() {
         }
       }
     } finally {
+      // **報告を先に出す。** `finally` の中で報告より前に filesystem 操作を置くと、
+      // その1行が新しい窓になる(独立review attempt 3 の P3-5)。
+      debugPrint(reportOf(rows));
       await cleanUpProbeDirectory(
         mediaProbeDirectoryOf(const AndroidStorageBrowser().primaryRoot),
       );
-      debugPrint(reportOf(rows));
     }
 
     // **フラグについて何も分からなければ失敗にする。** 「対象が無かった」

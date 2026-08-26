@@ -55,7 +55,7 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 | --- | --- | --- |
 | 観測 harness の**核**(`probeDirectory`、`defect` の判定、観測対象の作り方、報告の形) | **host の実 filesystem で閉じる。** `test/spec_013_android_rename/storage_probe_test.dart` が temp directory を使って実際に排他 rename と通常 rename を呼ぶ。辿れない場所は `chmod 000` で作る | — |
 | **runner**(`integration_test/android_storage_probe_test.dart`) | **閉じていない。** device build を要求するので host では走らない。**中身を核へ寄せて薄くしてある**(観測対象の列挙・観測・報告・後片付けはすべて核の側) | **人間**(手順2で実際に走る) |
-| harness が**保証の破れを見逃さない**こと | **mutationで固定する**(`M122`〜`M139`) | — |
+| harness が**保証の破れを見逃さない**こと | **mutationで固定する**(範囲と件数は下の「検証結果」表が持つ。ここへ書き写さない) | — |
 | **Androidの実 mount view での排他 renameの可否**(項目1) | **できない** | **人間**([`manual-verification.md`](manual-verification.md) 手順2) |
 | **失敗時のsource側**(項目2) | harness が観測して欠陥判定に含める。**実機での値**は取れない | 同上 |
 | **filesystemの種別**(項目3・4) | **できない**(`stat -f` / `mount`) | 同上 手順3 |
@@ -95,8 +95,11 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 **人間へ依頼してから harness の誤りに気づくと、実機の時間を捨てる**
 ([finding](../../../../development-findings/2026-08-25-manual-preconditions-were-not-executable-on-the-verification-device.md))。
 そこで観測の核を `integration_test/storage_probe.dart` へ出し、**host の test が同じ核を
-実 filesystem で回す**。`M122`〜`M125` は、その test が**harnessの手抜きを実際に落とす**
-ことを固定する(見逃し2件と対照2件)。
+実 filesystem で回す**。**mutation は、その test が harness の手抜きを実際に落とすことを
+固定する** — **範囲と件数は下の「検証結果」表だけが持つ。** ここへ書き写すと、足すたびに
+古くなる(独立review attempt 2 の P2-10、attempt 3 の P3-1 で**同じ型を2回**踏んだ。
+根は 2026-08-22 の[finding](../../../../development-findings/2026-08-22-restating-a-requirement-outside-its-row-went-stale-twice.md)
+と同じで、**生きた値の正本を1つにする**のが解である)。
 
 **この host test の PASS は「Androidで効く」を一切意味しない。** Linuxのext4はフラグを
 解釈するので当然通る。確かめているのは harness であって Android ではない。
