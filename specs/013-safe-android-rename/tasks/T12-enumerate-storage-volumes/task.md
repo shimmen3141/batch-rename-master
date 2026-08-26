@@ -255,9 +255,9 @@ syscall 番号(382)の照合は、これでは閉じない**(独立review attemp
 
 **「未確定」という印を、支えの無い推論で消さない。** 残余riskとして `T08` の表へ戻した。
 
-## この確認が `013:T08` の残余riskを2件閉じた
+## この確認が `013:T08` の残余riskを1件閉じた
 
-**`T08` は3件を引き受け先つきで受容していた。** そのうち2件がここで閉じた。
+**`T08` は3件を引き受け先つきで受容していた。** そのうち**1件**がここで閉じた。
 
 | `T08` が受容した残余risk | 結果 |
 | --- | --- |
@@ -299,5 +299,5 @@ range は `cc5f031...84a3cf4`。**実装と実機観測そのものには欠陥�
 - Blocker category: なし
 - Waiting for: `final-evidence` の独立review(attempt 4)
 - Requested action: なし
-- Evidence revision: PR #156(Draft)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
+- Evidence revision: PR #156(ready)、branch `asdd/013-safe-android-rename/T12-enumerate-storage-volumes`、base は `dev@cc5f031`(`git merge-base dev HEAD` の実測値)。`T08` の実機観測(2026-08-26、`sdk_gphone16k_x86_64` / API 37)が発端
 - Next Agent action: **`final-evidence` の独立reviewを通して merge する。** merge後は `008:T11` へ「保存場所が2つ並ぶ端末が実在する」ことを申し送る(あちらの「保存場所が1つなら一覧を挟まない」の判断材料が変わった)
