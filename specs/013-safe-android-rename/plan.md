@@ -46,15 +46,15 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 - [x] Androidで、目標名のfileが既にあるとき**置換せずに失敗**し、実体が無傷である
   - 証拠: 005 contract revision 4、仕様由来test、`T08`の端末確認(2026-08-26、**emulator** API 37。`Download`・app ごとの保存領域・非FUSE の対照の3箇所で `nameConflict`、目標名と source は無傷、**同じ場所で通常 rename は置換した**)
 - [x] `MANAGE_EXTERNAL_STORAGE`の要否と、許可されないときの振る舞いが利用者から観測できる
-  - 証拠: `T02`で承認された仕様、widget test、`T06`の端末確認(2026-08-24、対象commit `3576740`。許可・拒否・設定画面の往復が想定どおり)。**未確認の分岐は`T06`が記録している** — 設定画面が**アプリ一覧へ落ちる**分岐(この端末では個別画面が直接開いた)と、**API 30未満**の端末
+  - 証拠: `T02`で承認された仕様、widget test、`T06`の端末確認(2026-08-24、対象commit `3576740`。許可・拒否・設定画面の往復が想定どおり)。**未確認の分岐は`T06`が記録しており、2026-08-26 に残余riskとして受容した(引き受け先は**人間**。該当端末が手に入ったとき)** — 設定画面が**アプリ一覧へ落ちる**分岐(この端末では個別画面が直接開いた)と、**API 30未満**の端末
 - [x] Androidでfileを選び、改名し、undoできる(desktopと同じ受け入れシナリオ)
-  - 証拠: 004 spec再承認、`T07`の端末確認(2026-08-25、`sdk_gphone16k_x86_64`、対象commit `56b6a0e`)。**app内browserで選び、実際にfileの名前が変わった。** undoは「元に戻す」が出た場合の確認として手順に含まれ、開発者は当該手順の期待をすべて再現したと報告している
+  - 証拠: 004 spec再承認、`T07`の端末確認(2026-08-25、`sdk_gphone16k_x86_64`、対象commit `56b6a0e`)。**その後 `T12` が `locations()`(保存場所の一覧)とその画面を変えたが、この手順が通る経路(folder内の列挙・選択・改名・undo)に差分は無く、変わった画面は `T12` の端末確認(`225f5db`)が覆う。** **app内browserで選び、実際にfileの名前が変わった。** undoは「元に戻す」が出た場合の確認として手順に含まれ、開発者は当該手順の期待をすべて再現したと報告している。**押したかどうかは独立には記録されていない** — ただし undo は改名経路と共通で、Androidも`DesktopRenameExecutor`を通る(`renameExecutorFor`の写像testで固定)ため、005 REQ-006/007 の widget test が CI で覆う
 - [x] 実装したappのmount viewで`RENAME_NOREPLACE`の挙動を確認し、INV-002の成立範囲を記録した
   - 証拠: `T08`(2026-08-26)。**`shell` uidの観測では代用していない** — 製品と同じpackage・権限・mount viewで走る `integration_test/` から観測した。**成立範囲は API 37 emulator まで**。**FAT 系(`vfat` の SD カード)でも効くことは 2026-08-26 に `T12` の実機確認で確かめた** — 観測した2種(ext4 / vfat)では下位の種別で結果が変わらなかった(`f2fs` は未観測)。**API level の幅と実機は`T08`が引き受け先つきで受容した残余risk**である
 - [x] **desktopで**、読み込んでいないfileとの衝突が実行前に警告として出て、**入れ替え・循環では警告が出ない**
   - 証拠: `T10`(2026-08-21)、001 contract revision 2 / 004 spec の改訂と再承認、005 spec例25/25b/25c。`test/spec_005_rename_exec/occupied_names_test.dart`と`test/spec_001_rename_core/validation_test.dart`、mutation M30〜M34
 - [x] **Androidで**、同じことが成立する
-  - 証拠: `T07`の端末確認(2026-08-25、対象commit `56b6a0e`)。**読み込んでいない`keep.txt`との衝突が実行前に警告として出て、そのまま実行しても上書きされず`keep (1).txt`が作られた。** ~~現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる~~ **この前提は`T07`が解消した** — app内browserの列挙権限で`listNames`がAndroidで成功する
+  - 証拠: `T07`の端末確認(2026-08-25、対象commit `56b6a0e`。**`T12` の変更との関係は上の条件と同じ**)。**読み込んでいない`keep.txt`との衝突が実行前に警告として出て、そのまま実行しても上書きされず`keep (1).txt`が作られた。** ~~現在はSAFが親folderを列挙できないため`listNames`が失敗し、REQ-027で実行が止まる~~ **この前提は`T07`が解消した** — app内browserの列挙権限で`listNames`がAndroidで成功する
 - [x] 実行時の`nameConflict`が再採番され、結果に「確認した名前と異なる」が出る
   - 証拠: `T11`(independent review attempt 14 = PASS、PR #139)、005 spec例24/26/28〜30、VER-008。`test/spec_005_rename_exec/renumbering_test.dart`(22件。**再採番する側としない側の両方**を固定 — 一時名・復旧改名・巻き戻しでは再採番しない)と`test/spec_005_rename_exec/warning_confirmation_results_test.dart`(結果に**全件**を「旧 → 新」で出し、先頭数件で打ち切らない)
 - [x] 占有名がfolder単位で効き、実在名を取得できないfolderを含む実行は行わない
@@ -93,8 +93,13 @@ Androidで既存fileを置換しない原子的no-replaceと失敗時不変を�
 **[`spec.md`](spec.md) の「未解決」は残っている** — **Playのpolicyに該当しうるか、
 および審査に通るか**である。これは実装で閉じられる論点ではなく、**通らなければ
 ADR-002 の退避経路(Android未対応へ戻す)へ落とす**という設計になっている。
-`SafRenameExecutor` と `SafFileSource` を残しているのはそのためで、
-受け入れ条件の最後の1件がそれを固定している。
+`SafRenameExecutor` と `SafFileSource` を残しているのはそのためである。
+
+**ただし、受け入れ条件の最後の1件が固定しているのは「未対応adapterとnegative testが
+残っていること」までである。** 退避には**composition root 3箇所 + manifest + 種類の写像**を
+戻す必要があり、**特に権限portを戻し忘れると「安全な未対応」ではなく「アプリが機能
+しない」状態になる**(独立reviewのplan完了判定で判明)。**手順は
+[ADR-002](decisions/ADR-002-android-rename-storage-boundary.md)の「退避の手順」に書いた。**
 
 **`spec.md`は2026-08-14に`approved`。** preflightを削除し、権限のREQ-001〜004だけを残した。**この表は「承認した論点」の記録であり、状態の正本は[`spec.md`](spec.md)の`Status`と各`task.json`である。**
 

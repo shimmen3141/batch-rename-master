@@ -136,7 +136,27 @@ ADR-001が却下した案は、その判断を維持する(SAF前の存在確認
 ### 未解決のまま残る決定
 
 - ~~**`minSdk`をどうするか。**~~ **2026-08-13に決着。24のまま、対応可否を実行時に判定する**(`013`の`spec.md` D-1)。API levelは対応可否の代理指標として弱く、実際に効くかを決めるのはkernelとfilesystemであるため。
-- **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。
+- **Playの宣言が却下された場合の退避。** そのときはAndroid未対応へ戻す(005 contractを緩めない)。この退避経路を保つため、005のAndroid未対応adapterとnegative testは実装中も削除しない。**退避に何が要るかは下記。**
+
+#### 退避の手順(2026-08-26 に実装から起こした)
+
+**`SafRenameExecutor` を残しておくだけでは戻せない。** `013`が実装を進めた結果、
+戻すのに要るのは**composition root 3箇所 + manifest + 種類の写像**である。
+
+| # | 変えるもの | 戻さないとどうなるか |
+| --- | --- | --- |
+| 1 | `lib/data/rename_exec/platform_rename_executor.dart` の `renameExecutorFor` を `SafRenameExecutor` へ | Androidが`DesktopRenameExecutor`のまま(退避になっていない) |
+| 2 | `lib/data/file_source/platform_file_source.dart` の `fileSourceFor` を `SafFileSource` へ | app内browserのままpathを掴もうとする |
+| 3 | **`lib/data/permission/storage_permission.dart` の `storagePermissionFor` を、Androidも `UnrestrictedStoragePermission` へ** | **アプリが機能しなくなる。** manifestから権限を外すと `Environment.isExternalStorageManager()` は恒久的に `false` で、`AndroidStoragePermission.check()` は `denied` に倒れ(`android_storage_permission.dart`)、`FileSourceBar._openKindSheet` は**種類シートすら開かない**(`file_source_bar.dart`、013 REQ-002)。「安全な未対応」ではなく「読み込めない」になる |
+| 4 | `android/app/src/main/AndroidManifest.xml` の `MANAGE_EXTERNAL_STORAGE` 宣言を外す | Playへ宣言が残る |
+| 5 | `lib/main.dart` の `fileKindsFor(isAndroid:)` を、SAF時代の種類(「文書」を含む)へ戻す | SAFに戻したのに「文書」が出ない(004 REQ-011) |
+
+**仕様側の戻しも要る** — 004 spec の REQ-015〜019(app内browser)と 005 contract
+revision 6(Androidも同じ経路)は`013`が入れたものなので、**再承認が要る。**
+これは避けられないコストである。
+
+**`013`が足した他のもの**(app内browser、権限導線、`renameat2`のnative、`T12`の
+volume列挙)は、**未使用になるだけで戻せない依存は作っていない。**
 - **Permissions Declaration Formの提出内容と、store説明文への記載。** リリース時の人間の作業である。policyは「core functionalityがappの説明文で目立つ形に記載・訴求されていること」を求める。**実装が終わってから考えると間に合わない**ので、`T03`の設計時に「何を主目的として説明するか」を決めておく。
 
 ### 参考: 採用しなかった場合に起きたこと

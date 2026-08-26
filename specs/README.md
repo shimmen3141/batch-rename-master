@@ -5,10 +5,10 @@
 ## 現在の開発
 
 - [008 UIと主要操作の整合](008-ui-alignment/plan.md)
-- [013 Androidの安全なrename境界](013-safe-android-rename/plan.md)
 
 ## 既存能力
 
+- [013 Androidの安全なrename境界](013-safe-android-rename/plan.md) — 全taskが`done`で、全体の受け入れ条件も埋まった(2026-08-26)。**Playの審査は未提出**だが、これは実装で閉じられない外部riskで、却下時は[ADR-002 の「退避の手順」](013-safe-android-rename/decisions/ADR-002-android-rename-storage-boundary.md)へ落とす
 - [001 コア命名エンジン](001-rename-core/plan.md)
 - [002 ファイル一覧・選択・プレビュー](002-file-list/plan.md)
 - [003 ルール構築UI](003-rule-builder/plan.md)
