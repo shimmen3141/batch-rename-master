@@ -30,16 +30,22 @@ class _FakeBrowser implements StorageBrowserPort {
     ],
     this.shortcutNames = const [],
     this.failures = const {},
+    this.locationsFailure,
   });
 
   final Map<String, List<BrowserEntry>> tree;
   final List<StorageLocation> locationList;
   final List<String> shortcutNames;
   final Set<String> failures;
+
+  /// 保存場所の一部を取得できなかったときの理由(`013:T12`)。
+  final String? locationsFailure;
+
   final List<String> listed = [];
 
   @override
-  Future<List<StorageLocation>> locations() async => locationList;
+  Future<StorageLocations> locations() async =>
+      StorageLocations(locationList, failure: locationsFailure);
 
   @override
   Future<List<BrowserEntry>> shortcuts(StorageLocation location) async => [
@@ -316,6 +322,45 @@ void main() {
     });
   });
 
+  group('REQ-015: 保存場所を取得できなかったことを黙らせない(013:T12)', () {
+    testWidgets('**欠落の理由が画面に出る**', (tester) async {
+      // 「媒体が無い端末」と「列挙できていない」を利用者が区別できないと、
+      // 装着している SD カードが並ばないことに気づけない(`013:T08` の実機観測)。
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: const {_root: []},
+          locationList: const [StorageLocation(name: '内部ストレージ', root: _root)],
+          locationsFailure: '保存場所を取得できませんでした: EACCES',
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('browser-locations-failure')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('EACCES'), findsOneWidget);
+      // **保存場所そのものは出す。** 欠落は全滅ではない。
+      expect(find.text('内部ストレージ'), findsOneWidget);
+    });
+
+    testWidgets('**port が投げても読み込み中で止まらない**(理由を出す)', (tester) async {
+      await _open(tester, _ThrowingBrowser());
+
+      expect(
+        find.byKey(const Key('browser-locations-failure')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('browser-loading')), findsNothing);
+    });
+
+    testWidgets('取得できていれば出さない', (tester) async {
+      await _open(tester, _FakeBrowser(tree: const {_root: []}));
+
+      expect(find.byKey(const Key('browser-locations-failure')), findsNothing);
+    });
+  });
+
   group('REQ-016: 選択は同一フォルダ内に限る', () {
     testWidgets('フォルダを移動すると選択は解除される', (tester) async {
       final browser = _FakeBrowser(
@@ -538,4 +583,17 @@ void main() {
       expect(find.byKey(const Key('browser-listing-failed')), findsOneWidget);
     });
   });
+}
+
+/// **約束を破って投げる** browser。守りが構造で入っているかを見るために使う。
+class _ThrowingBrowser implements StorageBrowserPort {
+  @override
+  Future<StorageLocations> locations() async => throw StateError('列挙が落ちた');
+
+  @override
+  Future<List<BrowserEntry>> shortcuts(StorageLocation location) async => [];
+
+  @override
+  Future<DirectoryListing> list(String folder) async =>
+      const DirectoryListed([]);
 }

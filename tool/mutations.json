@@ -799,9 +799,9 @@
     {
       "id": "M114",
       "file": "lib/data/file_source/android_storage_browser.dart",
-      "note": "保存場所の除外(emulated/self)を外す(内部共有ストレージの上位が保存場所になり、rootより上へ辿れる。004 REQ-015。attempt 1 のRV02)",
-      "find": "        if (name == 'emulated' || name == 'self') continue;\n",
-      "replace": ""
+      "note": "保存場所のrootをvolumeの上位にする(rootより上へ辿れる。004 REQ-015の上限が破れる)。013:T12で列挙の手段が変わったので対象を言い直した(元は/storageのemulated/self除外)",
+      "find": "            StorageLocation(name: volume.name, root: volume.path),",
+      "replace": "            StorageLocation(name: volume.name, root: p.dirname(volume.path)),"
     },
     {
       "id": "M115",
@@ -1002,9 +1002,142 @@
     {
       "id": "M143",
       "file": "integration_test/storage_probe.dart",
-      "note": "app から見た/storageの列挙失敗を「空」として報告する(「取り外し可能なvolumeが無い」と「見えていない」を混同する。2026-08-26の観測でこの区別が実際に要った)",
-      "find": "  } catch (error) {\n    // **握りつぶさない。** 「読めなかった」と「空だった」は別の事実である。\n    buffer.writeln('列挙できなかった: $error');\n  }",
-      "replace": "  } catch (error) {\n    buffer.writeln('(空)');\n  }"
+      "note": "appが列挙した保存場所の報告で、取得できなかったことを「0 件」として出す(「無い」と「取れていない」を混同する。2026-08-26の観測でこの区別が実際に要った)。013:T12で手段が変わったので対象を言い直した",
+      "find": "        buffer.writeln('platform から取得できなかった: $reason');",
+      "replace": "        buffer.writeln('platform が返した volume: 0 件');"
+    },
+    {
+      "id": "M144",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "列挙できなかったことを黙って捨てる(欠落の理由が画面に出ず、装着されている媒体が「無い」ように見える。013:T08の実機観測で実際に起きた型)",
+      "find": "        return StorageLocations(await _primaryOnly(), failure: reason);",
+      "replace": "        return StorageLocations(await _primaryOnly());"
+    },
+    {
+      "id": "M145",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "取得できていても拠り所の内部ストレージを足す(platformが返した名前と二重に並ぶ)",
+      "find": "        if (found.isNotEmpty) return StorageLocations(found);",
+      "replace": "        if (found.isNotEmpty) {\n          return StorageLocations([...found, ...await _primaryOnly()]);\n        }"
+    },
+    {
+      "id": "M146",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[対照] 1件も返らなかったことを欠落として扱わない(取得できたのに0件、を「保存場所が無い端末」と見せる)",
+      "find": "          failure: '保存場所を1件も取得できませんでした',",
+      "replace": ""
+    },
+    {
+      "id": "M147",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "portが投げたときにこの関数も投げる(browserの画面が読み込み中のまま止まる。独立reviewが013:T08で2回指摘した「例外が保護の外にある」型)",
+      "find": "    } catch (error) {\n      return StorageLocations(\n        await _primaryOnly(),\n        failure: '保存場所を取得できませんでした: $error',\n      );\n    }",
+      "replace": "    } catch (error) {\n      rethrow;\n    }"
+    },
+    {
+      "id": "M148",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "channelの失敗を空の一覧へ落とす(装着されている媒体を「無い」と見せる。004 REQ-014が listNames へ課しているのと同じ規律)",
+      "find": "      return VolumesUnavailable('保存場所を取得できませんでした: $error');",
+      "replace": "      return const VolumesListed([]);"
+    },
+    {
+      "id": "M149",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "pathが無い行も保存場所にする(辿れないものが一覧に並ぶ)",
+      "find": "      if (path is! String || path.isEmpty) continue;",
+      "replace": "      if (path is! String) continue;"
+    },
+    {
+      "id": "M150",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "[対照] 応答が無いことを空の一覧として扱う(空の成功と取得失敗の区別が消える)",
+      "find": "      return const VolumesUnavailable('保存場所を取得できませんでした: 応答がありません');",
+      "replace": "      return const VolumesListed([]);"
+    },
+    {
+      "id": "M151",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "保存場所の欠落を画面に出さない(利用者が「媒体が無い」と「列挙できていない」を区別できない。013:T12の目的そのもの)",
+      "find": "      if (_locations?.failure case final failure?)",
+      "replace": "      if (false && _locations?.failure != null)"
+    },
+    {
+      "id": "M152",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV01] _primaryOnly の守りを外す(拠り所の exists() が投げると locations() が投げ、browserが読み込み中で止まる)",
+      "find": "    } catch (_) {\n      // 拠り所も読めない。**空で返す** — 呼び出し側は `failure` で理由を出す。\n    }",
+      "replace": "    } catch (_) {\n      rethrow;\n    }"
+    },
+    {
+      "id": "M153",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "[reviewer追加 RV02] 空の名前をそのまま保存場所名にする(無名の行が並ぶ)",
+      "find": "          name: name is String && name.isNotEmpty ? name : path,",
+      "replace": "          name: name is String ? name : path,"
+    },
+    {
+      "id": "M154",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV03][対照] platformが返した名前を捨てて固定名にする",
+      "find": "            StorageLocation(name: volume.name, root: volume.path),",
+      "replace": "            StorageLocation(name: '内部ストレージ', root: volume.path),"
+    },
+    {
+      "id": "M155",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "note": "[reviewer追加 RV04][対照] 取得できていても欠落の注記を出す(偽の警告)",
+      "find": "        if (found.isNotEmpty) return StorageLocations(found);",
+      "replace": "        if (found.isNotEmpty) {\n          return StorageLocations(found, failure: '取得できませんでした');\n        }"
+    },
+    {
+      "id": "M156",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "[reviewer追加 RV05][対照] 注記から理由を落とす(何が起きたか分からない)",
+      "find": "                  '$failure。ここに出ていない保存場所があるかもしれません。',",
+      "replace": "                  'ここに出ていない保存場所があるかもしれません。',"
+    },
+    {
+      "id": "M157",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV06][対照] probeが欠落を報告しない",
+      "find": "    if (found.failure != null) buffer.writeln('欠落: ${found.failure}');\n",
+      "replace": ""
+    },
+    {
+      "id": "M158",
+      "file": "lib/data/file_source/storage_volumes.dart",
+      "note": "[reviewer追加 RV07] channel名をKotlin側とずらす(MissingPluginExceptionで列挙が常に失敗する。Dart単体のtestは自分自身と一致するので検出できない)",
+      "find": "    'com.example.batch_rename_master/storage_volumes',",
+      "replace": "    'com.example.batch_rename_master/storage_volumes_TYPO',"
+    },
+    {
+      "id": "M159",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "画面側でportの例外を受けない(読み込み中のまま止まる。独立review attempt 1 のP3-1)",
+      "find": "    } catch (error) {\n      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );\n    }",
+      "replace": "    } catch (error) {\n      rethrow;\n    }"
+    },
+    {
+      "id": "M160",
+      "file": "android/app/src/main/kotlin/com/example/batch_rename_master/MainActivity.kt",
+      "note": "[reviewer追加 RW01] Kotlin側の保存場所channel名をずらす(M158の逆向き。Kotlinが動いた側を検出できるか)",
+      "find": "    private val volumesChannelName = \"com.example.batch_rename_master/storage_volumes\"",
+      "replace": "    private val volumesChannelName = \"com.example.batch_rename_master/storage_volumes_TYPO\""
+    },
+    {
+      "id": "M161",
+      "file": "android/app/src/main/kotlin/com/example/batch_rename_master/MainActivity.kt",
+      "note": "[reviewer追加 RW02] Kotlin側の権限channel名をずらす(013:T06も一緒に守られているか)",
+      "find": "    private val channelName = \"com.example.batch_rename_master/storage_permission\"",
+      "replace": "    private val channelName = \"com.example.batch_rename_master/storage_permission_TYPO\""
+    },
+    {
+      "id": "M162",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "[reviewer追加 RW03] 画面側が例外を黙って空にする(投げないが理由も出ない = 013:T08と同じ絵。M159のrethrowとは別の罪)",
+      "find": "      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );",
+      "replace": "      locations = const StorageLocations([]);"
     }
   ]
 }

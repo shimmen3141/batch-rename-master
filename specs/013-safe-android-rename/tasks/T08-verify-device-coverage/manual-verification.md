@@ -54,14 +54,17 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 増えており、**コンテナとホストで `.pub-cache` が別**なので、ホスト側では取り直しが要る
 ([`emulator-verification.md`](../../../../docs/development/emulator-verification.md))。
 
-**期待**: 端末にアプリが入り、`--- app から見た /storage ---` で始まり
+**期待**: 端末にアプリが入り、`--- app が列挙した保存場所 ---` で始まり
 `=== 013:T08 排他 rename の観測 ===` を経て
 `=== ここまで。この出力をそのまま貼って返してください ===` までの出力が出る。
 **その範囲をそのまま貼って返してほしい。**
 
-**先頭の `--- app から見た /storage ---`** には、アプリから見えた `/storage` の中身と、
+**先頭の `--- app が列挙した保存場所 ---`** には、プラットフォームが返した volume と、
 そのうち保存場所として採用したものが並ぶ。**SDカードやUSBを挿しているなら、ここに出るか
 どうかが要点である**(出ないのか、出ているのに採用されていないのかで、直す場所が変わる)。
+
+**`013:T12` で列挙の手段が変わっている。** SD カードの確認を目的にするなら、
+[`T12` の手順書](../T12-enumerate-storage-volumes/manual-verification.md)の方が新しい。
 
 そのあとに、保存場所ごとに次が並ぶ。**共有ストレージ(FUSE)だけでなく、
 比較用に「app の内部領域(非FUSE の対照)」も1件出る** — フラグを解釈しているのが FUSE 自身
@@ -125,6 +128,16 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 
 実機はvendorのkernelとfilesystem(f2fs等)で挙動が変わりうる。エミュレータの結果は
 実機の証拠にならない。
+
+## 手順5b — 32bit ARM の端末(あれば)
+
+**32bit 専用(armeabi-v7a)の Android 端末があれば**、手順1・2を実行してほしい。
+無ければ「無い」で構わない。
+
+このアプリは 32bit ARM 向けの syscall 番号を**この環境では照合できていない**
+(`task.md` の残余risk)。**手順2 の出力で `排他 rename:` が `効かない(通常 rename へ劣化する)`
+になっていたら、番号が違っている可能性がある**(そうでない可能性もある — 端末側で
+`renameat2` が使えないだけのこともある)。**どちらでも安全側に倒れる**が、記録したい。
 
 ## 手順6 — SDカード / USB(あれば)
 
