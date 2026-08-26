@@ -1117,6 +1117,27 @@
       "note": "画面側でportの例外を受けない(読み込み中のまま止まる。独立review attempt 1 のP3-1)",
       "find": "    } catch (error) {\n      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );\n    }",
       "replace": "    } catch (error) {\n      rethrow;\n    }"
+    },
+    {
+      "id": "M160",
+      "file": "android/app/src/main/kotlin/com/example/batch_rename_master/MainActivity.kt",
+      "note": "[reviewer追加 RW01] Kotlin側の保存場所channel名をずらす(M158の逆向き。Kotlinが動いた側を検出できるか)",
+      "find": "    private val volumesChannelName = \"com.example.batch_rename_master/storage_volumes\"",
+      "replace": "    private val volumesChannelName = \"com.example.batch_rename_master/storage_volumes_TYPO\""
+    },
+    {
+      "id": "M161",
+      "file": "android/app/src/main/kotlin/com/example/batch_rename_master/MainActivity.kt",
+      "note": "[reviewer追加 RW02] Kotlin側の権限channel名をずらす(013:T06も一緒に守られているか)",
+      "find": "    private val channelName = \"com.example.batch_rename_master/storage_permission\"",
+      "replace": "    private val channelName = \"com.example.batch_rename_master/storage_permission_TYPO\""
+    },
+    {
+      "id": "M162",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "[reviewer追加 RW03] 画面側が例外を黙って空にする(投げないが理由も出ない = 013:T08と同じ絵。M159のrethrowとは別の罪)",
+      "find": "      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );",
+      "replace": "      locations = const StorageLocations([]);"
     }
   ]
 }
