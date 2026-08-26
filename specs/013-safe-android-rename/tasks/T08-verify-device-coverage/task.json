@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T08",
   "title": "端末幅とapp内mount viewを再検証する",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T05",
     "T07"
@@ -11,6 +11,6 @@
     "INV-001"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 154,
   "manualVerification": "manual-verification.md"
 }

@@ -851,6 +851,160 @@
       "note": "[対照] /Android直下で注記を出さない(004 REQ-018。attempt 2 のRV07)",
       "find": "  if (rest.isEmpty) return true;",
       "replace": "  if (rest.isEmpty) return false;"
+    },
+    {
+      "id": "M122",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測 harness が「目標名が置換された」を見逃す(013:T08。これを見逃すと、実機で005 INV-002が破れていてもPASSして返る)",
+      "find": "    if (observedTargetBody != targetBody) {",
+      "replace": "    if (false && observedTargetBody != targetBody) {"
+    },
+    {
+      "id": "M123",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測 harness が対照(通常 rename)の成立を確かめない(013:T01の初回spikeが対照を欠いてP1になった型を、harnessが再現しないことの固定)",
+      "find": "    if (control != NativeRenameResult.success ||\n        observedControlBody != sourceBody) {",
+      "replace": "    if (false) {"
+    },
+    {
+      "id": "M124",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[対照] 劣化(fallbackRequired)を欠陥として扱う(005 contract revision 4が受容した劣化を「壊れている」と誤報しないことの固定)",
+      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired &&\n        exclusive != NativeRenameResult.permissionDenied) {",
+      "replace": "    if (exclusive != NativeRenameResult.nameConflict) {"
+    },
+    {
+      "id": "M125",
+      "file": "integration_test/storage_probe.dart",
+      "note": "観測に使った file を消さない(実機の共有ストレージに残骸が残る。013:T07のmanualで人間が片付ける羽目になる)。attempt 2 で後片付けを finally へ移したので対象を言い直した",
+      "find": "  } finally {\n    await cleanUpProbeFiles(all);\n  }",
+      "replace": "  } finally {\n    // 後片付けをしない\n  }"
+    },
+    {
+      "id": "M126",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N1] 劣化した場所(fallbackRequired)では目標名の検査を飛ばす。Androidで最も起きやすい結果がこれなので、飛ばされると実機の観測が空振りになる",
+      "find": "    if (observedTargetBody != targetBody) {",
+      "replace": "    if (exclusive == NativeRenameResult.nameConflict &&\n        observedTargetBody != targetBody) {"
+    },
+    {
+      "id": "M127",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N2] 失敗したのにsourceが変わったことを見逃す(005 REQ-016。task.mdの項目2そのもの)",
+      "find": "    if (observedSourceBody != sourceBody) {",
+      "replace": "    if (false && observedSourceBody != sourceBody) {"
+    },
+    {
+      "id": "M128",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N3] M124の逆向き。想定外の結果(successで黙って置換した等)を欠陥にしない",
+      "find": "    if (exclusive != NativeRenameResult.nameConflict &&\n        exclusive != NativeRenameResult.fallbackRequired &&\n        exclusive != NativeRenameResult.permissionDenied) {",
+      "replace": "    if (false) {"
+    },
+    {
+      "id": "M129",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N4][対照] permissionDeniedの免除を外す。免除自体がtestで固定されているかを見る",
+      "find": "    if (exclusive == NativeRenameResult.permissionDenied) return null;",
+      "replace": ""
+    },
+    {
+      "id": "M130",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RV-N5] 観測できなかった場所を「観測できた」と報告する(skipを問題なしと読ませる型)",
+      "find": "  bool get observed => exclusive != null;",
+      "replace": "  bool get observed => true;"
+    },
+    {
+      "id": "M131",
+      "file": "integration_test/storage_probe.dart",
+      "note": "runnerのguardが「フラグについて分かった行」ではなく「観測できた行」を数える(全volumeがpermissionDeniedでも緑になる。独立review attempt 1 のP2-6)",
+      "find": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict ||\n      exclusive == NativeRenameResult.fallbackRequired;",
+      "replace": "  bool get answersTheQuestion => exclusive != null;"
+    },
+    {
+      "id": "M132",
+      "file": "integration_test/storage_probe.dart",
+      "note": "nativeを呼べなかったことを観測結果にせず、例外を伝播させる(報告が丸ごと消える。独立review attempt 1 のP1-1)。attempt 2 の構造変更で対象を言い直した",
+      "find": "      return ProbeRow.skipped(target, '排他 rename を呼べない: $error');",
+      "replace": "      rethrow;"
+    },
+    {
+      "id": "M133",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-1] 劣化した場所(fallbackRequired)ではsourceの検査を飛ばす",
+      "find": "    if (observedSourceBody != sourceBody) {",
+      "replace": "    if (exclusive == NativeRenameResult.nameConflict &&\n        observedSourceBody != sourceBody) {"
+    },
+    {
+      "id": "M134",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-2] 対照の免除をfallbackRequiredへ広げる。Androidで最も起きやすい結果がこれなので、広げると『その場所の結果を読めない』を見逃す",
+      "find": "    if (exclusive == NativeRenameResult.permissionDenied) return null;",
+      "replace": "    if (exclusive == NativeRenameResult.permissionDenied ||\n        exclusive == NativeRenameResult.fallbackRequired) {\n      return null;\n    }"
+    },
+    {
+      "id": "M135",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-3][対照] M131の逆向き。劣化した行を「分かっていない」と数える(全volumeが劣化する端末で偽の失敗になる)",
+      "find": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict ||\n      exclusive == NativeRenameResult.fallbackRequired;",
+      "replace": "  bool get answersTheQuestion =>\n      exclusive == NativeRenameResult.nameConflict;"
+    },
+    {
+      "id": "M136",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-4] 後片付けのdirectory削除を再帰にする(元からあった中身を巻き添えにする=データ損失)",
+      "find": "    await Directory(path).delete();",
+      "replace": "    await Directory(path).delete(recursive: true);"
+    },
+    {
+      "id": "M137",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVB-5] nativeの保護をFileSystemExceptionへ狭める(P1-1が戻る。@Nativeのsymbol解決失敗はFileSystemExceptionではない)",
+      "find": "      exclusive = exclusiveRename(source, destination);\n    } catch (error) {",
+      "replace": "      exclusive = exclusiveRename(source, destination);\n    } on FileSystemException catch (error) {"
+    },
+    {
+      "id": "M138",
+      "file": "integration_test/storage_probe.dart",
+      "note": "辿れないvolumeのDownloadを見にいく処理を無防備へ戻す(Directory.existsが投げ、観測対象の列挙ごと落ちて報告がゼロになる。独立review attempt 2 のP1-2)",
+      "find": "      try {\n        final download = p.join(location.root, 'Download');\n        if (await Directory(download).exists()) {\n          targets.add(ProbeTarget(download, '${location.name} の Download'));\n        }\n      } catch (_) {",
+      "replace": "      {\n        final download = p.join(location.root, 'Download');\n        if (await Directory(download).exists()) {\n          targets.add(ProbeTarget(download, '${location.name} の Download'));\n        }\n      }\n      if (false) {"
+    },
+    {
+      "id": "M139",
+      "file": "integration_test/storage_probe.dart",
+      "note": "対照の保護をFileSystemExceptionへ狭める(注入された実装が別の例外を投げると観測結果ではなく例外になる。独立review attempt 2 のP2-13)",
+      "find": "    } catch (_) {\n      // 対照を実行できなかったことは `defect` が拾う。",
+      "replace": "    } on FileSystemException {\n      // 対照を実行できなかったことは `defect` が拾う。"
+    },
+    {
+      "id": "M140",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVC-2] 読めなかった実体を『無傷』と読み替える(実機で目標名が消えていても「無傷」と報告される)",
+      "find": "  } on FileSystemException {\n    return null;\n  }\n}",
+      "replace": "  } on FileSystemException {\n    return targetBody;\n  }\n}"
+    },
+    {
+      "id": "M141",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVC-1b] 列挙そのものが落ちたときの外側の守りを無効化する(primaryRootの親が辿れないと報告がゼロになる。独立review attempt 3 のP3-3)",
+      "find": "  } catch (_) {\n    // **本体をまとめて囲む。**",
+      "replace": "  } catch (_) {\n    rethrow;\n    // **本体をまとめて囲む。**"
+    },
+    {
+      "id": "M142",
+      "file": "integration_test/storage_probe.dart",
+      "note": "[reviewer追加 RVC-5] app ごとの保存領域の場所をmediaからdataへ変える(004 REQ-018で書ける側はmediaである。取り違えるとこの観測対象が黙ってskipになる)",
+      "find": "    p.join(primaryRoot, 'Android', 'media', probePackage);",
+      "replace": "    p.join(primaryRoot, 'Android', 'data', probePackage);"
+    },
+    {
+      "id": "M143",
+      "file": "integration_test/storage_probe.dart",
+      "note": "app から見た/storageの列挙失敗を「空」として報告する(「取り外し可能なvolumeが無い」と「見えていない」を混同する。2026-08-26の観測でこの区別が実際に要った)",
+      "find": "  } catch (error) {\n    // **握りつぶさない。** 「読めなかった」と「空だった」は別の事実である。\n    buffer.writeln('列挙できなかった: $error');\n  }",
+      "replace": "  } catch (error) {\n    buffer.writeln('(空)');\n  }"
     }
   ]
 }
