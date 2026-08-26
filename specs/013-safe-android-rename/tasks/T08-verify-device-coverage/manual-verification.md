@@ -68,6 +68,7 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 - `source の中身:` — `brm-t08-source` のままであること。
 - `対照(通常 rename):` — `success` かつ中身が `brm-t08-source` に**置換されている**こと。
   これが起きて初めて「フラグが効いた」と言える(置換できない場所では比較にならない)。
+  **ただし `排他 rename:` が `書き込めない場所` の行では、対照も失敗してよい。**
 
 テスト自体は、上の**目標名・source・対照**が崩れたときだけ失敗する。
 **`fallbackRequired` では失敗しない。**
@@ -81,7 +82,9 @@ flutter test integration_test\android_storage_probe_test.dart -d <device_id>
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell "ls /sdcard/brm-t08-* /sdcard/Download/brm-t08-* /sdcard/Android/*/com.example.batch_rename_master/ 2>/dev/null"
 ```
 
-**期待**: 何も出ない(`No such file or directory` でよい)。
+**期待**: **`brm-t08-` で始まる名前が出なければよい。** 最後の `*` は `media` 以外にも
+当たるので、**アプリが入っていれば別の行が出ることがある** — その場合は**その行を
+そのまま書いてほしい**(片付ける必要はない)。
 
 **SDカードやUSBを挿している場合は、手順2の出力に出た場所も同じように見てほしい**
 (場所は端末によって変わるので、ここに書けない)。

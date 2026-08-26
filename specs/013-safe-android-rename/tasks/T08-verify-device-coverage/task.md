@@ -53,8 +53,9 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 | 対象 | この環境での検証 | 引き受け先 |
 | --- | --- | --- |
-| 観測 harness の中身(`probeDirectory`、`defect` の判定、観測対象の作り方、報告の形) | **host の実 filesystem で閉じる。** `test/spec_013_android_rename/storage_probe_test.dart` が temp directory を使って実際に排他 rename と通常 rename を呼ぶ | — |
-| harness が**保証の破れを見逃さない**こと | **mutationで固定する**(`M122`〜`M125`) | — |
+| 観測 harness の**核**(`probeDirectory`、`defect` の判定、観測対象の作り方、報告の形) | **host の実 filesystem で閉じる。** `test/spec_013_android_rename/storage_probe_test.dart` が temp directory を使って実際に排他 rename と通常 rename を呼ぶ。辿れない場所は `chmod 000` で作る | — |
+| **runner**(`integration_test/android_storage_probe_test.dart`) | **閉じていない。** device build を要求するので host では走らない。**中身を核へ寄せて薄くしてある**(観測対象の列挙・観測・報告・後片付けはすべて核の側) | **人間**(手順2で実際に走る) |
+| harness が**保証の破れを見逃さない**こと | **mutationで固定する**(`M122`〜`M139`) | — |
 | **Androidの実 mount view での排他 renameの可否**(項目1) | **できない** | **人間**([`manual-verification.md`](manual-verification.md) 手順2) |
 | **失敗時のsource側**(項目2) | harness が観測して欠陥判定に含める。**実機での値**は取れない | 同上 |
 | **filesystemの種別**(項目3・4) | **できない**(`stat -f` / `mount`) | 同上 手順3 |
@@ -124,12 +125,12 @@ S-2は**1機種・1 API level・`shell` uidからの観測**だった。実装�
 
 | 種別 | commandと結果 |
 | --- | --- |
-| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(28件)** |
-| full regression | `flutter test` = **PASS(617件)**。T08着手前は589件 |
+| related test | `flutter test test/spec_013_android_rename/storage_probe_test.dart` = **PASS(44件)** |
+| full regression | `flutter test` = **PASS(633件)**。T08着手前は589件 |
 | static analysis | `flutter analyze` = **PASS** |
 | format | `dart format --output=none --set-exit-if-changed .` = **PASS** |
 | ASDD構造 | `workspace.py check specs` = **PASS** |
-| mutation | `M122`〜`M132` = **11 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`は**独立reviewerが足したもの**(`M129`は対照) |
+| mutation | `M122`〜`M139` = **18 KILLED / 0 SURVIVED / 0 SKIPPED**。うち`M126`〜`M130`と`M133`〜`M137`は**独立reviewerが足したもの**(`M129`/`M135`は対照) |
 | **端末での観測** | **未実施。** 人間へ依頼する |
 | **Android build** | **未実施。** SDKが無い(手順7で人間が確かめる) |
 
@@ -160,11 +161,47 @@ mutationは実装側へ取り込む。対照として置いたものも落とさ
 **mutation実行中に事故が1件**あった。詳細と再発防止は
 [finding](../../../../development-findings/2026-08-23-edited-a-file-while-a-mutation-runner-was-restoring-it.md)へ追記した。
 
+## 独立review attempt 2(2026-08-26)= FAIL
+
+range は `5307fa7...15ae58d`。**attempt 1 の9件はすべて閉じたと確認された**(reviewerが
+差分・test・mutationを自分で回し、`M122`〜`M132` = 11 KILLED を再現した)。
+**`Directory.systemTemp` が非FUSEである根拠も、reviewerが一次資料で裏を取った** —
+Dart は `TMPDIR` を見て(`runtime/bin/directory_linux.cc`)、Android の app process では
+`ActivityThread` が `TMPDIR` を app の cache dir へ設定する(`/data` 上)。
+
+**しかし P1-1 と同じ根本原因が、直さなかった別の場所に残っていた。**
+
+| # | 指摘 | 分類 | 始末 |
+| --- | --- | --- | --- |
+| **P1-2** | **`androidProbeTargets` が投げると報告が丸ごと消える。** `Directory.exists()` は辿れない親の下で **`false` を返さず投げる**(reviewerがcontainerで実測)。`/storage` に取り外し済み・stale mount の entry が1つでもあると、**実機・SDカードという一番高くつく場面**で報告ゼロ+残骸になる | 成果物の欠陥 | **解き方を変えた**(下記) |
+| P2-9 | **`RVB-2` がSURVIVED** — 劣化した行の「対照」検査が固定されていない。1件ずつ足す形は隣が空いたまま残る | 安全網の穴 | **testを升目で回す形へ変えた**(結果3種 × 破れ方7種)。`RVB-2`は`M134`として取り込み、KILLEDになった |
+| P2-10 | 宣言表が`M122`〜`M125`のままで、検証結果表と食い違う | 成果物の欠陥 | 直した。あわせて**runnerはhostで閉じていない**ことを宣言表へ書き分けた |
+| P2-11 | 残骸確認の glob が `Android/data` などにも当たり、人間がYES/NOで判定できない | 成果物の欠陥(軽微) | 直した。「`brm-t08-`で始まる名前が出なければよい」へ |
+| P2-12 | 手順2の「対照」期待が`permissionDenied`の行にも読める | 成果物の欠陥(軽微) | 直した |
+| P2-13 | 対照の block だけ `on FileSystemException` で、後片付けが`finally`でない | 安全網の穴 | **P1-2の構造変更で同時に消えた**(`M139`) |
+
+### P1-2 の解き方を変えた(AGENTS.md「同じ根本原因が修正後も2回続いた」)
+
+**窓をもう1つ塞ぐのをやめた。** attempt 1 で「native の呼び出しだけ囲む」で直したら、
+attempt 2 で列挙側に同じ穴が見つかった。`await` を1つ足すたびに同じことが起きる。
+
+**このprojectは既に同じ結論に達している** — `lib/data/rename_exec/desktop_rename_executor.dart`
+の「個別のawaitをcatchで囲むのではなく、まとめて囲む。事例ごとに囲む形は、awaitを1つ
+足すたびに漏れる」。同じ形にした。
+
+1. `probeDirectory` の後片付けを **`finally`** へ。
+2. runner の本体を `try` に入れ、**報告と後片付けを `finally`** へ。
+3. `androidProbeTargets` は**1 volume の失敗で全体を落とさない**。
+
+**testが穴を実際に落とすかも確かめ直した。** 最初に書いたtestは `M138` を落とせなかった
+(守りが無くても外側のcatchが拾い、assertionが通ってしまう)。**辿れない側を`primaryRoot`に
+して「後続のvolumeが残ること」まで見る**形に変えて、KILLEDになった。
+
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 の P1 1件と P2 8件を直した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(28)、`M122`〜`M132` = 11 KILLED)
+- Last checkpoint: **独立review attempt 2 の P1 1件と P2 5件を直した**(`flutter test test/spec_013_android_rename/storage_probe_test.dart` = PASS(44)、`M122`〜`M139` = 18 KILLED)
 - Blocker category: なし(依存は解けた。`T05`/`T07`とも done)
-- Waiting for: 独立review attempt 2 → そのあと人間の端末確認
+- Waiting for: 独立review attempt 3 → そのあと人間の端末確認
 - Requested action: なし
 - Evidence revision: PR #154(Draft)、branch `asdd/013-safe-android-rename/T08-verify-device-coverage`、base は `dev@5307fa7`(`git merge-base dev HEAD` の実測値。当初 `ae59859` と書いたのは誤りで、それは祖先ではあるが merge-base ではない — その値で range を取ると `008` の無関係な doc commit が3件混入する)
 - Next Agent action: **独立reviewを通してから**[`manual-verification.md`](manual-verification.md)を人間へ依頼する(reviewの指摘でcodeが変わると証拠が失効する)。結果を受けたら7項目を環境つきで記録し、**埋まらなかった項目はそう書く**
