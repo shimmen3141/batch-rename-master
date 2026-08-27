@@ -13,11 +13,22 @@ import 'row_view.dart';
 /// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
 const Key shiftModifiedAtKey = Key('shift-modified-at');
 
+/// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
+const Key rowLocationKey = Key('row-location');
+
+/// 行サブ情報の作成日時(002 REQ-013)。**並び順chipや代替警告と同じ語を含む**ため、
+/// testが行の中の日時だけを指せるようにkeyを持たせる。
+const Key rowCreatedAtKey = Key('row-created-at');
+
+/// 行サブ情報の更新日時。狭幅では作成日時より先に削られる側である(008:T07)。
+const Key rowModifiedAtKey = Key('row-modified-at');
+
 /// メイン画面のファイルリスト(002 spec の描画層)。
 ///
 /// [FileListController] を購読して描画するだけの薄いウィジェット。ロジックは
-/// 持たず、操作は controller のメソッドへ委譲する。左に現在名・右に変更後名の
-/// 2カラム、各行にチェックボックス、上部にソート切替チップを置く(PRD §3.1)。
+/// 持たず、操作は controller のメソッドへ委譲する。各行はチェックボックスの右へ
+/// 現在名・変更後名・サブ情報を**縦に積み**(参考designのリッチな行。008:T07 で
+/// 横2カラムから移した)、上部にソート切替チップを置く。
 /// 視覚は参考デザインに準拠し、色は [AppColors] のセマンティック名で参照する。
 class FileListView extends StatelessWidget {
   const FileListView({
@@ -723,6 +734,11 @@ class _FileRow extends StatelessWidget {
             activeColor: colors.primary,
             checkColor: colors.onPrimary,
           ),
+          // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
+          //
+          // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
+          // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
+          // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -733,15 +749,24 @@ class _FileRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.textPrimary, fontSize: 13),
                 ),
+                // 「現在名 → 変更後名」という読み方は矢印で残す。
+                Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        size: 12,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    Expanded(child: _NewName(row: row)),
+                  ],
+                ),
                 _DateSubInfo(file: row.source, sortMode: sortMode),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(Icons.arrow_forward, size: 14, color: colors.textMuted),
-          ),
-          Expanded(child: _NewName(row: row)),
           if (onRemove != null)
             IconButton(
               onPressed: onRemove,
@@ -797,36 +822,59 @@ class _DateSubInfo extends StatelessWidget {
     // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
     // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
     final emphasize = unknown && sortMode == FileSortMode.createdAt;
+    final base = TextStyle(color: colors.textMuted, fontSize: 10.5);
     return Padding(
       padding: const EdgeInsets.only(top: 2),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (emphasize) ...[
-            Icon(Icons.warning_amber_rounded, size: 11, color: colors.danger),
-            const SizedBox(width: 3),
-          ],
-          // 1つの Text にまとめ、狭幅では省略する(行内で溢れさせない)。
-          // 色は span で分け、不明な作成日時だけを危険色にする。
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
-                  if (file.sourceLocation != null)
-                    TextSpan(text: '${file.sourceLocation} · '),
-                  TextSpan(
-                    text: '作成日時: ${unknown ? '不明' : _format(createdAt)}',
-                    style: TextStyle(
-                      color: emphasize ? colors.danger : colors.textMuted,
-                    ),
-                  ),
-                  TextSpan(text: ' / 更新日時: ${_format(file.modifiedAt)}'),
-                ],
-              ),
+          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
+          //
+          // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
+          // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
+          if (file.sourceLocation != null)
+            Text(
+              file.sourceLocation!,
+              key: rowLocationKey,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: colors.textMuted, fontSize: 10.5),
+              style: base,
             ),
+          Row(
+            children: [
+              if (emphasize) ...[
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 11,
+                  color: colors.danger,
+                ),
+                const SizedBox(width: 3),
+              ],
+              // **作成日時は縮まない側へ置く。** `Flexible` に入れないので
+              // `Row` は先にこの幅を確保し、足りない分は更新日時から削られる。
+              // どれだけ狭くしても `作成日時: 不明` が省略されない、が構造で
+              // 保証される(優先順位の調整だと幅次第で再発する)。
+              Text(
+                '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                key: rowCreatedAtKey,
+                maxLines: 1,
+                style: base.copyWith(
+                  color: emphasize ? colors.danger : colors.textMuted,
+                ),
+              ),
+              // 更新日時は残った幅に収める。入りきらなければ省略され、幅が
+              // 尽きれば消える。**作成日時より先に削られる側**である。
+              Flexible(
+                child: Text(
+                  ' / 更新日時: ${_format(file.modifiedAt)}',
+                  key: rowModifiedAtKey,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: base,
+                ),
+              ),
+            ],
           ),
         ],
       ),

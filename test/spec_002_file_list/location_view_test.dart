@@ -25,11 +25,19 @@ Future<void> _pump(WidgetTester tester, FileListController c) async {
   );
 }
 
-/// 行サブ情報のプレーンテキスト一覧。
-List<String> _subInfoTexts(WidgetTester tester) => tester
-    .widgetList<RichText>(find.byType(RichText))
-    .map((w) => w.text.toPlainText())
-    .where((t) => t.contains('作成日時: '))
+/// 各行のサブ情報が示す場所(表示順)。
+///
+/// 008:T07 で場所と日時を別の行へ分けた。場所が**その行に出ていること**が
+/// REQ-010 の要求で、日時と同じ文字列に連結されていることではない。
+List<String> _locations(WidgetTester tester) => tester
+    .widgetList<Text>(find.byKey(rowLocationKey))
+    .map((w) => w.data!)
+    .toList();
+
+/// 各行のサブ情報が示す作成日時(表示順)。
+List<String> _createdAts(WidgetTester tester) => tester
+    .widgetList<Text>(find.byKey(rowCreatedAtKey))
+    .map((w) => w.data!)
     .toList();
 
 void main() {
@@ -39,8 +47,9 @@ void main() {
       FileListController(files: [_entry('a.jpg', location: '写真')]),
     );
 
-    expect(_subInfoTexts(tester).single, startsWith('写真 · '));
-    expect(find.textContaining('写真'), findsWidgets);
+    expect(_locations(tester).single, '写真');
+    // 場所だけでなく日時も同じ行に出ている(サブ情報として同格。REQ-010)。
+    expect(_createdAts(tester).single, startsWith('作成日時: '));
   });
 
   testWidgets('別フォルダの同名ファイルを場所で見分けられる(REQ-010)', (tester) async {
@@ -54,10 +63,10 @@ void main() {
       ),
     );
 
-    final texts = _subInfoTexts(tester);
-    expect(texts, hasLength(2));
-    expect(texts[0], startsWith('写真 · '));
-    expect(texts[1], startsWith('ダウンロード · '));
+    final locations = _locations(tester);
+    expect(locations, hasLength(2));
+    expect(locations[0], '写真');
+    expect(locations[1], 'ダウンロード');
   });
 
   testWidgets('同名でなくても場所は常時表示される(REQ-010)', (tester) async {
@@ -71,14 +80,16 @@ void main() {
       ),
     );
 
-    final texts = _subInfoTexts(tester);
-    expect(texts[0], startsWith('写真 · '));
-    expect(texts[1], startsWith('書類 · '));
+    final locations = _locations(tester);
+    expect(locations[0], '写真');
+    expect(locations[1], '書類');
   });
 
   testWidgets('場所を持たない行(デモデータ等)は日時のみ表示する', (tester) async {
     await _pump(tester, FileListController(files: [_entry('a.jpg')]));
 
-    expect(_subInfoTexts(tester).single, startsWith('作成日時: '));
+    // 場所の行そのものが出ない。日時は出る。
+    expect(find.byKey(rowLocationKey), findsNothing);
+    expect(_createdAts(tester).single, startsWith('作成日時: '));
   });
 }

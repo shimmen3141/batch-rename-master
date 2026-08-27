@@ -1138,6 +1138,20 @@
       "note": "[reviewer追加 RW03] 画面側が例外を黙って空にする(投げないが理由も出ない = 013:T08と同じ絵。M159のrethrowとは別の罪)",
       "find": "      locations = StorageLocations(\n        const [],\n        failure: '保存場所を取得できませんでした: $error',\n      );",
       "replace": "      locations = const StorageLocations([]);"
+    },
+    {
+      "id": "M163",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              Text(\n                '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                key: rowCreatedAtKey,\n                maxLines: 1,",
+      "replace": "              Flexible(child: Text(\n                '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                key: rowCreatedAtKey,\n                overflow: TextOverflow.ellipsis,\n                maxLines: 1,",
+      "note": "008:T07 作成日時を縮む側(Flexible)へ移す — 狭幅で省略され(h)が再発する"
+    },
+    {
+      "id": "M164",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
+      "replace": "      child: Row(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
+      "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる"
     }
   ]
 }
