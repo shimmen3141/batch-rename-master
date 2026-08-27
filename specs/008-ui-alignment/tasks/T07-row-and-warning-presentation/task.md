@@ -26,7 +26,7 @@
   - 判定を持たず、アイコンを入れない。
 
   どちらを取るかは着手時に決め、`task.md`の作業記録へ根拠を書く。**004の決定D-2(実装が返したものをそのまま扱う)を曲げない**こと。種別を推測して読み込み対象を変えるような使い方はしない。
-- 警告帯の情報階層。folder跨ぎの重複警告が通常経路で出るため((i))、件数が多いときに読めるかを含む。
+- ~~警告帯の情報階層~~ → **`T15`/`T16`へ移した**(2026-08-27の開発者決定)。件数が多いときに読めるようにするには**警告の置き場所ごと変える**必要があり、002の行データと005の警告提示・REQ-021のまとめ規則が動くため、仕様更新taskと実装taskへ分けた。**T07に残るのは、内訳の高さを画面に応じるようにした分だけ**である(小さい画面では従来値が下限)。経緯は作業記録の「警告帯: ここで止めて人間へ返す論点」。
 
 **行ごとの「場所(元folder)」の提示はT07が持つ。** 一覧全体としての「何がどこから入っているか」はT08が持つ。同じ情報を二重に出さないよう、後に着手した側が先の結果に合わせる。詳細は[`T08のtask.md`](../T08-load-affordance-and-path/task.md)。
 
@@ -99,6 +99,13 @@ T07が作るのは「あるpathからthumbnailを得るport」で、textを足�
 高さに余裕があるので、**場所と日時を別の行に置く**。`不明`が省略で消えることが構造上
 起こらなくなる。コンパクトmodeで1行に戻す判断は`T09`が持つ。
 
+### 警告の提示は`T15`/`T16`が引き受ける(2026-08-27)
+
+上の「変更範囲」の3つ目を、開発者の決定で分離した。**`T07`は行のlayoutとpreviewで閉じる。**
+
+`T15`は 002 の行データと 005 の警告提示を定義し直す(人間の再承認が要る)。`T16`が実装する。
+`T07`が入れた行の縦積みは`T16`の土台になるので、**`T16`は`T07`の情報階層を壊さない**。
+
 ### machine検証する範囲と、引き受け先のtask
 
 | 範囲 | 検証手段 |
@@ -131,7 +138,8 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 ## 受け入れ証拠
 
 - 狭幅で`作成日時: 不明`が読み取れることをwidget testで検査する(幅を指定して省略位置を検査する)。
-- 警告が複数件あるときに内容が読み取れることをwidget testで検査する。
+- 警告帯の内訳の高さが画面から決まり、小さい画面でも従来値を下回らないことをtestで検査する
+  (**内容が読み取れるかは`T16`が引き受ける**)。
 - **preview portが「preview有り」「対象外」「失敗」を区別して返すことをunit testで検査する。**
   失敗を対象外へ潰していないことを含む。
 - **`sourceHandle`がpathでないとき(SAF document URI)にpreviewを試みず、行が種別アイコンへ
@@ -193,9 +201,9 @@ M164 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 場所を日時�
 
 ## Current state / handoff
 
-- Last checkpoint: 行のlayout・preview基盤・行への組み込み・警告帯の高さまで実装。`flutter test` = PASS(704) / `analyze` = PASS / `format` = PASS / mutation 2件 KILLED
-- Blocker category: decision
-- Waiting for: 警告帯の情報階層をどこまでやるか(上記「ここで止めて人間へ返す論点」)
-- Requested action: 3案から1つ選ぶ。報告の「人間の判断」を参照
-- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation@005addf`
-- Next Agent action: 判断を受けたら警告帯を仕上げ、`implementation` phaseの独立reviewを起動する。PASS後にcodeを凍結して`manual-verification.md`をcurrent revisionへ合わせ、実機確認を依頼する
+- Last checkpoint: 行のlayout・preview基盤・行への組み込み・警告帯の高さまで実装し、範囲を行とpreviewへ確定した。`flutter test` = PASS(704) / `analyze` = PASS / `format` = PASS / mutation 2件 KILLED
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159)
+- Next Agent action: `implementation` phaseの独立reviewを起動する。PASS後にcodeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する

@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T15",
+  "title": "警告を行に出す提示を定義する",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

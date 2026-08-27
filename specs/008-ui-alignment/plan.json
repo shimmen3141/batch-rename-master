@@ -19,6 +19,8 @@
     "tasks/T11-define-browser-entry-and-shortcuts",
     "tasks/T12-implement-browser-presentation",
     "tasks/T13-browser-file-preview",
-    "tasks/T14-modal-wording-and-presentation"
+    "tasks/T14-modal-wording-and-presentation",
+    "tasks/T15-define-row-level-warnings",
+    "tasks/T16-implement-row-level-warnings"
   ]
 }
