@@ -114,16 +114,22 @@ class FakeFilePreview implements FilePreviewPort {
 
   /// 応答を保留する。`true` の間 [thumbnail] は完了しない(同時実行数の検査用)。
   bool hold = false;
-  final List<Completer<PreviewResult>> _pending = [];
+  final List<(FileEntry, Completer<PreviewResult>)> _pending = [];
 
   /// 保留していた応答をすべて返す。
+  ///
+  /// **要求された entry ごとの結果を返す。** 一律 [fallback] にすると、
+  /// 「古い要求の応答が、後から別の行へ届く」ような検査が書けない。
   void release() {
     hold = false;
-    for (final completer in _pending) {
-      completer.complete(fallback);
+    for (final (entry, completer) in _pending) {
+      completer.complete(_resultFor(entry));
     }
     _pending.clear();
   }
+
+  PreviewResult _resultFor(FileEntry entry) =>
+      byHandle[entry.sourceHandle] ?? fallback;
 
   @override
   Future<PreviewResult> thumbnail(
@@ -133,9 +139,9 @@ class FakeFilePreview implements FilePreviewPort {
     requested.add(entry.sourceHandle ?? '(handleなし)');
     if (hold) {
       final completer = Completer<PreviewResult>();
-      _pending.add(completer);
+      _pending.add((entry, completer));
       return completer.future;
     }
-    return byHandle[entry.sourceHandle] ?? fallback;
+    return _resultFor(entry);
   }
 }

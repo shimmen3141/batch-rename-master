@@ -180,34 +180,41 @@ void main() {
     expect(find.byType(Image), findsOneWidget);
   });
 
-  testWidgets('行が別の file を指した後、前の file の応答で描かない', (tester) async {
-    // scroll で行が使い回されると、前の要求の応答が後から届く。
-    final slow = FakeFilePreview(
+  testWidgets('同じ枠が別の file を指したら、前の file の応答は捨てる', (tester) async {
+    // `RowPreviewView` 自身の契約。一覧の行は `ValueKey(row.source)` を持つので
+    // file が変わると State ごと作り直されるが、**この widget は枠を使い回された
+    // ときも正しく振る舞う**必要がある(`T13` は browser の行で使う)。
+    final port = FakeFilePreview(
       byHandle: {'/storage/emulated/0/DCIM/first.jpg': PreviewReady(_png)},
       fallback: const PreviewUnsupported('二つ目には preview が無い'),
     )..hold = true;
-    final controller = FileListController(files: [_entry('first.jpg')]);
 
-    await tester.pumpWidget(
+    Future<void> pumpFor(FileEntry file) => tester.pumpWidget(
       MaterialApp(
         theme: appDarkTheme(),
         home: Scaffold(
-          body: FileListView(controller: controller, filePreview: slow),
+          // key を固定して State を使い回させる(didUpdateWidget の経路)。
+          body: RowPreviewView(
+            key: const ValueKey('fixed'),
+            file: file,
+            preview: port,
+          ),
         ),
       ),
     );
+
+    await pumpFor(_entry('first.jpg'));
+    await tester.pump();
+    // 応答が返る前に、同じ枠を別の file へ向ける。
+    await pumpFor(_entry('second.pdf'));
     await tester.pump();
 
-    // 応答が返る前に、同じ位置の行を別の file へ差し替える。
-    controller.setFiles([_entry('second.pdf')]);
-    await tester.pump();
-
-    // ここで**一つ目の要求**の応答が届く。
-    slow.release();
+    // ここで**一つ目の要求**の応答(絵あり)が届く。
+    port.release();
     await tester.pump();
     await tester.pump();
 
-    // 一つ目の絵を二つ目の行へ描いていない。
+    // 一つ目の絵を二つ目の枠へ描いていない。
     expect(find.byType(Image), findsNothing);
     expect(_iconIn(tester, 0), Icons.description_outlined);
   });
