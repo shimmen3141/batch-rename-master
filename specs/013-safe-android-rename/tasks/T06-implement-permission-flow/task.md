@@ -248,7 +248,7 @@ attempt 1(結線を`required`へ)→ attempt 2(port選択を`rules`へ)→ attem
 - Waiting for: なし(done)
 - Requested action: なし
 - Evidence revision: PR #149、branch `asdd/013-safe-android-rename/T06-implement-permission-flow`、base は `dev@b318251`(`git merge-base dev HEAD` の実測値)
-- Next Agent action: なし。**このtaskは完了した。** 実機で覆えていない範囲(設定画面の一覧へ落ちる分岐、API 30未満、emulatorでない実機)は`013:T08`が引き受ける。
+- Next Agent action: なし。**このtaskは完了した。** 実機で覆えていない範囲(設定画面の一覧へ落ちる分岐、API 30未満、emulatorでない実機)は`013:T08`が引き受ける。**→ 2026-08-26 追記: `T08` はこの4件を宣言表にも残余risk表にも入れないまま `done` になった。**plan完了の独立reviewで見つかり、**`plan.md` の受け入れ条件5へ「残余riskとして受容(引き受け先は人間)」として書き直した。** 引き受け先は `T08` ではない。
   [`manual-verification.md`](manual-verification.md) を人間へ依頼する(reviewの指摘でcodeが
   変わると証拠が失効するので、**reviewを先に通す**)。
 - **`T07`への申し送り(1)**: **実行直前の権限確認(REQ-004の後半)とundoの確認は、Androidでは

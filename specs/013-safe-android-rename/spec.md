@@ -89,4 +89,11 @@
 
 ## 未解決
 
+**ここに書いてあるのは仕様の未決定点ではなく、外部審査のriskである。** したがって
+`plan.json` の `openQuestions` には載せない(`openQuestions` は「決めるtaskがある未決定点」の
+ためのもので、これは決めるのが Play であってこのprojectではない)。**`plan.md` の境界でも
+「対象外・人間の作業」としている。** 却下されたときの退避は
+[ADR-002 の「退避の手順」](decisions/ADR-002-android-rename-storage-boundary.md)にある。
+
+
 - **Playのpolicyに該当しうるか、および審査に通るか。** policy原文は2026-08-13に読めた(`[未到達]`は解消)。permitted usesの**File management**とこのappの主目的は一致すると読めるが、**invalid usesのfile selection activityにも該当しうる**(資料は`Any`と書いて限定していない)。**両立しうる読みで、どちらが優先するかは資料に書かれていない。** `T03`の設計と`Permissions Declaration Form`・store説明文で寄せるが、外れる保証は無い。**通らなければAndroid未対応へ戻す**(ADR-002の退避経路)。
