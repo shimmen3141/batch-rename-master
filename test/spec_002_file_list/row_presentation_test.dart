@@ -5,10 +5,11 @@
 // (h): `004:T10` のAndroid実機確認で「狭幅で `作成日時: 不明` が読めない」を観測した。
 // 原因は場所・作成日時・更新日時を1つの `Text` へ入れて `maxLines: 1` で省略している
 // ことで、**場所が先頭にあるため後ろの日時から消える**。
-import 'package:batch_rename_master/core/file_entry.dart';
+import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
+import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -101,6 +102,94 @@ void main() {
         isTrue,
         reason: '狭幅では更新日時が先に削られる想定',
       );
+    });
+  });
+
+  group('008:T07 (i) 件数の多い警告帯', () {
+    /// 重複警告だけを [count] 件持つ帯を、指定した画面サイズで開いた状態にする。
+    Future<Rect> pumpExpandedPanel(
+      WidgetTester tester,
+      Size size, {
+      int count = 30,
+    }) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final warnings = <Warning>[
+        for (var i = 0; i < count; i++)
+          DuplicateWarning(
+            file: FileEntry(
+              name: 'IMG_2026080$i.jpg',
+              modifiedAt: DateTime(2026, 8, 4),
+              size: 0,
+              sourceLocation: 'DCIM/Camera',
+            ),
+            resultName: 'photo_001.jpg',
+          ),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: Column(
+              children: [
+                // 同じ test 内で2回 pump するとき、State(開閉)を引き継がせない。
+                RenameWarningPanel(key: ValueKey(size), warnings: warnings),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(renameWarningToggleKey));
+      await tester.pump();
+      return tester.getRect(find.byKey(renameWarningsKey));
+    }
+
+    test('内訳の高さは画面に応じて決まる(固定値ではない)', () {
+      // 固定 132px をやめたことそのものを固定する。狭幅では1件が4行へ折り返す
+      // ため、132px には2件しか入らなかった。
+      final short = RenameWarningPanel.detailMaxHeightFor(640);
+      final tall = RenameWarningPanel.detailMaxHeightFor(1000);
+
+      expect(short, greaterThan(RenameWarningPanel.detailMaxHeight));
+      expect(tall, greaterThan(short));
+    });
+
+    test('画面が小さくても従来の高さを下回らない', () {
+      // 小さな画面で今より狭くなると、直すつもりが悪化する。
+      expect(
+        RenameWarningPanel.detailMaxHeightFor(320),
+        RenameWarningPanel.detailMaxHeight,
+      );
+    });
+
+    testWidgets('帯は画面から決めた高さを実際に使う', (tester) async {
+      await pumpExpandedPanel(tester, const Size(360, 640));
+
+      // 固定 132px ではなく、画面から決めた値がそのまま効いている。
+      // **恣意的な「何件見えるか」ではなく、配線そのものを固定する。**
+      //
+      // 期待値は **widget が実際に見ている** 画面の高さから作る。test harness の
+      // surface と `MediaQuery` はずれることがあるが、ここで確かめたいのは
+      // 「画面の高さから決めた値を使っているか」であって harness の一致ではない。
+      final panelContext = tester.element(find.byKey(renameWarningsKey));
+      final screenHeight = MediaQuery.sizeOf(panelContext).height;
+      expect(
+        tester.getSize(find.byKey(renameWarningDetailKey)).height,
+        RenameWarningPanel.detailMaxHeightFor(screenHeight),
+      );
+      // 固定値のままなら、この主張は成り立たない。
+      expect(
+        RenameWarningPanel.detailMaxHeightFor(screenHeight),
+        greaterThan(RenameWarningPanel.detailMaxHeight),
+      );
+    });
+
+    testWidgets('それでも一覧を警告で埋め尽くさない', (tester) async {
+      const size = Size(360, 1000);
+      final panel = await pumpExpandedPanel(tester, size);
+
+      // 画面を警告で覆わない、という元の意図は保つ。
+      expect(panel.height, lessThan(size.height * 0.5));
     });
   });
 }

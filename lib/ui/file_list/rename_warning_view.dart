@@ -12,6 +12,9 @@ const Key renameWarningSummaryKey = Key('rename-warning-summary');
 /// 内訳の開閉トグル(見出し全体がタップ領域)。
 const Key renameWarningToggleKey = Key('rename-warning-toggle');
 
+/// 展開した内訳のスクロール領域(展開時のみ存在する)。高さの上限がここに効く。
+const Key renameWarningDetailKey = Key('rename-warning-detail');
+
 /// [index] 番目(0 始まり)の警告行(展開時のみ存在する)。
 Key renameWarningRowKey(int index) => Key('rename-warning-$index');
 
@@ -40,8 +43,25 @@ class RenameWarningPanel extends StatefulWidget {
   /// 001 の [validate] が返した警告(表示順はそのまま保つ)。
   final List<Warning> warnings;
 
-  /// 展開した内訳の最大高さ。これを超える件数はスクロールで送る。
+  /// 展開した内訳の最大高さの**上限**。実際は画面の高さに応じて決まる
+  /// ([detailMaxHeightFor])。
   static const double detailMaxHeight = 132;
+
+  /// 画面の高さから内訳の最大高さを決める(008:T07)。
+  ///
+  /// **固定 132px をやめた。** 狭幅では1件の文言が4行へ折り返すため、132px には
+  /// 2件しか入らない。folder を跨ぐ重複は通常経路で出る(008 の (i))ので、
+  /// 件数が多いのは例外ではない。
+  ///
+  /// **画面を警告で埋めない**という元の意図は保つ。上限は画面の高さの
+  /// [_detailHeightRatio] までで、そこから先はこれまでどおりスクロールで送る。
+  static double detailMaxHeightFor(double screenHeight) {
+    final proportional = screenHeight * _detailHeightRatio;
+    return proportional < detailMaxHeight ? detailMaxHeight : proportional;
+  }
+
+  /// 内訳へ渡してよい画面の割合。残りは一覧のために空けておく。
+  static const double _detailHeightRatio = 0.32;
 
   @override
   State<RenameWarningPanel> createState() => _RenameWarningPanelState();
@@ -95,8 +115,11 @@ class _RenameWarningPanelState extends State<RenameWarningPanel> {
           ),
           if (_expanded)
             ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxHeight: RenameWarningPanel.detailMaxHeight,
+              key: renameWarningDetailKey,
+              constraints: BoxConstraints(
+                maxHeight: RenameWarningPanel.detailMaxHeightFor(
+                  MediaQuery.sizeOf(context).height,
+                ),
               ),
               child: SingleChildScrollView(
                 child: Column(

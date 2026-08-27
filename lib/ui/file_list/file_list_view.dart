@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
+import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
 import 'rename_warning_view.dart';
+import 'row_preview_view.dart';
 import 'row_view.dart';
 
 /// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
@@ -36,10 +38,17 @@ class FileListView extends StatelessWidget {
     required this.controller,
     this.renameExecution,
     this.onEditRule,
+    this.filePreview,
   });
 
   final FileListController controller;
   final RenameExecutionController? renameExecution;
+
+  /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
+  ///
+  /// **`null` が既定である。** demo データや preview を持たない画面で、実 file を
+  /// 触ろうとしないようにするためである。
+  final FilePreviewPort? filePreview;
 
   /// ルール編集を開く導線(REQ-020 の「ルールを設定すれば進める」)。
   ///
@@ -93,6 +102,7 @@ class FileListView extends StatelessWidget {
                       // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
                       showDragHandle: controller.manualOrderMatters,
                       sortMode: controller.sortMode,
+                      filePreview: filePreview,
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
                       onRemove: handle == null
@@ -701,6 +711,7 @@ class _FileRow extends StatelessWidget {
     required this.onToggle,
     required this.showDragHandle,
     required this.sortMode,
+    required this.filePreview,
     this.onRemove,
   });
 
@@ -713,6 +724,9 @@ class _FileRow extends StatelessWidget {
 
   /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
   final FileSortMode sortMode;
+
+  /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
+  final FilePreviewPort? filePreview;
   final VoidCallback onToggle;
 
   /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
@@ -733,6 +747,13 @@ class _FileRow extends StatelessWidget {
             onChanged: (_) => onToggle(),
             activeColor: colors.primary,
             checkColor: colors.onPrimary,
+          ),
+          // 中身が見える行にする(参考designのリッチな行)。preview を出せない
+          // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
+          // 開始位置も揃う。
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: RowPreviewView(file: row.source, preview: filePreview),
           ),
           // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
           //
