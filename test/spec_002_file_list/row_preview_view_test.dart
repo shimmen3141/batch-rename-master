@@ -205,11 +205,16 @@ void main() {
 
     await pumpFor(_entry('first.jpg'));
     await tester.pump();
-    // 応答が返る前に、同じ枠を別の file へ向ける。
+
+    // 二つ目は**すぐ返す**。両方を同時に返すと後勝ちで二つ目が上書きし、
+    // guard が無くても通ってしまう(順序を作らないと検査にならない)。
+    port.hold = false;
     await pumpFor(_entry('second.pdf'));
     await tester.pump();
+    await tester.pump();
+    expect(_iconIn(tester, 0), Icons.description_outlined);
 
-    // ここで**一つ目の要求**の応答(絵あり)が届く。
+    // **その後で**一つ目の要求の応答(絵あり)が遅れて届く。
     port.release();
     await tester.pump();
     await tester.pump();
