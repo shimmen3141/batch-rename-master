@@ -147,12 +147,55 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 
 - 2026-08-12 / plan作成時に定義。(h)は`004:T10`のAndroid実機確認で観測、(i)は同確認でfile選択画面の種類チップがfolderを横断すると判明したことによる。
 - 2026-08-27 / claim。開発者から3つの決定を受けた(リッチの行はT07が作る / 種別アイコンではなく画像・動画のpreview / preview基盤はT07が作り`T13`は適用だけ)。上の「着手時の決定」へ記録した。
+- 2026-08-27 / (h)の見切れを`360dp`のwidget testで再現(`didExceedMaxLines` = true)。行を縦積みにし、場所を別の行へ、作成日時を`Row`の縮まない側へ置いて解消。`flutter test` = PASS(665)。
+- 2026-08-27 / mutation 2件を`tool/mutations.json`へ追加(M163: 作成日時を`Flexible`へ移す / M164: 場所を日時と同じ行へ戻す)。`mutation_check.py` = **2 KILLED, 0 SURVIVED**。生の出力は下記。
+- 2026-08-27 / preview port・cache・種別振り分け・Kotlin側を実装。`flutter test` = PASS(694)。
+- 2026-08-27 / 行への組み込みと警告帯の高さ。`flutter test` = PASS(704)、`flutter analyze` = PASS、`dart format` = PASS、`workspace.py check specs` = PASS。
+
+### mutation の生の出力
+
+```text
+command: flutter test test/spec_002_file_list/
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M163 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 作成日時を縮む側(Flexible)へ移す — 狭幅で省略され(h)が再発する | exit 1
+M164 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+### 警告帯: ここで止めて人間へ返す論点
+
+`変更範囲`の3つ目「警告帯の情報階層。件数が多いときに読めるか」を**途中で止めた。**
+
+**観測**: 360dp で重複警告30件を開くと、1件が4行へ折り返して68px になり、固定132px の
+内訳には**2件しか入らない**。folder跨ぎの重複は通常経路で出る((i))ので、件数が多いのは
+例外ではない。
+
+**やったこと**: 内訳の高さを画面から決めるようにした(小さい画面では従来値を下限に保つ)。
+
+**やらなかったこと**: 実際に効くのは**種別でまとめ、繰り返される説明文を見出しへ出し、
+各行を「file名(場所) → 変更後名」の1〜2行に縮める**ことである。これをやると1行68px が
+17〜34px になり、同じ高さで4〜8倍読める。
+
+**止めた理由**: 005の既存testが、REQ-009 / REQ-021 の証拠として**各行が説明文を丸ごと
+持つこと**を固定している。
+
+- `empty_rule_test.dart:169` — 行の`Text.data`が`名前が空になります`と`基準日時が取れない`の両方を含む
+- `warning_display_test.dart:172` — 帯の`Text`の数が`警告件数 + 1`(見出し1行 + 1件1行)
+- 同`:180` — `作成日時が不明`が**2件ぶん**見つかる(説明が行ごとに繰り返されている)
+
+005 spec は提示手段を自由としており(「自由とする点」)、REQ-009 が求めるのは
+**対象fileが識別できること**なので、まとめた形でも要求は満たせる。しかし上の3つは
+**現在の提示を要求の証拠として書いている**ので、進めるにはこれらを書き換えることになる。
+`plan.md`の方針は「T07は仕様を変えない」であり、Agentが自分でtestを緩める側にも回れない。
+
+**人間へ返す選択肢は報告に出した。**
 
 ## Current state / handoff
 
-- Last checkpoint: claimし、着手時の決定と検証範囲を宣言した。実装は未着手
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@7597342`
-- Next Agent action: 狭幅の見切れをwidget testで再現してから、preview portを新設する
+- Last checkpoint: 行のlayout・preview基盤・行への組み込み・警告帯の高さまで実装。`flutter test` = PASS(704) / `analyze` = PASS / `format` = PASS / mutation 2件 KILLED
+- Blocker category: decision
+- Waiting for: 警告帯の情報階層をどこまでやるか(上記「ここで止めて人間へ返す論点」)
+- Requested action: 3案から1つ選ぶ。報告の「人間の判断」を参照
+- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation@005addf`
+- Next Agent action: 判断を受けたら警告帯を仕上げ、`implementation` phaseの独立reviewを起動する。PASS後にcodeを凍結して`manual-verification.md`をcurrent revisionへ合わせ、実機確認を依頼する
