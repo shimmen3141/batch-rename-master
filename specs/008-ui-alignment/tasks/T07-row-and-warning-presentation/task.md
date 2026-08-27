@@ -45,10 +45,99 @@
 **T04が先に着手した場合**、T07は除去導線を壊さないよう、T04が作った行の構造の上でlayoutを整える。**判断が割れたらT07の情報階層を優先する**(T07が(h)の見切れという観測済みの不具合を解いているため)。
 - **仕様は変えない。** 002 REQ-013の識別自体は現行でも警告アイコンで成立している(アイコンは省略対象外)。読みやすさの改善である。
 
+## 着手時の決定(2026-08-27)
+
+### 種別アイコンではなくpreviewを出す(開発者決定)
+
+上の「変更範囲」が挙げていた二択(拡張子から表示専用の分類を持つ / アイコンを入れない)の
+**どちらでもない**。開発者が**画像・動画のpreview**(スマホのファイルアプリのようなもの)を
+指定した。**種別アイコンは無くならず、previewが取れないものの下地として残る。**
+
+対象は**画像と動画**である。文書・PDFのpreviewは出さない(開発者決定)。
+
+### previewの基盤はT07が作り、`T13`は適用だけを行う(開発者決定)
+
+[`T13`](../T13-browser-file-preview/task.md)が同じpreviewを**app内file browserの行**
+(`storage_browser_view.dart`)に対して持っている。**画面は違うが仕組みは同じ**であり、
+`T13`の「先に決めること」(数百件でのメモリと速度、遅延読み込み、上限、cache、
+「previewが無い」と「読めなかった」の区別)は**そのままT07にも要る**。
+
+`T13`は`T12`←`T11`(仕様承認)待ちで今は着手できない。ここで分担を決めないと同じ基盤を
+2回作ることになるため、**T07がportとcacheを新設し、`T13`はそれをbrowserの行へ繋ぐだけの
+taskにする。** `T13`の「先に決めること」はT07が埋める。
+
+`T13`は文書には無い**テキストのpreview**も持つ(U4の原文)。それは`T13`の裁量に残す —
+T07が作るのは「あるpathからthumbnailを得るport」で、textを足すのはその実装を1つ増やす
+ことである。
+
+### `sourceHandle`がpathであることに依存しない
+
+`013`の結果、Androidもdesktopも`FileEntry.sourceHandle`に**実path**が入る
+(`android_file_source.dart:106`、`desktop_file_source.dart:108`)。previewはこれを使う。
+
+ただし`SafFileSource`は**document URI**を入れる(`saf_file_source.dart:118`)。これは
+`013 ADR-002`が保っているPlay却下時の退避先である。**「handleはpathである」を前提に
+書くと退避したときに壊れる。** portは「preview を作れない」を正常な結果として返し、
+行は**種別アイコンへ落ちる**。退避しても劣化するだけで壊れない。
+
+**`013 ADR-002`の退避手順表には行を足さない** — 落ちる先が既定動作なので、退避時に
+戻す作業は発生しない。この性質自体をtestで固定する。
+
+### 「previewが無い」と「読めなかった」を型で区別する
+
+`004`の`NameListResult`(列挙できない / 空)と`013:T12`の`StorageVolumesResult`が採った形に
+合わせる。**失敗を「previewの無いfile」へ潰さない。** 潰すと、読めないfileが「preview の
+無い普通のfile」に見える。
+
+### 狭幅の見切れは、優先順位ではなく行数で解く
+
+現行の`_DateSubInfo`は「場所 · 作成日時 / 更新日時」を**1つの`Text`**にまとめ
+`maxLines: 1` + ellipsisで省略している(`file_list_view.dart:826`)。場所が先頭にあるため、
+狭幅では**後ろの`作成日時: 不明`から消える**。これが(h)の見切れである。
+
+省略の優先順位を調整して`不明`を残す形も取れるが、**幅次第で再発する**。リッチな行は
+高さに余裕があるので、**場所と日時を別の行に置く**。`不明`が省略で消えることが構造上
+起こらなくなる。コンパクトmodeで1行に戻す判断は`T09`が持つ。
+
+### machine検証する範囲と、引き受け先のtask
+
+| 範囲 | 検証手段 |
+|---|---|
+| portの契約(preview有り / 対象外 / 失敗の区別)、cacheの上限と鍵、同時実行数 | unit test |
+| 行のlayout、狭幅での`作成日時: 不明`、種別アイコンへの落ち方、警告帯 | widget test(幅を指定する) |
+| 画像thumbnailの生成 | unit test(fixtureの画像fileを`test/`に置く) |
+| **Android の動画thumbnail(Kotlin側)** | **実機のみ。** `MethodChannelStorageVolumes`と同じで、Dart側の写像はchannelを差し替えて検査できるが、`MediaMetadataRetriever`が本当にframeを返すかはCIで実行できない → **このtaskのmanual確認が引き受ける** |
+| **件数の多いfolderでの速度とメモリ** | **実機のみ** → このtaskのmanual確認が引き受ける(DCIM等) |
+
+**Windows desktopの動画thumbnailは実装しない。** `IShellItemImageFactory`(COM)が要り、
+T07の範囲を大きく超える。**Windowsでは動画は種別アイコンへ落ちる** — 上の「取れなければ
+落ちる」が既定動作なので、破綻ではなく劣化である。画像thumbnailはDartのdecodeなので
+**両platformで動く**。動画をWindowsでも出すなら別taskとして足す。
+
+この宣言の外側の指摘は安全網の穴として扱う(AGENTS.md)。
+
+### 仕様の扱い
+
+`plan.md`の方針は「T07/T08/T10/T13/T14は仕様を変えないため`covers`は空のままが正しい」と
+している。**previewはfileの中身を読む**ので、行が今まで持っていなかった振る舞いが増える。
+002 specは「視覚デザインは非規範」としており、previewの見せ方はその中に収まるが、
+**「中身を読む」こと自体は視覚デザインではない。**
+
+判断: **002 specへREQは足さず、`decisions/`へ根拠を残す。** 002が定めているのは行が
+**何を表示するか**であって、表示のために何を読むかではない。読み取りは004が既に持っている
+権限の範囲内で、改名の判定にも読み込み対象にも影響しない。**ただしこれは人間へ報告し、
+REQを足すべきという判断ならその時点で仕様更新taskを分ける。**
+
 ## 受け入れ証拠
 
 - 狭幅で`作成日時: 不明`が読み取れることをwidget testで検査する(幅を指定して省略位置を検査する)。
 - 警告が複数件あるときに内容が読み取れることをwidget testで検査する。
+- **preview portが「preview有り」「対象外」「失敗」を区別して返すことをunit testで検査する。**
+  失敗を対象外へ潰していないことを含む。
+- **`sourceHandle`がpathでないとき(SAF document URI)にpreviewを試みず、行が種別アイコンへ
+  落ちることをtestで検査する**(`013 ADR-002`の退避経路を壊していない証拠)。
+- **cacheの上限と同時実行数が効いていることをunit testで検査する**(数百件でも
+  無制限に読まない)。
 - 002/005の既存testが継続PASSする(判定も文言の意味も変えていない)。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - [`manual-verification.md`](manual-verification.md)でAndroid実機の狭幅表示を確認する。**004:T10で見切れを観測したのと同じ条件で確認する。**
@@ -57,12 +146,13 @@
 ## 作業記録
 
 - 2026-08-12 / plan作成時に定義。(h)は`004:T10`のAndroid実機確認で観測、(i)は同確認でfile選択画面の種類チップがfolderを横断すると判明したことによる。
+- 2026-08-27 / claim。開発者から3つの決定を受けた(リッチの行はT07が作る / 種別アイコンではなく画像・動画のpreview / preview基盤はT07が作り`T13`は適用だけ)。上の「着手時の決定」へ記録した。
 
 ## Current state / handoff
 
-- Last checkpoint: plan作成時に定義しただけ。未着手
+- Last checkpoint: claimし、着手時の決定と検証範囲を宣言した。実装は未着手
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: 他taskと独立に着手できる。狭幅の再現条件をwidget testで固定してから調整する
+- Evidence revision: `dev@7597342`
+- Next Agent action: 狭幅の見切れをwidget testで再現してから、preview portを新設する
