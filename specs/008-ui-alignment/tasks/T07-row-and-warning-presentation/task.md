@@ -162,14 +162,23 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 
 ### mutation の生の出力
 
+`python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` の表から、
+このtaskが足した4件を抜き出して走らせたもの(`command` は表と同じ `flutter test`)。
+
 ```text
-command: flutter test test/spec_002_file_list/
+command: flutter test
 ID | STATUS | FILE | NOTE | DETAIL
 --- | --- | --- | --- | ---
-M163 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 作成日時を縮む側(Flexible)へ移す — 狭幅で省略され(h)が再発する | exit 1
+M163 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる | exit 1
 M164 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる | exit 1
-2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+M165 | KILLED | lib/ui/file_list/row_preview_view.dart | 008:T07 古い応答の破棄をやめる — scrollで行が別fileを指した後に前のfileの絵が出る(独立reviewが追加) | exit 1
+M166 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加) | exit 1
+4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
+
+**M165/M166 は独立reviewが SURVIVED として足したものである。** 穴を記録して受容するのでは
+なく、殺すtestを書いた。M166 は `013:T05` で3回FAILしたのと同じ型(productionが通る合成を
+testが一度も通らない)なので、特に残す価値が高い。
 
 ### 警告帯: ここで止めて人間へ返す論点
 
@@ -199,11 +208,41 @@ M164 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 場所を日時�
 
 **人間へ返す選択肢は報告に出した。**
 
+### 独立review
+
+- Review attempt 1: `dev...29dade5` — **FAIL** — P1-1(狭幅で作成日時が既知の行がoverflow)、P2×7。すべて修正済み。
+
+**P1-1 は私が入れた回帰である。** dev 側は `Expanded(Text.rich(..., ellipsis))` で構造上
+あふれ得なかったが、「作成日時を縮まない側へ置く」に**下限を与えなかった**。testが
+`createdAt: null`(=最短文字列「不明」)しか通しておらず、**この経路を一度も踏んでいなかった。**
+`Wrap` へ変えて更新日時が次の行へ落ちるようにし、作成日時自身にも省略を持たせた。
+
+**P2-1 も記録の欠陥だった。** M163 は構文エラーになる mutation で、`mutation_check.py` は
+コンパイル失敗も KILLED と数えるため、**その行は何も検査していなかった**。「2 KILLED」が
+test強度の証拠になっていなかったことになる。意味の通る版へ差し替えた。
+
+その他: P2-2 [`decisions/ADR-001`](../../decisions/ADR-001-row-preview-reads-file-content.md)を作成 /
+P2-3 `T13`をT07の分担へ追随させ`dependsOn`へ`T07`を追加(`T16`も) /
+P2-4 種別アイコンの拡張子集合を preview 可否から分離(`heic`等が汎用アイコンに落ちていた) /
+P2-5 testのコメントと名前を実際の検査へ合わせた /
+P2-7 Kotlin: `compress`が投げてもbitmapを解放、破棄後のchannel応答を捨てる。
+
+### 残余riskとして受容するもの
+
+安全網の穴のうち、AGENTS.mdの3条件を満たさないため受容する。受容はtask所有Agentが記録する。
+
+| # | 内容 | 引き受け先 |
+|---|---|---|
+| N-3 | `CachedFilePreview`は inner の例外を`_store`せず呼び出し元へ伝播する。`RowPreviewView`は受けないので、将来portが投げると unhandled async error になる。現行の実装はいずれも投げない(結果値で返す)ので届かない | `008:T13`(portへ実装を1つ増やす側) |
+| N-4 | cacheの鍵が`sourceHandle == null`の行同士で衝突する。現状はどちらも`Unsupported`へ落ちるので無害 | `008:T13` |
+| N-5 | Kotlin側(`MediaMetadataRetriever`)と件数の多いfolderでの速度・メモリ。**CIで実行できない** | このtaskのmanual確認 |
+| N-6 | `getScaledFrameAtTime`が縦横比を保つか歪めるかは実機でしか分からない。正方形boxに`BoxFit.cover`なので歪みが見えにくい | このtaskのmanual確認(項目に入れる) |
+
 ## Current state / handoff
 
-- Last checkpoint: 行のlayout・preview基盤・行への組み込み・警告帯の高さまで実装し、範囲を行とpreviewへ確定した。`flutter test` = PASS(704) / `analyze` = PASS / `format` = PASS / mutation 2件 KILLED
+- Last checkpoint: 独立review attempt 1 のP1-1とP2×7を修正。`flutter test` = PASS(713) / `analyze` = PASS / `format` = PASS / **mutation 4件すべて KILLED**
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159)
-- Next Agent action: `implementation` phaseの独立reviewを起動する。PASS後にcodeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する
+- Next Agent action: 同じ`implementation` phaseで独立reviewを再度起動する。PASS後にcodeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する(N-5・N-6を項目に入れる)
