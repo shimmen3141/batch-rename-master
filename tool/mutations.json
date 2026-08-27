@@ -1142,9 +1142,9 @@
     {
       "id": "M163",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              Text(\n                '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                key: rowCreatedAtKey,\n                maxLines: 1,",
-      "replace": "              Flexible(child: Text(\n                '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                key: rowCreatedAtKey,\n                overflow: TextOverflow.ellipsis,\n                maxLines: 1,",
-      "note": "008:T07 作成日時を縮む側(Flexible)へ移す — 狭幅で省略され(h)が再発する"
+      "find": "                  Flexible(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
+      "replace": "                  SizedBox(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,",
+      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる"
     },
     {
       "id": "M164",
@@ -1152,6 +1152,20 @@
       "find": "      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
       "replace": "      child: Row(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
       "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる"
+    },
+    {
+      "id": "M165",
+      "file": "lib/ui/file_list/row_preview_view.dart",
+      "find": "    if (!mounted || !identical(_pending, token)) return;",
+      "replace": "    if (!mounted) return;",
+      "note": "008:T07 古い応答の破棄をやめる — scrollで行が別fileを指した後に前のfileの絵が出る(独立reviewが追加)"
+    },
+    {
+      "id": "M166",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      onEditRule: _openRuleSheet,\n    );",
+      "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      onEditRule: _openRuleSheet,\n    );",
+      "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加)"
     }
   ]
 }

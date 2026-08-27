@@ -28,6 +28,43 @@ FileEntry _unknownCreatedAt() => FileEntry(
   sourceHandle: '/storage/emulated/0/DCIM/Camera/IMG_20260804_160000.jpg',
 );
 
+/// 作成日時が**取れている**行。
+///
+/// 独立review attempt 1 の P1-1。日時が入ると文字列が「作成日時: 不明」より
+/// ずっと長くなるが、当初のtestは`null`(=最短)しか通しておらず、**この経路を
+/// 一度も踏んでいなかった。**
+FileEntry _knownCreatedAt() => FileEntry(
+  name: 'IMG_20261231_235959.jpg',
+  createdAt: DateTime(2026, 12, 31, 23, 59),
+  modifiedAt: DateTime(2026, 12, 31, 23, 59),
+  size: 0,
+  sourceLocation: 'DCIM/Camera',
+  sourceHandle: '/storage/emulated/0/DCIM/Camera/IMG_20261231_235959.jpg',
+);
+
+/// pump 中に起きた layout error(overflow を含む)。
+Future<List<String>> _errorsWhilePumping(
+  WidgetTester tester,
+  Size size,
+  List<FileEntry> files,
+) async {
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final errors = <String>[];
+  final previous = FlutterError.onError;
+  FlutterError.onError = (details) => errors.add(details.exception.toString());
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: appDarkTheme(),
+      home: Scaffold(
+        body: FileListView(controller: FileListController(files: files)),
+      ),
+    ),
+  );
+  FlutterError.onError = previous;
+  return errors;
+}
+
 Future<void> _pumpAt(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -80,6 +117,51 @@ void main() {
       final createdAt = find.byKey(rowCreatedAtKey);
       expect(createdAt, findsOneWidget);
       expect(_isTruncated(tester, createdAt), isFalse);
+    });
+
+    testWidgets('作成日時が取れている行が、狭幅ではみ出さない', (tester) async {
+      // **省略ではなく overflow になっていた。** 「縮まない側へ置く」だけでは
+      // 下限が無く、幅が足りなくなった瞬間に文字が枠外へ描かれる。
+      for (final width in [320.0, 360.0]) {
+        final errors = await _errorsWhilePumping(tester, Size(width, 640), [
+          _knownCreatedAt(),
+        ]);
+        expect(errors, isEmpty, reason: '幅 $width ではみ出している');
+      }
+    });
+
+    testWidgets('狭いときは更新日時が次の行へ落ちる(作成日時から幅を奪わない)', (tester) async {
+      // **font に依存しない形で主張する。** 「実日時が360dpに収まるか」は font
+      // 次第だが、「収まらないとき更新日時が下へ行く」は構造で決まる。
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: FileListView(
+              controller: FileListController(files: [_knownCreatedAt()]),
+            ),
+          ),
+        ),
+      );
+
+      final createdAt = tester.getRect(find.byKey(rowCreatedAtKey));
+      final modifiedAt = tester.getRect(find.byKey(rowModifiedAtKey));
+      expect(
+        modifiedAt.top,
+        greaterThan(createdAt.top),
+        reason: '更新日時が同じ行に残って作成日時の幅を削っている',
+      );
+    });
+
+    testWidgets('作成日時が不明な行も、狭幅ではみ出さない', (tester) async {
+      for (final width in [320.0, 360.0]) {
+        final errors = await _errorsWhilePumping(tester, Size(width, 640), [
+          _unknownCreatedAt(),
+        ]);
+        expect(errors, isEmpty, reason: '幅 $width ではみ出している');
+      }
     });
 
     testWidgets('場所は日時と別の行に出る', (tester) async {

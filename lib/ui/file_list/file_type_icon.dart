@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../data/preview/file_preview.dart';
-
 /// 拡張子から行のアイコンを決める(008:T07)。**表示専用である。**
 ///
 /// preview を出せない file(文書・書庫・不明な拡張子)と、preview がまだ届いていない
@@ -12,19 +10,13 @@ import '../../data/preview/file_preview.dart';
 /// 判定できない拡張子は汎用の file アイコンにする。**間違ったアイコンより、
 /// 何も主張しないアイコンの方がまし**である。
 IconData fileTypeIconOf(String fileName) {
-  switch (previewKindOf(fileName)) {
-    case PreviewKind.image:
-      return Icons.image_outlined;
-    case PreviewKind.video:
-      return Icons.movie_outlined;
-    case PreviewKind.other:
-      break;
-  }
   final dot = fileName.lastIndexOf('.');
   if (dot < 0 || dot == fileName.length - 1) {
     return Icons.insert_drive_file_outlined;
   }
   final extension = fileName.substring(dot + 1).toLowerCase();
+  if (_imageExtensions.contains(extension)) return Icons.image_outlined;
+  if (_videoExtensions.contains(extension)) return Icons.movie_outlined;
   if (_documentExtensions.contains(extension)) {
     return Icons.description_outlined;
   }
@@ -32,6 +24,43 @@ IconData fileTypeIconOf(String fileName) {
   if (_audioExtensions.contains(extension)) return Icons.audiotrack_outlined;
   return Icons.insert_drive_file_outlined;
 }
+
+/// アイコンとして「画像」と呼べる拡張子。
+///
+/// **[previewKindOf] の集合とは別に持つ。** あちらは「thumbnail を作れるか」で、
+/// こちらは「何の file か」である。`heic` のように **画像だが preview を出さない**
+/// ものを、汎用の file アイコンへ落とさないため(独立review attempt 1 の P2-4)。
+const _imageExtensions = {
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'bmp',
+  'heic',
+  'heif',
+  'avif',
+  'tif',
+  'tiff',
+  'svg',
+  'ico',
+};
+
+/// アイコンとして「動画」と呼べる拡張子。同じ理由で [previewKindOf] とは別集合。
+const _videoExtensions = {
+  'mp4',
+  'mov',
+  'm4v',
+  '3gp',
+  'mkv',
+  'webm',
+  'avi',
+  'wmv',
+  'flv',
+  'ts',
+  'mpg',
+  'mpeg',
+};
 
 const _documentExtensions = {
   'pdf',

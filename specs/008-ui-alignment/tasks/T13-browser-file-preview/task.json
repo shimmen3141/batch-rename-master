@@ -4,6 +4,7 @@
   "title": "browserのファイル行にpreviewを出す",
   "status": "pending",
   "dependsOn": [
+    "T07",
     "T12"
   ],
   "covers": [],

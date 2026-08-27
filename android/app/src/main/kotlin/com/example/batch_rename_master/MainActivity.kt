@@ -44,6 +44,14 @@ class MainActivity : FlutterActivity() {
     private val thumbnailExecutor = Executors.newCachedThreadPool()
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    /**
+     * Activity が破棄された後に channel へ返さないための印(008:T07)。
+     *
+     * `shutdownNow` は**走行中の1件を止めない**ので、破棄後に `result` を触りうる。
+     */
+    @Volatile
+    private var destroyed = false
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
@@ -73,6 +81,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        destroyed = true
         thumbnailExecutor.shutdownNow()
         super.onDestroy()
     }
@@ -103,6 +112,8 @@ class MainActivity : FlutterActivity() {
             }
             // channel の応答は main thread から返す。
             mainHandler.post {
+                // 破棄済みなら黙って捨てる。応答先がもう居ない。
+                if (destroyed) return@post
                 when (response) {
                     is Response.Success -> result.success(response.bytes)
                     is Response.Failure -> result.error("failed", response.message, null)
@@ -136,10 +147,15 @@ class MainActivity : FlutterActivity() {
                 retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     ?.let { scaleDown(it, maxEdge) }
             } ?: return null
-            return ByteArrayOutputStream().use { stream ->
-                frame.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            try {
+                return ByteArrayOutputStream().use { stream ->
+                    frame.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    stream.toByteArray()
+                }
+            } finally {
+                // **`compress` が投げても解放する。** `use` が閉じるのは stream
+                // だけで、bitmap はここで返さないと漏れる。
                 frame.recycle()
-                stream.toByteArray()
             }
         } finally {
             retriever.release()

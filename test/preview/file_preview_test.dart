@@ -46,7 +46,9 @@ void main() {
 
     test('点で始まる隠しfileの拡張子も読む', () {
       expect(previewKindOf('.hidden.jpg'), PreviewKind.image);
-      // 拡張子ではなく名前の一部なので画像ではない。
+      // `.jpg` だけの名前は、拡張子として読んで image にする。名前の一部として
+      // 扱って other にする手もあるが、**preview を出して困るものではない**ので
+      // 単純な方を採る。
       expect(previewKindOf('.jpg'), PreviewKind.image);
     });
   });

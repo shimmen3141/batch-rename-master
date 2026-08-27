@@ -862,38 +862,50 @@ class _DateSubInfo extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: base,
             ),
-          Row(
+          // **2つの日時は `Wrap` に置く。** 横に並びきらなければ更新日時が
+          // 次の行へ落ち、作成日時は丸ごと残る。
+          //
+          // `Row` で作成日時を「縮まない側」に置くと、幅が足りなくなった瞬間に
+          // 省略ではなく **overflow** になる(独立review attempt 1 の P1-1)。
+          // 更新日時を削るだけでは足りず、作成日時自身にも下限が要る。
+          // ここでも「優先順位ではなく行数で解く」を一段深く適用している。
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (emphasize) ...[
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 11,
-                  color: colors.danger,
-                ),
-                const SizedBox(width: 3),
-              ],
-              // **作成日時は縮まない側へ置く。** `Flexible` に入れないので
-              // `Row` は先にこの幅を確保し、足りない分は更新日時から削られる。
-              // どれだけ狭くしても `作成日時: 不明` が省略されない、が構造で
-              // 保証される(優先順位の調整だと幅次第で再発する)。
-              Text(
-                '作成日時: ${unknown ? '不明' : _format(createdAt)}',
-                key: rowCreatedAtKey,
-                maxLines: 1,
-                style: base.copyWith(
-                  color: emphasize ? colors.danger : colors.textMuted,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emphasize) ...[
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 11,
+                      color: colors.danger,
+                    ),
+                    const SizedBox(width: 3),
+                  ],
+                  // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
+                  // ほど狭いとき(極端な font scale など)に、はみ出させない。
+                  Flexible(
+                    child: Text(
+                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                      key: rowCreatedAtKey,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: base.copyWith(
+                        color: emphasize ? colors.danger : colors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              // 更新日時は残った幅に収める。入りきらなければ省略され、幅が
-              // 尽きれば消える。**作成日時より先に削られる側**である。
-              Flexible(
-                child: Text(
-                  ' / 更新日時: ${_format(file.modifiedAt)}',
-                  key: rowModifiedAtKey,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: base,
-                ),
+              // 入りきらなければ**次の行へ落ちる**。作成日時を削らない。
+              Text(
+                '更新日時: ${_format(file.modifiedAt)}',
+                key: rowModifiedAtKey,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: base,
               ),
             ],
           ),

@@ -10,6 +10,8 @@ import 'package:batch_rename_master/data/preview/file_preview.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
+import 'package:batch_rename_master/ui/rule_builder/rule_builder_workspace.dart';
+import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,8 +135,12 @@ void main() {
     expect(first, second);
   });
 
-  testWidgets('退避中(SAF の document URI)は読みに行かない', (tester) async {
+  testWidgets('退避中(SAF の document URI)の行は種別アイコンへ落ちる', (tester) async {
     // 013 ADR-002 の退避先。**行は静かに種別アイコンへ落ちる。**
+    //
+    // 「読みに行かない」こと自体は port 側の責務で、
+    // `test/preview/file_preview_test.dart` が検査している。ここが見るのは
+    // 「対象外が返ったとき行がどうなるか」だけである。
     final preview = FakeFilePreview(
       fallback: const PreviewUnsupported('元場所ハンドルが path ではない'),
     );
@@ -147,5 +153,62 @@ void main() {
 
     expect(_iconIn(tester, 0), Icons.image_outlined);
     expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('合成経路(RuleBuilderWorkspace 越し)でも行に preview が届く', (tester) async {
+    // **production が通る合成を test も通す。** `main.dart` は
+    // `RuleBuilderWorkspace` へ port を渡し、そこから `FileListView` へ流れる。
+    // 途中で渡し忘れても行は種別アイコンで「それらしく」見えるため、
+    // 出力を見るだけでは気付けない(013:T05 で3回FAILしたのと同じ型)。
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          body: RuleBuilderWorkspace(
+            fileList: FileListController(files: [_entry('a.jpg')]),
+            rule: RuleController(),
+            filePreview: FakeFilePreview(
+              byHandle: {'/storage/emulated/0/DCIM/a.jpg': PreviewReady(_png)},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('行が別の file を指した後、前の file の応答で描かない', (tester) async {
+    // scroll で行が使い回されると、前の要求の応答が後から届く。
+    final slow = FakeFilePreview(
+      byHandle: {'/storage/emulated/0/DCIM/first.jpg': PreviewReady(_png)},
+      fallback: const PreviewUnsupported('二つ目には preview が無い'),
+    )..hold = true;
+    final controller = FileListController(files: [_entry('first.jpg')]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          body: FileListView(controller: controller, filePreview: slow),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 応答が返る前に、同じ位置の行を別の file へ差し替える。
+    controller.setFiles([_entry('second.pdf')]);
+    await tester.pump();
+
+    // ここで**一つ目の要求**の応答が届く。
+    slow.release();
+    await tester.pump();
+    await tester.pump();
+
+    // 一つ目の絵を二つ目の行へ描いていない。
+    expect(find.byType(Image), findsNothing);
+    expect(_iconIn(tester, 0), Icons.description_outlined);
   });
 }

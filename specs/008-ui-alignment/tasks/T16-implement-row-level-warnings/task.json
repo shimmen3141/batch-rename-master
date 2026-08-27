@@ -4,6 +4,7 @@
   "title": "警告を行に出す提示を実装する",
   "status": "pending",
   "dependsOn": [
+    "T07",
     "T15"
   ],
   "covers": [],
