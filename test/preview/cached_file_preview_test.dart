@@ -124,6 +124,40 @@ void main() {
     expect(inner.requested, hasLength(20));
   });
 
+  test('一巡した後もまた走る(席を返している)', () async {
+    // **1回の burst だけでは席の返し忘れが見えない。** 返し忘れると、走っている
+    // 数が上限のまま固定され、**2回目以降の要求が永久に待つ**(scroll しても
+    // preview が二度と出ない)。上限の検査は1回目で通ってしまう。
+    final inner = FakeFilePreview()..hold = true;
+    final port = CachedFilePreview(inner, maxConcurrent: 2);
+
+    final first = [
+      for (var i = 0; i < 4; i++)
+        port.thumbnail(_entry('a$i.jpg'), maxEdge: 128),
+    ];
+    await Future<void>.delayed(Duration.zero);
+    expect(inner.requested, hasLength(2));
+    inner.release();
+    await Future.wait(first);
+    expect(inner.requested, hasLength(4));
+
+    inner.hold = true;
+    final second = [
+      for (var i = 0; i < 4; i++)
+        port.thumbnail(_entry('b$i.jpg'), maxEdge: 128),
+    ];
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      inner.requested,
+      hasLength(6),
+      reason: '席が返っていないので2回目の burst が始まらない',
+    );
+
+    inner.release();
+    await Future.wait(second);
+    expect(inner.requested, hasLength(8));
+  });
+
   test('失敗も覚える(読めない file を毎回叩き直さない)', () async {
     final inner = FakeFilePreview(fallback: const PreviewFailed('壊れている'));
     final port = CachedFilePreview(inner);

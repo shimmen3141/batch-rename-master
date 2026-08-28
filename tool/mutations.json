@@ -1166,6 +1166,48 @@
       "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      onEditRule: _openRuleSheet,\n    );",
       "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      onEditRule: _openRuleSheet,\n    );",
       "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加)"
+    },
+    {
+      "id": "M167",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "          child: FileListView(\n            controller: widget.fileList,\n            renameExecution: widget.renameExecution,\n            filePreview: widget.filePreview,",
+      "replace": "          child: FileListView(\n            controller: widget.fileList,\n            renameExecution: widget.renameExecution,",
+      "note": "008:T07 wide(2ペイン)経路でpreview portを配り忘れる — narrowだけ通してもWindows/大画面で行からpreviewが消える(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M168",
+      "file": "lib/main.dart",
+      "find": "              filePreview: _filePreview,\n",
+      "replace": "",
+      "note": "008:T07 composition rootがport自体を渡さない — T07の機能が丸ごと切れても行は種別アイコンで「それらしく」見える(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M169",
+      "file": "lib/ui/file_list/row_preview_view.dart",
+      "find": "    if (!mounted || !identical(_pending, token)) return;",
+      "replace": "    if (!identical(_pending, token)) return;",
+      "note": "008:T07 外れた行へのsetStateを防ぐmounted判定を外す — scrollで行が捨てられた後に応答が届くとframeが組めなくなる(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M170",
+      "file": "lib/data/preview/cached_file_preview.dart",
+      "find": "    if (_waiting.isEmpty) {\n      _running--;\n      return;\n    }",
+      "replace": "    if (_waiting.isEmpty) {\n      return;\n    }",
+      "note": "008:T07 semaphoreの席を返さない — 一巡した後の要求が永久に待ち、previewが二度と出なくなる(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M171",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            child: RowPreviewView(file: row.source, preview: filePreview),",
+      "replace": "            child: RowPreviewView(file: row.source, preview: null),",
+      "note": "008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M172",
+      "file": "lib/data/preview/image_file_preview.dart",
+      "find": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      buffer.dispose();\n    }",
+      "replace": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      // buffer.dispose();\n    }",
+      "note": "008:T07 engine側のbufferを解放しない — 読めない画像1件ごとにnative memoryが残る(独立review attempt 2が追加)"
     }
   ]
 }

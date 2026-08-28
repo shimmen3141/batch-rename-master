@@ -155,29 +155,77 @@ void main() {
     expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets('合成経路(RuleBuilderWorkspace 越し)でも行に preview が届く', (tester) async {
-    // **production が通る合成を test も通す。** `main.dart` は
-    // `RuleBuilderWorkspace` へ port を渡し、そこから `FileListView` へ流れる。
-    // 途中で渡し忘れても行は種別アイコンで「それらしく」見えるため、
-    // 出力を見るだけでは気付けない(013:T05 で3回FAILしたのと同じ型)。
+  // **production が通る合成を test も通す。** `main.dart` は
+  // `RuleBuilderWorkspace` へ port を渡し、そこから `FileListView` へ流れる。
+  // 途中で渡し忘れても行は種別アイコンで「それらしく」見えるため、
+  // 出力を見るだけでは気付けない(013:T05 で3回FAILしたのと同じ型)。
+  //
+  // **狭い側と広い側は別の分岐である。** `RuleBuilderWorkspace` は幅 840 を境に
+  // `_buildNarrow` と `_buildWide` を切り替え、`FileListView` を**それぞれが別々に
+  // 組み立てる**。片方だけ通しても、もう片方の渡し忘れは検出できない。
+  for (final (label, size) in [
+    ('狭い画面', Size(400, 800)),
+    ('広い画面(2ペイン)', Size(1200, 800)),
+  ]) {
+    testWidgets('$label の合成経路(RuleBuilderWorkspace 越し)でも行に preview が届く', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final rule = RuleController();
+      addTearDown(rule.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: RuleBuilderWorkspace(
+              fileList: FileListController(files: [_entry('a.jpg')]),
+              rule: rule,
+              filePreview: FakeFilePreview(
+                byHandle: {
+                  '/storage/emulated/0/DCIM/a.jpg': PreviewReady(_png),
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(Image), findsOneWidget);
+    });
+  }
+
+  testWidgets('要求中に行が外れても、届いた応答で作り直そうとしない', (tester) async {
+    // scroll で行が捨てられた後に応答が届く経路。`setState() called after
+    // dispose()` になると、その後の frame が組めなくなる。
+    final port = FakeFilePreview(
+      byHandle: {'/storage/emulated/0/DCIM/a.jpg': PreviewReady(_png)},
+    )..hold = true;
+
     await tester.pumpWidget(
       MaterialApp(
         theme: appDarkTheme(),
         home: Scaffold(
-          body: RuleBuilderWorkspace(
-            fileList: FileListController(files: [_entry('a.jpg')]),
-            rule: RuleController(),
-            filePreview: FakeFilePreview(
-              byHandle: {'/storage/emulated/0/DCIM/a.jpg': PreviewReady(_png)},
-            ),
-          ),
+          body: RowPreviewView(file: _entry('a.jpg'), preview: port),
         ),
       ),
     );
     await tester.pump();
+
+    // 行が一覧から消える。
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox.shrink())),
+    );
     await tester.pump();
 
-    expect(find.byType(Image), findsOneWidget);
+    // **その後で**応答が届く。
+    port.release();
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('同じ枠が別の file を指したら、前の file の応答は捨てる', (tester) async {

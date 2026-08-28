@@ -131,6 +131,61 @@ void main() {
     expect(result, isA<PreviewFailed>());
   });
 
+  test('読めなかった file でも engine 側の buffer を解放する', () async {
+    // **解放漏れは出力に現れない。** 読めない file を含む folder を scroll する
+    // たびに engine 側の native memory が積み上がるが、結果値は同じ
+    // `PreviewFailed` なので、返り値を見ているだけでは気付けない。
+    final entry = await writeImage(
+      'broken.png',
+      0,
+      0,
+      content: Uint8List.fromList([1, 2, 3, 4, 5]),
+    );
+    final opened = <ui.ImmutableBuffer>[];
+
+    final result = await ImageFilePreview(
+      openBuffer: (path) async {
+        final buffer = await ui.ImmutableBuffer.fromFilePath(path);
+        opened.add(buffer);
+        return buffer;
+      },
+    ).thumbnail(entry, maxEdge: 128);
+
+    expect(result, isA<PreviewFailed>());
+    expect(opened, hasLength(1));
+    expect(
+      opened.single.debugDisposed,
+      isTrue,
+      reason: '読めなかった file の buffer が engine 側に残っている',
+    );
+  });
+
+  test('thumbnail を作れた場合も buffer を解放する', () async {
+    final entry = await writeImage('photo.png', 400, 300);
+    final opened = <ui.ImmutableBuffer>[];
+
+    final result = await ImageFilePreview(
+      openBuffer: (path) async {
+        final buffer = await ui.ImmutableBuffer.fromFilePath(path);
+        opened.add(buffer);
+        return buffer;
+      },
+    ).thumbnail(entry, maxEdge: 128);
+
+    expect(result, isA<PreviewReady>());
+    expect(opened.single.debugDisposed, isTrue);
+  });
+
+  test('長辺の上限が 0 以下でも例外を投げない', () async {
+    // 目標サイズの計算が投げると、buffer の持ち主が切り替わる地点で巻き戻る。
+    // **port の「例外を投げない」約束を、境界の内側でも保つ。**
+    final entry = await writeImage('photo.png', 400, 300);
+
+    final result = await const ImageFilePreview().thumbnail(entry, maxEdge: 0);
+
+    expect(result, isA<PreviewReady>());
+  });
+
   test('画像でない拡張子は読みに行かない', () async {
     final entry = await writeImage('doc.pdf', 40, 20);
 
