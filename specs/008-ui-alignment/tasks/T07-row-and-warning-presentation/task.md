@@ -160,6 +160,7 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 - 2026-08-27 / preview port・cache・種別振り分け・Kotlin側を実装。`flutter test` = PASS(694)。
 - 2026-08-27 / 行への組み込みと警告帯の高さ。`flutter test` = PASS(704)、`flutter analyze` = PASS、`dart format` = PASS、`workspace.py check specs` = PASS。
 - 2026-08-28 / 独立review attempt 2 = **PASS**。P2×2(bufferの持ち主のコメントが事実と違う / task.md内の行番号引用の陳腐化)を修正し、reviewerが足した安全網の穴5件を受容せず殺すtestを書いた。`flutter test` = PASS(720)、`analyze` = PASS、`format` = PASS、mutation **10 KILLED, 0 SURVIVED**。
+- 2026-08-28 / `manual-verification.md`をcurrent revision(`bf48aa9`)へ合わせて書き直し、引用する画面文言・ショートカット名・commandを`git grep`で突き合わせた(dry-run)。残余riskのN-5・N-6・N-7を項目に入れ、N-8は範囲外として明記した。
 
 ### mutation の生の出力
 
@@ -283,7 +284,7 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 
 - Last checkpoint: 独立review attempt 2 = **PASS**。P2×2を修正し、安全網の穴5件を殺すtestを追加。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / **mutation 10件すべて KILLED**
 - Blocker category: なし
-- Waiting for: Android実機のmanual確認(依頼準備中)
-- Requested action: なし
-- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159)
-- Next Agent action: codeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する(N-5・N-6・N-7を項目に入れる)。結果受領後に`final-evidence` phaseのreviewを起動する
+- Waiting for: **Android実機のmanual確認**([`manual-verification.md`](manual-verification.md)。5項目、20〜30分)
+- Requested action: 人間が実機で手順1〜5を実行し、結果を会話で返す
+- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation@bf48aa9`(PR #159、Draft)
+- Next Agent action: **このbranchのままcodeを凍結して待つ**(証拠が失効するのでcommitしない)。結果受領後に`task.md`へ証拠metadataを記録し、`final-evidence` phaseの独立reviewを起動してからPRをreadyにする
