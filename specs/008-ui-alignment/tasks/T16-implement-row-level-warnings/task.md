@@ -26,7 +26,7 @@
 
 ### `T14`との分担
 
-`T14`は**実行前確認dialog**(`file_list_view.dart:157`の`AlertDialog`)を持つ。このtaskが
+`T14`は**実行前確認dialog**(`file_list_view.dart`の`Key('rename-confirmation-dialog')`)を持つ。このtaskが
 作るのは**警告の詳細を見る**ための提示である。**同じmodalに二つのtaskが手を入れない**よう、
 着手時にどちらが入れ物を持つかを決めて両方の`task.md`へ書く。
 

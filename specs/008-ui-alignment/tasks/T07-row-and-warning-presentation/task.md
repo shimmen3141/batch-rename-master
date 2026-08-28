@@ -92,7 +92,7 @@ T07が作るのは「あるpathからthumbnailを得るport」で、textを足�
 ### 狭幅の見切れは、優先順位ではなく行数で解く
 
 現行の`_DateSubInfo`は「場所 · 作成日時 / 更新日時」を**1つの`Text`**にまとめ
-`maxLines: 1` + ellipsisで省略している(`file_list_view.dart:826`)。場所が先頭にあるため、
+`maxLines: 1` + ellipsisで省略していた(着手時の`file_list_view.dart`の`_DateSubInfo`)。場所が先頭にあるため、
 狭幅では**後ろの`作成日時: 不明`から消える**。これが(h)の見切れである。
 
 省略の優先順位を調整して`不明`を残す形も取れるが、**幅次第で再発する**。リッチな行は
@@ -159,11 +159,12 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 - 2026-08-27 / mutation 2件を`tool/mutations.json`へ追加(M163: 作成日時を`Flexible`へ移す / M164: 場所を日時と同じ行へ戻す)。`mutation_check.py` = **2 KILLED, 0 SURVIVED**。生の出力は下記。
 - 2026-08-27 / preview port・cache・種別振り分け・Kotlin側を実装。`flutter test` = PASS(694)。
 - 2026-08-27 / 行への組み込みと警告帯の高さ。`flutter test` = PASS(704)、`flutter analyze` = PASS、`dart format` = PASS、`workspace.py check specs` = PASS。
+- 2026-08-28 / 独立review attempt 2 = **PASS**。P2×2(bufferの持ち主のコメントが事実と違う / task.md内の行番号引用の陳腐化)を修正し、reviewerが足した安全網の穴5件を受容せず殺すtestを書いた。`flutter test` = PASS(720)、`analyze` = PASS、`format` = PASS、mutation **10 KILLED, 0 SURVIVED**。
 
 ### mutation の生の出力
 
-`python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .` の表から、
-このtaskが足した4件を抜き出して走らせたもの(`command` は表と同じ `flutter test`)。
+`python3 <asdd-plugin>/scripts/mutation_check.py <部分表> --root .` を、このtaskが足した
+10件へ絞って走らせたもの(`command` は表と同じ `flutter test`)。
 
 ```text
 command: flutter test
@@ -173,12 +174,19 @@ M163 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 作成日時か�
 M164 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる | exit 1
 M165 | KILLED | lib/ui/file_list/row_preview_view.dart | 008:T07 古い応答の破棄をやめる — scrollで行が別fileを指した後に前のfileの絵が出る(独立reviewが追加) | exit 1
 M166 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加) | exit 1
-4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
+M167 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T07 wide(2ペイン)経路でpreview portを配り忘れる — narrowだけ通してもWindows/大画面で行からpreviewが消える(独立review attempt 2が追加) | exit 1
+M168 | KILLED | lib/main.dart | 008:T07 composition rootがport自体を渡さない — T07の機能が丸ごと切れても行は種別アイコンで「それらしく」見える(独立review attempt 2が追加) | exit 1
+M169 | KILLED | lib/ui/file_list/row_preview_view.dart | 008:T07 外れた行へのsetStateを防ぐmounted判定を外す — scrollで行が捨てられた後に応答が届くとframeが組めなくなる(独立review attempt 2が追加) | exit 1
+M170 | KILLED | lib/data/preview/cached_file_preview.dart | 008:T07 semaphoreの席を返さない — 一巡した後の要求が永久に待ち、previewが二度と出なくなる(独立review attempt 2が追加) | exit 1
+M171 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加) | exit 1
+M172 | KILLED | lib/data/preview/image_file_preview.dart | 008:T07 engine側のbufferを解放しない — 読めない画像1件ごとにnative memoryが残る(独立review attempt 2が追加) | exit 1
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
-**M165/M166 は独立reviewが SURVIVED として足したものである。** 穴を記録して受容するのでは
-なく、殺すtestを書いた。M166 は `013:T05` で3回FAILしたのと同じ型(productionが通る合成を
-testが一度も通らない)なので、特に残す価値が高い。
+**M165〜M172 は独立reviewが SURVIVED として足したものである。** 穴を記録して受容するのでは
+なく、殺すtestを書いた。M166 / M167 / M168 は `013:T05` で3回FAILしたのと同じ型
+(productionが通る合成をtestが一度も通らない)なので、特に残す価値が高い。M171 は対照として
+置いたもので、落とさない。
 
 ### 警告帯: ここで止めて人間へ返す論点
 
@@ -211,6 +219,7 @@ testが一度も通らない)なので、特に残す価値が高い。
 ### 独立review
 
 - Review attempt 1: `dev...29dade5` — **FAIL** — P1-1(狭幅で作成日時が既知の行がoverflow)、P2×7。すべて修正済み。
+- Review attempt 2: `dev...98db21b` — **PASS**。成果物の欠陥はP2が2件、安全網の穴が5件(うち1件は対照)。**穴は受容せず、5件すべて殺すtestを書いた。**
 
 **P1-1 は私が入れた回帰である。** dev 側は `Expanded(Text.rich(..., ellipsis))` で構造上
 あふれ得なかったが、「作成日時を縮まない側へ置く」に**下限を与えなかった**。testが
@@ -227,9 +236,39 @@ P2-4 種別アイコンの拡張子集合を preview 可否から分離(`heic`�
 P2-5 testのコメントと名前を実際の検査へ合わせた /
 P2-7 Kotlin: `compress`が投げてもbitmapを解放、破棄後のchannel応答を捨てる。
 
+#### attempt 2 の指摘と対処
+
+**P2-1(成果物の欠陥): bufferの持ち主についてコメントが事実と違った。** 「codecを作れたら
+bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWithSize`は
+`ImageDescriptor.encoded`が成功した後は**成否に関わらず**bufferを捨てる
+(`painting.dart`の`finally { buffer.dispose(); }`)。正しい条件は「encodedが投げたときだけ
+自分のもの」であり、**呼び出し側からは判別できない。** 現行codeが動いていたのは、
+目標サイズの計算が投げる経路へ到達していなかっただけである(`maxEdge: 0`で
+`ArgumentError`になり、finallyから二重解放のassertが飛んでportの「例外を投げない」約束が
+破れる)。`ImageDescriptor.encoded`を直接呼び、その`finally`一箇所でbufferを捨てる形へ変えた。
+目標サイズの計算も投げないようにした。
+
+**P2-2(成果物の欠陥): task.md内の行番号引用が、このrange自身の変更で陳腐化していた。**
+`T16`の「`file_list_view.dart:157`の`AlertDialog`」は、このrangeが同じfileへ21行足したため
+別の場所を指すようになっていた。**動かない識別子へ変えた**(`Key('rename-confirmation-dialog')`)。
+同じ型の引用を008配下で洗い、`T14`の2件(`file_list_view.dart:157` /
+`rule_builder_workspace.dart:76`)と`T07`自身の1件(`file_list_view.dart:826`)も直した。
+`file_source_bar.dart:192`と`token_editors.dart:13`はこのrangeが触っていないので残した。
+
+**安全網の穴5件は受容せず閉じた。** reviewerはAGENTS.mdの条件2(データ損失・無断置換・
+偽の成功・権限逸脱・互換性破壊)を満たさないとしてPASSにしたが、**閉じる費用が小さく、
+うち2件は`013:T05`で3回FAILしたのと同じ型**だったため殺す側へ回した。M167〜M172として
+`tool/mutations.json`へ取り込み(対照のM171を含む)、10件すべてKILLEDを確認した。
+
+`ImageDescriptor`を作る手続きを差し替えられるようにしたのは、**開いたbufferが呼び出し側から
+見えず、解放漏れを観測できなかった**ためである(reviewerは「CIで閉じるのは難しい」と
+判断していた)。継ぎ目はtest専用で、productionは既定のまま通る。
+
 ### 残余riskとして受容するもの
 
 安全網の穴のうち、AGENTS.mdの3条件を満たさないため受容する。受容はtask所有Agentが記録する。
+
+**IDは通し番号で、N-1 / N-2 は存在しない**(採番のずれであり、内容の欠落ではない)。
 
 | # | 内容 | 引き受け先 |
 |---|---|---|
@@ -237,12 +276,14 @@ P2-7 Kotlin: `compress`が投げてもbitmapを解放、破棄後のchannel応�
 | N-4 | cacheの鍵が`sourceHandle == null`の行同士で衝突する。現状はどちらも`Unsupported`へ落ちるので無害 | `008:T13` |
 | N-5 | Kotlin側(`MediaMetadataRetriever`)と件数の多いfolderでの速度・メモリ。**CIで実行できない** | このtaskのmanual確認 |
 | N-6 | `getScaledFrameAtTime`が縦横比を保つか歪めるかは実機でしか分からない。正方形boxに`BoxFit.cover`なので歪みが見えにくい | このtaskのmanual確認(項目に入れる) |
+| N-7 | 文字サイズを最大近く(`textScaler` 2.0以上)にすると、320dpで`作成日時: 不明`が省略される。**意図した trade-off**である(警告アイコンは省略対象外なのでREQ-013の識別は成立する)。実機で読めるかは見る | このtaskのmanual確認(項目に入れる) |
+| N-8 | `textScaler` 3.0で`_HeaderBar`と一覧の外側`Column`がoverflowする。**T07が触っていない既存code**で、行(`_FileRow`)は無傷 | `008:T10`(余白・typography) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 のP1-1とP2×7を修正。`flutter test` = PASS(713) / `analyze` = PASS / `format` = PASS / **mutation 4件すべて KILLED**
+- Last checkpoint: 独立review attempt 2 = **PASS**。P2×2を修正し、安全網の穴5件を殺すtestを追加。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / **mutation 10件すべて KILLED**
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: Android実機のmanual確認(依頼準備中)
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159)
-- Next Agent action: 同じ`implementation` phaseで独立reviewを再度起動する。PASS後にcodeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する(N-5・N-6を項目に入れる)
+- Next Agent action: codeを凍結し、`manual-verification.md`をcurrent revisionへ合わせてdry-runしてから実機確認を依頼する(N-5・N-6・N-7を項目に入れる)。結果受領後に`final-evidence` phaseのreviewを起動する
