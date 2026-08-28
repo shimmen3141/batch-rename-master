@@ -286,5 +286,5 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 - Blocker category: なし
 - Waiting for: **Android実機のmanual確認**([`manual-verification.md`](manual-verification.md)。5項目、20〜30分)
 - Requested action: 人間が実機で手順1〜5を実行し、結果を会話で返す
-- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation@bf48aa9`(PR #159、Draft)
+- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159、Draft)。**codeは`0e66b24`以降変えていない** — これより後のcommitは`specs/`とtestだけ
 - Next Agent action: **このbranchのままcodeを凍結して待つ**(証拠が失効するのでcommitしない)。結果受領後に`task.md`へ証拠metadataを記録し、`final-evidence` phaseの独立reviewを起動してからPRをreadyにする

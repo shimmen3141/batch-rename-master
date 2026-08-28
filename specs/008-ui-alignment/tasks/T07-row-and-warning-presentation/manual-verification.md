@@ -20,8 +20,10 @@
 | | |
 |---|---|
 | branch | `asdd/008-ui-alignment/T07-row-and-warning-presentation` |
-| commit | `bf48aa9` |
+| code の最終commit | `0e66b24` |
 | PR | #159 |
+
+**これより新しいcommitは記録(`specs/`)とtestだけ**で、appの動きは変わりません。
 
 **branchの切り替えは不要です。** Agentがこのbranchのまま待機しており、結果を受け取るまで
 動かしません。
@@ -35,12 +37,12 @@
 
 ```powershell
 git branch --show-current
-git log --oneline -1
+git log --oneline -6
 flutter run -d <device_id>
 ```
 
-**期待**: `asdd/008-ui-alignment/T07-row-and-warning-presentation` と `bf48aa9` が出て、
-appが起動する。
+**期待**: branch名が `asdd/008-ui-alignment/T07-row-and-warning-presentation` で、一覧に
+`0e66b24 fix(asdd-008/T07): 画像bufferの持ち主を境界で確定させる` が含まれる。appが起動する。
 
 依存は増えていないので`flutter pub get`は不要ですが、実行しても害はありません。
 
