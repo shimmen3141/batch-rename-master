@@ -256,6 +256,64 @@ void main() {
       expect(warned.height, clean.height);
     });
 
+    testWidgets('狭幅でも警告の件数が切り詰められない', (tester) async {
+      // **overflow を見るだけでは足りない。** `Flexible` + ellipsis は
+      // **内容を切ることで overflow を出さない**ので、はみ出しの検査では
+      // 「文字が消えた」を検出できない(独立reviewが見つけた P1)。
+      // 実際に `200 / 2…` と切れて総数を誤読できる状態になっていた。
+      for (final width in [320.0, 360.0, 411.0]) {
+        await tester.binding.setSurfaceSize(Size(width, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(
+              body: FileListView(
+                key: ValueKey('count-$width'),
+                controller: FileListController(
+                  files: [
+                    for (var i = 0; i < 200; i++)
+                      FileEntry(
+                        name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                        modifiedAt: DateTime(2026, 8, 4),
+                        size: 0,
+                        sourceLocation: 'DCIM/Camera',
+                      ),
+                  ],
+                  rule: const RenameRule([LiteralToken('photo')]),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // 件数label(何件の問題か)は幅を問わず最後まで読める。
+        final label = find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byType(Text),
+        );
+        expect(
+          tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
+          isFalse,
+          reason: '幅 $width で警告の件数が切り詰められている',
+        );
+
+        // 一般的な携帯の幅では、選択件数も最後まで読める。**総数が切れると
+        // `200 / 20…` が「総数 20」と読める** — 情報が減るのではなく誤りになる。
+        if (width >= 411.0) {
+          expect(
+            tester
+                .renderObject<RenderParagraph>(
+                  find.byKey(const Key('selection-count')),
+                )
+                .didExceedMaxLines,
+            isFalse,
+            reason: '幅 $width で選択件数が切り詰められている',
+          );
+        }
+      }
+    });
+
     testWidgets('狭幅でヘッダに件数を足してもはみ出さない', (tester) async {
       // 件数表示は `_HeaderBar` へ足した。**既存の選択件数と同じ行**なので、
       // 狭幅で押し出さないことを確かめる(`_HeaderBar` は文字サイズ最大では

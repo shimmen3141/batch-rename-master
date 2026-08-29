@@ -546,8 +546,14 @@ class _HeaderBar extends StatelessWidget {
             onPressed: allSelected ? controller.clearAll : controller.selectAll,
           ),
           const SizedBox(width: 12),
-          Flexible(
+          // **余白は選択件数側が吸う。** `Spacer` を挟んで両方を `Flexible` に
+          // すると Row の余白が等分され、**どちらの文言も intrinsic 幅を取れずに
+          // 切り詰められる**(360dp・200件で `200 / 2…`、411dp で `200 / 20…` と
+          // 出て総数を誤読できた)。件数labelは短く長さがほぼ一定なので、
+          // そちらへ intrinsic 幅を渡し、可変長の選択件数を縮める側にする。
+          Expanded(
             child: Text(
+              key: const Key('selection-count'),
               '$selected / $total 件を選択',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -558,14 +564,15 @@ class _HeaderBar extends StatelessWidget {
               ),
             ),
           ),
-          const Spacer(),
           // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
-          Flexible(
-            child: WarningCountView(
+          // **ルールが空のときは出さない** — 001 は空名と重複を返しているので
+          // 「問題なし」は誤りになる。005 REQ-020 は「警告を提示せず、代わりに
+          // 未設定であることを提示する」なので、案内帯だけが出る。
+          if (!controller.isRuleEmpty)
+            WarningCountView(
               warnings: warnings,
               onTap: () => showWarningDetail(context, warnings),
             ),
-          ),
         ],
       ),
     );

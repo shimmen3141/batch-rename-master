@@ -93,7 +93,9 @@ void main() {
       // それらを警告として見せず、未設定として1つの案内にする。
       final files = FileListController(files: [_file('a.txt'), _file('b.txt')]);
       expect(files.warnings, isNotEmpty); // 001 の判定自体は変えない。
-      await _pump(tester, files);
+      // **ルール設定の導線がある状態で確かめる。** 導線が無い画面では原因の説明が
+      // そもそも tree に無く、不在のassertionが空振りする(N-15-1 と同じ型)。
+      await _pump(tester, files, onEditRule: () {});
 
       // **廃止された帯の key の不在では押さえない。** widget が無いから通る状態に
       // なる(008:T15 の独立reviewが安全網の穴 N-15-1 として挙げた)。
@@ -101,7 +103,8 @@ void main() {
       // あることを、**現に在る提示に対して**確かめる。
       expect(find.byKey(rowWarningKey), findsNothing);
       expect(find.byKey(ruleWarningNoticeKey), findsNothing);
-      expect(find.text('問題なし'), findsOneWidget);
+      // 件数も出さない。001 は空名と重複を返しているので「問題なし」は誤りになる。
+      expect(find.byKey(warningCountKey), findsNothing);
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
       expect(find.textContaining('命名ルールが未設定'), findsOneWidget);
     });

@@ -21,6 +21,7 @@ import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 作成日時が判明しているファイル。
@@ -181,6 +182,59 @@ void main() {
       final text = _rowWarningTexts(tester).single;
       expect(text, contains('改名されません'));
       expect(text, isNot(contains('トークン')));
+    });
+
+    testWidgets('種別が併発しても行の警告が 2 行に収まる', (tester) async {
+      // 行に同時に出るのは最大 2 種(重複 + 基準日時不明)である。空名が該当する
+      // 行は REQ-021 が 1 つへ畳む。**切り詰めると併発時に種別が読めなくなる**
+      // ので、いちばん狭い実機幅で全部読めることを固定する。
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: [_noCreatedAt('alpha.jpg'), _noCreatedAt('bravo.jpg')],
+        rule: const RenameRule([
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+          SequenceToken(start: 100, digits: 1, increment: 0),
+        ]),
+      );
+      await _pump(tester, c);
+
+      final texts = _rowWarningTexts(tester);
+      expect(texts, isNotEmpty);
+      for (final text in texts) {
+        expect(text, contains('重複'));
+        expect(text, contains('作成日時'));
+      }
+      final paragraphs = find.descendant(
+        of: _rowWarnings(),
+        matching: find.byType(Text),
+      );
+      for (final element in paragraphs.evaluate()) {
+        expect(
+          (element.renderObject! as RenderParagraph).didExceedMaxLines,
+          isFalse,
+          reason: '併発した種別が切り詰められている',
+        );
+      }
+    });
+
+    testWidgets('同じ種別は行で 1 つにまとめる', (tester) async {
+      // 日時トークンが 2 本とも取れないと 001 は 2 件返すが、行は種別しか
+      // 出さないので同じ文言が 2 回並んでも情報が増えない。
+      final c = FileListController(
+        files: [_noCreatedAt('a.jpg')],
+        rule: const RenameRule([
+          OriginalNameToken(),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+          DateTimeToken(source: DateTimeSource.created, format: 'MMDD'),
+        ]),
+      );
+      await _pump(tester, c);
+
+      expect(c.warnings.whereType<MissingSourceDateWarning>().length, 2);
+      final text = _rowWarningTexts(tester).single;
+      expect(text, '作成日時が空になります');
+      expect(text, isNot(contains('・')));
     });
 
     testWidgets('`sortMode` を名前順にしても種別が読める', (tester) async {

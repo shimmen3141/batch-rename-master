@@ -94,24 +94,7 @@ String _describeEmptyNameWithCause(
       '基準日時が取れないため、変更後の名前が空になります';
 }
 
-/// 件数と種別内訳の見出し(例: `警告 3 件(重複 2・桁不足 1)`)。
-///
-/// 数えるのは 001 が返した警告そのものではなく、[presentWarnings] がまとめた
-/// **提示単位**なので、見出しの件数と展開した行数が必ず一致する。
-///
-/// 内訳を畳んでいる間も「何がいくつ起きているか」は常に見える。
-String describeWarningSummary(List<WarningPresentation> presented) {
-  final counts = <String, int>{};
-  for (final item in presented) {
-    counts[item.kindLabel] = (counts[item.kindLabel] ?? 0) + 1;
-  }
-  final breakdown = counts.entries
-      .map((entry) => '${entry.key} ${entry.value}')
-      .join('・');
-  return '警告 ${presented.length} 件($breakdown)';
-}
-
-/// ルールが空のとき、警告帯の代わりに出す案内(005 REQ-020)。
+/// ルールが空のとき、警告の代わりに出す案内(005 REQ-020)。
 ///
 /// 「何が起きているか(命名ルールが未設定)」と「どうすれば進めるか(ルールを
 /// 設定する)」を伝えるだけの帯で、操作そのものは下部アクションバーのルール

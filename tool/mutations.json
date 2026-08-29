@@ -1257,6 +1257,55 @@
       "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),",
       "replace": "                RowWarningView(warnings: warnings),",
       "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
+    },
+    {
+      "id": "M180",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                maxLines: 2,",
+      "replace": "                // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                maxLines: 1,",
+      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)"
+    },
+    {
+      "id": "M181",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  final seen = <Type>{};\n  return <Warning>[\n    for (final warning in warnings)\n      if (seen.add(warning.runtimeType)) warning,\n  ];",
+      "replace": "  return warnings;",
+      "note": "008:T16 行で同じ種別を件数ぶん繰り返す — 日時トークンが2本だと同じ文言が2回並ぶ(独立reviewが追加)"
+    },
+    {
+      "id": "M182",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  final count = presentWarnings(warnings).length;",
+      "replace": "  final count = warnings.length;",
+      "note": "008:T16 件数を提示単位ではなく001の生の件数で数える — 詳細に並ぶ件数と食い違う(独立reviewが追加)"
+    },
+    {
+      "id": "M183",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              if (onEditRule != null)\n                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: warnings,\n                    ruleIsEmpty: ruleIsEmpty,\n                  ),\n                ),\n",
+      "replace": "",
+      "note": "008:T16 狭幅で原因の説明を配り忘れる — M177(広幅)の対照(独立reviewが追加)"
+    },
+    {
+      "id": "M184",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "            warnings: byFile[ordered[i]] ?? const <Warning>[],",
+      "replace": "            warnings: <Warning>[\n              ...?byFile[ordered[i]],\n              ...warnings.whereType<DigitShortageWarning>(),\n            ],",
+      "note": "008:T16 対象fileを持たない桁不足を全行へ載せる(002 REQ-015 例19)(独立reviewが追加)"
+    },
+    {
+      "id": "M185",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "            warnings: byFile[ordered[i]] ?? const <Warning>[],",
+      "replace": "            warnings: byFile[_items[i]] ?? const <Warning>[],",
+      "note": "008:T16 行の警告を別インスタンスで引き当てる — validateは選択を写した複製を見るのでidentityがずれる(独立reviewが追加)"
+    },
+    {
+      "id": "M186",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。",
+      "replace": "          const Spacer(),\n          // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。",
+      "note": "008:T16 ヘッダの余白を等分して文言を切り詰める — 411dpで`200 / 20…`と出て総数を誤読できた(独立reviewが見つけたP1)"
     }
   ]
 }

@@ -238,9 +238,13 @@ class FileListController extends ChangeNotifier {
 
   /// [rows] と [warnings] を**一度の検証で**作る。
   ///
-  /// **UI は build 1 回につきこれを 1 回だけ呼ぶ。** 行データが警告を持つように
-  /// なった(002 REQ-015)ため、`rows` と `warnings` を別々に呼ぶと 001 の検証が
-  /// 2 回走る。両者はどちらも同じ評価から作れるので、ここでまとめる。
+  /// 行データが警告を持つようになった(002 REQ-015)ため、`rows` と `warnings` を
+  /// 別々に呼ぶと 001 の検証が 2 回走る。両者はどちらも同じ評価から作れるので、
+  /// **両方が要るところではこれを使う。**
+  ///
+  /// **同じフレームで複数回呼ばれうる。** 広幅の 2 ペインでは、一覧と右ペインが
+  /// それぞれ購読して別々に評価する。呼ぶ側は自分の build の中で 1 回に
+  /// まとめること。
   ({List<RowView> rows, List<Warning> warnings}) get preview {
     final now = _clock();
     final ordered = <FileEntry>[
