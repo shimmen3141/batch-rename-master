@@ -249,6 +249,7 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 - 2026-08-27 / `T07`が(i)の計測で行き詰まり、開発者が置き場所ごと変える方針を決めたため定義。`T07`は行のlayoutとpreviewで閉じる。
 - 2026-08-29 / claim。001が返す警告4種を調べ、**桁不足だけが対象fileを持たない**ことが分かった。ここから「バーは原因、行は結果」の原則が出た。桁不足で実行を止める案・作成日時を更新日時で代替する案・空名のfileをskipする案を検討し、いずれも採らないと決めた(根拠は上記)。
 - 2026-08-29 / 002へREQ-015を追加、005 contractをrevision 7.0へ。**開発者が再承認**し、`plan.md`の決定表へ記録した。`flutter test` = PASS(720)、`workspace.py check specs` = PASS。
+- 2026-08-29 / 独立review attempt 3 = **FAIL**(P1-1: wide layoutに「ルールを変更する操作」が無い)。**3回FAILしたので`blocked`にして人間へ返した。**
 - 2026-08-29 / 独立review attempt 2 = **FAIL**(P1-1: 承認済みのmustより弱くなっていた)。FAIL 2回で解き方を変え、REQ-009を種別ごとの表へ書き換えた。承認を取り直す。
 - 2026-08-29 / 独立review attempt 1 = **FAIL**(P1-1)。REQ-009の(a)と(b)を粒度で書き分け、代表例を3つ(005の20g/20h、002の21)足して修正した。記録の欠陥3件も直した。
 
@@ -256,6 +257,49 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 
 - Review attempt 1: `dev...f775b24` — **FAIL** — P1-1(REQ-009 の (a) と (b) が実在する経路で互いを否定する)、P2×4、安全網の穴1件。すべて対処済み。
 - Review attempt 2: `dev...b0f06ad` — **FAIL** — P1-1(attempt 1 の直し方が、承認済みのmustより弱くなっていた)、P2×4、安全網の穴1件。**解き方を変えて対処した**(下記)。
+
+- Review attempt 3: `dev...87b9a04` — **FAIL** — P1-1(まとまりの提示が幅 ≥ 840dp のlayoutでどのtaskにも属さない)、P2×4。**3回目のFAILなので`blocked`にして人間へ返す**(AGENTS.md)。
+
+### 3回FAILしたので人間へ返す
+
+**attempt 3 の P1-1 は正当である。** `RuleBuilderWorkspace`は幅 840dp を境に分岐し、
+**wide では`onEditRule`を渡さない**(`rule_builder_workspace.dart:99-123`)。したがって
+`FileListView`の`_RuleButton`は生成されず(`file_list_view.dart:380`)、**下部バーに
+「ルールを変更する操作」が存在しない。** wide のルール編集は右ペインの`RuleBuilderView`
+(003の資産)である。
+
+REQ-009 の「まとまり = ルールを変更する操作と同じ subtree」は must で layout を限定して
+いないのに、`T15`が確定させた所有は`_RenameActionBar`だけだった。**wide では要求を満たす
+場所がどのtaskにも属していない。**
+
+**これはこのplanで一度直したのと同じ型である** — `plan.md`の review attempt 4 の記録
+「『Androidでは必ずsheet越し』は platform ではなく**幅**(`breakpoint` = 840dp)で決まる」。
+
+#### 3回のFAILに共通する根本原因
+
+| attempt | P1 | 何を見落としたか |
+|---|---|---|
+| 1 | (a)と(b)が`[元名][日時 作成]`の経路で互いを否定 | **経路**の組合せ |
+| 2 | 修正が承認済みのmustより弱くなっていた | **形容詞の強度** |
+| 3 | wide layout に場所が無い | **layout の分岐** |
+
+**いずれも「実物を見ずに、提示場所の網羅表を自然文で書く」ことに由来している。**
+争点は3回とも**UIの配置**であり、行データの供給(002 REQ-015)は一度も争われていない。
+
+**AGENTS.mdの「3回FAILで`blocked`にして人間へ返す」に従う。**選択肢は報告に出した。
+**現在の路線の改良だけで構成せず、「そもそもここまで厳密に定義する必要があるか」を
+入れてある。**
+
+#### attempt 3 のP2(選ばれた路線に関わらず直す)
+
+- **P2-1**: 空名**単体**(007の復元・preset import経路)が REQ-009 の表から抜けている。
+  `must`(REQ-009)の被覆が`should`(REQ-021)より狭い。**開発者は原文でこの場合を名指しで
+  聞いている**(「ルールは設定されているが空の自由テキストのような場合に空名となり…」)。
+- **P2-2**: 表化で落ちた2点(空名単体の行提示、重複の詳細の説明)を記録が開示していない。
+  **承認の範囲内だが、次に読む人は「表 = (a)(b)(c)の等価な書き換え」と読む。**
+- **P2-3**: PR #160 の本文が差し替え前の (a)(b)(c) を現在の成果として書いている。
+- **P2-4**: 字面の衝突2件(「どれも省略しない」の直後に「—」がある / 「4種すべて」と
+  「桁不足は対象fileを持たない」)。
 
 ### FAIL 2回で解き方を変えた
 
@@ -326,12 +370,12 @@ P2-4 REQ-021 規則1の根拠が005自身の反証ログより強かったので
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 = **FAIL**。解き方を変え、REQ-009 を**種別ごとの表**へ書き換えた。`flutter test` = PASS(720) / `workspace.py check specs` = PASS
-- Blocker category: なし
-- Waiting for: 独立review attempt 3
-- Requested action: なし。**表の版を開発者が承認した**(2026-08-29、取り直し2回目)
-- Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings`(PR #160、Draft)
-- Next Agent action: 独立review attempt 3 の結果を待つ。**3回目のFAILで`blocked`にして人間へ返す**(AGENTS.md)
+- Last checkpoint: 独立review attempt 3 = **FAIL**(P1-1: wide layoutに場所が無い)。**3回FAILしたので`blocked`**
+- Blocker category: decision(人間の判断待ち)
+- Waiting for: **提示場所をどう扱うかの方針**。報告に3案を出した(A 所有をlayout中立に直す / B 場所ではなく性質で書く / C 提示場所の仕様化をやめT16で実装してから書き戻す)
+- Requested action: A / B / C の選択
+- Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings@87b9a04`(PR #160、Draft)
+- Next Agent action: 方針を受けてから動く。**どの案でも attempt 3 のP2×4は直す。** BとCは005の承認を取り直す
 
 ## 他taskへの申し送り
 
