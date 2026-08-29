@@ -62,26 +62,31 @@ class FileListView extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([controller, ?renameExecution]),
       builder: (context, _) {
-        // rows ゲッターは呼ぶたびプレビューを再計算するため、ビルド1回につき
-        // 一度だけ評価して使い回す(行ごとの再計算を避ける)。
-        final rows = controller.rows;
+        // 行データと警告は同じ検証から作れる。ビルド1回につき一度だけ評価する
+        // (`rows` と `warnings` を別々に呼ぶと 001 の検証が2回走る)。
+        final preview = controller.preview;
+        final rows = preview.rows;
+        final warnings = preview.warnings;
+        // 005 REQ-020: ルールが空なら警告を提示しない。**行にも出さない。**
+        final ruleIsEmpty = controller.isRuleEmpty;
         return Container(
           color: colors.background,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _HeaderBar(controller: controller),
+              _HeaderBar(
+                controller: controller,
+                // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
+                // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
+                warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+              ),
               _SortBar(controller: controller),
               _CreatedAtFallbackBanner(
                 warning: controller.createdAtSortWarning,
               ),
               // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
               // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
-              if (controller.isRuleEmpty)
-                const RuleNotConfiguredBanner()
-              else
-                // 001 の検証が返す警告(005 REQ-009 / REQ-010)。0 件なら出ない。
-                RenameWarningPanel(warnings: controller.warnings),
+              if (ruleIsEmpty) const RuleNotConfiguredBanner(),
               Expanded(
                 child: ReorderableListView.builder(
                   // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
@@ -103,6 +108,13 @@ class FileListView extends StatelessWidget {
                       showDragHandle: controller.manualOrderMatters,
                       sortMode: controller.sortMode,
                       filePreview: filePreview,
+                      // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
+                      warnings: rowWarningsOf(
+                        row.warnings,
+                        ruleIsEmpty: ruleIsEmpty,
+                      ),
+                      onShowWarningDetail: () =>
+                          showWarningDetail(context, warnings),
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
                       onRemove: handle == null
@@ -114,6 +126,18 @@ class FileListView extends StatelessWidget {
               ),
               // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
               // まとめる(T09 で T04 の上部配置から移設)。
+              // 005 REQ-009 (2): 原因の説明は**件数ぶん繰り返さず一度だけ**。
+              // 狭幅ではルールを変更する導線が下部バーにあるので、その直前へ置く。
+              // **広幅では下部バーに導線が無い**ため、`RuleBuilderWorkspace` が
+              // 右ペイン側へ同じものを描く。
+              if (onEditRule != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: RuleWarningNotice(
+                    warnings: warnings,
+                    ruleIsEmpty: ruleIsEmpty,
+                  ),
+                ),
               if (renameExecution != null || onEditRule != null)
                 _RenameActionBar(
                   controller: controller,
@@ -495,9 +519,12 @@ class _RuleButton extends StatelessWidget {
 
 /// 全選択トグルと選択件数を表示するヘッダ。
 class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({required this.controller});
+  const _HeaderBar({required this.controller, required this.warnings});
 
   final FileListController controller;
+
+  /// 一覧全体の警告(005 REQ-009 (3) の入口。ルールが空なら空で渡る)。
+  final List<Warning> warnings;
 
   @override
   Widget build(BuildContext context) {
@@ -519,12 +546,24 @@ class _HeaderBar extends StatelessWidget {
             onPressed: allSelected ? controller.clearAll : controller.selectAll,
           ),
           const SizedBox(width: 12),
-          Text(
-            '$selected / $total 件を選択',
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              '$selected / $total 件を選択',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Spacer(),
+          // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
+          Flexible(
+            child: WarningCountView(
+              warnings: warnings,
+              onTap: () => showWarningDetail(context, warnings),
             ),
           ),
         ],
@@ -712,6 +751,8 @@ class _FileRow extends StatelessWidget {
     required this.showDragHandle,
     required this.sortMode,
     required this.filePreview,
+    required this.warnings,
+    required this.onShowWarningDetail,
     this.onRemove,
   });
 
@@ -727,6 +768,13 @@ class _FileRow extends StatelessWidget {
 
   /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
   final FilePreviewPort? filePreview;
+
+  /// この行に出す警告([rowWarningsOf] を通した後)。空なら何も出ない。
+  final List<Warning> warnings;
+
+  /// 行の警告を押したときに全件の詳細を開く(005 REQ-009 (3))。
+  final VoidCallback onShowWarningDetail;
+
   final VoidCallback onToggle;
 
   /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
@@ -784,6 +832,9 @@ class _FileRow extends StatelessWidget {
                     Expanded(child: _NewName(row: row)),
                   ],
                 ),
+                // 005 REQ-009 (1)。**変更後名のすぐ下**に置く — 「この行が
+                // どうなるか」の直後に「なぜ問題か」が来る並びにする。
+                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),
                 _DateSubInfo(file: row.source, sortMode: sortMode),
               ],
             ),
