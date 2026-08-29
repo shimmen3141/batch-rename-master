@@ -6,8 +6,8 @@
 
 | # | 確かめること | なぜ機械で閉じられないか |
 |---|---|---|
-| 1 | 画像のpreviewが行に出る。件数の多いfolderでも待たされず、アプリが重くならない | 速度とメモリは実機でしか測れない(残余risk **N-5**) |
-| 2 | **動画**のpreviewが行に出る。**縦横比が保たれている** | Kotlinの`MediaMetadataRetriever`はCIで動かせない(**N-5**)。`getScaledFrameAtTime`が比を保つかは実機依存(**N-6**) |
+| 1 | 画像のpreviewが行に出る。件数の多いfolderでも待たされず、アプリが重くならない | 速度とメモリはmachine検証できない(残余risk **N-5**)。**emulatorで構いません** |
+| 2 | **動画**のpreviewが行に出る。**縦横比が保たれている** | Kotlinの`MediaMetadataRetriever`はCIで動かせない(**N-5**)。`getScaledFrameAtTime`が比を保つかはAndroid側でしか分からない(**N-6**) |
 | 3 | 狭幅で `作成日時: 不明` が最後まで読める | `004:T10`で見切れを観測した条件そのもの。widget testは通っているが、実機のfontで再確認する |
 | 4 | **文字サイズを最大**にしても、どの行が「不明」か分かる | 端末のfont設定を機械側で再現していない(**N-7**) |
 | 5 | 警告帯を開いたとき、内訳が以前より多く読める | 「読めるか」は人の目で見る。件数の閾値を機械で決めない |
@@ -46,29 +46,68 @@ flutter run -d <device_id>
 
 依存は増えていないので`flutter pub get`は不要ですが、実行しても害はありません。
 
-### fixtureを1つだけ作ります
+### emulatorで構いません
 
-「読めなかったfile」と「preview の無いfile」が別の見た目になることを見るため、**中身が画像で
-ない`.jpg`**を1つ置きます。
+**実端末は要りません。** ここで見たいのは Android framework の API が返すもの
+(`MediaMetadataRetriever` の frame、`getScaledFrameAtTime` の縦横比)で、emulator も同じ
+framework を通ります。
+
+ひとつだけ**参考値として受け取る**ものがあります。手順1の「scrollが引っかからないか」は、
+emulator では PC の性能に引きずられます。**実端末が手元にあれば手順1だけ追試する価値が
+ありますが、無ければ emulator の結果で先へ進めます**(残余risk **N-5** として記録します)。
+
+### fixtureを置きます
+
+**`build/t07-fixtures/` に用意してあります。**格子と正円を描いた画像24枚(縦横比は8種類)と、
+`broken-fixture.jpg`(中身が画像でない`.jpg`)、`notes.txt`、`report.pdf` です。
+
+> **格子と円なのは、歪みを見えるようにするためです。** 正方形の枠へ切り取って表示するので、
+> 風景写真では縦横比が崩れていても気づけません。**セルが長方形に見える / 円が楕円に見えたら
+> 歪んでいます。**
+
+repositoryのルートで、**folderごと送ります**。
 
 ```powershell
-adb shell "echo not-an-image > /sdcard/DCIM/Camera/broken-fixture.jpg"
-adb shell ls -l /sdcard/DCIM/Camera/broken-fixture.jpg
+adb push build\t07-fixtures /sdcard/DCIM/
+adb shell ls /sdcard/DCIM/t07-fixtures | Measure-Object -Line
 ```
 
-**期待**: fileが1つ表示される。
+**期待**: `Lines : 27` と表示される。
 
-> 最後の手順で消します。`/sdcard/DCIM/Camera` が無い端末では、次のように写真を1枚撮って
-> folderを作ってから実行してください(カメラアプリで撮影 → 上のコマンド)。
+`adb push` は宛先のfolderを作るので、`DCIM` が無い emulator でもそのまま通ります
+(先ほどの `echo` が失敗したのは、**リダイレクト先のfolderが無かった**ためです。shellの
+リダイレクトはfolderを作りません)。
+
+`build/` は git の管理外なので、確認が終わったら消して構いません。
+
+### 動画だけは用意できません
+
+このcontainerに動画のencoderが無いため、**動画のfixtureはそちらでご用意ください。**
+どれか一つで足ります。
+
+- **emulatorのカメラアプリで5秒ほど録画する**(いちばん短い経路です。emulatorには疑似カメラが
+  あり、録画すると `DCIM/Camera` に入ります)。
+- PCにある`.mp4`を送る:
+  ```powershell
+  adb push "C:\Users\<あなた>\Videos\sample.mp4" /sdcard/DCIM/Camera/
+  ```
+- emulatorのウィンドウへ**ファイルをドラッグ&ドロップ**する(`/sdcard/Download` に入ります。
+  その場合は手順2でショートカット「Download」を開いてください)。
+
+**横長の動画にしてください。** 正方形や縦長だと、縦横比が崩れていても気づきにくくなります。
+
+### 権限
+
+初回は「すべてのファイルへのアクセス」の許可を求められます。許可してください
+(`013`の権限フロー)。許可しないと file browser が開きません。
 
 ## 手順1 — 画像のpreviewと、件数の多いfolder
 
 1. 「**ファイルを選ぶ**」を押す。
 2. 種類のシートで「**すべて**」を選ぶ(Androidでは「画像」「動画」はまだ写真機能待ちで、
    選ぶと案内のsnackbarが出ます)。
-3. app内のfile browserが開く。ショートカットの「**DCIM**」を押し、`Camera`へ入る。
-4. **20件以上をcheckして**「**確定**」を押す。少ない端末では`Download`や`Pictures`も足して
-   ください。
+3. app内のfile browserが開く。ショートカットの「**DCIM**」を押し、`t07-fixtures`へ入る。
+4. **20件以上をcheckして**「**確定**」を押す(fixtureが27件あるので、全部でも構いません)。
 
 **見るところ**
 
@@ -152,8 +191,11 @@ adb shell ls -l /sdcard/DCIM/Camera/broken-fixture.jpg
 ## 後片付け
 
 ```powershell
-adb shell rm /sdcard/DCIM/Camera/broken-fixture.jpg
+adb shell rm -r /sdcard/DCIM/t07-fixtures
 ```
+
+emulatorを捨てる予定なら、これも不要です。PC側の`build/t07-fixtures/`も消して構いません
+(`flutter clean`でも消えます)。
 
 改名を実行していなければ、端末のfileは変わっていません。**手順5でルールを作っただけでは
 改名されません**(実行buttonを押していなければそのままです)。
