@@ -95,24 +95,18 @@ void main() {
       c.setSortMode(FileSortMode.createdAt); // 強調はこのときだけ
       await tester.pump();
 
-      // 行のサブ情報(日時)の RichText を特定する(ヘッダ等の別テキストを拾わない)。
-      final richText = tester
-          .widgetList<RichText>(find.byType(RichText))
-          .firstWhere((w) => w.text.toPlainText().contains('作成日時: '));
-      final text = richText.text.toPlainText();
-      expect(text, contains('作成日時: 不明'));
-      expect(text, contains('更新日時: 2026/8/4 16:00'));
+      // 008:T07 で作成日時と更新日時を別の `Text` へ分けた(狭幅で作成日時が
+      // 省略されないようにするため)。**双方が出ていること**が REQ-013 の要求で、
+      // 1つの文字列に連結されていることではない。
+      final createdAt = tester.widget<Text>(find.byKey(rowCreatedAtKey));
+      final modifiedAt = tester.widget<Text>(find.byKey(rowModifiedAtKey));
+      expect(createdAt.data, contains('作成日時: 不明'));
+      expect(modifiedAt.data, contains('更新日時: 2026/8/4 16:00'));
 
-      // 不明部分はセマンティックな危険色(色の直書きをしない)。
-      final leaves = <TextSpan>[];
-      richText.text.visitChildren((span) {
-        if (span is TextSpan && span.text != null) leaves.add(span);
-        return true;
-      });
-      final unknownSpan = leaves.firstWhere(
-        (span) => span.text!.contains('不明'),
-      );
-      expect(unknownSpan.style?.color, AppColors.dark.danger);
+      // 不明はセマンティックな危険色(色の直書きをしない)。**更新日時は
+      // 強調しない** — 強調の対象は代替された作成日時だけである。
+      expect(createdAt.style?.color, AppColors.dark.danger);
+      expect(modifiedAt.style?.color, isNot(AppColors.dark.danger));
     });
 
     testWidgets('例14: 名前順のときは「不明」を表示するが強調しない(REQ-013)', (tester) async {

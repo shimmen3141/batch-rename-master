@@ -1,11 +1,11 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T13",
-  "title": "browserのファイル行にpreviewを出す",
+  "id": "T16",
+  "title": "警告を行に出す提示を実装する",
   "status": "pending",
   "dependsOn": [
     "T07",
-    "T12"
+    "T15"
   ],
   "covers": [],
   "issue": null,

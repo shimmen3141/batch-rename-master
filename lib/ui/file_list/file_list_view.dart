@@ -2,22 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
+import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
 import 'rename_warning_view.dart';
+import 'row_preview_view.dart';
 import 'row_view.dart';
 
 /// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
 const Key shiftModifiedAtKey = Key('shift-modified-at');
 
+/// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
+const Key rowLocationKey = Key('row-location');
+
+/// 行サブ情報の作成日時(002 REQ-013)。**並び順chipや代替警告と同じ語を含む**ため、
+/// testが行の中の日時だけを指せるようにkeyを持たせる。
+const Key rowCreatedAtKey = Key('row-created-at');
+
+/// 行サブ情報の更新日時。狭幅では作成日時より先に削られる側である(008:T07)。
+const Key rowModifiedAtKey = Key('row-modified-at');
+
 /// メイン画面のファイルリスト(002 spec の描画層)。
 ///
 /// [FileListController] を購読して描画するだけの薄いウィジェット。ロジックは
-/// 持たず、操作は controller のメソッドへ委譲する。左に現在名・右に変更後名の
-/// 2カラム、各行にチェックボックス、上部にソート切替チップを置く(PRD §3.1)。
+/// 持たず、操作は controller のメソッドへ委譲する。各行はチェックボックスの右へ
+/// 現在名・変更後名・サブ情報を**縦に積み**(参考designのリッチな行。008:T07 で
+/// 横2カラムから移した)、上部にソート切替チップを置く。
 /// 視覚は参考デザインに準拠し、色は [AppColors] のセマンティック名で参照する。
 class FileListView extends StatelessWidget {
   const FileListView({
@@ -25,10 +38,17 @@ class FileListView extends StatelessWidget {
     required this.controller,
     this.renameExecution,
     this.onEditRule,
+    this.filePreview,
   });
 
   final FileListController controller;
   final RenameExecutionController? renameExecution;
+
+  /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
+  ///
+  /// **`null` が既定である。** demo データや preview を持たない画面で、実 file を
+  /// 触ろうとしないようにするためである。
+  final FilePreviewPort? filePreview;
 
   /// ルール編集を開く導線(REQ-020 の「ルールを設定すれば進める」)。
   ///
@@ -82,6 +102,7 @@ class FileListView extends StatelessWidget {
                       // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
                       showDragHandle: controller.manualOrderMatters,
                       sortMode: controller.sortMode,
+                      filePreview: filePreview,
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
                       onRemove: handle == null
@@ -690,6 +711,7 @@ class _FileRow extends StatelessWidget {
     required this.onToggle,
     required this.showDragHandle,
     required this.sortMode,
+    required this.filePreview,
     this.onRemove,
   });
 
@@ -702,6 +724,9 @@ class _FileRow extends StatelessWidget {
 
   /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
   final FileSortMode sortMode;
+
+  /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
+  final FilePreviewPort? filePreview;
   final VoidCallback onToggle;
 
   /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
@@ -723,6 +748,18 @@ class _FileRow extends StatelessWidget {
             activeColor: colors.primary,
             checkColor: colors.onPrimary,
           ),
+          // 中身が見える行にする(参考designのリッチな行)。preview を出せない
+          // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
+          // 開始位置も揃う。
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: RowPreviewView(file: row.source, preview: filePreview),
+          ),
+          // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
+          //
+          // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
+          // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
+          // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -733,15 +770,24 @@ class _FileRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.textPrimary, fontSize: 13),
                 ),
+                // 「現在名 → 変更後名」という読み方は矢印で残す。
+                Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        size: 12,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    Expanded(child: _NewName(row: row)),
+                  ],
+                ),
                 _DateSubInfo(file: row.source, sortMode: sortMode),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(Icons.arrow_forward, size: 14, color: colors.textMuted),
-          ),
-          Expanded(child: _NewName(row: row)),
           if (onRemove != null)
             IconButton(
               onPressed: onRemove,
@@ -797,36 +843,71 @@ class _DateSubInfo extends StatelessWidget {
     // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
     // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
     final emphasize = unknown && sortMode == FileSortMode.createdAt;
+    final base = TextStyle(color: colors.textMuted, fontSize: 10.5);
     return Padding(
       padding: const EdgeInsets.only(top: 2),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (emphasize) ...[
-            Icon(Icons.warning_amber_rounded, size: 11, color: colors.danger),
-            const SizedBox(width: 3),
-          ],
-          // 1つの Text にまとめ、狭幅では省略する(行内で溢れさせない)。
-          // 色は span で分け、不明な作成日時だけを危険色にする。
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
-                  if (file.sourceLocation != null)
-                    TextSpan(text: '${file.sourceLocation} · '),
-                  TextSpan(
-                    text: '作成日時: ${unknown ? '不明' : _format(createdAt)}',
-                    style: TextStyle(
-                      color: emphasize ? colors.danger : colors.textMuted,
-                    ),
-                  ),
-                  TextSpan(text: ' / 更新日時: ${_format(file.modifiedAt)}'),
-                ],
-              ),
+          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
+          //
+          // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
+          // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
+          if (file.sourceLocation != null)
+            Text(
+              file.sourceLocation!,
+              key: rowLocationKey,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: colors.textMuted, fontSize: 10.5),
+              style: base,
             ),
+          // **2つの日時は `Wrap` に置く。** 横に並びきらなければ更新日時が
+          // 次の行へ落ち、作成日時は丸ごと残る。
+          //
+          // `Row` で作成日時を「縮まない側」に置くと、幅が足りなくなった瞬間に
+          // 省略ではなく **overflow** になる(独立review attempt 1 の P1-1)。
+          // 更新日時を削るだけでは足りず、作成日時自身にも下限が要る。
+          // ここでも「優先順位ではなく行数で解く」を一段深く適用している。
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emphasize) ...[
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 11,
+                      color: colors.danger,
+                    ),
+                    const SizedBox(width: 3),
+                  ],
+                  // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
+                  // ほど狭いとき(極端な font scale など)に、はみ出させない。
+                  Flexible(
+                    child: Text(
+                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                      key: rowCreatedAtKey,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: base.copyWith(
+                        color: emphasize ? colors.danger : colors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // 入りきらなければ**次の行へ落ちる**。作成日時を削らない。
+              Text(
+                '更新日時: ${_format(file.modifiedAt)}',
+                key: rowModifiedAtKey,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: base,
+              ),
+            ],
           ),
         ],
       ),

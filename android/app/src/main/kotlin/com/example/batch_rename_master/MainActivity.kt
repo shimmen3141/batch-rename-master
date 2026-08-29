@@ -1,14 +1,21 @@
 package com.example.batch_rename_master
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.storage.StorageManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executors
 
 /**
  * 全ファイルアクセス権限(`MANAGE_EXTERNAL_STORAGE`)と**保存場所の列挙**を
@@ -24,6 +31,26 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val channelName = "com.example.batch_rename_master/storage_permission"
     private val volumesChannelName = "com.example.batch_rename_master/storage_volumes"
+    private val videoThumbnailChannelName =
+        "com.example.batch_rename_master/video_thumbnail"
+
+    /**
+     * 動画の frame 取り出しを main thread から外す(008:T07)。
+     *
+     * `MediaMetadataRetriever` は decode を伴い数十〜数百 ms かかる。main thread で
+     * 走らせると一覧の scroll が引っかかる。同時に走る数は **Dart 側の
+     * `CachedFilePreview` が上限を持つ**ので、ここは素直な pool でよい。
+     */
+    private val thumbnailExecutor = Executors.newCachedThreadPool()
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Activity が破棄された後に channel へ返さないための印(008:T07)。
+     *
+     * `shutdownNow` は**走行中の1件を止めない**ので、破棄後に `result` を触りうる。
+     */
+    @Volatile
+    private var destroyed = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -42,6 +69,112 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            videoThumbnailChannelName,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "thumbnail" -> videoThumbnail(call, result)
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        destroyed = true
+        thumbnailExecutor.shutdownNow()
+        super.onDestroy()
+    }
+
+    /**
+     * 動画の1frame目を PNG で返す(008:T07)。
+     *
+     * **`null` を返すのは「frame を取り出せなかった」ときだけ。** Dart 側は
+     * `null` を [PreviewFailed] として扱い、「preview の無い file」とは区別する。
+     * この channel がそもそも無い platform(Windows)では `MissingPluginException`
+     * になり、そちらは対象外として扱われる。
+     *
+     * **frame は縮めてから取り出す。** 4K の1frameは bitmap で 30MB を超える。
+     * `getScaledFrameAtTime` は decode 時に縮めるので、その大きさを確保しない。
+     */
+    private fun videoThumbnail(call: MethodCall, result: MethodChannel.Result) {
+        val path = call.argument<String>("path")
+        val maxEdge = call.argument<Int>("maxEdge") ?: 128
+        if (path.isNullOrEmpty()) {
+            result.error("invalid", "path が指定されていません", null)
+            return
+        }
+        thumbnailExecutor.execute {
+            val response = try {
+                Response.Success(encodeVideoFrame(path, maxEdge))
+            } catch (error: Exception) {
+                Response.Failure(error.message ?: error.toString())
+            }
+            // channel の応答は main thread から返す。
+            mainHandler.post {
+                // 破棄済みなら黙って捨てる。応答先がもう居ない。
+                if (destroyed) return@post
+                when (response) {
+                    is Response.Success -> result.success(response.bytes)
+                    is Response.Failure -> result.error("failed", response.message, null)
+                }
+            }
+        }
+    }
+
+    private sealed class Response {
+        class Success(val bytes: ByteArray?) : Response()
+        class Failure(val message: String) : Response()
+    }
+
+    /** frame を取り出して PNG へ。取り出せなければ `null`。 */
+    private fun encodeVideoFrame(path: String, maxEdge: Int): ByteArray? {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(path)
+            val frame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                retriever.getScaledFrameAtTime(
+                    0,
+                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                    maxEdge,
+                    maxEdge,
+                )
+            } else {
+                // API 27 未満には縮小付きの取り出しが無い。**この経路は通常
+                // 到達しない** — 一覧は全ファイルアクセス権限(API 30 以降)を
+                // 前提にしている(013 REQ-001)。到達しても壊れないようにだけ
+                // しておく。
+                retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    ?.let { scaleDown(it, maxEdge) }
+            } ?: return null
+            try {
+                return ByteArrayOutputStream().use { stream ->
+                    frame.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    stream.toByteArray()
+                }
+            } finally {
+                // **`compress` が投げても解放する。** `use` が閉じるのは stream
+                // だけで、bitmap はここで返さないと漏れる。
+                frame.recycle()
+            }
+        } finally {
+            retriever.release()
+        }
+    }
+
+    /** 長辺を [maxEdge] 以下に縮める。元が小さければ拡大しない。 */
+    private fun scaleDown(source: Bitmap, maxEdge: Int): Bitmap {
+        val longest = maxOf(source.width, source.height)
+        if (longest <= maxEdge) return source
+        val scale = maxEdge.toDouble() / longest
+        val scaled = Bitmap.createScaledBitmap(
+            source,
+            (source.width * scale).toInt().coerceAtLeast(1),
+            (source.height * scale).toInt().coerceAtLeast(1),
+            true,
+        )
+        if (scaled !== source) source.recycle()
+        return scaled
     }
 
     /**

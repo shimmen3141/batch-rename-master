@@ -11,6 +11,9 @@ import 'ui/file_source/storage_browser_view.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
 import 'data/permission/storage_permission.dart';
+import 'data/preview/cached_file_preview.dart';
+import 'data/preview/file_preview.dart';
+import 'data/preview/video_file_preview.dart';
 import 'data/rename_exec/platform_rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
@@ -118,6 +121,16 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// UI も controller も自分では OS を見ない。
   late final StoragePermissionPort _permission =
       createPlatformStoragePermission();
+
+  /// 行の preview(008:T07)。
+  ///
+  /// **OS を判定していない。** 動画側は channel が応えない platform で自分から
+  /// 対象外を返すので、両 platform へ同じ合成を配れる(ADR-003)。cache は app が
+  /// 生きている間ずっと使うので、ここで1つだけ作る。
+  final FilePreviewPort _filePreview = CachedFilePreview(
+    const KindRoutingFilePreview(),
+  );
+
   late final RenameExecutionController _renameExecution =
       RenameExecutionController(
         files: _files,
@@ -144,6 +157,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
               fileList: _files,
               rule: widget.rule,
               renameExecution: _renameExecution,
+              filePreview: _filePreview,
             ),
           ),
         ],

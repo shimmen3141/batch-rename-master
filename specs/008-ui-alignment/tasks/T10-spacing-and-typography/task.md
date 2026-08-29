@@ -19,6 +19,16 @@
 
 **振る舞いは変えない。** 文言、判定、状態遷移、操作の意味はこのtaskで触らない。触りたくなったら別taskへ送る。
 
+### 引き受けた残余risk(`008:T07`から)
+
+- **N-8b**: `textScaler` 3.0で一覧の`_HeaderBar`の`Row`が**水平に約69px** overflowする
+  (`T07`の独立reviewのprobeで再現。`file_list_view.dart`の`_HeaderBar`)。**`T07`が触って
+  いない既存code**で、行(`_FileRow`)は無傷である。**垂直のoverflowは再現していない** —
+  2026-08-29のAndroid emulator確認でも開発者は「文字が枠の外へはみ出していない」と
+  報告している。sort barの側は`T02`が引き受けた(N-8a)。
+  このoverflowをCIで押さえるtestは無い(`T07`の独立reviewが安全網の穴として挙げ、
+  引き受け先をこのtaskとした)。
+
 ## 受け入れ証拠
 
 - 既存のwidget testがすべて継続PASSする(振る舞いを変えていないことの主な証拠)。
