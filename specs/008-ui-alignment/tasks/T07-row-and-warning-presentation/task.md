@@ -161,7 +161,7 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 - 2026-08-27 / 行への組み込みと警告帯の高さ。`flutter test` = PASS(704)、`flutter analyze` = PASS、`dart format` = PASS、`workspace.py check specs` = PASS。
 - 2026-08-28 / 独立review attempt 2 = **PASS**。P2×2(bufferの持ち主のコメントが事実と違う / task.md内の行番号引用の陳腐化)を修正し、reviewerが足した安全網の穴5件を受容せず殺すtestを書いた。`flutter test` = PASS(720)、`analyze` = PASS、`format` = PASS、mutation **10 KILLED, 0 SURVIVED**。
 - 2026-08-28 / `manual-verification.md`をcurrent revision(`bf48aa9`)へ合わせて書き直し、引用する画面文言・ショートカット名・commandを`git grep`で突き合わせた(dry-run)。残余riskのN-5・N-6・N-7を項目に入れ、N-8は範囲外として明記した。
-- 2026-08-29 / Android emulatorで手順1〜5を確認。**5項目すべてPASS**し、N-5・N-6・N-7が解消した。N-8は再現し、sort chipの到達不能(N-8a→`T02`)と外側のoverflow(N-8b→`T10`)へ分けた。開いた警告帯が一覧の半分以上を覆うことを新たに観測し、N-9として`T16`へ渡した。開発者の改善案を`T03`(checkbox廃止案・件数表示の位置)、`T12`(空folderの文言)、`T15`(作成日時代替bannerは行へ移さない)、`T11`+product-map(browserの範囲選択)へ記録した。**appのcodeは変えていない** — 変えたのはtest1件の名前とコメント(主張の是正)だけである。
+- 2026-08-29 / Android emulatorで手順1〜5を実施。**手順1〜4はPASS、手順5は3つ目のcheckが不成立**(帯が一覧の半分以上を覆った)。N-5・N-6・N-7が解消した。N-8は再現し、sort barのはみ出し(N-8a→`T02`)とheaderのoverflow(N-8b→`T10`)へ分けた。不成立だった手順5の3つ目はN-9として`T16`へ渡した。開発者の改善案を`T03`(checkbox廃止案・件数表示の位置)、`T12`(空folderの文言)、`T15`(作成日時代替bannerは行へ移さない)、`T11`+product-map(browserの範囲選択)へ記録した。**appのcodeは変えていない** — 変えたのはtest1件の名前とコメント(主張の是正)だけである。
 
 ### mutation の生の出力
 
@@ -222,6 +222,7 @@ M172 | KILLED | lib/data/preview/image_file_preview.dart | 008:T07 engine側のb
 
 - Review attempt 1: `dev...29dade5` — **FAIL** — P1-1(狭幅で作成日時が既知の行がoverflow)、P2×7。すべて修正済み。
 - Review attempt 2: `dev...98db21b` — **PASS**。成果物の欠陥はP2が2件、安全網の穴が5件(うち1件は対照)。**穴は受容せず、5件すべて殺すtestを書いた。**
+- Review(`final-evidence`): `dev...ccc1e0a` — **PASS**。成果物の欠陥はP2が7件で、すべて**記録の誤り**(app codeの欠陥は無し)。すべて修正済み。auto-mergeの7条件も条件ごとに判定を受けた。
 
 **P1-1 は私が入れた回帰である。** dev 側は `Expanded(Text.rich(..., ellipsis))` で構造上
 あふれ得なかったが、「作成日時を縮まない側へ置く」に**下限を与えなかった**。testが
@@ -275,7 +276,7 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 | 環境 | Android emulator。**実端末は使っていない** — 見たいのがAndroid frameworkの返す値だったため |
 | 手順 | [`manual-verification.md`](manual-verification.md) の手順1〜5 |
 
-**5項目すべて確認できた。** 引き受けていた残余riskの決着は次のとおり。
+**手順1〜4はcheckをすべて満たした。手順5は3つ目のcheckが不成立**(帯が一覧の半分以上を覆った。N-9として`T16`が引き取る)。引き受けていた残余riskの決着は次のとおり。
 
 | # | 結果 |
 |---|---|
@@ -295,6 +296,33 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 - 動画は全件previewが出たため、**動画がアイコンへ落ちる経路は実機で観測していない**
   (unit testが押さえている)。
 
+
+#### `final-evidence` reviewの指摘と対処
+
+**7件すべてが記録の欠陥であり、うち2件は私が事実を歪めていた。**
+
+- **P2-2 開発者の発言を強めていた。** 「修正する必要はない**かも**」を「と判断した」、
+  「表示しても良い**かも**」を「述べた(=決定)」と書いていた。**原文の強さのまま引用する形へ
+  直した**(この`task.md`と`T15`)。あわせて「5項目すべてPASS」という要約が、**手順5の3つ目
+  (帯が画面の半分を超えない)の不成立を吸収していた**。「手順1〜4はPASS、手順5の3つ目は
+  不成立」へ直した。
+- **P2-4 N-8aの原因が code と食い違っていた。** sort barは
+  `SingleChildScrollView(Axis.horizontal)`なので**水平scrollすれば届く**。「到達できない操作」
+  は誤りで、欠陥は**はみ出していることに気づけない**ほうである。`T02`の受け入れ条件も
+  直した。
+- **P2-3 N-8bの「外側`Column`もoverflowする」を再現できなかった。** reviewerのprobeでは
+  `_HeaderBar`の`Row`が**水平に約69px**あふれるだけで、垂直のoverflowは出ない。開発者も
+  「文字が枠の外へはみ出していない」と報告している。**観測できた事実だけ**へ直した。
+- **P2-1 `0e66b24`以後の差分の数え方が誤り。** 核心(app code不変)は真だが、「test1件」は
+  最後のcommitだけの話だった。`git diff`の結果で書き直した。
+- **P2-5 引き受け先として名指ししたtaskに記載が無かった。** N-9は`T15`にしか書いておらず
+  `T16`に無く、件数表示の位置も`T04`に無かった。**両方へ足した。**
+- **P2-6 PR #159の本文が陳腐化していた。** 「作成日時を`Row`の縮まない側へ置いた」は
+  attempt 1 で潰した形、「警告帯…人間の判断待ち」は2026-08-27に決着済み。**本文だけが
+  判断待ちに見え、auto-merge条件6の読み取りに直接効く**ため書き直した。
+- **P2-7 manual手順が実装の見え方に追随していなかった。** 「削られるのは更新日時の側」を
+  「まず次の行へ落ち、それでも足りなければ省略される」へ直した。
+
 ### 残余riskとして受容するもの
 
 安全網の穴のうち、AGENTS.mdの3条件を満たさないため受容する。受容はtask所有Agentが記録する。
@@ -308,15 +336,22 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 | ~~N-5~~ | Kotlin側と速度・メモリ。**2026-08-29のemulator確認で解消**(速度は実端末未追試) | 解消 |
 | ~~N-6~~ | `getScaledFrameAtTime`の縦横比。**2026-08-29のemulator確認で解消**(格子と正円のfixtureで確認) | 解消 |
 | ~~N-7~~ | 文字サイズ最大での省略。**2026-08-29のemulator確認で解消** — 印は消えず、行も崩れなかった | 解消 |
-| N-8a | 文字サイズ最大で**ソートchipが画面外へ出て一部を選択できない**。**見た目ではなく到達できない操作**である。ただしこのcontrolは`T01`の決定で**ドロップダウンへ置き換わる**(plan.md 2026-08-05)ので、今の形を直しても消える | `008:T02`(並び順controlの実装) |
-| N-8b | 同じ条件で一覧の外側`Column`もoverflowする。**T07が触っていない既存code**で、行(`_FileRow`)は無傷 | `008:T10`(余白・typography) |
-| N-9 | 警告帯を開くと、**一覧の見える範囲の半分以上を覆う**ことがある。高さの上限を**画面**の割合で決めているが、帯は一覧の上に載るので、header・barを引いた**一覧の取り分**に対しては割合が跳ね上がる。従来の固定132pxではこうならなかった。**内訳が読めるようにするための意図した代償**であり、開発者は「行へ出すなら直す必要はない」と判断した(2026-08-29) | `008:T16`(帯を置き換える側) |
+| N-8a | 文字サイズ最大でsort chipが画面外へはみ出し、**一部を選べなかった**と開発者が報告した。bar自体は`SingleChildScrollView(Axis.horizontal)`なので**水平scrollすれば届く**(`file_list_view.dart`の`_SortBar`)。**欠陥は到達不能ではなく、はみ出していることに気づけない**ことである。このcontrolは`T01`の決定で**ドロップダウンへ置き換わる**(plan.md 2026-08-05)ので、今の形を直しても消える | `008:T02`(並び順controlの実装) |
+| N-8b | `textScaler` 3.0で`_HeaderBar`の`Row`が**水平に約69px** overflowする(independent reviewのprobeで再現。`file_list_view.dart`の`_HeaderBar`)。**T07が触っていない既存code**で、行(`_FileRow`)は無傷。**垂直のoverflowは再現していない** — 開発者も「文字が枠の外へはみ出していない」と報告している | `008:T10`(余白・typography) |
+| N-9 | 警告帯を開くと、**一覧の見える範囲の半分以上を覆う**ことがある。高さの上限を**画面**の割合で決めているが、帯は一覧の上に載るので、header・barを引いた**一覧の取り分**に対しては割合が跳ね上がる。従来の固定132pxではこうならなかった。**内訳が読めるようにするための意図した代償**である。開発者の評価は「(後に各fileの行に出すなら)ここで修正する必要はない**かも**」(2026-08-29、原文のまま)で、**T07で直さない確定判断ではない**。帯を残す形を選ぶなら`T16`が上限の基準を決め直す | `008:T16`(帯を置き換える側) |
 
 ## Current state / handoff
 
-- Last checkpoint: **実機(emulator)確認が5項目すべてPASS。** N-5・N-6・N-7が解消。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / mutation 10件すべて KILLED
+- Last checkpoint: **`final-evidence` phaseの独立review = PASS。** 指摘7件(すべて記録の誤り)を修正し、PR本文を書き直した。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / mutation 10件すべて KILLED / `workspace.py check specs` = PASS
 - Blocker category: なし
-- Waiting for: `final-evidence` phaseの独立review
+- Waiting for: CIとmerge
 - Requested action: なし
-- Evidence revision: manual証拠は`0e66b24`のapp buildに対応する。**以後appのcodeは変えていない**(差分は`specs/`とtest1件の名前・コメントのみ)
-- Next Agent action: `final-evidence` phaseの独立reviewを起動し、PASS後に`task.json`を`done`にしてPRをreadyにする。auto-mergeの7条件を満たすか確認する
+- Evidence revision: manual証拠は`0e66b24`のapp buildに対応する。**以後`lib/`・`android/`・`pubspec`に差分は無い**
+- Next Agent action: **このtaskは`done`。** PR #159 をreadyにしてmergeする。merge後は`dev`上の結果とCIを確認し、worktreeを整理する。引き継いだ残余riskは`T02`(N-8a) / `T10`(N-8b) / `T13`(N-3・N-4) / `T16`(N-9)が持つ
+
+## 次のtaskへの申し送り
+
+- **`T09`**: 行のlayoutはこのtaskが確定させた。リッチ案はこの行をそのまま使う。
+- **`T13`**: preview portとcacheはこのtaskが作った。browserの行へ繋ぐだけでよい。N-3(例外の伝播)とN-4(鍵の衝突)を引き受ける。
+- **`T16`**: このtaskが入れた行の縦積みを壊さないこと。N-9(帯の高さの基準)を引き受ける。
+- **人間へ未回答のまま残っている論点**: 「行がfileの中身を読む」ことに002へREQを足すか。現在は[`decisions/ADR-001`](../../decisions/ADR-001-row-preview-reads-file-content.md)に根拠を残す形で閉じている。**mergeはこの判断を妨げない** — 足すと決まれば仕様更新taskを分ける。
