@@ -282,7 +282,8 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 増えても内容は増えない」が形容詞なしで言えるので、(a)/(b) の衝突が構造的に再発しない。
 
 **承認より後に仕様を弱めたのは私の手続きの誤りである。** AGENTS.mdは「承認済みの仕様は
-不変ではないが、Agentが自分で緩めることはしない」としている。**承認を取り直す。**
+不変ではないが、Agentが自分で緩めることはしない」としている。**旧(a) / 弱めた(a) / 新しい表を
+並べて提示し、2026-08-29に承認を取り直した**(`plan.md`の決定表に2行で記録)。
 
 その他: P2-1 (b)の「一度だけ」と(c)の詳細が字面で衝突していたので、
 「まとまりと詳細の両方に説明が出ることは繰り返しにあたらない」を明記 /
@@ -327,10 +328,10 @@ P2-4 REQ-021 規則1の根拠が005自身の反証ログより強かったので
 
 - Last checkpoint: 独立review attempt 2 = **FAIL**。解き方を変え、REQ-009 を**種別ごとの表**へ書き換えた。`flutter test` = PASS(720) / `workspace.py check specs` = PASS
 - Blocker category: なし
-- Waiting for: **開発者の再承認(取り直し)**。承認より後に仕様を弱めてしまったため
-- Requested action: 旧(a) / 弱めた(a) / 新しい表 を並べて提示済み。承認の可否
+- Waiting for: 独立review attempt 3
+- Requested action: なし。**表の版を開発者が承認した**(2026-08-29、取り直し2回目)
 - Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings`(PR #160、Draft)
-- Next Agent action: 再承認を得てから独立review attempt 3 を起動する。**3回目のFAILで`blocked`にして人間へ返す**(AGENTS.md)
+- Next Agent action: 独立review attempt 3 の結果を待つ。**3回目のFAILで`blocked`にして人間へ返す**(AGENTS.md)
 
 ## 他taskへの申し送り
 
