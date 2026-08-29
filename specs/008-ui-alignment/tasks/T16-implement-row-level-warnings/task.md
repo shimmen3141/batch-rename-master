@@ -97,6 +97,33 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-27 / `T07`から分離して定義。`T07`は行のlayoutとpreviewで閉じる。
 - 2026-08-29 / claim。集約帯(`RenameWarningPanel`)を廃止し、005 revision 8.0 の3つを満たす提示へ置き換えた。`flutter test` = PASS(731)、`analyze` = PASS、`format` = PASS。
 - 2026-08-29 / mutation 7件を`tool/mutations.json`へ追加(M173〜M179)。`mutation_check.py` = **7 KILLED, 0 SURVIVED**。生の出力は下記。
+- 2026-08-29 / 独立review attempt 1 = **FAIL**(P1-1: ヘッダの文言が切り詰められる退行)。P2×8とあわせて修正し、reviewが足したmutation 6件を取り込んだ。`mutation_check.py` = **14 KILLED, 0 SURVIVED**。
+
+### 独立review
+
+- Review attempt 1: `dev...e9241da` — **FAIL** — P1-1(狭幅でヘッダの文言が切り詰められる退行)、P2×8。すべて対処済み。
+
+**P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
+ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
+360dpで200件だと `200 / 2…`、411dpで `200 / 20…` と出て、**総数を20と誤読できる**。
+`dev` では flex child が無く intrinsic 幅で全文が出ていたので、このdiffが入れた退行である。
+文字サイズ最大の N-8b(`T10`引き受け)とは別物で、**通常のfont sizeで起きる。**
+
+**私が書いた「はみ出さない」testでは検出できなかった。** `Flexible` + ellipsis は
+**内容を切ることで overflow を出さない**ので、`RenderFlex overflow` を見る検査では
+原理的に落ちない。`didExceedMaxLines` で切り詰めそのものを見る形へ差し替えた。
+**M186 がこの退行を殺す。**
+
+その他: P2-3/P2-4(併発時の2行・行の種別の重複排除がtestで固定されていない)→ testを足して
+M180/M181で殺した / P2-5(空ルールtestの説明側assertionが空振り)→ 導線がある状態で
+pumpするよう直した / P2-8 `describeWarningSummary`が帯の廃止でdead codeになっていたので
+削除 / P2-9 `preview`のdocが「build 1 回につき1回」と書いていたが広幅では2回走るので
+実態へ直した / P2-10 ルールが空のときヘッダが「問題なし」と出ていたので**出さない**
+ようにした(001は空名と重複を返しているので誤りになる) / P2-6・P2-7 記録の追随。
+
+**独立reviewが足したmutationは6件すべて取り込んだ**(M180〜M185)。equivalent mutantと
+判定された1件(ルールが空のとき原因の説明を出す)は取り込んでいない — ルールが空なら
+トークンが無く、桁不足も基準日時不明も生じないため、説明は常に空である。
 
 ### 選んだ置き場所(要求ではない)
 
@@ -132,14 +159,21 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 command: flutter test
 ID | STATUS | FILE | NOTE | DETAIL
 --- | --- | --- | --- | ---
-M173 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する) | exit 1
-M174 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 ルールが空でも行へ警告を出す(005 REQ-020。廃止した帯のkeyでは検出できない穴) | exit 1
-M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-009 (2)) | exit 1
-M176 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 空名の行にも重複を出す(005 REQ-021 規則2。改名されないfileの重複は生じない) | exit 1
-M177 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う | exit 1
-M178 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2) | exit 1
-M179 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く | exit 1
-7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+M173 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行から警告の種別が読めなくなる | exit 1
+M174 | KILLED | lib/ui/file_list/rename_warning_view.dart | ルールが空でも行へ警告を出す(REQ-020) | exit 1
+M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 原因の説明を件数ぶん繰り返す(REQ-009 (2)) | exit 1
+M176 | KILLED | lib/ui/file_list/rename_warning_view.dart | 空名の行にも重複を出す(REQ-021 規則2) | exit 1
+M177 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 広幅で原因の説明を配り忘れる | exit 1
+M178 | KILLED | lib/ui/file_list/file_list_view.dart | 行の警告を sortMode でゲートする(N-15-2) | exit 1
+M179 | KILLED | lib/ui/file_list/file_list_view.dart | 行の警告から詳細を開けなくする(対照) | exit 1
+M180 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行の警告を1行へ切り詰める(独立reviewが追加) | exit 1
+M181 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行で同じ種別を件数ぶん繰り返す(独立reviewが追加) | exit 1
+M182 | KILLED | lib/ui/file_list/rename_warning_view.dart | 件数を提示単位でなく生の件数で数える(独立reviewが追加) | exit 1
+M183 | KILLED | lib/ui/file_list/file_list_view.dart | 狭幅で原因の説明を配り忘れる(独立reviewが追加) | exit 1
+M184 | KILLED | lib/ui/file_list/file_list_controller.dart | 桁不足を全行へ載せる(独立reviewが追加) | exit 1
+M185 | KILLED | lib/ui/file_list/file_list_controller.dart | 行の警告を別インスタンスで引き当てる(独立reviewが追加) | exit 1
+M186 | KILLED | lib/ui/file_list/file_list_view.dart | ヘッダの余白を等分して文言を切り詰める(独立reviewが見つけたP1) | exit 1
+14 mutations: 14 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 **引き受けた安全網の穴は両方とも殺した。** N-15-1 は M174、N-15-2 は M178 である。
@@ -157,9 +191,9 @@ M179 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告か�
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T15`の仕様更新と人間の再承認
+- Last checkpoint: 独立review attempt 1 の**P1-1とP2×8を修正**。`flutter test` = PASS(734) / `analyze` = PASS / `format` = PASS / **mutation 14件すべて KILLED**
+- Blocker category: なし
+- Waiting for: 独立review attempt 2
 - Requested action: なし
-- Evidence revision: `dev@7597342`
-- Next Agent action: `T15`承認後にclaimし、行データの拡張から test-first で実装する。manual手順は実装後にcurrent revisionと照合して具体化する
+- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
+- Next Agent action: 独立reviewを再度起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**件数の多い状態**を含む)を依頼する
