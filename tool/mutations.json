@@ -1208,6 +1208,55 @@
       "find": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      buffer.dispose();\n    }",
       "replace": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      // buffer.dispose();\n    }",
       "note": "008:T07 engine側のbufferを解放しない — 読めない画像1件ごとにnative memoryが残る(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M173",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  DuplicateWarning() => '名前が重複',\n  EmptyNameWarning() => '名前が空・改名されません',",
+      "replace": "  DuplicateWarning() => '警告あり',\n  EmptyNameWarning() => '警告あり',",
+      "note": "008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する)"
+    },
+    {
+      "id": "M174",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (ruleIsEmpty) return const <Warning>[];\n  final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;",
+      "replace": "  final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;",
+      "note": "008:T16 ルールが空でも行へ警告を出す(005 REQ-020。廃止した帯のkeyでは検出できない穴)"
+    },
+    {
+      "id": "M175",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "        if (!seenDate.add(tokenIndex)) continue;",
+      "replace": "        seenDate.add(tokenIndex);",
+      "note": "008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-009 (2))"
+    },
+    {
+      "id": "M176",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (empty != null) return <Warning>[empty];",
+      "replace": "  if (empty != null) return <Warning>[empty, ...warnings.whereType<DuplicateWarning>()];",
+      "note": "008:T16 空名の行にも重複を出す(005 REQ-021 規則2。改名されないfileの重複は生じない)"
+    },
+    {
+      "id": "M177",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: widget.fileList.warnings,\n                    ruleIsEmpty: widget.fileList.isRuleEmpty,\n                  ),\n                ),\n",
+      "replace": "",
+      "note": "008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う"
+    },
+    {
+      "id": "M178",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      warnings: rowWarningsOf(\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                      ),",
+      "replace": "                      warnings: controller.sortMode == FileSortMode.createdAt\n                          ? rowWarningsOf(\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                            )\n                          : const <Warning>[],",
+      "note": "008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2)"
+    },
+    {
+      "id": "M179",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),",
+      "replace": "                RowWarningView(warnings: warnings),",
+      "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
     }
   ]
 }
