@@ -58,7 +58,7 @@ emulator では PC の性能に引きずられます。**実端末が手元に�
 
 ### fixtureを置きます
 
-**`build/t07-fixtures/` に用意してあります。**格子と正円を描いた画像24枚(縦横比は8種類)と、
+**`.worktrees/t07-fixtures/` に用意してあります。**格子と正円を描いた画像24枚(縦横比は8種類)と、
 `broken-fixture.jpg`(中身が画像でない`.jpg`)、`notes.txt`、`report.pdf` です。
 
 > **格子と円なのは、歪みを見えるようにするためです。** 正方形の枠へ切り取って表示するので、
@@ -68,17 +68,19 @@ emulator では PC の性能に引きずられます。**実端末が手元に�
 repositoryのルートで、**folderごと送ります**。
 
 ```powershell
-adb push build\t07-fixtures /sdcard/DCIM/
+adb push .worktrees\t07-fixtures /sdcard/DCIM/
 adb shell ls /sdcard/DCIM/t07-fixtures | Measure-Object -Line
 ```
 
 **期待**: `Lines : 27` と表示される。
 
-`adb push` は宛先のfolderを作るので、`DCIM` が無い emulator でもそのまま通ります
-(先ほどの `echo` が失敗したのは、**リダイレクト先のfolderが無かった**ためです。shellの
-リダイレクトはfolderを作りません)。
+`adb push` は宛先のfolderを作るので、`DCIM` が無い emulator でもそのまま通ります。
 
-`build/` は git の管理外なので、確認が終わったら消して構いません。
+> **置き場所が `.worktrees/` なのは、host から見える場所がそこだからです。** `build/` と
+> `.dart_tool/` と `.pub-cache/` は**container専用のvolume**で、host のrepositoryには
+> 現れません(`compose.ai.yml`)。`.worktrees/` は bind mount の中にあり、gitの管理外です。
+
+確認が終わったら、host 側の `.worktrees/t07-fixtures/` ごと消して構いません。
 
 ### 動画だけは用意できません
 
@@ -199,8 +201,7 @@ adb shell ls /sdcard/DCIM/t07-fixtures | Measure-Object -Line
 adb shell rm -r /sdcard/DCIM/t07-fixtures
 ```
 
-emulatorを捨てる予定なら、これも不要です。PC側の`build/t07-fixtures/`も消して構いません
-(`flutter clean`でも消えます)。
+emulatorを捨てる予定なら、これも不要です。PC側の`.worktrees/t07-fixtures/`も消して構いません。
 
 改名を実行していなければ、端末のfileは変わっていません。**手順5でルールを作っただけでは
 改名されません**(実行buttonを押していなければそのままです)。
