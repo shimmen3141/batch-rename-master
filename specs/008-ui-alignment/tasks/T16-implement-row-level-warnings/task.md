@@ -95,6 +95,65 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 ## 作業記録
 
 - 2026-08-27 / `T07`から分離して定義。`T07`は行のlayoutとpreviewで閉じる。
+- 2026-08-29 / claim。集約帯(`RenameWarningPanel`)を廃止し、005 revision 8.0 の3つを満たす提示へ置き換えた。`flutter test` = PASS(731)、`analyze` = PASS、`format` = PASS。
+- 2026-08-29 / mutation 7件を`tool/mutations.json`へ追加(M173〜M179)。`mutation_check.py` = **7 KILLED, 0 SURVIVED**。生の出力は下記。
+
+### 選んだ置き場所(要求ではない)
+
+**005 revision 8.0 は場所を課さない。** 下は`T15`の設計指針と参考designに沿って
+このtaskが決めたものである。
+
+| 005 REQ-009 | 何を | どこへ |
+|---|---|---|
+| (1) 種別が一覧を見た状態で分かる | 短い一文(`RowWarningView`) | **行**の変更後名のすぐ下 |
+| (2) 変わらない説明を件数ぶん繰り返さない | 原因の説明(`RuleWarningNotice`) | **ルールを変更する操作のそば**。狭幅=下部バーの直前、広幅=右ペインの上 |
+| (3) 全件と説明を読める | 種別ごとにまとめたdialog | **ヘッダの件数**と**行の警告**の両方から開く |
+
+**広幅と狭幅で導線が違う。** `RuleBuilderWorkspace`は幅 840dp で分かれ、広幅では
+`onEditRule`を渡さないので**下部バーにルール設定の導線が無い**。広幅のルール編集は
+右ペインの`RuleBuilderView`なので、そちらへ同じ`RuleWarningNotice`を描いた。
+**片方だけ描くと、もう片方のlayoutで説明が行き場を失う**(M177がこれを殺す)。
+
+### 判定を変えていない
+
+001 の`validate`にも`autoResolve`にも触れていない。`presentWarnings`と
+`describeWarning`はそのままで、**実行前確認dialog(`T14`が持つ)は同じ提示単位を
+使い続ける**。行に出さない重複(REQ-021 規則2)も判定からは消さず、詳細には出す。
+
+### 行データが警告を持つ(002 REQ-015)
+
+`RowView.warnings`を足し、`warningTargetOf`が`null`を返す警告(連番の桁不足)は
+載せない。`rows`と`warnings`は同じ検証から作れるので`preview`へまとめた
+(別々に呼ぶと 001 の検証が2回走る)。
+
+### mutation の生の出力
+
+```text
+command: flutter test
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M173 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する) | exit 1
+M174 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 ルールが空でも行へ警告を出す(005 REQ-020。廃止した帯のkeyでは検出できない穴) | exit 1
+M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-009 (2)) | exit 1
+M176 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 空名の行にも重複を出す(005 REQ-021 規則2。改名されないfileの重複は生じない) | exit 1
+M177 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う | exit 1
+M178 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2) | exit 1
+M179 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く | exit 1
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+**引き受けた安全網の穴は両方とも殺した。** N-15-1 は M174、N-15-2 は M178 である。
+受容ではなく検査で閉じた。
+
+### 置き換えたtest
+
+| 元 | どう付け替えたか |
+|---|---|
+| `warning_display_test.dart` 帯の`Text`の数が`警告件数 + 1` | **提示単位の数を数えるのをやめた**(帯が無い)。REQ-009 の3つへ組み替え、種別が行から読めること・説明が1つであること・詳細に全件あることを検査する |
+| 同 `作成日時が不明`が2件ぶん | 行では**種別**が2行に出て、**説明はまとまりに1つ**であることへ付け替えた(繰り返しが消えたことが要求になった) |
+| `empty_rule_test.dart` 1行の`Text.data`が結果と原因の両方を含む | **行は結果だけ**・**詳細に結果と原因がまとまって1件**、へ分けた |
+| 同 REQ-020 を`renameWarningsKey`の不在で押さえる | **廃止するkeyに依存しない形**へ(行の警告の不在・説明の不在・「問題なし」)。M174が殺す |
+| `row_presentation_test.dart` 帯の高さ(T07の(i)) | 帯が無くなったので、**件数が増えても一覧の取り分が変わらない**ことへ置き換えた(N-9 がここで閉じる) |
 
 ## Current state / handoff
 
