@@ -266,11 +266,15 @@ void main() {
       );
     });
 
-    testWidgets('それでも一覧を警告で埋め尽くさない', (tester) async {
+    testWidgets('帯の高さは画面の半分を超えない', (tester) async {
       const size = Size(360, 1000);
       final panel = await pumpExpandedPanel(tester, size);
 
-      // 画面を警告で覆わない、という元の意図は保つ。
+      // **これは「画面」に対する上限であって、「一覧の取り分」ではない。** 帯は
+      // header や bar と同じ Column に載るので、一覧の見える範囲に対する割合は
+      // これより大きくなる。2026-08-29 の実機確認で、開いた帯が一覧の半分以上を
+      // 覆うことを観測した(残余risk N-9。帯そのものを置き換える `T16` が引き取る)。
+      // ここで固定するのは、**画面に対して青天井にはしていない**ことだけである。
       expect(panel.height, lessThan(size.height * 0.5));
     });
   });

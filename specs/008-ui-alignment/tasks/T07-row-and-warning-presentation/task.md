@@ -161,6 +161,7 @@ REQを足すべきという判断ならその時点で仕様更新taskを分け�
 - 2026-08-27 / 行への組み込みと警告帯の高さ。`flutter test` = PASS(704)、`flutter analyze` = PASS、`dart format` = PASS、`workspace.py check specs` = PASS。
 - 2026-08-28 / 独立review attempt 2 = **PASS**。P2×2(bufferの持ち主のコメントが事実と違う / task.md内の行番号引用の陳腐化)を修正し、reviewerが足した安全網の穴5件を受容せず殺すtestを書いた。`flutter test` = PASS(720)、`analyze` = PASS、`format` = PASS、mutation **10 KILLED, 0 SURVIVED**。
 - 2026-08-28 / `manual-verification.md`をcurrent revision(`bf48aa9`)へ合わせて書き直し、引用する画面文言・ショートカット名・commandを`git grep`で突き合わせた(dry-run)。残余riskのN-5・N-6・N-7を項目に入れ、N-8は範囲外として明記した。
+- 2026-08-29 / Android emulatorで手順1〜5を確認。**5項目すべてPASS**し、N-5・N-6・N-7が解消した。N-8は再現し、sort chipの到達不能(N-8a→`T02`)と外側のoverflow(N-8b→`T10`)へ分けた。開いた警告帯が一覧の半分以上を覆うことを新たに観測し、N-9として`T16`へ渡した。開発者の改善案を`T03`(checkbox廃止案・件数表示の位置)、`T12`(空folderの文言)、`T15`(作成日時代替bannerは行へ移さない)、`T11`+product-map(browserの範囲選択)へ記録した。**appのcodeは変えていない** — 変えたのはtest1件の名前とコメント(主張の是正)だけである。
 
 ### mutation の生の出力
 
@@ -265,6 +266,35 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 見えず、解放漏れを観測できなかった**ためである(reviewerは「CIで閉じるのは難しい」と
 判断していた)。継ぎ目はtest専用で、productionは既定のまま通る。
 
+### 実機(Android emulator)確認の結果
+
+| | |
+|---|---|
+| 日付 | 2026-08-29 |
+| 対象 | `0e66b24`(appの動きを決める最終commit)の build |
+| 環境 | Android emulator。**実端末は使っていない** — 見たいのがAndroid frameworkの返す値だったため |
+| 手順 | [`manual-verification.md`](manual-verification.md) の手順1〜5 |
+
+**5項目すべて確認できた。** 引き受けていた残余riskの決着は次のとおり。
+
+| # | 結果 |
+|---|---|
+| **N-5**(Kotlinの動画thumbnail) | **解消。** 動画の行にその動画の一場面が出た。`MediaMetadataRetriever`が実際にframeを返すことを確認した |
+| **N-5**(速度・メモリ) | **emulatorの範囲で問題なし。** previewは「ガタつきを観測できないほど短時間」で出た。scrollの引っかかりは**このtask以前から感じていたもの**と開発者が判断した。**実端末での追試は行っていない** |
+| **N-6**(動画の縦横比) | **解消。** 格子と正円のfixtureで確認し、崩れていなかった。`getScaledFrameAtTime`は比を保つ |
+| **N-7**(文字サイズ最大) | **解消。** 警告の印でどの行か分かり、overflowもはみ出しも無かった |
+| **N-8**(headerのoverflow) | **再現した。しかも見た目だけではない** — ソートchipが画面外へ出て**一部を選択できなかった**。下記のとおり引き受け先を分けた |
+
+**副次的に分かったこと**
+
+- `broken-fixture.jpg`が壊れた画像の印、`.txt`/`.pdf`が文書の印になった。**型で分けた区別が
+  画面まで残っている**ことを実機でも確認できた。
+- 文字サイズを上げると、更新日時は**省略ではなく次の行へ落ちた**。`Wrap`が先に折り返し、
+  折り返しても足りないときだけ省略する形である。開発者は「更新日時はソートにも使うので、
+  削るより改行がよい」と評価した。**現行の実装がその形になっている。**
+- 動画は全件previewが出たため、**動画がアイコンへ落ちる経路は実機で観測していない**
+  (unit testが押さえている)。
+
 ### 残余riskとして受容するもの
 
 安全網の穴のうち、AGENTS.mdの3条件を満たさないため受容する。受容はtask所有Agentが記録する。
@@ -275,16 +305,18 @@ bufferはcodecのもの」と書いていたが、SDKの`instantiateImageCodecWi
 |---|---|---|
 | N-3 | `CachedFilePreview`は inner の例外を`_store`せず呼び出し元へ伝播する。`RowPreviewView`は受けないので、将来portが投げると unhandled async error になる。現行の実装はいずれも投げない(結果値で返す)ので届かない | `008:T13`(portへ実装を1つ増やす側) |
 | N-4 | cacheの鍵が`sourceHandle == null`の行同士で衝突する。現状はどちらも`Unsupported`へ落ちるので無害 | `008:T13` |
-| N-5 | Kotlin側(`MediaMetadataRetriever`)と件数の多いfolderでの速度・メモリ。**CIで実行できない** | このtaskのmanual確認 |
-| N-6 | `getScaledFrameAtTime`が縦横比を保つか歪めるかは実機でしか分からない。正方形boxに`BoxFit.cover`なので歪みが見えにくい | このtaskのmanual確認(項目に入れる) |
-| N-7 | 文字サイズを最大近く(`textScaler` 2.0以上)にすると、320dpで`作成日時: 不明`が省略される。**意図した trade-off**である(警告アイコンは省略対象外なのでREQ-013の識別は成立する)。実機で読めるかは見る | このtaskのmanual確認(項目に入れる) |
-| N-8 | `textScaler` 3.0で`_HeaderBar`と一覧の外側`Column`がoverflowする。**T07が触っていない既存code**で、行(`_FileRow`)は無傷 | `008:T10`(余白・typography) |
+| ~~N-5~~ | Kotlin側と速度・メモリ。**2026-08-29のemulator確認で解消**(速度は実端末未追試) | 解消 |
+| ~~N-6~~ | `getScaledFrameAtTime`の縦横比。**2026-08-29のemulator確認で解消**(格子と正円のfixtureで確認) | 解消 |
+| ~~N-7~~ | 文字サイズ最大での省略。**2026-08-29のemulator確認で解消** — 印は消えず、行も崩れなかった | 解消 |
+| N-8a | 文字サイズ最大で**ソートchipが画面外へ出て一部を選択できない**。**見た目ではなく到達できない操作**である。ただしこのcontrolは`T01`の決定で**ドロップダウンへ置き換わる**(plan.md 2026-08-05)ので、今の形を直しても消える | `008:T02`(並び順controlの実装) |
+| N-8b | 同じ条件で一覧の外側`Column`もoverflowする。**T07が触っていない既存code**で、行(`_FileRow`)は無傷 | `008:T10`(余白・typography) |
+| N-9 | 警告帯を開くと、**一覧の見える範囲の半分以上を覆う**ことがある。高さの上限を**画面**の割合で決めているが、帯は一覧の上に載るので、header・barを引いた**一覧の取り分**に対しては割合が跳ね上がる。従来の固定132pxではこうならなかった。**内訳が読めるようにするための意図した代償**であり、開発者は「行へ出すなら直す必要はない」と判断した(2026-08-29) | `008:T16`(帯を置き換える側) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 = **PASS**。P2×2を修正し、安全網の穴5件を殺すtestを追加。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / **mutation 10件すべて KILLED**
+- Last checkpoint: **実機(emulator)確認が5項目すべてPASS。** N-5・N-6・N-7が解消。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / mutation 10件すべて KILLED
 - Blocker category: なし
-- Waiting for: **Android実機のmanual確認**([`manual-verification.md`](manual-verification.md)。5項目、20〜30分)
-- Requested action: 人間が実機で手順1〜5を実行し、結果を会話で返す
-- Evidence revision: `asdd/008-ui-alignment/T07-row-and-warning-presentation`(PR #159、Draft)。**codeは`0e66b24`以降変えていない** — これより後のcommitは`specs/`とtestだけ
-- Next Agent action: **このbranchのままcodeを凍結して待つ**(証拠が失効するのでcommitしない)。結果受領後に`task.md`へ証拠metadataを記録し、`final-evidence` phaseの独立reviewを起動してからPRをreadyにする
+- Waiting for: `final-evidence` phaseの独立review
+- Requested action: なし
+- Evidence revision: manual証拠は`0e66b24`のapp buildに対応する。**以後appのcodeは変えていない**(差分は`specs/`とtest1件の名前・コメントのみ)
+- Next Agent action: `final-evidence` phaseの独立reviewを起動し、PASS後に`task.json`を`done`にしてPRをreadyにする。auto-mergeの7条件を満たすか確認する
