@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T15",
   "title": "警告を行に出す提示を定義する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 160,
   "manualVerification": null
 }
