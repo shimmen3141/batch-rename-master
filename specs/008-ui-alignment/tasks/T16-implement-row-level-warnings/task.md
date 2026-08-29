@@ -81,7 +81,12 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
   **30件それぞれで種別が読め、トークンの説明は1つ**であることを検査する。
 - **狭幅(< 840dp)と広幅(≥ 840dp)の両方**で、005 REQ-009 の3つを満たすことをwidget testで
   検査する。**片方だけ通しても、もう片方の抜けは検出できない**(`008:T07`のM166/M167と同じ型)。
-- `tool/mutations.json`へ、警告が行から消えるmutationを足して`KILLED`を確認する。
+- **`sortMode`を名前順にしても**、`[元名][日時 作成]`の行から基準日時不明の種別が読めることを
+  検査する(002 REQ-013)。**REQ-013 が `sortMode` でゲートしているのは日時表示そのものの強調**で
+  あり、ルール文脈の警告はゲートの対象外である。真似てゲートすると REQ-009 (1) が破れるが、
+  既存testでは検出されない(`T15`の独立reviewが安全網の穴 N-15-2 として挙げ、このtaskを
+  引き受け先に指定した)。
+- `tool/mutations.json`へ、**005 REQ-009 (1) の状態から警告の種別が読めなくなる**mutationを足して`KILLED`を確認する。**配置に依存しない言い方で書くこと** — 8.0 では場所は自由である。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - [`manual-verification.md`](manual-verification.md)でAndroid実機の狭幅表示を確認する。
   **件数の多い状態**(重複が数十件)を含める。

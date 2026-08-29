@@ -194,8 +194,8 @@ fileは残る。**残った頻度が分かってから2を判断するほうが�
 ### 下部バーの所有: 警告の提示ぶんだけ`T16`が持つ
 
 下部バー(`file_list_view.dart`の`_RenameActionBar`)は`005:T09`が作ったもので、008では所有task
-が明示されていなかった。REQ-009 (b)が「ルールを変える操作と同じまとまり」を要求するので、
-ここに手が入る。
+が明示されていなかった。`plan.md`の2026-08-29の決定(原因はルール設定の導線へ一度だけ)を`T16`が実装するので、
+ここに手が入りうる。**revision 8.0 では配置は仕様の外なので、最終的な置き場所は`T16`が決める。**
 
 - **`T16`が持つのは、このバーへ警告を載せる部分だけ**である。実行buttonの振る舞い、
   ルール設定sheetの開き方、バーの構成そのものは動かさない。
@@ -286,9 +286,12 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 
 ## 作業記録
 
+**先頭3行は定義時の記録で、以降は新しいものが上にある**(混在している)。
+
 - 2026-08-27 / `T07`が(i)の計測で行き詰まり、開発者が置き場所ごと変える方針を決めたため定義。`T07`は行のlayoutとpreviewで閉じる。
 - 2026-08-29 / claim。001が返す警告4種を調べ、**桁不足だけが対象fileを持たない**ことが分かった。ここから「バーは原因、行は結果」の原則が出た。桁不足で実行を止める案・作成日時を更新日時で代替する案・空名のfileをskipする案を検討し、いずれも採らないと決めた(根拠は上記)。
 - 2026-08-29 / 002へREQ-015を追加、005 contractをrevision 7.0へ。**開発者が再承認**し、`plan.md`の決定表へ記録した。`flutter test` = PASS(720)、`workspace.py check specs` = PASS。
+- 2026-08-29 / 独立review attempt 4 = **PASS**。P2×6(REQ-021の優先の宣言・冒頭文と桁不足の衝突・「提示が1つ」の単位・plan.mdの承認履歴と配置決定の重み・削除済み条項の引用・markup)を修正し、N-15-2を`T16`へ渡した。
 - 2026-08-29 / **案Bで再開。** 開発者の指摘で、005も002も元から配置を「自由とする点」へ置いていたことを確認した(revision 7.0 がその境界を破っていた)。revision 8.0 で場所を降ろし、「利用者から何が読めるか」3つへ置き換えて**承認を得た**。
 - 2026-08-29 / 独立review attempt 3 = **FAIL**(P1-1: wide layoutに「ルールを変更する操作」が無い)。**3回FAILしたので`blocked`にして人間へ返した。**
 - 2026-08-29 / 独立review attempt 2 = **FAIL**(P1-1: 承認済みのmustより弱くなっていた)。FAIL 2回で解き方を変え、REQ-009を種別ごとの表へ書き換えた。承認を取り直す。
@@ -299,6 +302,7 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 - Review attempt 1: `dev...f775b24` — **FAIL** — P1-1(REQ-009 の (a) と (b) が実在する経路で互いを否定する)、P2×4、安全網の穴1件。すべて対処済み。
 - Review attempt 2: `dev...b0f06ad` — **FAIL** — P1-1(attempt 1 の直し方が、承認済みのmustより弱くなっていた)、P2×4、安全網の穴1件。**解き方を変えて対処した**(下記)。
 
+- Review attempt 4: `dev...946ca20` — **PASS**(案B)。成果物の欠陥はP2が6件で、すべて修正済み。安全網の穴1件(N-15-2)を`T16`へ引き渡して受容した。
 - Review attempt 3: `dev...87b9a04` — **FAIL** — P1-1(まとまりの提示が幅 ≥ 840dp のlayoutでどのtaskにも属さない)、P2×4。**3回目のFAILなので`blocked`にして人間へ返す**(AGENTS.md)。
 
 ### 3回FAILしたので人間へ返す
@@ -407,16 +411,17 @@ P2-4 REQ-021 規則1の根拠が005自身の反証ログより強かったので
 
 | # | 内容 | 引き受け先 |
 |---|---|---|
+| N-15-2 | 002 REQ-013 へ今回足した境界(ルール文脈の警告は`sortMode`に依存しない)が`T16`の受け入れ証拠に無かった。`T16`が強調ゲートを真似ると、名前順ソート + `[元名][日時 作成]`で警告が消え REQ-009 (1) が破れる。既存testでは検出されない。AGENTS.mdの条件2に当たらないため受容する | `008:T16`(受け入れ証拠と`covers`へ書き込み済み) |
 | N-15-1 | 空ルール時の警告抑止(005 REQ-020)を守るtestが、**廃止される帯のkey**(`renameWarningsKey`)の不在で押さえている。帯を消すと**widgetが無いから通る**状態になり、行へ出す実装が空ルールでも出す穴が開く。AGENTS.mdの条件2(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらないため受容する | `008:T16`(受け入れ証拠へ「keyに依存しない形で検査する」を書き込み済み) |
 
 ## Current state / handoff
 
-- Last checkpoint: **案Bを実装し、005 contract revision 8.0 を開発者が承認**(2026-08-29)。場所を仕様から降ろし、「利用者から何が読めるか」3つへ置き換えた。`flutter test` = PASS(720) / `workspace.py check specs` = PASS
-- Blocker category: なし(`blocked`を解除した)
-- Waiting for: 独立review attempt 4
+- Last checkpoint: **独立review attempt 4 = PASS。** P2×6を修正し、安全網の穴 N-15-2 を`T16`へ引き渡した。`flutter test` = PASS(720) / `analyze` = PASS / `format` = PASS / `workspace.py check specs` = PASS
+- Blocker category: なし
+- Waiting for: CIとmerge
 - Requested action: なし
-- Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings`(PR #160、Draft)
-- Next Agent action: 独立review attempt 4 の結果を待つ。**要求が3行になったので、reviewへ読ませる範囲を絞ってtokenを抑えている。** PASS後に`done`にする
+- Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings`(PR #160)
+- Next Agent action: **このtaskは`done`。** PR #160 をreadyにしてmergeする。**実装は`T16`が行う** — 提示の場所は`T16`の裁量で、`plan.md`の2026-08-29の配置決定は設計指針として残る(集約帯の廃止だけは決定のまま)
 
 ## 他taskへの申し送り
 
