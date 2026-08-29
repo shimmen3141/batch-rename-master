@@ -247,12 +247,21 @@ REQ-021 は現在**ちょうど1つ**のまとめ(空名 + 基準日時不明を
 ## 作業記録
 
 - 2026-08-27 / `T07`が(i)の計測で行き詰まり、開発者が置き場所ごと変える方針を決めたため定義。`T07`は行のlayoutとpreviewで閉じる。
+- 2026-08-29 / claim。001が返す警告4種を調べ、**桁不足だけが対象fileを持たない**ことが分かった。ここから「バーは原因、行は結果」の原則が出た。桁不足で実行を止める案・作成日時を更新日時で代替する案・空名のfileをskipする案を検討し、いずれも採らないと決めた(根拠は上記)。
+- 2026-08-29 / 002へREQ-015を追加、005 contractをrevision 7.0へ。**開発者が再承認**し、`plan.md`の決定表へ記録した。`flutter test` = PASS(720)、`workspace.py check specs` = PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
+- Last checkpoint: **002 REQ-015 と 005 contract revision 7.0 を開発者が再承認**(2026-08-29)。`plan.md`の決定表へ記録済み。`T16`の`covers`へREQ IDを書いた。`flutter test` = PASS(720) / `workspace.py check specs` = PASS(8 plans, 69 tasks)
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: exact rangeの独立review
 - Requested action: なし
-- Evidence revision: `dev@7597342`
-- Next Agent action: 上の「決めること」1〜4の案を作り、人間へ一度に一つずつ確認してから spec を書く
+- Evidence revision: `asdd/008-ui-alignment/T15-define-row-level-warnings`
+- Next Agent action: 独立reviewを起動し、PASS後に`done`にする。**実装は`T16`が行う。** `T16`は`T07`が入れた行の縦積みを壊さず、`T07`の残余risk N-9(帯の高さ)を引き取る
+
+## 他taskへの申し送り
+
+- **`T01`**: ソート文脈の警告(002 REQ-011)の配置。行へ移さないと決めたので、並び順controlの側で持つ。
+- **`T14`**: modalの分担。`T15`/`T16`が作るのは**警告の詳細を見るmodal**で、`T14`が持つ実行前確認dialogとは別物。文言だけ後から合わせる。
+- **`T16`**: 下部バーの所有は「警告を載せる部分だけ」。`covers`は書き込み済み。
+- **product-map**: 「作成日時が取れないfileの改名をskipするか」を`010`の後の論点として登録した。
