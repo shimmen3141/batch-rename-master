@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T16",
   "title": "警告を行に出す提示を実装する",
-  "status": "blocked",
+  "status": "in_progress",
   "dependsOn": [
     "T07",
     "T15"

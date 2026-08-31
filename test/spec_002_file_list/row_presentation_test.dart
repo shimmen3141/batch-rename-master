@@ -188,6 +188,71 @@ void main() {
   });
 
   group('008:T16 (i) 件数が多くても一覧を覆わない', () {
+    /// ルールの原因(トークン)を [causes] 本持つルール。
+    ///
+    /// 連番の桁不足 1 本 + 作成日時が取れない日時トークン [causes]-1 本。
+    /// **001 が返す警告の数ではなく、原因の数が増える。**
+    RenameRule ruleWithCauses(int causes) => RenameRule([
+      const SequenceToken(start: 100, digits: 1),
+      for (var i = 0; i < causes - 1; i++) ...[
+        const DateTimeToken(source: DateTimeSource.created, format: 'yyyyMMdd'),
+        LiteralToken('_$i'),
+      ],
+    ]);
+
+    /// ルール設定の導線がある**製品経路**で描く。
+    ///
+    /// **`onEditRule` を渡すことが要点である。** 渡さないと原因の提示が tree に
+    /// 存在せず、何を測っても通ってしまう(独立review attempt 3 のP1-2で、
+    /// この空振りを実際に作っていた)。
+    Future<({Rect list, int overflows})> pumpWithCauses(
+      WidgetTester tester, {
+      required Size size,
+      required double scale,
+      required int causes,
+    }) async {
+      final errors = <String>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = (details) =>
+          errors.add(details.exceptionAsString());
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(scale),
+            ),
+            child: Scaffold(
+              body: FileListView(
+                key: ValueKey('causes-$size-$scale-$causes'),
+                onEditRule: () {},
+                controller: FileListController(
+                  files: [
+                    for (var i = 0; i < 30; i++)
+                      FileEntry(
+                        name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                        modifiedAt: DateTime(2026, 8, 4),
+                        size: 0,
+                        sourceLocation: 'DCIM/Camera',
+                      ),
+                  ],
+                  rule: ruleWithCauses(causes),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      FlutterError.onError = previous;
+      return (
+        list: tester.getRect(find.byType(ReorderableListView)),
+        overflows: errors.where((e) => e.contains('overflow')).length,
+      );
+    }
+
     /// 重複警告を [count] 件出す一覧を、指定した画面サイズで描く。
     ///
     /// 全ファイルが同じ名前になるルールを与えると、001 は重複警告を件数ぶん返す。
@@ -218,6 +283,89 @@ void main() {
       );
       return tester.getRect(find.byType(ReorderableListView));
     }
+
+    testWidgets('原因が何本あっても一覧の取り分が変わらない', (tester) async {
+      // **N-9 はここで閉じる。** 集約帯を廃止したとき、帯が持っていた高さの上限
+      // (`detailMaxHeightFor` = 画面高の32%)を代替なしで外し、置換先の説明が
+      // 原因の数 × 文字倍率で伸びて一覧を 0px まで潰した(独立review attempt 3
+      // のP1-1。360×640・文字倍率2.0・原因3本で一覧が0px、原因5本で 339px の
+      // はみ出し)。
+      //
+      // 常設する提示を**種別だけ**にして解いた。種別は `桁不足` と `基準日時なし`
+      // の2つしかないので、**原因が2本目以降どれだけ増えても提示は変わらない。**
+      // 基準を原因2本(種別が両方そろう最小)に取り、そこから 3 / 5 / 10 本まで
+      // 増やしても一覧の高さが1pxも動かないことを見る。
+      //
+      // 360×640 は 2026-08-29 の実機確認に近い狭幅、731×411 は横持ちである。
+      for (final size in [const Size(360, 640), const Size(731, 411)]) {
+        for (final scale in [1.0, 1.3, 2.0]) {
+          final baseline = await pumpWithCauses(
+            tester,
+            size: size,
+            scale: scale,
+            causes: 2,
+          );
+          expect(
+            baseline.overflows,
+            0,
+            reason: '$size scale=$scale causes=2 ではみ出している',
+          );
+          expect(baseline.list.height, greaterThan(0));
+          for (final causes in [3, 5, 10]) {
+            final grown = await pumpWithCauses(
+              tester,
+              size: size,
+              scale: scale,
+              causes: causes,
+            );
+            expect(
+              grown.list.height,
+              baseline.list.height,
+              reason: '$size scale=$scale で原因 $causes 本が一覧を削っている',
+            );
+            expect(
+              grown.overflows,
+              0,
+              reason: '$size scale=$scale causes=$causes ではみ出している',
+            );
+          }
+        }
+      }
+    });
+
+    testWidgets('種別が 1 つ増えても、増える高さは 1 行ぶんで止まる', (tester) async {
+      // 種別が 1 つ(桁不足だけ)から 2 つになると、文字倍率が高い狭幅では
+      // 見出しの右へ収まらず次の行へ落ちる。**これは有界である** — 種別は
+      // 2 つが上限なので、ここから先は増えない。上の test が「2 本目以降は
+      // 増えない」を押さえ、この test が「1 → 2 の段差が 1 行で収まる」を
+      // 押さえる。両方そろって初めて占有が定数だと言える。
+      const size = Size(360, 640);
+      for (final scale in [1.0, 1.3, 2.0]) {
+        final one = await pumpWithCauses(
+          tester,
+          size: size,
+          scale: scale,
+          causes: 1,
+        );
+        final two = await pumpWithCauses(
+          tester,
+          size: size,
+          scale: scale,
+          causes: 2,
+        );
+        final lost = one.list.height - two.list.height;
+        expect(lost, greaterThanOrEqualTo(0));
+        // 1 行 = 本文 11px × 文字倍率 + 行間。40px を超えるなら折り返し 1 行では
+        // 説明が付かない(説明そのものが常設側へ戻ったなどの退行)。
+        expect(
+          lost,
+          lessThanOrEqualTo(40 * scale),
+          reason: 'scale=$scale で種別 1 → 2 が $lost px も食っている',
+        );
+        expect(one.overflows, 0);
+        expect(two.overflows, 0);
+      }
+    });
 
     testWidgets('警告の件数が増えても一覧の取り分が変わらない', (tester) async {
       // **`T07` の残余risk N-9 がここで閉じる。** 集約帯は件数に応じて縦を食い、

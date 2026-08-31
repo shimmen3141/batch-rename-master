@@ -12,8 +12,20 @@ const Key warningCountKey = Key('warning-count');
 /// 行の警告(005 REQ-009 (1))。押すと全件の詳細が開く。
 const Key rowWarningKey = Key('row-warning');
 
-/// ルールを直せば消える原因の説明(005 REQ-009 (2))。件数ぶん繰り返さない。
+/// ルールを直せば消える原因の提示(005 REQ-009 (2))。件数ぶん繰り返さない。
+///
+/// **狭幅では下部バーのルール設定button内、広幅では右ペイン上部**にある。
+/// どちらの layout にも在ることが要求である(片方だけだと行き場を失う)。
 const Key ruleWarningNoticeKey = Key('rule-warning-notice');
+
+/// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
+const Key ruleSummaryKey = Key('rule-summary');
+
+/// 詳細dialog内の「原因ごとの説明」節(005 REQ-009 (2) の説明の置き場所)。
+const Key warningDetailCausesKey = Key('warning-detail-causes');
+
+/// 詳細dialog内の「ファイルごとの全件」節(005 REQ-009 (3))。
+const Key warningDetailFilesKey = Key('warning-detail-files');
 
 /// 全件と説明の詳細(005 REQ-009 (3))。
 const Key warningDetailDialogKey = Key('warning-detail-dialog');
@@ -133,10 +145,15 @@ class RuleNotConfiguredBanner extends StatelessWidget {
 /// 警告の種別名(見出しの内訳と各行の頭に使う)。
 String warningKindLabel(Warning warning) => switch (warning) {
   DuplicateWarning() => '重複',
-  DigitShortageWarning() => '桁不足',
+  DigitShortageWarning() => digitShortageKindLabel,
   EmptyNameWarning() => '空の名前',
-  MissingSourceDateWarning() => '基準日時なし',
+  MissingSourceDateWarning() => missingSourceDateKindLabel,
 };
+
+/// ルールを直せば消える種別。**この2つがルール由来の警告のすべてである** —
+/// 重複と空の名前はファイル単位なので行が持つ。[ruleWarningKinds] と共有する。
+const String digitShortageKindLabel = '桁不足';
+const String missingSourceDateKindLabel = '基準日時なし';
 
 /// 警告 1 件を、対象ファイル(と該当トークン)が識別できる文言にする(REQ-009)。
 ///
@@ -268,6 +285,44 @@ List<String> ruleWarningExplanations(
   return out;
 }
 
+/// ルールを直せば消える警告の**種別**(005 REQ-009 (2) の常設側)。
+///
+/// **説明そのものではなく種別を返す。** 説明は原因(トークン)ごとに1つなので
+/// **トークンの数だけ増える**が、種別は2つしかない。常設する提示をこちらにすると、
+/// 原因が何本あっても文字倍率がいくつでも**占有が変わらない**。
+///
+/// **これは集約帯を廃止したときに失った保証の作り直しである。** 帯は
+/// `detailMaxHeightFor`(画面高の32%上限 + scroll)で有界だったが、置換先に置いた
+/// 説明の並びには上限が無く、原因3つ・文字倍率2.0で一覧が0pxになった
+/// (独立review attempt 3 のP1-1)。**器へ上限を付けるのではなく、常設する中身を
+/// 定数個にして解く。**説明そのものは詳細dialogが持つ([showWarningDetail])。
+///
+/// ルールが空なら空を返す(005 REQ-020)。
+List<String> ruleWarningKinds(
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) {
+  if (ruleIsEmpty) return const <String>[];
+  var digits = false;
+  var date = false;
+  for (final warning in warnings) {
+    if (warning is DigitShortageWarning) digits = true;
+    if (warning is MissingSourceDateWarning) date = true;
+  }
+  // 001 が返した順ではなく**固定した順**で並べる(件数で並びが揺れない)。
+  return <String>[
+    if (digits) digitShortageKindLabel,
+    if (date) missingSourceDateKindLabel,
+  ];
+}
+
+/// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
+///
+/// **最小形にとどめる** — [describeToken] を並べるだけである。文言の作り込みは
+/// `008:T14`、余白・字体は `008:T10` が持つ。ルールが空なら空文字を返す。
+String describeRuleSummary(RenameRule rule) =>
+    rule.tokens.map(describeToken).join(' + ');
+
 /// 一覧全体の件数(005 REQ-010: 0 件なら「問題なし」。**それは警告ではない**)。
 String warningCountLabel(List<Warning> warnings) {
   final count = presentWarnings(warnings).length;
@@ -376,19 +431,41 @@ class RuleWarningNotice extends StatelessWidget {
     super.key,
     required this.warnings,
     required this.ruleIsEmpty,
+    this.compact = false,
   });
 
   final List<Warning> warnings;
   final bool ruleIsEmpty;
 
+  /// ルール設定button内へ入れる形(狭幅)。枠と背景を持たず見出しの右へ並ぶ。
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
-    final explanations = ruleWarningExplanations(
-      warnings,
-      ruleIsEmpty: ruleIsEmpty,
-    );
-    if (explanations.isEmpty) return const SizedBox.shrink();
+    final kinds = ruleWarningKinds(warnings, ruleIsEmpty: ruleIsEmpty);
+    if (kinds.isEmpty) return const SizedBox.shrink();
     final colors = context.colors;
+    // **`Wrap` である。** 幅が足りないときに切り詰めると種別が読めなくなる
+    // (ヘッダで2回作った退行と同じ形)。種別は最大2つなので、次の行へ落ちても
+    // 増える高さは1行ぶんで止まる。
+    final content = Wrap(
+      spacing: 4,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Icon(Icons.error_outline, size: 13, color: colors.danger),
+        for (final kind in kinds)
+          Text(
+            kind,
+            style: TextStyle(
+              color: colors.danger,
+              fontSize: compact ? 10.5 : 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    );
+    if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);
     return Container(
       key: ruleWarningNoticeKey,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -396,28 +473,7 @@ class RuleWarningNotice extends StatelessWidget {
         color: colors.danger.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1, right: 6),
-            child: Icon(Icons.error_outline, size: 13, color: colors.danger),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final text in explanations)
-                  Text(
-                    text,
-                    style: TextStyle(color: colors.danger, fontSize: 11.5),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 }
@@ -429,10 +485,14 @@ class RuleWarningNotice extends StatelessWidget {
 /// REQ-021 のまとめを両方へ効かせる)。
 Future<void> showWarningDetail(
   BuildContext context,
-  List<Warning> warnings,
-) async {
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) async {
   if (warnings.isEmpty) return;
   final presented = presentWarnings(warnings);
+  // **原因ごとの説明はここが持つ(005 REQ-009 (2))。** 常設側は種別だけなので、
+  // 「何番目のトークンが何桁必要か」を読める場所はこの節である。
+  final causes = ruleWarningExplanations(warnings, ruleIsEmpty: ruleIsEmpty);
   final byKind = <String, List<WarningPresentation>>{};
   for (final item in presented) {
     (byKind[item.kindLabel] ??= <WarningPresentation>[]).add(item);
@@ -451,19 +511,45 @@ Future<void> showWarningDetail(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final entry in byKind.entries) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 4),
-                    child: Text(
-                      '${entry.key} ${entry.value.length} 件',
-                      style: TextStyle(
-                        color: colors.danger,
-                        fontWeight: FontWeight.w700,
+                if (causes.isNotEmpty)
+                  Column(
+                    key: warningDetailCausesKey,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: Text(
+                          'ルールの問題',
+                          style: TextStyle(
+                            color: colors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
+                      for (final cause in causes) Text('• $cause'),
+                    ],
                   ),
-                  for (final item in entry.value) Text('• ${item.message}'),
-                ],
+                Column(
+                  key: warningDetailFilesKey,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final entry in byKind.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: Text(
+                          '${entry.key} ${entry.value.length} 件',
+                          style: TextStyle(
+                            color: colors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      for (final item in entry.value) Text('• ${item.message}'),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),

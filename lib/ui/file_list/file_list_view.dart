@@ -113,8 +113,11 @@ class FileListView extends StatelessWidget {
                         row.warnings,
                         ruleIsEmpty: ruleIsEmpty,
                       ),
-                      onShowWarningDetail: () =>
-                          showWarningDetail(context, warnings),
+                      onShowWarningDetail: () => showWarningDetail(
+                        context,
+                        warnings,
+                        ruleIsEmpty: ruleIsEmpty,
+                      ),
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
                       onRemove: handle == null
@@ -126,23 +129,19 @@ class FileListView extends StatelessWidget {
               ),
               // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
               // まとめる(T09 で T04 の上部配置から移設)。
-              // 005 REQ-009 (2): 原因の説明は**件数ぶん繰り返さず一度だけ**。
-              // 狭幅ではルールを変更する導線が下部バーにあるので、その直前へ置く。
-              // **広幅では下部バーに導線が無い**ため、`RuleBuilderWorkspace` が
-              // 右ペイン側へ同じものを描く。
-              if (onEditRule != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                  child: RuleWarningNotice(
-                    warnings: warnings,
-                    ruleIsEmpty: ruleIsEmpty,
-                  ),
-                ),
+              //
+              // 005 REQ-009 (2) の原因の提示は、**バーの手前へ積まない。**
+              // 独立した子として積むと、原因の数 × 文字倍率で伸びて一覧と
+              // 下部バーを押し出した(独立review attempt 3 のP1-1)。参考designの
+              // ルール設定buttonが持つ「命名ルール」見出しの右へ、**種別だけ**を
+              // 載せる。**広幅では下部バーに導線が無い**ため、
+              // `RuleBuilderWorkspace` が右ペイン側へ同じものを描く。
               if (renameExecution != null || onEditRule != null)
                 _RenameActionBar(
                   controller: controller,
                   execution: renameExecution,
                   onEditRule: onEditRule,
+                  warnings: ruleIsEmpty ? const <Warning>[] : warnings,
                 ),
             ],
           ),
@@ -161,6 +160,7 @@ class _RenameActionBar extends StatelessWidget {
     required this.controller,
     required this.execution,
     required this.onEditRule,
+    required this.warnings,
   });
 
   final FileListController controller;
@@ -168,6 +168,9 @@ class _RenameActionBar extends StatelessWidget {
   /// 実行境界。デモやリスト単体の描画では `null`(実行ボタンを出さない)。
   final RenameExecutionController? execution;
   final VoidCallback? onEditRule;
+
+  /// ルール設定buttonへ載せる警告(005 REQ-009 (2))。ルールが空なら空で渡る。
+  final List<Warning> warnings;
 
   Future<void> _request(BuildContext context) async {
     final execution = this.execution;
@@ -402,7 +405,12 @@ class _RenameActionBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (onEditRule != null) ...[
-                _RuleButton(empty: empty, onPressed: onEditRule!),
+                _RuleButton(
+                  empty: empty,
+                  onPressed: onEditRule!,
+                  summary: describeRuleSummary(controller.rule),
+                  warnings: warnings,
+                ),
                 const SizedBox(height: 10),
               ],
               // 更新日時ずらし。設定できない端末では出さない(REQ-015)。
@@ -486,12 +494,34 @@ class _ShiftModifiedAtToggle extends StatelessWidget {
   }
 }
 
-/// ルール編集への導線。未設定のときだけ主役の表示へ入れ替える(REQ-020)。
+/// ルール編集への導線(参考designの2行button)。
+///
+/// design は `[✎] 命名ルール / <設定中のルール>` の2行に `編集` を添えた形で、
+/// **「命名ルール」見出しの右に空きがある**。005 REQ-009 (2) の原因の提示を
+/// そこへ置く(008:T15 が土台として申し送り、開発者が2026-08-31に選択)。
+///
+/// **載せるのは種別だけである。**説明そのものを載せると原因の数と文字倍率で
+/// buttonが伸び、下部バーごと一覧を押し出す(独立review attempt 3 のP1-1)。
+/// 種別は最大2つなので占有が定数に収まる。説明は詳細dialogが持つ。
+///
+/// ルールが空のときは design の2行ではなく**主役のbutton**へ入れ替える
+/// (005 REQ-019 / REQ-020)。この状態では警告も出さない。
 class _RuleButton extends StatelessWidget {
-  const _RuleButton({required this.empty, required this.onPressed});
+  const _RuleButton({
+    required this.empty,
+    required this.onPressed,
+    required this.summary,
+    required this.warnings,
+  });
 
   final bool empty;
   final VoidCallback onPressed;
+
+  /// 設定中のルールの1行要約(design の2行目)。
+  final String summary;
+
+  /// 見出しの右へ出す警告。ルールが空なら空で渡る。
+  final List<Warning> warnings;
 
   @override
   Widget build(BuildContext context) {
@@ -508,11 +538,71 @@ class _RuleButton extends StatelessWidget {
         label: const Text('変更する名前を設定する'),
       );
     }
-    return OutlinedButton.icon(
+    return OutlinedButton(
       key: const Key('configure-rule'),
       onPressed: onPressed,
-      icon: const Icon(Icons.tune, size: 18),
-      label: const Text('ルールを編集'),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        alignment: Alignment.centerLeft,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.tune, size: 18, color: colors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 見出しと警告。**`Wrap` なので、入らなければ切らずに次の行へ
+                // 落ちる**(切り詰めると種別が読めなくなる)。
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '命名ルール',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    RuleWarningNotice(
+                      warnings: warnings,
+                      ruleIsEmpty: empty,
+                      compact: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  summary,
+                  key: ruleSummaryKey,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '編集',
+            style: TextStyle(
+              color: colors.primary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -582,7 +672,11 @@ class _HeaderBar extends StatelessWidget {
           if (!controller.isRuleEmpty)
             WarningCountView(
               warnings: warnings,
-              onTap: () => showWarningDetail(context, warnings),
+              onTap: () => showWarningDetail(
+                context,
+                warnings,
+                ruleIsEmpty: controller.isRuleEmpty,
+              ),
             ),
         ],
       ),

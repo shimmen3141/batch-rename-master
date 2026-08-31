@@ -142,7 +142,12 @@ void main() {
       files.setRule(const RenameRule([LiteralToken('x')]));
       await tester.pump();
       expect(find.text('変更する名前を設定する'), findsNothing);
-      expect(find.text('ルールを編集'), findsOneWidget);
+      // 参考designの2行button(見出し + 設定中のルール)へ入れ替わる。
+      expect(find.text('命名ルール'), findsOneWidget);
+      expect(
+        (tester.widget<Text>(find.byKey(ruleSummaryKey))).data,
+        contains('固定文字「x」'),
+      );
     });
   });
 
@@ -215,18 +220,26 @@ void main() {
 
       // 行には種別が出る(REQ-021 規則1 の対象外。005 例20g)。
       expect(find.byKey(rowWarningKey), findsOneWidget);
-      // 原因の説明は**ルールを直す側**へ 1 つだけ出る。
+      // 原因は**ルールを直す側**へ出る。常設するのは種別だけで、
+      // 説明そのもの(どのトークンか)は詳細dialogが持つ。
       expect(find.byKey(ruleWarningNoticeKey), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(ruleWarningNoticeKey),
-          matching: find.textContaining('2 番目のトークン'),
+          matching: find.text('基準日時なし'),
         ),
         findsOneWidget,
       );
 
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(warningDetailCausesKey),
+          matching: find.textContaining('2 番目のトークン'),
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('基準日時なし 1 件'), findsOneWidget);
     });
   });

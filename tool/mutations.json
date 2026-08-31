@@ -1282,9 +1282,9 @@
     {
       "id": "M183",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              if (onEditRule != null)\n                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: warnings,\n                    ruleIsEmpty: ruleIsEmpty,\n                  ),\n                ),\n",
+      "find": "                    RuleWarningNotice(\n                      warnings: warnings,\n                      ruleIsEmpty: empty,\n                      compact: true,\n                    ),",
       "replace": "",
-      "note": "008:T16 狭幅で原因の説明を配り忘れる — M177(広幅)の対照(独立reviewが追加)"
+      "note": "008:T16 狭幅でルール設定button内の原因の提示を配り忘れる — M177(広幅)の対照(独立reviewが追加。T16でbutton内へ移設)"
     },
     {
       "id": "M184",
@@ -1320,6 +1320,41 @@
       "find": "                  '$selected / $total 件を選択',\n                  maxLines: 2,",
       "replace": "                  '$selected / $total 件を選択',\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
       "note": "008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1)"
+    },
+    {
+      "id": "M189",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  // 001 が返した順ではなく**固定した順**で並べる(件数で並びが揺れない)。\n  return <String>[\n    if (digits) digitShortageKindLabel,\n    if (date) missingSourceDateKindLabel,\n  ];",
+      "replace": "  return <String>[\n    for (final warning in warnings)\n      if (warning is DigitShortageWarning || warning is MissingSourceDateWarning)\n        warningKindLabel(warning),\n  ];",
+      "note": "008:T16 常設側を種別ではなく警告1件ごとに出す — 原因の数とfile件数で伸び、一覧と下部バーを押し出す(独立review attempt 3 のP1-1の型)"
+    },
+    {
+      "id": "M190",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);",
+      "replace": "    if (compact) {\n      return KeyedSubtree(\n        key: ruleWarningNoticeKey,\n        child: Column(\n          mainAxisSize: MainAxisSize.min,\n          crossAxisAlignment: CrossAxisAlignment.start,\n          children: [\n            content,\n            for (final text in ruleWarningExplanations(\n              warnings,\n              ruleIsEmpty: ruleIsEmpty,\n            ))\n              Text(text),\n          ],\n        ),\n      );\n    }",
+      "note": "008:T16 説明そのものを常設側へ戻す — 原因の数×文字倍率で伸びて一覧が0pxになる(独立review attempt 3 のP1-1そのもの)"
+    },
+    {
+      "id": "M191",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                if (causes.isNotEmpty)\n                  Column(\n                    key: warningDetailCausesKey,",
+      "replace": "                if (false)\n                  Column(\n                    key: warningDetailCausesKey,",
+      "note": "008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2))"
+    },
+    {
+      "id": "M192",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                Text(\n                  summary,\n                  key: ruleSummaryKey,\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
+      "replace": "                Text(\n                  summary,\n                  key: ruleSummaryKey,",
+      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)"
+    },
+    {
+      "id": "M193",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                Wrap(\n                  spacing: 8,\n                  runSpacing: 2,\n                  crossAxisAlignment: WrapCrossAlignment.center,\n                  children: [\n                    Text(\n                      '命名ルール',",
+      "replace": "                Row(\n                  spacing: 8,\n                  children: [\n                    Text(\n                      '命名ルール',",
+      "note": "008:T16 見出しと警告を Row に並べる — 幅が足りないとき次の行へ落とせずはみ出す(ヘッダで2回作った退行の型)"
     }
   ]
 }

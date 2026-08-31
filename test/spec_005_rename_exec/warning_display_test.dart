@@ -52,6 +52,15 @@ Finder _detail() => find.byKey(warningDetailDialogKey);
 Finder _inDetail(Finder matching) =>
     find.descendant(of: _detail(), matching: matching);
 
+/// 詳細dialogの中の「原因ごとの説明」節だけ(005 REQ-009 (2))。
+/// **ファイルごとの全件と混ぜて数えない** — 全件側は件数ぶん並んでよい。
+Finder _inCauses(Finder matching) =>
+    find.descendant(of: find.byKey(warningDetailCausesKey), matching: matching);
+
+/// 詳細dialogの中の「ファイルごとの全件」節だけ(005 REQ-009 (3))。
+Finder _inFiles(Finder matching) =>
+    find.descendant(of: find.byKey(warningDetailFilesKey), matching: matching);
+
 /// 行に見えている警告の文言(順序は表示順)。
 List<String> _rowWarningTexts(WidgetTester tester) => tester
     .widgetList<Text>(
@@ -261,7 +270,7 @@ void main() {
   });
 
   group('REQ-009 (2): 変わらない説明を件数ぶん繰り返さない', () {
-    /// 原因の説明が見える画面(狭幅=下部バーの導線)を出す。
+    /// 原因の提示が見える画面(狭幅=下部バーのルール設定button)を出す。
     Future<void> pumpWithRuleAffordance(
       WidgetTester tester,
       FileListController c,
@@ -275,6 +284,12 @@ void main() {
         ),
       );
     }
+
+    // **説明そのものは詳細dialogが持ち、常設側は種別だけを出す。**
+    // 常設側へ説明を並べると、原因(トークン)の数と文字倍率で伸びて一覧と
+    // 下部バーを押し出した(独立review attempt 3 のP1-1)。要求は「件数ぶん
+    // 繰り返さない・単位は原因ごと」なので、**説明が1つであることは
+    // dialog の側で検査する。**弱めた付け替えではない。
 
     testWidgets('作成日時が取れない 30 件でも、トークンの説明は 1 つ', (tester) async {
       // 005 例20a / 例20g。**同じ説明が 30 回出ていたのが 008:T16 以前である。**
@@ -293,10 +308,16 @@ void main() {
       final renderedRows = tester.widgetList(find.byType(Checkbox)).length;
       expect(renderedRows, greaterThan(1));
       expect(_rowWarnings(), findsNWidgets(renderedRows));
-      // 説明は 1 つ。**単位は原因(トークン)ごとである。**
+      // 常設側は種別のみ。**30 件でも 1 つ。**
       expect(_ruleNotice(), findsOneWidget);
-      expect(_inRuleNotice(find.textContaining('2 番目のトークン')), findsOneWidget);
+      expect(_inRuleNotice(find.text('基準日時なし')), findsOneWidget);
       expect(_inRuleNotice(find.byType(Text)), findsOneWidget);
+
+      // 説明は 1 つ。**単位は原因(トークン)ごとである。**
+      await _openDetailFromCount(tester);
+      expect(_inCauses(find.textContaining('2 番目のトークン')), findsOneWidget);
+      // 節の中は**見出し 1 + 説明 1** で、30 件ぶんには増えない。
+      expect(_inCauses(find.byType(Text)), findsNWidgets(2));
     });
 
     testWidgets('取れないトークンが 2 本なら説明は 2 つ', (tester) async {
@@ -311,7 +332,14 @@ void main() {
       await pumpWithRuleAffordance(tester, c);
 
       expect(c.warnings.whereType<MissingSourceDateWarning>().length, 4);
-      expect(_inRuleNotice(find.byType(Text)), findsNWidgets(2));
+      // 常設側は**トークンが 2 本でも種別 1 つのまま**(占有が原因の数に依らない)。
+      expect(_inRuleNotice(find.byType(Text)), findsOneWidget);
+
+      await _openDetailFromCount(tester);
+      expect(_inCauses(find.textContaining('2 番目のトークン')), findsOneWidget);
+      expect(_inCauses(find.textContaining('3 番目のトークン')), findsOneWidget);
+      // 見出し 1 + 説明 2。**ファイル 2 件ぶんには増えない。**
+      expect(_inCauses(find.byType(Text)), findsNWidgets(3));
     });
 
     testWidgets('桁不足はトークンの位置と必要桁数が分かる', (tester) async {
@@ -321,12 +349,39 @@ void main() {
       );
       await pumpWithRuleAffordance(tester, c);
 
-      expect(_inRuleNotice(find.textContaining('1 番目のトークン')), findsOneWidget);
-      expect(_inRuleNotice(find.textContaining('連番 1 桁')), findsOneWidget);
-      expect(_inRuleNotice(find.textContaining('3 桁必要')), findsOneWidget);
+      expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
+
+      await _openDetailFromCount(tester);
+      expect(_inCauses(find.textContaining('1 番目のトークン')), findsOneWidget);
+      expect(_inCauses(find.textContaining('連番 1 桁')), findsOneWidget);
+      expect(_inCauses(find.textContaining('3 桁必要')), findsOneWidget);
     });
 
-    testWidgets('狭幅と広幅のどちらでも説明が出る', (tester) async {
+    testWidgets('種別は 2 つを超えない(常設側の占有が原因の数に依らない)', (tester) async {
+      // 桁不足 1 本 + 基準日時不明 3 本 = 原因 4 つ。それでも種別は 2 つ。
+      final c = FileListController(
+        files: [_noCreatedAt('a.jpg'), _noCreatedAt('b.jpg')],
+        rule: const RenameRule([
+          SequenceToken(start: 100, digits: 1),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+          DateTimeToken(source: DateTimeSource.created, format: 'MM'),
+          DateTimeToken(source: DateTimeSource.created, format: 'DD'),
+        ]),
+      );
+      await pumpWithRuleAffordance(tester, c);
+
+      expect(_inRuleNotice(find.byType(Text)), findsNWidgets(2));
+      expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
+      expect(_inRuleNotice(find.text('基準日時なし')), findsOneWidget);
+
+      // 説明の側は原因の数だけある(dialog は伸びてよい — scroll する)。
+      await _openDetailFromCount(tester);
+      for (final n in ['1', '2', '3', '4']) {
+        expect(_inCauses(find.textContaining('$n 番目のトークン')), findsOneWidget);
+      }
+    });
+
+    testWidgets('狭幅と広幅のどちらでも原因が出る', (tester) async {
       // **広幅では下部バーにルール設定の導線が無い**(`_buildWide` は `onEditRule`
       // を渡さない)。ルールを変更する操作は右ペインなので、そちらへ出る。
       // **片方だけ通しても、もう片方の抜けは検出できない。**
@@ -355,9 +410,9 @@ void main() {
         expect(
           _ruleNotice(),
           findsOneWidget,
-          reason: '幅 ${size.width} で原因の説明が行き場を失っている',
+          reason: '幅 ${size.width} で原因の提示が行き場を失っている',
         );
-        expect(_inRuleNotice(find.textContaining('3 桁必要')), findsOneWidget);
+        expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
       }
     });
   });
@@ -418,10 +473,14 @@ void main() {
       await _pump(tester, c);
       await _openDetailFromCount(tester);
 
-      expect(_inDetail(find.textContaining('nodate.jpg')), findsOneWidget);
-      expect(_inDetail(find.textContaining('2 番目のトークン')), findsOneWidget);
-      expect(_inDetail(find.textContaining('作成日時「YYYYMMDD」')), findsOneWidget);
-      expect(_inDetail(find.textContaining('作成日時が不明')), findsOneWidget);
+      // **同じ 1 行が**ファイルとトークンの両方を名指す(別々の行に散らない)。
+      final entry = tester
+          .widgetList<Text>(_inFiles(find.textContaining('nodate.jpg')))
+          .single
+          .data!;
+      expect(entry, contains('2 番目のトークン'));
+      expect(entry, contains('作成日時「YYYYMMDD」'));
+      expect(entry, contains('作成日時が不明'));
     });
 
     testWidgets('同名・別フォルダのときは場所も添えて見分けられる', (tester) async {
@@ -463,7 +522,7 @@ void main() {
       // 詳細では対象ファイルが 1 件ずつ識別できる(重複 + 基準日時不明で 2 行)。
       expect(_inDetail(find.textContaining('alpha.jpg')), findsNWidgets(2));
       expect(_inDetail(find.textContaining('bravo.jpg')), findsNWidgets(2));
-      expect(_inDetail(find.textContaining('3 桁必要')), findsOneWidget);
+      expect(_inFiles(find.textContaining('3 桁必要')), findsOneWidget);
     });
   });
 
