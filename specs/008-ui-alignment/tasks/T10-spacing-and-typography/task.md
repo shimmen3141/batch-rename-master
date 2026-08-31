@@ -21,13 +21,18 @@
 
 ### 引き受けた残余risk(`008:T07`から)
 
-- **N-8b**: `textScaler` 3.0で一覧の`_HeaderBar`の`Row`が**水平に約69px** overflowする
-  (`T07`の独立reviewのprobeで再現。`file_list_view.dart`の`_HeaderBar`)。**`T07`が触って
-  いない既存code**で、行(`_FileRow`)は無傷である。**垂直のoverflowは再現していない** —
-  2026-08-29のAndroid emulator確認でも開発者は「文字が枠の外へはみ出していない」と
-  報告している。sort barの側は`T02`が引き受けた(N-8a)。
-  このoverflowをCIで押さえるtestは無い(`T07`の独立reviewが安全網の穴として挙げ、
-  引き受け先をこのtaskとした)。
+- **N-8b**: ~~`textScaler` 3.0で一覧の`_HeaderBar`の`Row`が**水平に約69px** overflowする~~
+  → **2026-08-31、`008:T16`が閉じた。**`_HeaderBar`を`Row`から`Wrap`へ変えたので、入らない
+  ときは切らずに次の行へ落ちる。probe(320/360/411dp × `textScaler` 1.0/1.3/2.0/3.0 ×
+  1/30/200/1000件)で**overflowは0件**。`T16`のtestが 1.0/1.3/2.0 で切り詰めの不在
+  (`didExceedMaxLines`)を押さえ、mutation M186(`Wrap`→`Row`)がこれを殺す。
+  sort barの側(N-8a)は`T02`が引き受けたままである。
+
+- **N-8b′(残余)**: `textScaler` **3.0**では、320dpの200件以上と360dpの1000件で、
+  2行に落としてもなお末尾が切れる(`200 / 200 件を選` / `200 件の`)。**数字は常に残る**
+  ので総数を誤読することは無く、消えるのは`選択`・`問題`のような語尾である。
+  probeで確認した実際の見え方は`008:T16`の`task.md`にある。ここは余白・typographyの
+  取り分の問題なので、このtaskが引き受ける。CIで押さえるtestは無い。
 
 ## 受け入れ証拠
 
