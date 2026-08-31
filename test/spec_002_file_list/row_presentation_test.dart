@@ -256,60 +256,72 @@ void main() {
       expect(warned.height, clean.height);
     });
 
-    testWidgets('狭幅でも警告の件数が切り詰められない', (tester) async {
+    testWidgets('狭幅でも文字を大きくしても、ヘッダの数字が消えない', (tester) async {
       // **overflow を見るだけでは足りない。** `Flexible` + ellipsis は
       // **内容を切ることで overflow を出さない**ので、はみ出しの検査では
-      // 「文字が消えた」を検出できない(独立reviewが見つけた P1)。
-      // 実際に `200 / 2…` と切れて総数を誤読できる状態になっていた。
+      // 「文字が消えた」を検出できない(独立reviewが2回続けて見つけた)。
+      // 実際に `200 / 2…`(総数が読めない)や `1000 / 1…`(総数を1と誤読)に
+      // なっていた。**情報が減るのではなく誤りになる**ので切り詰め自体を見る。
+      //
+      // ヘッダは `Wrap` なので、入らないときは切らずに次の行へ落ちる。
       for (final width in [320.0, 360.0, 411.0]) {
-        await tester.binding.setSurfaceSize(Size(width, 640));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: appDarkTheme(),
-            home: Scaffold(
-              body: FileListView(
-                key: ValueKey('count-$width'),
-                controller: FileListController(
-                  files: [
-                    for (var i = 0; i < 200; i++)
-                      FileEntry(
-                        name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
-                        modifiedAt: DateTime(2026, 8, 4),
-                        size: 0,
-                        sourceLocation: 'DCIM/Camera',
+        // 2.0 は端末の「フォントサイズ最大」に近い。ここで初めて選択件数が
+        // 2 行を必要とするので、折り返しの下限がここで効く。
+        for (final scale in [1.0, 1.3, 2.0]) {
+          for (final count in [30, 200, 1000]) {
+            await tester.binding.setSurfaceSize(Size(width, 800));
+            addTearDown(() => tester.binding.setSurfaceSize(null));
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: appDarkTheme(),
+                home: MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: Scaffold(
+                    body: FileListView(
+                      key: ValueKey('count-$width-$scale-$count'),
+                      controller: FileListController(
+                        files: [
+                          for (var i = 0; i < count; i++)
+                            FileEntry(
+                              name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                              modifiedAt: DateTime(2026, 8, 4),
+                              size: 0,
+                              sourceLocation: 'DCIM/Camera',
+                            ),
+                        ],
+                        rule: const RenameRule([LiteralToken('photo')]),
                       ),
-                  ],
-                  rule: const RenameRule([LiteralToken('photo')]),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        );
+            );
 
-        // 件数label(何件の問題か)は幅を問わず最後まで読める。
-        final label = find.descendant(
-          of: find.byKey(warningCountKey),
-          matching: find.byType(Text),
-        );
-        expect(
-          tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
-          isFalse,
-          reason: '幅 $width で警告の件数が切り詰められている',
-        );
-
-        // 一般的な携帯の幅では、選択件数も最後まで読める。**総数が切れると
-        // `200 / 20…` が「総数 20」と読める** — 情報が減るのではなく誤りになる。
-        if (width >= 411.0) {
-          expect(
-            tester
-                .renderObject<RenderParagraph>(
-                  find.byKey(const Key('selection-count')),
-                )
-                .didExceedMaxLines,
-            isFalse,
-            reason: '幅 $width で選択件数が切り詰められている',
-          );
+            final where = '幅 $width / 文字 $scale / $count 件';
+            // 何件の問題か。
+            expect(
+              tester
+                  .renderObject<RenderParagraph>(
+                    find.descendant(
+                      of: find.byKey(warningCountKey),
+                      matching: find.byType(Text),
+                    ),
+                  )
+                  .didExceedMaxLines,
+              isFalse,
+              reason: '$where で警告の件数が切り詰められている',
+            );
+            // **総数が切れると `1000 / 1…` が「総数 1」と読める。**
+            expect(
+              tester
+                  .renderObject<RenderParagraph>(
+                    find.byKey(const Key('selection-count')),
+                  )
+                  .didExceedMaxLines,
+              isFalse,
+              reason: '$where で選択件数が切り詰められている',
+            );
+          }
         }
       }
     });

@@ -537,32 +537,43 @@ class _HeaderBar extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
-      child: Row(
+      // **`Row` ではなく `Wrap` である。** `Row` に並べると、幅が足りないときに
+      // 「はみ出す」か「切り詰める」しかない。切り詰めは overflow を出さないので
+      // 検査をすり抜けたうえ、`200 / 20…` のように**総数を誤読できる**形で壊れる
+      // (独立reviewが見つけた)。`Wrap` なら**どちらも intrinsic 幅のまま次の行へ
+      // 落ちる**ので、狭幅でも文字サイズを上げても数字が消えない。
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _SelectAllButton(
-            key: const Key('select-all-toggle'),
-            allSelected: allSelected,
-            enabled: total > 0,
-            onPressed: allSelected ? controller.clearAll : controller.selectAll,
-          ),
-          const SizedBox(width: 12),
-          // **余白は選択件数側が吸う。** `Spacer` を挟んで両方を `Flexible` に
-          // すると Row の余白が等分され、**どちらの文言も intrinsic 幅を取れずに
-          // 切り詰められる**(360dp・200件で `200 / 2…`、411dp で `200 / 20…` と
-          // 出て総数を誤読できた)。件数labelは短く長さがほぼ一定なので、
-          // そちらへ intrinsic 幅を渡し、可変長の選択件数を縮める側にする。
-          Expanded(
-            child: Text(
-              key: const Key('selection-count'),
-              '$selected / $total 件を選択',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SelectAllButton(
+                key: const Key('select-all-toggle'),
+                allSelected: allSelected,
+                enabled: total > 0,
+                onPressed: allSelected
+                    ? controller.clearAll
+                    : controller.selectAll,
               ),
-            ),
+              const SizedBox(width: 12),
+              // 極端な文字サイズでは自分の中で折り返す(次の行へ落ちても
+              // なお入らないときの最後の逃げ道)。
+              Flexible(
+                child: Text(
+                  key: const Key('selection-count'),
+                  '$selected / $total 件を選択',
+                  maxLines: 2,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
           // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
           // **ルールが空のときは出さない** — 001 は空名と重複を返しているので

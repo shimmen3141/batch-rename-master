@@ -182,6 +182,10 @@ void main() {
       final text = _rowWarningTexts(tester).single;
       expect(text, contains('改名されません'));
       expect(text, isNot(contains('トークン')));
+      // **基準日時不明を別立てで並べない**(REQ-021 規則1: 結果へ畳む)。
+      // 行の警告は1つの `Text` へ連結されるので、**widget の個数を数えても
+      // 別立てを検出できない。**文言そのものを見る。
+      expect(text, isNot(contains('作成日時')));
     });
 
     testWidgets('種別が併発しても行の警告が 2 行に収まる', (tester) async {

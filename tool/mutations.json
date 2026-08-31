@@ -1303,9 +1303,23 @@
     {
       "id": "M186",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。",
-      "replace": "          const Spacer(),\n          // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。",
-      "note": "008:T16 ヘッダの余白を等分して文言を切り詰める — 411dpで`200 / 20…`と出て総数を誤読できた(独立reviewが見つけたP1)"
+      "find": "      child: Wrap(\n        spacing: 12,\n        runSpacing: 4,\n        crossAxisAlignment: WrapCrossAlignment.center,",
+      "replace": "      child: Row(\n        spacing: 12,",
+      "note": "008:T16 ヘッダを Wrap から Row へ戻す — 幅が足りないとき次の行へ落とせず、はみ出すか切り詰めるしかなくなる(独立reviewが見つけたP1の型)"
+    },
+    {
+      "id": "M187",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (empty != null) return <Warning>[empty];",
+      "replace": "  if (empty != null) {\n    return <Warning>[empty, ...warnings.whereType<MissingSourceDateWarning>()];\n  }",
+      "note": "008:T16 空名の行で基準日時不明を結果へ畳まず別立てで出す(005 REQ-021 規則1)(独立reviewが追加)"
+    },
+    {
+      "id": "M188",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  '$selected / $total 件を選択',\n                  maxLines: 2,",
+      "replace": "                  '$selected / $total 件を選択',\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
+      "note": "008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1)"
     }
   ]
 }
