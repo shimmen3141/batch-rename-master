@@ -1355,6 +1355,55 @@
       "find": "                Wrap(\n                  spacing: 8,\n                  runSpacing: 2,\n                  crossAxisAlignment: WrapCrossAlignment.center,\n                  children: [\n                    Text(\n                      '命名ルール',",
       "replace": "                Row(\n                  spacing: 8,\n                  children: [\n                    Text(\n                      '命名ルール',",
       "note": "008:T16 見出しと警告を Row に並べる — 幅が足りないとき次の行へ落とせずはみ出す(ヘッダで2回作った退行の型)"
+    },
+    {
+      "id": "M194",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                      for (final cause in causes) Text('• $cause'),",
+      "replace": "                      for (final cause in causes)\n                        for (var i = 0; i < presented.length; i++)\n                          Text('• $cause'),",
+      "note": "008:T16 詳細dialogの原因の節を該当file件数ぶん繰り返す — 005 REQ-009 (2) の付け替え先をwidget側で外す(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M195",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                      for (final item in entry.value) Text('• ${item.message}'),",
+      "replace": "                      Text('• ${entry.value.first.message}'),",
+      "note": "008:T16 詳細dialogのファイルごとの節を種別あたり1件へ間引く — 005 REQ-009 (3)「全件」(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M196",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    return OutlinedButton(\n      key: const Key('configure-rule'),",
+      "replace": "    return OutlinedButton(",
+      "note": "008:T16 作り直した2行buttonからルール編集の入口keyを落とす — 005 REQ-020 の導線(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M197",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    final colors = context.colors;\n    if (empty) {\n      return FilledButton.icon(",
+      "replace": "    final colors = context.colors;\n    if (!empty) {\n      return FilledButton.icon(",
+      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M198",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (!controller.isRuleEmpty)\n            WarningCountView(",
+      "replace": "          if (true)\n            WarningCountView(",
+      "note": "008:T16 ルールが空でもヘッダに件数を出す — 001は空名と重複を返すので「問題なし」は誤りになる(005 REQ-020)(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M199",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  key: ruleSummaryKey,\n                  maxLines: 1,",
+      "replace": "                  key: ruleSummaryKey,\n                  maxLines: 2,",
+      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M200",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
+      "replace": "",
+      "note": "008:T16 広幅の原因の提示から余白を落とす — 対照。余白をwidget側が持つのは、種別0件でSizedBox.shrinkを返すときに外側のPaddingだけが残るのを防ぐため(独立review attempt 4 のP2-1)"
     }
   ]
 }

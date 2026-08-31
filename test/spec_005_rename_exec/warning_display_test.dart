@@ -16,6 +16,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
+import 'package:batch_rename_master/ui/rule_builder/rule_builder_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_builder_workspace.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
@@ -378,6 +379,71 @@ void main() {
       await _openDetailFromCount(tester);
       for (final n in ['1', '2', '3', '4']) {
         expect(_inCauses(find.textContaining('$n 番目のトークン')), findsOneWidget);
+      }
+    });
+
+    testWidgets('広幅でも占有が原因の数に依らず、警告が無ければ余白も出ない', (tester) async {
+      // **広幅(≥840dp・2ペイン)の占有を測る。** 独立review attempt 4 が
+      // 「占有testは 360×640 と 731×411 のどちらも狭幅layoutで、広幅を測る
+      // testが1つも無い」を安全網の穴として挙げた(受容可能と判定されたが、
+      // widget test 数行で閉じるのでここで閉じる)。
+      //
+      // あわせて、**警告が無い通常状態で余白だけが残らない**ことを見る。
+      // `RuleWarningNotice` は種別 0 件で `SizedBox.shrink()` を返すので、
+      // 呼び出し側が `Padding` で包むと死んだ余白ができる(attempt 4 のP2-1)。
+      const size = Size(1200, 800);
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      Future<Rect> pumpWide(int causes) async {
+        final rule = RuleController();
+        addTearDown(rule.dispose);
+        if (causes > 0) {
+          rule.addToken(const SequenceToken(start: 100, digits: 1));
+        }
+        for (var i = 1; i < causes; i++) {
+          rule.addToken(
+            const DateTimeToken(source: DateTimeSource.created, format: 'yyyy'),
+          );
+        }
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(
+              body: RuleBuilderWorkspace(
+                key: ValueKey('wide-$causes'),
+                fileList: FileListController(
+                  files: [_noCreatedAt('a.jpg'), _noCreatedAt('b.jpg')],
+                ),
+                rule: rule,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.getRect(find.byType(RuleBuilderView));
+      }
+
+      // 警告なし(ルールが空)。**余白を含めて何も足されない。**
+      final clean = await pumpWide(0);
+      expect(_ruleNotice(), findsNothing);
+
+      final two = await pumpWide(2);
+      expect(_ruleNotice(), findsOneWidget);
+      expect(
+        two.height,
+        lessThan(clean.height),
+        reason: '警告が出たのにルールビルダーの取り分が変わっていない',
+      );
+
+      // **原因が増えても変わらない**(種別は 2 つが上限)。
+      for (final causes in [3, 5, 10]) {
+        final grown = await pumpWide(causes);
+        expect(
+          grown.height,
+          two.height,
+          reason: '広幅で原因 $causes 本がルールビルダーを削っている',
+        );
       }
     });
 

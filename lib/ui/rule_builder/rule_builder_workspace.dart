@@ -127,12 +127,13 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             builder: (context, child) => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                  child: RuleWarningNotice(
-                    warnings: widget.fileList.warnings,
-                    ruleIsEmpty: widget.fileList.isRuleEmpty,
-                  ),
+                // **`Padding` で包まない。** 種別が 0 件のとき
+                // `RuleWarningNotice` は `SizedBox.shrink()` を返すので、
+                // 外から余白を付けると警告の無い通常状態でも縦を食う
+                // (独立review attempt 4 の P2-1)。余白は widget 側が持つ。
+                RuleWarningNotice(
+                  warnings: widget.fileList.warnings,
+                  ruleIsEmpty: widget.fileList.isRuleEmpty,
                 ),
                 Expanded(child: child!),
               ],

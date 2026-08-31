@@ -265,6 +265,10 @@ void main() {
           home: Scaffold(
             body: FileListView(
               key: ValueKey('list-$count'),
+              // **`onEditRule` を渡す。** 渡さないとルール設定buttonも原因の
+              // 提示も tree に存在せず、下部バーの構成が製品と違うものを
+              // 測ることになる(独立review attempt 3 のP1-2、attempt 4 のP1-1)。
+              onEditRule: () {},
               controller: FileListController(
                 files: [
                   for (var i = 0; i < count; i++)
@@ -296,8 +300,13 @@ void main() {
       // 基準を原因2本(種別が両方そろう最小)に取り、そこから 3 / 5 / 10 本まで
       // 増やしても一覧の高さが1pxも動かないことを見る。
       //
-      // 360×640 は 2026-08-29 の実機確認に近い狭幅、731×411 は横持ちである。
-      for (final size in [const Size(360, 640), const Size(731, 411)]) {
+      // 320×640 は最も狭い想定、360×640 は 2026-08-29 の実機確認に近い狭幅、
+      // 731×411 は横持ちである。
+      for (final size in [
+        const Size(320, 640),
+        const Size(360, 640),
+        const Size(731, 411),
+      ]) {
         for (final scale in [1.0, 1.3, 2.0]) {
           final baseline = await pumpWithCauses(
             tester,
@@ -389,6 +398,8 @@ void main() {
           theme: appDarkTheme(),
           home: Scaffold(
             body: FileListView(
+              // 比較相手(`pumpList`)と同じ製品経路で測る。
+              onEditRule: () {},
               controller: FileListController(
                 files: [_unknownCreatedAt()],
                 // 元名だけのルールなら警告は出ない。
@@ -476,8 +487,10 @@ void main() {
 
     testWidgets('狭幅でヘッダに件数を足してもはみ出さない', (tester) async {
       // 件数表示は `_HeaderBar` へ足した。**既存の選択件数と同じ行**なので、
-      // 狭幅で押し出さないことを確かめる(`_HeaderBar` は文字サイズ最大では
-      // 別途 overflow するが、それは `008:T10` が引き受けた N-8b である)。
+      // 狭幅で押し出さないことを確かめる。**N-8b(文字サイズ最大での
+      // `_HeaderBar` の水平 overflow)はこのtaskが閉じた** — ヘッダを `Wrap`
+      // にしたので落ちる先がある。`textScaler` 3.0 で残るのは語尾の切り詰め
+      // (数字は残る)で、`008:T10` が N-8b′ として引き受けている。
       for (final width in [320.0, 360.0]) {
         final errors = <String>[];
         final previous = FlutterError.onError;

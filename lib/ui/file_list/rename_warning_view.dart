@@ -466,8 +466,12 @@ class RuleWarningNotice extends StatelessWidget {
       ],
     );
     if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);
+    // **外側の余白もこの widget が持つ。** 呼び出し側が `Padding` で包むと、
+    // 種別が 0 件で `SizedBox.shrink()` を返すときにも余白だけが残り、
+    // 警告の無い通常状態でルールビルダーの縦を食う(独立review attempt 4 の P2-1)。
     return Container(
       key: ruleWarningNoticeKey,
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: colors.danger.withValues(alpha: 0.10),
