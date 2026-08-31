@@ -69,6 +69,9 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
   320dpで語尾が切れる(独立review attempt 3 が観測)。ただし**種別は両方読める**ので
   005 REQ-009 (1) は保たれる。
 - 詳細(トグルまたはmodal)で全件と説明が読めることをwidget testで検査する。
+- **`005:T09` / `005:T05` のmanual手順と`emulator-verification.md`**が、作り直した
+  ルール設定buttonの見た目に合っている(literal「ルールを編集」が消えたため。
+  独立review attempt 4 のP2-5)。
 - **置き換えたtestが、元の要求を同じ強さで押さえている**ことを示す。
   `warning_display_test.dart` / `empty_rule_test.dart` の該当箇所は**緩めるのではなく
   付け替える** — 005 REQ-009 の「対象fileとトークンが特定できる」を、新しい提示に対して
@@ -103,12 +106,14 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-31 / 独立review attempt 2 = **FAIL**(P1-1: PR本文が検査より強い保証を主張。実装の欠陥ではない)。P2×4とあわせて修正。ヘッダを`Wrap`へ変えて狭幅の切り詰めを**残さず**閉じ、reviewが足したmutation X-Aを M187 として取り込んだ。`mutation_check.py` = **16 KILLED, 0 SURVIVED**。
 - 2026-08-31 / 独立review attempt 3 = **FAIL**(P1-1: `RuleWarningNotice`に高さの上限が無く、原因が3つ以上・文字倍率2.0で一覧が0pxになり下部バーが画面外へ出る。P1-2: N-9を「閉じた」と書いていたが閉じていない)。**独立reviewが3回FAILしたので`blocked`にし、人間へ選択肢を返す。**
 - 2026-08-31 / 案Dを実装。原因の常設側を**種別だけ**にし、説明を詳細dialogへ移し、`_RuleButton`を参考designの2行の形へ作り直した。`flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **21 KILLED, 0 SURVIVED**
+- 2026-08-31 / 独立review attempt 4 = **FAIL**(P1-1 記録: N-9閉鎖の根拠に存在しない検査範囲を挙げていた。P2×5)。**実装(案D)はreviewerのprobeで独立に裏が取れた** — 設計のやり直しは不要で、直したのは検査範囲の拡張と記録である。
 
 ### 独立review
 
 - Review attempt 1: `dev...e9241da` — **FAIL** — P1-1(狭幅でヘッダの文言が切り詰められる退行)、P2×8。すべて対処済み。
 - Review attempt 2: `dev...cd3e6d6` — **FAIL** — P1-1(記録: PR本文が検査より強い保証を主張)、P2×4。すべて対処済み。
-- Review attempt 3: `origin/dev...494b0bb` — **FAIL** — P1-1(実装: 原因の説明が一覧と下部バーを押し出す)、P1-2(記録: N-9は閉じていない)、P2×2。**記録だけ直し、実装は人間の選択を待つ。**
+- Review attempt 3: `origin/dev...494b0bb` — **FAIL** — P1-1(実装: 原因の説明が一覧と下部バーを押し出す)、P1-2(記録: N-9は閉じていない)、P2×2。**記録だけ直し、実装は人間の選択を待った。**
+- Review attempt 4: `origin/dev...08bc3ac` — **FAIL** — P1-1(記録: N-9閉鎖の根拠に存在しない検査範囲)、P2×5。すべて対処済み。**実装(案D)は独立に裏が取れた。**
 
 **P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
 ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
@@ -253,6 +258,60 @@ reviewerが足したmutation Z-A〜Z-Dは4件ともKILLEDだったが、**Z-A(no
 右ペインの`RuleBuilderView`なので、そちらへ同じ`RuleWarningNotice`を描いた。
 **片方だけ描くと、もう片方のlayoutで説明が行き場を失う**(M177がこれを殺す)。
 
+#### attempt 4 — 実装は通り、記録が3度目の同じ形で落ちた
+
+**案Dはreviewerのprobeで独立に裏が取れた。** `configure-rule` buttonの高さは
+原因2/3/5/10本で1pxも動かず(320/360dp × `textScaler` 1.0/1.3/2.0/3.0)、
+**隠れた第三の伸び方は見つからなかった** — reviewerはルールの長さ(トークン19個・
+長い固定文字12個)、file件数、localeを当たったが、どれも常設側を伸ばさない。
+`dev`比では、320dp×3.0で181px出ていた水平overflowが**全構成で0件**になっており、
+`T10`の N-8b を閉じた判断も裏が取れた。空ルールでは詳細へ到達する経路が
+残っていないことも総当たりtapで確認された。
+
+**FAILの理由はP1-1、記録である。** PR本文がN-9閉鎖の根拠として
+「320〜731dp × `textScaler` 1.0/1.3/2.0 で、**いずれも**`onEditRule`を渡した
+製品経路で検査している」と書いていたが、
+
+- **320dpは占有testが使っていなかった**(`pumpWithCauses`は360と731だけ)。
+- **file件数の不変を測る`pumpList`は`onEditRule`を渡していなかった** —
+  attempt 3 のP1-2とまったく同じ空振りを、別のtestでもう一度作っていた。
+
+主張の中身(320dpでも原因の数で変わらない)はreviewerのprobeで真だと確認されたが、
+**それを押さえるtestが無かった。**
+
+**同じ形の記録の欠陥が3回続いた**(attempt 2 のP1-1、attempt 3 のP1-2、今回)。
+規約どおり解き方を変える。**これまでは指摘されるたびに文を実態へ合わせていたが、
+それだと「書いた範囲」と「検査した範囲」が別々に管理され続ける。**今回は逆向きに、
+**主張が真になるように検査の側を広げた**(320×640を占有testへ足し、`pumpList`へ
+`onEditRule`を渡した)。そのうえでPR本文からは幅と倍率の列挙をやめ、**test名を
+指す**形にした。範囲の正本をtestのparameter listに一本化し、散文が独自に範囲を
+主張できないようにする。
+
+その他: P2-1(広幅の右ペインが`RuleWarningNotice`を無条件の`Padding`で包み、
+種別0件のとき死んだ12pxが残る。広幅横持ちの既存overflowを実測で12px悪化させて
+いた)→ 余白をwidget側へ移した。M200が対照 / P2-2(testのコメントがこのPRの
+閉じた N-8b を現存扱い)→ N-8b′へ書き換え / P2-3(002 specのVER-001/VER-002が
+REQ-015の検証先に`test/spec_002_file_list/`を挙げているのに、そこに`warnings`を
+見るassertionが1つも無かった。実体は005側)→ 例18〜21のunit検証を
+`preview_rows_test.dart`へ置いた / P2-4(`textScaler` 3.0の取り分が「対象外」に
+未開示)→ `T10`へ **N-8b″** として渡した / P2-5(buttonの作り直しで literal
+「ルールを編集」が消え、`005:T09`・`005:T05`のmanual手順と
+`emulator-verification.md`が照合できなくなっていた)→ 3か所を新しいbuttonの
+形へ更新した。**既存taskの受け入れを変える修正を所有taskへ接続する**規約に当たる。
+
+**reviewerが足したmutationは、等価と判定した1件を除いて取り込んだ。**
+Z-A〜Z-D・Z-F・Z-G を M194〜M199 とした。Z-G は M192(折り返し無制限)より弱い
+対照なので落とさずに残す。**Z-E(`showWarningDetail`の`ruleIsEmpty`を無視する)は
+等価mutant** — 呼び出し側2つはどちらもガードされていて`true`で到達せず、仮に
+到達しても空ルールにはトークンが無いので説明は常に空である。**この引数は現状
+deadであり、testで固定することは原理的にできない。**防御として残す。
+
+**安全網の穴 H-1(広幅の占有を測るtestが1つも無い)は、受容可能と判定されたが
+閉じた。** reviewerの判定は「通り抜ける失敗がlayout退行で、条件2に当たらない」で
+正しいが、widget test 数行で閉じるので受容しなかった。1200×800で、警告が無ければ
+余白も出ないこと・原因2→3→5→10本でルールビルダーの取り分が変わらないことを
+検査する。
+
 ### 案Dで何が変わったか(実装の記録)
 
 | | attempt 3 まで | 案D |
@@ -338,12 +397,12 @@ M193 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 見出しと警�
 
 ## Current state / handoff
 
-- Last checkpoint: **案Dを実装した。** `flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / **mutation 21件すべて KILLED**
+- Last checkpoint: 独立review attempt 4 の**P1-1とP2×5を修正**。検査範囲を広げて主張を真にし、reviewerのmutation 6件を取り込んだ。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS
 - Blocker category: なし
-- Waiting for: 独立review attempt 4
+- Waiting for: 独立review attempt 5
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: 独立review attempt 4 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
+- Next Agent action: 独立review attempt 5 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
 
 ### 人間の選択(2026-08-31): **案D — ルール設定buttonへ載せる**
 
@@ -379,7 +438,7 @@ M193 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 見出しと警�
 
 #### design土台へ戻す(離れていた点の是正)
 
-現在の`_RuleButton`は1行の`OutlinedButton.icon`「ルールを編集」で、**参考designの2行の形に
+`T16`以前の`_RuleButton`は1行の`OutlinedButton.icon`「ルールを編集」で、**参考designの2行の形に
 なっていない**。designは次である。
 
 ```text
