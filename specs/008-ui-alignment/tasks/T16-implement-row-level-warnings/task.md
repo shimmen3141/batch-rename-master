@@ -65,7 +65,9 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 
 - 行に警告が出て、どのファイルが何の理由かを行から読み取れることをwidget testで検査する。
 - **すべての種別が併発しても行の警告が2行に収まる**ことを、幅を指定したwidget testで
-  検査する(`T15`が要求に入れた場合)。
+  検査する(`T15`が要求に入れた場合)。**成立範囲は`textScaler` 1.0 である** — 2.0 では
+  320dpで語尾が切れる(独立review attempt 3 が観測)。ただし**種別は両方読める**ので
+  005 REQ-009 (1) は保たれる。
 - 詳細(トグルまたはmodal)で全件と説明が読めることをwidget testで検査する。
 - **置き換えたtestが、元の要求を同じ強さで押さえている**ことを示す。
   `warning_display_test.dart` / `empty_rule_test.dart` の該当箇所は**緩めるのではなく
@@ -99,11 +101,13 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-29 / mutation 7件を`tool/mutations.json`へ追加(M173〜M179)。`mutation_check.py` = **7 KILLED, 0 SURVIVED**。生の出力は下記。
 - 2026-08-29 / 独立review attempt 1 = **FAIL**(P1-1: ヘッダの文言が切り詰められる退行)。P2×8とあわせて修正し、reviewが足したmutation 6件を取り込んだ。`mutation_check.py` = **14 KILLED, 0 SURVIVED**。
 - 2026-08-31 / 独立review attempt 2 = **FAIL**(P1-1: PR本文が検査より強い保証を主張。実装の欠陥ではない)。P2×4とあわせて修正。ヘッダを`Wrap`へ変えて狭幅の切り詰めを**残さず**閉じ、reviewが足したmutation X-Aを M187 として取り込んだ。`mutation_check.py` = **16 KILLED, 0 SURVIVED**。
+- 2026-08-31 / 独立review attempt 3 = **FAIL**(P1-1: `RuleWarningNotice`に高さの上限が無く、原因が3つ以上・文字倍率2.0で一覧が0pxになり下部バーが画面外へ出る。P1-2: N-9を「閉じた」と書いていたが閉じていない)。**独立reviewが3回FAILしたので`blocked`にし、人間へ選択肢を返す。**
 
 ### 独立review
 
 - Review attempt 1: `dev...e9241da` — **FAIL** — P1-1(狭幅でヘッダの文言が切り詰められる退行)、P2×8。すべて対処済み。
 - Review attempt 2: `dev...cd3e6d6` — **FAIL** — P1-1(記録: PR本文が検査より強い保証を主張)、P2×4。すべて対処済み。
+- Review attempt 3: `origin/dev...494b0bb` — **FAIL** — P1-1(実装: 原因の説明が一覧と下部バーを押し出す)、P1-2(記録: N-9は閉じていない)、P2×2。**記録だけ直し、実装は人間の選択を待つ。**
 
 **P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
 ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
@@ -170,6 +174,63 @@ KILLED**(X-CD)であり、片方ずつのmutationは二重防御の片側を外�
 X-K(行の警告を選択状態でゲートする)は等価mutant — `validate`は選択されたfileしか
 見ないので、ゲートしてもしなくても結果が同じである。
 
+#### attempt 3 — 3回目のFAIL(`blocked`)
+
+**ヘッダの切り詰めは直っていた。** reviewerが自分のprobeで確認し、`dev`と比べて
+「320dp × textScaler 3.0 で `Row` が水平に181px overflow していたのが、overflowも
+切り詰めも消えた」ことを示した。attempt 1/2 の「総数を誤読できる」形は再現しない。
+`T10`の N-8b を閉じた判断も裏が取れている。
+
+**だが別の場所で同じ種類の壊れ方を作っていた。** `RuleWarningNotice`(REQ-009 (2) の
+原因の説明)に**高さの上限も scroll も無い**。原因(トークン)の数と文字倍率で
+青天井に伸び、外側`Column`の非flexな子として一覧と下部バーを押し出す。
+
+私自身のprobe(`onEditRule`を渡した狭幅の製品経路。30件、原因は連番の桁不足1つ +
+作成日時不明を出すトークンn本):
+
+| 画面 | textScaler | 原因 | notice高 | 一覧高 | overflow |
+|---|---|---|---|---|---|
+| 360×640 | 1.0 | 2 / 3 / 5 | 60 / 92 / 156 | 408 / 376 / 312 | 0 |
+| 360×640 | 1.3 | 2 / 3 / 5 | 117 / 180 / 306 | 317 / 254 / **128** | 0 |
+| 360×640 | 2.0 | 2 | 243 | **156** | 0 |
+| 360×640 | 2.0 | 3 | 408 | **0** | **bottom 9px** |
+| 360×640 | 2.0 | 5 | 738 | **0** | **bottom 339px** |
+| 411×731 | 2.0 | 5 | 606 | **0** | **bottom 116px** |
+| 731×411(横持ち) | 2.0 | 5 | 309 | **0** | **bottom 101px** |
+
+**下部バーの「ルール設定」「実行」が画面外へ出る。**scrollできないので、noticeが
+「ルールを直せ」と言っている当のルールへ到達できない。広幅では代わりに右ペインの
+`RuleBuilderView`が切れ、トークン追加バーが隠れる。
+
+**これは`dev`が明示的に持っていた保証を代替なしで外した退行である。**
+`RenameWarningPanel.detailMaxHeightFor()`は画面高の32%を上限にし、超過分をscrollへ
+送っていた(doc: 「**画面を警告で埋めない**」)。集約帯を消したときに、帯と一緒に
+**この上限も消していた**。
+
+**P1-2: N-9 は閉じていない。** `task.md`とPR本文の両方が「件数が増えても一覧の
+取り分が変わらない → N-9 がここで閉じる」と書いていたが、前半(**file件数**に対する
+不変性)が真なだけである。N-9 の主語は**画面占有**で、置換先は**別の変数(原因の数 ×
+文字倍率)で同じ画面占有を起こす**。さらに根拠に挙げた`row_presentation_test.dart`の
+3つのtestWidgetsは**すべて`onEditRule`を渡していない**ので、測っている構成に
+`RuleWarningNotice`が存在しない。**N-15-1(「widgetが無いから通る」)と同じ空振り**を
+自分でもう一度作っていた。
+
+P2-1(受け入れ証拠「すべての種別が併発しても行の警告が2行に収まる」を textScaler 1.0
+でしか検査していない。2.0 では語尾が切れる。ただし**種別は両方読める**ので
+REQ-009 (1) は破れていない)→ 記述へ文字倍率の範囲を書き足す。
+P2-2(広幅で`preview`が1フレームに2回評価される。docに明記済み・受容可能)→
+引き受け先候補は`T09`。
+
+reviewerが足したmutation Z-A〜Z-Dは4件ともKILLEDだったが、**Z-A(noticeを8倍の高さに
+する)のKILLEDは偶発である。**落ちたのは高さを主張するtestではなく、
+`empty_rule_test.dart`の行を探すtestが「noticeが伸びて行がviewportから押し出された」
+ために `row-warning` を見つけられなかったものである。**占有を直接主張するassertionは
+どこにも無い**(`dev`には`detailMaxHeightFor`を固定するunit testが3本あり、このdiffで
+削除されている)。
+
+**規約により、独立reviewが合計3回FAILしたのでこのtaskを`blocked`にし、人間へ
+選択肢を返す。**記録の誤り(P1-2・P2-1)だけ先に直し、実装は選択を待つ。
+
 ### 選んだ置き場所(要求ではない)
 
 **005 revision 8.0 は場所を課さない。** 下は`T15`の設計指針と参考designに沿って
@@ -234,13 +295,34 @@ M188 | KILLED | lib/ui/file_list/file_list_view.dart | 選択件数を折り返�
 | 同 `作成日時が不明`が2件ぶん | 行では**種別**が2行に出て、**説明はまとまりに1つ**であることへ付け替えた(繰り返しが消えたことが要求になった) |
 | `empty_rule_test.dart` 1行の`Text.data`が結果と原因の両方を含む | **行は結果だけ**・**詳細に結果と原因がまとまって1件**、へ分けた |
 | 同 REQ-020 を`renameWarningsKey`の不在で押さえる | **廃止するkeyに依存しない形**へ(行の警告の不在・説明の不在・**件数labelそのものの不在**)。ルールが空のときは「問題なし」も出さない(P2-10)ので、`warningCountKey`が`findsNothing`であることを見る。M174が殺す |
-| `row_presentation_test.dart` 帯の高さ(T07の(i)) | 帯が無くなったので、**件数が増えても一覧の取り分が変わらない**ことへ置き換えた(N-9 がここで閉じる) |
+| `row_presentation_test.dart` 帯の高さ(T07の(i)) | 帯が無くなったので、**file件数が増えても一覧の取り分が変わらない**ことへ置き換えた。**これは N-9 を閉じていない**(独立review attempt 3 のP1-2) — N-9 の主語は画面占有で、置換先は**原因の数 × 文字倍率**という別の変数で同じ占有を起こす。しかもこの3つのtestは`onEditRule`を渡していないので、測っている構成に`RuleWarningNotice`が存在しない |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 の**P1-1とP2×4を修正**。ヘッダを`Wrap`へ変えて狭幅の切り詰めを閉じた。`flutter test` = PASS(734) / `analyze` = PASS / `format` = PASS / **mutation 16件すべて KILLED**
-- Blocker category: なし
-- Waiting for: 独立review attempt 3
-- Requested action: なし
-- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: 独立reviewを再度起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**件数の多い状態**を含む)を依頼する
+- Last checkpoint: 独立review attempt 3 = **FAIL**。**3回目のFAILなので`blocked`。**記録の誤り(P1-2 N-9・P2-1 文字倍率の範囲)だけ直した。実装(P1-1)は人間の選択待ち。
+- Blocker category: **人間の選択**(提示の枠組み)
+- Waiting for: 下の3案からの選択
+- Requested action: `RuleWarningNotice`(REQ-009 (2) の原因の説明)の占有をどう有界にするかを選ぶ
+- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings` @ `494b0bb`(PR #161、Draft)
+- Next Agent action: 選ばれた案を実装し、占有を**直接**主張するtest(`onEditRule`を渡した構成・原因複数・小さいsurface)を足して独立review attempt 4 を起動する
+
+### 人間へ返す選択肢
+
+**共通の事実**: 005 revision 8.0 は REQ-009 (2) の**場所・文言・UI部品を自由**としている。
+説明を「ルールを変更する操作のそばへ常設する」のは`T16`が選んだ置き場所であって、
+契約の要求ではない。REQ-009 (3)(全件と各説明を読める提示)は詳細dialogが既に満たす。
+
+| 案 | 何をするか | 占有 | 契約 | diffの大きさ |
+|---|---|---|---|---|
+| **A. 上限とscrollを戻す** | `RuleWarningNotice`へ`ConstrainedBox(maxHeight: 画面高の一定割合)` + 内側scroll。`dev`の`detailMaxHeightFor`と同型 | 画面高の一定割合で**有界**。中身はscrollで送る | REQ-009 (2) をそのまま満たす | 小(widget 1つ + test) |
+| **B. 常設は1行の要約だけにする** | 導線のそばには`ルールに N 件の問題`の**1行**を置き、原因ごとの説明は詳細dialogだけが持つ | 原因の数にも文字倍率にも依らず**定数** | REQ-009 (2) を満たす(説明は原因ごとに1つ、dialog内)。**枠組みを変える案** | 中(常設側を作り直し + testの付け替え) |
+| **C. 常設側を`T16`から外す** | 行の提示・ヘッダの件数・詳細dialogだけでmergeし、「導線のそばの説明」は占有の予算を持つ別taskへ送る | 常設分が**ゼロ** | REQ-009 (2)(3) は詳細dialogで満たす | 小(notice の描画を落とす) |
+
+**推奨は B。**Aは`dev`の保証を戻すだけで確実だが、**同じ形の壊れ方をこのtaskで3回作った**
+のは「可変長のものを固定の縦位置へ常設した」ことが根なので、根を残す。Bは占有を
+**定数**にするので、原因が何個でも文字が何倍でも壊れない。Cは「そもそもここまでやる
+必要があるか」の側で、契約は満たすが、ルールを直す導線のそばで**何を直せばよいかが
+分からなくなる**(件数だけでは`[連番]の桁が足りない`が読めない)。
+
+Bを採るなら、`T15`が決めた設計指針「**バーは原因、行は結果**」の「バー」の中身が
+「原因の説明そのもの」から「原因があることと件数」へ変わる。指針の言い換えが要る。
