@@ -1240,7 +1240,7 @@
     {
       "id": "M177",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: widget.fileList.warnings,\n                    ruleIsEmpty: widget.fileList.isRuleEmpty,\n                  ),\n                ),\n",
+      "find": "                RuleWarningNotice(\n                  warnings: widget.fileList.warnings,\n                  ruleIsEmpty: widget.fileList.isRuleEmpty,\n                ),",
       "replace": "",
       "note": "008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う"
     },

@@ -436,6 +436,23 @@ void main() {
         reason: '警告が出たのにルールビルダーの取り分が変わっていない',
       );
 
+      // **余白は widget 側が持つ。** 呼び出し側が `Padding` で包むと、種別が
+      // 0 件のとき余白だけが残る(attempt 4 のP2-1)。上の `clean` がそれを
+      // 押さえ、ここが「包むのをやめた結果、余白が消えていない」を押さえる。
+      // **余白は widget 側が持つ。** 呼び出し側が `Padding` で包むと、種別が
+      // 0 件のとき余白だけが残る(attempt 4 のP2-1)。上の `clean` がそれを
+      // 押さえ、ここが「包むのをやめた結果、余白まで消えていない」を押さえる。
+      // `getRect` が返すのは margin を含む外側の箱なので、中身との差を見る。
+      final notice = tester.getRect(_ruleNotice());
+      final inner = tester.getRect(
+        find.descendant(of: _ruleNotice(), matching: find.byType(Wrap)),
+      );
+      // margin 12 + padding 10 = 22。margin を落とすと 10 になる。
+      expect(inner.left - notice.left, 22, reason: '左の余白が無い');
+      expect(notice.right - inner.right, 22, reason: '右の余白が無い');
+      // margin 12 + padding 6 = 18。margin を落とすと 6 になる。
+      expect(inner.top - notice.top, 18, reason: '上の余白が無い');
+
       // **原因が増えても変わらない**(種別は 2 つが上限)。
       for (final causes in [3, 5, 10]) {
         final grown = await pumpWide(causes);
