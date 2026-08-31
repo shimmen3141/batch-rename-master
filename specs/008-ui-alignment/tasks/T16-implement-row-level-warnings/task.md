@@ -102,6 +102,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-29 / 独立review attempt 1 = **FAIL**(P1-1: ヘッダの文言が切り詰められる退行)。P2×8とあわせて修正し、reviewが足したmutation 6件を取り込んだ。`mutation_check.py` = **14 KILLED, 0 SURVIVED**。
 - 2026-08-31 / 独立review attempt 2 = **FAIL**(P1-1: PR本文が検査より強い保証を主張。実装の欠陥ではない)。P2×4とあわせて修正。ヘッダを`Wrap`へ変えて狭幅の切り詰めを**残さず**閉じ、reviewが足したmutation X-Aを M187 として取り込んだ。`mutation_check.py` = **16 KILLED, 0 SURVIVED**。
 - 2026-08-31 / 独立review attempt 3 = **FAIL**(P1-1: `RuleWarningNotice`に高さの上限が無く、原因が3つ以上・文字倍率2.0で一覧が0pxになり下部バーが画面外へ出る。P1-2: N-9を「閉じた」と書いていたが閉じていない)。**独立reviewが3回FAILしたので`blocked`にし、人間へ選択肢を返す。**
+- 2026-08-31 / 案Dを実装。原因の常設側を**種別だけ**にし、説明を詳細dialogへ移し、`_RuleButton`を参考designの2行の形へ作り直した。`flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **21 KILLED, 0 SURVIVED**
 
 ### 独立review
 
@@ -239,13 +240,45 @@ reviewerが足したmutation Z-A〜Z-Dは4件ともKILLEDだったが、**Z-A(no
 | 005 REQ-009 | 何を | どこへ |
 |---|---|---|
 | (1) 種別が一覧を見た状態で分かる | 短い一文(`RowWarningView`) | **行**の変更後名のすぐ下 |
-| (2) 変わらない説明を件数ぶん繰り返さない | 原因の説明(`RuleWarningNotice`) | **ルールを変更する操作のそば**。狭幅=下部バーの直前、広幅=右ペインの上 |
-| (3) 全件と説明を読める | 種別ごとにまとめたdialog | **ヘッダの件数**と**行の警告**の両方から開く |
+| (2) 変わらない説明を件数ぶん繰り返さない | **種別だけ**(`RuleWarningNotice`) | **ルールを変更する操作のそば**。狭幅=ルール設定button内「命名ルール」見出しの右、広幅=右ペインの上 |
+| 同 | 原因ごとの説明(`warningDetailCausesKey`の節) | **詳細dialogの中**。常設しない |
+| (3) 全件と説明を読める | ファイルごとの全件(`warningDetailFilesKey`の節) | 同じdialog。**ヘッダの件数**と**行の警告**の両方から開く |
+
+**常設側が説明ではなく種別なのは、占有を定数にするためである**(案D。下記)。
+説明は原因(トークン)ごとに1つなので**トークンの数だけ増える**が、種別は
+`桁不足`と`基準日時なし`の**2つしかない**。
 
 **広幅と狭幅で導線が違う。** `RuleBuilderWorkspace`は幅 840dp で分かれ、広幅では
 `onEditRule`を渡さないので**下部バーにルール設定の導線が無い**。広幅のルール編集は
 右ペインの`RuleBuilderView`なので、そちらへ同じ`RuleWarningNotice`を描いた。
 **片方だけ描くと、もう片方のlayoutで説明が行き場を失う**(M177がこれを殺す)。
+
+### 案Dで何が変わったか(実装の記録)
+
+| | attempt 3 まで | 案D |
+|---|---|---|
+| 常設側の中身 | 原因ごとの説明(**トークンの数だけ増える**) | **種別だけ**(`桁不足`/`基準日時なし`。最大2つ) |
+| 狭幅の置き場所 | 下部バーの手前へ積んだ独立した子 | **ルール設定button内**「命名ルール」見出しの右 |
+| 広幅の置き場所 | 右ペイン上部 | 同じ(中身だけ有界化) |
+| 説明の置き場所 | 常設側 | **詳細dialogの「ルールの問題」節** |
+| 占有 | 原因の数 × 文字倍率で青天井 | 原因の数に**依らない**。種別1→2の段差が1行で止まる |
+
+`_RuleButton`を参考designの2行(`[✎] 命名ルール / <設定中のルール> [編集]`)へ
+作り直した。**「命名ルール」見出しの右の空きが、開発者が指した場所である。**
+設定中のルールは`describeRuleSummary`(=`describeToken`を`+`で連結した最小形)で、
+`maxLines: 1` + 省略記号。designどおり伸びない。
+
+**見出しと種別は`Wrap`である。**幅が足りないときに切り詰めると種別が読めなくなる —
+ヘッダで2回作った退行と同じ形になる。次の行へ落ちても、種別は最大2つなので
+増える高さは1行ぶんで止まる。
+
+`showWarningDetail`は2つの節を持つようになった。**原因ごとの説明**
+(`warningDetailCausesKey`)と**ファイルごとの全件**(`warningDetailFilesKey`)である。
+節にkeyを与えたのは、testが両者を混ぜて数えないためである — 全件側は件数ぶん
+並んでよく、原因側は原因の数だけしか無い。
+
+ルールが空ならbuttonは`変更する名前を設定する`の主役表示のままで、種別も出さない
+(005 REQ-020)。
 
 ### 判定を変えていない
 
@@ -265,23 +298,28 @@ reviewerが足したmutation Z-A〜Z-Dは4件ともKILLEDだったが、**Z-A(no
 command: flutter test
 ID | STATUS | FILE | NOTE | DETAIL
 --- | --- | --- | --- | ---
-M173 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行から警告の種別が読めなくなる(REQ-009 (1)) | exit 1
-M174 | KILLED | lib/ui/file_list/rename_warning_view.dart | ルールが空でも行へ警告を出す(REQ-020) | exit 1
-M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 原因の説明を件数ぶん繰り返す(REQ-009 (2)) | exit 1
-M176 | KILLED | lib/ui/file_list/rename_warning_view.dart | 空名の行にも重複を出す(REQ-021 規則2) | exit 1
-M177 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 広幅で原因の説明を配り忘れる | exit 1
-M178 | KILLED | lib/ui/file_list/file_list_view.dart | 行の警告を sortMode でゲートする(N-15-2) | exit 1
-M179 | KILLED | lib/ui/file_list/file_list_view.dart | 行の警告から詳細を開けなくする(対照) | exit 1
-M180 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行の警告を1行へ切り詰める(attempt 1 が追加) | exit 1
-M181 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行で同じ種別を件数ぶん繰り返す(attempt 1 が追加) | exit 1
-M182 | KILLED | lib/ui/file_list/rename_warning_view.dart | 件数を提示単位でなく生の件数で数える(attempt 1 が追加) | exit 1
-M183 | KILLED | lib/ui/file_list/file_list_view.dart | 狭幅で原因の説明を配り忘れる(attempt 1 が追加) | exit 1
-M184 | KILLED | lib/ui/file_list/file_list_controller.dart | 桁不足を全行へ載せる(002 REQ-015 例19)(attempt 1 が追加) | exit 1
-M185 | KILLED | lib/ui/file_list/file_list_controller.dart | 行の警告を別インスタンスで引き当てる(attempt 1 が追加) | exit 1
-M186 | KILLED | lib/ui/file_list/file_list_view.dart | ヘッダを Wrap から Row へ戻す(attempt 1 のP1の型) | exit 1
-M187 | KILLED | lib/ui/file_list/rename_warning_view.dart | 空名の行で基準日時不明を別立てで出す(REQ-021 規則1)(attempt 2 が追加) | exit 1
-M188 | KILLED | lib/ui/file_list/file_list_view.dart | 選択件数を折り返さず切り詰める(attempt 2 のP2の型) | exit 1
-16 mutations: 16 KILLED, 0 SURVIVED, 0 SKIPPED
+M173 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する) | exit 1
+M174 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 ルールが空でも行へ警告を出す(005 REQ-020。廃止した帯のkeyでは検出できない穴) | exit 1
+M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-009 (2)) | exit 1
+M176 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 空名の行にも重複を出す(005 REQ-021 規則2。改名されないfileの重複は生じない) | exit 1
+M177 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う | exit 1
+M178 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2) | exit 1
+M179 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く | exit 1
+M180 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加) | exit 1
+M181 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 行で同じ種別を件数ぶん繰り返す — 日時トークンが2本だと同じ文言が2回並ぶ(独立reviewが追加) | exit 1
+M182 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 件数を提示単位ではなく001の生の件数で数える — 詳細に並ぶ件数と食い違う(独立reviewが追加) | exit 1
+M183 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 狭幅でルール設定button内の原因の提示を配り忘れる — M177(広幅)の対照(独立reviewが追加。T16でbutton内へ移設) | exit 1
+M184 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T16 対象fileを持たない桁不足を全行へ載せる(002 REQ-015 例19)(独立reviewが追加) | exit 1
+M185 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T16 行の警告を別インスタンスで引き当てる — validateは選択を写した複製を見るのでidentityがずれる(独立reviewが追加) | exit 1
+M186 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 ヘッダを Wrap から Row へ戻す — 幅が足りないとき次の行へ落とせず、はみ出すか切り詰めるしかなくなる(独立reviewが見つけたP1の型) | exit 1
+M187 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 空名の行で基準日時不明を結果へ畳まず別立てで出す(005 REQ-021 規則1)(独立reviewが追加) | exit 1
+M188 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1) | exit 1
+M189 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 常設側を種別ではなく警告1件ごとに出す — 原因の数とfile件数で伸び、一覧と下部バーを押し出す(独立review attempt 3 のP1-1の型) | exit 1
+M190 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 説明そのものを常設側へ戻す — 原因の数×文字倍率で伸びて一覧が0pxになる(独立review attempt 3 のP1-1そのもの) | exit 1
+M191 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2)) | exit 1
+M192 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号) | exit 1
+M193 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 見出しと警告を Row に並べる — 幅が足りないとき次の行へ落とせずはみ出す(ヘッダで2回作った退行の型) | exit 1
+21 mutations: 21 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 **引き受けた安全網の穴は両方とも殺した。** N-15-1 は M174、N-15-2 は M178 である。
@@ -293,18 +331,19 @@ M188 | KILLED | lib/ui/file_list/file_list_view.dart | 選択件数を折り返�
 |---|---|
 | `warning_display_test.dart` 帯の`Text`の数が`警告件数 + 1` | **提示単位の数を数えるのをやめた**(帯が無い)。REQ-009 の3つへ組み替え、種別が行から読めること・説明が1つであること・詳細に全件あることを検査する |
 | 同 `作成日時が不明`が2件ぶん | 行では**種別**が2行に出て、**説明はまとまりに1つ**であることへ付け替えた(繰り返しが消えたことが要求になった) |
+| 同 説明が常設側に1つ(`_inRuleNotice`) | 案Dで説明が詳細dialogへ移ったので、**dialogの原因の節**(`warningDetailCausesKey`)で数える形へ付け替えた。節にkeyを与え、**ファイルごとの全件**(`warningDetailFilesKey`)と混ぜて数えない。30件でも節の中は見出し1+説明1、トークン2本なら見出し1+説明2。**弱めていない** — 常設側には種別が最大2つしか無いことを別に検査する |
 | `empty_rule_test.dart` 1行の`Text.data`が結果と原因の両方を含む | **行は結果だけ**・**詳細に結果と原因がまとまって1件**、へ分けた |
 | 同 REQ-020 を`renameWarningsKey`の不在で押さえる | **廃止するkeyに依存しない形**へ(行の警告の不在・説明の不在・**件数labelそのものの不在**)。ルールが空のときは「問題なし」も出さない(P2-10)ので、`warningCountKey`が`findsNothing`であることを見る。M174が殺す |
-| `row_presentation_test.dart` 帯の高さ(T07の(i)) | 帯が無くなったので、**file件数が増えても一覧の取り分が変わらない**ことへ置き換えた。**これは N-9 を閉じていない**(独立review attempt 3 のP1-2) — N-9 の主語は画面占有で、置換先は**原因の数 × 文字倍率**という別の変数で同じ占有を起こす。しかもこの3つのtestは`onEditRule`を渡していないので、測っている構成に`RuleWarningNotice`が存在しない |
+| `row_presentation_test.dart` 帯の高さ(T07の(i)) | 帯が無くなったので、**file件数が増えても一覧の取り分が変わらない**ことへ置き換えた。**これだけでは N-9 を閉じていなかった**(独立review attempt 3 のP1-2) — N-9 の主語は画面占有で、置換先は**原因の数 × 文字倍率**という別の変数で同じ占有を起こしたうえ、この3つのtestは`onEditRule`を渡しておらず測っている構成に原因の提示が存在しなかった。案Dの実装とあわせて、**`onEditRule`を渡した製品経路**で「原因2→3→5→10本で一覧の高さが1pxも動かない」と「種別1→2の段差が1行で収まる」を足し、**ここで N-9 を閉じた** |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 の**P1-1へ、人間が選んだ案Dで対処中**。`blocked`は解除した(選択が済んだため)。
+- Last checkpoint: **案Dを実装した。** `flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / **mutation 21件すべて KILLED**
 - Blocker category: なし
-- Waiting for: なし
+- Waiting for: 独立review attempt 4
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: 案Dを実装し、占有を**直接**主張するtest(`onEditRule`を渡した構成・原因1〜5・文字倍率を振る)を足して独立review attempt 4 を起動する
+- Next Agent action: 独立review attempt 4 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
 
 ### 人間の選択(2026-08-31): **案D — ルール設定buttonへ載せる**
 
