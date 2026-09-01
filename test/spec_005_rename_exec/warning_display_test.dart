@@ -456,6 +456,10 @@ void main() {
       expect(notice.right - inner.right, 22, reason: '右の余白が無い');
       // margin 12 + padding 6 = 18。margin を落とすと 6 になる。
       expect(inner.top - notice.top, 18, reason: '上の余白が無い');
+      // 下は padding 6 だけ(margin の bottom は 0)。**4辺すべてを見る** —
+      // 3辺だけ固定すると、残る1辺で占有を増やす退行がすり抜ける
+      // (独立review attempt 5 の mutation Y-D)。
+      expect(notice.bottom - inner.bottom, 6, reason: '下に余分な余白がある');
 
       // **原因が増えても変わらない**(種別は 2 つが上限)。
       for (final causes in [3, 5, 10]) {
