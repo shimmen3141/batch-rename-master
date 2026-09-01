@@ -476,7 +476,10 @@ M197 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 空ルールの�
 M198 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 ルールが空でもヘッダに件数を出す — 001は空名と重複を返すので「問題なし」は誤りになる(005 REQ-020)(独立review attempt 4 が追加) | exit 1
 M199 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加) | exit 1
 M200 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原因の提示から余白を落とす — 対照。余白をwidget側が持つのは、種別0件でSizedBox.shrinkを返すときに外側のPaddingだけが残るのを防ぐため(独立review attempt 4 のP2-1) | exit 1
-28 mutations: 28 KILLED, 0 SURVIVED, 0 SKIPPED
+M201 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | 008:T16 呼び出し側が原因の提示を Padding で包み直す — 種別0件で SizedBox.shrink の周りに死んだ余白が残る(独立review attempt 4 のP2-1の退行そのもの)。M200(余白を落とす向き)の反対向きで、両方が要る(独立review attempt 5 が追加) | exit 1
+M202 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原因の提示の下余白だけを増やす — 左右上のgapを固定した検査が別方向の占有変化を見ているか(独立review attempt 5 の Y-D) | exit 1
+M203 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 常設側の空判定を「種別0件」から「ルールが空」へ差し替える — ルールは非空だがルール由来の警告が0件のとき、文言の無い枠と余白だけの箱が居座る(独立review attempt 6 の V-A) | exit 1
+31 mutations: 31 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 **引き受けた安全網の穴は両方とも殺した。** N-15-1 は M174、N-15-2 は M178 である。
