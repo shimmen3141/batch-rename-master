@@ -1404,6 +1404,20 @@
       "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
       "replace": "",
       "note": "008:T16 広幅の原因の提示から余白を落とす — 対照。余白をwidget側が持つのは、種別0件でSizedBox.shrinkを返すときに外側のPaddingだけが残るのを防ぐため(独立review attempt 4 のP2-1)"
+    },
+    {
+      "id": "M201",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "                RuleWarningNotice(\n                  warnings: widget.fileList.warnings,\n                  ruleIsEmpty: widget.fileList.isRuleEmpty,\n                ),",
+      "replace": "                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: widget.fileList.warnings,\n                    ruleIsEmpty: widget.fileList.isRuleEmpty,\n                  ),\n                ),",
+      "note": "008:T16 呼び出し側が原因の提示を Padding で包み直す — 種別0件で SizedBox.shrink の周りに死んだ余白が残る(独立review attempt 4 のP2-1の退行そのもの)。M200(余白を落とす向き)の反対向きで、両方が要る(独立review attempt 5 が追加)"
+    },
+    {
+      "id": "M202",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
+      "replace": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 40),",
+      "note": "008:T16 広幅の原因の提示の下余白だけを増やす — 左右上のgapを固定した検査が別方向の占有変化を見ているか(独立review attempt 5 の Y-D)"
     }
   ]
 }

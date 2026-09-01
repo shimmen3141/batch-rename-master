@@ -200,7 +200,7 @@ void main() {
       expect(missing.file.name, 'nodate.jpg');
     });
 
-    test('未選択の item も自分の警告を持つ(選択状態でゲートしない)', () {
+    test('選択を外すと、その item の行データからも警告が消える', () {
       final files = [_f('alpha.txt'), _f('bravo.txt')];
       final c = FileListController(
         files: files,
@@ -208,7 +208,10 @@ void main() {
       );
       c.toggleSelection(c.rows.first.source);
 
-      // 選択を外した行は改名の対象にならないので、001 の判定からも外れる。
+      // **`validate` は選択を写した複製しか見ない。** 選択を外した行は改名の
+      // 対象にならないので、001 の判定からも外れる。したがって「未選択でも
+      // 自分の警告を持つ」という性質は**原理的に成立しえず、検査もできない**
+      // (独立review attempt 5 のP2-1。testの名前が中身と食い違っていた)。
       final unselected = c.rows.firstWhere((row) => !row.selected);
       expect(unselected.warnings, isEmpty);
       final selected = c.rows.firstWhere((row) => row.selected);

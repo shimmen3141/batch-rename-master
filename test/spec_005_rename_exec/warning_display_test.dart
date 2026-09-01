@@ -425,8 +425,15 @@ void main() {
       }
 
       // 警告なし(ルールが空)。**余白を含めて何も足されない。**
+      //
+      // **相対比較ではこれを押さえられない。** 「警告があるほうが取り分が
+      // 小さい」だけだと、呼び出し側が `Padding` で包み直しても両方が同じだけ
+      // ずれて通る(独立review attempt 5 の mutation Y-A が実際にすり抜けた)。
+      // **器の先頭と高さを絶対値で固定する。**
       final clean = await pumpWide(0);
       expect(_ruleNotice(), findsNothing);
+      expect(clean.top, 0, reason: '警告が無いのに器の先頭が下がっている');
+      expect(clean.height, size.height, reason: '警告が無いのに縦が削られている');
 
       final two = await pumpWide(2);
       expect(_ruleNotice(), findsOneWidget);
@@ -436,12 +443,9 @@ void main() {
         reason: '警告が出たのにルールビルダーの取り分が変わっていない',
       );
 
-      // **余白は widget 側が持つ。** 呼び出し側が `Padding` で包むと、種別が
-      // 0 件のとき余白だけが残る(attempt 4 のP2-1)。上の `clean` がそれを
-      // 押さえ、ここが「包むのをやめた結果、余白が消えていない」を押さえる。
-      // **余白は widget 側が持つ。** 呼び出し側が `Padding` で包むと、種別が
-      // 0 件のとき余白だけが残る(attempt 4 のP2-1)。上の `clean` がそれを
-      // 押さえ、ここが「包むのをやめた結果、余白まで消えていない」を押さえる。
+      // **余白は widget 側が持つ。** 上の `clean` が「包み直しても余白が
+      // 残らない」を押さえ、ここが「包むのをやめた結果、余白まで消えていない」
+      // を押さえる。**両方向が要る。**
       // `getRect` が返すのは margin を含む外側の箱なので、中身との差を見る。
       final notice = tester.getRect(_ruleNotice());
       final inner = tester.getRect(
