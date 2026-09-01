@@ -1418,6 +1418,13 @@
       "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
       "replace": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 40),",
       "note": "008:T16 広幅の原因の提示の下余白だけを増やす — 左右上のgapを固定した検査が別方向の占有変化を見ているか(独立review attempt 5 の Y-D)"
+    },
+    {
+      "id": "M203",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    if (kinds.isEmpty) return const SizedBox.shrink();",
+      "replace": "    if (ruleIsEmpty) return const SizedBox.shrink();",
+      "note": "008:T16 常設側の空判定を「種別0件」から「ルールが空」へ差し替える — ルールは非空だがルール由来の警告が0件のとき、文言の無い枠と余白だけの箱が居座る(独立review attempt 6 の V-A)"
     }
   ]
 }

@@ -395,10 +395,18 @@ void main() {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
+      /// [causes] 本の原因を持つルールで広幅を描く。
+      ///
+      /// [causes] が 0 なら**ルールは空ではなく、ルール由来の警告が出ないだけ**の
+      /// 状態にする(元名トークン1本)。空ルールにすると REQ-020 の分岐へ入って
+      /// しまい、**製品でいちばんありふれた「非空・警告0件」の状態を測れない** —
+      /// 独立review attempt 6 の mutation V-A が、この抜けを通り抜けた。
       Future<Rect> pumpWide(int causes) async {
         final rule = RuleController();
         addTearDown(rule.dispose);
-        if (causes > 0) {
+        if (causes == 0) {
+          rule.addToken(const OriginalNameToken());
+        } else {
           rule.addToken(const SequenceToken(start: 100, digits: 1));
         }
         for (var i = 1; i < causes; i++) {
@@ -424,7 +432,7 @@ void main() {
         return tester.getRect(find.byType(RuleBuilderView));
       }
 
-      // 警告なし(ルールが空)。**余白を含めて何も足されない。**
+      // ルールは設定済みだが、ルール由来の警告は0件。**余白を含めて何も足されない。**
       //
       // **相対比較ではこれを押さえられない。** 「警告があるほうが取り分が
       // 小さい」だけだと、呼び出し側が `Padding` で包み直しても両方が同じだけ
@@ -434,6 +442,9 @@ void main() {
       expect(_ruleNotice(), findsNothing);
       expect(clean.top, 0, reason: '警告が無いのに器の先頭が下がっている');
       expect(clean.height, size.height, reason: '警告が無いのに縦が削られている');
+      // ルールが空でないことを確かめる(空ルールなら REQ-020 の分岐で、
+      // 「警告0件だから出ない」を測ったことにならない)。
+      expect(find.byKey(ruleNotConfiguredKey), findsNothing);
 
       final two = await pumpWide(2);
       expect(_ruleNotice(), findsOneWidget);
