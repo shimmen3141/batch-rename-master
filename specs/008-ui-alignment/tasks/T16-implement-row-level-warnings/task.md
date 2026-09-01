@@ -108,6 +108,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-31 / 案Dを実装。原因の常設側を**種別だけ**にし、説明を詳細dialogへ移し、`_RuleButton`を参考designの2行の形へ作り直した。`flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **21 KILLED, 0 SURVIVED**
 - 2026-08-31 / 独立review attempt 4 = **FAIL**(P1-1 記録: N-9閉鎖の根拠に存在しない検査範囲を挙げていた。P2×5)。**実装(案D)はreviewerのprobeで独立に裏が取れた** — 設計のやり直しは不要で、直したのは検査範囲の拡張と記録である。
 - 2026-09-01 / 独立review attempt 5 = **FAIL**(P1-1 記録: 「警告が無ければ余白も出ない」を4か所で主張していたが、assertionは相対比較だけでreviewerのmutation Y-Aがすり抜けた。P2×3)。**実装は全840構成のprobeで裏が取れた** — overflow 0件、一覧0px 0件、下部バーの画面外 0件。
+- 2026-09-01 / 独立review attempt 6 = **PASS**。未解決のP0/P1は無い。指摘はP2×2(記録)で、reviewerは「この状態でmergeしてよい」と結論した。reviewerが足したmutation V-A はSURVIVEDしたが受容せず M203 として閉じた。
 
 ### 独立review
 
@@ -116,6 +117,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - Review attempt 3: `origin/dev...494b0bb` — **FAIL** — P1-1(実装: 原因の説明が一覧と下部バーを押し出す)、P1-2(記録: N-9は閉じていない)、P2×2。**記録だけ直し、実装は人間の選択を待った。**
 - Review attempt 4: `origin/dev...08bc3ac` — **FAIL** — P1-1(記録: N-9閉鎖の根拠に存在しない検査範囲)、P2×5。すべて対処済み。**実装(案D)は独立に裏が取れた。**
 - Review attempt 5: `origin/dev...ffe2247` — **FAIL** — P1-1(記録: 余白の主張をassertionが含まない)、P2×3。すべて対処済み。**実装は840構成のprobeで裏が取れた。**
+- Review attempt 6: `origin/dev...fe9763b` — **PASS** — P0/P1 無し。P2×2(記録)を対処し、V-A を M203 として閉じた。
 
 **P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
 ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
@@ -348,6 +350,43 @@ P2-3(コメント段落の重複)→ 1つにした。
 reviewerに支持された。** 到達しないことと、到達しても結果が同じことの2重の等価性で
 ある。取り込まない。
 
+#### attempt 6 — PASS(2026-09-01)
+
+**開発者が「1回だけ回す」と決めた最後のreviewで、未解決のP0/P1は無かった。**
+reviewerは「この状態でmergeしてよい」と明示的に結論している。
+
+**記録の数値がすべて再現された。**261px / 画面の41% / 一覧25px / 360dpで70px /
+「320×640・3.0で原因2/3/5/10本の一覧高はすべて85.0」/ N-8b′の「320dpの200件以上と
+360dpの1000件で語尾が切れ、数字は残る」まで一致した。**5回続いた「散文がassertionより
+強い」型の欠陥は、数値のレベルでは再発していない。**
+
+`dev`との比較でも、`dev`にあったoverflowは消えている。`textScaler` 2.0(Androidの
+font scale上限)までの全構成で overflow 0件・一覧0px 0件・下部バーの画面外 0件。
+
+**reviewerのmutation V-A はSURVIVEDした。等価mutantではない。**広幅の
+「警告が無ければ余白も出ない」を測る clean case が `pumpWide(0)` = **空ルール**で
+作られており、REQ-020の分岐へ入るため、**製品でいちばんありふれた「非空ルール・
+ルール由来の警告0件」の状態を測っていなかった。**常設側の空判定を「種別0件」から
+「ルールが空」へ差し替えると、その状態で文言の無い枠と余白だけの箱が37px居座るが、
+743件すべてPASSのまま通り抜けた。reviewerは条件2に当たらないとして受容可能と
+判定したが、**test数行で閉じるので受容しなかった**(M203)。
+
+P2-1(PR本文の見出しが「件数にも原因の数にも依らない」と無修飾で一般化していたが、
+ヘッダの件数labelは桁数で1行折り返す。30件→200件で25px動く)→ 一般化を落とし、
+折り返しがあることと、それをはみ出し・切り詰めの側で検査していることを書いた。
+P2-2(`manual-verification.md` が「まだ実装されていません」のまま)→ 本文を書いた。
+
+#### 受容した残余risk(attempt 6)
+
+| 残余risk | 引き受け先 |
+|---|---|
+| `textScaler` **3.0 かつ画面高 ≤ 400dp**(600×360など)で、`dev`に無かったoverflowが出る。Androidのfont scale上限は2.0なので実機では到達しない | `008:T10`(N-8b″へ追記済み) |
+| `textScaler` 3.0 で、行の`名前が空・改名されません`の後半(005 例20の(ii))が320dpで切れる | `008:T10`(N-8b″) |
+| `textScaler` 3.0 で、ヘッダの件数label(`N 件の問題`)の語尾も切れる。N-8b′は選択件数の例しか挙げていなかった | `008:T10`(N-8b′へ追記済み) |
+
+いずれも**`textScaler` 3.0 の領域**で、`T16`が宣言した検証範囲(1.0/1.3/2.0)の外である。
+`dev`も同じ領域では別の形で壊れている。
+
 ### 案Dで何が変わったか(実装の記録)
 
 | | attempt 3 まで | 案D |
@@ -456,12 +495,12 @@ M200 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 5 の**P1-1とP2×3を修正**。余白を4辺すべて絶対値で固定し、reviewerのmutation Y-A/Y-D を M201/M202 として取り込んだ(どちらもKILLED)。占有の主張を散文から落とした。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS
+- Last checkpoint: **独立review attempt 6 = PASS**。P2×2を対処し、V-A を M203 として閉じた。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS / mutation M173〜M203 = **31件すべて KILLED**
 - Blocker category: なし
-- Waiting for: 人間の判断(reviewを続けるか)
+- Waiting for: Android emulatorでのmanual確認
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: 人間の判断を待つ。続ける場合は独立review attempt 6 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
+- Next Agent action: manual結果を`task.md`へ記録し、最終証拠reviewの後に`done`としてPR #161をmergeする。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
 
 ### 人間の選択(2026-08-31): **案D — ルール設定buttonへ載せる**
 
