@@ -498,89 +498,65 @@ M203 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 常設側の
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 6 = PASS**。P2×2を対処し、V-A を M203 として閉じた。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS / mutation M173〜M203 = **31件すべて KILLED**
-- Blocker category: なし
-- Waiting for: Android emulatorでのmanual確認
-- Requested action: なし
-- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: manual結果を`task.md`へ記録し、最終証拠reviewの後に`done`としてPR #161をmergeする。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
+- Last checkpoint: **独立review attempt 6 = PASS**(P0/P1 無し)。`dart format` = PASS / `flutter analyze` = PASS / `flutter test` = **PASS(743)** / `mutation_check.py` M173〜M203 = **31件すべて KILLED, 0 SURVIVED, 0 SKIPPED** / `workspace.py check specs` = PASS
+- Blocker category: **人間のmanual確認待ち**
+- Waiting for: Android emulatorでの手動確認(下の Requested action)
+- Requested action: **開発者へ[`manual-verification.md`](manual-verification.md)の5項目を依頼済み**(2026-09-01)。emulatorで可、15〜25分。**核心は手順2の確認B** — `T07`から引き受けた残余risk **N-9**(2026-08-29に開いた警告帯が一覧の見える範囲の半分以上を覆った)が閉じているかを実機で見る
+- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings` @ `397aa15`(PR #161、Draft)。**codeの最終commitは `a872a21`** — それ以降はtestと記録だけで、appの動きは変わらない
+- Next Agent action: 下の「新しいsessionのAgentへ」を読む
 
-### 人間の選択(2026-08-31): **案D — ルール設定buttonへ載せる**
+### 新しいsessionのAgentへ(2026-09-01 時点)
 
-3案(A 上限とscroll / B 常設を1行の要約へ / C 常設側を別taskへ)を返したところ、
-開発者が**4つめ**を挙げた — **参考designのルール設定button内に出す**。採用する。
+**このtaskの実装・検査は完了しており、残っているのは人間のmanual確認だけである。**
 
-**この案は`T15`が私へ申し送っていたものである。**`T15`の`task.md`(下部バーの所有)に
-こうある。
+#### いま何もしてはいけないこと
 
-> 参考designはルール設定buttonの中に「命名ルール」の見出しと設定中のルールの2行を持ち、
-> **見出しの右にスペースがある。開発者はそこへ出す案を挙げた**(2026-08-29)。
-> `T16`はこれを**design土台として扱い、離れる場合は理由を`task.md`へ書く**。
+- **このbranchのcommitを動かさない。**開発者が `397aa15` を検証中である。`switch` /
+  `checkout` / `rebase` / force push を行わない。規約どおり、結果を受け取るまで
+  workspaceの状態を維持して待つ。
+- **`lib/` を変更しない。**変更するとmanual証拠が対象commitに対応しなくなり、
+  やり直しになる。
+- 待機中に別taskへ着手する場合は**別worktreeで行う**(`.worktrees/<plan-id>-<task-id>-<slug>`)。
+  実行可能なのは `T01` / `T03` / `T05` / `T08` / `T11` / `T14` で、いずれも`T16`と
+  触る範囲が重ならない。
 
-**私はこの申し送りを使わず、独立した`RuleWarningNotice`を新設し、離れた理由も
-書かなかった。**AGENTS.mdが要求する手順を踏んでいない。**P1-1(占有が青天井)の遠因は
-ここである** — 土台にはボタンという**既に有界な器**があったのに、可変長のものを置ける
-新しい器を作った。
+#### manual結果を受け取ったら
 
-#### 何をするか
+1. 結果を上の「観測済みcheckpoint」へ、**対象commit(`a872a21`)と日付つきで**記録する。
+   開発者の言葉を**そのまま引用する**。ここで一度、開発者の含みのある表現
+   (「〜かもしれない」)を断定へ強めて独立reviewに指摘された経緯がある(`T07`)。
+2. 不成立があれば、**`T16`の欠陥か、既に引き受け先のある残余riskかを分ける。**
+   `textScaler` 3.0 の領域(画面高が短いときのoverflow、行の`名前が空・改名されません`の
+   後半の切り詰め、件数labelの語尾)は**`T10`の N-8b′ / N-8b″ が引き受け済み**で、
+   `T16`の欠陥ではない。
+3. すべて成立していれば**最終証拠review**(manual証拠と対象commitの対応、記録の真偽を
+   見るexact rangeのreview)を起動する。PASS後に`task.json`を`done`にし、PR #161 を
+   readyにしてmergeする。**mergeはwork-package PRの7条件を満たすのでAgentが行える。**
+4. merge後は`dev`上の結果とCIを確認し、`.worktrees/`を整理する。
 
-| | 狭幅 | 広幅 |
-|---|---|---|
-| ルール変更の導線 | 下部バーの`_RuleButton` | 右ペインの`RuleBuilderView` |
-| 原因の提示 | **buttonの「命名ルール」見出しの右**へ、**種別だけ** | 右ペイン上部へ、同じ種別だけ |
-| 原因ごとの説明 | **詳細dialogの節へ移す**(常設しない) | 同左 |
-| 詳細dialogの入口 | ヘッダの件数 / 各行の警告(**変更なし**) | 同左 |
+#### このtaskで何をしたか(3行)
 
-**種別は最大2つで固定である** — `桁不足`と`基準日時なし`(`warningKindLabel`)。ルール由来の
-警告はこの2種別しか無い。`重複`と`空の名前`はfile単位なので行に出たままで、ここへは来ない。
-**原因(トークン)の数にも文字倍率にも依らない**ので、占有が青天井になる形が構造ごと消える。
+005 revision 8.0 の REQ-009 を、**行=結果 / ルール設定buttonの中=原因の種別 /
+詳細dialog=原因ごとの説明と全件**の3層で満たした。集約帯(`RenameWarningPanel`)は廃止した。
+置き場所は参考designの2行button(`[✎] 命名ルール / <設定中のルール> [編集]`)で、
+「命名ルール」見出しの右へ種別を出す。
 
-**ルールが空なら出さない**(005 REQ-020)。buttonは`変更する名前を設定する`の主役表示のまま。
+#### 踏んではいけない落とし穴(このtaskで実際に6回踏んだ)
 
-#### design土台へ戻す(離れていた点の是正)
+- **散文で検査範囲を主張しない。**占有・余白について`task.md`とPR本文は範囲を書かず、
+  test名を指すだけにしてある(「占有の主張を散文で持たない」節)。独立reviewが
+  **4回続けて**「散文がassertionより強い」を指摘した。ここを崩さないこと。
+- **`onEditRule`を渡さずにlayoutを測らない。**渡さないとルール設定buttonも原因の提示も
+  tree に存在せず、何を測っても通る。2回この空振りを作った。
+- **切り詰めはoverflowを出さない。**`Flexible`+ellipsisは内容を切ることではみ出さないので、
+  `RenderFlex overflow`を見る検査では原理的に落ちない。`didExceedMaxLines`で見る。
+- **mutation runnerを2つ同時に走らせない。**互いの復元を壊し、偽のSKIPPEDが出る。
+  「対象が見つからなかった」と「testが落ちなかった」の区別がこの検査の要点である。
 
-`T16`以前の`_RuleButton`は1行の`OutlinedButton.icon`「ルールを編集」で、**参考designの2行の形に
-なっていない**。designは次である。
+#### 引き受け先を持つ残余risk
 
-```text
-[✎] │ 命名ルール          ← 小さいラベル。右に空きがある
-    │ {{ ruleSummary }}   ← 設定中のルール。1行・省略記号つき   [ 編集 ]
-```
-
-**この見出しの右の空きが、開発者が指した場所である。**空きを作るために button を design の
-2行の形へ作り直す。**開発者の選択(2026-08-31)により`T16`へ含める。**
-
-- 設定中のルールの1行要約を新設する。**`describeToken`を連結した最小形**にとどめ、
-  余白・字体は`T10`、文言の作り込みは`T14`に残す。
-- `T15`は「`T16`が持つのはバーへ**警告を載せる部分だけ**」としていた。**buttonの作り直しは
-  その範囲を超える**ので、ここへ記録して範囲を広げる。実行buttonの振る舞い、ルール設定
-  sheetの開き方は動かさない。
-
-#### 検査で押さえること
-
-- **占有が原因の数と文字倍率で変わらない**ことを、`onEditRule`を渡した構成
-  (= 狭幅の製品経路)と広幅の両方で**直接**主張する。attempt 3 のP1-2で空振りした形
-  (`onEditRule`を渡さずに測る)を繰り返さない。**具体的な幅・倍率・件数はここへ
-  書かない** — 下を見よ。
-- 種別が最大2つであること、ルールが空なら出ないこと(REQ-020)、原因ごとの説明が
-  詳細dialogから読めること(REQ-009 (2)(3))。
-
-#### 占有の主張を散文で持たない(2026-09-01、attempt 5 の後)
-
-**同じ形の記録の欠陥が4回続いた**(attempt 2 のP1-1、attempt 3 のP1-2、attempt 4 の
-P1-1、attempt 5 のP1-1)。いずれも「散文が主張した検査範囲」と「実際のassertion」が
-ずれていた形である。attempt 4 で「文を実態へ合わせるのをやめ、主張が真になるよう
-検査を広げる」へ変えたが、**広幅側へ適用し漏れて5回目が出た。**
-
-**解き方をもう一段変える。占有・余白について、`task.md`とPR本文は範囲を主張しない。**
-幅・文字倍率・件数・原因の本数は**testのparameter listだけが持つ**。散文はtest名を
-指すにとどめる。人手で2か所を同期させる限りこの形は再発するので、同期の必要そのものを
-無くす。
-
-| 主張 | 正本 |
+| risk | 引き受け先 |
 |---|---|
-| 狭幅で占有が原因の数に依らない / 種別1→2の段差 / file件数で変わらない | `row_presentation_test.dart` の該当3本 |
-| 広幅で占有が原因の数に依らない / 警告が無ければ余白も出ない | `warning_display_test.dart` の `広幅でも占有が…` |
-| ヘッダの切り詰めが起きない | `row_presentation_test.dart` の `狭幅でも文字を大きくしても、ヘッダの数字が消えない` |
-| `textScaler` 3.0 の取り分 | 検査しない。`T10` の N-8b′ / N-8b″ が持つ |
-
+| `textScaler` 3.0 でのヘッダの語尾の切り詰め(数字は残る) | `008:T10`(N-8b′) |
+| `textScaler` 3.0 で2行buttonが320dpの41%を占め、一覧が25pxになる。画面高≤400dpではoverflowも出る | `008:T10`(N-8b″) |
+| 広幅で`preview`が1フレームに2回評価される | `008:T09` |
