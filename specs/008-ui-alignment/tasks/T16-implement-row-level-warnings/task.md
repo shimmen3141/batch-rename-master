@@ -351,6 +351,22 @@ deadであり、testで固定することは原理的にできない。**防御�
 載せない。`rows`と`warnings`は同じ検証から作れるので`preview`へまとめた
 (別々に呼ぶと 001 の検証が2回走る)。
 
+### mutation 実行の失敗と、その扱い(2026-09-01)
+
+**1回目の実行はM200 SURVIVED・M177 SKIPPEDだった。**どちらも本物である。
+M200(広幅の余白を落とす)は、広幅のtestが「警告が出れば取り分が減る」までしか
+見ておらず余白そのものを主張していなかったので殺せなかった。M177は P2-1 で
+`Padding` の包みを外したため`find`が対象を指さなくなっていた。両方直した。
+
+**2回目の実行結果は破棄した。**止めたはずの1回目のrunnerが生きたまま2回目を
+起動し、**2つが同じfileを書き換え合って互いの復元を壊していた。**5件がSKIPPEDと
+報告されたが、実装が変わったからではなく、working treeへ他方のmutationが
+適用されたままだったためである(`git diff`で M182・M183・M188・M189 の適用を確認)。
+**「対象が見つからなかった」と「testが落ちなかった」を区別するのがこの検査の
+要点なので、汚染された表は報告に使わない。**復元し、runnerが1つも生きていない
+ことを確かめ、`flutter test` = PASS(743) を確認したうえで単独で再実行した。
+下の出力が3回目の単独実行のものである。
+
 ### mutation の生の出力
 
 ```text
@@ -378,7 +394,14 @@ M190 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 説明その
 M191 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2)) | exit 1
 M192 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号) | exit 1
 M193 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 見出しと警告を Row に並べる — 幅が足りないとき次の行へ落とせずはみ出す(ヘッダで2回作った退行の型) | exit 1
-21 mutations: 21 KILLED, 0 SURVIVED, 0 SKIPPED
+M194 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogの原因の節を該当file件数ぶん繰り返す — 005 REQ-009 (2) の付け替え先をwidget側で外す(独立review attempt 4 が追加) | exit 1
+M195 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogのファイルごとの節を種別あたり1件へ間引く — 005 REQ-009 (3)「全件」(独立review attempt 4 が追加) | exit 1
+M196 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 作り直した2行buttonからルール編集の入口keyを落とす — 005 REQ-020 の導線(独立review attempt 4 が追加) | exit 1
+M197 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加) | exit 1
+M198 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 ルールが空でもヘッダに件数を出す — 001は空名と重複を返すので「問題なし」は誤りになる(005 REQ-020)(独立review attempt 4 が追加) | exit 1
+M199 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加) | exit 1
+M200 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原因の提示から余白を落とす — 対照。余白をwidget側が持つのは、種別0件でSizedBox.shrinkを返すときに外側のPaddingだけが残るのを防ぐため(独立review attempt 4 のP2-1) | exit 1
+28 mutations: 28 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 **引き受けた安全網の穴は両方とも殺した。** N-15-1 は M174、N-15-2 は M178 である。
@@ -397,7 +420,7 @@ M193 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T16 見出しと警�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 4 の**P1-1とP2×5を修正**。検査範囲を広げて主張を真にし、reviewerのmutation 6件を取り込んだ。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS
+- Last checkpoint: 独立review attempt 4 の**P1-1とP2×5を修正**。検査範囲を広げて主張を真にし、reviewerのmutation 6件を取り込んだ。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **28 KILLED, 0 SURVIVED, 0 SKIPPED**
 - Blocker category: なし
 - Waiting for: 独立review attempt 5
 - Requested action: なし
