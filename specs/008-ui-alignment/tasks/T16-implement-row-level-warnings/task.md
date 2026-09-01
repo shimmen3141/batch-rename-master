@@ -107,6 +107,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-08-31 / 独立review attempt 3 = **FAIL**(P1-1: `RuleWarningNotice`に高さの上限が無く、原因が3つ以上・文字倍率2.0で一覧が0pxになり下部バーが画面外へ出る。P1-2: N-9を「閉じた」と書いていたが閉じていない)。**独立reviewが3回FAILしたので`blocked`にし、人間へ選択肢を返す。**
 - 2026-08-31 / 案Dを実装。原因の常設側を**種別だけ**にし、説明を詳細dialogへ移し、`_RuleButton`を参考designの2行の形へ作り直した。`flutter test` = PASS(737) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **21 KILLED, 0 SURVIVED**
 - 2026-08-31 / 独立review attempt 4 = **FAIL**(P1-1 記録: N-9閉鎖の根拠に存在しない検査範囲を挙げていた。P2×5)。**実装(案D)はreviewerのprobeで独立に裏が取れた** — 設計のやり直しは不要で、直したのは検査範囲の拡張と記録である。
+- 2026-09-01 / 独立review attempt 5 = **FAIL**(P1-1 記録: 「警告が無ければ余白も出ない」を4か所で主張していたが、assertionは相対比較だけでreviewerのmutation Y-Aがすり抜けた。P2×3)。**実装は全840構成のprobeで裏が取れた** — overflow 0件、一覧0px 0件、下部バーの画面外 0件。
 
 ### 独立review
 
@@ -114,6 +115,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - Review attempt 2: `dev...cd3e6d6` — **FAIL** — P1-1(記録: PR本文が検査より強い保証を主張)、P2×4。すべて対処済み。
 - Review attempt 3: `origin/dev...494b0bb` — **FAIL** — P1-1(実装: 原因の説明が一覧と下部バーを押し出す)、P1-2(記録: N-9は閉じていない)、P2×2。**記録だけ直し、実装は人間の選択を待った。**
 - Review attempt 4: `origin/dev...08bc3ac` — **FAIL** — P1-1(記録: N-9閉鎖の根拠に存在しない検査範囲)、P2×5。すべて対処済み。**実装(案D)は独立に裏が取れた。**
+- Review attempt 5: `origin/dev...ffe2247` — **FAIL** — P1-1(記録: 余白の主張をassertionが含まない)、P2×3。すべて対処済み。**実装は840構成のprobeで裏が取れた。**
 
 **P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
 ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
@@ -308,9 +310,43 @@ deadであり、testで固定することは原理的にできない。**防御�
 
 **安全網の穴 H-1(広幅の占有を測るtestが1つも無い)は、受容可能と判定されたが
 閉じた。** reviewerの判定は「通り抜ける失敗がlayout退行で、条件2に当たらない」で
-正しいが、widget test 数行で閉じるので受容しなかった。1200×800で、警告が無ければ
-余白も出ないこと・原因2→3→5→10本でルールビルダーの取り分が変わらないことを
-検査する。
+正しいが、widget test 数行で閉じるので受容しなかった。**何をどの範囲で押さえて
+いるかは`warning_display_test.dart`の`広幅でも占有が原因の数に依らず、警告が
+無ければ余白も出ない`を読むこと**(下の「占有の主張を散文で持たない」を見よ)。
+
+#### attempt 5 — 実装は840構成で裏が取れ、記録が4度目の同じ形で落ちた
+
+**実装は独立に確認された。** reviewerのprobe(7画面 × `textScaler` 4段 × 原因0〜10本 ×
+file 0〜1000件 = 840構成)で、**overflow 0件・一覧0px 0件・下部バーの画面外 0件・
+常設側の切り詰め 0件**。320×640・`textScaler` 3.0 でも原因2/3/5/10本の一覧高は
+すべて 85.0 で一致した。`dev`にあった8構成のoverflowはすべて消えている。
+広幅では警告0件のとき器の先頭が 0.0・高さ 800.0 で、**死んだ余白は実際に1pxも無い**。
+
+**FAILの理由はP1-1、記録である。**「警告が無ければ余白も出ない」を test名・
+test内コメント・`task.md`・PR本文の4か所で主張していたが、実際のassertionは
+`findsNothing` と「警告があるほうが取り分が小さい」という**相対比較**だけだった。
+**相対比較では、呼び出し側が`Padding`で包み直しても両方が同じだけずれて通る** —
+reviewerのmutation **Y-A**(attempt 4 のP2-1の退行そのもの)が実際にすり抜けた。
+器の先頭と高さを**絶対値**で固定し、Y-A を **M201** として取り込んだ。M200(余白を
+落とす向き)の反対向きで、**両方が要る。**
+
+Y-D(下余白だけを増やす)も SURVIVED した。左右上の3辺しか見ておらず、残る1辺で
+占有を増やす退行がすり抜ける。reviewerは「受容可能」と判定したが assertion 1行で
+閉じるので受容せず、**M202** として取り込んだ。**4辺すべてを見る。**
+
+P2-1(`preview_rows_test.dart` の `未選択の item も自分の警告を持つ(選択状態で
+ゲートしない)` が、assertionは両方`isEmpty`で名前と食い違っていた)→ `validate`は
+選択を写した複製しか見ないので、この性質は**原理的に成立しえず検査もできない**。
+検査している内容へ改名し、理由をコメントへ残した。reviewerのmutation Y-C が
+SURVIVED したのはこの等価性のためである。**例18〜21の4本はspecを正しく写している**
+ことも確認された。
+P2-2(PR本文の「いずれも`onEditRule`を渡した」が広幅の1本に当てはまらない。
+広幅は設計上渡さない)→ 狭幅3本と広幅1本を分けて書いた。
+P2-3(コメント段落の重複)→ 1つにした。
+
+**Z-E(`showWarningDetail`の`ruleIsEmpty`を無視する)を等価mutantとした判定は
+reviewerに支持された。** 到達しないことと、到達しても結果が同じことの2重の等価性で
+ある。取り込まない。
 
 ### 案Dで何が変わったか(実装の記録)
 
@@ -420,12 +456,12 @@ M200 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 4 の**P1-1とP2×5を修正**。検査範囲を広げて主張を真にし、reviewerのmutation 6件を取り込んだ。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS / `mutation_check.py` = **28 KILLED, 0 SURVIVED, 0 SKIPPED**
+- Last checkpoint: 独立review attempt 5 の**P1-1とP2×3を修正**。余白を4辺すべて絶対値で固定し、reviewerのmutation Y-A/Y-D を M201/M202 として取り込んだ(どちらもKILLED)。占有の主張を散文から落とした。`flutter test` = PASS(743) / `analyze` = PASS / `format` = PASS
 - Blocker category: なし
-- Waiting for: 独立review attempt 5
+- Waiting for: 人間の判断(reviewを続けるか)
 - Requested action: なし
 - Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings`(PR #161、Draft)
-- Next Agent action: 独立review attempt 5 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
+- Next Agent action: 人間の判断を待つ。続ける場合は独立review attempt 6 を起動する。PASS後に`manual-verification.md`をcurrent revisionへ合わせてdry-runし、Android実機の狭幅表示(**原因が複数ある状態**と**文字サイズ最大**を含む)を依頼する
 
 ### 人間の選択(2026-08-31): **案D — ルール設定buttonへ載せる**
 
@@ -480,10 +516,29 @@ M200 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 広幅の原
 
 #### 検査で押さえること
 
-- **占有が原因の数と文字倍率で変わらない。**`onEditRule`を渡した構成(= 製品経路)で、
-  原因1〜5 × `textScaler` 1.0/1.3/2.0 × 狭幅/広幅で、一覧の高さが変わらず overflow も
-  出ないことを**直接**主張する。attempt 3 のP1-2で空振りした形(`onEditRule`を渡さずに
-  測る)を繰り返さない。
+- **占有が原因の数と文字倍率で変わらない**ことを、`onEditRule`を渡した構成
+  (= 狭幅の製品経路)と広幅の両方で**直接**主張する。attempt 3 のP1-2で空振りした形
+  (`onEditRule`を渡さずに測る)を繰り返さない。**具体的な幅・倍率・件数はここへ
+  書かない** — 下を見よ。
 - 種別が最大2つであること、ルールが空なら出ないこと(REQ-020)、原因ごとの説明が
   詳細dialogから読めること(REQ-009 (2)(3))。
+
+#### 占有の主張を散文で持たない(2026-09-01、attempt 5 の後)
+
+**同じ形の記録の欠陥が4回続いた**(attempt 2 のP1-1、attempt 3 のP1-2、attempt 4 の
+P1-1、attempt 5 のP1-1)。いずれも「散文が主張した検査範囲」と「実際のassertion」が
+ずれていた形である。attempt 4 で「文を実態へ合わせるのをやめ、主張が真になるよう
+検査を広げる」へ変えたが、**広幅側へ適用し漏れて5回目が出た。**
+
+**解き方をもう一段変える。占有・余白について、`task.md`とPR本文は範囲を主張しない。**
+幅・文字倍率・件数・原因の本数は**testのparameter listだけが持つ**。散文はtest名を
+指すにとどめる。人手で2か所を同期させる限りこの形は再発するので、同期の必要そのものを
+無くす。
+
+| 主張 | 正本 |
+|---|---|
+| 狭幅で占有が原因の数に依らない / 種別1→2の段差 / file件数で変わらない | `row_presentation_test.dart` の該当3本 |
+| 広幅で占有が原因の数に依らない / 警告が無ければ余白も出ない | `warning_display_test.dart` の `広幅でも占有が…` |
+| ヘッダの切り詰めが起きない | `row_presentation_test.dart` の `狭幅でも文字を大きくしても、ヘッダの数字が消えない` |
+| `textScaler` 3.0 の取り分 | 検査しない。`T10` の N-8b′ / N-8b″ が持つ |
 
