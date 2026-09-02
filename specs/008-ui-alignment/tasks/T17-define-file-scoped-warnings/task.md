@@ -213,7 +213,7 @@ REQ-019 を条件1本にまとめた。
 - Blocker category: なし
 - **前回の報告の訂正**: 「広げた検査が手作業で見落とした3か所を見つけた」と報告したが、検出された3件は**すべて`specs/**/*.md`**で拡張前から走査対象だった。検出の実体は`forbidden`への登録であり、**契約JSONへの走査拡張が寄与した検出は0件**である(拡張自体の実効性はreviewerがprobeで別途確認した)
 - Evidence revision: branch `asdd/008-ui-alignment/T17-define-file-scoped-warnings`、PR #163
-- Next Agent action: PR #163 を merge し、`dev`上の結果とCIを確認してから `T18` / `T19` / `T20` のいずれかへ進む。**「写しが古くなる型」の仕組み化は`product-map.md`の将来候補へ登録した**(開発者の決定。着手判断の前にplanへ定義しない)
+- Next Agent action: **無し。このtaskは完了した。** 続きは `T18`(行の結果表示)/ `T19`(警告の詳細modal)/ `T20`(下部バー)。3つとも`T17`の承認を依存に持ち、いま着手可能である。**「写しが古くなる型」の仕組み化は`product-map.md`の将来候補へ登録した**(開発者の決定。着手判断の前にplanへ定義しない)
 
 ### 独立review
 
