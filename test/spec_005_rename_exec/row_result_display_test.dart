@@ -368,6 +368,49 @@ void main() {
           colors.danger,
           reason: '幅 ${size.width} で警告のある行が danger になっていない',
         );
+        // 切り詰めも両方の幅で見る(狭幅だけでは広幅の抜けを検出できない)。
+        for (final element
+            in find
+                .descendant(
+                  of: find.byKey(rowWarningKey),
+                  matching: find.byType(Text),
+                )
+                .evaluate()) {
+          expect(
+            (element.renderObject! as RenderParagraph).didExceedMaxLines,
+            isFalse,
+            reason: '幅 ${size.width} で行の警告が切り詰められている',
+          );
+        }
+      }
+    });
+
+    testWidgets('狭幅でも広幅でも「変更なし」が出る', (tester) async {
+      // REQ-029 も両方の幅で見る。広幅は 2 ペインで、行は左ペインにある。
+      for (final size in [const Size(400, 800), const Size(1200, 800)]) {
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final rule = RuleController()..addToken(const OriginalNameToken());
+        addTearDown(rule.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(
+              body: RuleBuilderWorkspace(
+                fileList: FileListController(files: [_f('photo.jpg')]),
+                rule: rule,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(rowUnchangedKey),
+          findsOneWidget,
+          reason: '幅 ${size.width} で「変更なし」が出ていない',
+        );
+        expect(find.byKey(rowNewNameKey), findsNothing);
       }
     });
   });

@@ -1509,6 +1509,48 @@
       "find": "  DigitShortageWarning() => '連番の桁不足',",
       "replace": "  DigitShortageWarning() => '問題があります',",
       "note": "008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装"
+    },
+    {
+      "id": "M216",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "      for (final file in ordered) {\n        if (!file.selected) continue;\n        position += 1;\n",
+      "replace": "      for (final file in ordered) {\n        position += 1;\n        if (!file.selected) continue;\n",
+      "note": "008:T18 未選択行にも連番の位置を消費させる — 002 REQ-015 の「generatePreview と同じ数え方」が壊れ、別の行に桁不足が出る(独立review attempt 1 の R1)"
+    },
+    {
+      "id": "M217",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "        if (!file.selected) continue;\n        position += 1;\n        for (final shortage in shortages) {",
+      "replace": "        position += 1;\n        for (final shortage in shortages) {",
+      "note": "008:T18 未選択行へも桁不足を載せる — プレビュー対象外の行に種別が出る(独立review attempt 1 の R2)"
+    },
+    {
+      "id": "M218",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),\n                Text(\n                  row.currentName,",
+      "replace": "                Text(\n                  row.currentName,",
+      "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)"
+    },
+    {
+      "id": "M219",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                maxLines: 2,",
+      "replace": "                maxLines: 1,",
+      "note": "008:T18 併発した種別を1行へ押し込む — 狭幅で種別が切り詰められる(005 REQ-009 (1))。対照として置く(独立review attempt 1 の R4)"
+    },
+    {
+      "id": "M220",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),",
+      "replace": "        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 2),",
+      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)"
+    },
+    {
+      "id": "M221",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                Text(\n                  row.currentName,\n                  maxLines: 1,",
+      "replace": "                Text(\n                  row.currentName,\n                  maxLines: 4,",
+      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
     }
   ]
 }
