@@ -210,11 +210,10 @@ revision 8.0 が引いた境界(`T15`が3回FAILした線)を越えていない�
 ## Current state / handoff
 
 - Last checkpoint: **独立review attempt 1 = FAIL**(P1×2)。すべて対処し、**REQ-009 (1)を狭めて(4)を足した**ため契約の`status`を`draft`へ戻した。`flutter test` = PASS(743) / `workspace.py check specs` = PASS。**実装は1行も変えていない**
-- Blocker category: **人間の判断待ち**
-- Waiting for: **承認の取り直し**。1回目の承認(2026-09-02)は、(1)要望を義務づける must が無い案に対するもので、(2)例21aの説明が事実と違っていた
-- Requested action: 開発者へ2点を報告済み(2026-09-02) — REQ-009 (1)(4)の変更と、8.0 の実際の振る舞い(全件除外ではなく、2件目以降が ` (1).ext` へ改名されていた)。承認されたら`status`を`approved`・`approved_date`を埋め、002 specと`plan.md`を追随させ、独立reviewを再起動する
+- **訂正版を開発者が再承認した(2026-09-02、2回目)。** 反映済み — contractの`status`=`approved`・`approved_date`、002 specの承認履歴と節見出し、`plan.md`の決定表。**例21aの実質(8.0では2件目以降が ` (1).ext` へ改名されていた)を含めて承認を得ている**
+- Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T17-define-file-scoped-warnings`、PR #163
-- Next Agent action: 承認を受けたら上の反映を行い、attempt 2 の独立reviewを起動する
+- Next Agent action: attempt 2 の独立reviewを起動し、PASSなら PR #163 を merge する
 
 ### 独立review
 
