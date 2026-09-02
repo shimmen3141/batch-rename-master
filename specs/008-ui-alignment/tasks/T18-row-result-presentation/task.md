@@ -87,7 +87,8 @@
 - 2026-09-02 / claim。`T17`が承認された 002 REQ-015 / 005 REQ-009 / REQ-029 を実装した。
   `flutter test` = **PASS(764)** / `flutter analyze` = PASS / `dart format` = PASS。
 - 2026-09-02 / mutation 12件を`tool/mutations.json`へ追加(M204〜M215)。1回目は
-  **M212・M213 が SURVIVED**。受容せず、testの空振りを直して**12件すべて KILLED** にした。
+  **M212・M213 が SURVIVED**。受容せず、testの空振りを直して12件すべて KILLED にした。
+- 2026-09-02 / **独立review attempt 1 = FAIL**(P1-1: 「未選択行が位置を消費しない」testが空振りなのに押さえていると記録していた。P1-2: 同根の安全網の穴が3条件をすべて満たす。P2×6)。**実装の誤りは1件も無い。** reviewが足したmutation 6件をM216〜M221として取り込み、**16 KILLED, 2 SURVIVED**(SURVIVEDは`T10`引き受けで受容した対照)。
 
 ### 何を作ったか
 
@@ -97,7 +98,17 @@
 | 7(色) | 変更後名を、警告のある行は `danger`、無い行は `success`(参考designの `newColor: bad ? '#f87171' : '#4ade80'`) |
 | 1(`（変更なし）`) | `rowHasNoChange` が真の行で、生成後名の代わりに `（変更なし）` を弱い色で出す。**空のルールの拡張子だけの名前(`.jpg`)を変更後名として出さない**(005 REQ-029) |
 | 8(位置) | 行の警告を**現在名の上の行へ右寄せ**で移した |
-| 5(文言の一部) | 基準日時不明の行ラベルを `作成日時不明` / `更新日時不明` と基準から導く。桁不足は `連番の桁不足` |
+| 5(文言の一部) | 基準日時不明の**行ラベル**を `作成日時不明` / `更新日時不明` と基準から導く。桁不足は `連番の桁不足` |
+
+**要望5 の分担を `T16` の仕分け表から動かした。** 表は要望5を `T19` へ割り当てていたが、
+**行のラベルはこのtaskが持つ**(`T18`=行 / `T19`=詳細modal / `T20`=下部バー の割り方)。
+このtaskが変えたのは**行のラベルだけ**である。
+
+**暫定的な不一致が残る。** 詳細modal(`describeWarning`)とルール設定button
+(`ruleWarningKinds`)は `基準日時なし` / `桁不足` のままで、行だけが `作成日時不明` /
+`連番の桁不足` になっている。**利用者から見て同じものが2つの語彙で呼ばれる。**
+仕様違反ではない(005 REQ-009 は文言を自由としている)が、要望5の狙いは揃えることなので、
+**引き受け先: `008:T19`(modalの文言)と `008:T20`(下部バーの文言)。**
 
 ### 参考designから離れた点(`AGENTS.md`: 離れた理由を書く)
 
@@ -116,6 +127,16 @@
 一度「同じ行 + 幅の上限」で実装したが、上限の値を散文で正当化することになり、
 `008:T16` が4回落ちた型に戻るため取りやめた。
 
+**参考designの `oldColor` / `oldDeco` / `rowBg` / `cardBorder` は適用していない。**
+「入力と依存」へ土台として挙げてあるが、実装は現在名を `textPrimary` 固定のままにし、
+行の背景も枠も変えていない。理由は次の2つである。
+
+- **要望1・5・7・8 のどれも求めていない。** 開発者が挙げたのは変更後名の色・桁不足の
+  行表示・`（変更なし）`・警告の位置の4つで、現在名の打ち消し線や行全体の赤みは入っていない。
+- **行の背景と枠は余白・階層の取り分に効く。** `rowBg` / `cardBorder` を入れると区切り線
+  (要望10)と重なるので、**`008:T10` が余白・字体をまとめて決めるときに判断するのが筋である。**
+  引き受け先: `008:T10`。
+
 ### 判定を変えていない
 
 001 の `validate` にも `autoResolve` にも触れていない。桁不足を行へ出すのは**提示側の導出**で、
@@ -127,8 +148,13 @@
 旧仕様(改訂前)を固定していた3件を、**緩めるのではなく新しい要求へ付け替えた**。
 
 - `preview_rows_test.dart` 例19「桁不足はどの行データにも入らない」→ 例19 / 19a / 19b
-  (超える行に入る / 収まる行に入らない / 001 が返さないなら入らない)と、
-  未選択行が連番の位置を消費しないことの検査。
+  (超える行に入る / 収まる行に入らない / 001 が返さないなら入らない)。
+
+  **最初に足した「未選択行は連番の位置を消費しない」testは空振りだった**(独立review
+  attempt 1 の P1-1)。150件中60件の選択を外していたので**桁不足そのものが消え**、
+  「001 が返さない → 行にも載らない」の再掲になっていた。**数え方は何も押さえていなかった。**
+  先頭1件だけ外して**桁不足を残したまま**、選択順位 100 件目が index 100 へずれることを
+  見る形へ差し替えた(M216・M217 が殺す)。消えるほうの経路は別のtestとして残した。
 - `warning_display_test.dart`「桁不足はどの行にも出ない」→ 3件(超える行に出る /
   収まる行に出ない / 同じルールでも超える行だけに出る)。
 - 同「同じ種別は行で 1 つにまとめる」→ 文言変更(`作成日時が空になります` →
@@ -137,29 +163,41 @@
 ### mutation の生の出力
 
 ```console
-$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .  # M204〜M215 を抽出した表
-M204 | KILLED | lib/ui/file_list/row_view.dart | 桁不足の導出境界を1つずらす | exit 1
-M205 | KILLED | lib/ui/file_list/file_list_controller.dart | 導出をやめて全選択行へ載せる | exit 1
-M206 | KILLED | lib/ui/file_list/file_list_controller.dart | 桁不足を行データへ載せない | exit 1
-M207 | KILLED | lib/ui/file_list/file_list_view.dart | 警告のある行も正常色にする | exit 1
-M208 | KILLED | lib/ui/file_list/file_list_view.dart | 警告の無い行も危険色にする | exit 1
-M209 | KILLED | lib/ui/file_list/file_list_view.dart | 空のルールで拡張子だけの名前を出す | exit 1
-M210 | KILLED | lib/ui/file_list/file_list_view.dart | 生成後名が現在名と同じ行で変更なしを出さない | exit 1
-M211 | KILLED | lib/ui/file_list/file_list_view.dart | 空名で改名されない行を変更ありとして扱う | exit 1
-M212 | KILLED | lib/ui/file_list/file_list_view.dart | 未選択行まで変更なしにする | exit 1
-M213 | KILLED | lib/ui/file_list/rename_warning_view.dart | 行の警告の右寄せをやめる | exit 1
-M214 | KILLED | lib/ui/file_list/rename_warning_view.dart | どの基準が取れないかを行から落とす | exit 1
-M215 | KILLED | lib/ui/file_list/rename_warning_view.dart | 桁不足の種別名を落とす | exit 1
-12 mutations: 12 KILLED, 0 SURVIVED, 0 SKIPPED
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .  # M204〜M221 を抽出した表
+M204 | KILLED   | row_view.dart            | 桁不足の導出境界を1つずらす | exit 1
+M205 | KILLED   | file_list_controller.dart | 導出をやめて全選択行へ載せる | exit 1
+M206 | KILLED   | file_list_controller.dart | 桁不足を行データへ載せない | exit 1
+M207 | KILLED   | file_list_view.dart      | 警告のある行も正常色にする | exit 1
+M208 | KILLED   | file_list_view.dart      | 警告の無い行も危険色にする | exit 1
+M209 | KILLED   | file_list_view.dart      | 空のルールで拡張子だけの名前を出す | exit 1
+M210 | KILLED   | file_list_view.dart      | 生成後名が現在名と同じ行で変更なしを出さない | exit 1
+M211 | KILLED   | file_list_view.dart      | 空名で改名されない行を変更ありとして扱う | exit 1
+M212 | KILLED   | file_list_view.dart      | 未選択行まで変更なしにする | exit 1
+M213 | KILLED   | rename_warning_view.dart | 行の警告の右寄せをやめる | exit 1
+M214 | KILLED   | rename_warning_view.dart | どの基準が取れないかを行から落とす | exit 1
+M215 | KILLED   | rename_warning_view.dart | 桁不足の種別名を落とす | exit 1
+M216 | KILLED   | file_list_controller.dart | 未選択行にも連番の位置を消費させる(review の R1) | exit 1
+M217 | KILLED   | file_list_controller.dart | 未選択行へも桁不足を載せる(review の R2) | exit 1
+M218 | KILLED   | file_list_view.dart      | 行の警告を現在名の上から落とす(review の R3) | exit 1
+M219 | KILLED   | rename_warning_view.dart | 併発した種別を1行へ押し込む(review の R4) | exit 1
+M220 | SURVIVED | rename_warning_view.dart | 行の警告の占有を大きく増やす(review の R5) | exit 0
+M221 | SURVIVED | file_list_view.dart      | 現在名の行数上限を外す(review の R6) | exit 0
+18 mutations: 16 KILLED, 2 SURVIVED, 0 SKIPPED
 ```
 
-**1回目は M212 と M213 が SURVIVED した。受容せず、testの空振りを直して閉じた。**
+**M220・M221 の SURVIVED は受容したものである**(上の「引き受けた残余risk」。引き受け先は
+`008:T10`)。**対照として`tool/mutations.json`へ残す** — 落とすと、行の高さを縛る検査が
+無いことが見えなくなる。
 
-- **M212**: 未選択行の分岐は、widget が `newName == null` を先に見て `—` を出すので
-  **widget test では踏めない**。判定 `rowHasNoChange` を直接呼ぶ unit test を足した。
-- **M213**: 右寄せを、**当たり判定の箱**(`rowWarningKey` の `InkWell`)で測っていた。
-  箱は行幅いっぱいに広がるので、左寄せへ変えても箱の右端は動かない。**文字そのものの
-  位置**を測る形へ直し、左端が行の左端より右にあることも足した。
+**独立reviewが足したmutationは6件すべて取り込んだ**(M216〜M221)。
+
+#### 1回目に SURVIVED した3件と、その扱い
+
+| mutation | なぜすり抜けたか | 扱い |
+|---|---|---|
+| M212(未選択行まで「変更なし」) | widget が `newName == null` を先に見て `—` を出すので、**widget test では踏めない**分岐だった | 判定 `rowHasNoChange` を直接呼ぶ unit test を足して**閉じた** |
+| M213(右寄せをやめる) | **当たり判定の箱**(`rowWarningKey` の `InkWell`)を測っていた。箱は行幅いっぱいに広がるので、左寄せへ変えても箱の右端は動かない | **文字そのもの**の位置を測る形へ直して**閉じた** |
+| M216/M217(位置の数え方) | 「未選択行は位置を消費しない」testが、選択を大きく外して**桁不足そのものを消していた**。「001 が返さない → 行にも載らない」の再掲で、数え方を何も押さえていなかった(独立review attempt 1 の P1-1) | 桁不足を**残したまま**位置がずれるかを見る形へ差し替えて**閉じた** |
 
 ### `T08` との順序(着手時に確認した)
 
@@ -175,9 +213,20 @@ folder名だけにするかは `T08` が決める。**`T08` が後に着手す�
   「どこを押すと開くか」までを持つ。**引き受け先: `008:T19`。** このtaskは (4) を
   悪化させていない — `T16` から振る舞いは変わっていない。
 
+## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
+
+| risk | 3条件の判定 | 引き受け先 |
+|---|---|---|
+| **行の高さを縛る assertion が無い。** 警告の余白を大きく増やしても(M220)、現在名の行数上限を外しても(M221)、全testがPASSのまま通る | (1)製品経路 = 該当 / (2)行が伸びる・現在名が折り返すのは、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊の**いずれでもない** = **非該当**。**種別の切り詰め**(偽の成功に当たる)は M219 が押さえている / (3)CIで閉じられる = 該当。**3条件を満たさないので受容する** | **`008:T10`**(余白・階層・typography)。M220・M221 は**SURVIVEDのまま対照として`tool/mutations.json`へ残す** |
+| **差し替えで assertion が1つ消えた。** 旧testが持っていた「ルール由来の警告があるのに、導線の無い`FileListView`単体では原因の説明を出さない」方向が無くなった | (2)非該当。**出る方向は狭幅・広幅の両方で厚く残っており**(`warning_display_test.dart` の3か所)、要求そのものは緩んでいない | **`008:T19`**(詳細modalを作り直すときに、出ない方向も置き直す) |
+
+**P2-6(広幅で `（変更なし）` と切り詰めを見ていない)は受容せず閉じた** — 受け入れ証拠が
+「狭幅と広幅の両方で検査する」を求めているので、広幅の loop へ両方を足した。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と検査が済んだ。`dart format` = PASS / `flutter analyze` = PASS / `flutter test` = **PASS(764)** / `mutation_check.py` M204〜M215 = **12件すべて KILLED, 0 SURVIVED, 0 SKIPPED** / `workspace.py check specs` = PASS
+- Last checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
+- 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`)。P1×2はどちらも**記録と検査**で、実装の誤りは無いと判定された
 - Blocker category: **人間のmanual確認待ち**
 - Waiting for: Android **実機**での手動確認(下の Requested action)
 - Requested action: 開発者へ[`manual-verification.md`](manual-verification.md)の4項目を依頼する。10〜15分。**手順3(行の警告が押しやすい)は実機でしか見られない** — `008:T16`がemulatorでしか確かめられなかったtap範囲を、このtaskが引き受けている
