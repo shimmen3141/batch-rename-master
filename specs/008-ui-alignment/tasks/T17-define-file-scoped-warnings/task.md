@@ -117,6 +117,7 @@ Agentが自分で緩めてはならない(`AGENTS.md`)。
 ## 作業記録
 
 - 2026-09-02 / claim。着手時の一問(実行可否)を開発者へ確認し、**「変更が0件なら押せない」**で決定した。
+- 2026-09-02 / 005 revision 9.0 と 002 REQ-015 の改訂案を書き、**開発者が再承認した**。反映と`covers`の記入まで済ませた。
 
 ### 実行可否の決定(2026-09-02、開発者)
 
@@ -162,9 +163,7 @@ REQ-019 を条件1本にまとめた。
 
 ## Current state / handoff
 
-- Last checkpoint: 005 contract revision 9.0(draft)と 002 spec の改訂案を書いた。`flutter test` = PASS(743) / `workspace.py check specs` = PASS。**実装は1行も変えていない**
-- Blocker category: **人間の判断待ち**
-- Waiting for: **改訂案の再承認**(005 revision 9.0 と 002 REQ-015)
-- Requested action: 開発者へ改訂の要点を提示済み(2026-09-02)。承認されたら`behavior-contract.json`の`status`を`approved`・`revision_history`の`approved_date`を埋め、002 spec の「承認待ち」を外し、`plan.md`の決定表へ記録する
+- Last checkpoint: **005 revision 9.0 と 002 REQ-015 を開発者が再承認した(2026-09-02)。** 反映済み — contractの`status`=`approved`、`revision_history`の`approved_date`=`2026-09-02`、002 specの承認履歴と節見出し、`plan.md`の決定表。`T18`/`T19`/`T20`の`covers`も埋めた。`flutter test` = PASS(743) / `workspace.py check specs` = PASS。**実装は1行も変えていない**
+- Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T17-define-file-scoped-warnings`
-- Next Agent action: 承認を受けたら上の反映を行い、`T18`/`T19`/`T20`の`covers`を埋めて独立reviewを起動する
+- Next Agent action: exact rangeの独立reviewを起動し、PASSならPRを作って merge する
