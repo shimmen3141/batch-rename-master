@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T19",
+  "title": "警告の詳細modalを作り直す",
+  "status": "pending",
+  "dependsOn": [
+    "T17"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T18",
+  "title": "行の結果表示を参考designへ揃える",
+  "status": "pending",
+  "dependsOn": [
+    "T17"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
