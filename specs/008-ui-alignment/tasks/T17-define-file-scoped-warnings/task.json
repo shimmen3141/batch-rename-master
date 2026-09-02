@@ -2,12 +2,12 @@
   "schema": "asdd.task/v1",
   "id": "T17",
   "title": "警告をファイル単位へ一本化する提示を定義する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T16"
   ],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 163,
   "manualVerification": null
 }
