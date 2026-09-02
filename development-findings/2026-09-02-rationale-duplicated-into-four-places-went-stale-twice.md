@@ -40,7 +40,7 @@ attempt 2 がこれを P1-A / P1-B として挙げた。**同じ根本原因(部
 
 ## forward-test
 
-走査を広げた直後に検査を走らせたところ、**手作業では見落としていた3か所を即座に検出した**。
+走査を広げ、差し替えた言い回しを`forbidden`へ登録した直後に検査を走らせたところ、**手作業では見落としていた3か所を即座に検出した**。
 
 ```console
 $ python3 tool/check_normative_terms.py
@@ -51,6 +51,11 @@ FAIL: specs/008-ui-alignment/tasks/T17-define-file-scoped-warnings/task.md:168: 
 ```
 
 **`plan.md:101` は独立reviewerも挙げていなかった。** 3か所を直したあと PASS。
+
+**この3件はすべて `specs/**/*.md` で、拡張前から走査対象だった。** 検出の実体は`forbidden`への
+登録であり、**契約JSONへの走査拡張がこのforward-testで寄与した検出は0件である**(独立review
+attempt 3 の指摘。**当初この記述は拡張の効果を実際より大きく読ませていた**)。拡張そのものの
+実効性は、reviewerが契約JSONへ言い回しを注入するprobeで別に確認している。
 
 ## 残っている限界
 

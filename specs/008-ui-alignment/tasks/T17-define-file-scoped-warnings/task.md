@@ -199,12 +199,16 @@ REQ-019 を条件1本にまとめた。
 
 - Last checkpoint: **独立review attempt 1 = FAIL**(P1×2)。すべて対処し、**REQ-009 (1)を狭めて(4)を足した**ため契約の`status`を`draft`へ戻した。`flutter test` = PASS(743) / `workspace.py check specs` = PASS。**実装は1行も変えていない**
 - **訂正版を開発者が再承認した(2026-09-02、2回目)。** 反映済み — contractの`status`=`approved`・`approved_date`、002 specの承認履歴と節見出し、`plan.md`の決定表。**例21aの実質(8.0では2件目以降が ` (1).ext` へ改名されていた)を含めて承認を得ている**
-- Blocker category: なし
-- **attempt 2 の指摘はすべて対処した。** 根拠の複製をやめ、`check_normative_terms.py`の走査を契約JSONへ広げた(`tool/`に差分がある)
+- **独立reviewが3回FAILしたので`blocked`にした(AGENTS.md)。** 規範本文は3回とも正しく、落ちたのは一貫して「同じ主張を複数の文書へ散文で持ち、改訂時に一部だけ直す」型である
+- Blocker category: **人間の判断待ち**
+- Waiting for: 3回FAIL後の進め方の選択
+- Requested action: 開発者へ3案を提示済み(2026-09-02) — (A)残る2件の注記を足してattempt 4、型の是正は別task (B)経緯の記述をtask.md/plan.mdから構造的に排除する枠組みへ変える (C)記録の追随漏れを独立reviewのFAIL条件から外す
+- **前回の報告の訂正**: 「広げた検査が手作業で見落とした3か所を見つけた」と報告したが、検出された3件は**すべて`specs/**/*.md`**で拡張前から走査対象だった。検出の実体は`forbidden`への登録であり、**契約JSONへの走査拡張が寄与した検出は0件**である(拡張自体の実効性はreviewerがprobeで別途確認した)
 - Evidence revision: branch `asdd/008-ui-alignment/T17-define-file-scoped-warnings`、PR #163
 - Next Agent action: attempt 2 の独立reviewを起動し、PASSなら PR #163 を merge する
 
 ### 独立review
 
 - Review attempt 1: `origin/dev...23d2bf6` — **FAIL** — P1-1(要望7・2を義務づける must が無い)、P1-2(記録: 例21aが事実に反する)、P2×5。すべて対処済み。
+- Review attempt 3: `origin/dev...dc1deb3` — **FAIL** — P1-1(`002 spec.md:171`の「連番の桁不足は行データに含めない」が、同じfileのREQ-015改訂と矛盾したまま残っている)、P1-2(`task.md`冒頭が、このtaskが覆した結論を無注記の現在形で主張し、9.0で削除済みの契約文言を現行として引用している)、P2×5。**規範本文は3回とも正しく、8.0から弱くなった箇所は無い。** reviewerは002 REQ-015 (b)をより広い域(start∈[-200,200]×increment∈[-12,12]×digits 1-4×count 1-79)で全探索して反例0、走査拡張の実効性をprobeで確認、前2回のP1×4・P2×12がすべて閉じたことも確認した。**3回FAILのため`blocked`にして人間へ返す(AGENTS.md)。**
 - Review attempt 2: `origin/dev...426d3cb` — **FAIL** — P1-A(契約の`revision_history`が見出しだけ反転し、本文に旧主張がpresent tenseで残っていた)、P1-B(PR #163 本文を1文字も直していなかった)、P2×7。**規範本文は正しく、落ちたのはすべて記録の伝播漏れだった。** reviewerは「REQ-009 は 8.0 から削除・弱化0件」「(4)は7.0が名指ししたUI位置の表と違い範囲だけを課している」「005と002は委ねる軸が違うので循環しない」「例21aの訂正はコードで再現できる」を機械照合とprobeで確認している。**同じ根本原因が2回続いたので解き方を変えた**(上の作業記録)。**reviewerは002 REQ-015 (b)を全探索(start∈[-120,120]×increment∈[-9,9]×digits 1-3×count 1-59)して反例0を確認し、SM-001の遷移が排他かつ網羅であること、8.0から弱くなった要求が無いことも機械照合した。**
