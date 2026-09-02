@@ -1,12 +1,10 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T09",
-  "title": "リスト表示モードの切替を入れる",
+  "id": "T20",
+  "title": "ルール設定buttonと実行buttonの提示を整える",
   "status": "pending",
   "dependsOn": [
-    "T02",
-    "T07",
-    "T18"
+    "T17"
   ],
   "covers": [],
   "issue": null,

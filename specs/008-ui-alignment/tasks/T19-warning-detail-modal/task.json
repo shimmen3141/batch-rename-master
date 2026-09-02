@@ -1,12 +1,10 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T09",
-  "title": "リスト表示モードの切替を入れる",
+  "id": "T19",
+  "title": "警告の詳細modalを作り直す",
   "status": "pending",
   "dependsOn": [
-    "T02",
-    "T07",
-    "T18"
+    "T17"
   ],
   "covers": [],
   "issue": null,

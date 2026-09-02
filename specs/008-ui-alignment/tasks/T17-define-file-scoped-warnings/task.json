@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T17",
+  "title": "警告をファイル単位へ一本化する提示を定義する",
+  "status": "pending",
+  "dependsOn": [
+    "T16"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}
