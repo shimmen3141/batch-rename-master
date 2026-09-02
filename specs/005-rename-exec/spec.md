@@ -5,7 +5,7 @@
   ここへ要約を複製しない(2026-09-02、`008:T17`の独立review attempt 2 の指摘で作り替えた —
   1本の太字へ追記し続ける形が、追記のたびに強調の対の位置を壊し、2回続けて指摘された)。
   revision 1 の commit は `bd1fc46750284baa229eb7338d6779b9547cc80f`。
-  現在の revision は **9.0**(`008:T17`)。
+  **現在の revision もここへ書かない** — `revision_history` の末尾が正本である。
 - Level: Strict(**正しさの正本は `contracts/behavior-contract.json`**。本ファイルは説明・境界の出典・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的（説明的・正誤判定には使わない）
