@@ -20,8 +20,10 @@
 | | |
 |---|---|
 | branch | `asdd/008-ui-alignment/T18-row-result-presentation` |
-| code の最終commit | **(Agentが記入する)** |
-| PR | **(Agentが記入する)** |
+| code の最終commit | `e5aceed` |
+| PR | #164 |
+
+**これより新しいcommitは記録(`specs/`)とtestだけ**で、appの動きは変わりません。
 
 **branchの切り替えは不要です。** Agentがこのbranchのまま待機し、結果を受け取るまで動かしません。
 
