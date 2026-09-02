@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T16",
   "title": "警告を行に出す提示を実装する",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T07",
     "T15"
@@ -16,6 +16,6 @@
     "005:REQ-021"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 161,
   "manualVerification": "manual-verification.md"
 }

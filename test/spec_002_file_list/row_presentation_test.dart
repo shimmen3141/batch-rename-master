@@ -187,95 +187,356 @@ void main() {
     });
   });
 
-  group('008:T07 (i) 件数の多い警告帯', () {
-    /// 重複警告だけを [count] 件持つ帯を、指定した画面サイズで開いた状態にする。
-    Future<Rect> pumpExpandedPanel(
-      WidgetTester tester,
-      Size size, {
-      int count = 30,
+  group('008:T16 (i) 件数が多くても一覧を覆わない', () {
+    /// ルールの原因(トークン)を [causes] 本持つルール。
+    ///
+    /// 連番の桁不足 1 本 + 作成日時が取れない日時トークン [causes]-1 本。
+    /// **001 が返す警告の数ではなく、原因の数が増える。**
+    RenameRule ruleWithCauses(int causes) => RenameRule([
+      const SequenceToken(start: 100, digits: 1),
+      for (var i = 0; i < causes - 1; i++) ...[
+        const DateTimeToken(source: DateTimeSource.created, format: 'yyyyMMdd'),
+        LiteralToken('_$i'),
+      ],
+    ]);
+
+    /// ルール設定の導線がある**製品経路**で描く。
+    ///
+    /// **`onEditRule` を渡すことが要点である。** 渡さないと原因の提示が tree に
+    /// 存在せず、何を測っても通ってしまう(独立review attempt 3 のP1-2で、
+    /// この空振りを実際に作っていた)。
+    Future<({Rect list, int overflows})> pumpWithCauses(
+      WidgetTester tester, {
+      required Size size,
+      required double scale,
+      required int causes,
     }) async {
+      final errors = <String>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = (details) =>
+          errors.add(details.exceptionAsString());
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final warnings = <Warning>[
-        for (var i = 0; i < count; i++)
-          DuplicateWarning(
-            file: FileEntry(
-              name: 'IMG_2026080$i.jpg',
-              modifiedAt: DateTime(2026, 8, 4),
-              size: 0,
-              sourceLocation: 'DCIM/Camera',
-            ),
-            resultName: 'photo_001.jpg',
-          ),
-      ];
       await tester.pumpWidget(
         MaterialApp(
           theme: appDarkTheme(),
-          home: Scaffold(
-            body: Column(
-              children: [
-                // 同じ test 内で2回 pump するとき、State(開閉)を引き継がせない。
-                RenameWarningPanel(key: ValueKey(size), warnings: warnings),
-              ],
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(scale),
+            ),
+            child: Scaffold(
+              body: FileListView(
+                key: ValueKey('causes-$size-$scale-$causes'),
+                onEditRule: () {},
+                controller: FileListController(
+                  files: [
+                    for (var i = 0; i < 30; i++)
+                      FileEntry(
+                        name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                        modifiedAt: DateTime(2026, 8, 4),
+                        size: 0,
+                        sourceLocation: 'DCIM/Camera',
+                      ),
+                  ],
+                  rule: ruleWithCauses(causes),
+                ),
+              ),
             ),
           ),
         ),
       );
-      await tester.tap(find.byKey(renameWarningToggleKey));
-      await tester.pump();
-      return tester.getRect(find.byKey(renameWarningsKey));
+      FlutterError.onError = previous;
+      return (
+        list: tester.getRect(find.byType(ReorderableListView)),
+        overflows: errors.where((e) => e.contains('overflow')).length,
+      );
     }
 
-    test('内訳の高さは画面に応じて決まる(固定値ではない)', () {
-      // 固定 132px をやめたことそのものを固定する。狭幅では1件が4行へ折り返す
-      // ため、132px には2件しか入らなかった。
-      final short = RenameWarningPanel.detailMaxHeightFor(640);
-      final tall = RenameWarningPanel.detailMaxHeightFor(1000);
-
-      expect(short, greaterThan(RenameWarningPanel.detailMaxHeight));
-      expect(tall, greaterThan(short));
-    });
-
-    test('画面が小さくても従来の高さを下回らない', () {
-      // 小さな画面で今より狭くなると、直すつもりが悪化する。
-      expect(
-        RenameWarningPanel.detailMaxHeightFor(320),
-        RenameWarningPanel.detailMaxHeight,
+    /// 重複警告を [count] 件出す一覧を、指定した画面サイズで描く。
+    ///
+    /// 全ファイルが同じ名前になるルールを与えると、001 は重複警告を件数ぶん返す。
+    Future<Rect> pumpList(WidgetTester tester, Size size, int count) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: FileListView(
+              key: ValueKey('list-$count'),
+              // **`onEditRule` を渡す。** 渡さないとルール設定buttonも原因の
+              // 提示も tree に存在せず、下部バーの構成が製品と違うものを
+              // 測ることになる(独立review attempt 3 のP1-2、attempt 4 のP1-1)。
+              onEditRule: () {},
+              controller: FileListController(
+                files: [
+                  for (var i = 0; i < count; i++)
+                    FileEntry(
+                      name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                      modifiedAt: DateTime(2026, 8, 4),
+                      size: 0,
+                      sourceLocation: 'DCIM/Camera',
+                    ),
+                ],
+                rule: const RenameRule([LiteralToken('photo')]),
+              ),
+            ),
+          ),
+        ),
       );
-    });
+      return tester.getRect(find.byType(ReorderableListView));
+    }
 
-    testWidgets('帯は画面から決めた高さを実際に使う', (tester) async {
-      await pumpExpandedPanel(tester, const Size(360, 640));
-
-      // 固定 132px ではなく、画面から決めた値がそのまま効いている。
-      // **恣意的な「何件見えるか」ではなく、配線そのものを固定する。**
+    testWidgets('原因が何本あっても一覧の取り分が変わらない', (tester) async {
+      // **N-9 はここで閉じる。** 集約帯を廃止したとき、帯が持っていた高さの上限
+      // (`detailMaxHeightFor` = 画面高の32%)を代替なしで外し、置換先の説明が
+      // 原因の数 × 文字倍率で伸びて一覧を 0px まで潰した(独立review attempt 3
+      // のP1-1。360×640・文字倍率2.0・原因3本で一覧が0px、原因5本で 339px の
+      // はみ出し)。
       //
-      // 期待値は **widget が実際に見ている** 画面の高さから作る。test harness の
-      // surface と `MediaQuery` はずれることがあるが、ここで確かめたいのは
-      // 「画面の高さから決めた値を使っているか」であって harness の一致ではない。
-      final panelContext = tester.element(find.byKey(renameWarningsKey));
-      final screenHeight = MediaQuery.sizeOf(panelContext).height;
-      expect(
-        tester.getSize(find.byKey(renameWarningDetailKey)).height,
-        RenameWarningPanel.detailMaxHeightFor(screenHeight),
-      );
-      // 固定値のままなら、この主張は成り立たない。
-      expect(
-        RenameWarningPanel.detailMaxHeightFor(screenHeight),
-        greaterThan(RenameWarningPanel.detailMaxHeight),
-      );
+      // 常設する提示を**種別だけ**にして解いた。種別は `桁不足` と `基準日時なし`
+      // の2つしかないので、**原因が2本目以降どれだけ増えても提示は変わらない。**
+      // 基準を原因2本(種別が両方そろう最小)に取り、そこから 3 / 5 / 10 本まで
+      // 増やしても一覧の高さが1pxも動かないことを見る。
+      //
+      // 320×640 は最も狭い想定、360×640 は 2026-08-29 の実機確認に近い狭幅、
+      // 731×411 は横持ちである。
+      for (final size in [
+        const Size(320, 640),
+        const Size(360, 640),
+        const Size(731, 411),
+      ]) {
+        for (final scale in [1.0, 1.3, 2.0]) {
+          final baseline = await pumpWithCauses(
+            tester,
+            size: size,
+            scale: scale,
+            causes: 2,
+          );
+          expect(
+            baseline.overflows,
+            0,
+            reason: '$size scale=$scale causes=2 ではみ出している',
+          );
+          expect(baseline.list.height, greaterThan(0));
+          for (final causes in [3, 5, 10]) {
+            final grown = await pumpWithCauses(
+              tester,
+              size: size,
+              scale: scale,
+              causes: causes,
+            );
+            expect(
+              grown.list.height,
+              baseline.list.height,
+              reason: '$size scale=$scale で原因 $causes 本が一覧を削っている',
+            );
+            expect(
+              grown.overflows,
+              0,
+              reason: '$size scale=$scale causes=$causes ではみ出している',
+            );
+          }
+        }
+      }
     });
 
-    testWidgets('帯の高さは画面の半分を超えない', (tester) async {
-      const size = Size(360, 1000);
-      final panel = await pumpExpandedPanel(tester, size);
+    testWidgets('種別が 1 つ増えても、増える高さは 1 行ぶんで止まる', (tester) async {
+      // 種別が 1 つ(桁不足だけ)から 2 つになると、文字倍率が高い狭幅では
+      // 見出しの右へ収まらず次の行へ落ちる。**これは有界である** — 種別は
+      // 2 つが上限なので、ここから先は増えない。上の test が「2 本目以降は
+      // 増えない」を押さえ、この test が「1 → 2 の段差が 1 行で収まる」を
+      // 押さえる。両方そろって初めて占有が定数だと言える。
+      const size = Size(360, 640);
+      for (final scale in [1.0, 1.3, 2.0]) {
+        final one = await pumpWithCauses(
+          tester,
+          size: size,
+          scale: scale,
+          causes: 1,
+        );
+        final two = await pumpWithCauses(
+          tester,
+          size: size,
+          scale: scale,
+          causes: 2,
+        );
+        final lost = one.list.height - two.list.height;
+        expect(lost, greaterThanOrEqualTo(0));
+        // 1 行 = 本文 11px × 文字倍率 + 行間。40px を超えるなら折り返し 1 行では
+        // 説明が付かない(説明そのものが常設側へ戻ったなどの退行)。
+        expect(
+          lost,
+          lessThanOrEqualTo(40 * scale),
+          reason: 'scale=$scale で種別 1 → 2 が $lost px も食っている',
+        );
+        expect(one.overflows, 0);
+        expect(two.overflows, 0);
+      }
+    });
 
-      // **これは「画面」に対する上限であって、「一覧の取り分」ではない。** 帯は
-      // header や bar と同じ Column に載るので、一覧の見える範囲に対する割合は
-      // これより大きくなる。2026-08-29 の実機確認で、開いた帯が一覧の半分以上を
-      // 覆うことを観測した(残余risk N-9。帯そのものを置き換える `T16` が引き取る)。
-      // ここで固定するのは、**画面に対して青天井にはしていない**ことだけである。
-      expect(panel.height, lessThan(size.height * 0.5));
+    testWidgets('警告の件数が増えても一覧の取り分が変わらない', (tester) async {
+      // **`T07` の残余risk N-9 がここで閉じる。** 集約帯は件数に応じて縦を食い、
+      // 2026-08-29 の実機確認では開いた帯が一覧の見える範囲の半分以上を覆った。
+      // 置換先(常時 1 行の件数表示 + modal)は**件数に依存しない**。
+      const size = Size(360, 640);
+      final few = await pumpList(tester, size, 2);
+      final many = await pumpList(tester, size, 30);
+
+      expect(many.height, few.height, reason: '警告の件数が一覧の高さを削っている');
+    });
+
+    testWidgets('警告が 1 件も無いときと比べても一覧の取り分が変わらない', (tester) async {
+      // 件数表示は 0 件でも「問題なし」を出す(005 REQ-010: それは警告ではない)。
+      // **常時 1 行**なので、警告の有無で一覧が伸び縮みしない。
+      const size = Size(360, 640);
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: FileListView(
+              // 比較相手(`pumpList`)と同じ製品経路で測る。
+              onEditRule: () {},
+              controller: FileListController(
+                files: [_unknownCreatedAt()],
+                // 元名だけのルールなら警告は出ない。
+                rule: const RenameRule([OriginalNameToken()]),
+              ),
+            ),
+          ),
+        ),
+      );
+      final clean = tester.getRect(find.byType(ReorderableListView));
+
+      final warned = await pumpList(tester, size, 30);
+      expect(warned.height, clean.height);
+    });
+
+    testWidgets('狭幅でも文字を大きくしても、ヘッダの数字が消えない', (tester) async {
+      // **overflow を見るだけでは足りない。** `Flexible` + ellipsis は
+      // **内容を切ることで overflow を出さない**ので、はみ出しの検査では
+      // 「文字が消えた」を検出できない(独立reviewが2回続けて見つけた)。
+      // 実際に `200 / 2…`(総数が読めない)や `1000 / 1…`(総数を1と誤読)に
+      // なっていた。**情報が減るのではなく誤りになる**ので切り詰め自体を見る。
+      //
+      // ヘッダは `Wrap` なので、入らないときは切らずに次の行へ落ちる。
+      for (final width in [320.0, 360.0, 411.0]) {
+        // 2.0 は端末の「フォントサイズ最大」に近い。ここで初めて選択件数が
+        // 2 行を必要とするので、折り返しの下限がここで効く。
+        for (final scale in [1.0, 1.3, 2.0]) {
+          for (final count in [30, 200, 1000]) {
+            await tester.binding.setSurfaceSize(Size(width, 800));
+            addTearDown(() => tester.binding.setSurfaceSize(null));
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: appDarkTheme(),
+                home: MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: Scaffold(
+                    body: FileListView(
+                      key: ValueKey('count-$width-$scale-$count'),
+                      controller: FileListController(
+                        files: [
+                          for (var i = 0; i < count; i++)
+                            FileEntry(
+                              name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                              modifiedAt: DateTime(2026, 8, 4),
+                              size: 0,
+                              sourceLocation: 'DCIM/Camera',
+                            ),
+                        ],
+                        rule: const RenameRule([LiteralToken('photo')]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+
+            final where = '幅 $width / 文字 $scale / $count 件';
+            // 何件の問題か。
+            expect(
+              tester
+                  .renderObject<RenderParagraph>(
+                    find.descendant(
+                      of: find.byKey(warningCountKey),
+                      matching: find.byType(Text),
+                    ),
+                  )
+                  .didExceedMaxLines,
+              isFalse,
+              reason: '$where で警告の件数が切り詰められている',
+            );
+            // **総数が切れると `1000 / 1…` が「総数 1」と読める。**
+            expect(
+              tester
+                  .renderObject<RenderParagraph>(
+                    find.byKey(const Key('selection-count')),
+                  )
+                  .didExceedMaxLines,
+              isFalse,
+              reason: '$where で選択件数が切り詰められている',
+            );
+          }
+        }
+      }
+    });
+
+    testWidgets('狭幅でヘッダに件数を足してもはみ出さない', (tester) async {
+      // 件数表示は `_HeaderBar` へ足した。**既存の選択件数と同じ行**なので、
+      // 狭幅で押し出さないことを確かめる。**N-8b(文字サイズ最大での
+      // `_HeaderBar` の水平 overflow)はこのtaskが閉じた** — ヘッダを `Wrap`
+      // にしたので落ちる先がある。`textScaler` 3.0 で残るのは語尾の切り詰め
+      // (数字は残る)で、`008:T10` が N-8b′ として引き受けている。
+      for (final width in [320.0, 360.0]) {
+        final errors = <String>[];
+        final previous = FlutterError.onError;
+        await tester.binding.setSurfaceSize(Size(width, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        FlutterError.onError = (details) =>
+            errors.add(details.exception.toString());
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(
+              body: FileListView(
+                key: ValueKey('header-$width'),
+                controller: FileListController(
+                  files: [
+                    for (var i = 0; i < 30; i++)
+                      FileEntry(
+                        name: 'IMG_${i.toString().padLeft(4, '0')}.jpg',
+                        modifiedAt: DateTime(2026, 8, 4),
+                        size: 0,
+                        sourceLocation: 'DCIM/Camera',
+                      ),
+                  ],
+                  rule: const RenameRule([LiteralToken('photo')]),
+                ),
+              ),
+            ),
+          ),
+        );
+        FlutterError.onError = previous;
+        expect(errors, isEmpty, reason: '幅 $width ではみ出している');
+        expect(find.byKey(warningCountKey), findsOneWidget);
+      }
+    });
+
+    testWidgets('詳細を開いても一覧の取り分が変わらない', (tester) async {
+      // 帯は**その場で展開して**一覧を押し下げていた。modal は覆いかぶさるだけで
+      // 一覧の layout を動かさない。
+      const size = Size(360, 640);
+      final before = await pumpList(tester, size, 30);
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(warningDetailDialogKey), findsOneWidget);
+      expect(tester.getRect(find.byType(ReorderableListView)), before);
     });
   });
 }

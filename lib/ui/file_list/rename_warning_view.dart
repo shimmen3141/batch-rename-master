@@ -3,174 +3,32 @@ import 'package:flutter/material.dart';
 import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 
-/// 警告帯そのもの(0 件のときは存在しない)。
-const Key renameWarningsKey = Key('rename-warnings');
-
-/// 件数と内訳の見出し(帯があるときは常に見える)。
-const Key renameWarningSummaryKey = Key('rename-warning-summary');
-
-/// 内訳の開閉トグル(見出し全体がタップ領域)。
-const Key renameWarningToggleKey = Key('rename-warning-toggle');
-
-/// 展開した内訳のスクロール領域(展開時のみ存在する)。高さの上限がここに効く。
-const Key renameWarningDetailKey = Key('rename-warning-detail');
-
-/// [index] 番目(0 始まり)の警告行(展開時のみ存在する)。
-Key renameWarningRowKey(int index) => Key('rename-warning-$index');
-
-/// ルール未設定の案内帯(警告帯の代わりに出る)。
+/// ルール未設定の案内帯(警告が 0 件でない状態の代わりに出る)。
 const Key ruleNotConfiguredKey = Key('rule-not-configured');
 
-/// 001 の検証([validate])が返した警告をプレビュー上に提示する帯(005 REQ-009)。
+/// 一覧全体の警告件数(常に見える。押すと全件の詳細が開く。005 REQ-009 (3))。
+const Key warningCountKey = Key('warning-count');
+
+/// 行の警告(005 REQ-009 (1))。押すと全件の詳細が開く。
+const Key rowWarningKey = Key('row-warning');
+
+/// ルールを直せば消える原因の提示(005 REQ-009 (2))。件数ぶん繰り返さない。
 ///
-/// **判定は 001 が持ち、005 は表示だけを担う**(契約 `terms` の「警告」)。
-/// 4 種([DuplicateWarning] / [DigitShortageWarning] / [EmptyNameWarning] /
-/// [MissingSourceDateWarning])すべてを、どのファイルが対象か識別できる文言で
-/// 1 件 1 行に並べる。基準日時不明ではルール内のどのトークンが空になるかも示す。
-///
-/// [warnings] が空なら**何も表示しない**(005 REQ-010)。
-///
-/// 帯は「件数と種別内訳の見出し」+「1 件 1 行の内訳」からなり、内訳は見出しの
-/// タップで開閉する(既定は閉じ)。ファイル一覧の縦を警告で潰さないための構成で、
-/// 提示方法は仕様が実装に委ねている範囲(spec.md「自由とする点」)。開いた内訳は
-/// 帯の中でスクロールするので、件数が多くても全件たどれる。
-///
-/// 見た目は 004 T6 の作成日時フォールバック警告帯に揃え、色は [AppColors] の
-/// セマンティック色([AppColors.danger])から取る(生の色値を書かない)。
-class RenameWarningPanel extends StatefulWidget {
-  const RenameWarningPanel({super.key, required this.warnings});
+/// **狭幅では下部バーのルール設定button内、広幅では右ペイン上部**にある。
+/// どちらの layout にも在ることが要求である(片方だけだと行き場を失う)。
+const Key ruleWarningNoticeKey = Key('rule-warning-notice');
 
-  /// 001 の [validate] が返した警告(表示順はそのまま保つ)。
-  final List<Warning> warnings;
+/// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
+const Key ruleSummaryKey = Key('rule-summary');
 
-  /// 展開した内訳の最大高さの**上限**。実際は画面の高さに応じて決まる
-  /// ([detailMaxHeightFor])。
-  static const double detailMaxHeight = 132;
+/// 詳細dialog内の「原因ごとの説明」節(005 REQ-009 (2) の説明の置き場所)。
+const Key warningDetailCausesKey = Key('warning-detail-causes');
 
-  /// 画面の高さから内訳の最大高さを決める(008:T07)。
-  ///
-  /// **固定 132px をやめた。** 狭幅では1件の文言が4行へ折り返すため、132px には
-  /// 2件しか入らない。folder を跨ぐ重複は通常経路で出る(008 の (i))ので、
-  /// 件数が多いのは例外ではない。
-  ///
-  /// **画面を警告で埋めない**という元の意図は保つ。上限は画面の高さの
-  /// [_detailHeightRatio] までで、そこから先はこれまでどおりスクロールで送る。
-  static double detailMaxHeightFor(double screenHeight) {
-    final proportional = screenHeight * _detailHeightRatio;
-    return proportional < detailMaxHeight ? detailMaxHeight : proportional;
-  }
+/// 詳細dialog内の「ファイルごとの全件」節(005 REQ-009 (3))。
+const Key warningDetailFilesKey = Key('warning-detail-files');
 
-  /// 内訳へ渡してよい画面の割合。残りは一覧のために空けておく。
-  static const double _detailHeightRatio = 0.32;
-
-  @override
-  State<RenameWarningPanel> createState() => _RenameWarningPanelState();
-}
-
-class _RenameWarningPanelState extends State<RenameWarningPanel> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    // REQ-021: 同一ファイルの空名 + 基準日時不明は 1 行にまとめてから数える。
-    final presented = presentWarnings(widget.warnings);
-    // REQ-010: 0 件のときは提示しない(空の帯も見出しも出さない)。
-    if (presented.isEmpty) return const SizedBox.shrink();
-    final colors = context.colors;
-    return Container(
-      key: renameWarningsKey,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: colors.danger.withValues(alpha: 0.12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            key: renameWarningToggleKey,
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                // 004 T6 の作成日時フォールバック帯(warning_amber)とは別の印を
-                // 使い、どちらの警告かをアイコンでも区別できるようにする。
-                Icon(Icons.error_outline, size: 14, color: colors.danger),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    key: renameWarningSummaryKey,
-                    describeWarningSummary(presented),
-                    style: TextStyle(
-                      color: colors.danger,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 16,
-                  color: colors.danger,
-                ),
-              ],
-            ),
-          ),
-          if (_expanded)
-            ConstrainedBox(
-              key: renameWarningDetailKey,
-              constraints: BoxConstraints(
-                maxHeight: RenameWarningPanel.detailMaxHeightFor(
-                  MediaQuery.sizeOf(context).height,
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (var i = 0; i < presented.length; i++)
-                      _WarningRow(
-                        key: renameWarningRowKey(i),
-                        message: presented[i].message,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 警告 1 件の行(印 + 説明文)。
-class _WarningRow extends StatelessWidget {
-  const _WarningRow({super.key, required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, left: 22),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(Icons.error_outline, size: 13, color: colors.danger),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: colors.danger, fontSize: 11.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+/// 全件と説明の詳細(005 REQ-009 (3))。
+const Key warningDetailDialogKey = Key('warning-detail-dialog');
 
 /// 提示 1 件分(種別名と本文)。001 の警告と 1 対 1 とは限らない(REQ-021)。
 class WarningPresentation {
@@ -248,24 +106,7 @@ String _describeEmptyNameWithCause(
       '基準日時が取れないため、変更後の名前が空になります';
 }
 
-/// 件数と種別内訳の見出し(例: `警告 3 件(重複 2・桁不足 1)`)。
-///
-/// 数えるのは 001 が返した警告そのものではなく、[presentWarnings] がまとめた
-/// **提示単位**なので、見出しの件数と展開した行数が必ず一致する。
-///
-/// 内訳を畳んでいる間も「何がいくつ起きているか」は常に見える。
-String describeWarningSummary(List<WarningPresentation> presented) {
-  final counts = <String, int>{};
-  for (final item in presented) {
-    counts[item.kindLabel] = (counts[item.kindLabel] ?? 0) + 1;
-  }
-  final breakdown = counts.entries
-      .map((entry) => '${entry.key} ${entry.value}')
-      .join('・');
-  return '警告 ${presented.length} 件($breakdown)';
-}
-
-/// ルールが空のとき、警告帯の代わりに出す案内(005 REQ-020)。
+/// ルールが空のとき、警告の代わりに出す案内(005 REQ-020)。
 ///
 /// 「何が起きているか(命名ルールが未設定)」と「どうすれば進めるか(ルールを
 /// 設定する)」を伝えるだけの帯で、操作そのものは下部アクションバーのルール
@@ -304,10 +145,15 @@ class RuleNotConfiguredBanner extends StatelessWidget {
 /// 警告の種別名(見出しの内訳と各行の頭に使う)。
 String warningKindLabel(Warning warning) => switch (warning) {
   DuplicateWarning() => '重複',
-  DigitShortageWarning() => '桁不足',
+  DigitShortageWarning() => digitShortageKindLabel,
   EmptyNameWarning() => '空の名前',
-  MissingSourceDateWarning() => '基準日時なし',
+  MissingSourceDateWarning() => missingSourceDateKindLabel,
 };
+
+/// ルールを直せば消える種別。**この2つがルール由来の警告のすべてである** —
+/// 重複と空の名前はファイル単位なので行が持つ。[ruleWarningKinds] と共有する。
+const String digitShortageKindLabel = '桁不足';
+const String missingSourceDateKindLabel = '基準日時なし';
 
 /// 警告 1 件を、対象ファイル(と該当トークン)が識別できる文言にする(REQ-009)。
 ///
@@ -354,3 +200,372 @@ String describeDateTimeSource(DateTimeSource source) => switch (source) {
   DateTimeSource.modified => '更新日時',
   DateTimeSource.current => '現在日時',
 };
+
+// ---------------------------------------------------------------------------
+// 008:T16 警告の提示。**005 revision 8.0 が課すのは場所ではなく「利用者から何が
+// 読めるか」である**(配置は「自由とする点」)。ここで選んだ置き場所は
+// `T15` の設計指針と参考designに沿ったもので、要求ではない。
+// ---------------------------------------------------------------------------
+
+/// 行に出す警告(005 REQ-009 (1) / REQ-021)。
+///
+/// - **ルールが空なら空を返す**(005 REQ-020: 警告ではなく未設定を提示する)。
+/// - **空名の行は空名だけ**にする。基準日時不明は結果へ畳み(REQ-021 規則1)、
+///   重複は出さない(規則2)。どちらも [showWarningDetail] には残る。
+/// - 同じ種別が複数あっても行では 1 つにする。行は**トークンを名指ししない**ので、
+///   同じ文言を並べても情報が増えない(名指しは [ruleWarningExplanations] と詳細)。
+List<Warning> rowWarningsOf(
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) {
+  if (ruleIsEmpty) return const <Warning>[];
+  final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;
+  if (empty != null) return <Warning>[empty];
+  final seen = <Type>{};
+  return <Warning>[
+    for (final warning in warnings)
+      if (seen.add(warning.runtimeType)) warning,
+  ];
+}
+
+/// 行に出す短い一文(005 REQ-009 (1))。**種別が読み取れることが要求である。**
+///
+/// 空名は結果を 2 つ示す — **(i) 名前が空になること** と
+/// **(ii) そのファイルが改名の対象にならないこと**(005 REQ-021 規則1)。
+/// (ii) は (i) の言い換えではない。(i) だけでは「空の名前へ改名される」とも読める。
+///
+/// **トークンを名指ししない。** 名指しは [ruleWarningExplanations] と詳細が担う。
+String rowWarningLabel(Warning warning) => switch (warning) {
+  DuplicateWarning() => '名前が重複',
+  EmptyNameWarning() => '名前が空・改名されません',
+  // 基準日時が取れないのは**作成日時が不明なとき**だけである(001 INV-006:
+  // 更新日時・現在日時では代替しない。それらは常に値を持つ)。
+  MissingSourceDateWarning() => '作成日時が空になります',
+  // 行へは来ない([warningTargetOf] が `null` を返す)。網羅のために置く。
+  DigitShortageWarning() => '連番の桁が不足',
+};
+
+/// ルールを直せば消える原因の説明(005 REQ-009 (2))。
+///
+/// **該当ファイルの件数ぶん繰り返さない。単位は原因(トークン)ごとである。**
+/// 取れない日時トークンが 2 本あれば説明は 2 つでよい。
+///
+/// ルールが空なら空を返す(005 REQ-020)。
+List<String> ruleWarningExplanations(
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) {
+  if (ruleIsEmpty) return const <String>[];
+  final seenDigits = <int>{};
+  final seenDate = <int>{};
+  final out = <String>[];
+  for (final warning in warnings) {
+    switch (warning) {
+      case DigitShortageWarning(
+        :final tokenIndex,
+        :final token,
+        :final requiredDigits,
+      ):
+        if (!seenDigits.add(tokenIndex)) continue;
+        out.add(
+          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
+          '$requiredDigits 桁必要です',
+        );
+      case MissingSourceDateWarning(:final tokenIndex, :final token):
+        if (!seenDate.add(tokenIndex)) continue;
+        out.add(
+          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
+          '${describeDateTimeSource(token.source)}が取れないため空になります',
+        );
+      case DuplicateWarning():
+      case EmptyNameWarning():
+        continue;
+    }
+  }
+  return out;
+}
+
+/// ルールを直せば消える警告の**種別**(005 REQ-009 (2) の常設側)。
+///
+/// **説明そのものではなく種別を返す。** 説明は原因(トークン)ごとに1つなので
+/// **トークンの数だけ増える**が、種別は2つしかない。常設する提示をこちらにすると、
+/// 原因が何本あっても文字倍率がいくつでも**占有が変わらない**。
+///
+/// **これは集約帯を廃止したときに失った保証の作り直しである。** 帯は
+/// `detailMaxHeightFor`(画面高の32%上限 + scroll)で有界だったが、置換先に置いた
+/// 説明の並びには上限が無く、原因3つ・文字倍率2.0で一覧が0pxになった
+/// (独立review attempt 3 のP1-1)。**器へ上限を付けるのではなく、常設する中身を
+/// 定数個にして解く。**説明そのものは詳細dialogが持つ([showWarningDetail])。
+///
+/// ルールが空なら空を返す(005 REQ-020)。
+List<String> ruleWarningKinds(
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) {
+  if (ruleIsEmpty) return const <String>[];
+  var digits = false;
+  var date = false;
+  for (final warning in warnings) {
+    if (warning is DigitShortageWarning) digits = true;
+    if (warning is MissingSourceDateWarning) date = true;
+  }
+  // 001 が返した順ではなく**固定した順**で並べる(件数で並びが揺れない)。
+  return <String>[
+    if (digits) digitShortageKindLabel,
+    if (date) missingSourceDateKindLabel,
+  ];
+}
+
+/// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
+///
+/// **最小形にとどめる** — [describeToken] を並べるだけである。文言の作り込みは
+/// `008:T14`、余白・字体は `008:T10` が持つ。ルールが空なら空文字を返す。
+String describeRuleSummary(RenameRule rule) =>
+    rule.tokens.map(describeToken).join(' + ');
+
+/// 一覧全体の件数(005 REQ-010: 0 件なら「問題なし」。**それは警告ではない**)。
+String warningCountLabel(List<Warning> warnings) {
+  final count = presentWarnings(warnings).length;
+  return count == 0 ? '問題なし' : '$count 件の問題';
+}
+
+/// 行の警告(005 REQ-009 (1))。**展開操作を経ずに種別が読める。**
+class RowWarningView extends StatelessWidget {
+  const RowWarningView({super.key, required this.warnings, this.onTap});
+
+  /// [rowWarningsOf] を通した後の警告。空なら何も描かない。
+  final List<Warning> warnings;
+
+  /// 押したときに全件の詳細を開く(005 REQ-009 (3))。
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (warnings.isEmpty) return const SizedBox.shrink();
+    final colors = context.colors;
+    return InkWell(
+      key: rowWarningKey,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 2, bottom: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1, right: 3),
+              child: Icon(Icons.error_outline, size: 11, color: colors.danger),
+            ),
+            Flexible(
+              child: Text(
+                warnings.map(rowWarningLabel).join('・'),
+                // 種別がすべて併発しても 2 行に収まる短さにしてある。
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.danger,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 一覧全体の件数表示(005 REQ-009 (3) の入口の 1 つ)。
+class WarningCountView extends StatelessWidget {
+  const WarningCountView({super.key, required this.warnings, this.onTap});
+
+  final List<Warning> warnings;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final has = warnings.isNotEmpty;
+    return InkWell(
+      key: warningCountKey,
+      // 0 件のときは開くものが無い。
+      onTap: has ? onTap : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              has ? Icons.error_outline : Icons.check_circle_outline,
+              size: 13,
+              color: has ? colors.danger : colors.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                warningCountLabel(warnings),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: has ? colors.danger : colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ルールを直せば消える原因の説明(005 REQ-009 (2))。
+///
+/// **ルールを変更する導線のそばへ置く**のが`T15`の設計指針だが、**場所は要求では
+/// ない**(005 revision 8.0)。狭幅では下部バー、広幅では右ペインが導線なので、
+/// 呼び出し側がそれぞれ描く。
+class RuleWarningNotice extends StatelessWidget {
+  const RuleWarningNotice({
+    super.key,
+    required this.warnings,
+    required this.ruleIsEmpty,
+    this.compact = false,
+  });
+
+  final List<Warning> warnings;
+  final bool ruleIsEmpty;
+
+  /// ルール設定button内へ入れる形(狭幅)。枠と背景を持たず見出しの右へ並ぶ。
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final kinds = ruleWarningKinds(warnings, ruleIsEmpty: ruleIsEmpty);
+    if (kinds.isEmpty) return const SizedBox.shrink();
+    final colors = context.colors;
+    // **`Wrap` である。** 幅が足りないときに切り詰めると種別が読めなくなる
+    // (ヘッダで2回作った退行と同じ形)。種別は最大2つなので、次の行へ落ちても
+    // 増える高さは1行ぶんで止まる。
+    final content = Wrap(
+      spacing: 4,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Icon(Icons.error_outline, size: 13, color: colors.danger),
+        for (final kind in kinds)
+          Text(
+            kind,
+            style: TextStyle(
+              color: colors.danger,
+              fontSize: compact ? 10.5 : 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    );
+    if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);
+    // **外側の余白もこの widget が持つ。** 呼び出し側が `Padding` で包むと、
+    // 種別が 0 件で `SizedBox.shrink()` を返すときにも余白だけが残り、
+    // 警告の無い通常状態でルールビルダーの縦を食う(独立review attempt 4 の P2-1)。
+    return Container(
+      key: ruleWarningNoticeKey,
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.danger.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: content,
+    );
+  }
+}
+
+/// 全件と説明の詳細(005 REQ-009 (3))。
+///
+/// **行の警告からも一覧全体の件数表示からも同じものが開く。** 種別ごとにまとめて
+/// 並べ、[presentWarnings] の提示単位をそのまま使う(実行前確認dialogと同じ単位。
+/// REQ-021 のまとめを両方へ効かせる)。
+Future<void> showWarningDetail(
+  BuildContext context,
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) async {
+  if (warnings.isEmpty) return;
+  final presented = presentWarnings(warnings);
+  // **原因ごとの説明はここが持つ(005 REQ-009 (2))。** 常設側は種別だけなので、
+  // 「何番目のトークンが何桁必要か」を読める場所はこの節である。
+  final causes = ruleWarningExplanations(warnings, ruleIsEmpty: ruleIsEmpty);
+  final byKind = <String, List<WarningPresentation>>{};
+  for (final item in presented) {
+    (byKind[item.kindLabel] ??= <WarningPresentation>[]).add(item);
+  }
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      final colors = dialogContext.colors;
+      return AlertDialog(
+        key: warningDetailDialogKey,
+        title: Text(warningCountLabel(warnings)),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (causes.isNotEmpty)
+                  Column(
+                    key: warningDetailCausesKey,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: Text(
+                          'ルールの問題',
+                          style: TextStyle(
+                            color: colors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      for (final cause in causes) Text('• $cause'),
+                    ],
+                  ),
+                Column(
+                  key: warningDetailFilesKey,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final entry in byKind.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: Text(
+                          '${entry.key} ${entry.value.length} 件',
+                          style: TextStyle(
+                            color: colors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      for (final item in entry.value) Text('• ${item.message}'),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('warning-detail-close'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('閉じる'),
+          ),
+        ],
+      );
+    },
+  );
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/preview/file_preview.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/file_list_view.dart';
+import '../file_list/rename_warning_view.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
@@ -117,7 +118,28 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             color: colors.surface,
             border: Border(left: BorderSide(color: colors.border)),
           ),
-          child: RuleBuilderView(controller: widget.rule),
+          // **広幅では下部バーにルール設定の導線が無い**(`_buildNarrow` だけが
+          // `onEditRule` を渡す)。ルールを変更する操作はこの右ペインなので、
+          // 原因の説明(005 REQ-009 (2))もここへ置く。**片方だけ描くと、もう片方の
+          // layout で説明が行き場を失う**(008:T15 の独立reviewが見つけた)。
+          child: ListenableBuilder(
+            listenable: widget.fileList,
+            builder: (context, child) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // **`Padding` で包まない。** 種別が 0 件のとき
+                // `RuleWarningNotice` は `SizedBox.shrink()` を返すので、
+                // 外から余白を付けると警告の無い通常状態でも縦を食う
+                // (独立review attempt 4 の P2-1)。余白は widget 側が持つ。
+                RuleWarningNotice(
+                  warnings: widget.fileList.warnings,
+                  ruleIsEmpty: widget.fileList.isRuleEmpty,
+                ),
+                Expanded(child: child!),
+              ],
+            ),
+            child: RuleBuilderView(controller: widget.rule),
+          ),
         ),
       ],
     );

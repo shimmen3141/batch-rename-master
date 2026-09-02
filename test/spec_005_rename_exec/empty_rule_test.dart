@@ -93,9 +93,18 @@ void main() {
       // それらを警告として見せず、未設定として1つの案内にする。
       final files = FileListController(files: [_file('a.txt'), _file('b.txt')]);
       expect(files.warnings, isNotEmpty); // 001 の判定自体は変えない。
-      await _pump(tester, files);
+      // **ルール設定の導線がある状態で確かめる。** 導線が無い画面では原因の説明が
+      // そもそも tree に無く、不在のassertionが空振りする(N-15-1 と同じ型)。
+      await _pump(tester, files, onEditRule: () {});
 
-      expect(find.byKey(renameWarningsKey), findsNothing);
+      // **廃止された帯の key の不在では押さえない。** widget が無いから通る状態に
+      // なる(008:T15 の独立reviewが安全網の穴 N-15-1 として挙げた)。
+      // 行に警告が出ないこと・原因の説明が出ないこと・件数を出さないことを、
+      // **現に在る提示に対して**確かめる。
+      expect(find.byKey(rowWarningKey), findsNothing);
+      expect(find.byKey(ruleWarningNoticeKey), findsNothing);
+      // 件数も出さない。001 は空名と重複を返しているので「問題なし」は誤りになる。
+      expect(find.byKey(warningCountKey), findsNothing);
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
       expect(find.textContaining('命名ルールが未設定'), findsOneWidget);
     });
@@ -110,14 +119,14 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(ruleNotConfiguredKey), findsNothing);
-      expect(find.byKey(renameWarningsKey), findsOneWidget);
-      expect(find.textContaining('重複'), findsOneWidget);
+      expect(find.byKey(rowWarningKey), findsNWidgets(2));
+      expect(find.textContaining('名前が重複'), findsNWidgets(2));
 
       // 空へ戻せば案内へ戻る(両方向を観測する)。
       files.setRule(RenameRule.empty);
       await tester.pump();
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
-      expect(find.byKey(renameWarningsKey), findsNothing);
+      expect(find.byKey(rowWarningKey), findsNothing);
     });
 
     testWidgets('未設定のときはルール設定への導線が主役になる', (tester) async {
@@ -133,7 +142,12 @@ void main() {
       files.setRule(const RenameRule([LiteralToken('x')]));
       await tester.pump();
       expect(find.text('変更する名前を設定する'), findsNothing);
-      expect(find.text('ルールを編集'), findsOneWidget);
+      // 参考designの2行button(見出し + 設定中のルール)へ入れ替わる。
+      expect(find.text('命名ルール'), findsOneWidget);
+      expect(
+        (tester.widget<Text>(find.byKey(ruleSummaryKey))).data,
+        contains('固定文字「x」'),
+      );
     });
   });
 
@@ -154,22 +168,41 @@ void main() {
       );
 
       await _pump(tester, files);
-      await tester.tap(find.byKey(renameWarningToggleKey));
-      await tester.pump();
 
-      expect(find.textContaining('警告 1 件'), findsOneWidget);
-      expect(find.byKey(renameWarningRowKey(0)), findsOneWidget);
-      expect(find.byKey(renameWarningRowKey(1)), findsNothing);
-      final row = tester.widget<Text>(
-        find.descendant(
-          of: find.byKey(renameWarningRowKey(0)),
-          matching: find.byType(Text),
-        ),
-      );
-      expect(row.data, contains('shot.png'));
-      expect(row.data, contains('名前が空になります')); // 結果
-      expect(row.data, contains('基準日時が取れない')); // 原因
-      expect(row.data, contains('1 番目のトークン')); // どのトークンか
+      // **行が出すのは結果だけ**である。(i) 名前が空になること、
+      // (ii) そのファイルが改名の対象にならないこと。原因(どのトークンか)は
+      // 行に出さない — 該当ファイルが増えても行の内容は増えない。
+      final rowText = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(rowWarningKey),
+              matching: find.byType(Text),
+            ),
+          )
+          .single
+          .data!;
+      expect(rowText, contains('空')); // (i) 結果
+      expect(rowText, contains('改名されません')); // (ii) 結果
+      expect(rowText, isNot(contains('トークン'))); // 原因は行に出さない
+
+      // 詳細には結果と原因が 1 件としてまとまって出る(001 の 2 件を 1 件へ)。
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+      final detail = find.byKey(warningDetailDialogKey);
+      expect(detail, findsOneWidget);
+      expect(find.textContaining('1 件の問題'), findsWidgets);
+      final merged = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: detail,
+              matching: find.textContaining('shot.png'),
+            ),
+          )
+          .single
+          .data!;
+      expect(merged, contains('名前が空になります')); // 結果
+      expect(merged, contains('基準日時が取れない')); // 原因
+      expect(merged, contains('1 番目のトークン')); // どのトークンか
     });
 
     testWidgets('片方だけのときは従来どおり個別に提示する', (tester) async {
@@ -183,12 +216,31 @@ void main() {
       );
       expect(files.warnings.whereType<EmptyNameWarning>(), isEmpty);
 
-      await _pump(tester, files);
-      await tester.tap(find.byKey(renameWarningToggleKey));
-      await tester.pump();
+      await _pump(tester, files, onEditRule: () {});
 
-      expect(find.textContaining('基準日時なし 1'), findsOneWidget);
-      expect(find.byKey(renameWarningRowKey(0)), findsOneWidget);
+      // 行には種別が出る(REQ-021 規則1 の対象外。005 例20g)。
+      expect(find.byKey(rowWarningKey), findsOneWidget);
+      // 原因は**ルールを直す側**へ出る。常設するのは種別だけで、
+      // 説明そのもの(どのトークンか)は詳細dialogが持つ。
+      expect(find.byKey(ruleWarningNoticeKey), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(ruleWarningNoticeKey),
+          matching: find.text('基準日時なし'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(warningDetailCausesKey),
+          matching: find.textContaining('2 番目のトークン'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('基準日時なし 1 件'), findsOneWidget);
     });
   });
 

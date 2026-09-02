@@ -1208,6 +1208,223 @@
       "find": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      buffer.dispose();\n    }",
       "replace": "      return await ui.ImageDescriptor.encoded(buffer);\n    } finally {\n      // buffer.dispose();\n    }",
       "note": "008:T07 engine側のbufferを解放しない — 読めない画像1件ごとにnative memoryが残る(独立review attempt 2が追加)"
+    },
+    {
+      "id": "M173",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  DuplicateWarning() => '名前が重複',\n  EmptyNameWarning() => '名前が空・改名されません',",
+      "replace": "  DuplicateWarning() => '警告あり',\n  EmptyNameWarning() => '警告あり',",
+      "note": "008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する)"
+    },
+    {
+      "id": "M174",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (ruleIsEmpty) return const <Warning>[];\n  final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;",
+      "replace": "  final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;",
+      "note": "008:T16 ルールが空でも行へ警告を出す(005 REQ-020。廃止した帯のkeyでは検出できない穴)"
+    },
+    {
+      "id": "M175",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "        if (!seenDate.add(tokenIndex)) continue;",
+      "replace": "        seenDate.add(tokenIndex);",
+      "note": "008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-009 (2))"
+    },
+    {
+      "id": "M176",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (empty != null) return <Warning>[empty];",
+      "replace": "  if (empty != null) return <Warning>[empty, ...warnings.whereType<DuplicateWarning>()];",
+      "note": "008:T16 空名の行にも重複を出す(005 REQ-021 規則2。改名されないfileの重複は生じない)"
+    },
+    {
+      "id": "M177",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "                RuleWarningNotice(\n                  warnings: widget.fileList.warnings,\n                  ruleIsEmpty: widget.fileList.isRuleEmpty,\n                ),",
+      "replace": "",
+      "note": "008:T16 広幅(2ペイン)で原因の説明を配り忘れる — 広幅は下部バーにルール設定の導線が無いので行き場を失う"
+    },
+    {
+      "id": "M178",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      warnings: rowWarningsOf(\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                      ),",
+      "replace": "                      warnings: controller.sortMode == FileSortMode.createdAt\n                          ? rowWarningsOf(\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                            )\n                          : const <Warning>[],",
+      "note": "008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2)"
+    },
+    {
+      "id": "M179",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),",
+      "replace": "                RowWarningView(warnings: warnings),",
+      "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
+    },
+    {
+      "id": "M180",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                maxLines: 2,",
+      "replace": "                // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                maxLines: 1,",
+      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)"
+    },
+    {
+      "id": "M181",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  final seen = <Type>{};\n  return <Warning>[\n    for (final warning in warnings)\n      if (seen.add(warning.runtimeType)) warning,\n  ];",
+      "replace": "  return warnings;",
+      "note": "008:T16 行で同じ種別を件数ぶん繰り返す — 日時トークンが2本だと同じ文言が2回並ぶ(独立reviewが追加)"
+    },
+    {
+      "id": "M182",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  final count = presentWarnings(warnings).length;",
+      "replace": "  final count = warnings.length;",
+      "note": "008:T16 件数を提示単位ではなく001の生の件数で数える — 詳細に並ぶ件数と食い違う(独立reviewが追加)"
+    },
+    {
+      "id": "M183",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    RuleWarningNotice(\n                      warnings: warnings,\n                      ruleIsEmpty: empty,\n                      compact: true,\n                    ),",
+      "replace": "",
+      "note": "008:T16 狭幅でルール設定button内の原因の提示を配り忘れる — M177(広幅)の対照(独立reviewが追加。T16でbutton内へ移設)"
+    },
+    {
+      "id": "M184",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "            warnings: byFile[ordered[i]] ?? const <Warning>[],",
+      "replace": "            warnings: <Warning>[\n              ...?byFile[ordered[i]],\n              ...warnings.whereType<DigitShortageWarning>(),\n            ],",
+      "note": "008:T16 対象fileを持たない桁不足を全行へ載せる(002 REQ-015 例19)(独立reviewが追加)"
+    },
+    {
+      "id": "M185",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "            warnings: byFile[ordered[i]] ?? const <Warning>[],",
+      "replace": "            warnings: byFile[_items[i]] ?? const <Warning>[],",
+      "note": "008:T16 行の警告を別インスタンスで引き当てる — validateは選択を写した複製を見るのでidentityがずれる(独立reviewが追加)"
+    },
+    {
+      "id": "M186",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      child: Wrap(\n        spacing: 12,\n        runSpacing: 4,\n        crossAxisAlignment: WrapCrossAlignment.center,",
+      "replace": "      child: Row(\n        spacing: 12,",
+      "note": "008:T16 ヘッダを Wrap から Row へ戻す — 幅が足りないとき次の行へ落とせず、はみ出すか切り詰めるしかなくなる(独立reviewが見つけたP1の型)"
+    },
+    {
+      "id": "M187",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (empty != null) return <Warning>[empty];",
+      "replace": "  if (empty != null) {\n    return <Warning>[empty, ...warnings.whereType<MissingSourceDateWarning>()];\n  }",
+      "note": "008:T16 空名の行で基準日時不明を結果へ畳まず別立てで出す(005 REQ-021 規則1)(独立reviewが追加)"
+    },
+    {
+      "id": "M188",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  '$selected / $total 件を選択',\n                  maxLines: 2,",
+      "replace": "                  '$selected / $total 件を選択',\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
+      "note": "008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1)"
+    },
+    {
+      "id": "M189",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  // 001 が返した順ではなく**固定した順**で並べる(件数で並びが揺れない)。\n  return <String>[\n    if (digits) digitShortageKindLabel,\n    if (date) missingSourceDateKindLabel,\n  ];",
+      "replace": "  return <String>[\n    for (final warning in warnings)\n      if (warning is DigitShortageWarning || warning is MissingSourceDateWarning)\n        warningKindLabel(warning),\n  ];",
+      "note": "008:T16 常設側を種別ではなく警告1件ごとに出す — 原因の数とfile件数で伸び、一覧と下部バーを押し出す(独立review attempt 3 のP1-1の型)"
+    },
+    {
+      "id": "M190",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);",
+      "replace": "    if (compact) {\n      return KeyedSubtree(\n        key: ruleWarningNoticeKey,\n        child: Column(\n          mainAxisSize: MainAxisSize.min,\n          crossAxisAlignment: CrossAxisAlignment.start,\n          children: [\n            content,\n            for (final text in ruleWarningExplanations(\n              warnings,\n              ruleIsEmpty: ruleIsEmpty,\n            ))\n              Text(text),\n          ],\n        ),\n      );\n    }",
+      "note": "008:T16 説明そのものを常設側へ戻す — 原因の数×文字倍率で伸びて一覧が0pxになる(独立review attempt 3 のP1-1そのもの)"
+    },
+    {
+      "id": "M191",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                if (causes.isNotEmpty)\n                  Column(\n                    key: warningDetailCausesKey,",
+      "replace": "                if (false)\n                  Column(\n                    key: warningDetailCausesKey,",
+      "note": "008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2))"
+    },
+    {
+      "id": "M192",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                Text(\n                  summary,\n                  key: ruleSummaryKey,\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
+      "replace": "                Text(\n                  summary,\n                  key: ruleSummaryKey,",
+      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)"
+    },
+    {
+      "id": "M193",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                Wrap(\n                  spacing: 8,\n                  runSpacing: 2,\n                  crossAxisAlignment: WrapCrossAlignment.center,\n                  children: [\n                    Text(\n                      '命名ルール',",
+      "replace": "                Row(\n                  spacing: 8,\n                  children: [\n                    Text(\n                      '命名ルール',",
+      "note": "008:T16 見出しと警告を Row に並べる — 幅が足りないとき次の行へ落とせずはみ出す(ヘッダで2回作った退行の型)"
+    },
+    {
+      "id": "M194",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                      for (final cause in causes) Text('• $cause'),",
+      "replace": "                      for (final cause in causes)\n                        for (var i = 0; i < presented.length; i++)\n                          Text('• $cause'),",
+      "note": "008:T16 詳細dialogの原因の節を該当file件数ぶん繰り返す — 005 REQ-009 (2) の付け替え先をwidget側で外す(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M195",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                      for (final item in entry.value) Text('• ${item.message}'),",
+      "replace": "                      Text('• ${entry.value.first.message}'),",
+      "note": "008:T16 詳細dialogのファイルごとの節を種別あたり1件へ間引く — 005 REQ-009 (3)「全件」(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M196",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    return OutlinedButton(\n      key: const Key('configure-rule'),",
+      "replace": "    return OutlinedButton(",
+      "note": "008:T16 作り直した2行buttonからルール編集の入口keyを落とす — 005 REQ-020 の導線(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M197",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    final colors = context.colors;\n    if (empty) {\n      return FilledButton.icon(",
+      "replace": "    final colors = context.colors;\n    if (!empty) {\n      return FilledButton.icon(",
+      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M198",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (!controller.isRuleEmpty)\n            WarningCountView(",
+      "replace": "          if (true)\n            WarningCountView(",
+      "note": "008:T16 ルールが空でもヘッダに件数を出す — 001は空名と重複を返すので「問題なし」は誤りになる(005 REQ-020)(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M199",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  key: ruleSummaryKey,\n                  maxLines: 1,",
+      "replace": "                  key: ruleSummaryKey,\n                  maxLines: 2,",
+      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)"
+    },
+    {
+      "id": "M200",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
+      "replace": "",
+      "note": "008:T16 広幅の原因の提示から余白を落とす — 対照。余白をwidget側が持つのは、種別0件でSizedBox.shrinkを返すときに外側のPaddingだけが残るのを防ぐため(独立review attempt 4 のP2-1)"
+    },
+    {
+      "id": "M201",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "                RuleWarningNotice(\n                  warnings: widget.fileList.warnings,\n                  ruleIsEmpty: widget.fileList.isRuleEmpty,\n                ),",
+      "replace": "                Padding(\n                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),\n                  child: RuleWarningNotice(\n                    warnings: widget.fileList.warnings,\n                    ruleIsEmpty: widget.fileList.isRuleEmpty,\n                  ),\n                ),",
+      "note": "008:T16 呼び出し側が原因の提示を Padding で包み直す — 種別0件で SizedBox.shrink の周りに死んだ余白が残る(独立review attempt 4 のP2-1の退行そのもの)。M200(余白を落とす向き)の反対向きで、両方が要る(独立review attempt 5 が追加)"
+    },
+    {
+      "id": "M202",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),",
+      "replace": "      margin: const EdgeInsets.fromLTRB(12, 12, 12, 40),",
+      "note": "008:T16 広幅の原因の提示の下余白だけを増やす — 左右上のgapを固定した検査が別方向の占有変化を見ているか(独立review attempt 5 の Y-D)"
+    },
+    {
+      "id": "M203",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    if (kinds.isEmpty) return const SizedBox.shrink();",
+      "replace": "    if (ruleIsEmpty) return const SizedBox.shrink();",
+      "note": "008:T16 常設側の空判定を「種別0件」から「ルールが空」へ差し替える — ルールは非空だがルール由来の警告が0件のとき、文言の無い枠と余白だけの箱が居座る(独立review attempt 6 の V-A)"
     }
   ]
 }

@@ -234,25 +234,54 @@ class FileListController extends ChangeNotifier {
   /// 選択の正本はこのコントローラが持つため、`generatePreview` へは各 item の
   /// 選択状態を [FileEntry.selected] に写した複製を表示順で渡す。「現在日時」の
   /// 日時トークン用に [_clock] を一度だけ評価する。
-  List<RowView> get rows {
+  List<RowView> get rows => preview.rows;
+
+  /// [rows] と [warnings] を**一度の検証で**作る。
+  ///
+  /// 行データが警告を持つようになった(002 REQ-015)ため、`rows` と `warnings` を
+  /// 別々に呼ぶと 001 の検証が 2 回走る。両者はどちらも同じ評価から作れるので、
+  /// **両方が要るところではこれを使う。**
+  ///
+  /// **同じフレームで複数回呼ばれうる。** 広幅の 2 ペインでは、一覧と右ペインが
+  /// それぞれ購読して別々に評価する。呼ぶ側は自分の build の中で 1 回に
+  /// まとめること。
+  ({List<RowView> rows, List<Warning> warnings}) get preview {
     final now = _clock();
     final ordered = <FileEntry>[
       for (final item in _items) _withSelection(item, _selected.contains(item)),
     ];
-    final preview = generatePreview(_rule, ordered, now);
+    final generated = generatePreview(_rule, ordered, now);
     final newNameOf = Map<FileEntry, String>.identity();
-    for (final entry in preview) {
+    for (final entry in generated) {
       newNameOf[entry.source] = entry.resultName;
     }
-    return <RowView>[
-      for (var i = 0; i < _items.length; i++)
-        RowView(
-          source: _items[i],
-          currentName: _items[i].name,
-          newName: newNameOf[ordered[i]],
-          selected: _selected.contains(_items[i]),
-        ),
-    ];
+    final warnings = validate(
+      _rule,
+      ordered,
+      now,
+      occupiedNames: _occupiedNames,
+    );
+    // 002 REQ-015: **その item を対象とする**警告だけを行データへ載せる。
+    // ルール全体への警告(連番の桁不足)はどの行にも属さない。
+    final byFile = Map<FileEntry, List<Warning>>.identity();
+    for (final warning in warnings) {
+      final target = warningTargetOf(warning);
+      if (target == null) continue;
+      (byFile[target] ??= <Warning>[]).add(warning);
+    }
+    return (
+      rows: <RowView>[
+        for (var i = 0; i < _items.length; i++)
+          RowView(
+            source: _items[i],
+            currentName: _items[i].name,
+            newName: newNameOf[ordered[i]],
+            selected: _selected.contains(_items[i]),
+            warnings: byFile[ordered[i]] ?? const <Warning>[],
+          ),
+      ],
+      warnings: warnings,
+    );
   }
 
   /// ルールにトークンが1つも無い状態(005 REQ-019 / REQ-020 の「ルールが空」)。
@@ -267,13 +296,7 @@ class FileListController extends ChangeNotifier {
   /// 「警告」)。該当が無ければ空リストを返す(そのとき警告は提示されない)。
   /// [rows] と同じく、選択の正本であるこのコントローラの選択状態を各 item へ
   /// 写した複製を表示順で渡し、「現在日時」用に時計を一度だけ評価する。
-  List<Warning> get warnings {
-    final now = _clock();
-    final ordered = <FileEntry>[
-      for (final item in _items) _withSelection(item, _selected.contains(item)),
-    ];
-    return validate(_rule, ordered, now, occupiedNames: _occupiedNames);
-  }
+  List<Warning> get warnings => preview.warnings;
 
   /// [item] の値を保ちつつ選択状態だけを [selected] にした複製。
   static FileEntry _withSelection(FileEntry item, bool selected) => FileEntry(
