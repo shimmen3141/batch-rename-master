@@ -113,6 +113,7 @@ class FileListView extends StatelessWidget {
                         row.warnings,
                         ruleIsEmpty: ruleIsEmpty,
                       ),
+                      ruleIsEmpty: ruleIsEmpty,
                       onShowWarningDetail: () => showWarningDetail(
                         context,
                         warnings,
@@ -865,6 +866,7 @@ class _FileRow extends StatelessWidget {
     required this.filePreview,
     required this.warnings,
     required this.onShowWarningDetail,
+    required this.ruleIsEmpty,
     this.onRemove,
   });
 
@@ -883,6 +885,10 @@ class _FileRow extends StatelessWidget {
 
   /// この行に出す警告([rowWarningsOf] を通した後)。空なら何も出ない。
   final List<Warning> warnings;
+
+  /// ルールにトークンが1つも無いか(005 REQ-020 / REQ-029)。空なら変更後名の
+  /// 代わりに「変更なし」を出す。
+  final bool ruleIsEmpty;
 
   /// 行の警告を押したときに全件の詳細を開く(005 REQ-009 (3))。
   final VoidCallback onShowWarningDetail;
@@ -925,8 +931,21 @@ class _FileRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
+                // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
+                // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
+                // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
+                // コンパクト案は上の行に `text-align:right` で置いている)。
+                //
+                // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
+                // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
+                // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
+                // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
+                // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
+                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),
                 Text(
                   row.currentName,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: colors.textPrimary, fontSize: 13),
                 ),
@@ -941,12 +960,15 @@ class _FileRow extends StatelessWidget {
                         color: colors.textMuted,
                       ),
                     ),
-                    Expanded(child: _NewName(row: row)),
+                    Expanded(
+                      child: _NewName(
+                        row: row,
+                        ruleIsEmpty: ruleIsEmpty,
+                        hasWarning: warnings.isNotEmpty,
+                      ),
+                    ),
                   ],
                 ),
-                // 005 REQ-009 (1)。**変更後名のすぐ下**に置く — 「この行が
-                // どうなるか」の直後に「なぜ問題か」が来る並びにする。
-                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),
                 _DateSubInfo(file: row.source, sortMode: sortMode),
               ],
             ),
@@ -1080,29 +1102,84 @@ class _DateSubInfo extends StatelessWidget {
 
 /// 変更後名セル。未選択は対象外表示、変更なしはその旨、それ以外はアクセント色。
 class _NewName extends StatelessWidget {
-  const _NewName({required this.row});
+  const _NewName({
+    required this.row,
+    required this.ruleIsEmpty,
+    required this.hasWarning,
+  });
 
   final RowView row;
+
+  /// ルールにトークンが1つも無いか(005 REQ-029)。
+  final bool ruleIsEmpty;
+
+  /// この行に警告が出ているか。**変更後名の色をこれで決める**(参考designの
+  /// `newColor: bad ? 赤 : 緑`)。
+  final bool hasWarning;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final newName = row.newName;
+    // 未選択行はプレビュー対象外(002 REQ-007)。「変更なし」とは別物なので
+    // 区別する — 選べば変わりうる。
     if (newName == null) {
       return Text(
         '—',
         style: TextStyle(color: colors.textDisabled, fontSize: 13),
       );
     }
-    final unchanged = newName == row.currentName;
+    // 005 REQ-029: **変更が生じない行は、生成後名の代わりに「変わらない」ことが
+    // 読める。** 空のルールの生成後名(`.jpg` のような拡張子だけの名前)を変更後名
+    // として出さない — REQ-019 によりその名前が実体に付くことはない。
+    if (rowHasNoChange(row, ruleIsEmpty: ruleIsEmpty)) {
+      return Text(
+        unchangedLabel,
+        key: rowUnchangedKey,
+        overflow: TextOverflow.ellipsis,
+        // **強調しない**(参考designも `（変更なし）` を弱い色で置いている)。
+        style: TextStyle(color: colors.textMuted, fontSize: 13),
+      );
+    }
     return Text(
       newName,
+      key: rowNewNameKey,
       overflow: TextOverflow.ellipsis,
+      // 参考design: `newColor: bad ? '#f87171' : '#4ade80'`。
+      // 正常なら success、警告対象なら danger(2026-09-02 の要望7)。
       style: TextStyle(
-        color: unchanged ? colors.textSecondary : colors.primary,
+        color: hasWarning ? colors.danger : colors.success,
         fontSize: 13,
-        fontWeight: unchanged ? FontWeight.w400 : FontWeight.w500,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
+}
+
+/// 変更後名の代わりに出す文言(005 REQ-029)。
+const String unchangedLabel = '（変更なし）';
+
+/// 「変更なし」を出している変更後名。
+const Key rowUnchangedKey = Key('row-unchanged');
+
+/// 実際の変更後名を出している変更後名。
+const Key rowNewNameKey = Key('row-new-name');
+
+/// この行で**名前が変わらない**か(005 用語「変更が生じるファイル」の否定)。
+///
+/// 次のいずれかで真になる。
+///
+/// - **ルールが空**。生成後名は拡張子だけの名前になるが、005 REQ-019 により
+///   実行が始まらないので実体は変わらない。
+/// - 生成後名が現在名と**同じ**。
+/// - **空名で改名の対象にならない**(005 REQ-022)。この行は自動解決の前の
+///   生成後名がベース名を持たず、改名されない。
+///
+/// **未選択行はここに含めない** — プレビュー対象外であって「変わらない」のとは違う。
+bool rowHasNoChange(RowView row, {required bool ruleIsEmpty}) {
+  final newName = row.newName;
+  if (newName == null) return false;
+  if (ruleIsEmpty) return true;
+  if (newName == row.currentName) return true;
+  return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;
 }

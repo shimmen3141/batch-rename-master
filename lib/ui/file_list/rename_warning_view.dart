@@ -220,6 +220,9 @@ List<Warning> rowWarningsOf(
 }) {
   if (ruleIsEmpty) return const <Warning>[];
   final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;
+  // 空名の行は結果だけにする(REQ-021 規則1。REQ-009 (1) も「規則が畳んだ種別を
+  // ここで別立てにしない」と書いている)。**桁不足と空名は同時に起きない** —
+  // 空名は全トークンが空文字を出すときだけで、連番は常に1文字以上を出す。
   if (empty != null) return <Warning>[empty];
   final seen = <Type>{};
   return <Warning>[
@@ -238,11 +241,15 @@ List<Warning> rowWarningsOf(
 String rowWarningLabel(Warning warning) => switch (warning) {
   DuplicateWarning() => '名前が重複',
   EmptyNameWarning() => '名前が空・改名されません',
-  // 基準日時が取れないのは**作成日時が不明なとき**だけである(001 INV-006:
-  // 更新日時・現在日時では代替しない。それらは常に値を持つ)。
-  MissingSourceDateWarning() => '作成日時が空になります',
-  // 行へは来ない([warningTargetOf] が `null` を返す)。網羅のために置く。
-  DigitShortageWarning() => '連番の桁が不足',
+  // **どの基準が取れないかを明示する**(2026-09-02 の要望5。原文は「『基準日時
+  // なし』…『作成日時不明』『更新日時不明』とちゃんと明示してほしい」)。
+  // 実際に取れないのは作成日時だけだが(001 INV-006: 更新日時・現在日時は常に
+  // 値を持つ)、**基準から導いて誤った名前を出さないようにする。**
+  MissingSourceDateWarning(:final token) =>
+    '${describeDateTimeSource(token.source)}不明',
+  // 002 REQ-015 の導出で**行へ来る**(008:T17 の改訂)。指定桁数を超えて描かれる
+  // 行だけが該当する。文言は開発者の指定(2026-09-02 の要望5)。
+  DigitShortageWarning() => '連番の桁不足',
 };
 
 /// ルールを直せば消える原因の説明(005 REQ-009 (2))。
@@ -347,10 +354,14 @@ class RowWarningView extends StatelessWidget {
       key: rowWarningKey,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.only(top: 2, bottom: 2),
+        // **tap範囲を文字の高さより広く取る。** 11px の文字だけを当たり判定に
+        // すると指で外す(008:T16 のmanual確認で確認Eとして見た点)。実サイズの
+        // 確かめは実機の手順に残っている。
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+          // **右寄せ**(参考designのコンパクト案。2026-09-02 の要望8)。
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 1, right: 3),

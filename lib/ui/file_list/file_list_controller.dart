@@ -261,13 +261,32 @@ class FileListController extends ChangeNotifier {
       now,
       occupiedNames: _occupiedNames,
     );
-    // 002 REQ-015: **その item を対象とする**警告だけを行データへ載せる。
-    // ルール全体への警告(連番の桁不足)はどの行にも属さない。
+    // 002 REQ-015: 001 が対象ファイルを持たせて返す警告(重複・空名・基準日時不明)
+    // は、その item の行データへそのまま載せる。
     final byFile = Map<FileEntry, List<Warning>>.identity();
     for (final warning in warnings) {
       final target = warningTargetOf(warning);
       if (target == null) continue;
       (byFile[target] ??= <Warning>[]).add(warning);
+    }
+    // 002 REQ-015: **連番の桁不足だけは 001 が対象ファイルを持たない**ので、
+    // 選択順位から導出して載せる(008:T17 の改訂)。
+    //
+    // **001 が返しているときだけ導出する。** 返していない状態で行が桁不足を出すと、
+    // 提示側が判定を作ることになる(判定は 001 が正本)。位置の数え方は
+    // `generatePreview` と同じ — **選択行だけを表示順に 1 から数える**。
+    final shortages = warnings.whereType<DigitShortageWarning>().toList();
+    if (shortages.isNotEmpty) {
+      var position = 0;
+      for (final file in ordered) {
+        if (!file.selected) continue;
+        position += 1;
+        for (final shortage in shortages) {
+          if (sequenceOverflowsAt(shortage.token, position)) {
+            (byFile[file] ??= <Warning>[]).add(shortage);
+          }
+        }
+      }
     }
     return (
       rows: <RowView>[

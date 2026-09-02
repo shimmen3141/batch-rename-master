@@ -140,8 +140,10 @@ void main() {
       expect(_rowWarningTexts(tester).single, contains('作成日時'));
     });
 
-    testWidgets('桁不足はどの行にも出ない(対象ファイルを持たない)', (tester) async {
-      // 開始 100・1 桁なので、選択 1 件でも 3 桁必要になる。
+    // 008:T17 の改訂: **桁不足も、指定桁数を超えて描かれる行へ種別が出る。**
+    // 8.0 までは「どの行にも出ない」だった。両方向を固定する。
+    testWidgets('桁を超えて描かれる行に桁不足の種別が出る', (tester) async {
+      // 開始 100・1 桁なので、選択 1 件でも 3 桁で描かれる。
       final c = FileListController(
         files: [_f('alpha.txt')],
         rule: const RenameRule([SequenceToken(start: 100, digits: 1)]),
@@ -149,12 +151,42 @@ void main() {
       await _pump(tester, c);
 
       expect(c.warnings.whereType<DigitShortageWarning>().length, 1);
-      // 002 REQ-015: `DigitShortageWarning` は `file` を持たないので行に帰属しない。
-      expect(_rowWarnings(), findsNothing);
-      // 代わりに、ルールを直せば消える原因として出る。
-      expect(_ruleNotice(), findsNothing); // 導線が無い画面では出さない
+      expect(_rowWarningTexts(tester).single, '連番の桁不足');
       // 件数には数える(005 REQ-009 冒頭「4 種すべてを提示する」)。
       expect(find.textContaining('1 件の問題'), findsOneWidget);
+    });
+
+    testWidgets('桁に収まる行には桁不足の種別が出ない', (tester) async {
+      // 開始 1・3 桁で 2 件なら 001 は桁不足を返さない。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt')],
+        rule: const RenameRule([SequenceToken(digits: 3)]),
+      );
+      await _pump(tester, c);
+
+      expect(c.warnings.whereType<DigitShortageWarning>(), isEmpty);
+      expect(_rowWarnings(), findsNothing);
+    });
+
+    testWidgets('同じルールでも、超える行だけに桁不足が出る', (tester) async {
+      // 桁 1・11 件。選択順位 10 件目から 2 桁で描かれる。
+      // **11 行すべてが build される高さにする** — ListView は見えていない行を
+      // 作らないので、既定の 800x600 だと後ろの行を数え落とす。
+      await tester.binding.setSurfaceSize(const Size(500, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 11; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 1)]),
+      );
+      await _pump(tester, c);
+
+      expect(c.warnings.whereType<DigitShortageWarning>().length, 1);
+      // 11 件中、超えるのは 10 件目と 11 件目の 2 行だけである。
+      expect(
+        _rowWarningTexts(tester).where((t) => t == '連番の桁不足').length,
+        2,
+        reason: '1〜9 件目は 1 桁に収まる',
+      );
     });
 
     testWidgets('空名の行には重複を出さない(REQ-021 規則2)', (tester) async {
@@ -247,7 +279,7 @@ void main() {
 
       expect(c.warnings.whereType<MissingSourceDateWarning>().length, 2);
       final text = _rowWarningTexts(tester).single;
-      expect(text, '作成日時が空になります');
+      expect(text, '作成日時不明');
       expect(text, isNot(contains('・')));
     });
 

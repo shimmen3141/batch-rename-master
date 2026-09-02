@@ -1425,6 +1425,90 @@
       "find": "    if (kinds.isEmpty) return const SizedBox.shrink();",
       "replace": "    if (ruleIsEmpty) return const SizedBox.shrink();",
       "note": "008:T16 常設側の空判定を「種別0件」から「ルールが空」へ差し替える — ルールは非空だがルール由来の警告が0件のとき、文言の無い枠と余白だけの箱が居座る(独立review attempt 6 の V-A)"
+    },
+    {
+      "id": "M204",
+      "file": "lib/ui/file_list/row_view.dart",
+      "find": "    token.valueAt(position).toString().length > token.digits;",
+      "replace": "    token.valueAt(position).toString().length >= token.digits;",
+      "note": "008:T18 桁不足の導出境界を1つずらす — 桁にちょうど収まる行にも桁不足が出る(002 例19a の境界)"
+    },
+    {
+      "id": "M205",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "          if (sequenceOverflowsAt(shortage.token, position)) {",
+      "replace": "          if (shortages.isNotEmpty) {",
+      "note": "008:T18 導出をやめて全選択行へ桁不足を載せる — 超えない行にも種別が出る(002 例19a)"
+    },
+    {
+      "id": "M206",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    final shortages = warnings.whereType<DigitShortageWarning>().toList();",
+      "replace": "    final shortages = <DigitShortageWarning>[];",
+      "note": "008:T18 桁不足を行データへ載せない(8.0 までの振る舞い) — 超える行で種別が読めなくなる(002 REQ-015 / 005 REQ-009 (1))"
+    },
+    {
+      "id": "M207",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        color: hasWarning ? colors.danger : colors.success,",
+      "replace": "        color: colors.success,",
+      "note": "008:T18 警告のある行も正常色にする — 行の色から異常が読めなくなる(2026-09-02 の要望7)"
+    },
+    {
+      "id": "M208",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        color: hasWarning ? colors.danger : colors.success,",
+      "replace": "        color: colors.danger,",
+      "note": "008:T18 逆方向。警告の無い行も危険色にする — 正常と異常が区別できなくなる(要望7)"
+    },
+    {
+      "id": "M209",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "  if (ruleIsEmpty) return true;",
+      "replace": "  if (ruleIsEmpty) return false;",
+      "note": "008:T18 空のルールで拡張子だけの名前(`.jpg`)を変更後名として出す — 005 REQ-029 が排除する実装"
+    },
+    {
+      "id": "M210",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "  if (newName == row.currentName) return true;",
+      "replace": "  if (newName == row.currentName) return false;",
+      "note": "008:T18 生成後名が現在名と同じ行で「変更なし」を出さない — 005 REQ-029"
+    },
+    {
+      "id": "M211",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "  return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;",
+      "replace": "  return false;",
+      "note": "008:T18 空名で改名されない行を「変更あり」として扱う — 005 REQ-029(REQ-022 の除外)"
+    },
+    {
+      "id": "M212",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "  if (newName == null) return false;",
+      "replace": "  if (newName == null) return true;",
+      "note": "008:T18 未選択行まで「変更なし」にする — プレビュー対象外と混同する(002 REQ-007)"
+    },
+    {
+      "id": "M213",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          mainAxisAlignment: MainAxisAlignment.end,",
+      "replace": "          mainAxisAlignment: MainAxisAlignment.start,",
+      "note": "008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)"
+    },
+    {
+      "id": "M214",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    '${describeDateTimeSource(token.source)}不明',",
+      "replace": "    '基準日時なし',",
+      "note": "008:T18 どの基準が取れないかを行から落とす — 2026-09-02 の要望5(作成日時不明・更新日時不明と明示)"
+    },
+    {
+      "id": "M215",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  DigitShortageWarning() => '連番の桁不足',",
+      "replace": "  DigitShortageWarning() => '問題があります',",
+      "note": "008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装"
     }
   ]
 }
