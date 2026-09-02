@@ -44,6 +44,15 @@
 - 余白・字体は`T10`。
 - 実行前確認dialogとその文言は`T14`。
 
+## 引き受けた申し送り(`008:T17`の独立reviewから)
+
+**`test/spec_005_rename_exec/occupied_names_test.dart:386`「空ベース名が同一 folder に2件 +
+強制実行でも例外を投げない」が、新しい REQ-019 の実装で FAIL する。** このtestは
+`RenameExecutionController.execute` を直接呼んで `expect(outcome, isNotNull)` を置いており、
+**0件ガードを入れると `execute` が `null` を返して落ちる**(空振りではなく赤くなる)。
+このtestは独立reviewのP1由来の回帰guardなので、**3件目(変更が生じるファイル)を足して経路を残すこと。**
+消したり skip したり assertion を緩めたりしない。
+
 ## 受け入れ証拠
 
 - ルール設定buttonが**一つの押下対象**であることを、tapの当たり判定をwidget testで検査する

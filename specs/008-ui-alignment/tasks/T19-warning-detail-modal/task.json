@@ -6,7 +6,10 @@
   "dependsOn": [
     "T17"
   ],
-  "covers": [],
+  "covers": [
+    "005:REQ-009",
+    "005:REQ-021"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"
