@@ -36,6 +36,10 @@ attempt 4 は、実装Agent が自分の task file を file 単位で allow へ�
   `lib/` である。**契約 JSON を対象へ足したのは 2026-09-02(`008:T17`)** — revision の意味を
   書いた `revision_history` の中で、差し替え済みの主張が2回続けて生き残ったためである
   (独立review attempt 1 の P1-1 / attempt 2 の P1-A)。**PR 本文は依然として範囲の外にある。**
+- **JSON では節が取れない。** 節の判定は markdown 見出し(`^#{1,6}\s+`)を数えるので、
+  契約 JSON の行はすべて「見出しの外」になる。`forbidden` の全域禁止は効くが、
+  **節を限った `allow` と `owned` の「書ける行」判定は JSON では働かない**。
+  owned term の owner が `.md` である限り実害は無い。
 
 したがってこの検査は**書き写しの一部を機械的に止める**ものであって、書き写しが
 無いことを保証しない。review はこの限界の外側を見る必要がある。
