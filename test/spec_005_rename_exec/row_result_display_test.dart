@@ -124,6 +124,26 @@ void main() {
       expect(find.byKey(rowWarningKey), findsOneWidget);
     });
 
+    test('未選択行は `rowHasNoChange` が偽である(プレビュー対象外)', () {
+      // widget 側は `newName == null` を先に見て「—」を出すので、この分岐は
+      // widget test では踏めない。**判定そのものをここで押さえる**
+      // (M212 がこの空振りを殺す)。
+      final c = FileListController(
+        files: [_f('a.jpg')],
+        rule: const RenameRule([LiteralToken('renamed')]),
+      );
+      c.clearAll();
+      final row = c.rows.single;
+
+      expect(row.newName, isNull);
+      expect(rowHasNoChange(row, ruleIsEmpty: false), isFalse);
+      expect(
+        rowHasNoChange(row, ruleIsEmpty: true),
+        isFalse,
+        reason: 'ルールが空でも、未選択行は「変わらない」ではない',
+      );
+    });
+
     testWidgets('未選択行は「変更なし」ではない(プレビュー対象外)', (tester) async {
       // 選べば変わりうるので、「変わらない」と読ませない(002 REQ-007)。
       final files = [_f('a.jpg')];
@@ -238,15 +258,34 @@ void main() {
       );
       await _pump(tester, c);
 
-      final warning = tester.getRect(find.byKey(rowWarningKey).first);
+      // **当たり判定の箱ではなく文字そのものを測る。** 箱は行幅いっぱいに
+      // 広がるので、左寄せへ変えても箱の右端は動かない(M213 がこの空振りを殺す)。
+      final warningText = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(rowWarningKey).first,
+              matching: find.byType(Text),
+            )
+            .first,
+      );
       final current = tester.getRect(find.text('alpha.txt'));
       expect(
-        warning.bottom,
+        warningText.bottom,
         lessThanOrEqualTo(current.top),
         reason: '警告が現在名の上に無い',
       );
-      // 右寄せ: 警告の右端が、現在名の右端と同じかそれより右にある。
-      expect(warning.right, greaterThanOrEqualTo(current.right - 1));
+      // 右寄せ: 警告の文字の右端が、現在名の右端と同じかそれより右にある。
+      expect(
+        warningText.right,
+        greaterThanOrEqualTo(current.right - 1),
+        reason: '警告が右へ寄っていない',
+      );
+      // 左寄せとの違いを固定する — 文字の左端は行の左端より十分右にある。
+      expect(
+        warningText.left,
+        greaterThan(current.left + 1),
+        reason: '警告が左端から始まっている(右寄せになっていない)',
+      );
     });
 
     testWidgets('種別が 3 つ併発しても、狭幅で切り詰められない', (tester) async {
