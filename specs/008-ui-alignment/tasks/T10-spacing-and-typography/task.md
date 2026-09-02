@@ -9,7 +9,7 @@
 - `specs/history/asdd-0.x-discovery.md`の(d)「全体の余白・階層・タイポグラフィ」。
 - 参考design `docs/design/Bulk Renamer.html`。
 - 現行実装: `lib/ui/theme/app_theme.dart`、`lib/ui/theme/app_colors.dart`(`AppColors` ThemeExtension)。
-- **008の他の実装task(T02/T04/T06/T07/T08/T09)すべて。** 構造が動いている間に余白だけ整えても作り直しになる。
+- **008の他の実装task(T02/T04/T06/T07/T08/T09/T18/T19/T20)すべて。** 構造が動いている間に余白だけ整えても作り直しになる。**T18/T19/T20は2026-09-02に追加した** — 要望10(区切り線)が触る行は`T18`が、要望13(上部見出し)と隣接する下部バーは`T20`が作り直すため。
 
 ## 変更範囲
 
