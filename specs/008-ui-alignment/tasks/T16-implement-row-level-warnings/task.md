@@ -110,6 +110,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - 2026-09-01 / 独立review attempt 5 = **FAIL**(P1-1 記録: 「警告が無ければ余白も出ない」を4か所で主張していたが、assertionは相対比較だけでreviewerのmutation Y-Aがすり抜けた。P2×3)。**実装は全840構成のprobeで裏が取れた** — overflow 0件、一覧0px 0件、下部バーの画面外 0件。
 - 2026-09-01 / 独立review attempt 6 = **PASS**。未解決のP0/P1は無い。指摘はP2×2(記録)で、reviewerは「この状態でmergeしてよい」と結論した。reviewerが足したmutation V-A はSURVIVEDしたが受容せず M203 として閉じた。
 - 2026-09-02 / **manual確認の結果を受領**(対象commit `a872a21`、Android emulator)。**手順1〜5の確認項目はすべて成立**し、`T07`から引き受けた残余risk **N-9 は閉じた**。あわせて**警告の設計そのものを含むUIの改善要望**を受領した。下の「manual確認の結果(2026-09-02)」。
+- 2026-09-02 / **最終証拠review(attempt 7)= PASS**。未解決のP0/P1は無い。`a872a21`以降に`lib/`・dependency・build設定が動いていないこと、記録が開発者の言葉を強めていないこと、82件の内訳を**reviewerが実データで独立に再現**した。`format` = PASS / `analyze` = PASS / `flutter test` = **PASS(743)** / mutation M173〜M203 = **31 KILLED, 0 SURVIVED, 0 SKIPPED** / `workspace.py check specs` = PASS。指摘はP2×9(記録と状態)で、うち R-A は残余riskとして受容した。
 
 ### 独立review
 
@@ -119,6 +120,7 @@ wide で原因の提示が行き場を失う**(`T15`の独立review attempt 3 �
 - Review attempt 4: `origin/dev...08bc3ac` — **FAIL** — P1-1(記録: N-9閉鎖の根拠に存在しない検査範囲)、P2×5。すべて対処済み。**実装(案D)は独立に裏が取れた。**
 - Review attempt 5: `origin/dev...ffe2247` — **FAIL** — P1-1(記録: 余白の主張をassertionが含まない)、P2×3。すべて対処済み。**実装は840構成のprobeで裏が取れた。**
 - Review attempt 6: `origin/dev...fe9763b` — **PASS** — P0/P1 無し。P2×2(記録)を対処し、V-A を M203 として閉じた。
+- Review attempt 7(最終証拠review): `origin/dev...f9a5864` — **PASS** — P0/P1 無し。P2×9はすべて記録・状態で、実装の欠陥は無い。**auto-merge条件6だけが未充足**と判定されたが、その中身は「改善要望の扱いとPRを閉じるかの人間の判断待ち」で、**2026-09-02に開発者が決定した**(下記)。
 
 **P1-1 は私が入れた退行である。** `_HeaderBar` へ `Flexible + Spacer + Flexible` を並べた
 ため Row の余白が3等分され、**どちらの文言も intrinsic 幅を取れずに切り詰められた**。
@@ -388,6 +390,29 @@ P2-2(`manual-verification.md` が「まだ実装されていません」のま�
 いずれも**`textScaler` 3.0 の領域**で、`T16`が宣言した検証範囲(1.0/1.3/2.0)の外である。
 `dev`も同じ領域では別の形で壊れている。
 
+#### attempt 7 — 最終証拠review(2026-09-02)
+
+**PASS。未解決のP0/P1は無い。** reviewerが独立に確かめたのは次の3点である。
+
+- **manual証拠と対象commitの対応**: `git diff a872a21..f9a5864 -- lib/` が空。`pubspec.yaml` /
+  `pubspec.lock` / `android` / `ios` / `assets` も差分なし。**証拠は失効していない。**
+- **記録の真偽**: `manual-verification.md` の確認項目letterと`task.md`の引用が手順1〜5で
+  一致し、範囲外のletterを含めていない。「N-9 は閉じた」は手順2の確認Bに支えられている。
+  開発者の「おそらく想定内」は原文のまま表へ残り、断定は別節へ分けて実在のassertionを
+  根拠にしている。**過去5回のP1(散文がassertionより強い)の型は再発していない。**
+- **82件の内訳**: reviewerが`validate`を実データで動かし、`total=82`、
+  `{MissingSourceDateWarning: 81, DigitShortageWarning: 1}`、生成後名 `100.png`〜`126.pdf` で
+  重複0件・空名0件を再現した。
+
+##### 受容した残余risk(attempt 7)
+
+| risk | 3条件の判定 | 引き受け先 |
+|---|---|---|
+| **実機ではなくemulatorで確認した**。`task.md`の受け入れ証拠と`plan.md`の証拠欄は「Android実機」と書いており、`manual-verification.md`が「emulatorで構いません」と緩めていた(**私が受け入れ証拠を独断で緩めた**)。読めるか・覆われないかはemulatorへ移るが、**手順4の確認E(tap範囲が「押しやすい」)だけは実機より弱い** | (2)通り抜ける失敗は**tapの当てにくさ**で、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊のいずれでもない = **非該当**。**3条件を満たさないので受容する** | **`008:T18`**。行の警告のtap targetは改善要望2(行タップ→その行だけのモーダル)で**作り直す**ため、いま実機で測っても再確認が要る。**T18のmanualへ実機でのtap確認を入れる**。開発者が2026-09-02にこの扱いを決定した |
+| **R-A SURVIVED**: `presentWarnings`で基準日時不明を**fileごと1件へ畳んでも**743件すべてPASSのまま通る。件数と詳細の数え方((file × 日時トークン)ごとに1件)を固定するassertionが無い | (1)製品経路 = 該当 / (2)通り抜ける失敗は**提示上の件数変化**で、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊のいずれでもない = **非該当** / (3)CIで閉じられる = 該当。**3条件を満たさないので受容する** | **`008:T19`**(警告モーダルの実装)。件数labelの意味づけは開発者の改善要望4・6と同じ論点で、そのtaskが数え方を決め直すため、**そこで数え方を固定するassertionを置く** |
+| `005:T09`の`manual-verification.md`に残っていた「赤い警告帯が出ない」(帯の廃止で空振りになる確認) | (2)が非該当のため受容対象だが、**このPRで文面を現在の提示へ直したので消滅した** | 対処済み(このrange) |
+
+
 ### 案Dで何が変わったか(実装の記録)
 
 | | attempt 3 まで | 案D |
@@ -499,13 +524,14 @@ M203 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 常設側の
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 6 = PASS**(P0/P1 無し)。`dart format` = PASS / `flutter analyze` = PASS / `flutter test` = **PASS(743)** / `mutation_check.py` M173〜M203 = **31件すべて KILLED, 0 SURVIVED, 0 SKIPPED** / `workspace.py check specs` = PASS
-- **manual確認は2026-09-02に完了した。5項目すべて成立、N-9は閉じた**(上の「manual確認の結果(2026-09-02)」)。**`T16`の受け入れ条件は全て埋まっている。**
-- Blocker category: **人間の判断待ち**(manual確認そのものは終わっている)
-- Waiting for: 同時に受領した**UIの改善要望14件**の引き受け先と、**PR #161 をこのまま閉じるか改善を取り込んでから閉じるか**の判断
-- Requested action: 開発者へ選択肢を提示済み(2026-09-02)。要望のうち **2 / 7 は005 contract revision 8.0 の例20e・例20c**に、**1 は REQ-006 / REQ-019 の境界**に触れるため、**仕様更新taskと実装taskへ分ける**必要がある(`plan.md`の方針)
-- Evidence revision: `asdd/008-ui-alignment/T16-implement-row-level-warnings` @ `397aa15`(PR #161、Draft)。**codeの最終commitは `a872a21`** — それ以降はtestと記録だけで、appの動きは変わらない
-- Next Agent action: 下の「新しいsessionのAgentへ」を読む
+- Last checkpoint: **最終証拠review(attempt 7)= PASS**(P0/P1 無し)。`dart format` = PASS / `flutter analyze` = PASS / `flutter test` = **PASS(743)** / `mutation_check.py` M173〜M203 = **31件すべて KILLED, 0 SURVIVED, 0 SKIPPED** / `workspace.py check specs` = PASS
+- **manual確認は2026-09-02に完了した。5項目すべて成立、N-9は閉じた**(上の「manual確認の結果(2026-09-02)」)。
+- **最終証拠review(attempt 7)= PASS**(2026-09-02、`origin/dev...f9a5864`)。**受け入れ証拠は全て埋まった。**
+- **開発者の決定(2026-09-02)**: **`T16`はここで閉じ、同時に受領した改善要望14件は新taskへ分ける。** PR #161 を ready 化して merge する。
+- **開発者の決定(2026-09-02)**: emulatorでの確認を受容し、**tap範囲の実機確認は`T18`へ送る**(上の残余risk表)。
+- Blocker category: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T16-implement-row-level-warnings`、PR #161。**codeの最終commitは `a872a21`** — それ以降は記録・test・mutation表だけで、appの動きは変わらない(attempt 7 が `git diff a872a21..f9a5864 -- lib/` の空を確認)。attempt 7 の range は `origin/dev...f9a5864` で、以降のcommitは本節と指摘対処の記録のみ
+- Next Agent action: PR #161 を ready 化して merge し、`dev` 上の結果とCIを確認したのち、改善要望14件を `T17`〜`T20` として登録する(下の「新しいsessionのAgentへ」)
 
 ### manual確認の結果(2026-09-02)
 
@@ -528,9 +554,14 @@ PR #161、Android emulator。手順書は[`manual-verification.md`](manual-verif
 
 選択 **27件 × 基準日時が取れない日時トークン 3本 = 81件**の`MissingSourceDateWarning` と、
 連番の**桁不足 1件**で **82件**である。`validate`は基準日時不明を**(file × 日時トークン)
-ごとに1件**返し(`lib/core/rename_engine.dart:189`〜`:203`)、桁不足は**連番トークンごとに
-1件**返す(同 `:208`〜`:224`)。重複と空名は生じない — 連番(桁1・開始100)の値 100〜126 は
+ごとに1件**返し(`lib/core/rename_engine.dart:192`〜`:205`)、桁不足は**連番トークンごとに
+1件**返す(同 `:208`〜`:227`)。重複と空名は生じない — 連番(桁1・開始100)の値 100〜126 は
 一意で、ベース名も空にならない。**判定は001の仕様どおりで、`T16`は数え方を変えていない。**
+
+件数labelが数えるのは`validate`の戻りではなく`presentWarnings`の戻りだが、**この状況では
+一致する** — `presentWarnings`が畳むのは空名と基準日時不明が同じfileへ併発したときだけで、
+ここは空名0件なので恒等写像になる。**独立reviewが実データで再現し、82件・重複0件・空名0件を
+確認した**(2026-09-02、attempt 7)。
 
 ただしこの数え方は「**同じファイルが3回数えられる**」ことを意味する。件数labelの意味づけは
 下記の改善要望(警告の再設計)と同じ論点に載るため、引き受け先のtaskで再検討する。
@@ -562,38 +593,40 @@ PR #161、Android emulator。手順書は[`manual-verification.md`](manual-verif
 13. 上部の「一括リネーム」という見出しが幅を取っているので、小さくしてフォントを変えるか、削除するなどしてスペースを確保してもよさそう。
 14. リネーム実行ボタンも、参考designに合わせて「n件をリネーム」のように表示する。
 
-**仕分けと引き受け先は未確定である。** 承認済みの005 contract に触れるもの(2 / 7 は例20e・
-例20c、1 は REQ-006 / REQ-019 の境界)は**仕様更新taskと実装taskへ分ける**必要がある
+**仕分けと引き受け先は未確定である。** 承認済みの005 contract に触れるもの(2 / 7 は005の例20e・
+例20c、1 は **002 REQ-006**(行の変更後名が`generatePreview`に一致)と **005 REQ-019** の境界)は
+**仕様更新taskと実装taskへ分ける**必要がある
 (`plan.md`の方針)。**Agentが自分で仕様を緩めない。**
 
-### 新しいsessionのAgentへ(2026-09-01 時点)
+### 新しいsessionのAgentへ(2026-09-02 時点)
 
-**このtaskの実装・検査は完了しており、残っているのは人間のmanual確認だけである。**
+**このtaskは完了している。** 実装・検査・manual確認・最終証拠review(attempt 7)がすべて
+済み、開発者が「`T16`はここで閉じ、改善要望は新taskへ分ける」と決定した。
 
-#### いま何もしてはいけないこと
+#### 残っている手順
 
-- **このbranchのcommitを動かさない。**開発者が `397aa15` を検証中である。`switch` /
-  `checkout` / `rebase` / force push を行わない。規約どおり、結果を受け取るまで
-  workspaceの状態を維持して待つ。
-- **`lib/` を変更しない。**変更するとmanual証拠が対象commitに対応しなくなり、
-  やり直しになる。
-- 待機中に別taskへ着手する場合は**別worktreeで行う**(`.worktrees/<plan-id>-<task-id>-<slug>`)。
-  実行可能なのは `T01` / `T03` / `T05` / `T08` / `T11` / `T14` で、いずれも`T16`と
-  触る範囲が重ならない。
+1. PR #161 を ready 化して merge する(work-package PRの7条件を満たす)。
+2. merge後に`dev`上の結果とCIを確認し、`task.json`を`done`にする。
+3. **改善要望14件を新taskとして登録する。** 内訳は上の「受領したUIの改善要望」。
+   仕分けは `T17`(仕様更新: 警告をファイル単位へ一本化・行スコープの詳細・変更が
+   生じないルールの提示と実行可否)、`T18`(行の提示)、`T19`(警告モーダル)、
+   `T20`(下部バー)。要望11・12は既存`T08`、要望10・13は既存`T10`へ足す。
+4. **`T18`のmanualへ、行の警告のtap範囲を実機で見る項目を入れる**(上の残余risk表)。
+5. **`T19`は、件数と詳細の数え方を固定するassertionを置く**(R-A SURVIVED の引き受け先)。
 
-#### manual結果を受け取ったら
+#### 踏んではいけない落とし穴(このtaskで実際に6回踏んだ)
 
-1. 結果を上の「観測済みcheckpoint」へ、**対象commit(`a872a21`)と日付つきで**記録する。
-   開発者の言葉を**そのまま引用する**。ここで一度、開発者の含みのある表現
-   (「〜かもしれない」)を断定へ強めて独立reviewに指摘された経緯がある(`T07`)。
-2. 不成立があれば、**`T16`の欠陥か、既に引き受け先のある残余riskかを分ける。**
-   `textScaler` 3.0 の領域(画面高が短いときのoverflow、行の`名前が空・改名されません`の
-   後半の切り詰め、件数labelの語尾)は**`T10`の N-8b′ / N-8b″ が引き受け済み**で、
-   `T16`の欠陥ではない。
-3. すべて成立していれば**最終証拠review**(manual証拠と対象commitの対応、記録の真偽を
-   見るexact rangeのreview)を起動する。PASS後に`task.json`を`done`にし、PR #161 を
-   readyにしてmergeする。**mergeはwork-package PRの7条件を満たすのでAgentが行える。**
-4. merge後は`dev`上の結果とCIを確認し、`.worktrees/`を整理する。
+- **散文で検査範囲を主張しない。**占有・余白について`task.md`とPR本文は範囲を書かず、
+  test名を指すだけにしてある(「占有の主張を散文で持たない」節)。独立reviewが
+  **4回続けて**「散文がassertionより強い」を指摘した。ここを崩さないこと。
+- **`onEditRule`を渡さずにlayoutを測らない。**渡さないとルール設定buttonも原因の提示も
+  tree に存在せず、何を測っても通る。2回この空振りを作った。
+- **切り詰めはoverflowを出さない。**`Flexible`+ellipsisは内容を切ることではみ出さないので、
+  `RenderFlex overflow`を見る検査では原理的に落ちない。`didExceedMaxLines`で見る。
+- **mutation runnerを2つ同時に走らせない。**互いの復元を壊し、偽のSKIPPEDが出る。
+  「対象が見つからなかった」と「testが落ちなかった」の区別がこの検査の要点である。
+- **受け入れ証拠をAgentが独断で緩めない。**`manual-verification.md`で「実機」を
+  「emulatorで可」へ緩め、attempt 7 に指摘された。緩めるなら人間へ尋ねる。
 
 #### このtaskで何をしたか(3行)
 
