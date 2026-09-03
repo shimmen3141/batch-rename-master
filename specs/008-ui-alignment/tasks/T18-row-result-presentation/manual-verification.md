@@ -118,7 +118,7 @@ adb push .worktrees/t07-fixtures /sdcard/DCIM/
 
 | | |
 |---|---|
-| code の最終commit | **`63c6610`** |
+| code の最終commit | **`176d311`** |
 | 変更した file | **`lib/ui/file_list/rename_warning_view.dart` の1本だけ** |
 
 **手順1(緑と赤)と手順4(`（変更なし）`)は再確認不要です。** どちらも変更後名を描く

@@ -331,7 +331,7 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
   `file_list_view.dart` にあり、`e5aceed` 以降まったく変わっていない。
 
 手順は[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」。
-**対象commitは `63c6610`。**
+**対象commitは `176d311`。**
 
 ## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
 
@@ -354,5 +354,5 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 - Blocker category: **人間のmanual確認待ち(2回目)**
 - Waiting for: Android **実機**での再確認(手順2′・3′。合わせて8分)
 - Requested action: 開発者へ[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」を依頼する。**手順1と手順4は再確認不要** — 動いた `lib/` は `rename_warning_view.dart` の1本だけである
-- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `63c6610`**
+- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `176d311`**
 - Next Agent action: manual結果を受け取り、`task.md`へ対象commitつきで記録してから最終証拠reviewを起動する
