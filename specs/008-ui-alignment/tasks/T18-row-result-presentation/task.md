@@ -384,11 +384,15 @@ ink がずれる**という、文字の性質による差である。開発者�
 
 ## Current state / handoff
 
-- Last checkpoint: **manual確認(1回目)の指摘2件を直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / `mutation_check.py` M204〜M224 = **19 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS
+- Last checkpoint: **独立review attempt 3 = FAIL**(P1×3、すべて記録と検査)。`flutter test` = **PASS(768)** / `mutation_check.py` M204〜M228 = **20 KILLED, 5 SURVIVED(受容した対照), 0 SKIPPED**。**ただし全表の`--list`は M180 で mismatch 1 を返す**
+- 前の checkpoint: **manual確認(1回目)の指摘2件を直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / `mutation_check.py` M204〜M224 = **19 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS
 - 前の checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
 - 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`)。P1×2はどちらも**記録と検査**で、実装の誤りは無いと判定された
-- Blocker category: **人間のmanual確認待ち(2回目)**
-- Waiting for: Android **実機**での再確認(手順2′・3′。合わせて8分)
-- Requested action: 開発者へ[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」を依頼する。**手順1と手順4は再確認不要** — 動いた `lib/` は `rename_warning_view.dart` の1本だけである
+- **2回目のmanual確認は受領済み**(2026-09-03)。**手順3′は全項目成立し、`008:T16`から引き受けたtap範囲の残余riskは閉じた。** 手順2′は確認D(！マークの高さ)だけ不成立で、**まだ対応していない**
+- **独立reviewが3回連続FAILしたので`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である
+- Blocker category: **人間の判断待ち**
+- Waiting for: 3回FAIL後の進め方の選択と、確認D(！マークの高さ)への対応方針
+- Requested action: 開発者へ選択肢を提示済み(2026-09-04)
+- **独立review attempt 3 = FAIL**(`origin/dev...472d631`)。P1×3 — (1)**M180 が死んだ**(私が字下げを変えたため`find`が一致しなくなり、`T16`が005 REQ-009 (1)のために置いた対照が無言で失効した。`tool/mutations.json` 全体の`--list` は `228 mutations, 1 with an unexpected match count`)、(2)PR #164 本文が古い保証(`12件すべてKILLED, 0 SURVIVED`)を主張、(3)handoffが本文と矛盾し、存在しない節「確認Dへの対応」を指していた。P2×4
 - Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `176d311`**
 - Next Agent action: manual結果を受け取り、`task.md`へ対象commitつきで記録してから最終証拠reviewを起動する
