@@ -217,6 +217,17 @@ const double rowWarningFillOpacity = 0.12;
 const double rowWarningBorderOpacity = 0.45;
 const double rowWarningLabelOpacity = 0.78;
 
+/// 行の警告の文字とアイコンの大きさ。
+const double rowWarningFontSize = 11;
+
+/// アイコンを baseline からさらに下げる量([rowWarningFontSize] に対する割合)。
+///
+/// **Material icons と CJK の字面(ink)の中心の差**である。icons は baseline の上
+/// 1em を占めるので ink の中心が **baseline − 0.5em**、CJK は上 0.88em 〜 下 0.12em で
+/// **baseline − 0.38em**。差は **0.12em** で、揃えないとアイコンが上へ浮いて見える
+/// (2026-09-04 のmanual確認)。**割合なので文字倍率が変わっても崩れない。**
+const double rowWarningIconInkNudge = 0.12;
+
 /// 行に出す警告(005 REQ-009 (1) / REQ-021)。
 ///
 /// - **ルールが空なら空を返す**(005 REQ-020: 警告ではなく未設定を提示する)。
@@ -404,8 +415,32 @@ class RowWarningView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
+                // **字面(ink)の中心を揃えるために、baselineからさらに下げる。**
+                // baselineは揃っているが(box中心の差 0.14px)、**字面の位置が違う**
+                // ので上へ浮いて見える(2026-09-04 のmanual確認)。
+                //
+                // - Material icons は em box いっぱいに描かれ baseline の上 1em を
+                //   占める → ink の中心は **baseline − 0.5em**
+                // - CJKの字面は baseline の上 0.88em 〜 下 0.12em → ink の中心は
+                //   **baseline − 0.38em**
+                //
+                // 差は **0.12em**。**固定値ではなく font size に比例させる**ので、
+                // 文字倍率が変わっても崩れない。
                 padding: const EdgeInsets.only(right: 3),
-                child: Icon(Icons.error_outline, size: 11, color: label),
+                // **padding では下がらない。** `CrossAxisAlignment.baseline` は
+                // 子の baseline を行の baseline へ固定するので、top padding を足すと
+                // 箱ごと上へずれて相殺される。**paint 側でずらす。**
+                child: Transform.translate(
+                  offset: const Offset(
+                    0,
+                    rowWarningFontSize * rowWarningIconInkNudge,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: rowWarningFontSize,
+                    color: label,
+                  ),
+                ),
               ),
               Flexible(
                 child: Text(
@@ -415,7 +450,7 @@ class RowWarningView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: label,
-                    fontSize: 11,
+                    fontSize: rowWarningFontSize,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

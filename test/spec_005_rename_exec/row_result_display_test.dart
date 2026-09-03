@@ -323,17 +323,19 @@ void main() {
             )
             .first,
       );
-      // **縦中心どうしが一致すること**を見る。`text.top`〜`text.bottom` の間に
-      // 入っているだけでは弱い — 箱の上端で揃える実装(浮いて見える形)でも
-      // その範囲には収まるので、検査が空振りする(M222 がこれを殺す)。
+      // **アイコンは、文字の box の中心より少し下**にある。box を揃えると
+      // **字面(ink)がずれる**ためで、2026-09-04 のmanual確認で「まだわずかに
+      // ！が上にずれて見える」と観測された(005 REQ-009 (1) の可読性ではなく
+      // 見た目の揃いの問題)。
       //
-      // 実測: baseline 揃えでは差が 0.14px、`CrossAxisAlignment.start` では
-      // 2.5px ずれる(アイコン 11px に対して文字の行は 16px)。
-      expect(
-        (icon.center.dy - text.center.dy).abs(),
-        lessThanOrEqualTo(1.0),
-        reason: 'アイコンの縦中心が文字の縦中心とずれている',
-      );
+      // - Material icons は baseline の上 1em を占める → ink 中心は baseline − 0.5em
+      // - CJKの字面は baseline の上 0.88em 〜 下 0.12em → ink 中心は baseline − 0.38em
+      //
+      // 差 0.12em ぶん下げているので、**box の中心は文字より下**になる。
+      // **上端揃え(M222)では逆に上へ浮く**ので、向きごと固定する。
+      final gap = icon.center.dy - text.center.dy;
+      expect(gap, greaterThan(0.5), reason: 'アイコンが文字の字面より上へ浮いている');
+      expect(gap, lessThan(2.5), reason: 'アイコンを下げすぎている');
     });
 
     testWidgets('警告は押せると分かる形で、変更後名より薄い', (tester) async {
