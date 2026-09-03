@@ -164,40 +164,45 @@
 ### mutation の生の出力
 
 ```console
-$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .  # M204〜M221 を抽出した表
-M204 | KILLED   | row_view.dart            | 桁不足の導出境界を1つずらす | exit 1
-M205 | KILLED   | file_list_controller.dart | 導出をやめて全選択行へ載せる | exit 1
-M206 | KILLED   | file_list_controller.dart | 桁不足を行データへ載せない | exit 1
-M207 | KILLED   | file_list_view.dart      | 警告のある行も正常色にする | exit 1
-M208 | KILLED   | file_list_view.dart      | 警告の無い行も危険色にする | exit 1
-M209 | KILLED   | file_list_view.dart      | 空のルールで拡張子だけの名前を出す | exit 1
-M210 | KILLED   | file_list_view.dart      | 生成後名が現在名と同じ行で変更なしを出さない | exit 1
-M211 | KILLED   | file_list_view.dart      | 空名で改名されない行を変更ありとして扱う | exit 1
-M212 | KILLED   | file_list_view.dart      | 未選択行まで変更なしにする | exit 1
-M213 | KILLED   | rename_warning_view.dart | 行の警告の右寄せをやめる | exit 1
-M214 | KILLED   | rename_warning_view.dart | どの基準が取れないかを行から落とす | exit 1
-M215 | KILLED   | rename_warning_view.dart | 桁不足の種別名を落とす | exit 1
-M216 | KILLED   | file_list_controller.dart | 未選択行にも連番の位置を消費させる(review の R1) | exit 1
-M217 | KILLED   | file_list_controller.dart | 未選択行へも桁不足を載せる(review の R2) | exit 1
-M218 | KILLED   | file_list_view.dart      | 行の警告を現在名の上から落とす(review の R3) | exit 1
-M219 | KILLED   | rename_warning_view.dart | 併発した種別を1行へ押し込む(review の R4) | exit 1
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .  # M204〜M224 を抽出した表
+M204〜M219 | KILLED   (16件)
 M220 | SURVIVED | rename_warning_view.dart | 行の警告の占有を大きく増やす(review の R5) | exit 0
-M221 | SURVIVED | file_list_view.dart      | 現在名の行数上限を外す(review の R6) | exit 0
-18 mutations: 16 KILLED, 2 SURVIVED, 0 SKIPPED
+M221 | SURVIVED | file_list_view.dart      | 現在名の行数上限を外す(review の R6)     | exit 0
+M222 | KILLED   | rename_warning_view.dart | 警告のアイコンを箱の上端で揃える           | exit 1
+M223 | KILLED   | rename_warning_view.dart | 行の警告を変更後名と同じ濃さへ戻す         | exit 1
+M224 | KILLED   | rename_warning_view.dart | 行の警告の塗りを消す                       | exit 1
+21 mutations: 19 KILLED, 2 SURVIVED, 0 SKIPPED
 ```
 
-**M220・M221 の SURVIVED は受容したものである**(上の「引き受けた残余risk」。引き受け先は
+**M220・M221 の SURVIVED は受容したものである**(下の「引き受けた残余risk」。引き受け先は
 `008:T10`)。**対照として`tool/mutations.json`へ残す** — 落とすと、行の高さを縛る検査が
 無いことが見えなくなる。
 
-**独立reviewが足したmutationは6件すべて取り込んだ**(M216〜M221)。
+### mutation runner の扱いで2度つまずいた(2026-09-03)
 
-#### 1回目に SURVIVED した3件と、その扱い
+**どちらも `git status` で即座に検出して復元し、乱れた結果は報告に使っていない。**
+
+1. **`nohup` で起動したら親shellの終了で殺された。** mutation適用済みの
+   `file_list_controller.dart` がworking treeへ残った。harnessのバックグラウンド実行へ
+   切り替えて解決した。
+2. **その残骸がある状態で流したので、偽のSKIPPEDが5件出た。**
+   `15 KILLED / 1 SURVIVED / 5 SKIPPED` という結果になり、M211 の SURVIVED、M220/M221 の
+   KILLED も互いの復元を壊した結果で信用できなかった。
+   **`find` 文字列が本当に無いのかを `git show HEAD:<file>` で直接数えたところ、
+   SKIPPEDと報告された4件すべてが HEAD に1件ずつ存在していた** — 偽である。
+   木を復元して単独で流し直し、`0 SKIPPED` を得た。
+
+**「対象が見つからなかった」と「testが落ちなかった」の区別がこの検査の要点である。**
+既に `development-findings/2026-09-01-mutation-runners-raced-and-produced-false-skips.md`
+が記録している症状を、私が再現させた。
+
+#### SURVIVED を受容せず閉じた4件と、その理由
 
 | mutation | なぜすり抜けたか | 扱い |
 |---|---|---|
 | M212(未選択行まで「変更なし」) | widget が `newName == null` を先に見て `—` を出すので、**widget test では踏めない**分岐だった | 判定 `rowHasNoChange` を直接呼ぶ unit test を足して**閉じた** |
 | M213(右寄せをやめる) | **当たり判定の箱**(`rowWarningKey` の `InkWell`)を測っていた。箱は行幅いっぱいに広がるので、左寄せへ変えても箱の右端は動かない | **文字そのもの**の位置を測る形へ直して**閉じた** |
+| M222(アイコンを箱の上端で揃える) | 「アイコンの縦中心が**文字の上端〜下端の範囲に入っているか**」しか見ていなかった。**箱の上端で揃える実装でもその範囲には収まる**ので通り抜けた | **縦中心どうしの差**を1px以内で固定して**閉じた**。実測で baseline揃えは 0.14px、`start`揃えは 2.5px ずれる |
 | M216/M217(位置の数え方) | 「未選択行は位置を消費しない」testが、選択を大きく外して**桁不足そのものを消していた**。「001 が返さない → 行にも載らない」の再掲で、数え方を何も押さえていなかった(独立review attempt 1 の P1-1) | 桁不足を**残したまま**位置がずれるかを見る形へ差し替えて**閉じた** |
 
 ### `T08` との順序(着手時に確認した)
@@ -241,6 +246,29 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 (revision 9.0)の「変更が生じるファイルが0件なら実行を開始しない」は**`T20`が実装する**もので、
 `T17`で承認された仕様がまだ実装に入っていない状態である(`T20`の`covers`に `005:REQ-019` がある)。
 
+**1 と 2 をまとめてこのtaskで直した**(2026-09-03、開発者の決定)。1 の修正で `lib/` が動き
+実機証拠が失効するので、**同じwidgetの件を一度に直して再確認を1回にまとめる**ほうが安いためである。
+
+| 指摘 | 直し方 |
+|---|---|
+| 1(！マークのずれ) | アイコンを箱の上端ではなく**文字のbaseline**へ揃えた。**固定値で押し下げていない** — 文字倍率が変わるとずれ方も変わる |
+| 2(押せると分からない) | **角丸の枠 + 薄い塗り**を付けた。箱は中身の幅だけ取るので、右寄せは外側の `Align` が担う |
+| 2(色が濃くて目が散る) | 行の警告の文字とアイコンを、**`danger` の色相のまま濃さだけ下げた**(変更後名より薄い) |
+
+**3 はこのtaskでは直さない。** `T20` の `covers` にあることを確認済みである。
+
+#### 2回目のmanual確認が要る範囲
+
+**`e5aceed` 以降で動いた `lib/` は `rename_warning_view.dart` の1本だけである**
+(`git diff e5aceed..HEAD --name-only -- lib/`)。したがって:
+
+- **手順2・3はやり直す。** 警告の見た目と当たり判定が変わった。
+- **手順1(緑と赤)と手順4(`（変更なし）`)は再確認不要。** どちらも変更後名を描く
+  `_NewName`(`file_list_view.dart`)の話で、今回のdiffは触っていない。
+
+手順は[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」。
+**対象commitは `63c6610`。**
+
 ## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
 
 | risk | 3条件の判定 | 引き受け先 |
@@ -253,10 +281,11 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
+- Last checkpoint: **manual確認(1回目)の指摘2件を直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / `mutation_check.py` M204〜M224 = **19 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS
+- 前の checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
 - 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`)。P1×2はどちらも**記録と検査**で、実装の誤りは無いと判定された
-- Blocker category: **人間のmanual確認待ち**
-- Waiting for: Android **実機**での手動確認(下の Requested action)
-- Requested action: 開発者へ[`manual-verification.md`](manual-verification.md)の4項目を依頼する。10〜15分。**手順3(行の警告が押しやすい)は実機でしか見られない** — `008:T16`がemulatorでしか確かめられなかったtap範囲を、このtaskが引き受けている
-- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`
+- Blocker category: **人間のmanual確認待ち(2回目)**
+- Waiting for: Android **実機**での再確認(手順2′・3′。合わせて8分)
+- Requested action: 開発者へ[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」を依頼する。**手順1と手順4は再確認不要** — 動いた `lib/` は `rename_warning_view.dart` の1本だけである
+- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `63c6610`**
 - Next Agent action: manual結果を受け取り、`task.md`へ対象commitつきで記録してから最終証拠reviewを起動する
