@@ -163,47 +163,27 @@
 
 ### mutation の生の出力
 
-**`--list` を先に走らせて、対象がすべて1件ずつ一致することを確かめてから実行する。**
-これが「対象が見つからなかった」と「testが落ちなかった」を分ける手順である。
+**必ず `tool/mutations.json` **全体**を `--list` してから本番を回す。**
+絞った表だけを見ていると、**他のtaskが置いた対照が字下げの変更などで無言に失効しても
+気づかない**(独立review attempt 3 の P1-1。`008:T16` の M180 が実際にそうなった)。
 
 ```console
 $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
-25 mutations, 0 with an unexpected match count
-
-$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .
-command: flutter test
-ID | STATUS | FILE | NOTE | DETAIL
---- | --- | --- | --- | ---
-M204 | KILLED | lib/ui/file_list/row_view.dart | 008:T18 桁不足の導出境界を1つずらす — 桁にちょうど収まる行にも桁不足が出る(002 例19a の境界) | exit 1
-M205 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 導出をやめて全選択行へ桁不足を載せる — 超えない行にも種別が出る(002 例19a) | exit 1
-M206 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 桁不足を行データへ載せない(8.0 までの振る舞い) — 超える行で種別が読めなくなる(002 REQ-015 / 005 REQ-009 (1)) | exit 1
-M207 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 警告のある行も正常色にする — 行の色から異常が読めなくなる(2026-09-02 の要望7) | exit 1
-M208 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 逆方向。警告の無い行も危険色にする — 正常と異常が区別できなくなる(要望7) | exit 1
-M209 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 空のルールで拡張子だけの名前(`.jpg`)を変更後名として出す — 005 REQ-029 が排除する実装 | exit 1
-M210 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 生成後名が現在名と同じ行で「変更なし」を出さない — 005 REQ-029 | exit 1
-M211 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 空名で改名されない行を「変更あり」として扱う — 005 REQ-029(REQ-022 の除外) | exit 1
-M212 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 未選択行まで「変更なし」にする — プレビュー対象外と混同する(002 REQ-007) | exit 1
-M213 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)。2026-09-03 に箱の形へ変えたので、寄せているのは外側の `Align` である | exit 1
-M214 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 どの基準が取れないかを行から落とす — 2026-09-02 の要望5(作成日時不明・更新日時不明と明示) | exit 1
-M215 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装 | exit 1
-M216 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 未選択行にも連番の位置を消費させる — 002 REQ-015 の「generatePreview と同じ数え方」が壊れ、別の行に桁不足が出る(独立review attempt 1 の R1) | exit 1
-M217 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 未選択行へも桁不足を載せる — プレビュー対象外の行に種別が出る(独立review attempt 1 の R2) | exit 1
-M218 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3) | exit 1
-M219 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 併発した種別を1行へ押し込む — 狭幅で種別が切り詰められる(005 REQ-009 (1))。対照として置く(独立review attempt 1 の R4) | exit 1
-M220 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5) | exit 0: the tests passed with the mutation applied
-M221 | SURVIVED | lib/ui/file_list/file_list_view.dart | 008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6) | exit 0: the tests passed with the mutation applied
-M222 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 警告のアイコンを箱の上端で揃える — 文字に対して上へ浮く(2026-09-03 のmanual確認「！マークが警告文に対して少し上にずれている」) | exit 1
-M223 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告を変更後名と同じ濃さへ戻す — 目が散る(2026-09-03 のmanual確認) | exit 1
-M224 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の塗りを消す — 押せると分かる形でなくなる(2026-09-03 のmanual確認「ただの警告文に見える」) | exit 1
-M225 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1) | exit 0: the tests passed with the mutation applied
-M226 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2) | exit 0: the tests passed with the mutation applied
-M227 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 tap範囲を文字ぴったりまで縮める — **縮む方向**を縛るassertionが無いことの対照。M220は増やす方向しか置いていない。**SURVIVEDのまま残余risk(穴C)として受容し、引き受け先は008:T19**(独立review attempt 2 の R4) | exit 0: the tests passed with the mutation applied
-M228 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3) | exit 1
-25 mutations: 20 KILLED, 5 SURVIVED, 0 SKIPPED
+230 mutations, 0 with an unexpected match count
 ```
 
-**SURVIVED 5件はすべて受容した対照である**(下の「引き受けた残余risk」)。
-**対照として`tool/mutations.json`へ残す** — 落とすと、そこを見ていないことが見えなくなる。
+そのうえで、このtaskが関わる分(M180 と M204〜M230)を抜き出した表で本番を回す。
+
+```console
+M228 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3) | exit 1
+M229 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 アイコンの字面の補正をやめる — baselineは揃うが字面が上へ浮いて見える(2026-09-04 のmanual確認「まだわずかに！が上にずれているように見える」) | exit 1
+M230 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 逆方向。アイコンを下げすぎる — 字面の中心が文字より下へ落ちる | exit 1
+28 mutations: 23 KILLED, 5 SURVIVED, 0 SKIPPED
+```
+
+**SURVIVED 5件(M220 / M221 / M225 / M226 / M227)はすべて受容した対照である**
+(下の「引き受けた残余risk」)。**`tool/mutations.json` へ残す** — 落とすと、そこを
+見ていないことが見えなくなる。
 
 ### mutation runner の扱いで2度つまずいた(2026-09-03)
 
@@ -314,7 +294,7 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 
 **3 はこのtaskでは直さない。** `T20` の `covers` にあることを確認済みである。
 
-### manual確認の結果(2026-09-04。2回目)
+### manual確認の結果(2026-09-03。2回目)
 
 対象commit **`176d311`**、branch `asdd/008-ui-alignment/T18-row-result-presentation`、
 PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-verification.md)の
@@ -369,6 +349,26 @@ ink がずれる**という、文字の性質による差である。開発者�
 手順は[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」。
 **対象commitは `176d311`。**
 
+### 確認Dへの対応(2026-09-04)
+
+**直した。** 開発者の依頼は「対応しなくても良いが、**簡単に対応できるなら対応してほしい**」
+という条件付きで、**実際に簡単だった**ため対応した。
+
+**原因は上の「確認Dの原因」のとおり、字面(ink)の中心の差 0.12em である。**
+アイコンを font size に比例した量だけ下げて揃えた。**固定値ではないので文字倍率が
+変わっても崩れない。**
+
+**実装して分かったこと**: `padding` では下がらない。`CrossAxisAlignment.baseline` は
+**子の baseline を行の baseline へ固定する**ので、top padding を足すと箱ごと上へずれて
+相殺される(実測 gap = −0.135px で無変化)。**paint 側でずらす**必要があり、
+`Transform.translate` を使った。layout と baseline は動かないので、他の揃えを壊さない。
+
+検査は**向きごと**固定した — `0.5 < (アイコンの中心 − 文字の中心) < 2.5`。
+補正を外すと上へ浮き(M229)、下げすぎると落ちる(M230)。どちらも KILLED。
+
+**確認Dだけの再確認が要る。** 手順2′の他の項目と手順3′は `176d311` で成立済みで、
+**このrangeが動かしたのはアイコンの縦位置だけ**である。
+
 ## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
 
 | risk | 3条件の判定 | 引き受け先 |
@@ -384,15 +384,15 @@ ink がずれる**という、文字の性質による差である。開発者�
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3 = FAIL**(P1×3、すべて記録と検査)。`flutter test` = **PASS(768)** / `mutation_check.py` M204〜M228 = **20 KILLED, 5 SURVIVED(受容した対照), 0 SKIPPED**。**ただし全表の`--list`は M180 で mismatch 1 を返す**
+- Last checkpoint: **attempt 3 のP1×3と確認Dを直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / **全表の`--list` = `230 mutations, 0 with an unexpected match count`**(M180 を戻した)/ M180+M204〜M230 = **23 KILLED, 5 SURVIVED(受容した対照), 0 SKIPPED**
 - 前の checkpoint: **manual確認(1回目)の指摘2件を直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / `mutation_check.py` M204〜M224 = **19 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS
 - 前の checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
-- 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`)。P1×2はどちらも**記録と検査**で、実装の誤りは無いと判定された
-- **2回目のmanual確認は受領済み**(2026-09-03)。**手順3′は全項目成立し、`008:T16`から引き受けたtap範囲の残余riskは閉じた。** 手順2′は確認D(！マークの高さ)だけ不成立で、**まだ対応していない**
-- **独立reviewが3回連続FAILしたので`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である
-- Blocker category: **人間の判断待ち**
-- Waiting for: 3回FAIL後の進め方の選択と、確認D(！マークの高さ)への対応方針
-- Requested action: 開発者へ選択肢を提示済み(2026-09-04)
+- 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`。P1×2)/ attempt 2 = **FAIL**(`origin/dev...099a0f2`。P1×1: tap範囲の残余riskを「閉じた」と書いた後で当たり判定を作り替えていた)/ attempt 3 = **FAIL**(`origin/dev...472d631`。P1×3: M180 の無言の失効、PR本文が古い保証を主張、handoffが本文と矛盾)。**3回とも実装の誤りは0件**で、落ちたのはすべて記録と検査である
+- **2回目のmanual確認は受領済み**(2026-09-03)。**手順3′は全項目成立し、`008:T16`から引き受けたtap範囲の残余riskは閉じた。** 手順2′は確認D(！マークの高さ)だけ不成立で、**2026-09-04に直した**(上の「確認Dへの対応」)
+- **独立reviewが3回連続FAILし一度`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である。**開発者は「P1×3と確認Dを直して attempt 4」を選んだ**(2026-09-04)
+- Blocker category: **人間のmanual確認待ち(3回目。確認Dだけ)**
+- Waiting for: Android実機での**確認Dだけ**の再確認(1分)
+- Requested action: [`manual-verification.md`](manual-verification.md)の「3回目」を依頼する。**手順2′の他の項目と手順3′は `176d311` で成立済み**で、このrangeが動かしたのは**アイコンの縦位置だけ**である
 - **独立review attempt 3 = FAIL**(`origin/dev...472d631`)。P1×3 — (1)**M180 が死んだ**(私が字下げを変えたため`find`が一致しなくなり、`T16`が005 REQ-009 (1)のために置いた対照が無言で失効した。`tool/mutations.json` 全体の`--list` は `228 mutations, 1 with an unexpected match count`)、(2)PR #164 本文が古い保証(`12件すべてKILLED, 0 SURVIVED`)を主張、(3)handoffが本文と矛盾し、存在しない節「確認Dへの対応」を指していた。P2×4
-- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `176d311`**
+- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `9c2d6df`**
 - Next Agent action: manual結果を受け取り、`task.md`へ対象commitつきで記録してから最終証拠reviewを起動する
