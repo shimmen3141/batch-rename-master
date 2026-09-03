@@ -1572,6 +1572,34 @@
       "find": "const double rowWarningFillOpacity = 0.12;",
       "replace": "const double rowWarningFillOpacity = 0.0;",
       "note": "008:T18 行の警告の塗りを消す — 押せると分かる形でなくなる(2026-09-03 のmanual確認「ただの警告文に見える」)"
+    },
+    {
+      "id": "M225",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double rowWarningLabelOpacity = 0.78;",
+      "replace": "const double rowWarningLabelOpacity = 0.06;",
+      "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)"
+    },
+    {
+      "id": "M226",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double rowWarningBorderOpacity = 0.45;",
+      "replace": "const double rowWarningBorderOpacity = 0.0;",
+      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)"
+    },
+    {
+      "id": "M227",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
+      "replace": "          padding: EdgeInsets.zero,",
+      "note": "008:T18 tap範囲を文字ぴったりまで縮める — **縮む方向**を縛るassertionが無いことの対照。M220は増やす方向しか置いていない。**SURVIVEDのまま残余risk(穴C)として受容し、引き受け先は008:T19**(独立review attempt 2 の R4)"
+    },
+    {
+      "id": "M228",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          mainAxisSize: MainAxisSize.min,",
+      "replace": "          mainAxisSize: MainAxisSize.max,",
+      "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)"
     }
   ]
 }

@@ -88,7 +88,7 @@
   `flutter test` = **PASS(764)** / `flutter analyze` = PASS / `dart format` = PASS。
 - 2026-09-02 / mutation 12件を`tool/mutations.json`へ追加(M204〜M215)。1回目は
   **M212・M213 が SURVIVED**。受容せず、testの空振りを直して12件すべて KILLED にした。
-- 2026-09-03 / **manual確認の結果を受領**(対象commit `e5aceed`、Android実機)。**手順1〜4すべて成立**し、`008:T16`から引き受けた残余risk(tap範囲)は閉じた。あわせて3件の指摘を受領した(下の「manual確認の結果」)。
+- 2026-09-03 / **manual確認の結果を受領**(対象commit `e5aceed`、Android実機)。**手順1〜4すべて成立**した。**`008:T16`から引き受けた残余risk(tap範囲)は一度成立したが、その後の修正で失効した**(下記)。あわせて3件の指摘を受領した(下の「manual確認の結果」)。
 - 2026-09-02 / **独立review attempt 1 = FAIL**(P1-1: 「未選択行が位置を消費しない」testが空振りなのに押さえていると記録していた。P1-2: 同根の安全網の穴が3条件をすべて満たす。P2×6)。**実装の誤りは1件も無い。** reviewが足したmutation 6件をM216〜M221として取り込み、**16 KILLED, 2 SURVIVED**(SURVIVEDは`T10`引き受けで受容した対照)。
 
 ### 何を作ったか
@@ -185,11 +185,15 @@ M224 | KILLED   | rename_warning_view.dart | 行の警告の塗りを消す     
 1. **`nohup` で起動したら親shellの終了で殺された。** mutation適用済みの
    `file_list_controller.dart` がworking treeへ残った。harnessのバックグラウンド実行へ
    切り替えて解決した。
-2. **その残骸がある状態で流したので、偽のSKIPPEDが5件出た。**
+2. **その残骸がある状態で流したので、SKIPPEDが5件出た。**
    `15 KILLED / 1 SURVIVED / 5 SKIPPED` という結果になり、M211 の SURVIVED、M220/M221 の
    KILLED も互いの復元を壊した結果で信用できなかった。
-   **`find` 文字列が本当に無いのかを `git show HEAD:<file>` で直接数えたところ、
-   SKIPPEDと報告された4件すべてが HEAD に1件ずつ存在していた** — 偽である。
+   **`find` 文字列が本当に無いのかを直接数えたところ、抜き出して確かめた4件
+   (M214 / M216 / M217 / M222)はすべて HEAD に1件ずつ存在していた** — 偽である。
+   残る1件(M220)は、同じ実行の前に `find` を新しい padding 行へ更新していたので
+   区別が付かず、確かめていない。**独立review attempt 2 が `--list` を走らせ、
+   `21 mutations, 0 with an unexpected match count` を得た** — 5件すべてが偽だったことは
+   これで確定した。
    木を復元して単独で流し直し、`0 SKIPPED` を得た。
 
 **「対象が見つからなかった」と「testが落ちなかった」の区別がこの検査の要点である。**
@@ -232,8 +236,20 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 | 3 行の警告が押しやすい(実機) | **成立** | 「確認A~Cについて、問題なかった。」 |
 | 4 `（変更なし）` が出る | **成立** | 「確認A~Eについて、問題なかった。」 |
 
-**`008:T16` から引き受けた残余risk(行の警告のtap範囲を実機で見ていない)は閉じた。**
-手順3の確認A〜Cが実機で成立した — 指で押して開き、少し上下でも入り、選択が誤爆しない。
+**`008:T16` から引き受けた残余risk(行の警告のtap範囲を実機で見ていない)は、`e5aceed` に
+対しては閉じた** — 手順3の確認A〜Cが実機で成立した(指で押して開き、少し上下でも入り、
+選択が誤爆しない)。
+
+**しかしこの証拠は `63c6610` で失効した。** 同じcommitが当たり判定そのものを作り替えている。
+
+| | `e5aceed` | `63c6610` 以降 |
+|---|---|---|
+| tapを受ける形 | `InkWell > Padding > Row`。`Row` は既定の `mainAxisSize.max` なので**行幅いっぱい** | `Align > InkWell > Container`。`mainAxisSize.min` なので**バッジの幅だけ** |
+| padding | `vertical: 5, horizontal: 2` | `vertical: 4, horizontal: 6` + 枠 1 |
+
+**当たり判定は横に大きく縮んだ。** `_FileRow` に行全体の `onTap` は無いので、以前押せた
+「文字の右側の空白」はいま無反応である。**この残余riskは手順3′で閉じ直す。**
+`AGENTS.md` は「manual証拠は対象commit以後にcodeが変わったら再利用しない」としている。
 
 #### あわせて受領した指摘(原文)
 
@@ -263,8 +279,15 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 (`git diff e5aceed..HEAD --name-only -- lib/`)。したがって:
 
 - **手順2・3はやり直す。** 警告の見た目と当たり判定が変わった。
-- **手順1(緑と赤)と手順4(`（変更なし）`)は再確認不要。** どちらも変更後名を描く
-  `_NewName`(`file_list_view.dart`)の話で、今回のdiffは触っていない。
+- **手順1(緑と赤)と手順4(`（変更なし）`)は再確認不要。**
+
+  **`_NewName` の色は `warnings.isNotEmpty` で決まり、その `warnings` は
+  `rowWarningsOf(...)` の結果である。`rowWarningsOf` は動いた file の中にある**ので、
+  「`_NewName` は `file_list_view.dart` にあるから無関係」だけでは足りない
+  (独立review attempt 2 の P2-3)。**動いた1本の中で、変わったのは新しい const 4本の
+  追加と `RowWarningView.build` だけで、`rowWarningsOf` と `rowWarningLabel` は
+  1文字も動いていない。** `rowHasNoChange` / `_NewName` / `unchangedLabel` は
+  `file_list_view.dart` にあり、`e5aceed` 以降まったく変わっていない。
 
 手順は[`manual-verification.md`](manual-verification.md)の「再確認(2026-09-03。2回目)」。
 **対象commitは `63c6610`。**
@@ -274,6 +297,9 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 | risk | 3条件の判定 | 引き受け先 |
 |---|---|---|
 | **行の高さを縛る assertion が無い。** 警告の余白を大きく増やしても(M220)、現在名の行数上限を外しても(M221)、全testがPASSのまま通る | (1)製品経路 = 該当 / (2)行が伸びる・現在名が折り返すのは、データ損失・無断置換・偽の成功・権限逸脱・互換性破壊の**いずれでもない** = **非該当**。**種別の切り詰め**(偽の成功に当たる)は M219 が押さえている / (3)CIで閉じられる = 該当。**3条件を満たさないので受容する** | **`008:T10`**(余白・階層・typography)。M220・M221 は**SURVIVEDのまま対照として`tool/mutations.json`へ残す** |
+| **穴A: 行の警告の濃さに下限が無い。** `rowWarningLabelOpacity` を `0.78 → 0.06` にしても全testがPASSする(M225)。testが置いているのは相対条件(変更後名より薄い / 色相が `danger`)だけである | (2)行の種別が読めなくなっても、**ヘッダの件数(`⚠ N 件の問題`)と REQ-009 (3) の詳細は残る**ので、「問題が無い」と誤認する経路にならない = **非該当**。**現状値そのものは参考designの土台の範囲内である** — designは `warnText` を `rgba(248,113,113,.7)` で置いており、0.78 はそれより濃い | **`008:T10`**(色・階層を決める)。**手順2′の確認Cで開発者が実機で見る** |
+| **穴B: 「押せると分かる形」の検査が構造だけ。** 枠を完全に透明にしても(M226)、塗りが `0.001` でも通る。testは `border != null` / `borderRadius != null` / `0 < fill.a < 1` しか見ない | (2)押せると分からないのは5種のいずれでもない = **非該当** | **`008:T10`** |
+| **穴C: tap範囲の縮む方向が縛られていない。** `padding` を `EdgeInsets.zero` にしても通る(M227)。M220 は**増やす方向**の対照しか置いていない | (2)押しにくいbuttonは5種のいずれでもない = **非該当**。**ただし`63c6610`は実際にtap targetを縮めており**、`008:T16`から引き受けたriskはこの穴があるぶん手順3′だけが閉じられる | **`008:T19`**(行の警告のtap targetを作り直す) |
 | **差し替えで assertion が1つ消えた。** 旧testが持っていた「ルール由来の警告があるのに、導線の無い`FileListView`単体では原因の説明を出さない」方向が無くなった | (2)非該当。**出る方向は狭幅・広幅の両方で厚く残っており**(`warning_display_test.dart` の3か所)、要求そのものは緩んでいない | **`008:T19`**(詳細modalを作り直すときに、出ない方向も置き直す) |
 
 **P2-6(広幅で `（変更なし）` と切り詰めを見ていない)は受容せず閉じた** — 受け入れ証拠が

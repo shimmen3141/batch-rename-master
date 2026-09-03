@@ -378,9 +378,11 @@ class RowWarningView extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(rowWarningRadius),
         child: Container(
-          // **tap範囲を文字の高さより広く取る。** 11px の文字だけを当たり判定に
-          // すると指で外す。2026-09-03 の実機確認で「少し上下を押しても入る」ことを
-          // 確認済み。
+          // **tap範囲を文字より広く取る。** 11px の文字だけを当たり判定にすると
+          // 指で外す。**この値は実機で確かめていない** — `e5aceed` の形(当たり判定が
+          // 行幅いっぱい)で確認したのは 2026-09-03 で、その後この箱の形へ作り替えた。
+          // **当たり判定は行幅からバッジの幅へ縮んでいる。** 手順3′で確かめ直す。
+          // 縮む方向を縛る assertion は無い(`task.md` の残余risk 穴C)。
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
           decoration: BoxDecoration(
             color: colors.danger.withValues(alpha: rowWarningFillOpacity),
