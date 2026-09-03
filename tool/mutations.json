@@ -1597,8 +1597,8 @@
     {
       "id": "M228",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          mainAxisSize: MainAxisSize.min,",
-      "replace": "          mainAxisSize: MainAxisSize.max,",
+      "find": "            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。\n            mainAxisSize: MainAxisSize.min,",
+      "replace": "            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。\n            mainAxisSize: MainAxisSize.max,",
       "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)"
     }
   ]

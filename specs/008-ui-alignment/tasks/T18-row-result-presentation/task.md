@@ -163,20 +163,47 @@
 
 ### mutation の生の出力
 
+**`--list` を先に走らせて、対象がすべて1件ずつ一致することを確かめてから実行する。**
+これが「対象が見つからなかった」と「testが落ちなかった」を分ける手順である。
+
 ```console
-$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .  # M204〜M224 を抽出した表
-M204〜M219 | KILLED   (16件)
-M220 | SURVIVED | rename_warning_view.dart | 行の警告の占有を大きく増やす(review の R5) | exit 0
-M221 | SURVIVED | file_list_view.dart      | 現在名の行数上限を外す(review の R6)     | exit 0
-M222 | KILLED   | rename_warning_view.dart | 警告のアイコンを箱の上端で揃える           | exit 1
-M223 | KILLED   | rename_warning_view.dart | 行の警告を変更後名と同じ濃さへ戻す         | exit 1
-M224 | KILLED   | rename_warning_view.dart | 行の警告の塗りを消す                       | exit 1
-21 mutations: 19 KILLED, 2 SURVIVED, 0 SKIPPED
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+25 mutations, 0 with an unexpected match count
+
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root .
+command: flutter test
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M204 | KILLED | lib/ui/file_list/row_view.dart | 008:T18 桁不足の導出境界を1つずらす — 桁にちょうど収まる行にも桁不足が出る(002 例19a の境界) | exit 1
+M205 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 導出をやめて全選択行へ桁不足を載せる — 超えない行にも種別が出る(002 例19a) | exit 1
+M206 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 桁不足を行データへ載せない(8.0 までの振る舞い) — 超える行で種別が読めなくなる(002 REQ-015 / 005 REQ-009 (1)) | exit 1
+M207 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 警告のある行も正常色にする — 行の色から異常が読めなくなる(2026-09-02 の要望7) | exit 1
+M208 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 逆方向。警告の無い行も危険色にする — 正常と異常が区別できなくなる(要望7) | exit 1
+M209 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 空のルールで拡張子だけの名前(`.jpg`)を変更後名として出す — 005 REQ-029 が排除する実装 | exit 1
+M210 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 生成後名が現在名と同じ行で「変更なし」を出さない — 005 REQ-029 | exit 1
+M211 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 空名で改名されない行を「変更あり」として扱う — 005 REQ-029(REQ-022 の除外) | exit 1
+M212 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 未選択行まで「変更なし」にする — プレビュー対象外と混同する(002 REQ-007) | exit 1
+M213 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)。2026-09-03 に箱の形へ変えたので、寄せているのは外側の `Align` である | exit 1
+M214 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 どの基準が取れないかを行から落とす — 2026-09-02 の要望5(作成日時不明・更新日時不明と明示) | exit 1
+M215 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装 | exit 1
+M216 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 未選択行にも連番の位置を消費させる — 002 REQ-015 の「generatePreview と同じ数え方」が壊れ、別の行に桁不足が出る(独立review attempt 1 の R1) | exit 1
+M217 | KILLED | lib/ui/file_list/file_list_controller.dart | 008:T18 未選択行へも桁不足を載せる — プレビュー対象外の行に種別が出る(独立review attempt 1 の R2) | exit 1
+M218 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3) | exit 1
+M219 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 併発した種別を1行へ押し込む — 狭幅で種別が切り詰められる(005 REQ-009 (1))。対照として置く(独立review attempt 1 の R4) | exit 1
+M220 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5) | exit 0: the tests passed with the mutation applied
+M221 | SURVIVED | lib/ui/file_list/file_list_view.dart | 008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6) | exit 0: the tests passed with the mutation applied
+M222 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 警告のアイコンを箱の上端で揃える — 文字に対して上へ浮く(2026-09-03 のmanual確認「！マークが警告文に対して少し上にずれている」) | exit 1
+M223 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告を変更後名と同じ濃さへ戻す — 目が散る(2026-09-03 のmanual確認) | exit 1
+M224 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告の塗りを消す — 押せると分かる形でなくなる(2026-09-03 のmanual確認「ただの警告文に見える」) | exit 1
+M225 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1) | exit 0: the tests passed with the mutation applied
+M226 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2) | exit 0: the tests passed with the mutation applied
+M227 | SURVIVED | lib/ui/file_list/rename_warning_view.dart | 008:T18 tap範囲を文字ぴったりまで縮める — **縮む方向**を縛るassertionが無いことの対照。M220は増やす方向しか置いていない。**SURVIVEDのまま残余risk(穴C)として受容し、引き受け先は008:T19**(独立review attempt 2 の R4) | exit 0: the tests passed with the mutation applied
+M228 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3) | exit 1
+25 mutations: 20 KILLED, 5 SURVIVED, 0 SKIPPED
 ```
 
-**M220・M221 の SURVIVED は受容したものである**(下の「引き受けた残余risk」。引き受け先は
-`008:T10`)。**対照として`tool/mutations.json`へ残す** — 落とすと、行の高さを縛る検査が
-無いことが見えなくなる。
+**SURVIVED 5件はすべて受容した対照である**(下の「引き受けた残余risk」)。
+**対照として`tool/mutations.json`へ残す** — 落とすと、そこを見ていないことが見えなくなる。
 
 ### mutation runner の扱いで2度つまずいた(2026-09-03)
 
@@ -196,9 +223,18 @@ M224 | KILLED   | rename_warning_view.dart | 行の警告の塗りを消す     
    これで確定した。
    木を復元して単独で流し直し、`0 SKIPPED` を得た。
 
+3. **本物のSKIPPEDも1件出た。** M228 の `find`(`mainAxisSize: MainAxisSize.min,`)が
+   このfileに**5か所**あり、`matched 5 time(s), expected 1` になった。直前のコメント行を
+   含めて一意にして解決した。**これは偽ではない** — 対象が特定できていなかった。
+
 **「対象が見つからなかった」と「testが落ちなかった」の区別がこの検査の要点である。**
 既に `development-findings/2026-09-01-mutation-runners-raced-and-produced-false-skips.md`
 が記録している症状を、私が再現させた。
+
+**`--list` を先に走らせるのが、両者を分ける確実な手順である。** 偽のSKIPPEDは木が汚れて
+いれば `--list` でも出るが、`--list` は test を回さないので**数秒で分かる**。一致数が
+`0 with an unexpected match count` になってから本番を回せば、後から出た SKIPPED は
+競合を疑う材料になる。**この手順を`development-findings`の既存fileへ追記した。**
 
 #### SURVIVED を受容せず閉じた4件と、その理由
 

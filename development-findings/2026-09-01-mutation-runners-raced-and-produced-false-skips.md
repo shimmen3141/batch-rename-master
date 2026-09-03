@@ -45,3 +45,28 @@ task.mdへ残っていた。**
 - 独立review attempt 6 が同じ表を独立に再実行し、**SKIPPED は1件も再現しなかった**。
   「mutation の `find` はすべて現在の実装を指している」ことが外から確認された。
 - forward-test は未了 — 次にmutationを走らせるtaskで、この手順が守られるかを見る。
+
+## 追記(2026-09-03、`008:T18`)
+
+**同じ症状を再現させた。** 経緯と、そこから分かった見分け方を残す。
+
+1. runner を `nohup` で起動したら**親shellの終了で殺され**、mutation適用済みのfileが
+   working tree へ残った。**harnessのバックグラウンド実行を使えば起きない。**
+2. その残骸がある状態で流したので、**SKIPPEDが5件**出た(`15 KILLED / 1 SURVIVED /
+   5 SKIPPED`)。KILLED/SURVIVED の側も互いの復元を壊した結果で信用できなかった。
+3. 木を復元して単独で流し直し、`0 SKIPPED` を得た。独立reviewが `--list` を走らせ、
+   `25 mutations, 0 with an unexpected match count` を得たことで、**5件すべてが偽**
+   だったことが確定した。
+4. **本物のSKIPPEDも別に1件出た** — `find` がfile内に5か所あり `matched 5 time(s)`。
+   直前のコメント行を含めて一意にして解決した。
+
+### 見分け方
+
+**本番の前に `--list` を走らせる。** test を回さないので数秒で終わり、
+
+- `0 with an unexpected match count` なら、**対象はすべて特定できている**。この後に出た
+  SKIPPED は**競合を疑う**(木が汚れていないかを `git status --short` で見る)。
+- `matched N time(s), expected 1` が出たら、**`find` が一意でない**。これは本物である。
+
+**この2つを混同すると、「testが落ちなかった」を「対象が見つからなかった」と読み違える。**
+
