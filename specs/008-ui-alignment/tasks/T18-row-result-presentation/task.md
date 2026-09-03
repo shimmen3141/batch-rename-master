@@ -369,6 +369,31 @@ ink がずれる**という、文字の性質による差である。開発者�
 **確認Dだけの再確認が要る。** 手順2′の他の項目と手順3′は `176d311` で成立済みで、
 **このrangeが動かしたのはアイコンの縦位置だけ**である。
 
+### manual確認の結果(2026-09-04。3回目)
+
+対象commit **`9c2d6df`**、PR #164、Android実機。手順書は[`manual-verification.md`](manual-verification.md)の
+「再確認(2026-09-04。3回目)」。**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 2′ 確認D(！マークの高さ) | **成立** | 「！の表示については確認できました。問題ないです。」 |
+
+**確認Aの「揃って見える」だけを述べており、確認B(下がりすぎていない)・確認C(フォント
+サイズ最大)への言及は無い。** 「問題ないです」を全項目の成立へ広げない — **読み取れるのは
+「！の表示に問題が無い」ことである。** BとCは、揃いの向きと大きさを `row_result_display_test.dart`
+が両方向で固定し(`0.5 < gap < 2.5`、M229/M230 が両側を殺す)、補正が font size 比例である
+ことで機械側が押さえている。
+
+**これで`manual-verification.md`のすべての項目が、対応するcommitに対して成立した。**
+
+| 手順 | 対象commit | 結果 |
+|---|---|---|
+| 1(緑と赤)/ 4(`（変更なし）`) | `e5aceed` | 成立。以後 `_NewName` と `rowWarningsOf` / `rowWarningLabel` は不変 |
+| 2′ のA〜C・E・F / 3′(押しやすさ) | `176d311` | 成立。以後動いたのはアイコンの縦位置だけ |
+| 2′ の確認D(！マークの高さ) | `9c2d6df` | 成立 |
+
+**`008:T16` から引き受けた残余risk(行の警告のtap範囲を実機で見ていない)は閉じた。**
+
 ## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
 
 | risk | 3条件の判定 | 引き受け先 |
@@ -390,9 +415,8 @@ ink がずれる**という、文字の性質による差である。開発者�
 - 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`。P1×2)/ attempt 2 = **FAIL**(`origin/dev...099a0f2`。P1×1: tap範囲の残余riskを「閉じた」と書いた後で当たり判定を作り替えていた)/ attempt 3 = **FAIL**(`origin/dev...472d631`。P1×3: M180 の無言の失効、PR本文が古い保証を主張、handoffが本文と矛盾)。**3回とも実装の誤りは0件**で、落ちたのはすべて記録と検査である
 - **2回目のmanual確認は受領済み**(2026-09-03)。**手順3′は全項目成立し、`008:T16`から引き受けたtap範囲の残余riskは閉じた。** 手順2′は確認D(！マークの高さ)だけ不成立で、**2026-09-04に直した**(上の「確認Dへの対応」)
 - **独立reviewが3回連続FAILし一度`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である。**開発者は「P1×3と確認Dを直して attempt 4」を選んだ**(2026-09-04)
-- Blocker category: **人間のmanual確認待ち(3回目。確認Dだけ)**
-- Waiting for: Android実機での**確認Dだけ**の再確認(1分)
-- Requested action: [`manual-verification.md`](manual-verification.md)の「3回目」を依頼する。**手順2′の他の項目と手順3′は `176d311` で成立済み**で、このrangeが動かしたのは**アイコンの縦位置だけ**である
+- **3回目のmanual確認も成立した**(2026-09-04、`9c2d6df`)。**`manual-verification.md`のすべての項目が、対応するcommitに対して成立した**(上の表)
+- Blocker category: なし
 - **独立review attempt 3 = FAIL**(`origin/dev...472d631`)。P1×3 — (1)**M180 が死んだ**(私が字下げを変えたため`find`が一致しなくなり、`T16`が005 REQ-009 (1)のために置いた対照が無言で失効した。`tool/mutations.json` 全体の`--list` は `228 mutations, 1 with an unexpected match count`)、(2)PR #164 本文が古い保証(`12件すべてKILLED, 0 SURVIVED`)を主張、(3)handoffが本文と矛盾し、存在しない節「確認Dへの対応」を指していた。P2×4
 - Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `9c2d6df`**
-- Next Agent action: manual結果を受け取り、`task.md`へ対象commitつきで記録してから最終証拠reviewを起動する
+- Next Agent action: attempt 4 の独立reviewを起動し、PASSなら`done`にして PR #164 を ready 化して merge する
