@@ -323,12 +323,17 @@ void main() {
             )
             .first,
       );
+      // **縦中心どうしが一致すること**を見る。`text.top`〜`text.bottom` の間に
+      // 入っているだけでは弱い — 箱の上端で揃える実装(浮いて見える形)でも
+      // その範囲には収まるので、検査が空振りする(M222 がこれを殺す)。
+      //
+      // 実測: baseline 揃えでは差が 0.14px、`CrossAxisAlignment.start` では
+      // 2.5px ずれる(アイコン 11px に対して文字の行は 16px)。
       expect(
-        icon.center.dy,
-        greaterThanOrEqualTo(text.top),
-        reason: 'アイコンが文字より上へ浮いている',
+        (icon.center.dy - text.center.dy).abs(),
+        lessThanOrEqualTo(1.0),
+        reason: 'アイコンの縦中心が文字の縦中心とずれている',
       );
-      expect(icon.center.dy, lessThanOrEqualTo(text.bottom));
     });
 
     testWidgets('警告は押せると分かる形で、変更後名より薄い', (tester) async {
