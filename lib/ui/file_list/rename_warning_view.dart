@@ -207,6 +207,16 @@ String describeDateTimeSource(DateTimeSource source) => switch (source) {
 // `T15` の設計指針と参考designに沿ったもので、要求ではない。
 // ---------------------------------------------------------------------------
 
+/// 行の警告の角の丸み・塗り・枠・文字の濃さ。
+///
+/// **押せると分かる形にするため**の値である(2026-09-03 のmanual確認)。
+/// 値そのものは自由で、**固定しているのは「文字が変更後名より薄い」ことと
+/// 「枠と塗りが在る」ことである**(widget test が正本)。
+const double rowWarningRadius = 6;
+const double rowWarningFillOpacity = 0.12;
+const double rowWarningBorderOpacity = 0.45;
+const double rowWarningLabelOpacity = 0.78;
+
 /// 行に出す警告(005 REQ-009 (1) / REQ-021)。
 ///
 /// - **ルールが空なら空を返す**(005 REQ-020: 警告ではなく未設定を提示する)。
@@ -350,37 +360,66 @@ class RowWarningView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (warnings.isEmpty) return const SizedBox.shrink();
     final colors = context.colors;
-    return InkWell(
-      key: rowWarningKey,
-      onTap: onTap,
-      child: Padding(
-        // **tap範囲を文字の高さより広く取る。** 11px の文字だけを当たり判定に
-        // すると指で外す(008:T16 のmanual確認で確認Eとして見た点)。実サイズの
-        // 確かめは実機の手順に残っている。
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          // **右寄せ**(参考designのコンパクト案。2026-09-02 の要望8)。
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 1, right: 3),
-              child: Icon(Icons.error_outline, size: 11, color: colors.danger),
+    // **押せると分かる形にする**(2026-09-03 のmanual確認。原文は「ぱっと見だと
+    // 押せることが分からず、ただの警告文に見える。角を丸めた赤の四角で囲み、
+    // 中をさらに薄い赤で塗りつぶしてボタンぽっくしても良いかも」)。
+    //
+    // **色は変更後名より薄くする**(同「変更後名の表示の赤と同じ濃さなので、目が
+    // 散る。少しだけ薄くしても良いかも」)。行の主役は変更後名で、警告はその
+    // 補足である。**種別が読めることは変わらない** — 薄くするのは濃さだけで、
+    // 背景との対比は保つ。
+    final label = colors.danger.withValues(alpha: rowWarningLabelOpacity);
+    // **箱そのものを右へ寄せる**(参考designのコンパクト案。2026-09-02 の要望8)。
+    // 箱は中身の幅しか取らないので、`Row` の `mainAxisAlignment` では寄らない。
+    return Align(
+      alignment: Alignment.centerRight,
+      child: InkWell(
+        key: rowWarningKey,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(rowWarningRadius),
+        child: Container(
+          // **tap範囲を文字の高さより広く取る。** 11px の文字だけを当たり判定に
+          // すると指で外す。2026-09-03 の実機確認で「少し上下を押しても入る」ことを
+          // 確認済み。
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+          decoration: BoxDecoration(
+            color: colors.danger.withValues(alpha: rowWarningFillOpacity),
+            border: Border.all(
+              color: colors.danger.withValues(alpha: rowWarningBorderOpacity),
             ),
-            Flexible(
-              child: Text(
-                warnings.map(rowWarningLabel).join('・'),
-                // 種別がすべて併発しても 2 行に収まる短さにしてある。
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.danger,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(rowWarningRadius),
+          ),
+          child: Row(
+            // **アイコンを文字のbaselineへ揃える**(2026-09-03 のmanual確認。原文は
+            // 「！マークが警告文に対して少し上にずれている。修正したい」)。
+            // `CrossAxisAlignment.start` は箱の上端を揃えるので、字面の中心が
+            // 下にある文字に対してアイコンが上へ浮く。**固定値で押し下げない** —
+            // 文字倍率が変わるとずれ方も変わる。`Icon` は内部が `RichText` なので
+            // baseline を持つ。
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 3),
+                child: Icon(Icons.error_outline, size: 11, color: label),
+              ),
+              Flexible(
+                child: Text(
+                  warnings.map(rowWarningLabel).join('・'),
+                  // 種別がすべて併発しても 2 行に収まる短さにしてある。
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

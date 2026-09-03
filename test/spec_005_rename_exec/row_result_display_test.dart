@@ -258,8 +258,29 @@ void main() {
       );
       await _pump(tester, c);
 
-      // **当たり判定の箱ではなく文字そのものを測る。** 箱は行幅いっぱいに
-      // 広がるので、左寄せへ変えても箱の右端は動かない(M213 がこの空振りを殺す)。
+      // 警告の箱は**中身の幅しか取らない**(2026-09-03 にボタンらしい形へ変えた)。
+      // したがって箱の位置そのものが右寄せの有無を表す。
+      final warning = tester.getRect(find.byKey(rowWarningKey).first);
+      final current = tester.getRect(find.text('alpha.txt'));
+      expect(
+        warning.bottom,
+        lessThanOrEqualTo(current.top),
+        reason: '警告が現在名の上に無い',
+      );
+      // 右寄せ: 箱の右端が、現在名の右端と同じかそれより右にある。
+      expect(
+        warning.right,
+        greaterThanOrEqualTo(current.right - 1),
+        reason: '警告が右へ寄っていない',
+      );
+      // **行幅いっぱいに広がっていない**ことも固定する。広がっていると、
+      // 左寄せへ変えても右端が動かず、右寄せの検査が空振りになる。
+      expect(
+        warning.left,
+        greaterThan(current.left + 1),
+        reason: '警告の箱が左端から始まっている',
+      );
+      // 文字は箱の中に収まっている。
       final warningText = tester.getRect(
         find
             .descendant(
@@ -268,23 +289,92 @@ void main() {
             )
             .first,
       );
-      final current = tester.getRect(find.text('alpha.txt'));
+      expect(warning.contains(warningText.topLeft), isTrue);
       expect(
-        warningText.bottom,
-        lessThanOrEqualTo(current.top),
-        reason: '警告が現在名の上に無い',
+        warning.contains(warningText.bottomRight - const Offset(1, 1)),
+        isTrue,
       );
-      // 右寄せ: 警告の文字の右端が、現在名の右端と同じかそれより右にある。
-      expect(
-        warningText.right,
-        greaterThanOrEqualTo(current.right - 1),
-        reason: '警告が右へ寄っていない',
+    });
+
+    testWidgets('警告のアイコンが文字のbaselineへ揃っている', (tester) async {
+      // 2026-09-03 のmanual確認: 「！マークが警告文に対して少し上にずれている」。
+      // `CrossAxisAlignment.start` だと箱の上端が揃い、字面の中心が下にある
+      // 文字に対してアイコンが浮く。**アイコンの縦中心が、文字の1行目の縦の
+      // 範囲の中に入っていること**を固定する。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
       );
-      // 左寄せとの違いを固定する — 文字の左端は行の左端より十分右にある。
+      await _pump(tester, c);
+
+      final icon = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(rowWarningKey).first,
+              matching: find.byType(Icon),
+            )
+            .first,
+      );
+      final text = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(rowWarningKey).first,
+              matching: find.byType(Text),
+            )
+            .first,
+      );
       expect(
-        warningText.left,
-        greaterThan(current.left + 1),
-        reason: '警告が左端から始まっている(右寄せになっていない)',
+        icon.center.dy,
+        greaterThanOrEqualTo(text.top),
+        reason: 'アイコンが文字より上へ浮いている',
+      );
+      expect(icon.center.dy, lessThanOrEqualTo(text.bottom));
+    });
+
+    testWidgets('警告は押せると分かる形で、変更後名より薄い', (tester) async {
+      // 2026-09-03 のmanual確認: 「ぱっと見だと押せることが分からず、ただの
+      // 警告文に見える」「変更後名の表示の赤と同じ濃さなので、目が散る」。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+      final colors = _colors(tester);
+
+      // 枠と塗りが在る(ただの文字ではない)。
+      final box = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byKey(rowWarningKey).first,
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = box.decoration! as BoxDecoration;
+      expect(decoration.border, isNotNull, reason: '枠が無い');
+      expect(decoration.borderRadius, isNotNull, reason: '角が丸くない');
+      expect(decoration.color!.a, greaterThan(0), reason: '塗りが無い');
+      expect(decoration.color!.a, lessThan(1), reason: '塗りが濃すぎる');
+
+      // 文字は danger と同じ色相で、**変更後名より薄い**。
+      final label = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(rowWarningKey).first,
+              matching: find.byType(Text),
+            ),
+          )
+          .first
+          .style!
+          .color!;
+      expect(
+        (label.r, label.g, label.b),
+        (colors.danger.r, colors.danger.g, colors.danger.b),
+      );
+      expect(
+        label.a,
+        lessThan(_newNameColor(tester).a),
+        reason: '警告が変更後名と同じ濃さで、目が散る',
       );
     });
 

@@ -675,7 +675,19 @@ void main() {
           .toList();
       expect(texts, isNotEmpty);
       for (final text in texts) {
-        expect(text.style?.color, AppColors.dark.danger);
+        // 2026-09-03 に、行の警告だけ **danger を薄めた色**へ変えた(開発者の
+        // 「変更後名の表示の赤と同じ濃さなので、目が散る」による)。
+        // **色相は danger のままである**ことを見る。濃さの上下は
+        // `row_result_display_test.dart` が固定する。
+        final color = text.style!.color!;
+        expect(
+          (color.r, color.g, color.b),
+          (
+            AppColors.dark.danger.r,
+            AppColors.dark.danger.g,
+            AppColors.dark.danger.b,
+          ),
+        );
       }
       final icons = tester
           .widgetList<Icon>(
@@ -684,7 +696,15 @@ void main() {
           .toList();
       expect(icons, isNotEmpty);
       for (final icon in icons) {
-        expect(icon.color, AppColors.dark.danger);
+        final color = icon.color!;
+        expect(
+          (color.r, color.g, color.b),
+          (
+            AppColors.dark.danger.r,
+            AppColors.dark.danger.g,
+            AppColors.dark.danger.b,
+          ),
+        );
       }
     });
   });

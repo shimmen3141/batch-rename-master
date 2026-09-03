@@ -1492,9 +1492,9 @@
     {
       "id": "M213",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          mainAxisAlignment: MainAxisAlignment.end,",
-      "replace": "          mainAxisAlignment: MainAxisAlignment.start,",
-      "note": "008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)"
+      "find": "      alignment: Alignment.centerRight,",
+      "replace": "      alignment: Alignment.centerLeft,",
+      "note": "008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)。2026-09-03 に箱の形へ変えたので、寄せているのは外側の `Align` である"
     },
     {
       "id": "M214",
@@ -1541,8 +1541,8 @@
     {
       "id": "M220",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),",
-      "replace": "        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 2),",
+      "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
+      "replace": "          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 6),",
       "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)"
     },
     {
@@ -1551,6 +1551,27 @@
       "find": "                Text(\n                  row.currentName,\n                  maxLines: 1,",
       "replace": "                Text(\n                  row.currentName,\n                  maxLines: 4,",
       "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
+    },
+    {
+      "id": "M222",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "            crossAxisAlignment: CrossAxisAlignment.baseline,",
+      "replace": "            crossAxisAlignment: CrossAxisAlignment.start,",
+      "note": "008:T18 警告のアイコンを箱の上端で揃える — 文字に対して上へ浮く(2026-09-03 のmanual確認「！マークが警告文に対して少し上にずれている」)"
+    },
+    {
+      "id": "M223",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double rowWarningLabelOpacity = 0.78;",
+      "replace": "const double rowWarningLabelOpacity = 1.0;",
+      "note": "008:T18 行の警告を変更後名と同じ濃さへ戻す — 目が散る(2026-09-03 のmanual確認)"
+    },
+    {
+      "id": "M224",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double rowWarningFillOpacity = 0.12;",
+      "replace": "const double rowWarningFillOpacity = 0.0;",
+      "note": "008:T18 行の警告の塗りを消す — 押せると分かる形でなくなる(2026-09-03 のmanual確認「ただの警告文に見える」)"
     }
   ]
 }
