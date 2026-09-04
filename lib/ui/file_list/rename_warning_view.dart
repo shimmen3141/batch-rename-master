@@ -225,7 +225,14 @@ const double rowWarningFontSize = 11;
 /// **Material icons と CJK の字面(ink)の中心の差**である。icons は baseline の上
 /// 1em を占めるので ink の中心が **baseline − 0.5em**、CJK は上 0.88em 〜 下 0.12em で
 /// **baseline − 0.38em**。差は **0.12em** で、揃えないとアイコンが上へ浮いて見える
-/// (2026-09-04 のmanual確認)。**割合なので文字倍率が変わっても崩れない。**
+/// (2026-09-04 のmanual確認)。
+///
+/// **押さえているのは既定の文字倍率だけである。** 比例先の [rowWarningFontSize] は
+/// コンパイル時定数で、利用者の文字倍率(`textScaler`)に追随しない。[Icon] も
+/// `applyTextScaling` が既定 false で拡大しないのに対し、[Text] の `fontSize` は
+/// 倍率で拡大するので、**倍率を上げるほど字面の中心の差が開く**(実測 gap =
+/// 1.18 / 2.37 / 4.30 / 6.91px @ 倍率 1.0 / 1.3 / 2.0 / 3.0)。
+/// **受容した残余riskであり、引き受け先は `008:T10`**(余白・字体・階層)。
 const double rowWarningIconInkNudge = 0.12;
 
 /// 行に出す警告(005 REQ-009 (1) / REQ-021)。
@@ -424,8 +431,10 @@ class RowWarningView extends StatelessWidget {
                 // - CJKの字面は baseline の上 0.88em 〜 下 0.12em → ink の中心は
                 //   **baseline − 0.38em**
                 //
-                // 差は **0.12em**。**固定値ではなく font size に比例させる**ので、
-                // 文字倍率が変わっても崩れない。
+                // 差は **0.12em**。**固定値ではなく font size に比例させる。**
+                // ただし比例先は定数なので**利用者の文字倍率には追随しない** —
+                // 受容した残余risk(引き受け先 `008:T10`)。
+                // [rowWarningIconInkNudge] を読むこと。
                 padding: const EdgeInsets.only(right: 3),
                 // **padding では下がらない。** `CrossAxisAlignment.baseline` は
                 // 子の baseline を行の baseline へ固定するので、top padding を足すと

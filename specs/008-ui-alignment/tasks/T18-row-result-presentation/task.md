@@ -355,8 +355,9 @@ ink がずれる**という、文字の性質による差である。開発者�
 という条件付きで、**実際に簡単だった**ため対応した。
 
 **原因は上の「確認Dの原因」のとおり、字面(ink)の中心の差 0.12em である。**
-アイコンを font size に比例した量だけ下げて揃えた。**固定値ではないので文字倍率が
-変わっても崩れない。**
+アイコンを font size に比例した量だけ下げて揃えた。**押さえているのは既定の文字倍率だけ
+である** — 比例先の `rowWarningFontSize` はコンパイル時定数で、利用者の文字倍率には
+追随しない(独立review attempt 4 の P1-1)。**受容した残余risk**で、引き受け先は `008:T10`。
 
 **実装して分かったこと**: `padding` では下がらない。`CrossAxisAlignment.baseline` は
 **子の baseline を行の baseline へ固定する**ので、top padding を足すと箱ごと上へずれて
@@ -382,9 +383,11 @@ ink がずれる**という、文字の性質による差である。開発者�
 サイズ最大)への言及は無い。** 「問題ないです」を全項目の成立へ広げない — **読み取れるのは
 「！の表示に問題が無い」ことである。**
 
-**確認Bは機械が押さえている。** `row_result_display_test.dart` が既定倍率で
-`0.5 < (アイコンの中心 − 文字の中心) < 2.5` を固定し、M229(補正なし=上へ浮く)と
-M230(下げすぎ=沈む)が両側を殺す。
+**確認Bは機械が押さえている。範囲の正本はassertionであり、ここへ書き写さない**
+(`development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md`)。
+test は `test/spec_005_rename_exec/row_result_display_test.dart` の
+**`警告のアイコンが文字のbaselineへ揃っている`**。**向きごとの対照は M229**(補正なし=上へ浮く)
+**と M230**(下げすぎ=沈む)で、どちらも KILLED。**押さえているのは既定の文字倍率だけである。**
 
 **確認Cは、manualでも機械でも押さえられていない**(独立review attempt 4 の P1-1)。
 **以前この節に書いていた「補正が font size 比例なので機械側が押さえている」は事実に反する。**
@@ -427,6 +430,14 @@ M230(下げすぎ=沈む)が両側を殺す。
 **P2-6(広幅で `（変更なし）` と切り詰めを見ていない)は受容せず閉じた** — 受け入れ証拠が
 「狭幅と広幅の両方で検査する」を求めているので、広幅の loop へ両方を足した。
 
+## 引き受けた残余risk(独立review attempt 4 が挙げたもの)
+
+| risk | 3条件の判定 | 引き受け先 |
+|---|---|---|
+| **行の警告に文字倍率の被覆が無い。** `textScaler` を上げると (i) アイコンと文字の字面の中心の差が開き(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)、(ii) 幅320dpで種別3つ併発のとき**倍率 1.3 から警告文が切り詰められる**(`didExceedMaxLines = [true, true]`)。倍率を上げた経路を見るtestは無い | (1)製品経路 = 該当 / (2)揃いのずれは見た目のみ。切り詰めも、**ヘッダの件数(`⚠ N 件の問題`)と 005 REQ-009 (3) の全件詳細が残る**ので「問題が無い」と誤認する経路(偽の成功)にならず、データ損失・無断置換・権限逸脱・互換性破壊のいずれでもない = **非該当** / (3)CIで閉じられる = 該当(`row_presentation_test.dart` に `TextScaler.linear` の前例がある)。**3条件を満たさないので受容する** | **`008:T10`**(余白・字体・階層)。**アイコンサイズが文字倍率に追随しないのは `T18` が持ち込んだ形ではない** — `Icon(size: 11)` は `T16` 以前からで、`T18` は定数へ括り出しただけである |
+
+**この受容は開発者の決定である**(2026-09-04。3案 (A)残余riskとして`T10`へ受容 / (B)アイコンを文字倍率へ追随させ機械で閉じる / (C)`T18`を打ち切る のうち **(A)**)。手順2′確認Dの**確認C(フォントサイズ最大)は未回答のまま閉じない** — この残余riskがその範囲を引き受ける。
+
 ## Current state / handoff
 
 - Last checkpoint: **attempt 3 のP1×3と確認Dを直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / **全表の`--list` = `230 mutations, 0 with an unexpected match count`**(M180 を戻した)/ M180+M204〜M230 = **23 KILLED, 5 SURVIVED(受容した対照), 0 SKIPPED**
@@ -437,10 +448,9 @@ M230(下げすぎ=沈む)が両側を殺す。
 - **独立reviewが3回連続FAILし一度`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である。**開発者は「P1×3と確認Dを直して attempt 4」を選んだ**(2026-09-04)
 - **3回目のmanual確認も成立した**(2026-09-04、`9c2d6df`)。**`manual-verification.md`のすべての項目が、対応するcommitに対して成立した**(上の表)
 - **独立review attempt 4 = FAIL**(`origin/dev...0de631d`)。**P1×1(成果物の欠陥)** — 3回目のmanual結果の被覆の主張が事実に反していた。「補正が font size 比例なので確認B・Cは機械側が押さえている」「これで`manual-verification.md`のすべての項目が成立した」と書いていたが、**`rowWarningIconInkNudge` が比例する `rowWarningFontSize` はコンパイル時定数であり文字倍率に追随しない**。実測 gap = 1.18 / 2.37 / 4.30 / 6.91(`textScaler` = 1.0 / 1.3 / 2.0 / 3.0)で、**倍率 2.0 で自ら定義した上限 2.5 を超える**。**確認Cはmanualでも機械でも押さえられていない。** P2×4(findings の `25 mutations` が `21` の誤り / `plan.md` に 2026-09-04 の決定行が無い / 文字倍率の被覆が無い〔安全網の穴・3条件非該当〕/ `008:T10` 側に残余riskが届いていない〔同〕)。**実装・test・mutation・回帰・001の不変性は今回もすべて再現され、実装の誤りは0件**である
-- **P1-1 の訂正と、P2-1(findings の数値)・P2-2(`plan.md` の決定行)は反映済み。** 残るのは**確認Cをどう閉じるか**で、**人間の判断待ち**である
-- Blocker category: **人間の判断待ち**(確認C = 文字倍率最大での揃いの扱い)
-- Waiting for: **開発者の判断** — 手順2′ 確認D の**確認C(端末のフォントサイズを最大にしても揃いが大きく崩れない)**をどう閉じるか。現状はmanualでも機械でも押さえられておらず、実測では倍率 2.0 で崩れる
-- Requested action: 次の3案から選ぶ。(A) **記録だけを実態へ直し、確認Cは残余riskとして`008:T10`へ受容**して attempt 5(`lib/`を触らないのでmanual証拠は維持。再確認ゼロ)/ (B) **アイコンを文字倍率へ追随させ**(`applyTextScaling` と倍率込みの補正)、`textScaler` 1.0/1.3/2.0 のwidget testで機械で閉じる(主張が真になるが`lib/`が動くので確認Dの再確認1項目が要る)/ (C) **T18をここで打ち切る** — 実装は4回とも誤り0件なので、既知の残余riskを記録して独立reviewのPASSを待たずに人間がmergeする
-- **独立review attempt 3 = FAIL**(`origin/dev...472d631`)。P1×3 — (1)**M180 が死んだ**(私が字下げを変えたため`find`が一致しなくなり、`T16`が005 REQ-009 (1)のために置いた対照が無言で失効した。`tool/mutations.json` 全体の`--list` は `228 mutations, 1 with an unexpected match count`)、(2)PR #164 本文が古い保証(`12件すべてKILLED, 0 SURVIVED`)を主張、(3)handoffが本文と矛盾し、存在しない節「確認Dへの対応」を指していた。P2×4
+- **attempt 4 の指摘をすべて対処した**(2026-09-04)。**確認Cは残余riskとして`008:T10`へ受容する**(開発者の決定。3案 (A)受容 / (B)アイコンを文字倍率へ追随させ機械で閉じる / (C)`T18`を打ち切る のうち **(A)**)。P1-1 = 事実に反していた被覆の主張を`task.md`・`manual-verification.md`・`lib/`の doc comment から除き、test名とmutation IDを指す形へ改めた / P2-1 = findings の `25` を `21` へ / P2-2 = `plan.md` へ 2026-09-04 の決定行 / P2-3 = 文字倍率の残余riskを受容し`008:T10`へ / P2-4 = `008:T10` と `008:T19` の `task.md` へ引き受けを実際に書いた
+- **この range の `lib/` 差分はコメントだけである**(`git diff 9c2d6df..HEAD -- lib/` がコメント行しか含まないことで検証できる)。**振る舞いは変わっていないので、3回分のmanual証拠はそのまま有効**であり、再確認は要らない
+- **独立reviewは4回連続FAILで、4回とも実装の誤りは0件、落ちたのはすべて記録である。** 型は `development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md` と同じで、**同fileの forward-test が失敗したことを追記した**
+- Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `9c2d6df`**
-- Next Agent action: **確認Cの扱いを人間が決めたら反映し、attempt 5 を起動する。** 独立reviewは**4回連続FAIL**で、4回とも実装の誤りは0件・落ちたのは記録である(`AGENTS.md` の「同じ種類の修正を繰り返さず解き方を変える」に該当。`T17` と同型)
+- Next Agent action: **attempt 5 の独立reviewを起動し、PASSなら`done`にして PR #164 を ready 化して merge する。**
