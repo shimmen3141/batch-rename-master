@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T18",
   "title": "行の結果表示を参考designへ揃える",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T17"
   ],
@@ -12,6 +12,6 @@
     "005:REQ-029"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 164,
   "manualVerification": "manual-verification.md"
 }

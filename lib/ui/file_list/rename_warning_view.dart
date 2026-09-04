@@ -207,6 +207,34 @@ String describeDateTimeSource(DateTimeSource source) => switch (source) {
 // `T15` の設計指針と参考designに沿ったもので、要求ではない。
 // ---------------------------------------------------------------------------
 
+/// 行の警告の角の丸み・塗り・枠・文字の濃さ。
+///
+/// **押せると分かる形にするため**の値である(2026-09-03 のmanual確認)。
+/// 値そのものは自由で、**固定しているのは「文字が変更後名より薄い」ことと
+/// 「枠と塗りが在る」ことである**(widget test が正本)。
+const double rowWarningRadius = 6;
+const double rowWarningFillOpacity = 0.12;
+const double rowWarningBorderOpacity = 0.45;
+const double rowWarningLabelOpacity = 0.78;
+
+/// 行の警告の文字とアイコンの大きさ。
+const double rowWarningFontSize = 11;
+
+/// アイコンを baseline からさらに下げる量([rowWarningFontSize] に対する割合)。
+///
+/// **Material icons と CJK の字面(ink)の中心の差**である。icons は baseline の上
+/// 1em を占めるので ink の中心が **baseline − 0.5em**、CJK は上 0.88em 〜 下 0.12em で
+/// **baseline − 0.38em**。差は **0.12em** で、揃えないとアイコンが上へ浮いて見える
+/// (2026-09-04 のmanual確認)。
+///
+/// **押さえているのは既定の文字倍率だけである。** 比例先の [rowWarningFontSize] は
+/// コンパイル時定数で、利用者の文字倍率(`textScaler`)に追随しない。[Icon] も
+/// `applyTextScaling` が既定 false で拡大しないのに対し、[Text] の `fontSize` は
+/// 倍率で拡大するので、**倍率を上げるほど字面の中心の差が開く**(実測 gap =
+/// 1.18 / 2.37 / 4.30 / 6.91px @ 倍率 1.0 / 1.3 / 2.0 / 3.0)。
+/// **受容した残余riskであり、引き受け先は `008:T10`**(余白・字体・階層)。
+const double rowWarningIconInkNudge = 0.12;
+
 /// 行に出す警告(005 REQ-009 (1) / REQ-021)。
 ///
 /// - **ルールが空なら空を返す**(005 REQ-020: 警告ではなく未設定を提示する)。
@@ -220,6 +248,9 @@ List<Warning> rowWarningsOf(
 }) {
   if (ruleIsEmpty) return const <Warning>[];
   final empty = warnings.whereType<EmptyNameWarning>().firstOrNull;
+  // 空名の行は結果だけにする(REQ-021 規則1。REQ-009 (1) も「規則が畳んだ種別を
+  // ここで別立てにしない」と書いている)。**桁不足と空名は同時に起きない** —
+  // 空名は全トークンが空文字を出すときだけで、連番は常に1文字以上を出す。
   if (empty != null) return <Warning>[empty];
   final seen = <Type>{};
   return <Warning>[
@@ -238,11 +269,15 @@ List<Warning> rowWarningsOf(
 String rowWarningLabel(Warning warning) => switch (warning) {
   DuplicateWarning() => '名前が重複',
   EmptyNameWarning() => '名前が空・改名されません',
-  // 基準日時が取れないのは**作成日時が不明なとき**だけである(001 INV-006:
-  // 更新日時・現在日時では代替しない。それらは常に値を持つ)。
-  MissingSourceDateWarning() => '作成日時が空になります',
-  // 行へは来ない([warningTargetOf] が `null` を返す)。網羅のために置く。
-  DigitShortageWarning() => '連番の桁が不足',
+  // **どの基準が取れないかを明示する**(2026-09-02 の要望5。原文は「『基準日時
+  // なし』…『作成日時不明』『更新日時不明』とちゃんと明示してほしい」)。
+  // 実際に取れないのは作成日時だけだが(001 INV-006: 更新日時・現在日時は常に
+  // 値を持つ)、**基準から導いて誤った名前を出さないようにする。**
+  MissingSourceDateWarning(:final token) =>
+    '${describeDateTimeSource(token.source)}不明',
+  // 002 REQ-015 の導出で**行へ来る**(008:T17 の改訂)。指定桁数を超えて描かれる
+  // 行だけが該当する。文言は開発者の指定(2026-09-02 の要望5)。
+  DigitShortageWarning() => '連番の桁不足',
 };
 
 /// ルールを直せば消える原因の説明(005 REQ-009 (2))。
@@ -343,33 +378,98 @@ class RowWarningView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (warnings.isEmpty) return const SizedBox.shrink();
     final colors = context.colors;
-    return InkWell(
-      key: rowWarningKey,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 2, bottom: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 1, right: 3),
-              child: Icon(Icons.error_outline, size: 11, color: colors.danger),
+    // **押せると分かる形にする**(2026-09-03 のmanual確認。原文は「ぱっと見だと
+    // 押せることが分からず、ただの警告文に見える。角を丸めた赤の四角で囲み、
+    // 中をさらに薄い赤で塗りつぶしてボタンぽっくしても良いかも」)。
+    //
+    // **色は変更後名より薄くする**(同「変更後名の表示の赤と同じ濃さなので、目が
+    // 散る。少しだけ薄くしても良いかも」)。行の主役は変更後名で、警告はその
+    // 補足である。**種別が読めることは変わらない** — 薄くするのは濃さだけで、
+    // 背景との対比は保つ。
+    final label = colors.danger.withValues(alpha: rowWarningLabelOpacity);
+    // **箱そのものを右へ寄せる**(参考designのコンパクト案。2026-09-02 の要望8)。
+    // 箱は中身の幅しか取らないので、`Row` の `mainAxisAlignment` では寄らない。
+    return Align(
+      alignment: Alignment.centerRight,
+      child: InkWell(
+        key: rowWarningKey,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(rowWarningRadius),
+        child: Container(
+          // **tap範囲を文字より広く取る。** 11px の文字だけを当たり判定にすると
+          // 指で外す。**この値は実機で確かめていない** — `e5aceed` の形(当たり判定が
+          // 行幅いっぱい)で確認したのは 2026-09-03 で、その後この箱の形へ作り替えた。
+          // **当たり判定は行幅からバッジの幅へ縮んでいる。** 手順3′で確かめ直す。
+          // 縮む方向を縛る assertion は無い(`task.md` の残余risk 穴C)。
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+          decoration: BoxDecoration(
+            color: colors.danger.withValues(alpha: rowWarningFillOpacity),
+            border: Border.all(
+              color: colors.danger.withValues(alpha: rowWarningBorderOpacity),
             ),
-            Flexible(
-              child: Text(
-                warnings.map(rowWarningLabel).join('・'),
-                // 種別がすべて併発しても 2 行に収まる短さにしてある。
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.danger,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(rowWarningRadius),
+          ),
+          child: Row(
+            // **アイコンを文字のbaselineへ揃える**(2026-09-03 のmanual確認。原文は
+            // 「！マークが警告文に対して少し上にずれている。修正したい」)。
+            // `CrossAxisAlignment.start` は箱の上端を揃えるので、字面の中心が
+            // 下にある文字に対してアイコンが上へ浮く。`Icon` は内部が `RichText`
+            // なので baseline を持つ。
+            //
+            // **baseline を揃えたうえで、字面の差を [rowWarningIconInkNudge] で
+            // 補正している。** 補正量は定数どうしの積なので**固定値である** —
+            // 利用者の文字倍率には追随しない(受容した残余risk。引き受け先
+            // `008:T10`)。詳しくは [rowWarningIconInkNudge] を読むこと。
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                // **字面(ink)の中心を揃えるために、baselineからさらに下げる。**
+                // baselineは揃っているが(box中心の差 0.14px)、**字面の位置が違う**
+                // ので上へ浮いて見える(2026-09-04 のmanual確認)。
+                //
+                // - Material icons は em box いっぱいに描かれ baseline の上 1em を
+                //   占める → ink の中心は **baseline − 0.5em**
+                // - CJKの字面は baseline の上 0.88em 〜 下 0.12em → ink の中心は
+                //   **baseline − 0.38em**
+                //
+                // 差は **0.12em**。**固定値ではなく font size に比例させる。**
+                // ただし比例先は定数なので**利用者の文字倍率には追随しない** —
+                // 受容した残余risk(引き受け先 `008:T10`)。
+                // [rowWarningIconInkNudge] を読むこと。
+                padding: const EdgeInsets.only(right: 3),
+                // **padding では下がらない。** `CrossAxisAlignment.baseline` は
+                // 子の baseline を行の baseline へ固定するので、top padding を足すと
+                // 箱ごと上へずれて相殺される。**paint 側でずらす。**
+                child: Transform.translate(
+                  offset: const Offset(
+                    0,
+                    rowWarningFontSize * rowWarningIconInkNudge,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: rowWarningFontSize,
+                    color: label,
+                  ),
                 ),
               ),
-            ),
-          ],
+              Flexible(
+                child: Text(
+                  warnings.map(rowWarningLabel).join('・'),
+                  // 種別がすべて併発しても 2 行に収まる短さにしてある。
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: rowWarningFontSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

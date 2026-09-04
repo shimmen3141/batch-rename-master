@@ -147,18 +147,101 @@ void main() {
       }
     });
 
-    test('例19: 桁不足はどの行データにも入らない(対象ファイルを持たない)', () {
-      // 開始 100・1 桁なので 1 件でも 3 桁必要になる。
+    // 008:T17 で REQ-015 を改訂した。**桁不足も、指定桁数を超えて描かれる item へ
+    // 導出して載せる。** 例19 / 19a / 19b が両方向を固定する。
+    test('例19: 桁を超えて描かれる item の行データは桁不足を持つ', () {
+      // 桁 2・150 件なので、選択順位 100 件目以降が 3 桁になる。
       final c = FileListController(
-        files: [_f('alpha.txt'), _f('bravo.txt')],
-        rule: const RenameRule([SequenceToken(start: 100, digits: 1)]),
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 2)]),
       );
 
-      // 判定としては出ている。**行データへ載せないだけである。**
       expect(c.warnings.whereType<DigitShortageWarning>(), isNotEmpty);
+      // 選択順位 100 件目 = index 99。
+      expect(
+        c.rows[99].warnings.whereType<DigitShortageWarning>(),
+        isNotEmpty,
+        reason: '連番 100 は 2 桁を超えて描かれる',
+      );
+    });
+
+    test('例19a: 桁に収まる item の行データは桁不足を持たない', () {
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 2)]),
+      );
+
+      // 選択順位 50 件目 = index 49。値は 50 で 2 桁に収まる。
+      expect(
+        c.rows[49].warnings.whereType<DigitShortageWarning>(),
+        isEmpty,
+        reason: '連番 50 は 2 桁に収まる',
+      );
+      // 境界: 99 は収まり、100 から超える。
+      expect(c.rows[98].warnings.whereType<DigitShortageWarning>(), isEmpty);
+      expect(c.rows[99].warnings.whereType<DigitShortageWarning>(), isNotEmpty);
+    });
+
+    test('例19b: 001 が桁不足を返さないなら、どの行データにも入らない', () {
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 3)]),
+      );
+
+      // 最大 150 は 3 桁に収まるので 001 は返さない。
+      expect(c.warnings.whereType<DigitShortageWarning>(), isEmpty);
+      for (final row in c.rows) {
+        expect(
+          row.warnings.whereType<DigitShortageWarning>(),
+          isEmpty,
+          reason: '001 が返していない警告を行データが作らない',
+        );
+      }
+    });
+
+    test('未選択行は連番の位置を消費しない(桁不足の対象がずれない)', () {
+      // **桁不足が残ったまま**位置がずれるかを見る。選択を大きく外して警告
+      // そのものを消すと、「001 が返さない → 行にも載らない」の再掲になり、
+      // **数え方は何も押さえられない**(独立review attempt 1 の P1-1)。
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 2)]),
+      );
+      // 先頭 1 件だけ外す → 149 件選択。最大 149 なので桁不足は残る。
+      c.toggleSelection(c.rows[0].source);
+
+      expect(c.warnings.whereType<DigitShortageWarning>(), isNotEmpty);
+      // index 0 が未選択なので、**選択順位 100 件目は index 100** である。
+      expect(
+        c.rows[99].warnings.whereType<DigitShortageWarning>(),
+        isEmpty,
+        reason: 'index 99 の選択順位は 99 で、2 桁に収まる',
+      );
+      expect(
+        c.rows[100].warnings.whereType<DigitShortageWarning>(),
+        isNotEmpty,
+        reason: 'index 100 の選択順位が 100 になる',
+      );
+      // **未選択行には載せない**(プレビュー対象外)。
+      expect(c.rows[0].warnings.whereType<DigitShortageWarning>(), isEmpty);
+    });
+
+    test('選択が減って 001 が桁不足を返さなくなれば、どの行からも消える', () {
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([SequenceToken(digits: 2)]),
+      );
+      for (var i = 0; i < 60; i++) {
+        c.toggleSelection(c.rows[i].source);
+      }
+
+      expect(
+        c.warnings.whereType<DigitShortageWarning>(),
+        isEmpty,
+        reason: '選択 90 件なら最大 90 で 2 桁に収まる',
+      );
       for (final row in c.rows) {
         expect(row.warnings.whereType<DigitShortageWarning>(), isEmpty);
-        expect(row.warnings, isEmpty);
       }
     });
 
