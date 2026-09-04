@@ -288,7 +288,7 @@ PR #164、**Android実機**。手順書は[`manual-verification.md`](manual-veri
 
 | 指摘 | 直し方 |
 |---|---|
-| 1(！マークのずれ) | アイコンを箱の上端ではなく**文字のbaseline**へ揃えた。**固定値で押し下げていない** — 文字倍率が変わるとずれ方も変わる |
+| 1(！マークのずれ) | アイコンを箱の上端ではなく**文字のbaseline**へ揃えた。**これだけでは足りず、2026-09-04 に字面の差の補正を足した**(下の「確認Dへの対応」)。**補正量は定数どうしの積で固定値であり、利用者の文字倍率には追随しない** — 受容した残余risk(引き受け先 `008:T10`) |
 | 2(押せると分からない) | **角丸の枠 + 薄い塗り**を付けた。箱は中身の幅だけ取るので、右寄せは外側の `Align` が担う |
 | 2(色が濃くて目が散る) | 行の警告の文字とアイコンを、**`danger` の色相のまま濃さだけ下げた**(変更後名より薄い) |
 
@@ -415,7 +415,9 @@ test は `test/spec_005_rename_exec/row_result_display_test.dart` の
 | 2′ の確認D — 確認B(下がりすぎていない) | `9c2d6df` | **回答なし。機械が押さえている**(上記) |
 | 2′ の確認D — 確認C(フォントサイズ最大) | `9c2d6df` | **回答なし。機械も押さえていない**(上記) |
 
-**`008:T16` から引き受けた残余risk(行の警告のtap範囲を実機で見ていない)は閉じた。**
+**`008:T16` から引き受けた残余riskの扱いは、2回目のmanual確認の節が正本である**
+(上の「manual確認の結果(2026-09-03。2回目)」)。**ここへ書き写さない** — 同じ判断を
+2か所へ持ったことが独立review attempt 2 の P1 の原因だった。
 
 ## 引き受けた残余risk(独立review attempt 1 が挙げたもの)
 
@@ -440,17 +442,50 @@ test は `test/spec_005_rename_exec/row_result_display_test.dart` の
 
 ## Current state / handoff
 
-- Last checkpoint: **attempt 3 のP1×3と確認Dを直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / **全表の`--list` = `230 mutations, 0 with an unexpected match count`**(M180 を戻した)/ M180+M204〜M230 = **23 KILLED, 5 SURVIVED(受容した対照), 0 SKIPPED**
-- 前の checkpoint: **manual確認(1回目)の指摘2件を直した。** `flutter test` = **PASS(768)** / `analyze` = PASS / `format` = PASS / `mutation_check.py` M204〜M224 = **19 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS
-- 前の checkpoint: **独立review attempt 1 の指摘をすべて対処した。** `dart format` = PASS / `flutter analyze` = PASS / `flutter test` = PASS / `mutation_check.py` M204〜M221 = **16 KILLED, 2 SURVIVED(受容した対照), 0 SKIPPED** / `workspace.py check specs` = PASS。**`lib/` は `e5aceed` から動いていない** — manual対象commitは有効なままである
-- 独立review: attempt 1 = **FAIL**(`origin/dev...45736fc`。P1×2)/ attempt 2 = **FAIL**(`origin/dev...099a0f2`。P1×1: tap範囲の残余riskを「閉じた」と書いた後で当たり判定を作り替えていた)/ attempt 3 = **FAIL**(`origin/dev...472d631`。P1×3: M180 の無言の失効、PR本文が古い保証を主張、handoffが本文と矛盾)。**3回とも実装の誤りは0件**で、落ちたのはすべて記録と検査である
-- **2回目のmanual確認は受領済み**(2026-09-03)。**手順3′は全項目成立し、`008:T16`から引き受けたtap範囲の残余riskは閉じた。** 手順2′は確認D(！マークの高さ)だけ不成立で、**2026-09-04に直した**(上の「確認Dへの対応」)
-- **独立reviewが3回連続FAILし一度`blocked`にした**(AGENTS.md)。**3回とも実装の誤りは0件**で、落ちたのは記録と検査である。**開発者は「P1×3と確認Dを直して attempt 4」を選んだ**(2026-09-04)
-- **3回目のmanual確認も成立した**(2026-09-04、`9c2d6df`)。**`manual-verification.md`のすべての項目が、対応するcommitに対して成立した**(上の表)
-- **独立review attempt 4 = FAIL**(`origin/dev...0de631d`)。**P1×1(成果物の欠陥)** — 3回目のmanual結果の被覆の主張が事実に反していた。「補正が font size 比例なので確認B・Cは機械側が押さえている」「これで`manual-verification.md`のすべての項目が成立した」と書いていたが、**`rowWarningIconInkNudge` が比例する `rowWarningFontSize` はコンパイル時定数であり文字倍率に追随しない**。実測 gap = 1.18 / 2.37 / 4.30 / 6.91(`textScaler` = 1.0 / 1.3 / 2.0 / 3.0)で、**倍率 2.0 で自ら定義した上限 2.5 を超える**。**確認Cはmanualでも機械でも押さえられていない。** P2×4(findings の `25 mutations` が `21` の誤り / `plan.md` に 2026-09-04 の決定行が無い / 文字倍率の被覆が無い〔安全網の穴・3条件非該当〕/ `008:T10` 側に残余riskが届いていない〔同〕)。**実装・test・mutation・回帰・001の不変性は今回もすべて再現され、実装の誤りは0件**である
-- **attempt 4 の指摘をすべて対処した**(2026-09-04)。**確認Cは残余riskとして`008:T10`へ受容する**(開発者の決定。3案 (A)受容 / (B)アイコンを文字倍率へ追随させ機械で閉じる / (C)`T18`を打ち切る のうち **(A)**)。P1-1 = 事実に反していた被覆の主張を`task.md`・`manual-verification.md`・`lib/`の doc comment から除き、test名とmutation IDを指す形へ改めた / P2-1 = findings の `25` を `21` へ / P2-2 = `plan.md` へ 2026-09-04 の決定行 / P2-3 = 文字倍率の残余riskを受容し`008:T10`へ / P2-4 = `008:T10` と `008:T19` の `task.md` へ引き受けを実際に書いた
-- **この range の `lib/` 差分はコメントだけである**(`git diff 9c2d6df..HEAD -- lib/` がコメント行しか含まないことで検証できる)。**振る舞いは変わっていないので、3回分のmanual証拠はそのまま有効**であり、再確認は要らない
-- **独立reviewは4回連続FAILで、4回とも実装の誤りは0件、落ちたのはすべて記録である。** 型は `development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md` と同じで、**同fileの forward-test が失敗したことを追記した**
+**この節は主張を持たない。** 5回の独立reviewのうち3回(attempt 3・4・5)は、**同じ主張が
+本文とこの節の両方にあり、改訂で片方だけが直った**ことで落ちた。**manual結果・被覆・
+「成立」「すべて」「閉じた」の判断はここに書かず、下の正本を読むこと。**
+
+| 知りたいこと | 正本 |
+|---|---|
+| manual確認がどのcommitに対して何を成立させたか | 「manual確認の結果」の各節と、その末尾の対象commit表 |
+| 何を機械が押さえているか | test本体と `tool/mutations.json`。散文は**test名とmutation IDを指すだけ**にする |
+| 受容した残余riskと引き受け先 | 「引き受けた残余risk」の各節(3条件の判定つき) |
+| 独立reviewの試行と結果 | 「独立reviewの記録」節 |
+
+- Last checkpoint: **attempt 5 のP1×2・P2×2を直した**(2026-09-04)。`flutter test` / `flutter analyze` / `dart format` / `mutation_check.py --list` / `workspace.py check specs` の結果は下の「検証の記録」
 - Blocker category: なし
-- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`、**codeの最終commitは `9c2d6df`**
-- Next Agent action: **attempt 5 の独立reviewを起動し、PASSなら`done`にして PR #164 を ready 化して merge する。**
+- Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`。**codeの最終commitは `9c2d6df`**(以後 `lib/` の差分はコメントのみ。`git diff 9c2d6df..HEAD -- lib/` で検証できる)
+- Next Agent action: **attempt 6 の独立reviewを起動する。** PASSなら`done`にして PR #164 を ready 化して merge する
+
+## 独立reviewの記録
+
+**5回連続FAILで、5回とも実装の誤りは0件**である。落ちたのはすべて記録で、型は
+`development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md`
+と同じ(同fileへ forward-test の失敗として追記済み)。
+
+| attempt | range | 判定 | 指摘 |
+|---|---|---|---|
+| 1 | `origin/dev...45736fc` | FAIL | P1×2(「未選択行が位置を消費しない」testが空振り / 同根の安全網の穴) |
+| 2 | `origin/dev...099a0f2` | FAIL | P1×1(tap範囲の残余riskを「閉じた」と書いた後で当たり判定を作り替えていた) |
+| 3 | `origin/dev...472d631` | FAIL | P1×3(M180 の無言の失効 / PR本文が古い保証を主張 / handoffが本文と矛盾し存在しない節を指す) |
+| 4 | `origin/dev...0de631d` | FAIL | P1×1(確認B・Cを「機械が押さえている」と書いたが、補正の比例先が定数で文字倍率に追随しない)。P2×4 |
+| 5 | `origin/dev...da527a6` | FAIL | P1×2(attempt 4 が偽と判定した文が handoff に残っていた / 撤回した「固定値で押し下げていない」が `task.md` と `lib/` に残っていた)。P2×2 |
+
+**attempt 5 で実装側が独立に再現されたもの**: `lib/` 差分がコメントだけであること、
+manual証拠3回分の identity、「確認Bは機械が押さえている」が限定つきで真であること、
+受け入れ証拠の各項目、001の判定の不変性、mutation 28件の内訳。
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。過去の値を積み上げない。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(768) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py tool/mutations.json --root . --list`(全表) | `230 mutations, 0 with an unexpected match count` |
+| 同 M180 + M204〜M230 | 23 KILLED / 5 SURVIVED(受容した対照)/ 0 SKIPPED |
+| `workspace.py check specs` | PASS(8 plans, 73 tasks) |
+| CI(`check`) | SUCCESS |

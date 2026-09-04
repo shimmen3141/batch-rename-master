@@ -75,7 +75,7 @@
 | `008:T18`(独立review attempt 1) | **行の高さを縛る assertion が無い。** 行の警告の余白を大きく増やしても、現在名の行数上限を外しても全testがPASSのまま通る | **M220 / M221**(SURVIVEDのまま`tool/mutations.json`に残っている) |
 | `008:T18`(同) | **穴A: 行の警告の濃さに下限が無い。** `rowWarningLabelOpacity` を `0.78 → 0.06` にしても通る。testが置いているのは相対条件(変更後名より薄い / 色相が `danger`)だけ | **M225**(同) |
 | `008:T18`(同) | **穴B: 「押せると分かる形」の検査が構造だけ。** 枠を完全に透明にしても、塗りが `0.001` でも通る。testは `border != null` / `borderRadius != null` / `0 < fill.a < 1` しか見ない | **M226**(同) |
-| `008:T18`(独立review attempt 4) | **行の警告に文字倍率の被覆が無い。** `textScaler` を上げると (i) アイコンと文字の字面の中心の差が開き(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)、(ii) 幅320dpで種別3つ併発のとき**倍率 1.3 から警告文が切り詰められる**。`rowWarningIconInkNudge` の比例先 `rowWarningFontSize` が定数で、`Icon` も `applyTextScaling` が既定 false であることが原因。**`T18`手順2′の確認C(フォントサイズ最大)はこの引き受けで閉じている** | 対照は無い。`row_presentation_test.dart` の `TextScaler.linear` が前例 |
+| `008:T18`(独立review attempt 4) | **行の警告に文字倍率の被覆が無い。** `textScaler` を上げると (i) アイコンと文字の字面の中心の差が開き(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)、(ii) 幅320dpで種別3つ併発のとき**倍率 1.3 から警告文が切り詰められる**。`rowWarningIconInkNudge` の比例先 `rowWarningFontSize` が定数で、`Icon` も `applyTextScaling` が既定 false であることが原因。**`T18`手順2′の確認C(フォントサイズ最大)は開発者の回答が無いまま`T18`から移管された。閉じるのはこのtaskである** | 対照は無い。`row_presentation_test.dart` の `TextScaler.linear` が前例 |
 
 **3条件の判定と受容の根拠は出所側のtask.mdにある** — [`T18`のtask.md](../T18-row-result-presentation/task.md)の
 「引き受けた残余risk」の各節。**ここへ複製しない。**

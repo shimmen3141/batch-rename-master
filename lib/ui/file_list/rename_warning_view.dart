@@ -413,9 +413,13 @@ class RowWarningView extends StatelessWidget {
             // **アイコンを文字のbaselineへ揃える**(2026-09-03 のmanual確認。原文は
             // 「！マークが警告文に対して少し上にずれている。修正したい」)。
             // `CrossAxisAlignment.start` は箱の上端を揃えるので、字面の中心が
-            // 下にある文字に対してアイコンが上へ浮く。**固定値で押し下げない** —
-            // 文字倍率が変わるとずれ方も変わる。`Icon` は内部が `RichText` なので
-            // baseline を持つ。
+            // 下にある文字に対してアイコンが上へ浮く。`Icon` は内部が `RichText`
+            // なので baseline を持つ。
+            //
+            // **baseline を揃えたうえで、字面の差を [rowWarningIconInkNudge] で
+            // 補正している。** 補正量は定数どうしの積なので**固定値である** —
+            // 利用者の文字倍率には追随しない(受容した残余risk。引き受け先
+            // `008:T10`)。詳しくは [rowWarningIconInkNudge] を読むこと。
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。
