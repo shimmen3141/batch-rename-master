@@ -453,10 +453,33 @@ test は `test/spec_005_rename_exec/row_result_display_test.dart` の
 | 受容した残余riskと引き受け先 | 「引き受けた残余risk」の各節(3条件の判定つき) |
 | 独立reviewの試行と結果 | 「独立reviewの記録」節 |
 
-- Last checkpoint: **attempt 5 のP1×2・P2×2を直した**(2026-09-04)。`flutter test` / `flutter analyze` / `dart format` / `mutation_check.py --list` / `workspace.py check specs` の結果は下の「検証の記録」
+- Last checkpoint: **`done`。attempt 5 のP1×2・P2×2を直し、開発者の判断で独立reviewのPASSを待たずに完了させた**(2026-09-04。`plan.md` の決定表)。検証結果は下の「検証の記録」
 - Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T18-row-result-presentation`。**codeの最終commitは `9c2d6df`**(以後 `lib/` の差分はコメントのみ。`git diff 9c2d6df..HEAD -- lib/` で検証できる)
-- Next Agent action: **attempt 6 の独立reviewを起動する。** PASSなら`done`にして PR #164 を ready 化して merge する
+- Next Agent action: **なし(`done`)。** 次は `T19`(警告の詳細modal)か `T20`(下部バー・実行可否)。**`T20` を先にすると、manual確認で受領した指摘3(元の名前だけのルールでも実行buttonが押せる = 005 REQ-019)が解消される**
+
+### このtaskが閉じずに引き渡したもの
+
+**すべて引き受け先つきで記録済みである。** 詳細と3条件の判定は上の「引き受けた残余risk」の各節。
+
+| 項目 | 引き受け先 |
+|---|---|
+| 手順2′ 確認C(端末フォントサイズ最大での揃い)。**開発者の回答が無いまま移管した** | `008:T10` |
+| 行の高さの上限(M220 / M221)、警告の濃さの下限(穴A = M225)、「押せると分かる形」(穴B = M226) | `008:T10` |
+| tap範囲の縮む方向(穴C = M227) | `008:T19` |
+| 005 REQ-009 (4)(ファイルごとの入口からはそのファイルの警告) | `008:T19` |
+| 語彙の不一致(行は `作成日時不明` / `連番の桁不足`、modalと下部バーは `基準日時なし` / `桁不足`) | `008:T19` / `008:T20` |
+| 「導線の無い`FileListView`単体では原因の説明を出さない」方向のassertion | `008:T19` |
+
+### 独立reviewを PASS させずに閉じたこと
+
+**auto-merge条件2を開発者の判断で免除した。** 5回連続FAILのうち **attempt 1〜4 は実質を
+捕まえており**(testの空振り、manual証拠の失効、`M180` の無言の失効、未回答のmanual項目を
+機械で埋めたことにしていた)、**attempt 5 だけが記録の整合のみ**だった。その4件は修正・
+push 済みで、未解決の指摘は無い。**attempt 6 は実行していない** — handoff から主張を外す
+構造変更が効いたかどうかは**未実測である**。次に同じ型が出るかは `008:T19` / `T20` で見る
+(`development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md`
+の forward-test)。
 
 ## 独立reviewの記録
 
