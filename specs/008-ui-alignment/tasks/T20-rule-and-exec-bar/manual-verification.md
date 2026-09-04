@@ -12,9 +12,12 @@
 | | |
 |---|---|
 | 対象 | **`008 / T20` ルール設定buttonと実行buttonの提示を整える** |
-| codeの最終commit | **`1f9c8b2`** |
+| codeの最終commit | **`979ab9f`** |
 | branch | `asdd/008-ui-alignment/T20-rule-and-exec-bar` |
-| PR | (このcommit時点では未作成) |
+| PR | #165(Draft) |
+
+**`lib/` が最後に動いたのは `1f9c8b2` です**(以後は test と記録だけ)。ビルドするのは
+上の `979ab9f` で構いません。
 | 端末 | **Android実機**(emulatorではありません) |
 
 **branchの切り替えは不要です。** このworkspaceは上のcommitのまま維持します。
