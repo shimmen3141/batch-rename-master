@@ -34,8 +34,10 @@ FileEntry _file(
   bool selected = true,
   String folder = _a,
   bool withHandle = true,
+  DateTime? createdAt,
 }) => FileEntry(
   name: name,
+  createdAt: createdAt,
   modifiedAt: _now,
   size: 1,
   selected: selected,
@@ -382,13 +384,30 @@ void main() {
     // 「この実行で改名される file」に狭めていると、その folder の占有名が無いまま
     // 実行へ渡り、全域性(OQ-003)が破れて `ArgumentError` が UI へ抜ける。
     // 独立review 1回目の P1-1。
+    //
+    // **`008:T20` で入力に3件目を足した。** 005 REQ-019 revision 9.0 は「変更が
+    // 生じるファイルが0件なら実行を開始しない」と定めており、**除外される file
+    // だけの入力は実行へ入らなくなった**(例21a)。**この回帰が守る経路は実行へ
+    // 入ったあとにある**ので、経路を残すために変更が生じる file を混ぜる
+    // (例20 の形)。**testを消したり緩めたりしていない** — 空ベース名2件が同一
+    // folder にある条件はそのままで、`c.txt` の1件が実行の門を開ける。
+    //
+    // ルールは固定文字ではなく**作成日時トークン**にした。作成日時が不明な file
+    // (`a.txt` / `b.txt`)はトークンが空文字を出すのでベース名が空になり、作成
+    // 日時を持つ file(`c.txt`)は普通に改名される。
 
     test('空ベース名が同一 folder に2件 + 強制実行でも例外を投げない', () async {
       final wired = _wire(
-        entries: [_file('a.txt'), _file('b.txt')],
-        rule: const RenameRule([LiteralToken('')]),
+        entries: [
+          _file('a.txt'),
+          _file('b.txt'),
+          _file('c.txt', createdAt: DateTime(2026, 3, 4)),
+        ],
+        rule: const RenameRule([
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ]),
         listNames: _lister({
-          _a: {'a.txt', 'b.txt'},
+          _a: {'a.txt', 'b.txt', 'c.txt'},
         }),
       );
 
@@ -396,7 +415,7 @@ void main() {
       expect(
         (prepared as OccupiedNamesReady).names.covers(_a),
         isTrue,
-        reason: '全件除外でも対象 folder は覆う',
+        reason: '除外される file しかいない folder でも覆う',
       );
 
       final outcome = await wired.execution.execute(
@@ -412,10 +431,16 @@ void main() {
       // 出ずに**何も起きない**。結果の提示(REQ-013)が届くことで、例外が抜けて
       // いないことが観測できる。
       final wired = _wire(
-        entries: [_file('a.txt'), _file('b.txt')],
-        rule: const RenameRule([LiteralToken('')]),
+        entries: [
+          _file('a.txt'),
+          _file('b.txt'),
+          _file('c.txt', createdAt: DateTime(2026, 3, 4)),
+        ],
+        rule: const RenameRule([
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ]),
         listNames: _lister({
-          _a: {'a.txt', 'b.txt'},
+          _a: {'a.txt', 'b.txt', 'c.txt'},
         }),
       );
       await _pump(tester, wired.files, wired.execution);

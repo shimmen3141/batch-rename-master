@@ -14,8 +14,9 @@ import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'occupied_support.dart';
 
-FileEntry _file(String name) => FileEntry(
+FileEntry _file(String name, {DateTime? createdAt}) => FileEntry(
   name: name,
+  createdAt: createdAt,
   modifiedAt: DateTime(2026, 8, 9),
   size: 1,
   sourceHandle: '/files/$name',
@@ -39,12 +40,24 @@ Future<void> _pump(
 
 void main() {
   test('強制実行は autoResolve 後に空名を除外する(REQ-022)', () async {
+    // **除外される file だけの入力では、そもそも実行へ入らない**(005 例21a。
+    // 変更が生じるファイルが0件)。REQ-022 が課すのは「**実行へ入ったときでも**
+    // 空名を改名しない」なので、**変更が生じる file を1件混ぜて実行を成立させ、
+    // そのうえで空名が除外されることを見る**(005 例20 の形)。
+    //
+    // 作成日時が不明な file は日時トークンが空文字を出すのでベース名が空になり、
+    // 作成日時を持つ file は普通に改名される。
     final files = FileListController(
-      files: [_file('empty.txt')],
-      rule: const RenameRule([LiteralToken('')]),
+      files: [
+        _file('empty.txt'),
+        _file('kept.txt', createdAt: DateTime(2026, 3, 4)),
+      ],
+      rule: const RenameRule([
+        DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+      ]),
     );
     final executor = FakeRenameExecutor(
-      files: {'/files/empty.txt': 'empty.txt'},
+      files: {'/files/empty.txt': 'empty.txt', '/files/kept.txt': 'kept.txt'},
     );
     final execution = RenameExecutionController(
       permission: const UnrestrictedStoragePermission(),
@@ -55,11 +68,19 @@ void main() {
 
     final outcome = await prepareAndExecute(execution, force: true);
 
-    expect(outcome!.successes, isEmpty);
+    // **空名の file は改名されない。** 混ぜた1件だけが改名される。
+    expect(outcome!.successes.map((success) => success.originalName), [
+      'kept.txt',
+    ]);
     expect(execution.excludedEmptyNames.map((file) => file.name), [
       'empty.txt',
     ]);
-    expect(executor.calls, isEmpty);
+    expect(
+      executor.calls.where((call) => call.startsWith('/files/empty.txt')),
+      isEmpty,
+      reason: '空名の file へは書き込みを1件も試みない(REQ-022)',
+    );
+    expect(executor.calls, hasLength(1), reason: '改名したのは混ぜた1件だけ');
   });
 
   testWidgets('警告時は全件を確認してから、キャンセルでは改名しない(REQ-011)', (tester) async {

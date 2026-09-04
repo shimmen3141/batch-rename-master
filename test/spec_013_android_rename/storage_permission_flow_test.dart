@@ -414,7 +414,12 @@ void main() {
       final files = FileListController(
         files: [_entry('a.txt', handle: '/tmp/a.txt')],
       );
-      files.setRule(const RenameRule([LiteralToken('renamed')]));
+      // **2回とも「変更が生じるファイル」がある形にする**(005 REQ-019)。
+      // 固定文字だけのルールだと1回目の改名で生成後名と現在名が一致し、
+      // 2回目は0件ガードが `execute` を門の前で止める — 権限の話に届かない。
+      files.setRule(
+        const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
+      );
       final permission = _FakePermission(StoragePermissionState.granted);
       final controller = RenameExecutionController(
         files: files,
@@ -607,7 +612,12 @@ void main() {
       final files = FileListController(
         files: [_entry('a.txt', handle: '/tmp/a.txt')],
       );
-      files.setRule(const RenameRule([LiteralToken('renamed')]));
+      // **2回とも「変更が生じるファイル」がある形にする**(005 REQ-019)。
+      // 固定文字だけのルールだと1回目の改名で生成後名と現在名が一致し、
+      // 2回目は0件ガードが `execute` を門の前で止める — 権限の話に届かない。
+      files.setRule(
+        const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
+      );
       final permission = _FakePermission(StoragePermissionState.granted);
       final controller = RenameExecutionController(
         files: files,

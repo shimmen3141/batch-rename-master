@@ -14,6 +14,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
+import 'package:batch_rename_master/ui/file_list/row_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_builder_workspace.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';

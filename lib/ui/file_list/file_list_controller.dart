@@ -303,6 +303,30 @@ class FileListController extends ChangeNotifier {
     );
   }
 
+  /// **変更が生じるファイル**の件数(005 契約の用語)。
+  ///
+  /// 選択されていて、001 の生成後名(**自動解決の前**)が現在名と異なり、
+  /// REQ-022 の除外(生成後ベース名が空)に当たらないファイルを数える。
+  /// **ルールが空なら 0 件**である — REQ-019 により実行が始まらず実体は変わらない
+  /// ので、拡張子だけの生成後名を「変更」と数えない。
+  ///
+  /// **ルールの形では数えない。** `[元の名前]` 1つだけのルールも、同じ結果になる
+  /// 別の形のルールも同じ扱いになる(例22a / 例22b)。判定は [rowHasNoChange] が
+  /// 持ち、**提示と実行の門が同じ判定を使う**(005 REQ-019)。
+  int get changedFileCount {
+    final empty = isRuleEmpty;
+    var count = 0;
+    for (final row in rows) {
+      if (row.newName == null) continue;
+      if (rowHasNoChange(row, ruleIsEmpty: empty)) continue;
+      count += 1;
+    }
+    return count;
+  }
+
+  /// 変更が生じるファイルが1件以上あるか(005 REQ-019 の実行可否)。
+  bool get hasChangedFiles => changedFileCount > 0;
+
   /// ルールにトークンが1つも無い状態(005 REQ-019 / REQ-020 の「ルールが空」)。
   ///
   /// この状態では変更後の名前を決められないため、005 は警告ではなく「未設定」を

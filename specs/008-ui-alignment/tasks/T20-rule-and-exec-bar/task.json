@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T20",
   "title": "ルール設定buttonと実行buttonの提示を整える",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T17"
   ],
@@ -12,6 +12,6 @@
     "005:REQ-029"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 165,
   "manualVerification": "manual-verification.md"
 }
