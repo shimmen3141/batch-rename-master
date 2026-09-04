@@ -12,14 +12,26 @@ const Key warningCountKey = Key('warning-count');
 /// 行の警告(005 REQ-009 (1))。押すと全件の詳細が開く。
 const Key rowWarningKey = Key('row-warning');
 
-/// ルールを直せば消える原因の提示(005 REQ-009 (2))。件数ぶん繰り返さない。
-///
-/// **狭幅では下部バーのルール設定button内、広幅では右ペイン上部**にある。
-/// どちらの layout にも在ることが要求である(片方だけだと行き場を失う)。
-const Key ruleWarningNoticeKey = Key('rule-warning-notice');
-
 /// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
 const Key ruleSummaryKey = Key('rule-summary');
+
+/// ルール設定button内の `編集` の飾り。**押下対象ではない**(押せるのは button
+/// 全体だけ。2026-09-02 の要望9)。
+const Key ruleEditChipKey = Key('rule-edit-chip');
+
+/// 実行buttonのlabel(005 REQ-019 / REQ-020。2026-09-02 の要望14)。
+const Key executeLabelKey = Key('rename-action-label');
+
+/// ルール設定buttonの角の丸み・塗り・枠・アイコンの箱(参考design)。
+///
+/// **固定しているのは「button 全体が一つの押下対象であること」と「枠と塗りが
+/// 在ること」である**(widget test が正本)。値そのものは自由で、余白・字体・色の
+/// 詰めは `008:T10` が持つ。
+const double ruleButtonRadius = 14;
+const double ruleButtonFillOpacity = 0.10;
+const double ruleButtonBorderOpacity = 0.42;
+const double ruleButtonIconBoxSize = 32;
+const double ruleEditChipFillOpacity = 0.16;
 
 /// 詳細dialog内の「原因ごとの説明」節(005 REQ-009 (2) の説明の置き場所)。
 const Key warningDetailCausesKey = Key('warning-detail-causes');
@@ -151,7 +163,7 @@ String warningKindLabel(Warning warning) => switch (warning) {
 };
 
 /// ルールを直せば消える種別。**この2つがルール由来の警告のすべてである** —
-/// 重複と空の名前はファイル単位なので行が持つ。[ruleWarningKinds] と共有する。
+/// 重複と空の名前はファイル単位なので行が持つ。
 const String digitShortageKindLabel = '桁不足';
 const String missingSourceDateKindLabel = '基準日時なし';
 
@@ -320,43 +332,59 @@ List<String> ruleWarningExplanations(
   return out;
 }
 
-/// ルールを直せば消える警告の**種別**(005 REQ-009 (2) の常設側)。
-///
-/// **説明そのものではなく種別を返す。** 説明は原因(トークン)ごとに1つなので
-/// **トークンの数だけ増える**が、種別は2つしかない。常設する提示をこちらにすると、
-/// 原因が何本あっても文字倍率がいくつでも**占有が変わらない**。
-///
-/// **これは集約帯を廃止したときに失った保証の作り直しである。** 帯は
-/// `detailMaxHeightFor`(画面高の32%上限 + scroll)で有界だったが、置換先に置いた
-/// 説明の並びには上限が無く、原因3つ・文字倍率2.0で一覧が0pxになった
-/// (独立review attempt 3 のP1-1)。**器へ上限を付けるのではなく、常設する中身を
-/// 定数個にして解く。**説明そのものは詳細dialogが持つ([showWarningDetail])。
-///
-/// ルールが空なら空を返す(005 REQ-020)。
-List<String> ruleWarningKinds(
-  List<Warning> warnings, {
-  required bool ruleIsEmpty,
-}) {
-  if (ruleIsEmpty) return const <String>[];
-  var digits = false;
-  var date = false;
-  for (final warning in warnings) {
-    if (warning is DigitShortageWarning) digits = true;
-    if (warning is MissingSourceDateWarning) date = true;
-  }
-  // 001 が返した順ではなく**固定した順**で並べる(件数で並びが揺れない)。
-  return <String>[
-    if (digits) digitShortageKindLabel,
-    if (date) missingSourceDateKindLabel,
-  ];
-}
-
 /// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
 ///
-/// **最小形にとどめる** — [describeToken] を並べるだけである。文言の作り込みは
-/// `008:T14`、余白・字体は `008:T10` が持つ。ルールが空なら空文字を返す。
+/// **トークンを並べた形にする**(2026-09-02 の要望9。原文は「参考designだと
+/// `[元の名前][01][YYYYMMDD]`のようなトークン的な表示だが、現状は『連番1桁+作成日時』
+/// のような説明的な表示になってしまっている」)。**説明は [describeToken] が持ち、
+/// ここは使わない。**
+///
+/// ルールが空なら空文字を返す(空のときは button ごと入れ替わるので使われない)。
 String describeRuleSummary(RenameRule rule) =>
-    rule.tokens.map(describeToken).join(' + ');
+    rule.tokens.map(describeTokenChip).join();
+
+/// ルール要約に並べる、トークン1つぶんの字面(参考designの `summary()`)。
+///
+/// 固定文字だけは**角括弧を付けない** — 実際に出力される文字がそのまま並ぶ形が
+/// designの意図である(`[元の名前]-01` のように読める)。空の固定文字は、付けても
+/// 何も出ないことが読めるように `""` と書く。
+String describeTokenChip(Token token) => switch (token) {
+  OriginalNameToken() => '[元の名前]',
+  LiteralToken(:final value) => value.isEmpty ? '""' : value,
+  SequenceToken(:final start, :final digits) =>
+    '[${start.toString().padLeft(digits, '0')}…]',
+  // **基準を落とさない。** designの日時トークンは1種類だが、003 は作成/更新/現在の
+  // 3つを持つ。書式だけにすると `[YYYYMMDD]` がどの基準か読めなくなる。
+  DateTimeToken(:final source, :final format) =>
+    '[${describeDateTimeSource(source)} $format]',
+};
+
+/// 実行buttonのlabel(2026-09-02 の要望14)。
+///
+/// **参考designは3状態だが、ここは4状態である。** designは
+/// `!sel.length ? '対象を選択してください' : changeCount ? changeCount + ' 件をリネーム'
+/// : 'ルールを設定してください'` で、**「ルールが空」と「ルールはあるが変更が生じる
+/// ファイルが0件」を同じ文言へ畳んでいる。**
+///
+/// **それは 005 と両立しない。** 例22a は「ルールが `[元の名前]` 1つだけ」のとき
+/// 「**命名ルールが未設定である旨は出さない — ルールは設定されている**」と定め、
+/// REQ-020 の案内はルールが空のときだけである。designの文言をそのまま使うと、
+/// ルールを設定している利用者へ「ルールを設定してください」と出すことになる。
+/// そこで**0件の理由で文言を分けた** — REQ-019 が定める分岐
+/// (「(a) ルールが空であるかどうかの1つだけ」)に一致する。
+///
+/// [changedCount] は 005 用語「変更が生じるファイル」の件数である。
+/// **ルールの形では数えない**(例22b)。
+String executeLabel({
+  required int selectedCount,
+  required int changedCount,
+  required bool ruleIsEmpty,
+}) {
+  if (selectedCount == 0) return '対象を選択してください';
+  if (changedCount > 0) return '$changedCount 件をリネーム';
+  if (ruleIsEmpty) return 'ルールを設定してください';
+  return '変更されるファイルがありません';
+}
 
 /// 一覧全体の件数(005 REQ-010: 0 件なら「問題なし」。**それは警告ではない**)。
 String warningCountLabel(List<Warning> warnings) {
@@ -517,67 +545,6 @@ class WarningCountView extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// ルールを直せば消える原因の説明(005 REQ-009 (2))。
-///
-/// **ルールを変更する導線のそばへ置く**のが`T15`の設計指針だが、**場所は要求では
-/// ない**(005 revision 8.0)。狭幅では下部バー、広幅では右ペインが導線なので、
-/// 呼び出し側がそれぞれ描く。
-class RuleWarningNotice extends StatelessWidget {
-  const RuleWarningNotice({
-    super.key,
-    required this.warnings,
-    required this.ruleIsEmpty,
-    this.compact = false,
-  });
-
-  final List<Warning> warnings;
-  final bool ruleIsEmpty;
-
-  /// ルール設定button内へ入れる形(狭幅)。枠と背景を持たず見出しの右へ並ぶ。
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final kinds = ruleWarningKinds(warnings, ruleIsEmpty: ruleIsEmpty);
-    if (kinds.isEmpty) return const SizedBox.shrink();
-    final colors = context.colors;
-    // **`Wrap` である。** 幅が足りないときに切り詰めると種別が読めなくなる
-    // (ヘッダで2回作った退行と同じ形)。種別は最大2つなので、次の行へ落ちても
-    // 増える高さは1行ぶんで止まる。
-    final content = Wrap(
-      spacing: 4,
-      runSpacing: 2,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Icon(Icons.error_outline, size: 13, color: colors.danger),
-        for (final kind in kinds)
-          Text(
-            kind,
-            style: TextStyle(
-              color: colors.danger,
-              fontSize: compact ? 10.5 : 11.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-      ],
-    );
-    if (compact) return KeyedSubtree(key: ruleWarningNoticeKey, child: content);
-    // **外側の余白もこの widget が持つ。** 呼び出し側が `Padding` で包むと、
-    // 種別が 0 件で `SizedBox.shrink()` を返すときにも余白だけが残り、
-    // 警告の無い通常状態でルールビルダーの縦を食う(独立review attempt 4 の P2-1)。
-    return Container(
-      key: ruleWarningNoticeKey,
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors.danger.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: content,
     );
   }
 }

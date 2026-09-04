@@ -415,7 +415,6 @@ class _RenameActionBar extends StatelessWidget {
                   empty: empty,
                   onPressed: onEditRule!,
                   summary: describeRuleSummary(controller.rule),
-                  warnings: warnings,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -445,9 +444,12 @@ class _RenameActionBar extends StatelessWidget {
                   label: Text(
                     running
                         ? '処理中…'
-                        : empty
-                        ? 'ルールを設定してください'
-                        : '名前を変更',
+                        : executeLabel(
+                            selectedCount: controller.selectedCount,
+                            changedCount: changedCount,
+                            ruleIsEmpty: empty,
+                          ),
+                    key: executeLabelKey,
                   ),
                 ),
             ],
@@ -519,17 +521,14 @@ class _RuleButton extends StatelessWidget {
     required this.empty,
     required this.onPressed,
     required this.summary,
-    required this.warnings,
   });
 
   final bool empty;
   final VoidCallback onPressed;
 
-  /// 設定中のルールの1行要約(design の2行目)。
+  /// 設定中のルールの1行要約(design の2行目)。トークンを並べた形
+  /// ([describeRuleSummary])。
   final String summary;
-
-  /// 見出しの右へ出す警告。ルールが空なら空で渡る。
-  final List<Warning> warnings;
 
   @override
   Widget build(BuildContext context) {
@@ -546,70 +545,95 @@ class _RuleButton extends StatelessWidget {
         label: const Text('変更する名前を設定する'),
       );
     }
-    return OutlinedButton(
-      key: const Key('configure-rule'),
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        alignment: Alignment.centerLeft,
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.tune, size: 18, color: colors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 見出しと警告。**`Wrap` なので、入らなければ切らずに次の行へ
-                // 落ちる**(切り詰めると種別が読めなくなる)。
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 2,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+    // **button 全体が一つの押下対象である**(2026-09-02 の要望9。原文は
+    // 「参考designだと全体がボタンと認識しやすいが、現状だと右の編集ボタンを
+    // 押す必要があると錯覚する」)。`編集` は**押下対象ではなく飾り**で、
+    // 押せる場所は外側の [InkWell] 一つだけである。参考designも
+    // `<button>` の中に `編集` の `<span>` を置いている。
+    return Material(
+      color: colors.primary.withValues(alpha: ruleButtonFillOpacity),
+      borderRadius: BorderRadius.circular(ruleButtonRadius),
+      child: InkWell(
+        key: const Key('configure-rule'),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(ruleButtonRadius),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: colors.primary.withValues(alpha: ruleButtonBorderOpacity),
+            ),
+            borderRadius: BorderRadius.circular(ruleButtonRadius),
+          ),
+          child: Row(
+            children: [
+              // 参考designの塗りつぶした四角の中の `✎`。
+              Container(
+                width: ruleButtonIconBoxSize,
+                height: ruleButtonIconBoxSize,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(Icons.edit, size: 17, color: colors.onPrimary),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '命名ルール',
                       style: TextStyle(
-                        color: colors.textSecondary,
+                        color: colors.primary,
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 1.2,
                       ),
                     ),
-                    RuleWarningNotice(
-                      warnings: warnings,
-                      ruleIsEmpty: empty,
-                      compact: true,
+                    const SizedBox(height: 3),
+                    Text(
+                      summary,
+                      key: ruleSummaryKey,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  summary,
-                  key: ruleSummaryKey,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: 8),
+              // **飾りである。** ここだけを押しても外側の [InkWell] が受ける。
+              Container(
+                key: ruleEditChipKey,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(
+                    alpha: ruleEditChipFillOpacity,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '編集',
                   style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13,
+                    color: colors.primary,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            '編集',
-            style: TextStyle(
-              color: colors.primary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -261,7 +261,12 @@ void main() {
       // 行に警告が出ないこと・原因の説明が出ないこと・件数を出さないことを、
       // **現に在る提示に対して**確かめる。
       expect(find.byKey(rowWarningKey), findsNothing);
-      expect(find.byKey(ruleWarningNoticeKey), findsNothing);
+      // **ルール設定button自体は在るが、警告は載っていない**(008:T20 で
+      // ルール単位の警告表示を外した)。**不在のassertionが空振りしないよう、
+      // 器が在ることを先に確かめる。**
+      expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+      expect(find.text('基準日時なし'), findsNothing);
+      expect(find.text('桁不足'), findsNothing);
       // 件数も出さない。001 は空名と重複を返しているので「問題なし」は誤りになる。
       expect(find.byKey(warningCountKey), findsNothing);
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
@@ -303,10 +308,8 @@ void main() {
       expect(find.text('変更する名前を設定する'), findsNothing);
       // 参考designの2行button(見出し + 設定中のルール)へ入れ替わる。
       expect(find.text('命名ルール'), findsOneWidget);
-      expect(
-        (tester.widget<Text>(find.byKey(ruleSummaryKey))).data,
-        contains('固定文字「x」'),
-      );
+      // **トークンを並べた形である**(008:T20 の要望9)。説明文にしない。
+      expect((tester.widget<Text>(find.byKey(ruleSummaryKey))).data, 'x');
     });
   });
 
@@ -379,13 +382,22 @@ void main() {
 
       // 行には種別が出る(REQ-021 規則1 の対象外。005 例20g)。
       expect(find.byKey(rowWarningKey), findsOneWidget);
-      // 原因は**ルールを直す側**へ出る。常設するのは種別だけで、
-      // 説明そのもの(どのトークンか)は詳細dialogが持つ。
-      expect(find.byKey(ruleWarningNoticeKey), findsOneWidget);
+      // **ルール単位の常設表示はもう無い**(008:T20。開発者の決定「ルールの
+      // 警告は無くす」)。**器は在るのに警告が載っていない**ことを確かめる —
+      // 器ごと無い状態で通る空振りを避ける(N-15-1 と同じ型)。
+      expect(find.byKey(const Key('configure-rule')), findsOneWidget);
       expect(
         find.descendant(
-          of: find.byKey(ruleWarningNoticeKey),
+          of: find.byKey(const Key('configure-rule')),
           matching: find.text('基準日時なし'),
+        ),
+        findsNothing,
+      );
+      // **種別が読めなくなったわけではない。** 行が出している。
+      expect(
+        find.descendant(
+          of: find.byKey(rowWarningKey),
+          matching: find.textContaining('作成日時不明'),
         ),
         findsOneWidget,
       );
