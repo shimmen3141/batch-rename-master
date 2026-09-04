@@ -162,15 +162,39 @@ REQ-020 の案内は**ルールが空のときだけ**である。designの文�
 - `manual-verification.md`でAndroid実機の狭幅表示を確認する。
 - exact rangeの独立reviewがPASSする。
 
+## mutation の記録
+
+**必ず `tool/mutations.json` 全体を `--list` してから本番を回す**(`008:T18` の
+独立review attempt 3 で `M180` が無言で失効した型)。**このtaskでも実際に12件の
+不一致が出た**(上の「落とした対照」)。
+
+```console
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+231 mutations, 0 with an unexpected match count
+```
+
+そのうえで、このtaskが関わる分(M83 / M192 / M196 / M199 / M209〜M212 / M231〜M240)を
+抜き出した表で本番を回した。
+
+```console
+18 mutations: 17 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+### SURVIVED を受容せず閉じた1件
+
+| mutation | なぜすり抜けたか | 扱い |
+|---|---|---|
+| M192(ルール要約の折り返しを無制限にする) | **ルール要約の行数を見る検査が1つも無かった。** M199(2行まで許す)は別の検査に引っかかって落ちていたが、`maxLines` を**外す**方向は誰も見ていなかった。既存のtestはどれも短いルールを使っており、あふれる経路を通っていない | **閉じた。** 幅400dpで長いルールを描き、(a)`didExceedMaxLines` が真である(=あふれる経路を通っている)ことと、(b)**短いルールとのbutton高さが一致する**ことを**絶対値で**固定した。相対比較では折り返し量に依存して空振りする |
+
 ## Current state / handoff
 
 **この節は主張を持たない**(`008:T18` で5回続けて落ちた型を避ける)。検証結果は
 「検証の記録」、範囲の判断は上の各節を読むこと。
 
-- Last checkpoint: **見た目(要望9 / 要望14)を入れた**(2026-09-04)。実行可否は前のcommit
+- Last checkpoint: **mutation の SURVIVED 1件を閉じた**(2026-09-04)。見た目・実行可否はその前の2つのcommit
 - Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T20-rule-and-exec-bar`(`dev@b833603` から作成)
-- Next Agent action: **`manual-verification.md` を今回の変更へ合わせ、実機確認を依頼する。** その後 exact range の独立reviewを起動する
+- Next Agent action: **実機確認の結果を待つ。** 受領したら記録し、exact range の独立reviewを起動する
 
 ## 検証の記録
 
@@ -178,7 +202,7 @@ REQ-020 の案内は**ルールが空のときだけ**である。designの文�
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(790) |
+| `flutter test` | PASS(791) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
 | `mutation_check.py tool/mutations.json --root . --list`(全表) | `231 mutations, 0 with an unexpected match count` |

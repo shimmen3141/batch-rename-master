@@ -26,6 +26,7 @@ import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'occupied_support.dart';
@@ -250,6 +251,55 @@ void main() {
           const RenameRule([OriginalNameToken(), LiteralToken('')]),
         ),
         '[元の名前]""',
+      );
+    });
+
+    testWidgets('ルールが長くてもbuttonが伸びない(1行 + 省略記号)', (tester) async {
+      // **ルールの長さは占有を変える第三の変数である**(`008:T16` の独立review
+      // attempt 4 が挙げた)。長いルールで折り返すと、button が伸びて一覧を削る。
+      //
+      // **相対比較では押さえられない。** 「長いほうが高い」だけだと折り返し量に
+      // 依存する。**短いルールとの高さの一致を絶対値で固定する。**
+      await tester.binding.setSurfaceSize(const Size(400, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      Future<Rect> pumpRule(RenameRule rule) async {
+        await _pumpNarrow(
+          tester,
+          FileListController(files: [_f('a.txt')], rule: rule),
+        );
+        await tester.pumpAndSettle();
+        return tester.getRect(find.byKey(_ruleButtonKey));
+      }
+
+      final short = await pumpRule(const RenameRule([OriginalNameToken()]));
+      final long = await pumpRule(
+        const RenameRule([
+          OriginalNameToken(),
+          LiteralToken('-とても長い固定文字-とても長い固定文字-とても長い固定文字'),
+          SequenceToken(start: 1, digits: 4),
+          DateTimeToken(
+            source: DateTimeSource.created,
+            format: 'YYYYMMDDHHmmss',
+          ),
+          LiteralToken('-さらに長い固定文字-さらに長い固定文字'),
+        ]),
+      );
+
+      // **前提**: この幅では実際にあふれている。あふれていなければ、
+      // 高さが同じでも何も押さえたことにならない(空振り)。
+      final paragraph =
+          tester.renderObject(find.byKey(ruleSummaryKey)) as RenderParagraph;
+      expect(
+        paragraph.didExceedMaxLines,
+        isTrue,
+        reason: 'ルールが短すぎて、あふれる経路を通っていない',
+      );
+
+      expect(
+        long.height,
+        short.height,
+        reason: 'ルールが長いとルール設定buttonが伸びて一覧を削っている',
       );
     });
 
