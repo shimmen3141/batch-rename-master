@@ -55,7 +55,7 @@ task.mdへ残っていた。**
 2. その残骸がある状態で流したので、**SKIPPEDが5件**出た(`15 KILLED / 1 SURVIVED /
    5 SKIPPED`)。KILLED/SURVIVED の側も互いの復元を壊した結果で信用できなかった。
 3. 木を復元して単独で流し直し、`0 SKIPPED` を得た。独立reviewが `--list` を走らせ、
-   `25 mutations, 0 with an unexpected match count` を得たことで、**5件すべてが偽**
+   `21 mutations, 0 with an unexpected match count` を得たことで、**5件すべてが偽**
    だったことが確定した。
 4. **本物のSKIPPEDも別に1件出た** — `find` がfile内に5か所あり `matched 5 time(s)`。
    直前のコメント行を含めて一意にして解決した。
