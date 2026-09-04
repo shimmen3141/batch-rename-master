@@ -193,7 +193,7 @@ $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . -
 
 - Last checkpoint: **mutation の SURVIVED 1件を閉じた**(2026-09-04)。見た目・実行可否はその前の2つのcommit
 - Blocker category: なし
-- Evidence revision: branch `asdd/008-ui-alignment/T20-rule-and-exec-bar`(`dev@b833603` から作成)
+- Evidence revision: branch `asdd/008-ui-alignment/T20-rule-and-exec-bar`(`dev@b833603` から作成)、PR #165(Draft)。**`lib/` の最終commitは `1f9c8b2`**
 - Next Agent action: **実機確認の結果を待つ。** 受領したら記録し、exact range の独立reviewを起動する
 
 ## 検証の記録
