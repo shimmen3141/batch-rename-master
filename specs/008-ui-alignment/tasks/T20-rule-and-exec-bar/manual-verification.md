@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | 対象 | **`008 / T20` ルール設定buttonと実行buttonの提示を整える** |
-| codeの最終commit | **`979ab9f`** |
+| codeの最終commit | **`02191b8`** |
 | branch | `asdd/008-ui-alignment/T20-rule-and-exec-bar` |
 | PR | #165(Draft) |
 
