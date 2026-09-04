@@ -175,8 +175,11 @@ class _RenameActionBar extends StatelessWidget {
 
   Future<void> _request(BuildContext context) async {
     final execution = this.execution;
-    // REQ-019: 空ルールでは実行を要求しても開始しない(controller 側でも止める)。
-    if (execution == null || execution.isRunning || controller.isRuleEmpty) {
+    // REQ-019: **変更が生じるファイルが0件なら実行を要求しても開始しない**
+    // (controller 側でも止める)。空ルールはこの0件に含まれるが、それだけではない。
+    if (execution == null ||
+        execution.isRunning ||
+        !controller.hasChangedFiles) {
       return;
     }
     // REQ-028: 占有名を**実行を要求したこの時点で取り直す**。読み込み時の観測で
@@ -395,6 +398,8 @@ class _RenameActionBar extends StatelessWidget {
     final execution = this.execution;
     final empty = controller.isRuleEmpty;
     final running = execution?.isRunning ?? false;
+    // 005 REQ-019: 実行できるのは**変更が生じるファイルが1件以上ある**ときだけ。
+    final changedCount = controller.changedFileCount;
     return Material(
       color: colors.surface,
       child: SafeArea(
@@ -422,8 +427,10 @@ class _RenameActionBar extends StatelessWidget {
               if (execution != null)
                 FilledButton.icon(
                   key: const Key('rename-action'),
-                  // REQ-019: ルールが空の間は実行を提示しない(押せない)。
-                  onPressed: running || empty ? null : () => _request(context),
+                  // REQ-019: 変更が生じるファイルが0件の間は押せない。
+                  onPressed: running || changedCount == 0
+                      ? null
+                      : () => _request(context),
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
@@ -1164,22 +1171,3 @@ const Key rowUnchangedKey = Key('row-unchanged');
 
 /// 実際の変更後名を出している変更後名。
 const Key rowNewNameKey = Key('row-new-name');
-
-/// この行で**名前が変わらない**か(005 用語「変更が生じるファイル」の否定)。
-///
-/// 次のいずれかで真になる。
-///
-/// - **ルールが空**。生成後名は拡張子だけの名前になるが、005 REQ-019 により
-///   実行が始まらないので実体は変わらない。
-/// - 生成後名が現在名と**同じ**。
-/// - **空名で改名の対象にならない**(005 REQ-022)。この行は自動解決の前の
-///   生成後名がベース名を持たず、改名されない。
-///
-/// **未選択行はここに含めない** — プレビュー対象外であって「変わらない」のとは違う。
-bool rowHasNoChange(RowView row, {required bool ruleIsEmpty}) {
-  final newName = row.newName;
-  if (newName == null) return false;
-  if (ruleIsEmpty) return true;
-  if (newName == row.currentName) return true;
-  return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;
-}

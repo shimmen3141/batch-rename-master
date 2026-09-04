@@ -582,9 +582,9 @@
     {
       "id": "M83",
       "file": "lib/ui/rename_exec/rename_execution_controller.dart",
-      "note": "権限確認を_runningより前へ戻す(待ちの間に二重起動できる。005 REQ-012)",
-      "find": "    if (_running || files.isRuleEmpty) return null;\n    // **`_running` は最初の `await` より前に立てる。**",
-      "replace": "    if (_running || files.isRuleEmpty) return null;\n    await permission.check();\n    // **`_running` は最初の `await` より前に立てる。**"
+      "note": "権限確認を_runningより前へ戻す(待ちの間に二重起動できる。005 REQ-012)。**`008:T20` で門の条件が `!files.hasChangedFiles` へ変わったので `find` を追随させた**(005 REQ-019 revision 9.0)",
+      "find": "    if (_running || !files.hasChangedFiles) return null;\n    // **`_running` は最初の `await` より前に立てる。**",
+      "replace": "    if (_running || !files.hasChangedFiles) return null;\n    await permission.check();\n    // **`_running` は最初の `await` より前に立てる。**"
     },
     {
       "id": "M84",
@@ -1463,31 +1463,31 @@
     },
     {
       "id": "M209",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/file_list/row_view.dart",
       "find": "  if (ruleIsEmpty) return true;",
       "replace": "  if (ruleIsEmpty) return false;",
-      "note": "008:T18 空のルールで拡張子だけの名前(`.jpg`)を変更後名として出す — 005 REQ-029 が排除する実装"
+      "note": "008:T18 空のルールで拡張子だけの名前(`.jpg`)を変更後名として出す — 005 REQ-029 が排除する実装。**`008:T20` で `rowHasNoChange` ごと `row_view.dart` へ移した**(提示と実行の門が同じ判定を使うため)"
     },
     {
       "id": "M210",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/file_list/row_view.dart",
       "find": "  if (newName == row.currentName) return true;",
       "replace": "  if (newName == row.currentName) return false;",
-      "note": "008:T18 生成後名が現在名と同じ行で「変更なし」を出さない — 005 REQ-029"
+      "note": "008:T18 生成後名が現在名と同じ行で「変更なし」を出さない — 005 REQ-029。**`008:T20` で `rowHasNoChange` ごと `row_view.dart` へ移した**(提示と実行の門が同じ判定を使うため)"
     },
     {
       "id": "M211",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/file_list/row_view.dart",
       "find": "  return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;",
       "replace": "  return false;",
-      "note": "008:T18 空名で改名されない行を「変更あり」として扱う — 005 REQ-029(REQ-022 の除外)"
+      "note": "008:T18 空名で改名されない行を「変更あり」として扱う — 005 REQ-029(REQ-022 の除外)。**`008:T20` で `rowHasNoChange` ごと `row_view.dart` へ移した**(提示と実行の門が同じ判定を使うため)"
     },
     {
       "id": "M212",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/file_list/row_view.dart",
       "find": "  if (newName == null) return false;",
       "replace": "  if (newName == null) return true;",
-      "note": "008:T18 未選択行まで「変更なし」にする — プレビュー対象外と混同する(002 REQ-007)"
+      "note": "008:T18 未選択行まで「変更なし」にする — プレビュー対象外と混同する(002 REQ-007)。**`008:T20` で `rowHasNoChange` ごと `row_view.dart` へ移した**(提示と実行の門が同じ判定を使うため)"
     },
     {
       "id": "M213",
@@ -1614,6 +1614,41 @@
       "find": "const double rowWarningIconInkNudge = 0.12;",
       "replace": "const double rowWarningIconInkNudge = 0.4;",
       "note": "008:T18 逆方向。アイコンを下げすぎる — 字面の中心が文字より下へ落ちる"
+    },
+    {
+      "id": "M231",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "find": "    if (_running || !files.hasChangedFiles) return null;",
+      "replace": "    if (_running || files.isRuleEmpty) return null;",
+      "note": "008:T20 実行の門を revision 8.0 の「ルールが空か」へ戻す — 005 REQ-019 revision 9.0 は変更が生じるファイルが0件なら止めることを課す(例21a / 例22a)"
+    },
+    {
+      "id": "M232",
+      "file": "lib/ui/rename_exec/rename_execution_controller.dart",
+      "find": "    if (_running || !files.hasChangedFiles) return null;",
+      "replace": "    if (_running) return null;",
+      "note": "008:T20 逆方向。実行の門そのものを外す — buttonだけ無効にして別経路から実体を変更できる実装(005 REQ-019 が排除する型)"
+    },
+    {
+      "id": "M233",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "      if (rowHasNoChange(row, ruleIsEmpty: empty)) continue;",
+      "replace": "      if (false) continue;",
+      "note": "008:T20 変更が生じないファイルまで数える — 005 用語「変更が生じるファイル」。[元の名前]だけのルールで実行できてしまう"
+    },
+    {
+      "id": "M234",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "      if (row.newName == null) continue;",
+      "replace": "      if (row.newName == null) count += 1;",
+      "note": "008:T20 未選択の行まで数える — プレビュー対象外を「変更が生じるファイル」と混同する(002 REQ-007)"
+    },
+    {
+      "id": "M235",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  onPressed: running || changedCount == 0",
+      "replace": "                  onPressed: running || empty",
+      "note": "008:T20 実行buttonの有効判定を「ルールが空か」へ戻す — [元の名前]だけのルールで押せてしまう(2026-09-03 のmanual確認の指摘3)"
     }
   ]
 }
