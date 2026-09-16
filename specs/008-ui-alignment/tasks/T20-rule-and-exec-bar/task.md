@@ -170,21 +170,31 @@ REQ-020 の案内は**ルールが空のときだけ**である。designの文�
 
 ```console
 $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
-231 mutations, 0 with an unexpected match count
+232 mutations, 0 with an unexpected match count
 ```
 
-そのうえで、このtaskが関わる分(M83 / M192 / M196 / M199 / M209〜M212 / M231〜M240)を
-抜き出した表で本番を回した。
+### M192 は等価mutantだった(2026-09-16 に訂正)
+
+**以前の記録は「M192 を閉じた」としていたが、事実に反していた。** 長いルールの検査を足したあと
+**再実行の出力を貼らずに「閉じた」と書いた。** 独立review attempt 1 が full suite で再実行し、
+M192 が SURVIVED のままであることを示した(F1)。
+
+- **なぜ落ちないか**: `overflow: TextOverflow.ellipsis` は `maxLines` が null でも**最初にあふれる行で
+  切る**(Flutter `TextPainter.ellipsis` の doc)。`maxLines: 1` を外しても画面が変わらない。
+  **等価mutantで、どのtestでも落とせない。**
+- **足した検査は本物だった**: 行数制限と省略記号を**両方**外す `M241` を足し、KILLED を確認した。
+- **M192 は対照として残す**(`AGENTS.md`「対照として置いたものも落とさない」)。note に等価である理由を書いた。
+
+このtaskが関わる分に `M43`(F2 の回帰が守る型)と `M241` を加えた20件を、**full suite**(`flutter test`)で回した。
 
 ```console
-18 mutations: 17 KILLED, 1 SURVIVED, 0 SKIPPED
+M43 | KILLED | lib/data/rename_exec/occupied_names.dart | ...
+M192 | SURVIVED | lib/ui/file_list/file_list_view.dart | ... | exit 0: the tests passed with the mutation applied
+M241 | KILLED | lib/ui/file_list/file_list_view.dart | ...
+20 mutations: 19 KILLED, 1 SURVIVED, 0 SKIPPED
 ```
 
-### SURVIVED を受容せず閉じた1件
-
-| mutation | なぜすり抜けたか | 扱い |
-|---|---|---|
-| M192(ルール要約の折り返しを無制限にする) | **ルール要約の行数を見る検査が1つも無かった。** M199(2行まで許す)は別の検査に引っかかって落ちていたが、`maxLines` を**外す**方向は誰も見ていなかった。既存のtestはどれも短いルールを使っており、あふれる経路を通っていない | **閉じた。** 幅400dpで長いルールを描き、(a)`didExceedMaxLines` が真である(=あふれる経路を通っている)ことと、(b)**短いルールとのbutton高さが一致する**ことを**絶対値で**固定した。相対比較では折り返し量に依存して空振りする |
+(M83 / M196 / M199 / M209〜M212 / M231〜M240 はすべて KILLED。)
 
 ## 実機確認の結果(2026-09-16)
 
@@ -215,15 +225,28 @@ $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . -
 
 **「将来的には」と本人が書いているので、`product-map.md` の将来候補へ置いた。** 断定へ強めない。
 
+## 独立review
+
+### attempt 1(2026-09-16、range `b833603...8d21497`)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| F1 | P1 | 成果物の欠陥 | M192 を「閉じた」とした記録が事実に反する(等価mutantで full suite でも SURVIVED) | **直した**(上の「M192 は等価mutantだった」、`M241` を追加) |
+| F2 | P2 | 成果物の欠陥 | `occupied_names_test.dart` の回帰に足した `c.txt` が同じ `/A` にあり、reason「除外される file しかいない folder でも覆う」が成り立たない | **直した**(`c.txt` を `/B` へ移した。2か所) |
+| F3 | P3 | 成果物の欠陥 | `_RenameActionBar.warnings` が未使用で、docが古い(「ルールが空のとき無効」)。`changedFileCount` が build ごとに 001 の評価をもう一度走らせる | **受容し `008:T14` へ送った** — `lib/` を動かすと実機証拠(`1f9c8b2`)が失効する。正しさに影響しない。`T14` は同じ `file_list_view.dart` の実行前確認dialogを持つ |
+| F4 | P3 | 成果物の欠陥 | 検証の記録が `73 tasks` のまま | **直した** |
+| F5 | P3 | 安全網の穴 | `_request` の0件ガード(`file_list_view.dart:180`)を外しても全testが通る | **残余riskとして受容し `008:T14` へ送った。** 3条件: (1) 製品経路 — 該当する。(2) データ損失等 — **該当しない**(`execute` の門が止め、M231/M232 が KILLED)。(3) CIで閉じられる — 該当する。(2) を満たさないため |
+| F6 | P3 | 成果物の欠陥 | PR本文が `Refs #—` のまま、同じbranchの別変更を書いていない | **直した**(PR本文を更新) |
+
 ## Current state / handoff
 
 **この節は主張を持たない**(`008:T18` で5回続けて落ちた型を避ける)。検証結果は
 「検証の記録」、範囲の判断は上の各節を読むこと。
 
-- Last checkpoint: **実機確認の結果を記録した**(2026-09-16)。コードの最終checkpointは mutation の SURVIVED 1件を閉じたcommit
+- Last checkpoint: **独立review attempt 1 の FAIL を直した**(2026-09-16)。`lib/` は動いていない
 - Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T20-rule-and-exec-bar`(`dev@b833603` から作成)、PR #165(Draft)。**`lib/` の最終commitは `1f9c8b2`**
-- Next Agent action: **exact range の独立reviewを起動する**
+- Next Agent action: **exact range の独立review attempt 2 を起動する**
 
 ## 検証の記録
 
@@ -234,5 +257,5 @@ $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . -
 | `flutter test` | PASS(791) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py tool/mutations.json --root . --list`(全表) | `231 mutations, 0 with an unexpected match count` |
-| `workspace.py check specs` | PASS(8 plans, 73 tasks) |
+| `mutation_check.py tool/mutations.json --root . --list`(全表) | `232 mutations, 0 with an unexpected match count` |
+| `workspace.py check specs` | PASS(8 plans, 74 tasks) |
