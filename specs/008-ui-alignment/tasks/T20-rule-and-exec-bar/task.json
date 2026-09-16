@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T20",
   "title": "ルール設定buttonと実行buttonの提示を整える",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [
     "T17"
   ],

@@ -148,7 +148,8 @@ REQ-020 の案内は**ルールが空のときだけ**である。designの文�
   (buttonのどこを押してもルール設定が開く)。
 - 設定中のルールが**トークンを並べた形**で描かれることを検査する。**説明文になっていない**
   ことを両方向で固定する。
-- 実行buttonのlabelが3状態(対象なし / 変更あり / ルール未設定)で切り替わることを検査する。
+- 実行buttonのlabelが**4状態**(対象なし / 変更あり / ルール未設定 / 変更が0件)で切り替わることを検査する
+  (着手時は3状態と書いていた。4状態にした理由は「参考designから離れた点」)。
   **`N 件をリネーム`の N が実際の変更件数に一致する**ことを含める。
 - `T17`が実行可否を変えた場合、**実ファイルを1件も変更しない**ことを検査する
   (005 REQ-019 が「ボタンだけ無効にして別経路から実行できる実装」を排除している型)。
@@ -238,15 +239,35 @@ M241 | KILLED | lib/ui/file_list/file_list_view.dart | ...
 | F5 | P3 | 安全網の穴 | `_request` の0件ガード(`file_list_view.dart:180`)を外しても全testが通る | **残余riskとして受容し `008:T14` へ送った。** 3条件: (1) 製品経路 — 該当する。(2) データ損失等 — **該当しない**(`execute` の門が止め、M231/M232 が KILLED)。(3) CIで閉じられる — 該当する。(2) を満たさないため |
 | F6 | P3 | 成果物の欠陥 | PR本文が `Refs #—` のまま、同じbranchの別変更を書いていない | **直した**(PR本文を更新) |
 
+### attempt 2(2026-09-16、range `b833603...e10226a`)— **PASS**
+
+attempt 1 の F1/F2/F4/F6 が直っていること、F3/F5 が `T14` に記録されていることを確認した。
+`lib/` は `1f9c8b2` から変わっておらず、実機証拠はそのまま有効。P0/P1 は無い。P3 が3件。
+
+| # | 分類 | 指摘 | 扱い |
+|---|---|---|---|
+| 1 | 成果物の欠陥 | `warning_display_test.dart:435-437` のコメントが削除済みの `RuleWarningNotice` で説明している(assertion は正しい) | **`008:T19` へ送った** — 同じtestの入れ物を作り直すtaskで、review済みの範囲をここで動かさない |
+| 2 | 成果物の欠陥 | 受け入れ証拠の行が「3状態」のまま | **直した**(記録のみ) |
+| 3 | (F3 の再掲) | `_RenameActionBar.warnings` のdoc | 既に `T14` へ送った |
+
+```console
+flutter test:       00:27 +791: All tests passed!
+flutter analyze:    No issues found!
+dart format:        Formatted 119 files (0 changed)
+workspace.py check: PASS: 8 plans, 74 tasks
+mutation --list:    232 mutations, 0 with an unexpected match count
+M43 KILLED / M192 SURVIVED(等価) / M241 KILLED
+```
+
 ## Current state / handoff
 
 **この節は主張を持たない**(`008:T18` で5回続けて落ちた型を避ける)。検証結果は
 「検証の記録」、範囲の判断は上の各節を読むこと。
 
-- Last checkpoint: **独立review attempt 1 の FAIL を直した**(2026-09-16)。`lib/` は動いていない
+- Last checkpoint: **独立review attempt 2 が PASS**(2026-09-16)。`lib/` は `1f9c8b2` から動いていない
 - Blocker category: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T20-rule-and-exec-bar`(`dev@b833603` から作成)、PR #165(Draft)。**`lib/` の最終commitは `1f9c8b2`**
-- Next Agent action: **exact range の独立review attempt 2 を起動する**
+- Next Agent action: なし(PR #165 の merge 後に `dev` 上の結果を確認する)
 
 ## 検証の記録
 
