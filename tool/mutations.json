@@ -1319,7 +1319,7 @@
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "                    Text(\n                      summary,\n                      key: ruleSummaryKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
       "replace": "                    Text(\n                      summary,\n                      key: ruleSummaryKey,\n                      overflow: TextOverflow.ellipsis,",
-      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた**"
+      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す"
     },
     {
       "id": "M194",
@@ -1621,6 +1621,13 @@
       "find": "  if (selectedCount == 0) return '対象を選択してください';",
       "replace": "  if (selectedCount == 0) return '0 件をリネーム';",
       "note": "008:T20 選択0件の文言を落とす — 2026-09-02 の要望14(3状態のうちの1つ)"
+    },
+    {
+      "id": "M241",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      key: ruleSummaryKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
+      "replace": "                      key: ruleSummaryKey,",
+      "note": "008:T20 ルール要約の行数制限と省略記号を両方外す — M192 は ellipsis が maxLines=null でも最初のあふれ行で切るため等価mutant(TextPainter.ellipsis の doc)。独立review attempt 1 が追加"
     }
   ]
 }

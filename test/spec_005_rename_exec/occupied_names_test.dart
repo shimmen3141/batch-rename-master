@@ -391,6 +391,10 @@ void main() {
     // 入ったあとにある**ので、経路を残すために変更が生じる file を混ぜる
     // (例20 の形)。**testを消したり緩めたりしていない** — 空ベース名2件が同一
     // folder にある条件はそのままで、`c.txt` の1件が実行の門を開ける。
+    // **`c.txt` は別 folder(`/B`)に置く。** 同じ `/A` に置くと、対象 folder を
+    // 「この実行で改名される file」に狭める実装でも `c.txt` 経由で `/A` が覆われ、
+    // この回帰が守る条件(除外される file しかいない folder)が消える(`008:T20`
+    // 独立review attempt 1 の F2)。
     //
     // ルールは固定文字ではなく**作成日時トークン**にした。作成日時が不明な file
     // (`a.txt` / `b.txt`)はトークンが空文字を出すのでベース名が空になり、作成
@@ -401,13 +405,14 @@ void main() {
         entries: [
           _file('a.txt'),
           _file('b.txt'),
-          _file('c.txt', createdAt: DateTime(2026, 3, 4)),
+          _file('c.txt', folder: _b, createdAt: DateTime(2026, 3, 4)),
         ],
         rule: const RenameRule([
           DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
         ]),
         listNames: _lister({
-          _a: {'a.txt', 'b.txt', 'c.txt'},
+          _a: {'a.txt', 'b.txt'},
+          _b: {'c.txt'},
         }),
       );
 
@@ -434,13 +439,14 @@ void main() {
         entries: [
           _file('a.txt'),
           _file('b.txt'),
-          _file('c.txt', createdAt: DateTime(2026, 3, 4)),
+          _file('c.txt', folder: _b, createdAt: DateTime(2026, 3, 4)),
         ],
         rule: const RenameRule([
           DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
         ]),
         listNames: _lister({
-          _a: {'a.txt', 'b.txt', 'c.txt'},
+          _a: {'a.txt', 'b.txt'},
+          _b: {'c.txt'},
         }),
       );
       await _pump(tester, wired.files, wired.execution);
