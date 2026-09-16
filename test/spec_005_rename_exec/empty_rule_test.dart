@@ -12,14 +12,16 @@ import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'occupied_support.dart';
 
-FileEntry _file(String name, {DateTime? createdAt}) => FileEntry(
-  name: name,
-  createdAt: createdAt,
-  modifiedAt: DateTime(2026, 8, 11),
-  size: 1,
-  sourceHandle: '/files/$name',
-  sourceFolder: '/files',
-);
+FileEntry _file(String name, {DateTime? createdAt, bool selected = true}) =>
+    FileEntry(
+      name: name,
+      createdAt: createdAt,
+      selected: selected,
+      modifiedAt: DateTime(2026, 8, 11),
+      size: 1,
+      sourceHandle: '/files/$name',
+      sourceFolder: '/files',
+    );
 
 Future<void> _pump(
   WidgetTester tester,
@@ -87,6 +89,163 @@ void main() {
     });
   });
 
+  // ------------------------------------------------------------------
+  // REQ-019 revision 9.0(008:T17 の改訂。008:T20 で実装)。
+  //
+  // **0件はルールが空のときだけではない。** ルールは設定されているのに生成後名が
+  // 全件で現在名と同じ場合(例22a / 例22b)や、全件が REQ-022 の除外に当たる場合
+  // (例21a / 例22d)も0件である。**判定はルールの形ではなく生成後名と現在名の
+  // 比較で行う。**
+  // ------------------------------------------------------------------
+  group('REQ-019: ルールがあっても変更が0件なら実行が始まらない', () {
+    /// 実行の門と実体を1組で作る。
+    ({
+      FileListController files,
+      FakeRenameExecutor executor,
+      RenameExecutionController execution,
+    })
+    wire(List<FileEntry> entries, RenameRule rule) {
+      final files = FileListController(files: entries, rule: rule);
+      final executor = FakeRenameExecutor(
+        files: {for (final e in entries) e.sourceHandle!: e.name},
+      );
+      return (
+        files: files,
+        executor: executor,
+        execution: RenameExecutionController(
+          permission: const UnrestrictedStoragePermission(),
+          files: files,
+          executor: executor,
+          listNames: listNamesOf(executor, folder: '/files'),
+        ),
+      );
+    }
+
+    testWidgets('例22a: [元の名前] だけのルールでは押せず、実体も変わらない', (tester) async {
+      final w = wire([
+        _file('a.txt'),
+        _file('b.txt'),
+      ], const RenameRule([OriginalNameToken()]));
+      await _pump(tester, w.files, execution: w.execution);
+
+      expect(w.files.changedFileCount, 0);
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('rename-action')),
+      );
+      expect(button.onPressed, isNull, reason: '押せない(REQ-019)');
+
+      await tester.tap(
+        find.byKey(const Key('rename-action')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(w.executor.calls, isEmpty);
+      expect(w.files.items.map((e) => e.name), ['a.txt', 'b.txt']);
+    });
+
+    testWidgets('逆方向: 1件でも名前が変われば押せる', (tester) async {
+      final w = wire([
+        _file('a.txt'),
+        _file('b.txt'),
+      ], const RenameRule([OriginalNameToken(), LiteralToken('-x')]));
+      await _pump(tester, w.files, execution: w.execution);
+
+      expect(w.files.changedFileCount, 2);
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('rename-action')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    test('例22b: 同じ結果になる別の形のルールも同じ扱いになる', () async {
+      // **ルールの形では数えない。** `[元の名前]` + 空の固定文字は、トークンが
+      // 2つあってもどのファイルの名前も変えない。
+      final w = wire([
+        _file('a.txt'),
+      ], const RenameRule([OriginalNameToken(), LiteralToken('')]));
+
+      expect(w.files.isRuleEmpty, isFalse, reason: 'ルールは空ではない');
+      expect(w.files.changedFileCount, 0);
+      expect(await prepareAndExecute(w.execution, force: false), isNull);
+      expect(await prepareAndExecute(w.execution, force: true), isNull);
+      expect(w.executor.calls, isEmpty);
+      expect(w.files.items.single.name, 'a.txt');
+    });
+
+    test('例21a / 例22d: 全件が REQ-022 の除外なら強制実行の経路へも入らない', () async {
+      // 作成日時が不明な file だけなので、生成後ベース名が全件で空になる。
+      final w = wire(
+        [_file('a.txt'), _file('b.txt')],
+        const RenameRule([
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ]),
+      );
+
+      expect(w.files.changedFileCount, 0);
+      expect(
+        await prepareAndExecute(w.execution, force: true),
+        isNull,
+        reason: '強制実行でも門を通らない(REQ-019 revision 9.0)',
+      );
+      expect(w.executor.calls, isEmpty);
+      expect(w.files.items.map((e) => e.name), ['a.txt', 'b.txt']);
+    });
+
+    test('例22e: 一部だけ変わるなら実行は始まり、変わる件数だけ数える', () async {
+      // 5件中 `keep` の2件は作成日時が無くて除外、3件は改名される。
+      final w = wire(
+        [
+          _file('keep1.txt'),
+          _file('keep2.txt'),
+          _file('c1.txt', createdAt: DateTime(2026, 3, 4)),
+          _file('c2.txt', createdAt: DateTime(2026, 3, 5)),
+          _file('c3.txt', createdAt: DateTime(2026, 3, 6)),
+        ],
+        const RenameRule([
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ]),
+      );
+
+      expect(w.files.changedFileCount, 3, reason: '除外される2件は数えない');
+      expect(await prepareAndExecute(w.execution, force: false), isNotNull);
+      expect(w.executor.calls, hasLength(3), reason: '変更が生じる3件だけが改名される');
+      // **強制実行では件数が増えうる。** 同一 folder に空ベース名が2件あると、
+      // 自動解決が2件目へ ` (1)` を付けてベース名が空でなくなり、REQ-022 の除外が
+      // 解ける(005 REQ-029 の但し書きと同じ差)。ここで見たいのは「一部でも変わる
+      // なら実行が始まる」ことなので、自動解決を挟まない経路で数える。
+    });
+
+    test('未選択の行は数えない(002 REQ-007)', () async {
+      final w = wire([
+        _file('a.txt'),
+        _file('b.txt'),
+      ], const RenameRule([OriginalNameToken(), LiteralToken('-x')]));
+      expect(w.files.changedFileCount, 2, reason: '前提: どちらも変わる');
+
+      // **選択の正本は controller である。** `FileEntry.selected` を false にしても
+      // `FileListController` は読み込み時に全件を選択集合へ入れるので、ここを
+      // 通さないと「未選択」を作れない(空振りになる)。
+      w.files.toggleSelection(w.files.items[1]);
+
+      expect(
+        w.files.changedFileCount,
+        1,
+        reason: 'プレビュー対象外の行は「変更が生じるファイル」ではない',
+      );
+    });
+
+    test('選択が0件なら実行は始まらない', () async {
+      final w = wire([
+        _file('a.txt'),
+      ], const RenameRule([OriginalNameToken(), LiteralToken('-x')]));
+      w.files.clearAll();
+
+      expect(w.files.changedFileCount, 0);
+      expect(await prepareAndExecute(w.execution, force: false), isNull);
+      expect(w.executor.calls, isEmpty);
+    });
+  });
+
   group('REQ-020: 警告ではなく未設定を提示する', () {
     testWidgets('空ルールでは警告帯を出さず、未設定の案内を出す', (tester) async {
       // 空ルールでは全ファイルが拡張子だけの名前になり、001 は空名と重複を返す。
@@ -102,7 +261,12 @@ void main() {
       // 行に警告が出ないこと・原因の説明が出ないこと・件数を出さないことを、
       // **現に在る提示に対して**確かめる。
       expect(find.byKey(rowWarningKey), findsNothing);
-      expect(find.byKey(ruleWarningNoticeKey), findsNothing);
+      // **ルール設定button自体は在るが、警告は載っていない**(008:T20 で
+      // ルール単位の警告表示を外した)。**不在のassertionが空振りしないよう、
+      // 器が在ることを先に確かめる。**
+      expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+      expect(find.text('基準日時なし'), findsNothing);
+      expect(find.text('桁不足'), findsNothing);
       // 件数も出さない。001 は空名と重複を返しているので「問題なし」は誤りになる。
       expect(find.byKey(warningCountKey), findsNothing);
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
@@ -144,10 +308,8 @@ void main() {
       expect(find.text('変更する名前を設定する'), findsNothing);
       // 参考designの2行button(見出し + 設定中のルール)へ入れ替わる。
       expect(find.text('命名ルール'), findsOneWidget);
-      expect(
-        (tester.widget<Text>(find.byKey(ruleSummaryKey))).data,
-        contains('固定文字「x」'),
-      );
+      // **トークンを並べた形である**(008:T20 の要望9)。説明文にしない。
+      expect((tester.widget<Text>(find.byKey(ruleSummaryKey))).data, 'x');
     });
   });
 
@@ -220,13 +382,22 @@ void main() {
 
       // 行には種別が出る(REQ-021 規則1 の対象外。005 例20g)。
       expect(find.byKey(rowWarningKey), findsOneWidget);
-      // 原因は**ルールを直す側**へ出る。常設するのは種別だけで、
-      // 説明そのもの(どのトークンか)は詳細dialogが持つ。
-      expect(find.byKey(ruleWarningNoticeKey), findsOneWidget);
+      // **ルール単位の常設表示はもう無い**(008:T20。開発者の決定「ルールの
+      // 警告は無くす」)。**器は在るのに警告が載っていない**ことを確かめる —
+      // 器ごと無い状態で通る空振りを避ける(N-15-1 と同じ型)。
+      expect(find.byKey(const Key('configure-rule')), findsOneWidget);
       expect(
         find.descendant(
-          of: find.byKey(ruleWarningNoticeKey),
+          of: find.byKey(const Key('configure-rule')),
           matching: find.text('基準日時なし'),
+        ),
+        findsNothing,
+      );
+      // **種別が読めなくなったわけではない。** 行が出している。
+      expect(
+        find.descendant(
+          of: find.byKey(rowWarningKey),
+          matching: find.textContaining('作成日時不明'),
         ),
         findsOneWidget,
       );

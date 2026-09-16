@@ -42,10 +42,19 @@ FileEntry _noCreatedAt(String name) =>
 Finder _rowWarnings() => find.byKey(rowWarningKey);
 
 /// ルールを直せば消える原因の説明(005 REQ-009 (2))。
-Finder _ruleNotice() => find.byKey(ruleWarningNoticeKey);
+/// ルール設定button(狭幅の下部バー)。**器が在ることを先に確かめるために使う** —
+/// 器ごと無い状態で「警告が載っていない」を測ると空振りする(N-15-1 と同じ型)。
+Finder _ruleButton() => find.byKey(const Key('configure-rule'));
 
-Finder _inRuleNotice(Finder matching) =>
-    find.descendant(of: _ruleNotice(), matching: matching);
+/// ルール単位の警告表示に使っていた種別の字面。**もう出ない**(008:T20。開発者の
+/// 決定「ルールの警告は無くす」)。種別は行が出し(005 REQ-009 (1))、説明は詳細
+/// dialogが持つ(同 (2) / (3))。
+Finder _ruleKindTexts() => find.byWidgetPredicate(
+  (w) => w is Text && const {'桁不足', '基準日時なし'}.contains(w.data),
+);
+
+Finder _inRuleButton(Finder matching) =>
+    find.descendant(of: _ruleButton(), matching: matching);
 
 /// 全件の詳細(005 REQ-009 (3))。
 Finder _detail() => find.byKey(warningDetailDialogKey);
@@ -341,10 +350,9 @@ void main() {
       final renderedRows = tester.widgetList(find.byType(Checkbox)).length;
       expect(renderedRows, greaterThan(1));
       expect(_rowWarnings(), findsNWidgets(renderedRows));
-      // 常設側は種別のみ。**30 件でも 1 つ。**
-      expect(_ruleNotice(), findsOneWidget);
-      expect(_inRuleNotice(find.text('基準日時なし')), findsOneWidget);
-      expect(_inRuleNotice(find.byType(Text)), findsOneWidget);
+      // **ルール設定buttonには警告が載らない**(008:T20)。器は在る。
+      expect(_ruleButton(), findsOneWidget);
+      expect(_inRuleButton(_ruleKindTexts()), findsNothing);
 
       // 説明は 1 つ。**単位は原因(トークン)ごとである。**
       await _openDetailFromCount(tester);
@@ -365,8 +373,9 @@ void main() {
       await pumpWithRuleAffordance(tester, c);
 
       expect(c.warnings.whereType<MissingSourceDateWarning>().length, 4);
-      // 常設側は**トークンが 2 本でも種別 1 つのまま**(占有が原因の数に依らない)。
-      expect(_inRuleNotice(find.byType(Text)), findsOneWidget);
+      // **常設側の占有は原因の数に依らない。** ルール設定buttonは警告を載せず、
+      // 行が出す種別は 005 REQ-021 のまとめ規則で有界である(008:T18)。
+      expect(_inRuleButton(_ruleKindTexts()), findsNothing);
 
       await _openDetailFromCount(tester);
       expect(_inCauses(find.textContaining('2 番目のトークン')), findsOneWidget);
@@ -382,7 +391,9 @@ void main() {
       );
       await pumpWithRuleAffordance(tester, c);
 
-      expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
+      // 種別は**行**が出す(008:T18 で `連番の桁不足` へ揃えた)。
+      expect(_inRuleButton(_ruleKindTexts()), findsNothing);
+      expect(_rowWarnings(), findsOneWidget);
 
       await _openDetailFromCount(tester);
       expect(_inCauses(find.textContaining('1 番目のトークン')), findsOneWidget);
@@ -403,9 +414,9 @@ void main() {
       );
       await pumpWithRuleAffordance(tester, c);
 
-      expect(_inRuleNotice(find.byType(Text)), findsNWidgets(2));
-      expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
-      expect(_inRuleNotice(find.text('基準日時なし')), findsOneWidget);
+      // **原因 4 本でもルール設定buttonは何も載せない。**
+      expect(_ruleButton(), findsOneWidget);
+      expect(_inRuleButton(_ruleKindTexts()), findsNothing);
 
       // 説明の側は原因の数だけある(dialog は伸びてよい — scroll する)。
       await _openDetailFromCount(tester);
@@ -464,61 +475,40 @@ void main() {
         return tester.getRect(find.byType(RuleBuilderView));
       }
 
-      // ルールは設定済みだが、ルール由来の警告は0件。**余白を含めて何も足されない。**
+      // **ルール由来の警告があってもルールビルダーの取り分が変わらない。**
       //
-      // **相対比較ではこれを押さえられない。** 「警告があるほうが取り分が
-      // 小さい」だけだと、呼び出し側が `Padding` で包み直しても両方が同じだけ
-      // ずれて通る(独立review attempt 5 の mutation Y-A が実際にすり抜けた)。
+      // 008:T20 でルール単位の警告表示そのものを外したので、これは
+      // 「占有が増えない」から「**器が画面いっぱいのまま動かない**」へ強くなった。
+      // **相対比較では押さえられない** — 「警告があるほうが取り分が小さい」だけ
+      // だと、呼び出し側が `Padding` で包み直しても両方が同じだけずれて通る
+      // (008:T15 の独立review attempt 5 の mutation Y-A が実際にすり抜けた)。
       // **器の先頭と高さを絶対値で固定する。**
       final clean = await pumpWide(0);
-      expect(_ruleNotice(), findsNothing);
+      expect(_ruleKindTexts(), findsNothing);
       expect(clean.top, 0, reason: '警告が無いのに器の先頭が下がっている');
       expect(clean.height, size.height, reason: '警告が無いのに縦が削られている');
       // ルールが空でないことを確かめる(空ルールなら REQ-020 の分岐で、
       // 「警告0件だから出ない」を測ったことにならない)。
       expect(find.byKey(ruleNotConfiguredKey), findsNothing);
 
-      final two = await pumpWide(2);
-      expect(_ruleNotice(), findsOneWidget);
-      expect(
-        two.height,
-        lessThan(clean.height),
-        reason: '警告が出たのにルールビルダーの取り分が変わっていない',
-      );
-
-      // **余白は widget 側が持つ。** 上の `clean` が「包み直しても余白が
-      // 残らない」を押さえ、ここが「包むのをやめた結果、余白まで消えていない」
-      // を押さえる。**両方向が要る。**
-      // `getRect` が返すのは margin を含む外側の箱なので、中身との差を見る。
-      final notice = tester.getRect(_ruleNotice());
-      final inner = tester.getRect(
-        find.descendant(of: _ruleNotice(), matching: find.byType(Wrap)),
-      );
-      // margin 12 + padding 10 = 22。margin を落とすと 10 になる。
-      expect(inner.left - notice.left, 22, reason: '左の余白が無い');
-      expect(notice.right - inner.right, 22, reason: '右の余白が無い');
-      // margin 12 + padding 6 = 18。margin を落とすと 6 になる。
-      expect(inner.top - notice.top, 18, reason: '上の余白が無い');
-      // 下は padding 6 だけ(margin の bottom は 0)。**4辺すべてを見る** —
-      // 3辺だけ固定すると、残る1辺で占有を増やす退行がすり抜ける
-      // (独立review attempt 5 の mutation Y-D)。
-      expect(notice.bottom - inner.bottom, 6, reason: '下に余分な余白がある');
-
-      // **原因が増えても変わらない**(種別は 2 つが上限)。
-      for (final causes in [3, 5, 10]) {
+      // **原因が何本あっても同じである。** 0 本と同じ rect でなければ、
+      // ルール由来の提示が広幅へ戻っている。
+      for (final causes in [2, 3, 5, 10]) {
         final grown = await pumpWide(causes);
         expect(
-          grown.height,
-          two.height,
-          reason: '広幅で原因 $causes 本がルールビルダーを削っている',
+          _ruleKindTexts(),
+          findsNothing,
+          reason: '広幅にルール単位の警告表示が戻っている(原因 $causes 本)',
         );
+        expect(grown, clean, reason: '広幅で原因 $causes 本がルールビルダーの取り分を変えている');
       }
     });
 
-    testWidgets('狭幅と広幅のどちらでも原因が出る', (tester) async {
-      // **広幅では下部バーにルール設定の導線が無い**(`_buildWide` は `onEditRule`
-      // を渡さない)。ルールを変更する操作は右ペインなので、そちらへ出る。
+    testWidgets('狭幅と広幅のどちらでもルール単位の警告表示が無い', (tester) async {
+      // **008:T20 で外した**(開発者の決定「ルールの警告は無くす」)。狭幅は
+      // 下部バーのルール設定button内、広幅は右ペイン上部にあったので、
       // **片方だけ通しても、もう片方の抜けは検出できない。**
+      // **種別が読めなくなったわけではない** — 行が出す(005 REQ-009 (1))。
       for (final size in [const Size(400, 800), const Size(1200, 800)]) {
         await tester.binding.setSurfaceSize(size);
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -542,11 +532,16 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          _ruleNotice(),
-          findsOneWidget,
-          reason: '幅 ${size.width} で原因の提示が行き場を失っている',
+          _ruleKindTexts(),
+          findsNothing,
+          reason: '幅 ${size.width} にルール単位の警告表示が残っている',
         );
-        expect(_inRuleNotice(find.text('桁不足')), findsOneWidget);
+        // **不在だけを見ない。** 種別が行から読めることを同じ幅で確かめる。
+        expect(
+          _rowWarnings(),
+          findsOneWidget,
+          reason: '幅 ${size.width} で行の種別まで消えている',
+        );
       }
     });
   });
@@ -722,7 +717,7 @@ void main() {
 
       expect(c.warnings, isEmpty);
       expect(_rowWarnings(), findsNothing);
-      expect(_ruleNotice(), findsNothing);
+      expect(_ruleKindTexts(), findsNothing);
       // 「問題なし」は出してよい — **それは警告ではない。**
       expect(find.text('問題なし'), findsOneWidget);
       expect(find.textContaining('件の問題'), findsNothing);

@@ -37,6 +37,17 @@ manual確認をやり直させることになる。**着手した最初の質問
 **`T19`が先に着手した場合**、このtaskは`T19`が作った詳細の見せ方に合わせて確認dialogの
 文言を整える(同じ警告を二つの語彙で説明しない)。
 
+## 引き受けた残余risk(`008:T20` の独立review attempt 1 から)
+
+`lib/ui/file_list/file_list_view.dart` の実行前確認dialogを触るときに、同じ file の次を片付けること。
+経緯と3条件の判定は [`T20` の task.md](../T20-rule-and-exec-bar/task.md) の「独立review」にある。
+
+- **F3**: `_RenameActionBar.warnings` が未使用で、class doc が「ルールが空のとき実行を無効にする」のまま
+  (005 REQ-019 revision 9.0 では「変更が生じるファイルが0件のとき」)。`controller.changedFileCount` が
+  build ごとに 001 の評価をもう一度走らせる(同じ build の `preview` を再利用できる)。
+- **F5**: `_request` の0件ガードを外しても全testが通る。`RenameExecutionController.execute` の門が止めるので
+  実体は変わらない(多層防御の片側)。**縮む方向を縛る検査を置くこと。**
+
 ## あわせて拾う: 結果の提示手段(2026-08-15の決定)
 
 `plan.md`の人間の決定表にある「**再採番結果の提示方法**」が、**どのtaskにも割り当てられて

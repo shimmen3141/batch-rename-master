@@ -151,9 +151,15 @@ class RenameExecutionController extends ChangeNotifier {
 
   /// [force] では 001 の自動解決後に空名を除外する(REQ-022)。
   ///
-  /// ルールが空のときは、どの経路から呼ばれても実行を開始しない(REQ-019)。
-  /// ボタンの無効化だけに頼ると、別経路から実体を変更できてしまうため、
+  /// **変更が生じるファイルが 0 件のときは、どの経路から呼ばれても実行を開始しない**
+  /// (REQ-019)。ボタンの無効化だけに頼ると、別経路から実体を変更できてしまうため、
   /// 状態境界のここでも止める。
+  ///
+  /// **0 件にはルールが空の場合が含まれる**が、それだけではない — 生成後名が全件で
+  /// 現在名と同じ場合(例22a / 例22b)や、全件が REQ-022 の除外に当たる場合
+  /// (例21a / 例22d)も 0 件である。**判定はルールの形ではなく生成後名と現在名の
+  /// 比較で行う**ので、`isRuleEmpty` ではなく [FileListController.hasChangedFiles]
+  /// を見る(`008:T20` で REQ-019 revision 9.0 へ合わせた)。
   Future<RenameOutcome?> execute({
     required bool force,
     required OccupiedNames occupiedNames,
@@ -161,7 +167,7 @@ class RenameExecutionController extends ChangeNotifier {
     // **早期returnでも古い値を残さない。** 残すと、次に別の理由で止まったときに
     // 前回の「権限が無い」を根拠にした説明が出る。
     _permissionDenied = false;
-    if (_running || files.isRuleEmpty) return null;
+    if (_running || !files.hasChangedFiles) return null;
     // **`_running` は最初の `await` より前に立てる。** 権限確認を先に置くと、
     // その待ちの間に2回目の実行が門を通り抜ける(REQ-012 が禁じている二重起動)。
     _running = true;
