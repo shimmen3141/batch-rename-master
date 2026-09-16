@@ -58,7 +58,14 @@ emulator では PC の性能に引きずられます。**実端末が手元に�
 
 ### fixtureを置きます
 
-**`.worktrees/t07-fixtures/` に用意してあります。**格子と正円を描いた画像24枚(縦横比は8種類)と、
+**`.worktrees/t07-fixtures/` に用意します。**無ければ、Agent(container内)が
+`python3 tool/make_t07_fixtures.py .worktrees/t07-fixtures` で作ります。hostに Python があれば
+そちらで同じコマンドを実行しても構いません(標準ライブラリだけで動きます)。
+
+> 2026-09-16 に script 化した。以前は fixture の実体だけを git 管理外の `.worktrees/` に置いており、
+> 環境の初期化で消えて `adb push` が `cannot stat` で止まった。画像は JPEG ではなく PNG である。
+
+格子と正円を描いた画像24枚(縦横比は8種類)と、
 `broken-fixture.jpg`(中身が画像でない`.jpg`)、`notes.txt`、`report.pdf` です。
 
 > **格子と円なのは、歪みを見えるようにするためです。** 正方形の枠へ切り取って表示するので、
