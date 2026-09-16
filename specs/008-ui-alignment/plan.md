@@ -142,3 +142,4 @@
 | T18 | [task.md](tasks/T18-row-result-presentation/task.md) |
 | T19 | [task.md](tasks/T19-warning-detail-modal/task.md) |
 | T20 | [task.md](tasks/T20-rule-and-exec-bar/task.md) |
+| T21 | [task.md](tasks/T21-define-sequence-digits/task.md) |
