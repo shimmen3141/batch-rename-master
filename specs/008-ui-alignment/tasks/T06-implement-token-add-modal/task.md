@@ -31,7 +31,7 @@
 
 - Last checkpoint: plan作成時に定義しただけ。未着手
 - Blocker category: dependency
-- Waiting for: `T05`の仕様更新と人間の再承認
+- Waiting for: `T05`の独立reviewとmerge(003 spec の再承認は2026-09-17に済んだ)
 - Requested action: なし
 - Evidence revision: `dev@ea1dd04`
 - Next Agent action: `T05`承認後にclaimし、test-firstで実装する

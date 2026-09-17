@@ -29,7 +29,7 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
 - 承認されたREQ IDを、実装task **T06**の`task.json`の`covers`へ書く。`covers`は現在空で、REQが確定するのはこのtaskの承認時である。**ここで埋めないと空のまま`done`になる。**
 - `python <asdd-plugin>/scripts/workspace.py check specs`がPASS。
 
-## 決めることへの答え(改訂案。承認待ち)
+## 決めることへの答え(2026-09-17 承認)
 
 正本は [`003 spec`](../../../003-rule-builder/spec.md) の REQ-008〜REQ-012・代表例6〜12・
 「決定済み事項」。ここへは対応だけを置き、要件文を書き写さない。
@@ -65,11 +65,19 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
 - 2026-09-14 / claim。003 spec へ REQ-008〜REQ-012 と代表例6〜12を足した改訂案を書いた。
   「元の名前」の扱いだけ開発者へ確認し、即追加と決まった。
 
+## 人間の決定(2026-09-17)
+
+- **003 spec の改訂案(REQ-008〜REQ-012)を承認。** 開発者の返答(原文): 「確認しました。概ね良いのですが、
+  連番の0埋めを行わない選択肢の追加はここには含めませんか。」→ Agent が「T05には含めず T21 で扱う(A)/
+  T05に含める(B)」を示し、「**Aで進めてください。承認します。**」
+- **ゼロ埋めなしの選択肢はこのtaskの範囲外とし、`T21` の案Bとして決める。** 理由は、001 の `SequenceToken` の
+  意味変更と桁不足の判定を一緒に決めないと「ゼロ埋めなしを選んだのに桁不足と言われる」状態が残るため。
+  REQ-008〜REQ-012 は連番の設定項目の中身に依存しないので、`T21` が項目を足しても変わらない。
+
 ## Current state / handoff
 
-- Last checkpoint: 003 spec の改訂案を書いた(2026-09-14)
-- Blocker category: human-approval
-- Waiting for: 003 spec 改訂案(REQ-008〜REQ-012)の開発者による再承認
-- Requested action: 改訂案を読み、承認するか修正点を返す
-- Evidence revision: branch `asdd/008-ui-alignment/T05-define-token-add-modal`(`dev@b833603` から作成)
-- Next Agent action: 承認を受けたら spec の Status を戻して承認日を記録し、`T06` の `covers` へ `003:REQ-008`〜`003:REQ-012` を書き、独立reviewを起動する
+- Last checkpoint: 003 spec 改訂案の再承認を記録した(2026-09-17)
+- Blocker category: なし
+- Waiting for: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T05-define-token-add-modal`、PR #166
+- Next Agent action: exact range の独立reviewを起動する
