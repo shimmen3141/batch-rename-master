@@ -101,6 +101,13 @@ M251 | KILLED | … 編集の確定ボタンを「追加」にする | exit 1
 
 ## 独立review
 
+### 差分review(2026-09-17、range `28e6f74..1923f9a`)— **PASS**
+
+`lib/` が動いていないこと、狭幅testの4つの閉じ方がどれも空振りしないこと(reviewer の probe 4件がすべて KILLED)、
+M252〜M256 が意図どおりで KILLED、manual 手順1が実機で観測できることを確認した。P3 が2件(手順1の記号の欠番、
+handoff の「Waiting for」の食い違い)。**どちらも直した** — 実機確認の対象commitを動かさないため、結果の記録と同じcommitにした。
+
+
 ### attempt 1(2026-09-17、range `85f29b7...28e6f74`)— **PASS**
 
 P0/P1 なし。reviewer が M242〜M251 と独自の probe 6件を回した(14 KILLED、2 SURVIVED。SURVIVED の1件は等価候補の
@@ -124,6 +131,26 @@ $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . -
 
 attempt 1 の後に動いたのは **test・mutation表・記録だけ**で、`lib/` は `31427b2` のまま。
 
+## 実機確認の結果(2026-09-18)
+
+| | |
+|---|---|
+| 対象 | `lib/` の最終commit `31427b2`(ビルドしたのは branch 先端 `1923f9a`。`git diff 31427b2 1923f9a -- lib` は空) |
+| 端末 | Android(開発者の手元) |
+| 結果 | **手順1〜3のすべての確認が成立** |
+
+開発者の報告(原文): 「実機確認について、手順1~3まですべて確認できました。」
+
+### あわせて受領した問い(このtaskの欠陥ではない)
+
+> ちなみに、参考desginはモーダルですが、ボトムシートからモーダルに変更する予定はありますか。
+
+**現時点で予定は無い。** 003 spec は「詳細エディタのUI形態(ダイアログ/ボトムシート/インライン)」を
+**自由とする点**に置いており、`T06` は着手時の宣言で「エディタの形は bottom sheet のままにする」と書いた
+(参考designから離れた点)。**形を変えるかは提示の判断**なので、`008:T14`(modalの文言と見せ方)の範囲である。
+`T14` の対象modal表は token のエディタを `T05`/`T06` の持ち物としているので、**`T14` に着手するとき、
+token エディタの形も同じ判断に含めるかを人間へ確認する**。この問いは断定ではないため、決定として扱わない。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -138,8 +165,8 @@ attempt 1 の後に動いたのは **test・mutation表・記録だけ**で、`l
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS、指摘を閉じた(2026-09-17)。**`lib/` の最終commitは `31427b2`**
+- Last checkpoint: 実機確認の手順1〜3が成立(2026-09-18)。**`lib/` の最終commitは `31427b2`**
 - Blocker category: なし
 - Waiting for: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T06-implement-token-add-modal`(`dev@85f29b7` から作成)
-- Next Agent action: manual確認の結果を待つ。並行して attempt 1 後の差分(test・記録のみ)の独立reviewを受ける
+- Next Agent action: なし(PR #167 の merge 後に `dev` 上の結果を確認する)
