@@ -114,10 +114,13 @@ class FileListView extends StatelessWidget {
                         ruleIsEmpty: ruleIsEmpty,
                       ),
                       ruleIsEmpty: ruleIsEmpty,
+                      // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
+                      // 全件は件数表示から開く(2026-09-02 の要望2)。
                       onShowWarningDetail: () => showWarningDetail(
                         context,
-                        warnings,
+                        row.warnings,
                         ruleIsEmpty: ruleIsEmpty,
+                        scopeFile: row.source,
                       ),
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
@@ -704,9 +707,10 @@ class _HeaderBar extends StatelessWidget {
           if (!controller.isRuleEmpty)
             WarningCountView(
               warnings: warnings,
+              // 全件の入口。**特定のファイルに絞られない**(REQ-009 (4))。
               onTap: () => showWarningDetail(
                 context,
-                warnings,
+                controller.warnings,
                 ruleIsEmpty: controller.isRuleEmpty,
               ),
             ),

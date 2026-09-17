@@ -33,11 +33,21 @@ const double ruleButtonBorderOpacity = 0.42;
 const double ruleButtonIconBoxSize = 32;
 const double ruleEditChipFillOpacity = 0.16;
 
-/// 詳細dialog内の「原因ごとの説明」節(005 REQ-009 (2) の説明の置き場所)。
-const Key warningDetailCausesKey = Key('warning-detail-causes');
+/// 詳細dialog内の節の並び(原因ごとに1節。005 REQ-009 (2) / (3))。
+///
+/// `008:T19` で「原因の説明」節と「全件」節に分けていた形から組み直した
+/// (2026-09-02 の要望3・4: 同じ原因が2つの節へ重複して出ていた)。
+const Key warningDetailSectionsKey = Key('warning-detail-sections');
 
-/// 詳細dialog内の「ファイルごとの全件」節(005 REQ-009 (3))。
-const Key warningDetailFilesKey = Key('warning-detail-files');
+/// 節1つ(見出し・説明・対象の列挙)。
+Key warningDetailSectionKey(int index) => Key('warning-detail-section-$index');
+
+/// 節の説明(**節ごとに1つだけ**。005 REQ-009 (2))。
+Key warningDetailExplanationKey(int index) =>
+    Key('warning-detail-explanation-$index');
+
+/// 節の対象の列挙(005 REQ-009 (3) / (4))。
+Key warningDetailTargetsKey(int index) => Key('warning-detail-targets-$index');
 
 /// 全件と説明の詳細(005 REQ-009 (3))。
 const Key warningDetailDialogKey = Key('warning-detail-dialog');
@@ -61,6 +71,8 @@ class WarningPresentation {
 /// **ファイルの同一性**で判断する。1 回の [validate] が返す警告は同じ
 /// [FileEntry] インスタンスを指すため、これで同じファイルの警告だけが揃う。
 List<WarningPresentation> presentWarnings(List<Warning> warnings) {
+  // 場所の括弧は同名が並ぶときだけ添える([fileLabel])。
+  final ambiguous = ambiguousFileNames(warnings.map(warningFile).nonNulls);
   final causesByFile = <FileEntry, List<MissingSourceDateWarning>>{};
   for (final warning in warnings) {
     if (warning is MissingSourceDateWarning) {
@@ -88,6 +100,7 @@ List<WarningPresentation> presentWarnings(List<Warning> warnings) {
           message: _describeEmptyNameWithCause(
             warning.file,
             causesByFile[warning.file]!,
+            ambiguous: ambiguous,
           ),
         ),
       );
@@ -96,7 +109,7 @@ List<WarningPresentation> presentWarnings(List<Warning> warnings) {
     presented.add(
       WarningPresentation(
         kindLabel: warningKindLabel(warning),
-        message: describeWarning(warning),
+        message: describeWarning(warning, ambiguous: ambiguous),
       ),
     );
   }
@@ -106,16 +119,18 @@ List<WarningPresentation> presentWarnings(List<Warning> warnings) {
 /// 空名の結果と、その原因になった日時トークンを 1 行にまとめた文言(REQ-021)。
 String _describeEmptyNameWithCause(
   FileEntry file,
-  List<MissingSourceDateWarning> causes,
-) {
+  List<MissingSourceDateWarning> causes, {
+  Set<String> ambiguous = const <String>{},
+}) {
   final tokens = causes
       .map(
         (cause) =>
             '${cause.tokenIndex + 1} 番目のトークン(${describeToken(cause.token)})',
       )
       .join('、');
-  return '空の名前: 「${file.name}」${_locationSuffix(file)}は$tokensの'
-      '基準日時が取れないため、変更後の名前が空になります';
+  final label = fileLabel(file, withLocation: ambiguous.contains(file.name));
+  return '名前が空: $labelは$tokensの基準日時が取れないため、'
+      '変更後の名前が空になります';
 }
 
 /// ルールが空のとき、警告の代わりに出す案内(005 REQ-020)。
@@ -154,48 +169,91 @@ class RuleNotConfiguredBanner extends StatelessWidget {
   }
 }
 
-/// 警告の種別名(見出しの内訳と各行の頭に使う)。
+/// 警告の種別名。**行・詳細modal・実行前確認dialogで同じ語彙を使う**
+/// (`008:T19` が文言の正本。2026-09-02 の要望5)。
+///
+/// 改修前は詳細側だけ `基準日時なし` / `桁不足` で、行は `作成日時不明` /
+/// `連番の桁不足` だった。**利用者から見て同じものが2つの語彙で呼ばれていた。**
 String warningKindLabel(Warning warning) => switch (warning) {
-  DuplicateWarning() => '重複',
+  DuplicateWarning() => '名前の重複',
   DigitShortageWarning() => digitShortageKindLabel,
-  EmptyNameWarning() => '空の名前',
-  MissingSourceDateWarning() => missingSourceDateKindLabel,
+  EmptyNameWarning() => '名前が空',
+  // **どの基準が取れないかを明示する**(要望5)。基準から導くので、作成日時
+  // トークンで「更新日時不明」と出ることはない。
+  MissingSourceDateWarning(:final token) => missingSourceDateKindLabel(
+    token.source,
+  ),
 };
 
-/// ルールを直せば消える種別。**この2つがルール由来の警告のすべてである** —
-/// 重複と空の名前はファイル単位なので行が持つ。
-const String digitShortageKindLabel = '桁不足';
-const String missingSourceDateKindLabel = '基準日時なし';
+/// 連番の桁が足りない種別の呼び名(行・詳細・確認dialog共通)。
+const String digitShortageKindLabel = '連番の桁不足';
+
+/// 日時トークンの基準が取れない種別の呼び名(基準ごとに変わる)。
+String missingSourceDateKindLabel(DateTimeSource source) =>
+    '${describeDateTimeSource(source)}不明';
 
 /// 警告 1 件を、対象ファイル(と該当トークン)が識別できる文言にする(REQ-009)。
 ///
 /// [DigitShortageWarning] だけは 001 が特定のファイルではなく**ルール内の連番
 /// トークン**に対して返す警告なので、対象はトークン位置で識別する(選択中の
 /// 全ファイルに一様に効く)。
-String describeWarning(Warning warning) => switch (warning) {
-  DuplicateWarning(:final file, :final resultName) =>
-    '重複: 「${file.name}」${_locationSuffix(file)}の変更後名「$resultName」が'
-        '他のファイルと重複します',
-  DigitShortageWarning(
-    :final tokenIndex,
-    :final token,
-    :final requiredDigits,
-  ) =>
-    '桁不足: ${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
-        '選択件数に対して桁が足りません($requiredDigits 桁必要)',
-  EmptyNameWarning(:final file) =>
-    '空の名前: 「${file.name}」${_locationSuffix(file)}の変更後の名前が空になります',
-  MissingSourceDateWarning(:final file, :final tokenIndex, :final token) =>
-    '基準日時なし: 「${file.name}」${_locationSuffix(file)}は'
-        '${describeDateTimeSource(token.source)}が不明なため、'
-        '${tokenIndex + 1} 番目のトークン(${describeToken(token)})が空になります',
-};
-
-/// 同名・別フォルダを見分けるための場所の補足(004 が供給する行だけ)。
-String _locationSuffix(FileEntry file) {
-  final location = file.sourceLocation;
-  return location == null ? '' : '($location)';
+String describeWarning(
+  Warning warning, {
+  Set<String> ambiguous = const <String>{},
+}) {
+  String label(FileEntry file) =>
+      fileLabel(file, withLocation: ambiguous.contains(file.name));
+  return switch (warning) {
+    DuplicateWarning(:final file, :final resultName) =>
+      '${warningKindLabel(warning)}: ${label(file)}の変更後名「$resultName」が'
+          '他のファイルと重複します',
+    DigitShortageWarning(
+      :final tokenIndex,
+      :final token,
+      :final requiredDigits,
+    ) =>
+      '${warningKindLabel(warning)}: ${tokenIndex + 1} 番目のトークン'
+          '(${describeToken(token)})は選択件数に対して桁が足りません'
+          '($requiredDigits 桁必要)',
+    EmptyNameWarning(:final file) =>
+      '${warningKindLabel(warning)}: ${label(file)}の変更後の名前が空になります',
+    MissingSourceDateWarning(:final file, :final tokenIndex, :final token) =>
+      '${warningKindLabel(warning)}: ${label(file)}は'
+          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})が'
+          '空になります',
+  };
 }
+
+/// 対象ファイルを識別する字面(005 REQ-009)。
+///
+/// **場所の括弧は既定で出さない**(2026-09-02 の要望4。原文は「モーダル内で
+/// ファイルの場所を括弧内に示す必要はない」)。**ただし同じ表示名が2件以上
+/// 並ぶときだけ添える** — REQ-009 は「どのファイルが対象かを識別できる形」を
+/// 課しており、同名が並ぶと名前だけでは識別できない(004 は複数folderの混在を
+/// 通常経路で起こす)。
+String fileLabel(FileEntry file, {required bool withLocation}) {
+  final location = file.sourceLocation;
+  if (!withLocation || location == null) return '「${file.name}」';
+  return '「${file.name}」($location)';
+}
+
+/// [files] のうち、**表示名が2件以上ある名前**(場所を添えないと識別できない)。
+Set<String> ambiguousFileNames(Iterable<FileEntry> files) {
+  final seen = <String>{};
+  final duplicated = <String>{};
+  for (final file in files) {
+    if (!seen.add(file.name)) duplicated.add(file.name);
+  }
+  return duplicated;
+}
+
+/// 警告が対象とするファイル([DigitShortageWarning] は 001 のうえでは持たない)。
+FileEntry? warningFile(Warning warning) => switch (warning) {
+  DuplicateWarning(:final file) => file,
+  EmptyNameWarning(:final file) => file,
+  MissingSourceDateWarning(:final file) => file,
+  DigitShortageWarning() => null,
+};
 
 /// ルール内のトークンを、利用者がルール上で見つけられる短い名前にする。
 String describeToken(Token token) => switch (token) {
@@ -253,7 +311,7 @@ const double rowWarningIconInkNudge = 0.12;
 /// - **空名の行は空名だけ**にする。基準日時不明は結果へ畳み(REQ-021 規則1)、
 ///   重複は出さない(規則2)。どちらも [showWarningDetail] には残る。
 /// - 同じ種別が複数あっても行では 1 つにする。行は**トークンを名指ししない**ので、
-///   同じ文言を並べても情報が増えない(名指しは [ruleWarningExplanations] と詳細)。
+///   同じ文言を並べても情報が増えない(名指しは詳細modalの節が担う)。
 List<Warning> rowWarningsOf(
   List<Warning> warnings, {
   required bool ruleIsEmpty,
@@ -277,7 +335,7 @@ List<Warning> rowWarningsOf(
 /// **(ii) そのファイルが改名の対象にならないこと**(005 REQ-021 規則1)。
 /// (ii) は (i) の言い換えではない。(i) だけでは「空の名前へ改名される」とも読める。
 ///
-/// **トークンを名指ししない。** 名指しは [ruleWarningExplanations] と詳細が担う。
+/// **トークンを名指ししない。** 名指しは詳細modalの節が担う([warningDetailSections])。
 String rowWarningLabel(Warning warning) => switch (warning) {
   DuplicateWarning() => '名前が重複',
   EmptyNameWarning() => '名前が空・改名されません',
@@ -285,52 +343,13 @@ String rowWarningLabel(Warning warning) => switch (warning) {
   // なし』…『作成日時不明』『更新日時不明』とちゃんと明示してほしい」)。
   // 実際に取れないのは作成日時だけだが(001 INV-006: 更新日時・現在日時は常に
   // 値を持つ)、**基準から導いて誤った名前を出さないようにする。**
-  MissingSourceDateWarning(:final token) =>
-    '${describeDateTimeSource(token.source)}不明',
+  MissingSourceDateWarning(:final token) => missingSourceDateKindLabel(
+    token.source,
+  ),
   // 002 REQ-015 の導出で**行へ来る**(008:T17 の改訂)。指定桁数を超えて描かれる
   // 行だけが該当する。文言は開発者の指定(2026-09-02 の要望5)。
-  DigitShortageWarning() => '連番の桁不足',
+  DigitShortageWarning() => digitShortageKindLabel,
 };
-
-/// ルールを直せば消える原因の説明(005 REQ-009 (2))。
-///
-/// **該当ファイルの件数ぶん繰り返さない。単位は原因(トークン)ごとである。**
-/// 取れない日時トークンが 2 本あれば説明は 2 つでよい。
-///
-/// ルールが空なら空を返す(005 REQ-020)。
-List<String> ruleWarningExplanations(
-  List<Warning> warnings, {
-  required bool ruleIsEmpty,
-}) {
-  if (ruleIsEmpty) return const <String>[];
-  final seenDigits = <int>{};
-  final seenDate = <int>{};
-  final out = <String>[];
-  for (final warning in warnings) {
-    switch (warning) {
-      case DigitShortageWarning(
-        :final tokenIndex,
-        :final token,
-        :final requiredDigits,
-      ):
-        if (!seenDigits.add(tokenIndex)) continue;
-        out.add(
-          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
-          '$requiredDigits 桁必要です',
-        );
-      case MissingSourceDateWarning(:final tokenIndex, :final token):
-        if (!seenDate.add(tokenIndex)) continue;
-        out.add(
-          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
-          '${describeDateTimeSource(token.source)}が取れないため空になります',
-        );
-      case DuplicateWarning():
-      case EmptyNameWarning():
-        continue;
-    }
-  }
-  return out;
-}
 
 /// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
 ///
@@ -549,78 +568,188 @@ class WarningCountView extends StatelessWidget {
   }
 }
 
-/// 全件と説明の詳細(005 REQ-009 (3))。
+/// 詳細modalの節1つ(005 REQ-009 (2) / (3))。
 ///
-/// **行の警告からも一覧全体の件数表示からも同じものが開く。** 種別ごとにまとめて
-/// 並べ、[presentWarnings] の提示単位をそのまま使う(実行前確認dialogと同じ単位。
-/// REQ-021 のまとめを両方へ効かせる)。
+/// **説明は節に1つだけ**で、対象の件数に比例しない。単位は原因(トークン)ごと
+/// なので、取れない日時トークンが2本あれば節が2つになる。
+class WarningDetailSection {
+  const WarningDetailSection({
+    required this.title,
+    required this.explanation,
+    required this.targets,
+  });
+
+  /// 種別名と件数の見出し。
+  final String title;
+
+  /// ファイルによって変わらない説明(**節に1つ**)。
+  final String explanation;
+
+  /// 対象の識別([fileLabel]。重複は変更後名も添える)。
+  final List<String> targets;
+}
+
+/// [warnings] を原因ごとの節へ組む(`008:T19`。2026-09-02 の要望3・4)。
+///
+/// **呼び出し側がスコープを決めて渡す** — 行から開くならその行の警告だけ、
+/// ヘッダの件数から開くなら全件(005 REQ-009 (4): 一方に他方が混ざらない)。
+///
+/// **REQ-021 のまとめは行だけに効かせる。** 空名と基準日時不明が同時に該当する
+/// ファイルは、行では結果へ畳む(規則1)が、ここでは両方の節に並ぶ —
+/// REQ-009 (3)/(4) が「(1) では読めない情報(トークンの名指し)へ到達できること」を
+/// 課しているので、原因の節を落とすと名指しへ到達できない。**説明は原因ごとに
+/// 1つ**なので (2) に反しない。
+///
+/// ルールが空なら空を返す(005 REQ-020: 警告ではなく未設定を提示する)。
+List<WarningDetailSection> warningDetailSections(
+  List<Warning> warnings, {
+  required bool ruleIsEmpty,
+}) {
+  if (ruleIsEmpty) return const <WarningDetailSection>[];
+  final ambiguous = ambiguousFileNames(warnings.map(warningFile).nonNulls);
+  String label(FileEntry file) =>
+      fileLabel(file, withLocation: ambiguous.contains(file.name));
+
+  // 原因ごとにまとめる。**001 が返した順序のまま**節を並べる(安定した順序)。
+  final order = <String>[];
+  final kinds = <String, String>{};
+  final explanations = <String, String>{};
+  final targets = <String, List<String>>{};
+
+  void put(String key, String kind, String explanation, String? target) {
+    if (!kinds.containsKey(key)) {
+      order.add(key);
+      kinds[key] = kind;
+      explanations[key] = explanation;
+      targets[key] = <String>[];
+    }
+    if (target != null) targets[key]!.add(target);
+  }
+
+  for (final warning in warnings) {
+    switch (warning) {
+      case DigitShortageWarning(
+        :final tokenIndex,
+        :final token,
+        :final requiredDigits,
+      ):
+        put(
+          'digit-$tokenIndex',
+          warningKindLabel(warning),
+          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
+              '$requiredDigits 桁必要です',
+          null,
+        );
+      case MissingSourceDateWarning(
+        :final tokenIndex,
+        :final token,
+        :final file,
+      ):
+        put(
+          'date-$tokenIndex',
+          warningKindLabel(warning),
+          '${tokenIndex + 1} 番目のトークン(${describeToken(token)})は'
+              '${describeDateTimeSource(token.source)}が取れないため、'
+              'その部分が空になります',
+          label(file),
+        );
+      case DuplicateWarning(:final file, :final resultName):
+        put(
+          'duplicate',
+          warningKindLabel(warning),
+          '変更後の名前が他のファイルと同じになります',
+          '${label(file)} → 「$resultName」',
+        );
+      case EmptyNameWarning(:final file):
+        put(
+          'empty',
+          warningKindLabel(warning),
+          '変更後の名前が空になるため、これらのファイルは改名されません',
+          label(file),
+        );
+    }
+  }
+
+  return <WarningDetailSection>[
+    for (final key in order)
+      WarningDetailSection(
+        title: targets[key]!.isEmpty
+            ? kinds[key]!
+            : '${kinds[key]!} ${targets[key]!.length} 件',
+        explanation: explanations[key]!,
+        targets: targets[key]!,
+      ),
+  ];
+}
+
+/// 警告の詳細(005 REQ-009 (3) / (4))。
+///
+/// **スコープは呼び出し側が決める。** [warnings] にその行の警告だけを渡せば
+/// その行の詳細、全件を渡せば全件の詳細になる。[scopeFile] は見出しに使うだけで
+/// 絞り込みはしない(絞り込みの正本は渡された [warnings] である)。
 Future<void> showWarningDetail(
   BuildContext context,
   List<Warning> warnings, {
   required bool ruleIsEmpty,
+  FileEntry? scopeFile,
 }) async {
-  if (warnings.isEmpty) return;
-  final presented = presentWarnings(warnings);
-  // **原因ごとの説明はここが持つ(005 REQ-009 (2))。** 常設側は種別だけなので、
-  // 「何番目のトークンが何桁必要か」を読める場所はこの節である。
-  final causes = ruleWarningExplanations(warnings, ruleIsEmpty: ruleIsEmpty);
-  final byKind = <String, List<WarningPresentation>>{};
-  for (final item in presented) {
-    (byKind[item.kindLabel] ??= <WarningPresentation>[]).add(item);
-  }
+  final sections = warningDetailSections(warnings, ruleIsEmpty: ruleIsEmpty);
+  if (sections.isEmpty) return;
   await showDialog<void>(
     context: context,
     builder: (dialogContext) {
       final colors = dialogContext.colors;
       return AlertDialog(
         key: warningDetailDialogKey,
-        title: Text(warningCountLabel(warnings)),
+        title: Text(
+          scopeFile == null
+              ? warningCountLabel(warnings)
+              : '${fileLabel(scopeFile, withLocation: false)}の問題',
+        ),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
             child: Column(
+              key: warningDetailSectionsKey,
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (causes.isNotEmpty)
-                  Column(
-                    key: warningDetailCausesKey,
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 4),
-                        child: Text(
-                          'ルールの問題',
+                for (final (index, section) in sections.indexed)
+                  Padding(
+                    key: warningDetailSectionKey(index),
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          section.title,
                           style: TextStyle(
                             color: colors.danger,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                      for (final cause in causes) Text('• $cause'),
-                    ],
+                        // **説明は節に1つだけ**(005 REQ-009 (2))。
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 4),
+                          child: Text(
+                            section.explanation,
+                            key: warningDetailExplanationKey(index),
+                            style: TextStyle(color: colors.textSecondary),
+                          ),
+                        ),
+                        Column(
+                          key: warningDetailTargetsKey(index),
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final target in section.targets)
+                              Text('• $target'),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                Column(
-                  key: warningDetailFilesKey,
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final entry in byKind.entries) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 4),
-                        child: Text(
-                          '${entry.key} ${entry.value.length} 件',
-                          style: TextStyle(
-                            color: colors.danger,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      for (final item in entry.value) Text('• ${item.message}'),
-                    ],
-                  ],
-                ),
               ],
             ),
           ),

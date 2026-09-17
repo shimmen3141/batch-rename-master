@@ -347,24 +347,41 @@ void main() {
       expect(rowText, contains('改名されません')); // (ii) 結果
       expect(rowText, isNot(contains('トークン'))); // 原因は行に出さない
 
-      // 詳細には結果と原因が 1 件としてまとまって出る(001 の 2 件を 1 件へ)。
+      // **件数は 1 件**のまま(001 の 2 件を REQ-021 規則1 で 1 件へ畳む)。
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
       final detail = find.byKey(warningDetailDialogKey);
       expect(detail, findsOneWidget);
       expect(find.textContaining('1 件の問題'), findsWidgets);
-      final merged = tester
+
+      // **008:T19 でまとめ方を変えた。** 詳細では結果の節と原因の節が別に立ち、
+      // 同じファイルが両方に並ぶ — REQ-009 (3)/(4) が「(1) では読めない情報
+      // (トークンの名指し)へ到達できること」を課しているので、原因の節を
+      // 落とすと名指しへ到達できない。**畳むのは行だけ**(上の rowText)。
+      String sectionTitle(int index) => tester
           .widgetList<Text>(
             find.descendant(
-              of: detail,
-              matching: find.textContaining('shot.png'),
+              of: find.byKey(warningDetailSectionKey(index)),
+              matching: find.byType(Text),
             ),
           )
-          .single
+          .first
           .data!;
-      expect(merged, contains('名前が空になります')); // 結果
-      expect(merged, contains('基準日時が取れない')); // 原因
-      expect(merged, contains('1 番目のトークン')); // どのトークンか
+      String sectionExplanation(int index) => tester
+          .widget<Text>(find.byKey(warningDetailExplanationKey(index)))
+          .data!;
+      final sections = <String, String>{
+        for (var i = 0; i < 2; i++) sectionTitle(i): sectionExplanation(i),
+      };
+      expect(sections.keys, containsAll(<String>['名前が空 1 件', '作成日時不明 1 件']));
+      expect(sections['名前が空 1 件'], contains('改名されません')); // 結果
+      expect(sections['作成日時不明 1 件'], contains('1 番目のトークン')); // どのトークンか
+      expect(sections['作成日時不明 1 件'], contains('作成日時が取れない')); // 原因
+      // 対象のファイルは**どちらの節にも**並ぶ(説明は節ごとに1つ)。
+      expect(
+        find.descendant(of: detail, matching: find.textContaining('shot.png')),
+        findsNWidgets(2),
+      );
     });
 
     testWidgets('片方だけのときは従来どおり個別に提示する', (tester) async {
@@ -405,13 +422,11 @@ void main() {
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
       expect(
-        find.descendant(
-          of: find.byKey(warningDetailCausesKey),
-          matching: find.textContaining('2 番目のトークン'),
-        ),
-        findsOneWidget,
+        tester.widget<Text>(find.byKey(warningDetailExplanationKey(0))).data,
+        contains('2 番目のトークン'),
       );
-      expect(find.textContaining('基準日時なし 1 件'), findsOneWidget);
+      // 行と同じ語彙(008:T19)。改修前は詳細だけ `基準日時なし` だった。
+      expect(find.textContaining('作成日時不明 1 件'), findsOneWidget);
     });
   });
 
