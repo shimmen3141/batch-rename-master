@@ -1326,7 +1326,7 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "                        Column(\n                          key: warningDetailTargetsKey(index),\n                          mainAxisSize: MainAxisSize.min,\n                          crossAxisAlignment: CrossAxisAlignment.start,\n                          children: [\n                            for (final target in section.targets)\n                              Text('• $target'),\n                          ],\n                        ),",
       "replace": "                        Column(\n                          key: warningDetailTargetsKey(index),\n                          mainAxisSize: MainAxisSize.min,\n                          crossAxisAlignment: CrossAxisAlignment.start,\n                          children: [\n                            for (final target in section.targets)\n                              Text('• $target'),\n                            for (final _ in section.targets)\n                              Text(\n                                section.explanation,\n                                key: warningDetailExplanationKey(index),\n                              ),\n                          ],\n                        ),",
-      "note": "008:T16 詳細dialogの説明を該当fileの件数ぶん繰り返す — 005 REQ-009 (2)(独立review attempt 4 が追加)。**`008:T19` で節の構造が変わったので `find` を追随させた**(説明を対象の列挙の中へ件数ぶん入れる形にした)"
+      "note": "008:T16 詳細dialogの説明を該当fileの件数ぶん繰り返す — 005 REQ-009 (2)(独立review attempt 4 が追加)。**`008:T19` で節の構造が変わったので `find` を追随させた**(説明を対象の列挙の中へ件数ぶん入れる形にした)。**このmutationは対象が2件以上の節で key の重複も起こす**が、意味の側でも落ちる(説明が件数ぶんになる)ことを attempt 1 が確認している"
     },
     {
       "id": "M195",
@@ -1737,16 +1737,16 @@
     {
       "id": "M257",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      onShowWarningDetail: () => showWarningDetail(\n                        context,\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,\n                      ),",
-      "replace": "                      onShowWarningDetail: () => showWarningDetail(\n                        context,\n                        warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,\n                      ),",
-      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)"
+      "find": "                        context,\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "replace": "                        context,\n                        warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**"
     },
     {
       "id": "M258",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              // 全件の入口。**特定のファイルに絞られない**(REQ-009 (4))。\n              onTap: () => showWarningDetail(\n                context,\n                controller.warnings,\n                ruleIsEmpty: controller.isRuleEmpty,\n              ),",
-      "replace": "              // 全件の入口。**特定のファイルに絞られない**(REQ-009 (4))。\n              onTap: () => showWarningDetail(\n                context,\n                controller.rows.first.warnings,\n                ruleIsEmpty: controller.isRuleEmpty,\n                scopeFile: controller.rows.first.source,\n              ),",
-      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)"
+      "find": "              onTap: () => showWarningDetail(\n                context,\n                controller.warnings,\n                ruleIsEmpty: controller.isRuleEmpty,",
+      "replace": "              onTap: () => showWarningDetail(\n                context,\n                controller.rows.first.warnings,\n                ruleIsEmpty: controller.isRuleEmpty,\n                scopeFile: controller.rows.first.source,",
+      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)。**`find` を attempt 1 の修正へ追随させた**"
     },
     {
       "id": "M259",
@@ -1758,9 +1758,9 @@
     {
       "id": "M260",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "  final ambiguous = ambiguousFileNames(warnings.map(warningFile).nonNulls);\n  String label(FileEntry file) =>\n      fileLabel(file, withLocation: ambiguous.contains(file.name));",
-      "replace": "  String label(FileEntry file) => fileLabel(file, withLocation: false);",
-      "note": "008:T19 同名が並ぶときも場所を添えない — 005 REQ-009「どのファイルが対象かを識別できる形」(逆方向の対照)"
+      "find": "  if (!withLocation || location == null) return '「${file.name}」';",
+      "replace": "  if (true || location == null) return '「${file.name}」';",
+      "note": "008:T19 場所の括弧を一度も出さない — 同名が並ぶと 005 REQ-009「どのファイルが対象かを識別できる形」を満たさない(M259 の逆方向)。**`find` を独立review attempt 1 の修正へ追随させた**"
     },
     {
       "id": "M261",
@@ -1768,6 +1768,27 @@
       "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
       "replace": "          padding: EdgeInsets.zero,",
       "note": "008:T19 行の警告のtap範囲を文字ぴったりまで縮める — `008:T18` の穴Cとして受容していたもの(M227)を、当たり判定を絶対値で測る assertion で閉じた"
+    },
+    {
+      "id": "M262",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  final distinct = Set<FileEntry>.identity()..addAll(files);\n  final seen = <String>{};\n  final duplicated = <String>{};\n  for (final file in distinct) {",
+      "replace": "  final seen = <String>{};\n  final duplicated = <String>{};\n  for (final file in files) {",
+      "note": "008:T19 同名判定でファイルを identity で畳まない — 1ファイルに警告が2件あるだけで場所の括弧が付く(2026-09-02 の要望4)。独立review attempt 1 の P1-1"
+    },
+    {
+      "id": "M263",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  amongFiles.isEmpty ? warnings.map(warningFile).nonNulls : amongFiles,\n);",
+      "replace": "  warnings.map(warningFile).nonNulls,\n);",
+      "note": "008:T19 同名判定の母集合を一覧ではなく警告を持つファイルにする — 同名2件のうち片方だけが警告されたとき場所が付かず、005 REQ-009「識別できる形」を満たさない。独立review attempt 1 の P1-2"
+    },
+    {
+      "id": "M264",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "replace": "                        rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5"
     }
   ]
 }

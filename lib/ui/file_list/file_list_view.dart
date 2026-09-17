@@ -121,6 +121,10 @@ class FileListView extends StatelessWidget {
                         row.warnings,
                         ruleIsEmpty: ruleIsEmpty,
                         scopeFile: row.source,
+                        // 同名が一覧に並ぶときだけ場所を添える。**母集合は
+                        // 一覧のファイル**(警告を持つものだけだと、同名2件の
+                        // 片方だけが警告されたときに見分けられない)。
+                        amongFiles: controller.rows.map((r) => r.source),
                       ),
                       onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
@@ -207,7 +211,10 @@ class _RenameActionBar extends StatelessWidget {
     // 確認ダイアログも帯と同じ提示単位を使う(REQ-021 のまとめを両方へ効かせる)。
     // `prepare` が取り直した占有名を `controller` へ反映済みなので、この警告には
     // 占有名との衝突が含まれる(REQ-026 / REQ-028)。
-    final warnings = presentWarnings(controller.warnings);
+    final warnings = presentWarnings(
+      controller.warnings,
+      amongFiles: controller.rows.map((r) => r.source),
+    );
     if (warnings.isNotEmpty) {
       final force = await showDialog<bool>(
         context: context,
@@ -712,6 +719,7 @@ class _HeaderBar extends StatelessWidget {
                 context,
                 controller.warnings,
                 ruleIsEmpty: controller.isRuleEmpty,
+                amongFiles: controller.rows.map((r) => r.source),
               ),
             ),
         ],
@@ -925,7 +933,7 @@ class _FileRow extends StatelessWidget {
   /// 代わりに「変更なし」を出す。
   final bool ruleIsEmpty;
 
-  /// 行の警告を押したときに全件の詳細を開く(005 REQ-009 (3))。
+  /// 行の警告を押したときに**その行の**詳細を開く(005 REQ-009 (4))。
   final VoidCallback onShowWarningDetail;
 
   final VoidCallback onToggle;

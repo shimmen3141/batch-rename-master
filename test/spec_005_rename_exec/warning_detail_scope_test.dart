@@ -188,6 +188,129 @@ void main() {
     });
   });
 
+  group('場所の括弧は見分けが必要なときだけ(独立review attempt 1 の P1-1 / P1-2)', () {
+    testWidgets('1ファイルに警告が2件あっても、場所は添えない', (tester) async {
+      // **同じファイルが警告の件数ぶん数えられると、同名が1件も無いのに
+      // 「同名が並ぶ」と誤判定する**(P1-1)。日時トークン2本で1ファイルに
+      // 基準日時不明が2件出る状態にする。
+      final c = FileListController(
+        files: [
+          FileEntry(
+            name: 'photo.jpg',
+            modifiedAt: DateTime(2026, 8, 4),
+            size: 0,
+            sourceLocation: 'DCIM/Camera',
+          ),
+        ],
+        rule: const RenameRule([
+          OriginalNameToken(),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+          DateTimeToken(source: DateTimeSource.created, format: 'MM'),
+        ]),
+      );
+      await _pump(tester, c);
+      expect(c.warnings, hasLength(2));
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      expect(_targetTexts(tester), hasLength(2));
+      expect(
+        _targetTexts(tester).every((t) => !t.contains('DCIM/Camera')),
+        isTrue,
+        reason: '同名のファイルは並んでいない',
+      );
+    });
+
+    testWidgets('同名2件のうち片方だけが警告されても、場所を添える', (tester) async {
+      // **母集合が「警告を持つファイル」だと、もう1件の同名が見えず場所が
+      // 付かない**(P1-2)。作成日時を持つ方は警告にならない。
+      final c = FileListController(
+        files: [
+          FileEntry(
+            name: 'photo.jpg',
+            modifiedAt: DateTime(2026, 8, 4),
+            size: 0,
+            sourceLocation: 'DCIM/A',
+          ),
+          FileEntry(
+            name: 'photo.jpg',
+            createdAt: DateTime(2024, 3, 4),
+            modifiedAt: DateTime(2026, 8, 4),
+            size: 0,
+            sourceLocation: 'DCIM/B',
+          ),
+        ],
+        rule: const RenameRule([
+          OriginalNameToken(),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+        ]),
+      );
+      await _pump(tester, c);
+      expect(c.warnings, hasLength(1));
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      expect(_targetTexts(tester).single, contains('DCIM/A'));
+    });
+  });
+
+  group('行から開く詳細の被覆(独立review attempt 1 の P3-5)', () {
+    testWidgets('空名の行から開くと、行に出していない重複も読める(REQ-021 規則2)', (tester) async {
+      // 行は空名だけを出す(規則2 で重複を出さない)。**詳細には残る** —
+      // 規則2 の「ただし REQ-009 (3) の提示には含める」。
+      final c = FileListController(
+        files: [_dated('a.txt'), _dated('b.txt')],
+        rule: const RenameRule([LiteralToken('')]),
+      );
+      await _pump(tester, c);
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(rowWarningKey).first,
+                matching: find.byType(Text),
+              ),
+            )
+            .data,
+        isNot(contains('重複')),
+      );
+
+      await tester.tap(find.byKey(rowWarningKey).first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('名前の重複'), findsWidgets);
+      // **その行のファイルだけ**(混ざらない)。
+      expect(_targetTexts(tester).every((t) => !t.contains('b.txt')), isTrue);
+    });
+
+    testWidgets('桁不足に該当しない行の詳細には、桁不足の節が出ない', (tester) async {
+      // 連番1桁・12件 → 10件目以降だけが桁を超える(002 REQ-015 の導出)。
+      final c = FileListController(
+        files: [for (var i = 0; i < 12; i++) _noCreatedAt('f$i.jpg')],
+        rule: const RenameRule([
+          SequenceToken(start: 1, digits: 1),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+        ]),
+      );
+      await _pump(tester, c);
+
+      // 先頭行(1番目)は桁に収まる。
+      await tester.tap(find.byKey(rowWarningKey).first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('作成日時不明'), findsWidgets);
+      expect(find.textContaining('連番の桁不足'), findsNothing);
+      await tester.tap(find.byKey(const Key('warning-detail-close')));
+      await tester.pumpAndSettle();
+
+      // 全件の入口には出る(桁不足そのものは起きている)。
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('連番の桁不足'), findsWidgets);
+    });
+  });
+
   group('行と詳細が同じ語彙を使う(008:T19 が文言の正本)', () {
     testWidgets('作成日時が取れない: 行も詳細も「作成日時不明」', (tester) async {
       final c = FileListController(

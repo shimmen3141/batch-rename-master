@@ -9,7 +9,7 @@ const Key ruleNotConfiguredKey = Key('rule-not-configured');
 /// 一覧全体の警告件数(常に見える。押すと全件の詳細が開く。005 REQ-009 (3))。
 const Key warningCountKey = Key('warning-count');
 
-/// 行の警告(005 REQ-009 (1))。押すと全件の詳細が開く。
+/// 行の警告(005 REQ-009 (1))。押すと**その行の**詳細が開く(REQ-009 (4))。
 const Key rowWarningKey = Key('row-warning');
 
 /// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
@@ -70,9 +70,12 @@ class WarningPresentation {
 /// それ以外は 001 が返した順序と件数のまま並べる。まとめる対象かどうかは
 /// **ファイルの同一性**で判断する。1 回の [validate] が返す警告は同じ
 /// [FileEntry] インスタンスを指すため、これで同じファイルの警告だけが揃う。
-List<WarningPresentation> presentWarnings(List<Warning> warnings) {
-  // 場所の括弧は同名が並ぶときだけ添える([fileLabel])。
-  final ambiguous = ambiguousFileNames(warnings.map(warningFile).nonNulls);
+List<WarningPresentation> presentWarnings(
+  List<Warning> warnings, {
+  Iterable<FileEntry> amongFiles = const <FileEntry>[],
+}) {
+  // 場所の括弧は同名が並ぶときだけ添える([fileLabel] / [ambiguousFileNames])。
+  final ambiguous = _ambiguousAmong(warnings, amongFiles);
   final causesByFile = <FileEntry, List<MissingSourceDateWarning>>{};
   for (final warning in warnings) {
     if (warning is MissingSourceDateWarning) {
@@ -237,15 +240,37 @@ String fileLabel(FileEntry file, {required bool withLocation}) {
   return '「${file.name}」($location)';
 }
 
-/// [files] のうち、**表示名が2件以上ある名前**(場所を添えないと識別できない)。
+/// [files] のうち、**同じ表示名のファイルが2件以上ある名前**(場所を添えないと
+/// 識別できない)。
+///
+/// **数えるのは相異なるファイルである。** 警告のリストをそのまま渡すと、同じ
+/// ファイルがその警告の件数ぶん現れるので、**1ファイルに警告が2件あるだけで
+/// 「同名が並ぶ」と誤判定する**(独立review attempt 1 の P1-1)。ここで identity で
+/// 畳んでから名前を数える。
+///
+/// **母集合は利用者が見分ける必要のあるファイル集合**(一覧に並んでいるもの)を
+/// 渡すこと。警告を持つファイルだけを渡すと、**同名2件のうち片方だけが警告された
+/// とき**に場所が付かず、どちらか分からなくなる(同 P1-2)。
 Set<String> ambiguousFileNames(Iterable<FileEntry> files) {
+  final distinct = Set<FileEntry>.identity()..addAll(files);
   final seen = <String>{};
   final duplicated = <String>{};
-  for (final file in files) {
+  for (final file in distinct) {
     if (!seen.add(file.name)) duplicated.add(file.name);
   }
   return duplicated;
 }
+
+/// 場所を添える必要がある名前([amongFiles] が空なら警告を持つファイルだけで数える)。
+///
+/// 呼び出し側が一覧のファイルを渡せる場合は必ず渡す。渡さない経路は、同名2件の
+/// うち片方だけが警告されたときに場所を添えられない(独立review attempt 1 の P1-2)。
+Set<String> _ambiguousAmong(
+  List<Warning> warnings,
+  Iterable<FileEntry> amongFiles,
+) => ambiguousFileNames(
+  amongFiles.isEmpty ? warnings.map(warningFile).nonNulls : amongFiles,
+);
 
 /// 警告が対象とするファイル([DigitShortageWarning] は 001 のうえでは持たない)。
 FileEntry? warningFile(Warning warning) => switch (warning) {
@@ -418,7 +443,7 @@ class RowWarningView extends StatelessWidget {
   /// [rowWarningsOf] を通した後の警告。空なら何も描かない。
   final List<Warning> warnings;
 
-  /// 押したときに全件の詳細を開く(005 REQ-009 (3))。
+  /// 押したときに**その行の**詳細を開く(005 REQ-009 (4))。全件はヘッダの件数から。
   final VoidCallback? onTap;
 
   @override
@@ -444,10 +469,9 @@ class RowWarningView extends StatelessWidget {
         borderRadius: BorderRadius.circular(rowWarningRadius),
         child: Container(
           // **tap範囲を文字より広く取る。** 11px の文字だけを当たり判定にすると
-          // 指で外す。**この値は実機で確かめていない** — `e5aceed` の形(当たり判定が
-          // 行幅いっぱい)で確認したのは 2026-09-03 で、その後この箱の形へ作り替えた。
-          // **当たり判定は行幅からバッジの幅へ縮んでいる。** 手順3′で確かめ直す。
-          // 縮む方向を縛る assertion は無い(`task.md` の残余risk 穴C)。
+          // 指で外す。**当たり判定は `008:T18` で行幅からバッジの幅へ縮んだ。**
+          // **縮む方向は `008:T19` が絶対値で固定した**(当たり判定と中身の差が
+          // 上下10 / 左右14 = この padding + 枠線。`M227` / `M261` が対照)。
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
           decoration: BoxDecoration(
             color: colors.danger.withValues(alpha: rowWarningFillOpacity),
@@ -604,9 +628,10 @@ class WarningDetailSection {
 List<WarningDetailSection> warningDetailSections(
   List<Warning> warnings, {
   required bool ruleIsEmpty,
+  Iterable<FileEntry> amongFiles = const <FileEntry>[],
 }) {
   if (ruleIsEmpty) return const <WarningDetailSection>[];
-  final ambiguous = ambiguousFileNames(warnings.map(warningFile).nonNulls);
+  final ambiguous = _ambiguousAmong(warnings, amongFiles);
   String label(FileEntry file) =>
       fileLabel(file, withLocation: ambiguous.contains(file.name));
 
@@ -692,8 +717,13 @@ Future<void> showWarningDetail(
   List<Warning> warnings, {
   required bool ruleIsEmpty,
   FileEntry? scopeFile,
+  Iterable<FileEntry> amongFiles = const <FileEntry>[],
 }) async {
-  final sections = warningDetailSections(warnings, ruleIsEmpty: ruleIsEmpty);
+  final sections = warningDetailSections(
+    warnings,
+    ruleIsEmpty: ruleIsEmpty,
+    amongFiles: amongFiles,
+  );
   if (sections.isEmpty) return;
   await showDialog<void>(
     context: context,
