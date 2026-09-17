@@ -222,6 +222,49 @@ void main() {
       );
     });
 
+    test('同名判定は相異なるファイルで数える(同じファイルが2回来ても同名ではない)', () {
+      // `amongFiles` を渡さない経路(既定値)では警告のリストから数えるので、
+      // **identity で畳まないと 1 ファイル × 警告2件が「同名」になる**。
+      final photo = FileEntry(
+        name: 'photo.jpg',
+        modifiedAt: DateTime(2026, 8, 4),
+        size: 0,
+        sourceLocation: 'DCIM/A',
+      );
+      final other = FileEntry(
+        name: 'photo.jpg',
+        modifiedAt: DateTime(2026, 8, 4),
+        size: 0,
+        sourceLocation: 'DCIM/B',
+      );
+      expect(ambiguousFileNames([photo, photo]), isEmpty);
+      expect(ambiguousFileNames([photo, other]), {'photo.jpg'});
+
+      // 既定値の経路(呼び出し側が一覧を渡さない場合)も同じ扱いになる。
+      final sections = warningDetailSections([
+        MissingSourceDateWarning(
+          file: photo,
+          tokenIndex: 1,
+          token: const DateTimeToken(
+            source: DateTimeSource.created,
+            format: 'YYYY',
+          ),
+        ),
+        MissingSourceDateWarning(
+          file: photo,
+          tokenIndex: 2,
+          token: const DateTimeToken(
+            source: DateTimeSource.created,
+            format: 'MM',
+          ),
+        ),
+      ], ruleIsEmpty: false);
+      expect(
+        sections.expand((section) => section.targets),
+        everyElement(isNot(contains('DCIM/A'))),
+      );
+    });
+
     testWidgets('同名2件のうち片方だけが警告されても、場所を添える', (tester) async {
       // **母集合が「警告を持つファイル」だと、もう1件の同名が見えず場所が
       // 付かない**(P1-2)。作成日時を持つ方は警告にならない。
