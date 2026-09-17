@@ -99,22 +99,47 @@ M251 | KILLED | … 編集の確定ボタンを「追加」にする | exit 1
 10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+## 独立review
+
+### attempt 1(2026-09-17、range `85f29b7...28e6f74`)— **PASS**
+
+P0/P1 なし。reviewer が M242〜M251 と独自の probe 6件を回した(14 KILLED、2 SURVIVED。SURVIVED の1件は等価候補の
+`useRootNavigator: true` で表に入れていない)。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P2 | 成果物の欠陥 | manual 手順1 確認A「後ろのシートにトークンが増えていない」が実機で見えない(エディタがルール設定シートを覆う。412x915 で測定) | **直した。** 確認Aを「追加」の文言と押した感覚へ、確認Bを「閉じるとシートに戻り入っている」へ変え、見えない理由を手順に書いた。fixture の参照を `008 / T07` の手順へのlinkにした |
+| 2 | P2 | 安全網の穴 | 狭幅で「追加」を確定したあとにルール設定シートまで閉じても検出されない(probe P4 SURVIVED)。3条件: (1) 該当 (2) データ損失等に**該当しない**(UXの退行) (3) 該当 | **閉じた**(受容でなく)。狭幅testの確定後にシートが残る assertion を足し、`M255` として表へ入れて KILLED |
+| 3 | P2 | 安全網の穴 | 狭幅で戻る操作・スワイプの経路がtestに無い(シート外tapだけ)。3条件は 2 と同じ | **閉じた。** 狭幅testを4つの閉じ方すべてで回す形にした |
+
+reviewer が足した mutation M252〜M256 を表へ取り込んだ。
+
+```console
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+247 mutations, 0 with an unexpected match count
+
+(M242〜M256 を flutter test test/spec_003_rule_builder test/spec_007_rule_persistence で)
+15 mutations: 15 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+attempt 1 の後に動いたのは **test・mutation表・記録だけ**で、`lib/` は `31427b2` のまま。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(830) |
+| `flutter test` | PASS(833) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `242 mutations, 0 with an unexpected match count` |
+| `mutation_check.py --list`(全表) | `247 mutations, 0 with an unexpected match count` |
 | `workspace.py check specs` | PASS |
 
 ## Current state / handoff
 
-- Last checkpoint: 実装とmutationの記録、manual手順を書いた(2026-09-17)。**`lib/` の最終commitは `31427b2`**
+- Last checkpoint: 独立review attempt 1 PASS、指摘を閉じた(2026-09-17)。**`lib/` の最終commitは `31427b2`**
 - Blocker category: なし
 - Waiting for: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T06-implement-token-add-modal`(`dev@85f29b7` から作成)
-- Next Agent action: exact range の独立reviewを起動する。PASS 後に manual確認を依頼する(`manual-verification.md` の規律「独立reviewを先に通す」)
+- Next Agent action: manual確認の結果を待つ。並行して attempt 1 後の差分(test・記録のみ)の独立reviewを受ける

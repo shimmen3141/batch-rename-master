@@ -417,37 +417,49 @@ void main() {
       expect(fl.rule.tokens.last, isA<SequenceToken>());
     });
 
-    testWidgets('狭幅: ルール設定シートの上で連番を開いて閉じても fileList.rule は変わらず、シートは残る', (
-      tester,
-    ) async {
-      final fl = FileListController(files: [file('a.txt')]);
-      final rc = RuleController(tokens: const [OriginalNameToken()]);
-      await pumpWorkspace(tester, const Size(500, 800), fl, rc);
-      expect(find.byType(RuleBuilderView), findsNothing, reason: '狭幅である');
+    // 狭幅ではエディタがルール設定シートの上へ重なる。確定以外の閉じ方も確定も、
+    // **エディタだけ**を閉じてルール設定シートを残す(008:T06 独立review attempt 1 の
+    // 指摘2・3で、確定後と戻る操作・スワイプの経路を足した)。
+    for (final how in _Close.values) {
+      testWidgets(
+        '狭幅: ルール設定シートの上で連番を開き ${how.name} で閉じても fileList.rule は変わらず、シートは残る。追加してもシートは残る',
+        (tester) async {
+          final fl = FileListController(files: [file('a.txt')]);
+          final rc = RuleController(tokens: const [OriginalNameToken()]);
+          await pumpWorkspace(tester, const Size(500, 800), fl, rc);
+          expect(find.byType(RuleBuilderView), findsNothing, reason: '狭幅である');
 
-      await tester.tap(find.byKey(const Key('configure-rule')));
-      await tester.pumpAndSettle();
-      expect(find.byType(RuleBuilderView), findsOneWidget);
+          await tester.tap(find.byKey(const Key('configure-rule')));
+          await tester.pumpAndSettle();
+          expect(find.byType(RuleBuilderView), findsOneWidget);
 
-      await _tapAdd(tester, '＋ 連番');
-      expect(_editor, findsOneWidget);
-      await _edit(tester, '＋ 連番');
-      expect(fl.rule.tokens, hasLength(1));
+          await _tapAdd(tester, '＋ 連番');
+          expect(_editor, findsOneWidget);
+          await _edit(tester, '＋ 連番');
+          expect(fl.rule.tokens, hasLength(1));
 
-      await _close(tester, _Close.barrier);
-      expect(_editor, findsNothing);
-      expect(
-        find.byType(RuleBuilderView),
-        findsOneWidget,
-        reason: 'ルール設定シートは閉じない',
+          await _close(tester, how);
+          expect(_editor, findsNothing);
+          expect(
+            find.byType(RuleBuilderView),
+            findsOneWidget,
+            reason: 'ルール設定シートは閉じない',
+          );
+          expect(fl.rule.tokens, hasLength(1));
+          expect(rc.tokens, hasLength(1));
+
+          await _tapAdd(tester, '＋ 連番');
+          await tester.tap(_addConfirm);
+          await tester.pumpAndSettle();
+          expect(fl.rule.tokens, hasLength(2));
+          expect(_editor, findsNothing);
+          expect(
+            find.byType(RuleBuilderView),
+            findsOneWidget,
+            reason: '追加を確定してもルール設定シートは閉じない',
+          );
+        },
       );
-      expect(fl.rule.tokens, hasLength(1));
-      expect(rc.tokens, hasLength(1));
-
-      await _tapAdd(tester, '＋ 連番');
-      await tester.tap(_addConfirm);
-      await tester.pumpAndSettle();
-      expect(fl.rule.tokens, hasLength(2));
-    });
+    }
   });
 }
