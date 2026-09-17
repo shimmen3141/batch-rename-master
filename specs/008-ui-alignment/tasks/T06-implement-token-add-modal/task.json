@@ -3,8 +3,16 @@
   "id": "T06",
   "title": "token追加をmodal確定へ変える",
   "status": "pending",
-  "dependsOn": ["T05"],
-  "covers": [],
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [
+    "003:REQ-008",
+    "003:REQ-009",
+    "003:REQ-010",
+    "003:REQ-011",
+    "003:REQ-012"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"
