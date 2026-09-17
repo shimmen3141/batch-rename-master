@@ -190,23 +190,45 @@ $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . -
 | `008:T18` | `M220`(占有を大きく増やす)が SURVIVED のまま受容されていた | **あわせて閉じた**(同じ assertion が増える方向も止める) |
 | `008:T20` | `warning_display_test` のコメントが削除済みの `RuleWarningNotice` で説明していた | **書き直した**(同じ型が再発しうるので rect の絶対値で測り続ける旨を残した) |
 
+## 独立review
+
+### attempt 1(2026-09-18、range `3821ac0...b7f6933`)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| P1-1 | P1 | 成果物の欠陥 | 同名判定が**警告の件数**で数えており、1ファイルに警告が2件あるだけで場所の括弧が付く(同名ファイルは1件も要らない)。要望4の退行で、実行前確認dialogにも波及 | **直した。** `ambiguousFileNames` を identity で畳んでから数える |
+| P1-2 | P1 | 成果物の欠陥 | 同名2件のうち**片方だけが警告された**とき、母集合が警告リストなので場所が付かず識別できない(REQ-009) | **直した。** 母集合を**一覧のファイル**(`amongFiles`)にした。呼び出し側(行・ヘッダ・確認dialog)がすべて渡す |
+| P2-3 | P2 | 成果物の欠陥 | `lib/` のdoc commentが「行を押すと全件が開く」のまま(REQ-009 (4) の逆)。穴Cを「assertionが無い」と書いたコメントも古い | **直した**(4か所) |
+| P2-4 | P2 | 成果物の欠陥 | manual手順のルールでは重複が0件で、受け入れ証拠の「重複が数十件」を作れない。しかも P1-1 が出ない条件を選んでいた | **直した。** 固定文字 + 作成日時のルールにして重複27件 + 作成日時不明27件の状態にし、桁不足の語彙確認を手順3へ足した |
+| P3-5 | P3 | 安全網の穴 | 行スコープの詳細に、規則2 で行から消した重複が残ることと、桁不足に該当しない行に節が出ないことのassertionが無い。3条件: (1) 該当 (2) **該当しない**(提示範囲の誤りで実行・判定は 001 のまま) (3) 該当 | **閉じた**(受容でなく)。両方のtestを足し、`M264` を表へ入れて KILLED |
+| P3-6 | P3 | 安全網の穴 | `M194` は key の重複でも落ちるため、将来「crashで通っている」と誤読されうる | **noteへ書いた**(意味の側でも落ちることを attempt 1 が確認している) |
+
+reviewer が提案した `M262`〜`M264` を取り込んだ。**`M262` は最初 SURVIVED だった** — `amongFiles` を渡す
+経路では母集合の修正だけで防げるため、**既定値の経路(呼び出し側が一覧を渡さない場合)を直に確かめる
+assertion** を足して閉じた。`M257` / `M258` / `M260` は修正で `find` が一致しなくなったので追随させた。
+
+```console
+(M227 / M257〜M264 を flutter test test/spec_005_rename_exec test/spec_002_file_list で)
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(846) |
+| `flutter test` | PASS(851) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `252 mutations, 0 with an unexpected match count` |
+| `mutation_check.py --list`(全表) | `255 mutations, 0 with an unexpected match count` |
 | `workspace.py check specs` | PASS |
 
 ## Current state / handoff
 
-- Last checkpoint: 実装・test・mutation・manual手順を書いた(2026-09-18)
+- Last checkpoint: 独立review attempt 1 の FAIL を直した(2026-09-18)
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T19-warning-detail-modal`(`dev@3821ac0` から作成)
-- Next Agent action: exact range の独立reviewを起動する。PASS 後に manual確認を依頼する
+- Next Agent action: 独立review attempt 2 を起動する。PASS 後に manual確認を依頼する
