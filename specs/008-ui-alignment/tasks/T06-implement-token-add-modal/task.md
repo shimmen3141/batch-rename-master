@@ -61,11 +61,60 @@ CIで閉じるのは次である(003 REQ-008〜REQ-012。例6〜12)。
 
 - 2026-08-12 / plan作成時に定義。
 
+## 実装の記録(2026-09-17)
+
+- `rule_builder_view.dart` の `_AddBar._add`: 設定項目を持つ4種は `showTokenEditor(confirmLabel: '追加')` を開き、
+  **null でないときだけ** `addToken`。元の名前はエディタを開かずに `addToken`。
+- `token_presets.dart`: `defaultTokenFor` を `initialTokenFor`(エディタの初期値)へ改名し、自由テキストを `LiteralToken('')` にした
+  (改修前は `'テキスト'` を即挿入しており、003 spec の約束と食い違っていた)。
+- `token_editors.dart`: 確定ボタンの文言を引数にした(追加「追加」/編集「確定」)。エディタに `tokenEditorKey` を付けた。
+- **置き換えたtest**: `rule_builder_view_test.dart` の「追加ボタンで既定トークンが追加され Chip が表示される(REQ-002)」は
+  **改修前の振る舞い(押すと即追加)そのものを主張していた**ので、エディタで「追加」を押す形へ書き換えた。
+  「開いただけでは入らない」の assertion を足しており、緩めていない。
+- **test-first**: `token_add_confirm_test.dart`(39件)を先に書き、エディタの key だけを足した状態で **32件 FAIL / 7件 PASS** を確認した。
+  PASS の7件は改修前から成立していた振る舞い(元の名前の即追加、編集を確定せず閉じる4通り、編集の確定、日時フォーマット空の編集)。
+- **他taskの手順の追随**: `005:T05` の manual 手順2(「テキスト」を押して編集していた)と
+  `docs/development/emulator-verification.md` の説明を新しい手順へ直した。
+
+## mutation の記録
+
+```console
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+242 mutations, 0 with an unexpected match count
+```
+
+このtaskが足した M242〜M251 を `flutter test test/spec_003_rule_builder test/spec_007_rule_persistence` で回した。
+
+```console
+M242 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | 008:T06 参考designの形(押した瞬間に既定値で入れ、キャンセルで取り除く)… | exit 1
+M243 | KILLED | … 設定項目を持つ種別を改修前のように既定値で即追加する(日時以外) | exit 1
+M244 | KILLED | … 確定せずに閉じても既定値で追加する | exit 1
+M245 | KILLED | … 元の名前をエディタ経由にする | exit 1
+M246 | KILLED | … 自由テキストの初期値を改修前のプレースホルダへ戻す | exit 1
+M247 | KILLED | … シート外のtapで閉じられなくする(対照) | exit 1
+M248 | KILLED | … 下方向のswipeで閉じられなくする(対照) | exit 1
+M249 | KILLED | … 文字列が空でも確定できる | exit 1
+M250 | KILLED | … 編集を確定せずに閉じても同じ値で差し替える | exit 1
+M251 | KILLED | … 編集の確定ボタンを「追加」にする | exit 1
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(830) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py --list`(全表) | `242 mutations, 0 with an unexpected match count` |
+| `workspace.py check specs` | PASS |
+
 ## Current state / handoff
 
-- Last checkpoint: claimし、machine検証する範囲を宣言した(2026-09-17)
+- Last checkpoint: 実装とmutationの記録、manual手順を書いた(2026-09-17)。**`lib/` の最終commitは `31427b2`**
 - Blocker category: なし
 - Waiting for: なし
-- Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T06-implement-token-add-modal`(`dev@85f29b7` から作成)
-- Next Agent action: 003 REQ-008〜REQ-012 のtestを先に書いて赤を確かめ、実装する
+- Next Agent action: exact range の独立reviewを起動する。PASS 後に manual確認を依頼する(`manual-verification.md` の規律「独立reviewを先に通す」)
