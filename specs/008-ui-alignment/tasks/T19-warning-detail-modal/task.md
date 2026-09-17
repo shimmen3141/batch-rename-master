@@ -134,11 +134,79 @@ REQ-009 (2) に反しない。
   Android実機で確認する。
 - exact rangeの独立reviewがPASSする。
 
+## 実装の記録(2026-09-18)
+
+- `rename_warning_view.dart`:
+  - `warningDetailSections`(新規)が**原因ごとの節**を組む。節は「見出し(種別 + 件数)・説明1つ・対象の列挙」。
+  - `showWarningDetail` は **渡された警告だけ**を出す。`scopeFile` は見出しに使うだけで絞り込まない
+    (絞り込みの正本は呼び出し側)。
+  - 種別名を `warningKindLabel` / `digitShortageKindLabel` / `missingSourceDateKindLabel` に一本化し、
+    **行・詳細・実行前確認dialogが同じ関数を使う**ようにした。`基準日時なし` / `桁不足` は無くなった。
+  - `fileLabel` + `ambiguousFileNames`: 場所の括弧は**同名が2件以上並ぶときだけ**。
+  - `ruleWarningExplanations` は節の説明へ吸収したので削除した(未使用)。
+- `file_list_view.dart`: 行は `row.warnings` と `scopeFile: row.source`、ヘッダの件数は `controller.warnings`。
+- **key を組み替えた**: `warningDetailCausesKey` / `warningDetailFilesKey` → `warningDetailSectionsKey` /
+  `warningDetailSectionKey(i)` / `warningDetailExplanationKey(i)` / `warningDetailTargetsKey(i)`。
+
+### 置き換えたtest
+
+- `warning_display_test.dart` の「行の警告からも同じ詳細が開く」は、**改修前の振る舞い(行から全件が出る)
+  そのもの**を主張していたので、「行から開くとその行だけ、件数から開くと全件(両方向)」へ書き換えた。
+- `empty_rule_test.dart` の REQ-021 のtestは、**詳細で1行にまとめる**ことを主張していた。
+  **畳むのは行だけ**にしたので、詳細では結果の節と原因の節が別に立つ形へ書き換えた
+  (件数が1件であることと、行が畳むことは引き続き固定している)。
+- 「同名・別フォルダのときは場所も添えて見分けられる」は残し、**「名前が一意なら場所を添えない」を足した**。
+
+## mutation の記録
+
+**全表を `--list` してから本番を回した。** 作り直しで `find` が一致しなくなったものが **6件**あり、
+1件ずつ中身を見て**すべて追随させた**(守る対象が新しい形の中に生き残っているため。落としたものは無い)。
+
+| mutation | 追随のさせ方 |
+|---|---|
+| M175 | 説明の重複排除が `ruleWarningExplanations` から `warningDetailSections` の節のまとめへ移った |
+| M191 / M194 / M195 | 詳細dialogの節の構造が変わった(説明を落とす / 件数ぶん繰り返す / 列挙を間引く の3方向は同じ) |
+| M214 / M215 | 行の種別名が共通の関数・定数になった(**行と詳細が同時に壊れる**) |
+
+このtaskが足した対照は `M257`〜`M261`(行から全件を出す / 全件を1ファイルへ絞る / 場所を常に出す /
+同名でも出さない / tap範囲を縮める)。
+
+```console
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+252 mutations, 0 with an unexpected match count
+
+(M175 / M180 / M191 / M194 / M195 / M214 / M215 / M220 / M227 / M257〜M261 を
+ flutter test test/spec_005_rename_exec test/spec_002_file_list で)
+14 mutations: 14 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+### 引き受けた残余riskの決着
+
+| 出所 | risk | 結果 |
+|---|---|---|
+| `008:T16` | **R-A**: 件数の数え方を固定する assertion が無い | **閉じた。** 27件 × 日時3本 + 桁不足 = 82件 を `warningCountLabel` と画面の両方で固定し、空名へ畳む場合(3件→1件)も固定した |
+| `008:T18` | **出ない方向**の assertion が消えた | **閉じた。** 導線あり・なしの両方で「詳細を開くまでトークンの名指しが出ない」ことを固定した |
+| `008:T18` | **穴C**: tap範囲が**縮む**方向を縛れない(`M227` が SURVIVED) | **閉じた。** 当たり判定と中身の差を**絶対値**(上下10 / 左右14 = padding + 枠線)で固定し、`M227` と `M261` が KILLED |
+| `008:T18` | `M220`(占有を大きく増やす)が SURVIVED のまま受容されていた | **あわせて閉じた**(同じ assertion が増える方向も止める) |
+| `008:T20` | `warning_display_test` のコメントが削除済みの `RuleWarningNotice` で説明していた | **書き直した**(同じ型が再発しうるので rect の絶対値で測り続ける旨を残した) |
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(846) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py --list`(全表) | `252 mutations, 0 with an unexpected match count` |
+| `workspace.py check specs` | PASS |
+
 ## Current state / handoff
 
-- Last checkpoint: claimし、設計の決定とmachine検証する範囲を宣言した(2026-09-18)
+- Last checkpoint: 実装・test・mutation・manual手順を書いた(2026-09-18)
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T19-warning-detail-modal`(`dev@3821ac0` から作成)
-- Next Agent action: スコープ・節の組み直し・文言のtestを書き、実装する
+- Next Agent action: exact range の独立reviewを起動する。PASS 後に manual確認を依頼する

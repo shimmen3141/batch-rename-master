@@ -465,8 +465,11 @@ void main() {
       // widget test 数行で閉じるのでここで閉じる)。
       //
       // あわせて、**警告が無い通常状態で余白だけが残らない**ことを見る。
-      // `RuleWarningNotice` は種別 0 件で `SizedBox.shrink()` を返すので、
-      // 呼び出し側が `Padding` で包むと死んだ余白ができる(attempt 4 のP2-1)。
+      // 元は「種別 0 件で `SizedBox.shrink()` を返す `RuleWarningNotice` を
+      // 呼び出し側が `Padding` で包むと死んだ余白ができる」だった(attempt 4 の
+      // P2-1)。**その widget は `008:T20` が削除した**が、**空でも高さを取る
+      // 部品を足せば同じ型は再発する**ので、rect の絶対値で測り続ける
+      // (`008:T20` の独立review attempt 2 が古い説明を指摘し、`T19` が書き直した)。
       const size = Size(1200, 800);
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
