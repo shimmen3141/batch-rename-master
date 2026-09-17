@@ -4,11 +4,21 @@ import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'token_presets.dart';
 
-/// [token] の詳細エディタを開き、確定された新しい [Token] を返す。
+/// トークンのエディタ(シートの中身)の key。
+const Key tokenEditorKey = Key('token-editor');
+
+/// [token] を初期値にしたエディタを開き、確定された新しい [Token] を返す。
 ///
-/// キャンセル時と、設定項目の無い [OriginalNameToken] では `null` を返す
-/// (呼び出し側は null のとき差し替えを行わない)。エディタはボトムシートで表示する。
-Future<Token?> showTokenEditor(BuildContext context, Token token) {
+/// 確定以外で閉じたとき(キャンセル・戻る操作・シート外のタップ・下方向の
+/// スワイプ)と、設定項目の無い [OriginalNameToken] では `null` を返す。呼び出し側は
+/// null のとき列を変えない(003 REQ-008 / REQ-009 / REQ-011)。エディタは
+/// ボトムシートで表示する。追加と編集で同じエディタを使い、確定ボタンの文言だけを
+/// [confirmLabel] で変える。
+Future<Token?> showTokenEditor(
+  BuildContext context,
+  Token token, {
+  String confirmLabel = '確定',
+}) {
   if (token is OriginalNameToken) return Future<Token?>.value(null);
   return showModalBottomSheet<Token>(
     context: context,
@@ -19,9 +29,18 @@ Future<Token?> showTokenEditor(BuildContext context, Token token) {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: switch (token) {
-        LiteralToken() => _LiteralEditor(token: token),
-        SequenceToken() => _SequenceEditor(token: token),
-        DateTimeToken() => _DateTimeEditor(token: token),
+        LiteralToken() => _LiteralEditor(
+          token: token,
+          confirmLabel: confirmLabel,
+        ),
+        SequenceToken() => _SequenceEditor(
+          token: token,
+          confirmLabel: confirmLabel,
+        ),
+        DateTimeToken() => _DateTimeEditor(
+          token: token,
+          confirmLabel: confirmLabel,
+        ),
         OriginalNameToken() => const SizedBox.shrink(),
       },
     ),
@@ -36,9 +55,11 @@ class _EditorScaffold extends StatelessWidget {
     required this.title,
     required this.children,
     required this.onConfirm,
+    required this.confirmLabel,
   });
 
   final String title;
+  final String confirmLabel;
   final List<Widget> children;
   final VoidCallback? onConfirm;
 
@@ -46,6 +67,7 @@ class _EditorScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return SafeArea(
+      key: tokenEditorKey,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
@@ -82,7 +104,7 @@ class _EditorScaffold extends StatelessWidget {
                     disabledBackgroundColor: colors.surfaceElevated,
                     disabledForegroundColor: colors.textDisabled,
                   ),
-                  child: const Text('確定'),
+                  child: Text(confirmLabel),
                 ),
               ],
             ),
@@ -97,9 +119,10 @@ class _EditorScaffold extends StatelessWidget {
 ///
 /// 文字列を入力するか区切りプリセットを選ぶ。空のあいだ確定は無効（空不可）。
 class _LiteralEditor extends StatefulWidget {
-  const _LiteralEditor({required this.token});
+  const _LiteralEditor({required this.token, required this.confirmLabel});
 
   final LiteralToken token;
+  final String confirmLabel;
 
   @override
   State<_LiteralEditor> createState() => _LiteralEditorState();
@@ -121,6 +144,7 @@ class _LiteralEditorState extends State<_LiteralEditor> {
     final colors = context.colors;
     final empty = _ctrl.text.isEmpty;
     return _EditorScaffold(
+      confirmLabel: widget.confirmLabel,
       title: 'テキスト / 区切り',
       onConfirm: empty
           ? null
@@ -167,9 +191,10 @@ String _separatorLabel(String preset) => switch (preset) {
 
 /// 連番（[SequenceToken]）のエディタ。start ≥ 0・digits ≥ 1・increment ≥ 1。
 class _SequenceEditor extends StatefulWidget {
-  const _SequenceEditor({required this.token});
+  const _SequenceEditor({required this.token, required this.confirmLabel});
 
   final SequenceToken token;
+  final String confirmLabel;
 
   @override
   State<_SequenceEditor> createState() => _SequenceEditorState();
@@ -183,6 +208,7 @@ class _SequenceEditorState extends State<_SequenceEditor> {
   @override
   Widget build(BuildContext context) {
     return _EditorScaffold(
+      confirmLabel: widget.confirmLabel,
       title: '連番',
       onConfirm: () => Navigator.pop(
         context,
@@ -271,9 +297,10 @@ class _NumberStepper extends StatelessWidget {
 
 /// 日時（[DateTimeToken]）のエディタ。基準の選択＋フォーマット（プリセット＋自由入力）。
 class _DateTimeEditor extends StatefulWidget {
-  const _DateTimeEditor({required this.token});
+  const _DateTimeEditor({required this.token, required this.confirmLabel});
 
   final DateTimeToken token;
+  final String confirmLabel;
 
   @override
   State<_DateTimeEditor> createState() => _DateTimeEditorState();
@@ -302,6 +329,7 @@ class _DateTimeEditorState extends State<_DateTimeEditor> {
     final colors = context.colors;
     final empty = _fmt.text.isEmpty;
     return _EditorScaffold(
+      confirmLabel: widget.confirmLabel,
       title: '日時',
       onConfirm: empty
           ? null

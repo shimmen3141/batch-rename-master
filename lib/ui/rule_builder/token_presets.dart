@@ -6,13 +6,14 @@ import '../../core/rename_engine.dart';
 /// 別の初期値・別の詳細エディタを持つ(区切りはプリセット選択、自由テキストは入力)。
 enum TokenKind { originalName, freeText, separator, sequence, dateTime }
 
-/// 各追加ボタンが挿入する初期トークン(003 spec の決定済み事項)。
+/// 各追加ボタンが開くエディタの初期値(003 spec の決定済み事項)。
 ///
-/// 自由テキストの初期値は暫定のプレースホルダで、T4 の詳細エディタが非空の値を
-/// 確定して差し替える(spec: 自由テキストは空不可)。
-Token defaultTokenFor(TokenKind kind) => switch (kind) {
+/// **列へは入れない。** エディタで確定した値だけが追加される(003 REQ-008)。
+/// 元の名前は設定項目が無いので、この値がそのまま追加される(REQ-010)。
+/// 自由テキストは空から始め、空のあいだ確定できない(REQ-012)。
+Token initialTokenFor(TokenKind kind) => switch (kind) {
   TokenKind.originalName => const OriginalNameToken(),
-  TokenKind.freeText => const LiteralToken('テキスト'),
+  TokenKind.freeText => const LiteralToken(''),
   TokenKind.separator => const LiteralToken('_'),
   TokenKind.sequence => const SequenceToken(start: 1, digits: 2),
   TokenKind.dateTime => const DateTimeToken(
