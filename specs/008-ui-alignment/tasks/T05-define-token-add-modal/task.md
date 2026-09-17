@@ -37,7 +37,7 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
 | 決めること | 答えの置き場所 |
 |---|---|
 | cancelしたときtokenが追加されない | REQ-009(確定以外の**すべての**閉じ方)。**開いているあいだ変更通知も起きない**ことを REQ-008 に置いた |
-| 既存tokenの編集 | REQ-011(追加と同じ種別のエディタを現在値で開き、確定時だけ差し替える)。現行実装は既にこの形 |
+| 既存tokenの編集 | REQ-011(そのトークンのクラスのエディタを現在値で開き、確定時だけ差し替える。**`LiteralToken` は自由テキスト・区切りの共通エディタ** — 2026-09-17 開発者決定)。現行実装は既にこの形 |
 | 確定できない入力(必須項目) | REQ-012(自由テキスト・区切りの空、日時フォーマットの空。連番は範囲外を入力できない) |
 | 追加直後のpreview反映のタイミング | REQ-008(**確定したときに初めて**反映。エディタ内の表示例は自由) |
 | (追加で出た論点)設定項目の無い「元の名前」 | REQ-010(エディタを開かず即追加)。**2026-09-14 開発者決定** |
@@ -89,10 +89,15 @@ P0/P1 なし。
 **2026-09-17 開発者決定**: 追加済みの文字列tokenをタップしたときは「**共通エディタを開く**」(Agentの推奨)。
 もう一方の案「追加したボタンの種類を覚える」は 001 の token と 007 の保存形式の変更を伴うため採らなかった。
 
+### 差分review(2026-09-17、range `9682ef5..6210685`)— **PASS**
+
+REQ-011 の明確化が他のREQ・代表例・007・現行実装と矛盾しないことを確認。P0/P1 なし。
+P2(上の「決めることへの答え」の REQ-011 の行が古い)と P3(`T06` の Evidence revision が未来の状態を指す)を直した。
+
 ## Current state / handoff
 
-- Last checkpoint: 003 spec 改訂案の再承認を記録した(2026-09-17)
+- Last checkpoint: 独立review(attempt 1 と差分review)が PASS、指摘を直した(2026-09-17)
 - Blocker category: なし
 - Waiting for: なし
-- Evidence revision: branch `asdd/008-ui-alignment/T05-define-token-add-modal`、PR #166
-- Next Agent action: 独立review attempt 1 PASS 後の REQ-011 の明確化について、差分だけの独立reviewを受ける
+- Evidence revision: `6210685`(差分reviewの head)。以後の変更は記録のみ
+- Next Agent action: なし(PR #166 の merge 後に `T06` を claim する)
