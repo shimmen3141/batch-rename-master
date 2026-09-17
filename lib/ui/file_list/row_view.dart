@@ -66,3 +66,27 @@ FileEntry? warningTargetOf(Warning warning) => switch (warning) {
 /// 表示順に 1 から数える**。未選択行を数えると桁がずれる。
 bool sequenceOverflowsAt(SequenceToken token, int position) =>
     token.valueAt(position).toString().length > token.digits;
+
+/// この行で**名前が変わらない**か(005 用語「変更が生じるファイル」の否定)。
+///
+/// **`008:T20` でここへ移した。** 提示(`file_list_view.dart`)と実行の門
+/// (`RenameExecutionController.execute`)が**同じ判定を使う**必要があるためである。
+/// 005 REQ-019 は「buttonだけ無効にして別経路から実体を変更できる実装」を排除して
+/// おり、2つの層が別々の定義を持つとその排除が成り立たない。
+///
+/// 次のいずれかで真になる。
+///
+/// - **ルールが空**。生成後名は拡張子だけの名前になるが、005 REQ-019 により
+///   実行が始まらないので実体は変わらない。
+/// - 生成後名が現在名と**同じ**。
+/// - **空名で改名の対象にならない**(005 REQ-022)。この行は自動解決の前の
+///   生成後名がベース名を持たず、改名されない。
+///
+/// **未選択行はここに含めない** — プレビュー対象外であって「変わらない」のとは違う。
+bool rowHasNoChange(RowView row, {required bool ruleIsEmpty}) {
+  final newName = row.newName;
+  if (newName == null) return false;
+  if (ruleIsEmpty) return true;
+  if (newName == row.currentName) return true;
+  return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;
+}

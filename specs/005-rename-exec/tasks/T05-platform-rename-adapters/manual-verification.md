@@ -42,7 +42,7 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'alpha_checked.txt') -Value 'do
 
 ### 操作と期待する結果
 
-1. アプリ下部のルール設定ボタン(「命名ルール」の見出しと設定中のルールの2行。右端に「編集」)を押します。既存のルール要素を各要素の×ですべて削除します。
+1. アプリ下部のルール設定ボタン(「命名ルール」の見出しと設定中のルールの2行。右端に「編集」)を押します。**button のどこを押しても開きます**(`008:T20` で押下対象を一つにした。「編集」は飾りです)。既存のルール要素を各要素の×ですべて削除します。
    - 確認: 「↓ 下のボタンから要素を追加」と表示されます。
 
 2. 「＋ 元の名前」、続けて「＋ 自由テキスト」を押します。「テキスト」と表示された要素を押し、文字列を`_checked`に変えて「確定」を押します。
@@ -51,11 +51,11 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'alpha_checked.txt') -Value 'do
 3. 「ファイルを選ぶ」→「すべて」を押し、`Download/asdd-rename-check`へ移動します。`alpha.txt`と`beta.txt`だけを選び、選択を確定します。
    - 確認: 一覧が2件になり、変更後の名前として`alpha_checked.txt`と`beta_checked.txt`が表示されます。
 
-4. 「名前を変更」を押します。
+4. 実行button(`N 件をリネーム`)を押します。
    - 確認: 画面下部に「0 件を改名しました」と、Androidでは安全な改名に現在対応していない旨が表示されます。
    - `成功`や`1 件を改名しました`などと表示された場合はFAILです。
 
-5. 同じ状態でもう一度「名前を変更」を押します。
+5. 同じ状態でもう一度実行button(`N 件をリネーム`)を押します。
    - 確認: 4と同じく0件で停止し、一覧の現在名は`alpha.txt`と`beta.txt`のままです。
 
 6. PowerShellでファイルの実体を確認します。
@@ -86,10 +86,10 @@ Android確認と同じ手順で、ルールを「元の名前」+「_checked」�
 
 ### 正常な名前変更と連続実行
 
-1. 「ファイルを選ぶ」から`desktop.txt`だけを選び、「名前を変更」を押します。
+1. 「ファイルを選ぶ」から`desktop.txt`だけを選び、実行button(`N 件をリネーム`)を押します。
    - 確認: 「1 件を改名しました」と表示され、folder内が`desktop_checked.txt`になります。内容は`desktop-original`のままです。
 
-2. 画面の一覧で現在名が`desktop_checked.txt`へ更新されたことを確認し、もう一度「名前を変更」を押します。
+2. 画面の一覧で現在名が`desktop_checked.txt`へ更新されたことを確認し、もう一度実行button(`N 件をリネーム`)を押します。
    - 確認: 「1 件を改名しました」と表示され、folder内が`desktop_checked_checked.txt`になります。内容は変わりません。
 
 ### 同名ファイルを上書きしない確認
@@ -103,7 +103,7 @@ Set-Content -LiteralPath (Join-Path $desktopFixture 'conflict.txt') -Value 'sour
 Set-Content -LiteralPath (Join-Path $desktopFixture 'conflict_checked.txt') -Value 'keep-this-content'
 ```
 
-2. アプリで`conflict.txt`だけを選び、「名前を変更」を押します。
+2. アプリで`conflict.txt`だけを選び、実行button(`N 件をリネーム`)を押します。
    - 確認: 0件で停止し、「同名のファイルが既に存在します」と表示されます。
 
 3. PowerShellで確認します。

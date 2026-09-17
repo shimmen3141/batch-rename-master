@@ -49,6 +49,12 @@
   受容してこのtaskへ送った。開発者が確認を求めた「82件」(27件 × 日時トークン3本 + 桁不足1)の
   数え方そのものである。**このtaskが数え方を決め直し、決めた数え方を固定するassertionを置くこと。**
 
+## 引き受けた残余risk(`008:T20`から)
+
+- `test/spec_005_rename_exec/warning_display_test.dart:435-437` のコメントが、`T20` で削除した
+  `RuleWarningNotice` を使って検査の理由を説明している(assertion は正しい)。`T20` の独立review attempt 2 の P3。
+  **このtaskが警告表示のtestを作り直すときに、コメントを今の構造で書き直すこと。**
+
 ## 引き受けた残余risk(`008:T18`から)
 
 - **「導線の無い`FileListView`単体では原因の説明を出さない」方向の assertion が消えた。**
