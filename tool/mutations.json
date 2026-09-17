@@ -1628,6 +1628,111 @@
       "find": "                      key: ruleSummaryKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
       "replace": "                      key: ruleSummaryKey,",
       "note": "008:T20 ルール要約の行数制限と省略記号を両方外す — M192 は ellipsis が maxLines=null でも最初のあふれ行で切るため等価mutant(TextPainter.ellipsis の doc)。独立review attempt 1 が追加"
+    },
+    {
+      "id": "M242",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n    );\n    if (confirmed != null) controller.addToken(confirmed);",
+      "replace": "    controller.addToken(initial);\n    final last = controller.tokens.length - 1;\n    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n    );\n    if (confirmed != null) {\n      controller.replaceAt(last, confirmed);\n    } else {\n      controller.removeAt(last);\n    }",
+      "note": "008:T06 参考designの形(押した瞬間に既定値で入れ、キャンセルで取り除く)— 終状態は同じだが途中で通知が起き、007 の保存と 002 のプレビューが既定値を観測する(003 REQ-008)"
+    },
+    {
+      "id": "M243",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (kind == TokenKind.originalName) {",
+      "replace": "    if (kind != TokenKind.dateTime) {",
+      "note": "008:T06 設定項目を持つ種別を改修前のように既定値で即追加する(日時以外)— 003 REQ-008"
+    },
+    {
+      "id": "M244",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (confirmed != null) controller.addToken(confirmed);",
+      "replace": "    controller.addToken(confirmed ?? initial);",
+      "note": "008:T06 確定せずに閉じても既定値で追加する — 003 REQ-009"
+    },
+    {
+      "id": "M245",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (kind == TokenKind.originalName) {",
+      "replace": "    if (kind == TokenKind.freeText) {",
+      "note": "008:T06 元の名前をエディタ経由にする(showTokenEditor は元の名前で null を返すので何も入らない)— 003 REQ-010"
+    },
+    {
+      "id": "M246",
+      "file": "lib/ui/rule_builder/token_presets.dart",
+      "find": "  TokenKind.freeText => const LiteralToken(''),",
+      "replace": "  TokenKind.freeText => const LiteralToken('テキスト'),",
+      "note": "008:T06 自由テキストの初期値を改修前のプレースホルダへ戻す — 003 決定済み事項(初期値は空)と REQ-012"
+    },
+    {
+      "id": "M247",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "    isScrollControlled: true,\n    backgroundColor: context.colors.surface,",
+      "replace": "    isScrollControlled: true,\n    isDismissible: false,\n    backgroundColor: context.colors.surface,",
+      "note": "008:T06 シート外のtapで閉じられなくする — REQ-009 の閉じ方の検査が空振りしないことの対照"
+    },
+    {
+      "id": "M248",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "    isScrollControlled: true,\n    backgroundColor: context.colors.surface,",
+      "replace": "    isScrollControlled: true,\n    enableDrag: false,\n    backgroundColor: context.colors.surface,",
+      "note": "008:T06 下方向のswipeで閉じられなくする — REQ-009 の閉じ方の検査が空振りしないことの対照"
+    },
+    {
+      "id": "M249",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "      onConfirm: empty\n          ? null\n          : () => Navigator.pop(context, LiteralToken(_ctrl.text)),",
+      "replace": "      onConfirm: () => Navigator.pop(context, LiteralToken(_ctrl.text)),",
+      "note": "008:T06 文字列が空でも確定できる — 003 REQ-012(追加と編集の両方)"
+    },
+    {
+      "id": "M250",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (edited != null) controller.replaceAt(index, edited);",
+      "replace": "    controller.replaceAt(index, edited ?? controller.tokens[index]);",
+      "note": "008:T06 編集を確定せずに閉じても同じ値で差し替える(通知が起きる)— 003 REQ-011"
+    },
+    {
+      "id": "M251",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "  String confirmLabel = '確定',",
+      "replace": "  String confirmLabel = '追加',",
+      "note": "008:T06 編集の確定ボタンを「追加」にする — 追加と編集が区別できない(003 自由とする点の但し書き)"
+    },
+    {
+      "id": "M252",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "      onConfirm: empty\n          ? null\n          : () => Navigator.pop(\n              context,\n              DateTimeToken(source: _source, format: _fmt.text),\n            ),",
+      "replace": "      onConfirm: () => Navigator.pop(\n              context,\n              DateTimeToken(source: _source, format: _fmt.text),\n            ),",
+      "note": "008:T06 日時フォーマットが空でも確定できる — 003 REQ-012(追加と編集)。独立review attempt 1 が追加"
+    },
+    {
+      "id": "M253",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "find": "          min: 0,",
+      "replace": "          min: -1,",
+      "note": "008:T06 連番の開始番号を0未満にできる — 003 REQ-012 / 決定済み事項。独立review attempt 1 が追加"
+    },
+    {
+      "id": "M254",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (confirmed != null) controller.addToken(confirmed);",
+      "replace": "    if (confirmed != null) controller.addToken(initial);",
+      "note": "008:T06 確定値ではなく初期値を追加する — 003 REQ-008。独立review attempt 1 が追加"
+    },
+    {
+      "id": "M255",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    if (confirmed != null) controller.addToken(confirmed);",
+      "replace": "    if (confirmed != null) {\n      controller.addToken(confirmed);\n      if (context.mounted) Navigator.maybePop(context);\n    }",
+      "note": "008:T06 狭幅で追加確定時にルール設定シートまで閉じる — 独立review attempt 1 で SURVIVED(安全網の穴)。狭幅testの確定後にシートが残る assertion を足して閉じた"
+    },
+    {
+      "id": "M256",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "find": "    final edited = await showTokenEditor(context, controller.tokens[index]);",
+      "replace": "    final edited = await showTokenEditor(context, controller.tokens[index], confirmLabel: '追加');",
+      "note": "008:T06 編集の確定ボタンを「追加」にする(呼び出し側)— 追加と編集の区別。独立review attempt 1 が追加"
     }
   ]
 }

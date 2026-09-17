@@ -27,18 +27,25 @@ void main() {
     }
   });
 
-  testWidgets('追加ボタンで既定トークンが追加され Chip が表示される(REQ-002)', (tester) async {
+  // 008:T06 で「押すと既定値で即追加」から「エディタで確定すると追加」へ変えた
+  // (003 REQ-008)。確定しない経路は token_add_confirm_test.dart が持つ。
+  testWidgets('追加ボタンのエディタで確定するとトークンが追加され Chip が表示される(REQ-002)', (tester) async {
     final c = RuleController();
     await _pump(tester, c);
 
     await tester.tap(find.text('＋ 連番'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(c.tokens, isEmpty, reason: '開いただけでは入らない(REQ-008)');
+    await tester.tap(find.widgetWithText(FilledButton, '追加'));
+    await tester.pumpAndSettle();
     expect(c.tokens, hasLength(1));
     expect(c.tokens.single, isA<SequenceToken>());
     expect(find.text('連番(2桁)'), findsOneWidget);
 
     await tester.tap(find.text('＋ 区切り'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '追加'));
+    await tester.pumpAndSettle();
     expect(c.tokens, hasLength(2));
     expect(find.text('_'), findsOneWidget);
   });

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T06",
   "title": "token追加をmodal確定へ変える",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T05"
   ],
@@ -14,6 +14,6 @@
     "003:REQ-012"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 167,
   "manualVerification": "manual-verification.md"
 }

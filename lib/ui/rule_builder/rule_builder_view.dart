@@ -9,8 +9,9 @@ import 'token_presets.dart';
 ///
 /// [RuleController] を購読して描画するだけの薄いウィジェット。トークンを Chip
 /// として横並び表示し、5 種の追加ボタン・各 Chip の削除・ドラッグ並び替えを
-/// controller のメソッドへ委譲する。Chip タップは詳細エディタ([onEditToken])へ
-/// つなぐ(エディタ本体は T4)。色は 002 の [AppColors] を再利用する。
+/// controller のメソッドへ委譲する。追加と Chip タップはエディタを開き、**確定した
+/// ときだけ** controller を変える(003 REQ-008〜REQ-011)。色は 002 の [AppColors] を
+/// 再利用する。
 class RuleBuilderView extends StatelessWidget {
   const RuleBuilderView({
     super.key,
@@ -180,6 +181,22 @@ class _AddBar extends StatelessWidget {
 
   final RuleController controller;
 
+  /// [kind] を追加する。設定項目を持つ種別はエディタを開き、確定したときだけ
+  /// 末尾へ入れる(003 REQ-008 / REQ-009)。元の名前はエディタを開かない(REQ-010)。
+  Future<void> _add(BuildContext context, TokenKind kind) async {
+    final initial = initialTokenFor(kind);
+    if (kind == TokenKind.originalName) {
+      controller.addToken(initial);
+      return;
+    }
+    final confirmed = await showTokenEditor(
+      context,
+      initial,
+      confirmLabel: '追加',
+    );
+    if (confirmed != null) controller.addToken(confirmed);
+  }
+
   static const List<(TokenKind, String)> _buttons = [
     (TokenKind.originalName, '＋ 元の名前'),
     (TokenKind.freeText, '＋ 自由テキスト'),
@@ -201,10 +218,7 @@ class _AddBar extends StatelessWidget {
         runSpacing: 6,
         children: [
           for (final (kind, label) in _buttons)
-            _AddButton(
-              label: label,
-              onTap: () => controller.addToken(defaultTokenFor(kind)),
-            ),
+            _AddButton(label: label, onTap: () => _add(context, kind)),
         ],
       ),
     );
