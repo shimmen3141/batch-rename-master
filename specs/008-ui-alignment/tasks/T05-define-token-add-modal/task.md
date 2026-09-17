@@ -74,10 +74,25 @@ tokenを「既定値で即追加してから編集」から「modalで設定を�
   意味変更と桁不足の判定を一緒に決めないと「ゼロ埋めなしを選んだのに桁不足と言われる」状態が残るため。
   REQ-008〜REQ-012 は連番の設定項目の中身に依存しないので、`T21` が項目を足しても変わらない。
 
+## 独立review
+
+### attempt 1(2026-09-17、range `origin/dev...9682ef5`)— **PASS**
+
+P0/P1 なし。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P2 | 成果物の欠陥 | REQ-011 の「同じ種別のエディタ」が、`LiteralToken`(自由テキスト・区切りの両方が同じクラスで、保存も値だけ)では決まらない | **開発者へ選択肢を示して決めた**(下)。REQ-011 を「そのトークンのクラスの設定エディタ。`LiteralToken` は共通エディタ」へ直した |
+| 2 | P3 | 成果物の欠陥 | 反証ログの「既定値は open_questions に送る」が古い | 直した |
+| 3 | P3 | 成果物の欠陥 | `T06` の handoff の Evidence revision が古い | 直した |
+
+**2026-09-17 開発者決定**: 追加済みの文字列tokenをタップしたときは「**共通エディタを開く**」(Agentの推奨)。
+もう一方の案「追加したボタンの種類を覚える」は 001 の token と 007 の保存形式の変更を伴うため採らなかった。
+
 ## Current state / handoff
 
 - Last checkpoint: 003 spec 改訂案の再承認を記録した(2026-09-17)
 - Blocker category: なし
 - Waiting for: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T05-define-token-add-modal`、PR #166
-- Next Agent action: exact range の独立reviewを起動する
+- Next Agent action: 独立review attempt 1 PASS 後の REQ-011 の明確化について、差分だけの独立reviewを受ける

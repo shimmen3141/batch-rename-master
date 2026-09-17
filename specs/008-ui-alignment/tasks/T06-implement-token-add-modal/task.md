@@ -33,5 +33,5 @@
 - Blocker category: dependency
 - Waiting for: `T05`の独立reviewとmerge(003 spec の再承認は2026-09-17に済んだ)
 - Requested action: なし
-- Evidence revision: `dev@ea1dd04`
+- Evidence revision: `T05` の merge 後の `dev`
 - Next Agent action: `T05`承認後にclaimし、test-firstで実装する
