@@ -62,14 +62,45 @@ Finder _detail() => find.byKey(warningDetailDialogKey);
 Finder _inDetail(Finder matching) =>
     find.descendant(of: _detail(), matching: matching);
 
-/// 詳細dialogの中の「原因ごとの説明」節だけ(005 REQ-009 (2))。
-/// **ファイルごとの全件と混ぜて数えない** — 全件側は件数ぶん並んでよい。
-Finder _inCauses(Finder matching) =>
-    find.descendant(of: find.byKey(warningDetailCausesKey), matching: matching);
+/// 詳細modalの節は `008:T19` で「原因ごとに説明1つ + 対象の列挙」へ組み直した。
+/// 説明と対象を**混ぜて数えない** — 説明は原因ごとに1つ、対象は件数ぶん並ぶ。
+bool _hasKeyPrefix(Widget widget, String prefix) {
+  final key = widget.key;
+  return key is ValueKey<String> && key.value.startsWith(prefix);
+}
 
-/// 詳細dialogの中の「ファイルごとの全件」節だけ(005 REQ-009 (3))。
-Finder _inFiles(Finder matching) =>
-    find.descendant(of: find.byKey(warningDetailFilesKey), matching: matching);
+/// 節ごとの説明(005 REQ-009 (2))。**原因の数だけあり、ファイル数には依らない。**
+List<String> _explanations(WidgetTester tester) => tester
+    .widgetList<Text>(
+      find.byWidgetPredicate(
+        (w) => w is Text && _hasKeyPrefix(w, 'warning-detail-explanation-'),
+      ),
+    )
+    .map((text) => text.data ?? '')
+    .toList();
+
+/// 節ごとの対象の列挙(005 REQ-009 (3) / (4))。
+List<String> _targets(WidgetTester tester) => tester
+    .widgetList<Text>(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (w) => _hasKeyPrefix(w, 'warning-detail-targets-'),
+        ),
+        matching: find.byType(Text),
+      ),
+    )
+    .map((text) => text.data ?? '')
+    .toList();
+
+Matcher _containsOne(String needle) => predicate<List<String>>(
+  (list) => list.where((text) => text.contains(needle)).length == 1,
+  '「$needle」を含むものが1つだけ',
+);
+
+Matcher _containsNone(String needle) => predicate<List<String>>(
+  (list) => list.every((text) => !text.contains(needle)),
+  '「$needle」を含まない',
+);
 
 /// 行に見えている警告の文言(順序は表示順)。
 List<String> _rowWarningTexts(WidgetTester tester) => tester
@@ -356,9 +387,11 @@ void main() {
 
       // 説明は 1 つ。**単位は原因(トークン)ごとである。**
       await _openDetailFromCount(tester);
-      expect(_inCauses(find.textContaining('2 番目のトークン')), findsOneWidget);
-      // 節の中は**見出し 1 + 説明 1** で、30 件ぶんには増えない。
-      expect(_inCauses(find.byType(Text)), findsNWidgets(2));
+      expect(_explanations(tester), _containsOne('2 番目のトークン'));
+      // **説明は原因の数(=1)だけ。** 30 件ぶんには増えない。
+      expect(_explanations(tester), hasLength(1));
+      // 対象の列挙は件数ぶん並んでよい(REQ-009 (3))。
+      expect(_targets(tester), hasLength(30));
     });
 
     testWidgets('取れないトークンが 2 本なら説明は 2 つ', (tester) async {
@@ -378,10 +411,10 @@ void main() {
       expect(_inRuleButton(_ruleKindTexts()), findsNothing);
 
       await _openDetailFromCount(tester);
-      expect(_inCauses(find.textContaining('2 番目のトークン')), findsOneWidget);
-      expect(_inCauses(find.textContaining('3 番目のトークン')), findsOneWidget);
-      // 見出し 1 + 説明 2。**ファイル 2 件ぶんには増えない。**
-      expect(_inCauses(find.byType(Text)), findsNWidgets(3));
+      expect(_explanations(tester), _containsOne('2 番目のトークン'));
+      expect(_explanations(tester), _containsOne('3 番目のトークン'));
+      // **説明は原因(トークン)の数 = 2。** ファイル 2 件ぶんには増えない。
+      expect(_explanations(tester), hasLength(2));
     });
 
     testWidgets('桁不足はトークンの位置と必要桁数が分かる', (tester) async {
@@ -396,9 +429,9 @@ void main() {
       expect(_rowWarnings(), findsOneWidget);
 
       await _openDetailFromCount(tester);
-      expect(_inCauses(find.textContaining('1 番目のトークン')), findsOneWidget);
-      expect(_inCauses(find.textContaining('連番 1 桁')), findsOneWidget);
-      expect(_inCauses(find.textContaining('3 桁必要')), findsOneWidget);
+      expect(_explanations(tester), _containsOne('1 番目のトークン'));
+      expect(_explanations(tester), _containsOne('連番 1 桁'));
+      expect(_explanations(tester), _containsOne('3 桁必要'));
     });
 
     testWidgets('種別は 2 つを超えない(常設側の占有が原因の数に依らない)', (tester) async {
@@ -421,7 +454,7 @@ void main() {
       // 説明の側は原因の数だけある(dialog は伸びてよい — scroll する)。
       await _openDetailFromCount(tester);
       for (final n in ['1', '2', '3', '4']) {
-        expect(_inCauses(find.textContaining('$n 番目のトークン')), findsOneWidget);
+        expect(_explanations(tester), _containsOne('$n 番目のトークン'));
       }
     });
 
@@ -432,8 +465,11 @@ void main() {
       // widget test 数行で閉じるのでここで閉じる)。
       //
       // あわせて、**警告が無い通常状態で余白だけが残らない**ことを見る。
-      // `RuleWarningNotice` は種別 0 件で `SizedBox.shrink()` を返すので、
-      // 呼び出し側が `Padding` で包むと死んだ余白ができる(attempt 4 のP2-1)。
+      // 元は「種別 0 件で `SizedBox.shrink()` を返す `RuleWarningNotice` を
+      // 呼び出し側が `Padding` で包むと死んだ余白ができる」だった(attempt 4 の
+      // P2-1)。**その widget は `008:T20` が削除した**が、**空でも高さを取る
+      // 部品を足せば同じ型は再発する**ので、rect の絶対値で測り続ける
+      // (`008:T20` の独立review attempt 2 が古い説明を指摘し、`T19` が書き直した)。
       const size = Size(1200, 800);
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -559,23 +595,37 @@ void main() {
       expect(_inDetail(find.textContaining('alpha.txt')), findsOneWidget);
       expect(_inDetail(find.textContaining('bravo.txt')), findsOneWidget);
       expect(_inDetail(find.textContaining('same.txt')), findsNWidgets(2));
-      // 種別ごとにまとまり、件数が見える。
-      expect(_inDetail(find.textContaining('重複 2 件')), findsOneWidget);
+      // 種別ごとにまとまり、件数が見える。**行と同じ語彙**(008:T19)。
+      expect(_inDetail(find.textContaining('名前の重複 2 件')), findsOneWidget);
     });
 
-    testWidgets('行の警告からも同じ詳細が開く', (tester) async {
+    // **008:T19 でスコープを分けた**(2026-09-02 の要望2、REQ-009 (4))。
+    // 改修前は行から開いても全件が出ていた。
+    testWidgets('行から開くとその行だけ、件数から開くと全件(両方向)', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
         rule: const RenameRule([LiteralToken('same')]),
       );
       await _pump(tester, c);
 
+      // 行から: **その行のファイルだけ。**他方が混ざらない。
       await tester.tap(_rowWarnings().first);
       await tester.pumpAndSettle();
-
       expect(_detail(), findsOneWidget);
-      expect(_inDetail(find.textContaining('alpha.txt')), findsOneWidget);
-      expect(_inDetail(find.textContaining('bravo.txt')), findsOneWidget);
+      // 見出しがスコープを示す。
+      expect(_inDetail(find.textContaining('「alpha.txt」の問題')), findsOneWidget);
+      expect(_targets(tester), _containsOne('alpha.txt'));
+      expect(_targets(tester), _containsNone('bravo.txt'));
+      // 行から開いた詳細でも、全件と同じ内容(重複する変更後名)が読める((4))。
+      expect(_targets(tester), _containsOne('same.txt'));
+      expect(_explanations(tester), hasLength(1));
+      await tester.tap(find.byKey(const Key('warning-detail-close')));
+      await tester.pumpAndSettle();
+
+      // 件数から: **全件。**特定のファイルに絞られない。
+      await _openDetailFromCount(tester);
+      expect(_targets(tester), _containsOne('alpha.txt'));
+      expect(_targets(tester), _containsOne('bravo.txt'));
     });
 
     testWidgets('行に出していない重複も詳細には残る(判定を消さない)', (tester) async {
@@ -586,8 +636,8 @@ void main() {
       await _pump(tester, c);
       await _openDetailFromCount(tester);
 
-      expect(_inDetail(find.textContaining('重複')), findsWidgets);
-      expect(_inDetail(find.textContaining('空の名前')), findsWidgets);
+      expect(_inDetail(find.textContaining('名前の重複')), findsWidgets);
+      expect(_inDetail(find.textContaining('名前が空')), findsWidgets);
     });
 
     testWidgets('基準日時不明は、どのファイルのどのトークンかが読める', (tester) async {
@@ -602,14 +652,32 @@ void main() {
       await _pump(tester, c);
       await _openDetailFromCount(tester);
 
-      // **同じ 1 行が**ファイルとトークンの両方を名指す(別々の行に散らない)。
-      final entry = tester
-          .widgetList<Text>(_inFiles(find.textContaining('nodate.jpg')))
-          .single
-          .data!;
-      expect(entry, contains('2 番目のトークン'));
-      expect(entry, contains('作成日時「YYYYMMDD」'));
-      expect(entry, contains('作成日時が不明'));
+      // **トークンの名指しは節の説明が1つだけ持ち**(REQ-009 (2))、
+      // **対象のファイルはその節の列挙が持つ**((3))。
+      expect(_explanations(tester), _containsOne('2 番目のトークン'));
+      expect(_explanations(tester), _containsOne('作成日時「YYYYMMDD」'));
+      expect(_explanations(tester), _containsOne('作成日時が取れない'));
+      expect(_targets(tester), _containsOne('nodate.jpg'));
+      // 作成日時を持つファイルは対象ではない。
+      expect(_targets(tester), _containsNone('dated.jpg'));
+    });
+
+    // **場所の括弧は既定で出さない**(2026-09-02 の要望4)。**同名が並ぶときだけ
+    // 添える** — REQ-009 が「どのファイルが対象か識別できる形」を課している。
+    testWidgets('名前が一意なら場所を添えない', (tester) async {
+      final c = FileListController(
+        files: [
+          _f('alpha.jpg', location: '/dcim/a'),
+          _f('bravo.jpg', location: '/dcim/b'),
+        ],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+      await _openDetailFromCount(tester);
+
+      expect(_targets(tester), _containsOne('alpha.jpg'));
+      expect(_targets(tester), _containsNone('/dcim/a'));
+      expect(_targets(tester), _containsNone('/dcim/b'));
     });
 
     testWidgets('同名・別フォルダのときは場所も添えて見分けられる', (tester) async {
@@ -651,7 +719,7 @@ void main() {
       // 詳細では対象ファイルが 1 件ずつ識別できる(重複 + 基準日時不明で 2 行)。
       expect(_inDetail(find.textContaining('alpha.jpg')), findsNWidgets(2));
       expect(_inDetail(find.textContaining('bravo.jpg')), findsNWidgets(2));
-      expect(_inFiles(find.textContaining('3 桁必要')), findsOneWidget);
+      expect(_explanations(tester), _containsOne('3 桁必要'));
     });
   });
 
