@@ -119,6 +119,23 @@ void main() {
     expect(_pickLabel(tester), '別フォルダへ');
   });
 
+  testWidgets('場所を持たない行が混ざっても、名前は1つなので「複数のフォルダ」にしない', (tester) async {
+    // `null` を場所の一種として数えると、名前が1つしか無いのに「複数のフォルダ」に
+    // なる(独立review attempt 1 の P3-4。対照 `M275`)。行側の同種のtestと対になる。
+    await _pump(
+      tester,
+      FileListController(
+        files: [
+          _entry('a.jpg', handle: 'h:a', location: '写真'),
+          _entry('b.pdf', handle: 'h:demo'),
+        ],
+      ),
+    );
+
+    expect(_location(tester), '写真');
+    expect(find.text('複数のフォルダ'), findsNothing);
+  });
+
   testWidgets('「すべて外す」で「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],

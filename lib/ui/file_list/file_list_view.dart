@@ -16,6 +16,9 @@ import 'row_view.dart';
 const Key shiftModifiedAtKey = Key('shift-modified-at');
 
 /// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
+///
+/// **一覧に複数の場所が混ざっているときだけ出る**(002 の決定。2026-09-18 に開発者が
+/// 再承認。代表例 7b・7c / `008:T22`)。1つだけなら読み込み帯が一覧全体として示す。
 const Key rowLocationKey = Key('row-location');
 
 /// 行サブ情報の作成日時(002 REQ-013)。**並び順chipや代替警告と同じ語を含む**ため、

@@ -1845,6 +1845,27 @@
       "find": "                .length >\n            1;",
       "replace": "                .length >\n            0;",
       "note": "008:T08 場所が1種類でも混在と見なす — 閾値を1件ずらす。帯と全行に同じ folder 名が並ぶ(要望11が冗長と言った状態)"
+    },
+    {
+      "id": "M273",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        final showRowLocation =\n            rows\n                .map((r) => r.source.sourceLocation)\n                .whereType<String>()\n                .toSet()\n                .length >\n            1;",
+      "replace": "        final showRowLocation =\n            rows\n                .map((r) => r.source.sourceLocation)\n                .toSet()\n                .length >\n            1;",
+      "note": "008:T08 行側: null を場所の一種として数える — 場所を持たない行が混ざるだけで集合が水増しされ、名前が1つしか無いのに行へ場所が出る。独立review attempt 1 が置いた対照(R1)"
+    },
+    {
+      "id": "M274",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "  static String pickLabelOf(FileListController controller) =>\n      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
+      "replace": "  static String pickLabelOf(FileListController controller) =>\n      controller.selectedCount == 0 ? 'ファイルを選ぶ' : '別フォルダへ';",
+      "note": "008:T08 「選択されていないとき」を一覧が空ではなく選択0件と取り違える — 行の checkbox を全部外すと button が『ファイルを選ぶ』へ戻る。独立review attempt 1 が置いた対照(R2)"
+    },
+    {
+      "id": "M275",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    final names = controller.items\n        .map((item) => item.sourceLocation)\n        .whereType<String>()\n        .toSet();",
+      "replace": "    final names = controller.items\n        .map((item) => item.sourceLocation)\n        .toSet();",
+      "note": "008:T08 帯側: null を場所の一種として数える — 名前が1つでも『複数のフォルダ』になる。独立review attempt 1 が置いた対照(R3)。attempt 1 では SURVIVED で、帯側のtestを足して閉じた"
     }
   ]
 }

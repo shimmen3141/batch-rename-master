@@ -27,12 +27,21 @@
 ### 事前準備
 
 [`008 / T07` のfixture](../T07-row-and-warning-presentation/manual-verification.md)
-(`DCIM/t07-fixtures`。27件)を使います。無い場合はrepositoryのルートで
+(`DCIM/t07-fixtures`。27件)を使います。
+
+**`.worktrees/t07-fixtures/` は用意してあります**(27件。依頼時に存在を確認しました)。
+repositoryのルートで**folderごと送ってください**。
 
 ```powershell
-python tool/make_t07_fixtures.py
 adb push .worktrees\t07-fixtures /sdcard/DCIM/
+adb shell ls /sdcard/DCIM/t07-fixtures | Measure-Object -Line
 ```
+
+**期待**: `Lines : 27` と表示される。
+
+`.worktrees/t07-fixtures/` が消えている場合は、**Agent(container内)が
+`python3 tool/make_t07_fixtures.py .worktrees/t07-fixtures` で作り直します**
+(script は出力先folderを引数に取ります)。お知らせください。
 
 ### 手順1 — 読み込み前(1分)
 
