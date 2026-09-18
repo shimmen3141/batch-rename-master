@@ -15,6 +15,7 @@ import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FileEntry _entry(String name, {required String handle, String? location}) =>
@@ -60,7 +61,78 @@ String _pickLabel(WidgetTester tester) => tester
     )
     .data!;
 
+/// 画面幅を固定して帯を描く(配置の検査用)。
+Future<void> _pumpAtWidth(
+  WidgetTester tester,
+  FileListController controller, {
+  double width = 360,
+}) async {
+  await tester.binding.setSurfaceSize(Size(width, 640));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await _pump(tester, controller);
+}
+
 void main() {
+  group('帯の幅と配置(実機確認 2026-09-18 の指摘)', () {
+    testWidgets('読み込み前でも帯は画面幅いっぱいに広がる', (tester) async {
+      // 中身の幅しか持たないと、短い帯が画面の中央に浮く(実機で観測した)。
+      await _pumpAtWidth(tester, FileListController(files: const []));
+
+      expect(tester.getSize(find.byKey(sourceBarKey)).width, 360);
+    });
+
+    testWidgets('読み込み後も帯は画面幅いっぱいに広がる', (tester) async {
+      await _pumpAtWidth(
+        tester,
+        FileListController(
+          files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+        ),
+      );
+
+      expect(tester.getSize(find.byKey(sourceBarKey)).width, 360);
+    });
+
+    testWidgets('読み込み button の位置は folder 名の長さで動かない', (tester) async {
+      // **これが実機の指摘の本体である。** 名前の長さで button が動くと、
+      // 押す場所を毎回探すことになる。長い名前は省略されて button を押し出さない。
+      await _pumpAtWidth(
+        tester,
+        FileListController(
+          files: [_entry('a.jpg', handle: 'h:a', location: 'DCIM')],
+        ),
+      );
+      final shortName = tester.getRect(
+        find.byKey(const Key('pick-files-button')),
+      );
+
+      await _pumpAtWidth(
+        tester,
+        FileListController(
+          files: [
+            _entry(
+              'a.jpg',
+              handle: 'h:a',
+              location:
+                  'Internal shared storage/DCIM/t07-fixtures-very-long-name',
+            ),
+          ],
+        ),
+      );
+      final longName = tester.getRect(
+        find.byKey(const Key('pick-files-button')),
+      );
+
+      expect(longName, shortName);
+      // 省略されていること自体も固定する(省略せずに押し出す実装を排除する)。
+      expect(
+        tester
+            .renderObject<RenderParagraph>(find.byKey(sourceLocationLabelKey))
+            .didExceedMaxLines,
+        isTrue,
+      );
+    });
+  });
+
   testWidgets('読み込み前は「未選択」と「ファイルを選ぶ」(要望11)', (tester) async {
     await _pump(tester, FileListController(files: const []));
 

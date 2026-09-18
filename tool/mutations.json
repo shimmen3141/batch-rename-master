@@ -1866,6 +1866,27 @@
       "find": "    final names = controller.items\n        .map((item) => item.sourceLocation)\n        .whereType<String>()\n        .toSet();",
       "replace": "    final names = controller.items\n        .map((item) => item.sourceLocation)\n        .toSet();",
       "note": "008:T08 帯側: null を場所の一種として数える — 名前が1つでも『複数のフォルダ』になる。独立review attempt 1 が置いた対照(R3)。attempt 1 では SURVIVED で、帯側のtestを足して閉じた"
+    },
+    {
+      "id": "M276",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "          // **`stretch` が要る。** 既定の `center` だと帯が中身の幅しか持たず、\n          // 読み込み前に画面幅より短い帯が浮く(実機確認 2026-09-18 の手順2)。\n          crossAxisAlignment: CrossAxisAlignment.stretch,",
+      "replace": "          // **`stretch` が要る。** 既定の `center` だと帯が中身の幅しか持たず、\n          // 読み込み前に画面幅より短い帯が浮く(実機確認 2026-09-18 の手順2)。\n          crossAxisAlignment: CrossAxisAlignment.center,",
+      "note": "008:T08 帯が中身の幅しか持たない — 読み込み前に短い帯が画面の中央へ浮く(2026-09-18 の実機確認で観測した退行そのもの)"
+    },
+    {
+      "id": "M277",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                  Expanded(\n                    child: locationLabel == null",
+      "replace": "                  Flexible(\n                    child: locationLabel == null",
+      "note": "008:T08 場所の取り分を可変にする — folder 名の長さで読み込み button の位置が動く(2026-09-18 の実機確認の指摘の本体)"
+    },
+    {
+      "id": "M278",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                              Flexible(\n                                child: Text(\n                                  locationLabel,",
+      "replace": "                              Expanded(\n                                child: Text(\n                                  locationLabel,",
+      "note": "008:T08 対照: 場所のTextの縮み方を変える。省略の有無と button の位置が保たれるかを見る"
     }
   ]
 }
