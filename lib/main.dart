@@ -173,19 +173,32 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 /// 撮影日時を持たないことが多く、作成日時を取得できない代表例）。作成日時順ソート
 /// を選ぶと、この行が「作成日時: 不明」と警告色で表示され、更新日時で代替して
 /// 並べた旨の警告帯が出る（002 REQ-011/013 の目視確認用）。
+///
+/// **2つのフォルダに分けてある**（`008:T23`。2026-09-18 の実機確認の質問2）。
+/// 複数フォルダの混在は**製品経路からは到達できない** — Android は 004 REQ-016 で
+/// 1フォルダ内の選択に限られ、デスクトップのピッカーもフォルダを跨げない
+/// (`development-findings/2026-09-18-desktop-picker-cannot-span-folders-so-the-multi-folder-path-is-unreachable.md`)。
+/// **デモの初期値だけがこの表示（帯の `複数のフォルダ` と行ごとの場所。002 代表例 7c）を
+/// 実機で目視できる唯一の経路**なので、ここで再現する。
+///
+/// 場所の文字列は実機と同じ形にしてある（`保存場所名 + root からの相対パス`。
+/// 004 REQ-009）。幅に入りきらないときに**先頭が省略されて末尾が残る**ことも、
+/// これで確かめられる。
 List<FileEntry> _sampleFiles() {
   final base = DateTime(2026, 3, 1, 9);
-  // (名前, サイズ, 作成日時を取得できたか)
-  final names = <(String, int, bool)>[
-    ('IMG_0009.jpg', 2_400_000, true),
-    ('IMG_0010.jpg', 3_100_000, true),
-    ('IMG_0002.jpg', 1_800_000, true),
-    ('scan document.pdf', 540_000, true),
-    ('memo.txt', 1_200, true),
-    ('旅行 写真.png', 4_800_000, true),
-    ('Screenshot_20260304.png', 760_000, false),
-    ('report_final.docx', 88_000, true),
-    ('archive.tar.gz', 9_900_000, true),
+  const camera = 'Internal shared storage/DCIM/Camera';
+  const download = 'Internal shared storage/Download';
+  // (名前, サイズ, 作成日時を取得できたか, 表示用の場所)
+  final names = <(String, int, bool, String)>[
+    ('IMG_0009.jpg', 2_400_000, true, camera),
+    ('IMG_0010.jpg', 3_100_000, true, camera),
+    ('IMG_0002.jpg', 1_800_000, true, camera),
+    ('scan document.pdf', 540_000, true, download),
+    ('memo.txt', 1_200, true, download),
+    ('旅行 写真.png', 4_800_000, true, camera),
+    ('Screenshot_20260304.png', 760_000, false, camera),
+    ('report_final.docx', 88_000, true, download),
+    ('archive.tar.gz', 9_900_000, true, download),
   ];
   return [
     for (var i = 0; i < names.length; i++)
@@ -194,6 +207,11 @@ List<FileEntry> _sampleFiles() {
         createdAt: names[i].$3 ? base.add(Duration(hours: i * 7)) : null,
         modifiedAt: base.add(Duration(hours: i * 7, minutes: 30)),
         size: names[i].$2,
+        sourceLocation: names[i].$4,
+        // **所属フォルダも揃えて持たせる。** 表示だけ2フォルダにすると、001 の
+        // 重複判定（フォルダ単位）が1フォルダとして数えて表示と食い違う。
+        sourceFolder:
+            '/storage/emulated/0/${names[i].$4 == camera ? 'DCIM/Camera' : 'Download'}',
       ),
   ];
 }

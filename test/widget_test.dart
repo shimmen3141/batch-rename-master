@@ -2,6 +2,7 @@
 // 例外なく起動し、ファイルリストとルール編集の導線が出ることを確認する。
 import 'package:batch_rename_master/main.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:flutter/widgets.dart';
@@ -40,6 +41,39 @@ void main() {
       rows.every((row) => row.preview != null),
       isTrue,
       reason: '行に preview の供給元が届いていない',
+    );
+  });
+
+  testWidgets('demo dataは2つのフォルダに分かれている(008:T23 / 質問2)', (tester) async {
+    // **複数フォルダの混在は製品経路から到達できない**(Androidは 004 REQ-016 で
+    // 1フォルダ、desktopのpickerも跨げない)。demoの初期値だけが、帯の
+    // `複数のフォルダ` と行ごとの場所(002 代表例 7c)を実機で目視できる経路である。
+    // ここを短い1フォルダに戻すと、その確認手段が黙って消える。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    expect(
+      find.byKey(sourceLocationLabelKey),
+      findsOneWidget,
+      reason: '帯が場所を出していない',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(sourceLocationLabelKey)).data,
+      '複数のフォルダ',
+    );
+    // 帯が `複数のフォルダ` を選ぶのは**場所が2種類以上あるときだけ**なので、
+    // 上の1行がdemo dataが2フォルダに分かれていることの証拠になる。
+    //
+    // 行側も場所を出している(混在しているときだけ出る条件の表側)。
+    // **「2種類見えるはず」とは書かない** — `ListView` は見えている行しか作らないので、
+    // viewport の高さに依存した検査になる。
+    expect(find.byType(FileListView), findsOneWidget);
+    expect(
+      find.byKey(rowLocationKey),
+      findsWidgets,
+      reason: '混在しているのに行が場所を出していない',
     );
   });
 }
