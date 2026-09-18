@@ -330,6 +330,21 @@ reviewer は `M276`〜`M278` を単体で当て直し、**3件とも crash で�
 「`Row` で固定配置にする」から「**幅を測って button 群の上限を切り、超えたら折り返す**」へ。
 次にFAILしたら3回目なので `blocked` にして人間へ返す。
 
+### attempt 4(2026-09-18、range `1560e1b...b225b9b`、Sonnet)— **PASS**
+
+P0/P1 なし。**新規の指摘も無い。** attempt 3 の4件がすべて閉じていることを、reviewer が独立に再現した。
+
+- **N-1(overflow)**: 宣言した27通りに加え、**幅280〜600dp × 文字倍率1.0〜3.5 の168通り**、さらに
+  280/320dp で倍率3.0〜6.0 まで振っても **overflow は0件**。button の位置不変も狭幅・高倍率で確認。
+  「`Row` は非flexの子へ無限幅を渡す」という説明がコードと整合し、**75%の上限は必要なときだけ効く安全上限**で、
+  通常条件で場所の取り分を狭めていないことも確認された。
+- **N-4**: `M276` を単体で当て、**帯幅の2件はPASSのまま button 位置の検査だけが落ちる**ことを再現。
+  直した note の文言と一致する。
+- mutation 16件(`M164`/`M265`〜`M279`)を範囲を絞って独立に再実行し、**16 KILLED / 0 SURVIVED**。
+
+reviewer は「成果物の欠陥によるFAILが2回、次が3回目なら `blocked`」という読み方が `AGENTS.md`(累計3回)と
+整合していることも確かめている。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -347,10 +362,10 @@ reviewer は `M276`〜`M278` を単体で当て直し、**3件とも crash で�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 のFAIL(P1: 狭幅のoverflow)を直し、27通りで固定した(2026-09-18)。
-  **`lib/` の最終commitは `f71e2f6`**
-- Blocker category: なし
-- Waiting for: 独立review attempt 4 → そのあと手順2の再確認(Android)
-- Requested action: なし
+- Last checkpoint: 独立review attempt 4 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `f71e2f6`**
+- Blocker category: human-verification
+- Waiting for: Android実機の**手順2だけ**の再確認(手順1・3は `7387c9c` で成立済み、手順4は実行不能)
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順2(確認A〜E)
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: attempt 4 を回す。**成果物の欠陥で3回目のFAILになったら `blocked` にして人間へ返す**
+- Next Agent action: 結果を記録し、成立していれば PR #170 を ready にして merge する。
+  **確認が終わるまで `/workspace` のbranchを動かさない**
