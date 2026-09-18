@@ -229,26 +229,56 @@ P0/P1 なし。**新規の指摘も無い。** N-3 が塞がっていること�
   `replaceItems` は置き換えがあれば identity が変わり、0件なら早期returnで実際に無変化 /
   `toggleSelection`・`selectAll`・`clearAll` は **`lib/` 内に呼び出し元が無く製品UIから到達しない**。
 
+## manual確認の結果(2026-09-18。1回目)
+
+対象commit **`c7cf22b`**、branch `asdd/008-ui-alignment/T04-implement-selection-flow`、PR #173、
+**Android実機**。手順書は[`manual-verification.md`](manual-verification.md)。
+**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 1 起動直後(確認A〜C) | **成立** | 「手順1、3、4については確認できました。」 |
+| 2 1件外して戻す(確認D〜H) | **実行できず** | 「手順2については、×が表示されず、ドラッグ用のつまみしかありません。」 |
+| 3 一覧を空にして戻す(確認I・J) | **成立** | 同上 |
+| 4 文字を大きくしたとき(確認K・L) | **成立** | 同上 |
+
+### 原因と対応(`M303`/`M304`)
+
+**demo data が元場所ハンドルを持っていなかった。** 行の × は**ハンドルを持つ行にだけ**出る
+(004 REQ-006。持たない行は `removeFile` の引き当て先が無い)。読み込んだファイルには 004 が必ず
+付けるので**製品経路では出る**が、**デモのままでは1件も外せない**。
+
+**これは `T04` の欠陥である。** checkbox を廃止して「対象の出し入れは除去だけ」にした(002 REQ-016)
+以上、**外せない行があるのは一覧＝対象という前提が成り立たない状態**である。`T23` で demo data を
+2フォルダへ分けたときに、ハンドルまで持たせていなかった。
+
+- demo data へ `sourceHandle` と `sourceFolder` を持たせた。
+- **`demo:` で始まる作り物にした。** `/storage/emulated/0/DCIM/Camera/IMG_0009.jpg` のような
+  実在しうる値にすると、**デモのつもりの操作が実機の本物のファイルを改名しうる**。`demo:` から
+  始まる値は実ファイルとして開けないので、実行は 005 の失敗経路で安全に止まる(対照 `M304`)。
+- **描画されている行と同じ数だけ × がある**ことを `widget_test.dart` で固定した(対照 `M303`)。
+  「どれか1行だけ外せない」も排除する。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(890) |
+| `flutter test` | PASS(892) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `293 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED**。attempt 2 の修正分 `M299`〜`M302` = **4 KILLED, 0 SURVIVED** |
+| `mutation_check.py --list`(全表) | `295 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED**。attempt 2 の修正分 `M299`〜`M302` = **4 KILLED**。実機確認の修正分 `M288`/`M303`/`M304` = **3 KILLED, 0 SURVIVED** |
 | `workspace.py check specs` | PASS(8 plans, 79 tasks) |
-| Android実機 | **未実施**(`manual-verification.md`) |
+| Android実機 | 手順1・3・4 = **成立**(`c7cf22b`)。**手順2は demo data の修正後に再確認が要る** |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `c7cf22b`**
-- Blocker category: human-verification
-- Waiting for: Android実機の確認(手順1〜4)
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4
+- Last checkpoint: 実機確認で**手順2が実行できなかった**(demo data にハンドルが無く × が出ない)。直した
+- Blocker category: review
+- Waiting for: 独立review attempt 4(demo data の修正の確認)
+- Requested action: なし(その後 Android実機の**手順2だけ**の再確認を依頼する)
 - Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
-- Next Agent action: 結果を記録し、成立していれば PR #173 を ready にして merge する。
-  **確認が終わるまで `/workspace` のbranchを動かさない**
+- Next Agent action: attempt 4 の後、手順2の再確認を依頼する。**手順1・3・4 は `c7cf22b` で成立済み**だが、
+  **demo data が動いたので手順1(確認B・C)は見直しの対象になりうる**ことを依頼時に伝える
