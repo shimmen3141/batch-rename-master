@@ -142,11 +142,25 @@ reviewer が独立に確かめ、**問題なしとしたもの**:
 - `workspace.py check specs` / `check_normative_terms.py` / `dart format` / `flutter analyze` /
   `flutter test`(882) / `mutation_check --list`(281件・異常0)がすべてPASSで、`lib/` と `test/` に差分が無いこと。
 
+### attempt 2(2026-09-18、range `bb8c7a9...089416e`、Sonnet)— **PASS**
+
+P0/P1 なし。**新規の指摘も無い。**
+
+- **P1 が閉じたことを reviewer が独立に確認した** — `task.json` の `status`、`task.md` の handoff、
+  PR #172 の本文が三者とも「review未了」で一致し、**`workspace.py resume specs` に T03 が
+  resume focus の先頭として現れる**(`done` にしていたときは現れなかった)。
+- **attempt 1 の記録が、reviewer 自身の報告と一致していること**を突き合わせて確認した。
+  指摘・分類・対応と、「問題なしとした5項目」のいずれも、弱めても強めてもいない。
+  reviewer が P3(従属的観察)として挙げた1件を表へ採っていない点も、**#1の修正で自動的に
+  解消するものとして本人が位置づけていた**ため不当な削除ではないと判定された。
+- **追加commitで仕様が動いていないこと**を `git diff 9e167b6..089416e --stat` で確認
+  (`task.json` と `task.md` の2ファイルのみ。002/004 spec に差分なし)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 = **FAIL**(P1: reviewより先に `done` にしていた)。`in_review` へ戻した
-- Blocker category: review
-- Waiting for: 独立review attempt 2(修正の確認)
+- Last checkpoint: 独立review attempt 2 が **PASS**(新規指摘なし)。attempt 1 の P1 は閉じた
+- Blocker category: none
+- Waiting for: なし
 - Requested action: なし
-- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`、Draft PR #172
-- Next Agent action: attempt 2 がPASSしたら `done` にし、PR #172 を ready にして merge する
+- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`、PR #172
+- Next Agent action: PR #172 を ready にして merge する。実装は `T04`
