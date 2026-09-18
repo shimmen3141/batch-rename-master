@@ -120,11 +120,33 @@ swipe の代替導線は作らない。誤って外したときは**取り消し
 | 1 | 「除去は×から簡単にできるが、追加はフォルダから選び直す必要がある。アプリ側と同じ選択状態・同じ選択フォルダへすぐ飛べる導線があるとよい、という議論が過去にあったはずだが記録されているか」 | **記録されている。** `specs/product-map.md` の将来候補「**読み込み画面の状態復元**」(`013:T07` の実機確認で 2026-08-25 に開発者が挙げた。本人が「ふとした思い付き」と明示)。**この決定で位置づけが変わった**ので追記した — checkbox廃止で除去と追加が非対称になったため、**便利機能ではなくその非対称を埋める導線**になった。着手するなら browser の入口(`008:T11`)と同じ画面を触る |
 | 2 | 通知(toast)を右上の円＋×で閉じられるようにしたい(原文は `T25` に置いた) | **[`T25`](../T25-dismissible-toast/task.md) を新設して引き受けた。** `T04` が出す取り消しの通知も同じ形に揃える |
 
+## 独立review
+
+### attempt 1(2026-09-18、range `bb8c7a9...9e167b6`、Sonnet)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | **P1** | 成果物の欠陥(記録) | `task.json` の `status` が、**独立review前・PRがDraftのまま**で `done` になっていた。`task.md` の handoff(「独立reviewを回し、PASSしたら…」)と PR #172 の本文(「独立review: 未実施」)の両方と矛盾する。**`workspace.py resume specs` にこのtaskが現れなくなる**ので、次の再開でDraft PRが放置されうる。先行する仕様定義task `T15` は `in_review` → (review PASS) → `done` の順で運用している | **直した**(`in_review` へ戻した)。**承認を受け取った時点で `done` にしたのが誤り** — 承認は受け入れ証拠の一つであって、merge条件2(独立reviewのPASS)とは別である |
+
+reviewer が独立に確かめ、**問題なしとしたもの**:
+
+- **状態層を変えていない**こと(002 REQ-004/008/009・004 REQ-004/005/006 の要件文に差分が無い)。
+  REQ-016 と 002 REQ-006/007 が両立することも確認 — 製品UIが toggle/clear 系を呼ばないので
+  REQ-008 の「全件選択」が保たれ、REQ-007 は状態層の不変条件として休眠するだけである。
+- **「占有名で安全性に差が無い」という根拠**を 005 REQ-026 と例25f から独立に再確認。
+  **`listNames` が失敗する経路でも崩れない** — 005 例25e はそのfolderを含む実行を folder 単位で
+  止めるので、除去でも未選択でも同じく止まる。
+- **代表例 6b〜6e が両方向を固定している**こと(常にcheckboxを出す実装と、取り消しを出さない実装の双方を排除)。
+- `T04` の `covers`、`T20` の引き渡し先(`executeLabel` の `selectedCount == 0` が実在すること)、
+  `T25` と `product-map.md` の追記が**規範(REQ)を足していない**こと、PR本文が差分より強い主張をしていないこと。
+- `workspace.py check specs` / `check_normative_terms.py` / `dart format` / `flutter analyze` /
+  `flutter test`(882) / `mutation_check --list`(281件・異常0)がすべてPASSで、`lib/` と `test/` に差分が無いこと。
+
 ## Current state / handoff
 
-- Last checkpoint: 002/004 spec を開発者が**再承認**。Status 行へ記録し、`T04` の `covers` を埋めた
-- Blocker category: none
-- Waiting for: なし
+- Last checkpoint: 独立review attempt 1 = **FAIL**(P1: reviewより先に `done` にしていた)。`in_review` へ戻した
+- Blocker category: review
+- Waiting for: 独立review attempt 2(修正の確認)
 - Requested action: なし
-- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`
-- Next Agent action: 独立reviewを回し、PASSしたら PR を ready にして merge する。実装は `T04`
+- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`、Draft PR #172
+- Next Agent action: attempt 2 がPASSしたら `done` にし、PR #172 を ready にして merge する
