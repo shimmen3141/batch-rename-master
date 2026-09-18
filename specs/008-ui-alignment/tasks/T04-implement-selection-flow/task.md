@@ -149,25 +149,62 @@ UI が外さないので、製品では**全件が選択された状態が保た
 M188(貼り直し後) / M291 / M292 / M293 / M294 / M295 / M296 / M297 / M298
 ```
 
+## 独立review
+
+### attempt 1(2026-09-18、range `161b024...9440590`、Sonnet)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| N-1 | **P1** | **成果物の欠陥** | **取り消しの通知が出ている間に読み込み直すと、読み込んだばかりの一覧が古い控えで無断置換される。** 読み込みの成功は通知を出さないので(004 REQ-008)、直前の除去の取り消しは既定の表示時間ぶん**押せる状態で残る**。reviewer が probe test で再現した(b を外す → 別フォルダを読み込む → `元に戻す` を押すと `items` が除去前の `[a,b,c]` に化ける) | **直した**(下の「直したもの」)。対照 `M299` |
+| N-2 | P2 | 成果物の欠陥 | 同じ根本原因。取り消しの提示中に**並び替える**と、押した時点で並びが除去前へ戻り、`sortMode` と表示順が食い違う | **同じ修正で直した**。対照 `M300` |
+
+reviewer が**問題なしとして確かめたもの**:
+
+- REQ-016/REQ-017 と代表例 6b〜6e を、実装とtestが両方向で満たしていること。
+- **状態層が不変**で、`toggleSelection`/`selectAll`/`clearAll` の VER-001 controller test が
+  削除されていないこと(widget test は REQ-016 の検査へ**置き換えた**のであって、検証を消していない)。
+- 占有名を控えて戻す実装が 005 REQ-026 に対して妥当なこと。`ScaffoldMessenger` 不在でも落ちないこと。
+- **(h) の 360dp → 280dp**: reviewer が自分で 360dp に戻して実行し、**FAIL することを確認**した
+  (checkbox 除去で行が広がったという説明は事実)。保証を弱めたのではなく測定幅を合わせ直しただけと判定。
+- `warning_display_test` の行数の数え方(`RowPreviewView` は各行に1:1で必ず在る)。
+- **`M188` の貼り直しが妥当**であること(貼り直し後の形で KILLED を再現)。
+- 「続けて別の行を外す」経路は `hideCurrentSnackBar` で安全であること(probe で確認)。
+
+### 直したもの(`(この節の下の検証の記録が対応する commit)`)
+
+**控えが古くなっていたら戻さない。** 除去した直後の一覧(`after`)と**並び順の種別**を控え、
+取り消しを押した時点でどちらかが動いていたら**戻さず**、`一覧が変わったため、取り消せませんでした`
+と伝える。
+
+- **並び順の種別も見る理由**: 並べ替えても順序が変わらないことがあり(すでにその順だった場合)、
+  項目だけを見ていると「動いていない」と読める。そこで戻すと `sortMode` と表示順が食い違う。
+- **同一性は `identical` で見る**(`==` や名前ではない)。同じフォルダを読み込み直すと名前は同じでも
+  **別の項目**になり、005 の改名も項目を差し替える(REQ-018)。名前で代用すると、新しい項目を
+  古い控えで置き換えてしまう(対照 `M301`)。
+- 002 REQ-017 は「次の操作の後は取り消せなくてよい」としているが、**誤って戻すことまでは許していない**。
+
+足したtest: 読み込み直した後 / 並び替えた後 / **同じ名前で読み込み直した後**は戻さないこと、
+**続けて外したときは直前の1回が戻る**こと(こちらは戻せてよい)。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(883) |
+| `flutter test` | PASS(889) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `289 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED, 0 SURVIVED**。`M186` = KILLED(据え置きの確認) |
+| `mutation_check.py --list`(全表) | `292 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED, 0 SURVIVED** |
 | `workspace.py check specs` | PASS(8 plans, 79 tasks) |
 | Android実機 | **未実施**(`manual-verification.md`) |
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と機械検証が完了(`flutter test` 883 PASS、範囲を絞った mutation 9 KILLED)
+- Last checkpoint: 独立review attempt 1 の P1(古い控えで新しい一覧を上書きする)を直した
 - Blocker category: review
-- Waiting for: 独立review(Sonnet)
+- Waiting for: 独立review attempt 2
 - Requested action: なし(人間の作業は実機確認から)
-- Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`(`dev@161b024` から作成)
-- Next Agent action: 独立reviewを回し、PASSしたら実機確認を依頼する
+- Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
+- Next Agent action: attempt 2 がPASSしたら実機確認を依頼する
