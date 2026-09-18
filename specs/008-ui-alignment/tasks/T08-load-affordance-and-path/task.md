@@ -153,15 +153,80 @@
 - [`manual-verification.md`](manual-verification.md)でAndroid実機とWindows desktopの導線を確認する。
 - exact rangeの独立reviewがPASSする。
 
+## 実装の記録(2026-09-18。帯とbuttonの文言)
+
+- `file_source_bar.dart`:
+  - `locationLabelOf`(新規): 読み込み前は`未選択`、場所が1つならその folder 名、2つ以上は`複数のフォルダ`、
+    **場所を持たない行だけなら`null`**(嘘の場所も`未選択`も出さない)。
+  - `pickLabelOf`(新規): 一覧が空なら`ファイルを選ぶ`、そうでなければ`別フォルダへ`。
+  - 帯を **`Row` から `Wrap` へ**組み替えた。folder 名の長さは端末次第で読めないので、`Row` だと
+    狭幅で button を押し出すか overflow になる(ヘッダの件数が `Wrap` である理由と同じ)。
+    **`Spacer` を落とした**ので「すべて外す」は右端に貼り付かない — 余白と配置は `T10` が持つ。
+  - folder 名は `maxWidth: 220` + `ellipsis` で、次の行へ落ちてもなお入らないときに省略する。
+  - key を1つ足した: `sourceLocationLabelKey`(`source-location-label`)。
+- **004 の契約は触っていない。** 読み込みの経路、種類選択、`multi-folder-warning` の発火条件は不変。
+
+### 複数folder警告(004 REQ-012)をどう扱ったか
+
+**警告は残した。** 帯が常時「複数のフォルダ」を示すようになっても、REQ-012 は `should` の要求として
+現存しており、**要否を変えるのは仕様側の判断**である(spec本文が「提示の要否・体裁の見直しは 008 へ送る」と
+書いているのは、008が勝手に落としてよいという意味ではない)。二重に読めないよう役割を分けた。
+
+- **帯** = いまの状態(「複数のフォルダから入っている」)。常時見える。
+- **`multi-folder-warning`** = その読み込み操作の結果への注意(「リネームしても同じ場所には集まりません」)。
+  一度だけ出る。
+
+### 「選択されていないとき」の読み
+
+要望11の「ファイルが選択されていないときは『ファイルを選ぶ』」は、**一覧が空のとき**と読んだ。
+行の checkbox を全部外しただけならファイルは入っており、読み込み先を選び直す導線の意味は変わらないため。
+**この読みを固定するtestを置いた**(選択を全部外しても`別フォルダへ`のまま)。
+
+## mutation の記録(帯とbuttonの文言)
+
+**全表を `--list` してから、範囲を絞って本番を回した**(`AGENTS.md`の手順)。作業用の表を
+scratchへcopyし、`command` を `flutter test test/spec_004_file_source test/spec_013_android_rename` へ
+差し替えて `M265`〜`M269` だけを回した。**`tool/mutations.json` の `command` は全件のまま**である。
+
+```console
+$ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
+260 mutations, 0 with an unexpected match count
+
+$ python3 <asdd-plugin>/scripts/mutation_check.py <scratch>/t08-mutations.json --root .
+command: flutter test test/spec_004_file_source test/spec_013_android_rename
+M265 | KILLED | ... 場所が2つ以上でも具体名を出す
+M266 | KILLED | ... 場所が1つのときも「複数のフォルダ」にする
+M267 | KILLED | ... 場所を持たない行だけのときに「未選択」を出す
+M268 | KILLED | ... 読み込み済みでも button が「ファイルを選ぶ」のまま
+M269 | KILLED | ... 読み込み前から button が「別フォルダへ」
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(857。`load_affordance_test.dart` の6件を追加) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py --list`(全表) | `260 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation(`M265`〜`M269`) | 5 KILLED, 0 SURVIVED, 0 SKIPPED |
+| `workspace.py check specs` | PASS(8 plans, 75 tasks) |
+| Android実機 / Windows desktop | **未実施**(行の側を入れてから一度にお願いする) |
+
 ## 作業記録
 
 - 2026-08-13 / 人間の判断で(a)〜(d)を008の対象へ入れた際に定義。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: 他taskと独立に着手できる。先に「選択中のfolderが無い状態が通常」を前提にした提示を決める
+- Last checkpoint: 帯の場所提示とbuttonの文言を実装し、mutation 5件で固定した(2026-09-18)
+- Blocker category: human-decision
+- Waiting for: [`T22`](../T22-define-row-location-scope/task.md)の002 spec改訂の**再承認**。
+  **承認まで行の場所は触らない**
+- Requested action: `T22`の改訂案の承認
+- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)
+- Next Agent action: 承認を受けたら行の場所を条件付き(場所が2つ以上のときだけ表示)へ変え、
+  002の代表例に対応するtestを置く。そのあとPRを作り、独立reviewとmanual確認を一度にまとめて依頼する
