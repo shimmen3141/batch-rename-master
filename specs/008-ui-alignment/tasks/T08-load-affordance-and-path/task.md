@@ -250,6 +250,22 @@ reviewer が置いた対照3件を **`M273`〜`M275`** として取り込んだ(
 
 reviewer が「記録だけ先行 / 実装だけ先行は無い」「`T07` の (h) の再現条件は `_pumpMixedAt` で正しく保たれている」「`showRowLocation` は1回だけ数えており null 行・空リストで壊れない」を独立に確認している。
 
+### attempt 2(2026-09-18、range `f2413e9...747943f`、Sonnet)— **PASS**
+
+P0/P1 なし。attempt 1 の4件が**すべて閉じている**ことを、reviewer が独立に再現して確認した
+(fixture scriptを引数付きで実行して27件、PR本文の現況一致、doc comment、`M164`/`M265`〜`M275`
+の12件を自分で回して **12 KILLED / 0 SURVIVED**)。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P3 | 成果物の欠陥(記録) | `T22` の `task.json` が `done` なのに `pullRequest: null` のまま。同型の `T15`/`T16`/`T17` は done 化と同時にPRを記録している | **直した**(`170` を記録) |
+| 2 | — | 安全網の穴 | 帯と行が「場所が何種類か」を**別々の式**で数えており、両者を同じ画面へ組んだwidget testが無い。ただし同じ `_items` を1:1で見るので**構造的に分岐しえない**ことをreviewerがコードで確認している。3条件の(2)に当たらない | **受容し、`008:T10` へ引き渡した**(barと一覧を並べた合成testを足す機会がそこにあるため) |
+
+### 引き渡した残余risk
+
+- 上の安全網の穴(帯と行の合成test)と、**帯の右寄せが無くなったこと**(`Wrap` 化で `Spacer` を落とした)を
+  [`T10`](../T10-spacing-and-typography/task.md) へ記録した。配置は元々 `T10` の範囲である。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -266,10 +282,10 @@ reviewer が「記録だけ先行 / 実装だけ先行は無い」「`T07` の (
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 のFAIL(P1 1件・P2 1件・P3 2件)をすべて直した(2026-09-18)。
+- Last checkpoint: 独立review attempt 2 が **PASS**。P3(記録)を直し、安全網の穴1件を `T10` へ引き渡した(2026-09-18)。
   **`lib/` の最終commitは `7387c9c`**
-- Blocker category: なし
-- Waiting for: 独立review attempt 2 → そのあとAndroid実機とWindows desktopのmanual確認
-- Requested action: なし
+- Blocker category: human-verification
+- Waiting for: Android実機(手順1〜3)と Windows desktop(手順4)のmanual確認
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: attempt 2 を起動し、PASSしたらmanual確認を依頼する
+- Next Agent action: manual確認の結果を待つ。**確認が終わるまで `/workspace` のbranchを動かさない**
