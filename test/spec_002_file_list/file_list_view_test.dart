@@ -119,6 +119,106 @@ void main() {
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
   });
 
+  testWidgets('読み込み直した後の取り消しは、新しい一覧を上書きしない(REQ-017)', (tester) async {
+    // **独立review attempt 1 の N-1。** 読み込みの成功は通知を出さないので、
+    // 直前の除去の取り消しが画面に残ったままになる。そこで押されたときに
+    // 古い控えで `setFiles` すると、**読み込んだばかりの一覧が無断で消える**。
+    final files = [
+      _f('a.txt', handle: 'h:a'),
+      _f('b.txt', handle: 'h:b'),
+      _f('c.txt', handle: 'h:c'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await tester.tap(find.byTooltip('このファイルを外す').at(1));
+    await tester.pumpAndSettle();
+    // 取り消しを押さないまま、別フォルダを読み込み直す。
+    c.setFiles([_f('x.txt', handle: 'h:x'), _f('y.txt', handle: 'h:y')]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    // **読み込んだ一覧のまま。** 古い控えへ戻らない。
+    expect(c.items.map((f) => f.name), ['x.txt', 'y.txt']);
+    // 黙って何もしないのではなく、戻せなかったことを伝える。
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
+  testWidgets('並び替えた後の取り消しは、並びを戻さない(REQ-017)', (tester) async {
+    // 同じ根本原因(独立review attempt 1 の N-2)。並びだけが除去前へ戻ると、
+    // `sortMode` と表示順が食い違う。
+    final files = [
+      _f('c.txt', handle: 'h:c'),
+      _f('a.txt', handle: 'h:a'),
+      _f('b.txt', handle: 'h:b'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await tester.tap(find.byTooltip('このファイルを外す').first); // c を外す
+    await tester.pumpAndSettle();
+    c.setSortMode(FileSortMode.name);
+    await tester.pumpAndSettle();
+    final sorted = c.items.map((f) => f.name).toList();
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.items.map((f) => f.name), sorted);
+    expect(c.sortMode, FileSortMode.name);
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
+  testWidgets('同じ名前で読み込み直しても、取り消しは新しい項目を上書きしない(REQ-017)', (tester) async {
+    // **名前で見分けてはいけない。** 同じフォルダを読み込み直すと名前は同じでも
+    // **別の項目**(ハンドルも状態も新しい)になる。005 の改名も項目を差し替える
+    // (REQ-018)。名前で「動いていない」と判定すると、新しい項目を古い控えで
+    // 置き換えてしまう。
+    final files = [_f('a.txt', handle: 'h:a'), _f('b.txt', handle: 'h:b')];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // b を外す → [a]
+    await tester.pumpAndSettle();
+    // 同じ名前・同じ並びで読み込み直す(**別の項目**)。
+    final reloaded = _f('a.txt', handle: 'h:a2');
+    c.setFiles([reloaded]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.items, [reloaded]);
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
+  testWidgets('続けて外したときは、直前の1回だけが戻る(REQ-017)', (tester) async {
+    // **これは戻せてよい。** 古い通知は次の除去で消えるので、控えは常に
+    // 「いまの一覧の1手前」である。
+    final files = [
+      _f('a.txt', handle: 'h:a'),
+      _f('b.txt', handle: 'h:b'),
+      _f('c.txt', handle: 'h:c'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // b
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // c
+    await tester.pumpAndSettle();
+    expect(c.items.map((f) => f.name), ['a.txt']);
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    // 直前の除去(c)だけが戻る。b は戻らない。
+    expect(c.items.map((f) => f.name), ['a.txt', 'c.txt']);
+    expect(find.byKey(removalUndoStaleKey), findsNothing);
+  });
+
   testWidgets('取り消しで、一覧の警告に使う占有名も戻る(005 REQ-026)', (tester) async {
     // 取り消しは `setFiles` で戻すが、**`setFiles` は占有名を捨てる**
     // (置き換え後の folder と無関係になるため)。控えを戻さないと、

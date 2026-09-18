@@ -2027,6 +2027,27 @@
       "find": "                                ? () => removeUndoably(\n                                    context,\n                                    widget.controller,\n                                    widget.controller.clearFiles,\n                                  )\n",
       "replace": "                                ? widget.controller.clearFiles\n",
       "note": "008:T04 一覧を空にする操作を取り消せなくする — 代表例6d(一覧を空にした直後も戻せる)が壊れる"
+    },
+    {
+      "id": "M299",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            if (controller.sortMode != afterSortMode ||\n                !_sameItems(controller.items, after)) {",
+      "replace": "            if (false) {",
+      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)"
+    },
+    {
+      "id": "M300",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            if (controller.sortMode != afterSortMode ||\n                !_sameItems(controller.items, after)) {",
+      "replace": "            if (!_sameItems(controller.items, after)) {",
+      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)"
+    },
+    {
+      "id": "M301",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "    if (!identical(a[i], b[i])) return false;",
+      "replace": "    if (a[i].name != b[i].name) return false;",
+      "note": "008:T04 項目の同一性を名前で代用する — 005 の改名は項目を新しいハンドルの値へ差し替えるので(005 REQ-018)、名前が同じだけの別物を「動いていない」と読む"
     }
   ]
 }
