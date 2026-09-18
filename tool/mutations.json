@@ -2055,6 +2055,20 @@
       "find": "                !identical(controller.occupiedNames, occupied) ||\n",
       "replace": "",
       "note": "008:T04 占有名の取り直しを見ない — 005 の実行準備は items にも sortMode にも触れずに占有名だけを取り直すので、取り消しが**取り直したばかりの観測を古い控えで上書きする**(独立review attempt 2 の N-3)"
+    },
+    {
+      "id": "M303",
+      "file": "lib/main.dart",
+      "find": "        // **行の × を出すために要る**（004 REQ-006）。\n        sourceHandle:\n            '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',\n",
+      "replace": "",
+      "note": "008:T04 demo dataからハンドルを落とす — 行の × が1件も出ず、checkbox を廃止した後(002 REQ-016)は対象の出し入れが確かめられなくなる(2026-09-18 の実機確認で観測した状態)"
+    },
+    {
+      "id": "M304",
+      "file": "lib/main.dart",
+      "find": "  const cameraFolder = 'demo:/DCIM/Camera';",
+      "replace": "  const cameraFolder = '/storage/emulated/0/DCIM/Camera';",
+      "note": "008:T04 demo dataのハンドルを実在しうるpathにする — デモのつもりの操作が**実機の本物のファイルを改名しうる**"
     }
   ]
 }

@@ -184,10 +184,23 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 /// 場所の文字列は実機と同じ形にしてある（`保存場所名 + root からの相対パス`。
 /// 004 REQ-009）。幅に入りきらないときに**先頭が省略されて末尾が残る**ことも、
 /// これで確かめられる。
+///
+/// **元場所ハンドルと所属フォルダは `demo:` で始まる作り物にする**（`008:T04`）。
+/// 行の × はハンドルを持つ行にだけ出る（004 REQ-006）ので、持たせないと
+/// **デモでは1件も外せない** — checkbox を廃止した後（002 REQ-016）は、対象の
+/// 出し入れが除去だけなので確かめようがなくなる。
+///
+/// **実在しそうなパスにしない。** `/storage/emulated/0/DCIM/Camera/IMG_0009.jpg`
+/// のような値にすると、デモのつもりの操作が**実機の本物のファイルを改名しうる**。
+/// `demo:` から始まる値は実ファイルとして開けないので、実行は 005 の失敗経路
+/// （占有名を列挙できない・ファイルが無い）で安全に止まる。
 List<FileEntry> _sampleFiles() {
   final base = DateTime(2026, 3, 1, 9);
   const camera = 'Internal shared storage/DCIM/Camera';
   const download = 'Internal shared storage/Download';
+  // **実在しないことが明らかな値**にする（上の注記）。
+  const cameraFolder = 'demo:/DCIM/Camera';
+  const downloadFolder = 'demo:/Download';
   // (名前, サイズ, 作成日時を取得できたか, 表示用の場所)
   final names = <(String, int, bool, String)>[
     ('IMG_0009.jpg', 2_400_000, true, camera),
@@ -210,8 +223,10 @@ List<FileEntry> _sampleFiles() {
         sourceLocation: names[i].$4,
         // **所属フォルダも揃えて持たせる。** 表示だけ2フォルダにすると、001 の
         // 重複判定（フォルダ単位）が1フォルダとして数えて表示と食い違う。
-        sourceFolder:
-            '/storage/emulated/0/${names[i].$4 == camera ? 'DCIM/Camera' : 'Download'}',
+        sourceFolder: names[i].$4 == camera ? cameraFolder : downloadFolder,
+        // **行の × を出すために要る**（004 REQ-006）。
+        sourceHandle:
+            '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',
       ),
   ];
 }

@@ -76,4 +76,38 @@ void main() {
       reason: '混在しているのに行が場所を出していない',
     );
   });
+
+  testWidgets('demo dataの全行が外せる(008:T04 / 004 REQ-006)', (tester) async {
+    // **行の × はハンドルを持つ行にだけ出る。** checkbox を廃止した後
+    // (002 REQ-016)は対象の出し入れが除去だけなので、ハンドルを持たない
+    // demo data では**1件も外せない**(2026-09-18 の実機確認で観測した)。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    final rows = tester
+        .widgetList<RowPreviewView>(find.byType(RowPreviewView))
+        .length;
+    expect(rows, greaterThan(0));
+    // 描画されている行と同じ数だけ × がある(どれか1行だけ外せない、を排除する)。
+    expect(find.byTooltip('このファイルを外す'), findsNWidgets(rows));
+  });
+
+  testWidgets('demo dataのハンドルは実在しうるpathにしない(008:T04)', (tester) async {
+    // `/storage/emulated/0/DCIM/Camera/IMG_0009.jpg` のような値にすると、
+    // **デモのつもりの操作が実機の本物のファイルを改名しうる**。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    final view = tester.widget<FileListView>(find.byType(FileListView));
+    final items = view.controller.items;
+    expect(items, isNotEmpty);
+    for (final item in items) {
+      expect(item.sourceHandle, startsWith('demo:'), reason: item.name);
+      expect(item.sourceFolder, startsWith('demo:'), reason: item.name);
+    }
+  });
 }
