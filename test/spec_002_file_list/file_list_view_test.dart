@@ -194,6 +194,38 @@ void main() {
     expect(find.byKey(removalUndoStaleKey), findsOneWidget);
   });
 
+  testWidgets('占有名を取り直した後の取り消しは、古い観測へ戻さない(005 REQ-026/028)', (tester) async {
+    // **独立review attempt 2 の N-3。** 005 の実行準備は `items` にも `sortMode` にも
+    // 触れず、占有名だけを取り直す。そこを見ていないと、取り直したばかりの観測を
+    // 古い控えで上書きする。
+    final c = FileListController(
+      files: [
+        _f('a.txt', handle: 'h:a'),
+        _f('b.txt', handle: 'h:b'),
+      ],
+      rule: _seq2,
+    );
+    c.setOccupiedNames({
+      'folder': {'old.txt'},
+    });
+    await _pump(tester, c);
+
+    await tester.tap(find.byTooltip('このファイルを外す').at(1));
+    await tester.pumpAndSettle();
+    c.setOccupiedNames({
+      'folder': {'new.txt'},
+    });
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.occupiedNames, {
+      'folder': {'new.txt'},
+    });
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
   testWidgets('続けて外したときは、直前の1回だけが戻る(REQ-017)', (tester) async {
     // **これは戻せてよい。** 古い通知は次の除去で消えるので、控えは常に
     // 「いまの一覧の1手前」である。

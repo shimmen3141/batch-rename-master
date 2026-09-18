@@ -41,6 +41,14 @@ void removeUndoably(
   // (すでにその順だった場合)、項目だけを見ていると「動いていない」と読める。
   // そこで戻すと、`sortMode` と表示順が食い違った一覧ができる。
   final afterSortMode = controller.sortMode;
+  // 占有名も見る。**除去は占有名を動かさない**ので [occupied] が除去後の値でもある。
+  // 005 の実行準備は `items` にも `sortMode` にも触れずにここだけ取り直すので
+  // (`RenameExecutionController.prepare`)、見ていないと**取り直した観測を古い控えで
+  // 上書きする**(独立review attempt 2 の N-3)。
+  //
+  // **同一性で比べる。** `setOccupiedNames` は必ず新しい map を作るので、
+  // 内容が同じでも「取り直された」ことが分かる。取り直しただけで取り消しを
+  // 断るのは**安全側に倒しすぎ**だが、誤って戻すよりよい。
   final removed = before.length - controller.items.length;
   // **何も外れていないなら通知しない。** `removeFile` は一致が無ければ無変化で
   // (002 REQ-009)、そのとき「外しました」と出すのは嘘になる。
@@ -62,6 +70,7 @@ void removeUndoably(
             // 002 REQ-017 は「次の操作の後は取り消せなくてよい」としているが、
             // **誤って戻すことまでは許していない。**
             if (controller.sortMode != afterSortMode ||
+                !identical(controller.occupiedNames, occupied) ||
                 !_sameItems(controller.items, after)) {
               messenger
                 ..hideCurrentSnackBar()

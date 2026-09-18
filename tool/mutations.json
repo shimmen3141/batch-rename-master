@@ -2048,6 +2048,13 @@
       "find": "    if (!identical(a[i], b[i])) return false;",
       "replace": "    if (a[i].name != b[i].name) return false;",
       "note": "008:T04 項目の同一性を名前で代用する — 005 の改名は項目を新しいハンドルの値へ差し替えるので(005 REQ-018)、名前が同じだけの別物を「動いていない」と読む"
+    },
+    {
+      "id": "M302",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "                !identical(controller.occupiedNames, occupied) ||\n",
+      "replace": "",
+      "note": "008:T04 占有名の取り直しを見ない — 005 の実行準備は items にも sortMode にも触れずに占有名だけを取り直すので、取り消しが**取り直したばかりの観測を古い控えで上書きする**(独立review attempt 2 の N-3)"
     }
   ]
 }
