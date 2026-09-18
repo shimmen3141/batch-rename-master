@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T03",
   "title": "選択と除去の振る舞いを定義する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 172,
   "manualVerification": null
 }
