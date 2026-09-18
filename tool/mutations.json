@@ -1789,6 +1789,41 @@
       "find": "                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
       "replace": "                        rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
       "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5"
+    },
+    {
+      "id": "M265",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (names.length == 1) return names.single;\n    return '複数のフォルダ';",
+      "replace": "    return names.first;",
+      "note": "008:T08 場所が2つ以上でも具体名を出す — 要望12「具体的なフォルダ名を表示せずに提示する」の退行。どの folder のものか読めない名前が帯に1つだけ出る"
+    },
+    {
+      "id": "M266",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (names.length == 1) return names.single;",
+      "replace": "    if (names.isEmpty) return names.single;",
+      "note": "008:T08 場所が1つのときも「複数のフォルダ」にする — 同一folder(Androidは常にこれ)で folder 名が読めなくなる。行側は場所を出さないので出所が消える"
+    },
+    {
+      "id": "M267",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (names.isEmpty) return null;",
+      "replace": "    if (names.isEmpty) return '未選択';",
+      "note": "008:T08 場所を持たない行だけのときに「未選択」を出す — ファイルは入っているので嘘になる。「出さない」と「未選択」を区別している"
+    },
+    {
+      "id": "M268",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
+      "replace": "      'ファイルを選ぶ';",
+      "note": "008:T08 読み込み済みでも button が「ファイルを選ぶ」のまま — 要望11の文言の使い分けが消える(将来の「同じfolderから追加」と区別できない)"
+    },
+    {
+      "id": "M269",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
+      "replace": "      '別フォルダへ';",
+      "note": "008:T08 読み込み前から button が「別フォルダへ」 — まだどこも選んでいないのに『別の』と言う。逆向きの対照"
     }
   ]
 }

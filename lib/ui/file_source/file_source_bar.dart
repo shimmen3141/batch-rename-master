@@ -75,7 +75,38 @@ class FileSourceBar extends StatefulWidget {
       .whereType<String>()
       .toSet()
       .length;
+
+  /// 帯に出す「いま何がどこから入っているか」(008:T08 要望11・12)。
+  ///
+  /// - 読み込み前: `未選択`
+  /// - 場所が1つ: **その folder 名**。行側は出さない(002 の決定。`008:T22`)
+  /// - 場所が2つ以上: **具体名を出さず**複数であることだけを示す(要望12)。
+  ///   どの行がどの folder かは行側が示す
+  /// - ファイルはあるが場所を持たない(デモデータ等): **`null`**。
+  ///   **嘘の場所も `未選択` も出さない** — ファイルは入っているので `未選択` は誤りである
+  static String? locationLabelOf(FileListController controller) {
+    if (controller.items.isEmpty) return '未選択';
+    final names = controller.items
+        .map((item) => item.sourceLocation)
+        .whereType<String>()
+        .toSet();
+    if (names.isEmpty) return null;
+    if (names.length == 1) return names.single;
+    return '複数のフォルダ';
+  }
+
+  /// 読み込み button の文言(要望11)。
+  ///
+  /// **読み込み済みなら `別フォルダへ`。** 将来「同じ folder から追加する」button が
+  /// できたときに使い分けられるよう、開発者が指定した文言である。
+  /// **「選択されていないとき」は一覧が空のとき**と読む — 行の checkbox を全部外しても
+  /// ファイルは入っているので、そこから読み込み先を選び直す導線は `別フォルダへ` のままが正しい。
+  static String pickLabelOf(FileListController controller) =>
+      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';
 }
+
+/// 帯の場所の提示。
+const Key sourceLocationLabelKey = Key('source-location-label');
 
 class _FileSourceBarState extends State<FileSourceBar>
     with WidgetsBindingObserver {
@@ -255,6 +286,7 @@ class _FileSourceBarState extends State<FileSourceBar>
       listenable: widget.controller,
       builder: (context, _) {
         final hasFiles = widget.controller.items.isNotEmpty;
+        final locationLabel = FileSourceBar.locationLabelOf(widget.controller);
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -271,13 +303,48 @@ class _FileSourceBarState extends State<FileSourceBar>
                 color: colors.surface,
                 border: Border(bottom: BorderSide(color: colors.border)),
               ),
-              child: Row(
+              // **`Row` ではなく `Wrap` である。** 場所の名前は端末の folder 名なので
+              // 長さが読めず、`Row` だと狭幅で button を押し出すか overflow になる。
+              // `Wrap` なら intrinsic 幅のまま次の行へ落ちる(ヘッダの件数と同じ理由)。
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  // いま何がどこから入っているか。**行側と二重に出さない**
+                  // (場所が1つなら行は出さない。002 の決定・`008:T22`)。
+                  if (locationLabel != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_outlined,
+                          size: 14,
+                          color: colors.textMuted,
+                        ),
+                        const SizedBox(width: 4),
+                        // 長い folder 名は自分の中で省略する(次の行へ落ちても
+                        // なお入らないときの最後の逃げ道)。
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 220),
+                          child: Text(
+                            locationLabel,
+                            key: sourceLocationLabelKey,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   OutlinedButton.icon(
                     key: const Key('pick-files-button'),
                     onPressed: () => _openKindSheet(context),
                     icon: const Icon(Icons.playlist_add, size: 16),
-                    label: const Text('ファイルを選ぶ'),
+                    label: Text(FileSourceBar.pickLabelOf(widget.controller)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colors.primary,
                       side: BorderSide(
@@ -289,7 +356,6 @@ class _FileSourceBarState extends State<FileSourceBar>
                       ),
                     ),
                   ),
-                  const Spacer(),
                   TextButton.icon(
                     key: const Key('clear-files-button'),
                     onPressed: hasFiles ? widget.controller.clearFiles : null,
