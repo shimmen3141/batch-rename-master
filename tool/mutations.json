@@ -1149,9 +1149,9 @@
     {
       "id": "M164",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
-      "replace": "      child: Row(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。",
-      "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる"
+      "find": "      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
+      "replace": "      child: Row(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
+      "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる。`008:T08` が場所の表示条件を変えたときに comment ごと追随させた(守る対象は不変)"
     },
     {
       "id": "M165",
@@ -1824,6 +1824,27 @@
       "find": "      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
       "replace": "      '別フォルダへ';",
       "note": "008:T08 読み込み前から button が「別フォルダへ」 — まだどこも選んでいないのに『別の』と言う。逆向きの対照"
+    },
+    {
+      "id": "M270",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (showLocation && file.sourceLocation != null)",
+      "replace": "          if (file.sourceLocation != null)",
+      "note": "008:T08 行の場所を常時表示へ戻す — 002 の代表例7b(場所が1種類なら行に出ない)の退行。改訂前の振る舞いそのものなので、対照として残す"
+    },
+    {
+      "id": "M271",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (showLocation && file.sourceLocation != null)",
+      "replace": "          if (false && showLocation && file.sourceLocation != null)",
+      "note": "008:T08 行の場所を一切出さない — 代表例7c(2種類以上なら各行に出る)の退行。desktopで跨いだとき、どの行がどの場所のものか読めなくなる。縮む方向の対照"
+    },
+    {
+      "id": "M272",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                .length >\n            1;",
+      "replace": "                .length >\n            0;",
+      "note": "008:T08 場所が1種類でも混在と見なす — 閾値を1件ずらす。帯と全行に同じ folder 名が並ぶ(要望11が冗長と言った状態)"
     }
   ]
 }

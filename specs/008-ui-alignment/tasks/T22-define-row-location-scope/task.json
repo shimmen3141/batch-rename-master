@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T22",
   "title": "行の場所を出す条件を定義する",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,

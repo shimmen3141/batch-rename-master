@@ -42,6 +42,19 @@ FileEntry _knownCreatedAt() => FileEntry(
   sourceHandle: '/storage/emulated/0/DCIM/Camera/IMG_20261231_235959.jpg',
 );
 
+/// **別フォルダの**行(作成日時は取れていない)。
+///
+/// `008:T22` の改訂で、行が場所を出すのは**一覧に複数の場所が混ざっているときだけ**に
+/// なった。(h) の再現条件(場所が狭幅で行の幅を使い切る)を保つには、**混在状態を
+/// 作る必要がある** — 1 folder だけの一覧では場所の行そのものが出ない。
+FileEntry _otherFolder() => FileEntry(
+  name: 'IMG_20260805_170000.jpg',
+  modifiedAt: DateTime(2026, 8, 5, 17),
+  size: 0,
+  sourceLocation: 'Download',
+  sourceHandle: '/storage/emulated/0/Download/IMG_20260805_170000.jpg',
+);
+
 /// pump 中に起きた layout error(overflow を含む)。
 Future<List<String>> _errorsWhilePumping(
   WidgetTester tester,
@@ -69,6 +82,25 @@ Future<void> _pumpAt(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final controller = FileListController(files: [_unknownCreatedAt()]);
+  controller.setSortMode(FileSortMode.createdAt);
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: appDarkTheme(),
+      home: Scaffold(body: FileListView(controller: controller)),
+    ),
+  );
+}
+
+/// **場所が混在する**一覧を描く(先頭行が `DCIM/Camera`、2行目が `Download`)。
+///
+/// この状態でだけ行に場所が出る(002 の決定・`008:T22`)。(h) の主張はこの状態が
+/// 最も厳しいので、狭幅の検査はここでも行う。
+Future<void> _pumpMixedAt(WidgetTester tester, Size size) async {
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final controller = FileListController(
+    files: [_unknownCreatedAt(), _otherFolder()],
+  );
   controller.setSortMode(FileSortMode.createdAt);
   await tester.pumpWidget(
     MaterialApp(
@@ -164,12 +196,26 @@ void main() {
       }
     });
 
-    testWidgets('場所は日時と別の行に出る', (tester) async {
-      await _pumpAt(tester, const Size(360, 640));
+    testWidgets('場所が混在するときは、場所が日時と別の行に出る', (tester) async {
+      await _pumpMixedAt(tester, const Size(360, 640));
 
       // 同じ `Text` に同居していれば、場所だけの完全一致では見つからない。
       // 見つかること自体が「別の行にある」ことを示す。
       expect(find.text('DCIM/Camera'), findsOneWidget);
+      expect(find.text('Download'), findsOneWidget);
+    });
+
+    testWidgets('場所が出ている行でも `作成日時: 不明` が省略されない', (tester) async {
+      // (h) の再現条件はこちらが最も厳しい。場所の行が加わっても、作成日時は
+      // 丸ごと残る(**行数で解く**。優先順位ではない)。
+      await _pumpMixedAt(tester, const Size(360, 640));
+
+      final createdAt = find.byKey(rowCreatedAtKey).first;
+      expect(
+        _isTruncated(tester, createdAt),
+        isFalse,
+        reason: '場所が出ている狭幅の行で `作成日時: 不明` が省略されている((h)の見切れ)',
+      );
     });
 
     testWidgets('狭幅で削られるのは更新日時の側である', (tester) async {

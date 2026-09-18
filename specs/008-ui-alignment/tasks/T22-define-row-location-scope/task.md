@@ -60,11 +60,22 @@ OSのpickerを開くので後者になりうる。
 - 帯(読み込み導線)側の提示の体裁と文言は`T08`が持つ。**ここでは「一覧全体として1か所に示す」までを課す。**
 - 余白・字体は`T10`。
 
+## 再承認(2026-09-18)
+
+**開発者が承認した。** 記録した場所は次の3つである。
+
+- 002 `spec.md` の Status 行(「2026-09-18 に 008 T22 由来の更新…を開発者が再承認。REQ-010 の要求(供給)は変えていない」)。
+- 002 `spec.md` の決定文(上の改訂案のとおり)と、**代表例 7b・7c**(1種類なら行に出ない / 2種類以上なら各行に出る。両方向)。
+- `plan.md` の決定表(2026-09-18 の2行目)。
+
+`covers`(`002:REQ-010`)は**実装task側の`T08`へ書いた**(`plan.md`の「`covers`は仕様更新taskが埋める」)。
+このtask自身の`covers`は空である。
+
 ## Current state / handoff
 
-- Last checkpoint: 改訂案を書き、開発者の選択(案A)を記録した(2026-09-18)
-- Blocker category: human-decision
-- Waiting for: 002 `spec.md`改訂版の**再承認**
-- Requested action: 下の改訂案の承認
-- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)
-- Next Agent action: 承認を受けたらspec.mdのStatus行とplan.mdの決定表へ記録し、`T08`が行の条件付き表示を実装する
+- Last checkpoint: 002 specを改訂し、開発者の再承認を記録して**done**にした(2026-09-18)
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`
+- Next Agent action: なし(実装は`T08`が続ける)

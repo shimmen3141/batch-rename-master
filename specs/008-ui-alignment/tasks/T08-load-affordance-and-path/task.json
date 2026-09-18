@@ -4,7 +4,9 @@
   "title": "読み込み導線と場所の提示を整える",
   "status": "in_progress",
   "dependsOn": [],
-  "covers": [],
+  "covers": [
+    "002:REQ-010"
+  ],
   "issue": null,
   "pullRequest": 170,
   "manualVerification": "manual-verification.md"
