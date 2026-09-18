@@ -110,11 +110,21 @@ swipe の代替導線は作らない。誤って外したときは**取り消し
   `executeLabel`、`selectedCount == 0`)は、選択の概念が UI から消えると
   **「一覧が空」を意味する**ようになる。文言の見直しは 005 REQ-019/020 の範囲なので `T20` が持つ。
 
+## 承認と、承認時に受領した2件(2026-09-18)
+
+**002/004 spec を開発者が再承認した。** 両 spec の Status 行へ記録し、`T04` の `covers` へ
+`002:REQ-016` / `002:REQ-017` を書いた。
+
+| # | 受領した内容 | 扱い |
+|---|---|---|
+| 1 | 「除去は×から簡単にできるが、追加はフォルダから選び直す必要がある。アプリ側と同じ選択状態・同じ選択フォルダへすぐ飛べる導線があるとよい、という議論が過去にあったはずだが記録されているか」 | **記録されている。** `specs/product-map.md` の将来候補「**読み込み画面の状態復元**」(`013:T07` の実機確認で 2026-08-25 に開発者が挙げた。本人が「ふとした思い付き」と明示)。**この決定で位置づけが変わった**ので追記した — checkbox廃止で除去と追加が非対称になったため、**便利機能ではなくその非対称を埋める導線**になった。着手するなら browser の入口(`008:T11`)と同じ画面を触る |
+| 2 | 通知(toast)を右上の円＋×で閉じられるようにしたい(原文は `T25` に置いた) | **[`T25`](../T25-dismissible-toast/task.md) を新設して引き受けた。** `T04` が出す取り消しの通知も同じ形に揃える |
+
 ## Current state / handoff
 
-- Last checkpoint: 002/004 spec の改訂案を書いた(REQ-016/REQ-017 の新設と代表例4件)
-- Blocker category: decision
-- Waiting for: 改訂した 002/004 spec の**再承認**(開発者)
-- Requested action: 上の「書いた差分(承認の対象)」の内容で承認するか、直す点を示す
-- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`(`dev@bb8c7a9` から作成)
-- Next Agent action: 承認を Status 行へ記録し、`T04` の `covers` を埋めて `workspace.py check specs` を通す
+- Last checkpoint: 002/004 spec を開発者が**再承認**。Status 行へ記録し、`T04` の `covers` を埋めた
+- Blocker category: none
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T03-define-selection-flow`
+- Next Agent action: 独立reviewを回し、PASSしたら PR を ready にして merge する。実装は `T04`

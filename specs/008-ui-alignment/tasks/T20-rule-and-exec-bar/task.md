@@ -259,6 +259,13 @@ mutation --list:    232 mutations, 0 with an unexpected match count
 M43 KILLED / M192 SURVIVED(等価) / M241 KILLED
 ```
 
+### 引き受けた文言(`008:T03`から。2026-09-18)
+
+- **実行buttonの `対象を選択してください`**(`rename_warning_view.dart` の `executeLabel`、
+  `selectedCount == 0` の分岐)。`T03` が行の checkbox を廃止して「一覧＝rename対象」にしたので
+  (002 REQ-016)、この分岐は**「一覧が空」**を意味するようになる。文言の見直しは 005 REQ-019/020 の
+  範囲なのでここが持つ。**判定そのものは変えない** — 0件で実行へ入らないことは 005 REQ-019 のままである。
+
 ## Current state / handoff
 
 **この節は主張を持たない**(`008:T18` で5回続けて落ちた型を避ける)。検証結果は
