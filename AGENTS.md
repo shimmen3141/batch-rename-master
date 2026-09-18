@@ -92,9 +92,9 @@ CIで実行できない領域(実機、別OS、別arch、外部service)を含む
 独立reviewを走らせるmodelは既定でSonnetとする。照合(仕様・実装・記録の突き合わせとmutationの実行)が主で、判断より読み取りが効く作業だからである。次のいずれかではOpusを使う。
 
 - 判定そのもの、contract、権限、データ保護に触れるtask
-- 同じtaskで独立reviewが2回FAILした後
+- 同じtaskで**成果物の欠陥**によるFAILが2回続いた後(安全網の穴だけのFAILが2回続いた場合は3回目の独立reviewを起動しないので、ここには数えない)
 
-reviewerはmutationの表を全件流し直さない。所有task側が回した生出力がtaskへ残っているので、**疑わしいものと、reviewer自身が設計した対照だけ**を回す。回すときは変更に対応するtestへ範囲を絞ってよい(例: `flutter test test/spec_005_rename_exec test/spec_002_file_list`)。**`SURVIVED`が出たものだけ全件で確かめ直す** — `KILLED`は範囲を狭めても結論が変わらないためである。`tool/mutations.json`の`command`は全件のまま置く(表は一つのcommandしか持てず、001のコア判定やdataのmutationも同じ表にある)。
+reviewerはmutationの表を全件流し直さない。所有task側が回した生出力がtaskへ残っているので、**疑わしいものと、reviewer自身が設計した対照だけ**を回す。回すときは変更に対応するtestへ範囲を絞ってよい。`mutation_check.py`は表の`command`しか実行せずCLIで上書きできないので、**絞るときは表を作業用のpathへcopyし、`command`を範囲付きのtest(例: `["flutter", "test", "test/spec_005_rename_exec", "test/spec_002_file_list"]`)へ差し替え、回す`mutations`だけを残して`--root .`で実行する**(手で当てて手で数えないこと自体は緩めない)。**`SURVIVED`が出たものだけ全件で確かめ直す** — `KILLED`は範囲を狭めても結論が変わらないためである。`tool/mutations.json`の`command`は全件のまま置く(表は一つのcommandしか持てず、001のコア判定やdataのmutationも同じ表にある)。
 
 正本(仕様、contract、plan、task)を変更するときは、適用の成否が返る編集手段を使う。read-modify-writeのscriptで書き換える場合は、書き戻し後の値を読み直して照合する処理をscript自身へ含める。構造検査やtestのPASSは「壊していない」であって「意図した変更が入った」ではない。
 

@@ -34,15 +34,16 @@ reviewerが流し直した14件は、**所有task側が同じ表で回して生�
 
 ## 変更先と検証
 
-- `AGENTS.md`の「検証とreview」へ次を追記した。
-  - reviewerは表を全件流し直さず、**疑わしいものとreviewer自身が設計した対照だけ**を回す。
-  - 回すときは変更に対応するtestへ**範囲を絞ってよい**。**`SURVIVED`が出たものだけ全件で確かめ直す**
-    (`KILLED`は範囲を狭めても結論が変わらない)。
-  - `tool/mutations.json` の `command` は**全件のまま置く**。
-  - 独立reviewのmodelは既定でSonnet。判定・contract・権限・データ保護に触れるtaskと、2回FAIL後はOpus。
+- 変更先は `AGENTS.md` の「検証とreview」節(独立reviewを走らせるmodelと、mutationを流し直す範囲)。
+  **規則そのものはそちらが正本なので、ここへ書き写さない。**
 - forward-test: `008:T19` の attempt 2 でこの指示を適用した。mutation **16件**を範囲を絞って回して
-  16 KILLED / 0 SURVIVED、review全体は **約14分**。所要時間は下がったが、**attempt 1 で見つかった
-  P1 2件の再発検出(`M262` / `M263`)は同じく効いていた。**
-- 未確認: 実装量の多いtaskでどこまで縮むか(attempt 2 はreviewerのprobeが多く、縮み幅は
-  mutation側だけで測れていない)。Sonnetが attempt 1 相当の欠陥(同名判定の数え方)を
-  見つけられるかも未確認 — あの2件はOpusのreviewが見つけている。
+  16 KILLED / 0 SURVIVED、review全体は **約14分**(attempt 1 は16分半)。所要時間は下がったが、
+  **attempt 1 で見つかった P1 2件の再発検出(`M262` / `M263`)は同じく効いていた。**
+- 検証: `workspace.py check specs` = PASS、`flutter test test/tooling` = PASS(5)。
+  **`tool/check_normative_terms.py` は `specs/` しか見ないので、`AGENTS.md` と
+  この file の書き写しはCIでは捕まらない**(独立review 2026-09-18 の指摘3)。
+- 未確認: 実装量の多いtaskでどこまで縮むか(attempt 2 はreviewerのprobeが多く、縮み幅を
+  mutation側だけで測れていない)。**review全体の壁時計時間(16分半・約14分)はAgentの自己申告**で、
+  commitのtimestampからは再現できない — 個々の操作コスト(上の表)だけが実測である。
+  Sonnetが attempt 1 相当の欠陥(同名判定の数え方)を見つけられるかも未確認 —
+  あの2件はOpusのreviewが見つけている。
