@@ -212,6 +212,19 @@ assertion** を足して閉じた。`M257` / `M258` / `M260` は修正で `find`
 9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### attempt 2(2026-09-18、range `3821ac0...f8b9a1f`)— **PASS**
+
+P0/P1 なし。attempt 1 の P1-1 / P1-2 の修正が実挙動として効いていること(`M262` / `M263` が KILLED)、
+行の詳細が畳み込みを経ないこと(`M264` が KILLED)、追随させた6件が元の保証を守り続けていることを確認した。
+16件の mutation を範囲を絞って回して **16 KILLED / 0 SURVIVED**。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P2 | 成果物の欠陥 | manual手順の前提の件数が誤り。fixtureは `.png` 24件 + `.jpg` / `.txt` / `.pdf` 各1件で、重複は**拡張子を含めた変更後名**で判定するため、重複は24件・全体は51件(手順は「27件すべてが同じ名前 → 54件」と書いていた) | **直した。** 内訳を書き、手順1の件数を `51 件の問題` にした |
+
+reviewer は「`名前が重複`(行) と `名前の重複`(詳細)は別の字面だが、宣言した検証範囲は日時と桁不足の語彙に
+限っており、同じ概念の活用形なので欠陥としない」と判断している。**このtaskはその判断のまま進める。**
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -226,9 +239,9 @@ assertion** を足して閉じた。`M257` / `M258` / `M260` は修正で `find`
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 の FAIL を直した(2026-09-18)
-- Blocker category: なし
-- Waiting for: なし
+- Last checkpoint: 独立review attempt 2 が PASS、手順の件数を直した(2026-09-18)。**`lib/` の最終commitは `66ad663`**
+- Blocker category: human-verification
+- Waiting for: Android実機のmanual確認
 - Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T19-warning-detail-modal`(`dev@3821ac0` から作成)
-- Next Agent action: 独立review attempt 2 を起動する。PASS 後に manual確認を依頼する
+- Next Agent action: manual確認の結果を待つ
