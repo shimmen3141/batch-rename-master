@@ -36,7 +36,7 @@
 その結果、実機では `Internal shared storage/DCIM/t07-fixtures` のような長い文字列になり、
 `TextOverflow.ellipsis` が**末尾から削る**ので、**全folderで共通の接頭辞だけが残る**。
 
-## 開発者へ出した選択肢(2026-09-18)
+## 開発者の決定(2026-09-18): 案A — 先頭を省略して末尾を残す
 
 | 案 | 見え方 | 代償 |
 |---|---|---|
@@ -44,12 +44,161 @@
 | B | **場所を2行目へ**出す(buttonは右上に固定のまま) | 多くの端末では全体が見える。帯が1行分高くなる(要望13の「余白を稼ぐ」方向と逆) |
 | C | 1行のまま、入りきらなければ**末尾のfolder名だけ**(`t07-fixtures`) | 最短で確実に読める。**同名folderの区別が消える**(P2-1が否定した形に近い) |
 
+**案Aを選んだ。** 帯の高さを増やさずに判別できる部分が残り、案Cが失う上位folderの区別も
+幅がある限り残る。案B(2行化)と案C(末尾のfolder名だけ)は採らない。
+
+## machine検証する範囲(着手時の宣言)
+
+**閉じる**:
+
+- 幅が足りるときは**全体を出す**。足りないときは**先頭のsegmentから落として `…/` を付ける**。
+- **落とす段数は入るところまで**(`…/DCIM/t07-fixtures` が入るならそれを出し、`…/t07-fixtures` へ
+  落とさない)。
+- 1 segmentしか残らず、それでも入らないときは**末尾から省略する**(`t07-fix…`)。
+  folder名の**頭**のほうが判別に効くためである。
+- **`/` を含まない文言は形を変えない**(`未選択` / `複数のフォルダ` / 場所を持たないとき)。
+- `T08` が固定した保証を壊さない: 帯が画面幅いっぱい / folder名の長さでbuttonが動かない /
+  狭幅・大きい文字ではみ出さない。
+- demo dataが**2 folder分の場所**を持ち、起動直後に帯が `複数のフォルダ`、各行に場所が出る。
+
+**閉じられない範囲と引き受け先**:
+
+- **実機の字形での見え方**(省略位置が読みやすいか、`…/` が記号として伝わるか)。
+  → このtaskの `manual-verification.md` で開発者に見てもらう。
+- **文字の大きさ・字体の最終調整** → [`T10`](../T10-spacing-and-typography/task.md)。
+
+## 実装の記録(2026-09-18)
+
+### 共有widget `SourcePathText` を作った
+
+`lib/ui/file_source/source_path_text.dart`。**帯と行の両方が使う** — 同じ文字列
+(004 REQ-009)を出しているので、片側だけ直すと混在時に見え方が割れる。
+
+- `visibleSourcePathOf` が**表示文そのもの**を返す純関数である。`TextPainter` で候補を測り、
+  **入る中で最も長いもの**を選ぶ。
+- **測る体裁と描く体裁を揃える。** `Text` は `DefaultTextStyle` と混ぜてから描くので、
+  混ぜた結果を測定にも描画にも渡す(混ぜる前で測ると境界が数px ずれて、省略が1段多くなる)。
+- **文字倍率も測定へ渡す**(`MediaQuery.textScalerOf`)。無視すると端末の「文字を大きく」設定で
+  予測が外れ、入らない文字列をそのまま出す(`T08` で2回踏んだはみ出しと同じ型)。
+- 鍵は**実際に描く `Text`** へ付ける(`textKey`)。`RenderParagraph` を見て省略の有無を
+  確かめる検査があるので、wrapperに付けると掴めない。
+
+**1 segmentも入らないときだけ向きが逆になる** — `…/` を付けずに最後のsegmentを返し、
+呼び出し側の `TextOverflow.ellipsis` に末尾を削らせる。folder名は**頭のほうが判別に効く**ためで、
+`…/` を付けると読める文字がさらに2つ減る(対照 `M286`)。
+
+### `/` を含まない文言は形を変えない
+
+`未選択` / `複数のフォルダ` / 場所を持たないときは、落とせる段が無いので加工しない
+(`segments.length < 2` で抜ける。対照 `M287`)。
+
+### demo dataを2フォルダに分けた(質問2)
+
+`main.dart` の `_sampleFiles()` を `Internal shared storage/DCIM/Camera` と
+`Internal shared storage/Download` に分け、**表示用の場所と所属folderハンドルの両方**を持たせた。
+片方だけにすると、001 の重複判定(folder単位)が1 folderとして数えて表示と食い違う。
+
+**これが複数folder表示を実機で見られる唯一の経路である** — Androidは 004 REQ-016 で1 folder、
+desktopのpickerもfolderを跨げない。`widget_test.dart` に「帯が `複数のフォルダ` を選び、行が
+場所を出している」ことを固定した(対照 `M288`)。**「2種類見えるはず」とは書いていない** —
+`ListView` は見えている行しか作らないので、viewportの高さに依存する検査になる。
+
+## mutation の記録
+
+`M278` の錨が `T23` で共有widgetへ移ったので**貼り直した**(意図「省略せず折り返す」は同じ)。
+`M280`〜`M288` を足した。範囲を絞って実行した(`AGENTS.md` の手順どおり、表をscratchへcopyし
+`command` を `flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`
+へ差し替えた)。
+
+```text
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
+M278 KILLED / M280 KILLED / M281 KILLED / M282 KILLED / M283 KILLED
+M284 KILLED / M285 KILLED / M286 KILLED / M287 KILLED / M288 KILLED
+```
+
+**置かなかった対照**: `maxWidth.isFinite` の番をやめる mutation。`fits` は
+`width <= double.infinity` を真と返すので**結果が変わらない**(等価mutant)。番は
+「幅が決まっていないところでは縮めない」という意図の表明として残す。
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(882。`T08` の866 + 16) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py --list`(全表) | `281 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M278`/`M280`〜`M288` = **10 KILLED, 0 SURVIVED**。reviewerの対照 `M289`/`M290` = **2 KILLED** |
+| `workspace.py check specs` | PASS(8 plans, 77 tasks) |
+| Android実機 | 手順1〜3 = **成立**(`4adb1ee`) |
+
+## 受け入れ証拠
+
+- 帯: 狭幅で `…/t07-fixtures` のように**末尾が残る**。幅が足りるときは丸ごと出す。
+  `未選択` は形が変わらない。はみ出さない。
+- 行: 混在時の場所も同じ見せ方になり、**共通の接頭辞だけが残る形**を排除した。
+- demo: 起動直後に帯が `複数のフォルダ`、行に場所が出る。
+- `T08` が固定した保証(帯の幅・buttonの位置・狭幅でのはみ出し)は**testごと据え置き**で、
+  すべてPASSしている。
+
+## 独立review
+
+### attempt 1(2026-09-18、range `02aacc8...db33f01`、Sonnet)— **PASS**
+
+P0/P1 なし。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P3 | 成果物の欠陥(記録) | `task.json` の `status` が `in_progress` のままで、handoff の「Waiting for: 独立review」と食い違う | **直した**(`in_review` へ) |
+| 2 | — | 参考情報(宣言範囲外) | 幅 **90dp** では、場所が `null` のときも button 側だけで overflow する。**場所の省略とは無関係**(全条件で一様に出る)で、`T08`/`T23` が宣言した範囲(320/360/411dp)の外 | **受容し、[`T10`](../T10-spacing-and-typography/task.md) へ引き渡した**。90dp の端末は実在せず、安全網の穴の条件(1)「製品経路に載っている」に当たらない |
+
+reviewer が独立に確かめたこと:
+
+- `flutter test` 882 PASS / `analyze` / `format` / `workspace.py check specs` — **`task.md` の主張と一致**。
+- 範囲を絞った mutation 10件を**自分で回して 10 KILLED / 0 SURVIVED** を再現。
+- **`T08` が固定した3保証が据え置きであること**を、既存testが `SourcePathText` 経由でそのまま
+  PASSしている事実から確認(幅3種 × 倍率3種 × 場所複数)。
+- demo data の `sourceLocation` と `sourceFolder` が対応していて、001 の重複判定(folder単位)と
+  食い違わないこと。
+- PR #171 の本文が `task.md` より強い主張をしていないこと。
+
+reviewer が設計した対照2件を**取り込んだ**(`AGENTS.md`: reviewが足したmutationは落とさない)。
+
+```text
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+M289 KILLED(段を全部落とせるようにする → `…/` だけが残る)
+M290 KILLED(空のsegmentを段として数える → 表示が空文字になる)
+```
+
+## manual確認の結果(2026-09-18)
+
+対象commit **`4adb1ee`**(`lib/` の最終commit。以後は記録のみ)、branch
+`asdd/008-ui-alignment/T23-source-path-legibility`、PR #171、**Android実機**。
+手順書は[`manual-verification.md`](manual-verification.md)。**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 1 起動直後(確認A〜D) | **成立** | 「各手順の確認事項について、すべて確認できました。」 |
+| 2 読み込んだあと(確認E〜H) | **成立** | 同上 |
+| 3 文字を大きくしたとき(確認I・J) | **成立** | 同上 |
+
+閉じたもの:
+
+- **先頭を省略して末尾を残す形が、実機の字形で読める**(確認E・F)。`…` の記号についての
+  差し替え要望は出ていない。
+- **文字を最大にしても末尾の folder 名が残り、はみ出さない**(確認I・J)。machineで振った
+  倍率(1.0〜2.0)より強い条件を実機が通った。
+- **複数フォルダの表示(帯の `複数のフォルダ` と行ごとの場所。002 代表例 7c)が実機で確認できた**
+  — demo dataを2フォルダに分けた目的そのものである(質問2)。**製品経路からは到達できないままだが、
+  表示の正しさは目で確かめられた。**
+- `T08` が固定した保証(帯の幅・buttonの位置・はみ出し)が生きていること(確認H)。
+
 ## Current state / handoff
 
-- Last checkpoint: taskを作成し、`T08` の2回目の実機確認から要望を受け取った
-- Blocker category: decision
-- Waiting for: 上の案A/B/Cの選択(開発者)
-- Requested action: 案A/B/Cのどれで場所を見せるかを選ぶ(質問済み)
-- Evidence revision: 未着手(観測は `T08` の `f71e2f6` に対する2回目の実機確認)
-- Next Agent action: 選ばれた案を記録し、実装 → 機械検証 → 独立review → 実機確認。
-  実機確認は**質問2のdemo data**と同じ回にまとめて依頼する
+- Last checkpoint: 独立review attempt 1 = PASS、**Android実機の手順1〜3がすべて成立**
+- Blocker category: none
+- Waiting for: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)、PR #171
+- Next Agent action: PR #171 を ready にして merge し、`dev` で smoke を確認する

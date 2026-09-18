@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T23",
   "title": "読み込んだ場所の表示を読めるようにする",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
-  "manualVerification": null
+  "pullRequest": 171,
+  "manualVerification": "manual-verification.md"
 }

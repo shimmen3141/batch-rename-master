@@ -7,6 +7,7 @@ import '../file_list/file_list_controller.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
+import 'source_path_text.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
 ///
@@ -338,14 +339,13 @@ class _FileSourceBarState extends State<FileSourceBar>
                                   color: colors.textMuted,
                                 ),
                                 const SizedBox(width: 4),
-                                // 入りきらない分は省略する(実機確認で「このままでよい」と
-                                // 確認済み)。**button を押し出さない**のが要点である。
+                                // 入りきらない分は省略する。**button を押し出さない**のが
+                                // 要点である。**省略するのは先頭側**で、判別に効く末尾を残す
+                                // (`…/DCIM/t07-fixtures`。2026-09-18 の実機確認 → `008:T23`)。
                                 Flexible(
-                                  child: Text(
-                                    locationLabel,
-                                    key: sourceLocationLabelKey,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: SourcePathText(
+                                    text: locationLabel,
+                                    textKey: sourceLocationLabelKey,
                                     style: TextStyle(
                                       color: colors.textSecondary,
                                       fontSize: 12,

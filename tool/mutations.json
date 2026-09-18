@@ -1883,10 +1883,10 @@
     },
     {
       "id": "M278",
-      "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                                    maxLines: 1,\n                                    overflow: TextOverflow.ellipsis,\n                                    style: TextStyle(\n                                      color: colors.textSecondary,\n                                      fontSize: 12,\n                                    ),",
-      "replace": "                                    maxLines: 3,\n                                    style: TextStyle(\n                                      color: colors.textSecondary,\n                                      fontSize: 12,\n                                    ),",
-      "note": "008:T08 長い folder 名を省略せず折り返す — 帯の高さが名前の長さで変わり、実機確認で「…で消えるのはこのままでよい」と確認した振る舞いが崩れる"
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "        key: textKey,\n        maxLines: 1,\n        // **最後の1 segmentすら入らないときの逃げ道**(下の関数がそこで諦める)。\n        overflow: TextOverflow.ellipsis,\n",
+      "replace": "        key: textKey,\n        maxLines: 3,\n",
+      "note": "008:T08 長い folder 名を省略せず折り返す — 帯と行の高さが名前の長さで変わる。**008:T23 で錨が共有widget(`SourcePathText`)へ移った** — 省略の向きは変わったが、「1行に収める」保証は同じである"
     },
     {
       "id": "M279",
@@ -1894,6 +1894,83 @@
       "find": "                      constraints: BoxConstraints(\n                        maxWidth: constraints.maxWidth * 0.75,\n                      ),\n",
       "replace": "                      constraints: const BoxConstraints(),\n",
       "note": "008:T08 button 群の幅の上限を外す — Row が非flexの子へ無限幅を渡すため Wrap が折り返さず、320dp・文字倍率1.3 で帯が17〜25px はみ出す(独立review attempt 3 の N-1 そのもの)"
+    },
+    {
+      "id": "M280",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                  child: SourcePathText(\n                                    text: locationLabel,\n                                    textKey: sourceLocationLabelKey,\n",
+      "replace": "                                  child: Text(\n                                    locationLabel,\n                                    key: sourceLocationLabelKey,\n                                    maxLines: 1,\n                                    overflow: TextOverflow.ellipsis,\n",
+      "note": "008:T23 帯を素の Text へ戻す(末尾から省略する) — 実機で `Internal shared st…` となり、どのfolderから読み込んでも同じ表示になる。2026-09-18 の実機確認の指摘そのもの"
+    },
+    {
+      "id": "M281",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            SourcePathText(\n              text: file.sourceLocation!,\n              textKey: rowLocationKey,\n              style: base,\n            ),",
+      "replace": "            Text(\n              file.sourceLocation!,\n              key: rowLocationKey,\n              maxLines: 1,\n              overflow: TextOverflow.ellipsis,\n              style: base,\n            ),",
+      "note": "008:T23 行を素の Text へ戻す — 混在時にどの行も共通の接頭辞だけを出し、行が場所を出す目的(どの行がどのfolderか見分ける。002 代表例 7c)が果たせなくなる"
+    },
+    {
+      "id": "M282",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "    return width <= maxWidth;",
+      "replace": "    return width < maxWidth;",
+      "note": "008:T23 ぴったりの幅を「入らない」と読む — 省略が要らない場面で先頭が落ちる"
+    },
+    {
+      "id": "M283",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  if (fits(text)) return text;\n",
+      "replace": "",
+      "note": "008:T23 全体が入るかを見ずに必ず縮める — 広い画面でも `…/` が出て、上位folderの情報が消える"
+    },
+    {
+      "id": "M284",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "      textDirection: textDirection,\n      textScaler: textScaler,\n      maxLines: 1,",
+      "replace": "      textDirection: textDirection,\n      maxLines: 1,",
+      "note": "008:T23 測るときに文字倍率を無視する — 端末の「文字を大きく」設定で予測が外れ、入らない文字列をそのまま出す(帯のはみ出しと同じ型)"
+    },
+    {
+      "id": "M285",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  for (var drop = 1; drop < segments.length; drop++) {",
+      "replace": "  for (var drop = segments.length - 1; drop >= 1; drop--) {",
+      "note": "008:T23 落とせるところまで落としてしまう — 幅があっても `…/t07-fixtures` になり、同名folderの区別(上位folder)が要らないところで消える"
+    },
+    {
+      "id": "M286",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  return segments.last;",
+      "replace": "  return '…/${segments.last}';",
+      "note": "008:T23 最後の1 segmentにも `…/` を付ける — いちばん狭いところで読める文字が2文字ぶん減る(folder名は頭のほうが判別に効く)"
+    },
+    {
+      "id": "M287",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  if (segments.length < 2) return text;",
+      "replace": "  if (segments.isEmpty) return text;",
+      "note": "008:T23 落とせる段が無いときも加工する — `DCIM/` のような値で末尾の `/` が黙って消える(path として扱えない文言の形を変えない、という境界)"
+    },
+    {
+      "id": "M288",
+      "file": "lib/main.dart",
+      "find": "  const download = 'Internal shared storage/Download';",
+      "replace": "  const download = 'Internal shared storage/DCIM/Camera';",
+      "note": "008:T23 demo dataを1フォルダへ戻す — 複数フォルダの表示(帯の『複数のフォルダ』と行ごとの場所)を実機で目視できる唯一の経路が黙って消える(2026-09-18 の質問2)"
+    },
+    {
+      "id": "M289",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  for (var drop = 1; drop < segments.length; drop++) {",
+      "replace": "  for (var drop = 1; drop <= segments.length; drop++) {",
+      "note": "008:T23 段を全部落とせるようにする — いちばん狭いところで `…/` だけが残り、場所が1文字も読めなくなる。独立review attempt 1 が置いた対照(R1)"
+    },
+    {
+      "id": "M290",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  final segments = text.split('/').where((s) => s.isNotEmpty).toList();",
+      "replace": "  final segments = text.split('/').toList();",
+      "note": "008:T23 空のsegmentを段として数える — `DCIM/` のような値で表示が空文字になり、場所が消える。独立review attempt 1 が置いた対照(R2)"
     }
   ]
 }

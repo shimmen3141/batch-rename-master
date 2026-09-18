@@ -4,6 +4,7 @@ import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
+import '../file_source/source_path_text.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
@@ -1119,12 +1120,13 @@ class _DateSubInfo extends StatelessWidget {
           //
           // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
           // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
+          //
+          // **省略は先頭側から行う**(`…/DCIM/t07-fixtures`)。帯と同じ文字列なので、
+          // 同じ見せ方にする(`008:T23`)。
           if (showLocation && file.sourceLocation != null)
-            Text(
-              file.sourceLocation!,
-              key: rowLocationKey,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            SourcePathText(
+              text: file.sourceLocation!,
+              textKey: rowLocationKey,
               style: base,
             ),
           // **2つの日時は `Wrap` に置く。** 横に並びきらなければ更新日時が

@@ -175,12 +175,58 @@ void main() {
 
       expect(longName, shortName);
       // 省略されていること自体も固定する(省略せずに押し出す実装を排除する)。
+      // **ここは1 segmentだけが残る幅**なので、`008:T23` 後も末尾からの省略になる
+      // (`t07-fixtures-very-long-name` が入りきらない)。先頭からの省略は下の
+      // 「狭幅でも末尾の folder 名が残る」で固定している。
       expect(
         tester
             .renderObject<RenderParagraph>(find.byKey(sourceLocationLabelKey))
             .didExceedMaxLines,
         isTrue,
       );
+    });
+
+    testWidgets('狭幅でも、場所の末尾の folder 名が残る(008:T23)', (tester) async {
+      // **2026-09-18 の実機確認の指摘。** 末尾から削ると `Internal shared st…` と
+      // なり、**どのfolderから読み込んでも同じ表示**になる(004 の独立review
+      // attempt 2 の P2-1 が保存場所名だけの表示を否定したのと同じ理由)。
+      const path = 'Internal shared storage/DCIM/t07-fixtures';
+      final errors = <String>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = (details) =>
+          errors.add(details.exception.toString());
+      await _pumpAtWidth(
+        tester,
+        FileListController(
+          files: [_entry('a.jpg', handle: 'h:a', location: path)],
+        ),
+      );
+      FlutterError.onError = previous;
+
+      final shown = _location(tester)!;
+      expect(shown, isNot(path), reason: 'この幅では縮むはずである');
+      expect(shown, endsWith('t07-fixtures'), reason: '末尾が消えている: $shown');
+      expect(
+        shown.startsWith('Internal'),
+        isFalse,
+        reason: '共通の接頭辞だけが残っている: $shown',
+      );
+      // 縮めた結果がはみ出していないことも見る(省略せずに押し出す実装を排除する)。
+      expect(errors.where((e) => e.contains('overflow')), isEmpty);
+    });
+
+    testWidgets('幅が足りるときは場所を丸ごと出す(008:T23)', (tester) async {
+      // 常に先頭を落とす実装を排除する。`…/` は**入らないときだけ**出る。
+      const path = 'Internal shared storage/DCIM/t07-fixtures';
+      await _pumpAtWidth(
+        tester,
+        FileListController(
+          files: [_entry('a.jpg', handle: 'h:a', location: path)],
+        ),
+        width: 1200,
+      );
+
+      expect(_location(tester), path);
     });
   });
 

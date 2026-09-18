@@ -153,4 +153,38 @@ void main() {
 
     expect(find.byKey(rowLocationKey), findsNothing);
   });
+
+  testWidgets('狭幅では、行の場所も先頭が省略されて末尾が残る(008:T23)', (tester) async {
+    // 行に出る文字列は帯と同じ `保存場所名 + rootからの相対path`(004 REQ-009)である。
+    // 末尾から削ると、どの行も `Internal shared st…` になって**混在を見分ける役に
+    // 立たなくなる** — 行が場所を出す理由そのものが消える(002 代表例 7c)。
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(
+      tester,
+      FileListController(
+        files: [
+          _entry('a.jpg', location: 'Internal shared storage/DCIM/Camera'),
+          _entry('b.pdf', location: 'Internal shared storage/Download'),
+        ],
+      ),
+    );
+
+    final locations = _locations(tester);
+    expect(locations, hasLength(2));
+    expect(
+      locations[0],
+      endsWith('Camera'),
+      reason: '末尾が消えている: ${locations[0]}',
+    );
+    expect(
+      locations[1],
+      endsWith('Download'),
+      reason: '末尾が消えている: ${locations[1]}',
+    );
+    // **共通の接頭辞だけが残る形を排除する。**
+    expect(locations.every((l) => l.startsWith('Internal')), isFalse);
+    // 2つの行が別の場所だと見分けられる(混在表示の目的)。
+    expect(locations[0], isNot(locations[1]));
+  });
 }
