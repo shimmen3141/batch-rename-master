@@ -259,6 +259,29 @@ P0/P1 なし。**新規の指摘も無い。** N-3 が塞がっていること�
 - **描画されている行と同じ数だけ × がある**ことを `widget_test.dart` で固定した(対照 `M303`)。
   「どれか1行だけ外せない」も排除する。
 
+### attempt 4(2026-09-18、range `161b024...91e6498`、Sonnet)— **PASS**
+
+P0/P1 なし。**新規の指摘も無い。** demo data の `demo:` ハンドルが安全であることを、reviewer が
+**実装を実際に呼ぶ probe** で確かめた。
+
+- **`listNames` は両platformで失敗する。** `DesktopFileSource` / `AndroidFileSource` の
+  `listNames('demo:/DCIM/Camera')` をそれぞれ実際に呼び、`NameListFailed` を確認。
+  `demo:` は先頭が `/` でないので**相対path**として解決され、その名前のディレクトリは存在しない。
+- **改名も失敗する。** `DesktopRenameExecutor.rename('demo:/…/IMG_0009.jpg', …)` が `RenameFailed` で、
+  **実行前後でディレクトリに差分が無い**(何も作られていない)ことまで確認。**Android 専用の executor は
+  存在せず**(005 contract revision 6 以降は Android も同じ executor を通る)、この確認がそのまま
+  Android 側の根拠にもなる。
+- **デモから実行を要求しても安全に止まる。** `DemoApp` を結線したまま実際に `rename-action` を押す
+  end-to-end probe で、`rename-occupied-names-unavailable` が出て**確認ダイアログにも強制実行にも
+  到達しない**ことを確認(005 REQ-027 どおり)。
+- **× の数の検査**(`findsNWidgets(rows)`)が「どれか1行だけ外せない」も排除できること。
+- `M288`/`M303`/`M304` を独立に回して **3 KILLED**。
+
+reviewer の補足(重要): **`T04` 以前は demo data にハンドルが無かったため、`prepare()` の対象folder抽出
+から demo data 自体が外れており、`sourceFolder` が実在しそうな文字列(`/storage/emulated/0/…`)でも
+`listNames` は一度も呼ばれていなかった。** ハンドルを足したことで初めてこの経路が生きるので、
+`demo:` への変更は**ハンドル追加とセットで必要な修正**である(後付けの気休めではない)。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -275,10 +298,11 @@ P0/P1 なし。**新規の指摘も無い。** N-3 が塞がっていること�
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認で**手順2が実行できなかった**(demo data にハンドルが無く × が出ない)。直した
-- Blocker category: review
-- Waiting for: 独立review attempt 4(demo data の修正の確認)
-- Requested action: なし(その後 Android実機の**手順2だけ**の再確認を依頼する)
+- Last checkpoint: 独立review attempt 4 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `91e6498`**
+- Blocker category: human-verification
+- Waiting for: Android実機の**手順2**の再確認(手順3・4は `c7cf22b` で成立済み)
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順2。
+  **demo data が動いたので、手順1の確認B・Cもあわせて見てもらう**
 - Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
-- Next Agent action: attempt 4 の後、手順2の再確認を依頼する。**手順1・3・4 は `c7cf22b` で成立済み**だが、
-  **demo data が動いたので手順1(確認B・C)は見直しの対象になりうる**ことを依頼時に伝える
+- Next Agent action: 結果を記録し、成立していれば PR #173 を ready にして merge する。
+  **確認が終わるまで `/workspace` のbranchを動かさない**
