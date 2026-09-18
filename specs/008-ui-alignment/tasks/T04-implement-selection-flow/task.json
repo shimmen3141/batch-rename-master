@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T04",
   "title": "選択と除去の導線を実装する",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T03"
   ],
