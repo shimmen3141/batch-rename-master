@@ -67,12 +67,87 @@
   → このtaskの `manual-verification.md` で開発者に見てもらう。
 - **文字の大きさ・字体の最終調整** → [`T10`](../T10-spacing-and-typography/task.md)。
 
+## 実装の記録(2026-09-18)
+
+### 共有widget `SourcePathText` を作った
+
+`lib/ui/file_source/source_path_text.dart`。**帯と行の両方が使う** — 同じ文字列
+(004 REQ-009)を出しているので、片側だけ直すと混在時に見え方が割れる。
+
+- `visibleSourcePathOf` が**表示文そのもの**を返す純関数である。`TextPainter` で候補を測り、
+  **入る中で最も長いもの**を選ぶ。
+- **測る体裁と描く体裁を揃える。** `Text` は `DefaultTextStyle` と混ぜてから描くので、
+  混ぜた結果を測定にも描画にも渡す(混ぜる前で測ると境界が数px ずれて、省略が1段多くなる)。
+- **文字倍率も測定へ渡す**(`MediaQuery.textScalerOf`)。無視すると端末の「文字を大きく」設定で
+  予測が外れ、入らない文字列をそのまま出す(`T08` で2回踏んだはみ出しと同じ型)。
+- 鍵は**実際に描く `Text`** へ付ける(`textKey`)。`RenderParagraph` を見て省略の有無を
+  確かめる検査があるので、wrapperに付けると掴めない。
+
+**1 segmentも入らないときだけ向きが逆になる** — `…/` を付けずに最後のsegmentを返し、
+呼び出し側の `TextOverflow.ellipsis` に末尾を削らせる。folder名は**頭のほうが判別に効く**ためで、
+`…/` を付けると読める文字がさらに2つ減る(対照 `M286`)。
+
+### `/` を含まない文言は形を変えない
+
+`未選択` / `複数のフォルダ` / 場所を持たないときは、落とせる段が無いので加工しない
+(`segments.length < 2` で抜ける。対照 `M287`)。
+
+### demo dataを2フォルダに分けた(質問2)
+
+`main.dart` の `_sampleFiles()` を `Internal shared storage/DCIM/Camera` と
+`Internal shared storage/Download` に分け、**表示用の場所と所属folderハンドルの両方**を持たせた。
+片方だけにすると、001 の重複判定(folder単位)が1 folderとして数えて表示と食い違う。
+
+**これが複数folder表示を実機で見られる唯一の経路である** — Androidは 004 REQ-016 で1 folder、
+desktopのpickerもfolderを跨げない。`widget_test.dart` に「帯が `複数のフォルダ` を選び、行が
+場所を出している」ことを固定した(対照 `M288`)。**「2種類見えるはず」とは書いていない** —
+`ListView` は見えている行しか作らないので、viewportの高さに依存する検査になる。
+
+## mutation の記録
+
+`M278` の錨が `T23` で共有widgetへ移ったので**貼り直した**(意図「省略せず折り返す」は同じ)。
+`M280`〜`M288` を足した。範囲を絞って実行した(`AGENTS.md` の手順どおり、表をscratchへcopyし
+`command` を `flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`
+へ差し替えた)。
+
+```text
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
+M278 KILLED / M280 KILLED / M281 KILLED / M282 KILLED / M283 KILLED
+M284 KILLED / M285 KILLED / M286 KILLED / M287 KILLED / M288 KILLED
+```
+
+**置かなかった対照**: `maxWidth.isFinite` の番をやめる mutation。`fits` は
+`width <= double.infinity` を真と返すので**結果が変わらない**(等価mutant)。番は
+「幅が決まっていないところでは縮めない」という意図の表明として残す。
+
+## 検証の記録
+
+**この表は commit ごとに置き換える。**
+
+| 検査 | 結果 |
+|---|---|
+| `flutter test` | PASS(882。`T08` の866 + 16) |
+| `flutter analyze` | PASS(No issues found) |
+| `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
+| `mutation_check.py --list`(全表) | `279 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M278`/`M280`〜`M288` = **10 KILLED, 0 SURVIVED** |
+| `workspace.py check specs` | PASS(8 plans, 77 tasks) |
+| Android実機 | **未実施**(`manual-verification.md`) |
+
+## 受け入れ証拠
+
+- 帯: 狭幅で `…/t07-fixtures` のように**末尾が残る**。幅が足りるときは丸ごと出す。
+  `未選択` は形が変わらない。はみ出さない。
+- 行: 混在時の場所も同じ見せ方になり、**共通の接頭辞だけが残る形**を排除した。
+- demo: 起動直後に帯が `複数のフォルダ`、行に場所が出る。
+- `T08` が固定した保証(帯の幅・buttonの位置・狭幅でのはみ出し)は**testごと据え置き**で、
+  すべてPASSしている。
+
 ## Current state / handoff
 
-- Last checkpoint: taskを作成し、`T08` の2回目の実機確認から要望を受け取った
-- Blocker category: decision
-- Waiting for: 上の案A/B/Cの選択(開発者)
-- Requested action: 案A/B/Cのどれで場所を見せるかを選ぶ(質問済み)
-- Evidence revision: 未着手(観測は `T08` の `f71e2f6` に対する2回目の実機確認)
-- Next Agent action: 選ばれた案を記録し、実装 → 機械検証 → 独立review → 実機確認。
-  実機確認は**質問2のdemo data**と同じ回にまとめて依頼する
+- Last checkpoint: 実装と機械検証が完了(`flutter test` 882 PASS、範囲を絞った mutation 10 KILLED)
+- Blocker category: review
+- Waiting for: 独立review(Sonnet)
+- Requested action: なし(人間の作業は実機確認から)
+- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)
+- Next Agent action: 独立reviewを回し、PASSしたら実機確認を依頼する
