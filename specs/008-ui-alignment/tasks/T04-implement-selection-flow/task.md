@@ -282,6 +282,30 @@ reviewer の補足(重要): **`T04` 以前は demo data にハンドルが無か
 `listNames` は一度も呼ばれていなかった。** ハンドルを足したことで初めてこの経路が生きるので、
 `demo:` への変更は**ハンドル追加とセットで必要な修正**である(後付けの気休めではない)。
 
+## manual確認の結果(2026-09-18。2回目)
+
+対象commit **`ce1b25d`**(`lib/` の最終commit。以後は記録のみ)、PR #173、**Android実機**。
+依頼したのは**手順2**と、demo data が動いたことによる**手順1の確認B・C**である。
+**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 2 1件外して戻す(確認D〜H) | **成立** | 「手順2と確認B・Cについてすべて確認できました。」 |
+| 1 確認B・C(件数と行の見た目。再確認) | **成立** | 同上 |
+
+これで**手順1〜4がすべて成立**した(手順3・4は `c7cf22b`、手順1・2は `ce1b25d`)。
+`T04` が宣言した「machineで閉じられない範囲」は閉じた。
+
+### あわせて受領した提案は `T27` へ送った
+
+> ドラッグ用のつまみと×ボタンは並べないほうがよさそうです。…長押しすると選択・編集モードに
+> 切り替わって、複数選択・リネーム候補から外す操作ができるようになるのはどうでしょうか
+
+**`T04` の欠陥ではない。** ×とつまみが隣り合うこと自体は 002 の要求に反しておらず、両方とも
+承認済みの振る舞い(REQ-003 の並び替えと REQ-009 の除去)である。**押し間違いを構造的に無くす**
+という改善提案で、**002 REQ-016(行 UI は選択の切り替えを提示しない)と文面が衝突する**ため、
+仕様の判断から始める [`T27`](../T27-define-removal-selection-mode/task.md) を新設した。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -294,15 +318,13 @@ reviewer の補足(重要): **`T04` 以前は demo data にハンドルが無か
 | `mutation_check.py --list`(全表) | `295 mutations, 0 with an unexpected match count` |
 | 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED**。attempt 2 の修正分 `M299`〜`M302` = **4 KILLED**。実機確認の修正分 `M288`/`M303`/`M304` = **3 KILLED, 0 SURVIVED** |
 | `workspace.py check specs` | PASS(8 plans, 79 tasks) |
-| Android実機 | 手順1・3・4 = **成立**(`c7cf22b`)。**手順2は demo data の修正後に再確認が要る** |
+| Android実機 | 手順1〜4 = **成立**(手順3・4 = `c7cf22b`、手順1・2 = `ce1b25d`) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 4 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `91e6498`**
-- Blocker category: human-verification
-- Waiting for: Android実機の**手順2**の再確認(手順3・4は `c7cf22b` で成立済み)
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順2。
-  **demo data が動いたので、手順1の確認B・Cもあわせて見てもらう**
-- Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
-- Next Agent action: 結果を記録し、成立していれば PR #173 を ready にして merge する。
-  **確認が終わるまで `/workspace` のbranchを動かさない**
+- Last checkpoint: 独立review attempt 4 = PASS、**Android実機の手順1〜4がすべて成立**
+- Blocker category: none
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、PR #173
+- Next Agent action: PR #173 を ready にして merge する。長押しの選択モードの提案は `T27` が持つ
