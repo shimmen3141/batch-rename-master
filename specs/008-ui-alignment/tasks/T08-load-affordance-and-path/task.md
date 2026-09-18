@@ -314,27 +314,43 @@ P0/P1 なし。attempt 1 の4件が**すべて閉じている**ことを、revie
   **判定・実装は両方向をtestで固定してある**ので機械側は閉じているが、**手順4は実行できない**。
   仕様側の見直し(要否)は人間の判断であり、このtaskでは決めない。
 
+### attempt 3(2026-09-18、range `747943f...1560e1b`、Sonnet)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| N-1 | **P1** | 成果物の欠陥 | **320dp・文字倍率1.3 で帯が17px はみ出す。** button の位置を固定するために `Wrap` を `Row` へ組み替えたことで、`Row` が非flexの子へ無限幅を渡し、button の intrinsic 幅の合計が帯を超えた。**場所の名前とは無関係**(未選択でも出る)。`Wrap` 版では起きていなかった、私が入れた退行 | **直した。** `LayoutBuilder` で帯の幅を測り、**button 群の上限を75%で切ってから折り返させる**。幅3種 × 文字倍率3種 × 場所3状態の**27通り**で overflow が出ないことを widget test で固定し、対照 `M279` を置いた |
+| N-2 | P2 | 成果物の欠陥(記録) | PR #170 の本文が古い(「帯は `Row` ではなく `Wrap`」と現状と逆の説明、test 862件、mutation 266件、integration条件が attempt 2 待ちのまま)。attempt 1 と同種の再発 | **直した** |
+| N-3 | P2 | 成果物の欠陥(記録) | `T10` へ渡した残余risk「帯の右寄せが無くなった」が**同じ差分の中で既に解消済み**(右端からの gap は padding の 12px だけ)。`T08` 側の記述と矛盾したまま残っていた | **直した**(`T10` の記述を置き場所の引き渡しだけに絞った) |
+| N-4 | P3 | 成果物の欠陥(記録・軽微) | `M276` の note の因果が実際の落ち方と違う(帯の幅は外側の `stretch` が別に効くので落ちない。落ちるのは button の位置の検査) | **直した** |
+
+reviewer は `M276`〜`M278` を単体で当て直し、**3件とも crash ではなく意味の側で落ちている**(等価mutantではない)ことを確認している。
+
+**この時点で attempt 1(P1)・attempt 3(P1)と、成果物の欠陥によるFAILが2回。** `AGENTS.md` の
+「同じ根本原因が2回続いたら解き方を変える」に当たるので、**帯の幅の解き方を変えた** —
+「`Row` で固定配置にする」から「**幅を測って button 群の上限を切り、超えたら折り返す**」へ。
+次にFAILしたら3回目なので `blocked` にして人間へ返す。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(865) |
+| `flutter test` | PASS(866) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `269 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M164`/`M265`〜`M275` = 12 KILLED(reviewerが再現)、`M276`〜`M278` = 3 KILLED |
+| `mutation_check.py --list`(全表) | `270 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M164`/`M265`〜`M275` = 12 KILLED(attempt 2 が再現)、`M276`〜`M279` = 4 KILLED |
 | `workspace.py check specs` | PASS(8 plans, 75 tasks) |
-| Android実機 | 手順1・3 = 成立。**手順2の確認Dが不成立 → 直した(`87814f8`)。再確認が要る** |
+| Android実機 | 手順1・3 = 成立。**手順2は修正後の再確認が要る** |
 | Windows desktop | 手順4 = **実行できない**(OSのpickerがfolderを跨いだ選択を許さない) |
 
 ## Current state / handoff
 
-- Last checkpoint: 「すべて外す」の置き場所を開発者が決め(読み込み帯のまま)、`T04` へ見直しを送った。
-  desktopの到達不能をfindingへ記録した(2026-09-18)。**`lib/` の最終commitは `87814f8`**
+- Last checkpoint: 独立review attempt 3 のFAIL(P1: 狭幅のoverflow)を直し、27通りで固定した(2026-09-18)。
+  **`lib/` の最終commitは `f71e2f6`**
 - Blocker category: なし
-- Waiting for: 独立review attempt 3 → そのあと手順2の再確認(Android)
+- Waiting for: 独立review attempt 4 → そのあと手順2の再確認(Android)
 - Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: 独立reviewを回し、PASSしたら手順2だけの再確認を依頼する(手順4は実行不能として閉じる)
+- Next Agent action: attempt 4 を回す。**成果物の欠陥で3回目のFAILになったら `blocked` にして人間へ返す**
