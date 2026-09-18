@@ -166,6 +166,22 @@
   - key を1つ足した: `sourceLocationLabelKey`(`source-location-label`)。
 - **004 の契約は触っていない。** 読み込みの経路、種類選択、`multi-folder-warning` の発火条件は不変。
 
+### 行の場所(002の改訂を承認いただいた分。2026-09-18)
+
+- `file_list_view.dart`:
+  - 一覧の build で **場所の種類数を1回だけ数え**(`showRowLocation`)、`_FileRow` → `_DateSubInfo` へ渡す。
+    **行は自分だけを見ても混在を知れない**ので、判定は一覧側が持つ。行ごとに数えると一覧の長さの2乗で効く。
+  - `_DateSubInfo` は `showLocation && file.sourceLocation != null` のときだけ場所を出す(代表例 7b・7c)。
+- **`T07`から引き受けた(h)の主張を保った。** `row_presentation_test.dart` の狭幅の検査は
+  **1 folderのfixture**で書かれていて、改訂後はそこに場所の行が出ない = 再現条件が緩む。
+  **混在状態(`_pumpMixedAt`)を足し、「場所が出ている行でも `作成日時: 不明` が省略されない」を
+  新しく固定した。** 既存の狭幅の検査はそのまま残してある。
+- `location_view_test.dart` は**代表例7b / 7c に対応する形へ書き換えた**。
+  「同名でなくても常時表示される」は改訂前の振る舞いそのものだったので、
+  「1種類なら出ない」「2種類以上なら各行に出る」「混在が解消されると消える(両方向)」へ置き換えた。
+  **場所を持たない行が混ざるだけでは出さない**ことも足した(1行だけに名前が付くと、
+  他の行が別の場所にあるかのように読める)。
+
 ### 複数folder警告(004 REQ-012)をどう扱ったか
 
 **警告は残した。** 帯が常時「複数のフォルダ」を示すようになっても、REQ-012 は `should` の要求として
@@ -182,24 +198,36 @@
 行の checkbox を全部外しただけならファイルは入っており、読み込み先を選び直す導線の意味は変わらないため。
 **この読みを固定するtestを置いた**(選択を全部外しても`別フォルダへ`のまま)。
 
-## mutation の記録(帯とbuttonの文言)
+## mutation の記録
 
 **全表を `--list` してから、範囲を絞って本番を回した**(`AGENTS.md`の手順)。作業用の表を
-scratchへcopyし、`command` を `flutter test test/spec_004_file_source test/spec_013_android_rename` へ
-差し替えて `M265`〜`M269` だけを回した。**`tool/mutations.json` の `command` は全件のまま**である。
+scratchへcopyし、`command` を範囲付きのtestへ差し替えて対象だけを回した。
+**`tool/mutations.json` の `command` は全件のまま**である。
+
+このtaskが足した対照は `M265`〜`M269`(帯: 複数でも具体名を出す / 1つでも「複数のフォルダ」にする /
+場所が無いのに`未選択`を出す / button の文言を固定する2方向)と `M270`〜`M272`(行: 常時表示へ戻す /
+一切出さない / 閾値を1件ずらす)。
+
+**`M164` を追随させた**(1件)。`008:T07` が置いた「場所を日時と同じ行へ戻す」対照で、`find` が
+場所の行のcommentを含んでいたため一致しなくなった。**守る対象(同居させると日時が読めなくなる)は
+変わっていない**のでcommentごと追随させ、KILLEDを確認した。落とした対照は無い。
 
 ```console
 $ python3 <asdd-plugin>/scripts/mutation_check.py tool/mutations.json --root . --list
-260 mutations, 0 with an unexpected match count
+263 mutations, 0 with an unexpected match count
 
 $ python3 <asdd-plugin>/scripts/mutation_check.py <scratch>/t08-mutations.json --root .
-command: flutter test test/spec_004_file_source test/spec_013_android_rename
+command: flutter test test/spec_002_file_list test/spec_004_file_source test/spec_013_android_rename
+M164 | KILLED | ... 場所を日時と同じ行へ戻す(T07の対照。追随させた)
 M265 | KILLED | ... 場所が2つ以上でも具体名を出す
 M266 | KILLED | ... 場所が1つのときも「複数のフォルダ」にする
 M267 | KILLED | ... 場所を持たない行だけのときに「未選択」を出す
 M268 | KILLED | ... 読み込み済みでも button が「ファイルを選ぶ」のまま
 M269 | KILLED | ... 読み込み前から button が「別フォルダへ」
-5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+M270 | KILLED | ... 行の場所を常時表示へ戻す
+M271 | KILLED | ... 行の場所を一切出さない
+M272 | KILLED | ... 場所が1種類でも混在と見なす
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 ## 検証の記録
@@ -208,25 +236,20 @@ M269 | KILLED | ... 読み込み前から button が「別フォルダへ」
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(857。`load_affordance_test.dart` の6件を追加) |
+| `flutter test` | PASS(861。`load_affordance_test.dart` 6件 + 行の場所の書き換え分) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `260 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation(`M265`〜`M269`) | 5 KILLED, 0 SURVIVED, 0 SKIPPED |
+| `mutation_check.py --list`(全表) | `263 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation(`M164` / `M265`〜`M272`) | 9 KILLED, 0 SURVIVED, 0 SKIPPED |
 | `workspace.py check specs` | PASS(8 plans, 75 tasks) |
-| Android実機 / Windows desktop | **未実施**(行の側を入れてから一度にお願いする) |
-
-## 作業記録
-
-- 2026-08-13 / 人間の判断で(a)〜(d)を008の対象へ入れた際に定義。
+| Android実機 / Windows desktop | **未実施**。[`manual-verification.md`](manual-verification.md)の手順1〜4 |
 
 ## Current state / handoff
 
-- Last checkpoint: 帯の場所提示とbuttonの文言を実装し、mutation 5件で固定した(2026-09-18)
-- Blocker category: human-decision
-- Waiting for: [`T22`](../T22-define-row-location-scope/task.md)の002 spec改訂の**再承認**。
-  **承認まで行の場所は触らない**
-- Requested action: `T22`の改訂案の承認
-- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)
-- Next Agent action: 承認を受けたら行の場所を条件付き(場所が2つ以上のときだけ表示)へ変え、
-  002の代表例に対応するtestを置く。そのあとPRを作り、独立reviewとmanual確認を一度にまとめて依頼する
+- Last checkpoint: 002の改訂(`T22`)の承認を受けて行の場所を条件付きにし、mutation 9件で固定した(2026-09-18)。
+  **`lib/` の最終commitは `ab57d20`**
+- Blocker category: なし
+- Waiting for: exact rangeの独立review → そのあとAndroid実機とWindows desktopのmanual確認
+- Requested action: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
+- Next Agent action: 独立reviewを起動し、PASSしたらmanual確認を依頼する
