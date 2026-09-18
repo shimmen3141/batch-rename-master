@@ -186,25 +186,52 @@ reviewer が**問題なしとして確かめたもの**:
 足したtest: 読み込み直した後 / 並び替えた後 / **同じ名前で読み込み直した後**は戻さないこと、
 **続けて外したときは直前の1回が戻る**こと(こちらは戻せてよい)。
 
+### attempt 2(2026-09-18、range `161b024...13bbea9`、Sonnet)— **PASS**(P2を1件受領)
+
+P0/P1 なし。attempt 1 の N-1・N-2 が塞がっていることを、reviewer が **probe を書き直して**確認した。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| N-3 | P2 | 成果物の欠陥 | **占有名だけが動いた場合を見ていない。** 005 の実行準備(`RenameExecutionController.prepare`)は `items` にも `sortMode` にも触れず `setOccupiedNames` だけを呼ぶので、guard を素通りして**取り直したばかりの観測を古い控えで上書き**する。reviewer が probe で再現 | **直した**(判定へ占有名の同一性を足した)。対照 `M302` |
+
+reviewer が**問題なしとして確かめたもの**:
+
+- 「戻せませんでした」の通知は **002 REQ-017 の範囲内**である(REQ-017 は「取り消せなくてよい」という
+  **許容**で禁止ではなく、状態層に操作も足していない)。
+- attempt 1 の記録が報告と一致していること(重大度・分類・根拠)。
+- 足した対照 `M299`〜`M301` が3種の guard を独立に捉えていること。自分で回して **7 KILLED** を再現。
+
+**N-3 を P1 にしなかった理由**(reviewer の判定): `occupiedNames` は**表示専用**で、実行は
+`prepare()` がその場で受け取った値を直接使う(`controller.occupiedNames` を読み直さない)。
+影響は一覧の重複警告が一時的に古い観測へ戻ることに限られ、005 REQ-026 自身が
+「古い観測でよい」としている範囲内で、次の `prepare()` / `setFiles` で自然に直る。
+
+### 直したもの(N-3)
+
+判定へ **`identical(controller.occupiedNames, occupied)`** を足した。**除去は占有名を動かさない**ので、
+控えた値がそのまま除去後の値でもある。`setOccupiedNames` は必ず新しい map を作るので、
+**同一性で「取り直された」ことが分かる**。取り直しただけで取り消しを断るのは安全側に倒しすぎだが、
+誤って戻すよりよい。`M299` / `M300` の錨も新しい判定へ貼り直した。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(889) |
+| `flutter test` | PASS(890) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `292 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED, 0 SURVIVED** |
+| `mutation_check.py --list`(全表) | `293 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M188`/`M291`〜`M298` = **9 KILLED**。`M186` = KILLED(据え置きの確認)。attempt 1 の修正分 `M293`〜`M296`/`M299`〜`M301` = **7 KILLED**。attempt 2 の修正分 `M299`〜`M302` = **4 KILLED, 0 SURVIVED** |
 | `workspace.py check specs` | PASS(8 plans, 79 tasks) |
 | Android実機 | **未実施**(`manual-verification.md`) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 の P1(古い控えで新しい一覧を上書きする)を直した
+- Last checkpoint: 独立review attempt 2 が **PASS**。受領した P2(N-3)も直した
 - Blocker category: review
-- Waiting for: 独立review attempt 2
+- Waiting for: 独立review attempt 3(N-3 の修正の確認)
 - Requested action: なし(人間の作業は実機確認から)
 - Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
-- Next Agent action: attempt 2 がPASSしたら実機確認を依頼する
+- Next Agent action: attempt 3 がPASSしたら実機確認を依頼する
