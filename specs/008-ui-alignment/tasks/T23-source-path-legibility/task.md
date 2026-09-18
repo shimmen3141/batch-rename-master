@@ -129,8 +129,8 @@ M284 KILLED / M285 KILLED / M286 KILLED / M287 KILLED / M288 KILLED
 | `flutter test` | PASS(882。`T08` の866 + 16) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `279 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M278`/`M280`〜`M288` = **10 KILLED, 0 SURVIVED** |
+| `mutation_check.py --list`(全表) | `281 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M278`/`M280`〜`M288` = **10 KILLED, 0 SURVIVED**。reviewerの対照 `M289`/`M290` = **2 KILLED** |
 | `workspace.py check specs` | PASS(8 plans, 77 tasks) |
 | Android実機 | **未実施**(`manual-verification.md`) |
 
@@ -143,11 +143,41 @@ M284 KILLED / M285 KILLED / M286 KILLED / M287 KILLED / M288 KILLED
 - `T08` が固定した保証(帯の幅・buttonの位置・狭幅でのはみ出し)は**testごと据え置き**で、
   すべてPASSしている。
 
+## 独立review
+
+### attempt 1(2026-09-18、range `02aacc8...db33f01`、Sonnet)— **PASS**
+
+P0/P1 なし。
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| 1 | P3 | 成果物の欠陥(記録) | `task.json` の `status` が `in_progress` のままで、handoff の「Waiting for: 独立review」と食い違う | **直した**(`in_review` へ) |
+| 2 | — | 参考情報(宣言範囲外) | 幅 **90dp** では、場所が `null` のときも button 側だけで overflow する。**場所の省略とは無関係**(全条件で一様に出る)で、`T08`/`T23` が宣言した範囲(320/360/411dp)の外 | **受容し、[`T10`](../T10-spacing-and-typography/task.md) へ引き渡した**。90dp の端末は実在せず、安全網の穴の条件(1)「製品経路に載っている」に当たらない |
+
+reviewer が独立に確かめたこと:
+
+- `flutter test` 882 PASS / `analyze` / `format` / `workspace.py check specs` — **`task.md` の主張と一致**。
+- 範囲を絞った mutation 10件を**自分で回して 10 KILLED / 0 SURVIVED** を再現。
+- **`T08` が固定した3保証が据え置きであること**を、既存testが `SourcePathText` 経由でそのまま
+  PASSしている事実から確認(幅3種 × 倍率3種 × 場所複数)。
+- demo data の `sourceLocation` と `sourceFolder` が対応していて、001 の重複判定(folder単位)と
+  食い違わないこと。
+- PR #171 の本文が `task.md` より強い主張をしていないこと。
+
+reviewer が設計した対照2件を**取り込んだ**(`AGENTS.md`: reviewが足したmutationは落とさない)。
+
+```text
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+M289 KILLED(段を全部落とせるようにする → `…/` だけが残る)
+M290 KILLED(空のsegmentを段として数える → 表示が空文字になる)
+```
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と機械検証が完了(`flutter test` 882 PASS、範囲を絞った mutation 10 KILLED)
-- Blocker category: review
-- Waiting for: 独立review(Sonnet)
-- Requested action: なし(人間の作業は実機確認から)
-- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)
-- Next Agent action: 独立reviewを回し、PASSしたら実機確認を依頼する
+- Last checkpoint: 独立review attempt 1 が **PASS**(P0/P1なし)。reviewerの対照2件を取り込んだ
+- Blocker category: human-verification
+- Waiting for: Android実機の確認(手順1〜3)
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜3
+- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)、Draft PR #171
+- Next Agent action: 結果を記録し、成立していれば PR #171 を ready にして merge する。
+  **確認が終わるまで `/workspace` のbranchを動かさない**

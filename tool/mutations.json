@@ -1957,6 +1957,20 @@
       "find": "  const download = 'Internal shared storage/Download';",
       "replace": "  const download = 'Internal shared storage/DCIM/Camera';",
       "note": "008:T23 demo dataを1フォルダへ戻す — 複数フォルダの表示(帯の『複数のフォルダ』と行ごとの場所)を実機で目視できる唯一の経路が黙って消える(2026-09-18 の質問2)"
+    },
+    {
+      "id": "M289",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  for (var drop = 1; drop < segments.length; drop++) {",
+      "replace": "  for (var drop = 1; drop <= segments.length; drop++) {",
+      "note": "008:T23 段を全部落とせるようにする — いちばん狭いところで `…/` だけが残り、場所が1文字も読めなくなる。独立review attempt 1 が置いた対照(R1)"
+    },
+    {
+      "id": "M290",
+      "file": "lib/ui/file_source/source_path_text.dart",
+      "find": "  final segments = text.split('/').where((s) => s.isNotEmpty).toList();",
+      "replace": "  final segments = text.split('/').toList();",
+      "note": "008:T23 空のsegmentを段として数える — `DCIM/` のような値で表示が空文字になり、場所が消える。独立review attempt 1 が置いた対照(R2)"
     }
   ]
 }
