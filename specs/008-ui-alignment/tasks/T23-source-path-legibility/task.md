@@ -132,7 +132,7 @@ M284 KILLED / M285 KILLED / M286 KILLED / M287 KILLED / M288 KILLED
 | `mutation_check.py --list`(全表) | `281 mutations, 0 with an unexpected match count` |
 | 範囲を絞った mutation | `M278`/`M280`〜`M288` = **10 KILLED, 0 SURVIVED**。reviewerの対照 `M289`/`M290` = **2 KILLED** |
 | `workspace.py check specs` | PASS(8 plans, 77 tasks) |
-| Android実機 | **未実施**(`manual-verification.md`) |
+| Android実機 | 手順1〜3 = **成立**(`4adb1ee`) |
 
 ## 受け入れ証拠
 
@@ -172,12 +172,33 @@ M289 KILLED(段を全部落とせるようにする → `…/` だけが残る)
 M290 KILLED(空のsegmentを段として数える → 表示が空文字になる)
 ```
 
+## manual確認の結果(2026-09-18)
+
+対象commit **`4adb1ee`**(`lib/` の最終commit。以後は記録のみ)、branch
+`asdd/008-ui-alignment/T23-source-path-legibility`、PR #171、**Android実機**。
+手順書は[`manual-verification.md`](manual-verification.md)。**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 1 起動直後(確認A〜D) | **成立** | 「各手順の確認事項について、すべて確認できました。」 |
+| 2 読み込んだあと(確認E〜H) | **成立** | 同上 |
+| 3 文字を大きくしたとき(確認I・J) | **成立** | 同上 |
+
+閉じたもの:
+
+- **先頭を省略して末尾を残す形が、実機の字形で読める**(確認E・F)。`…` の記号についての
+  差し替え要望は出ていない。
+- **文字を最大にしても末尾の folder 名が残り、はみ出さない**(確認I・J)。machineで振った
+  倍率(1.0〜2.0)より強い条件を実機が通った。
+- **複数フォルダの表示(帯の `複数のフォルダ` と行ごとの場所。002 代表例 7c)が実機で確認できた**
+  — demo dataを2フォルダに分けた目的そのものである(質問2)。**製品経路からは到達できないままだが、
+  表示の正しさは目で確かめられた。**
+- `T08` が固定した保証(帯の幅・buttonの位置・はみ出し)が生きていること(確認H)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 が **PASS**(P0/P1なし)。reviewerの対照2件を取り込んだ
-- Blocker category: human-verification
-- Waiting for: Android実機の確認(手順1〜3)
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜3
-- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)、Draft PR #171
-- Next Agent action: 結果を記録し、成立していれば PR #171 を ready にして merge する。
-  **確認が終わるまで `/workspace` のbranchを動かさない**
+- Last checkpoint: 独立review attempt 1 = PASS、**Android実機の手順1〜3がすべて成立**
+- Blocker category: none
+- Waiting for: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T23-source-path-legibility`(`dev@02aacc8` から作成)、PR #171
+- Next Agent action: PR #171 を ready にして merge し、`dev` で smoke を確認する
