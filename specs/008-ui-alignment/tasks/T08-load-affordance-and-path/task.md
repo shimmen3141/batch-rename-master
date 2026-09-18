@@ -230,26 +230,46 @@ M272 | KILLED | ... 場所が1種類でも混在と見なす
 9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+## 独立review
+
+### attempt 1(2026-09-18、range `f2413e9...0f91440`、Sonnet)— FAIL
+
+| # | 重大度 | 分類 | 指摘 | 扱い |
+|---|---|---|---|---|
+| P1-1 | P1 | 成果物の欠陥 | manual手順の fixture 作成コマンドが引数無し(`python tool/make_t07_fixtures.py`)で、**そのまま実行すると `IndexError` で止まる**。後続の `adb push` も `cannot stat` になる。`T07` は「fixture作成はcontainer内のAgent、人間はpushだけ」という分担なのに、そこも欠けていた | **直した。** `.worktrees/t07-fixtures/` に27件あることを確認して書き、人間の作業を `adb push` と件数確認だけにした。作り直しが必要なときのコマンドは引数付きで、**Agentの作業**として書いた |
+| P2-2 | P2 | 成果物の欠陥 | Draft PR #170 の本文が古い(「行の場所は入っていない」「PASS(857)」「mutation 5件」)。行の場所は既に入り、861件・9件になっていた。「対象外」欄が事実と逆 | **直した**(本文を `7387c9c` の内容へ更新した) |
+| P3-3 | P3 | 成果物の欠陥 | `rowLocationKey` のdoc commentが「場所を持たない行には無い」だけで、**新しい条件(一覧の場所が1種類のときも無い)**を書いていない | **直した** |
+| P3-4 | P3 | 安全網の穴 | **帯側の null 混在を検査するtestが無い。** `whereType<String>()` を落とす対照(`M275`)が SURVIVED。3条件の (2) に当たらないので受容候補として挙がった | **閉じた**(受容でなく)。名前1つ + 場所を持たない行のtestを足し、`M275` が KILLED になった |
+
+reviewer が置いた対照3件を **`M273`〜`M275`** として取り込んだ(`R1` 行側の null 混在、`R2` 「選択されていないとき」の取り違え、`R3` 帯側の null 混在)。**`R1` / `R2` は attempt 1 の時点で既に KILLED** で、`R3` だけが SURVIVED だった。
+
+```console
+(M273〜M275 を flutter test test/spec_002_file_list test/spec_004_file_source で)
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+reviewer が「記録だけ先行 / 実装だけ先行は無い」「`T07` の (h) の再現条件は `_pumpMixedAt` で正しく保たれている」「`showRowLocation` は1回だけ数えており null 行・空リストで壊れない」を独立に確認している。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(861。`load_affordance_test.dart` 6件 + 行の場所の書き換え分) |
+| `flutter test` | PASS(862) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `263 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation(`M164` / `M265`〜`M272`) | 9 KILLED, 0 SURVIVED, 0 SKIPPED |
+| `mutation_check.py --list`(全表) | `266 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M164`/`M265`〜`M272` = 9 KILLED、`M273`〜`M275` = 3 KILLED(いずれも 0 SURVIVED) |
 | `workspace.py check specs` | PASS(8 plans, 75 tasks) |
 | Android実機 / Windows desktop | **未実施**。[`manual-verification.md`](manual-verification.md)の手順1〜4 |
 
 ## Current state / handoff
 
-- Last checkpoint: 002の改訂(`T22`)の承認を受けて行の場所を条件付きにし、mutation 9件で固定した(2026-09-18)。
-  **`lib/` の最終commitは `ab57d20`**
+- Last checkpoint: 独立review attempt 1 のFAIL(P1 1件・P2 1件・P3 2件)をすべて直した(2026-09-18)。
+  **`lib/` の最終commitは `7387c9c`**
 - Blocker category: なし
-- Waiting for: exact rangeの独立review → そのあとAndroid実機とWindows desktopのmanual確認
+- Waiting for: 独立review attempt 2 → そのあとAndroid実機とWindows desktopのmanual確認
 - Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: 独立reviewを起動し、PASSしたらmanual確認を依頼する
+- Next Agent action: attempt 2 を起動し、PASSしたらmanual確認を依頼する
