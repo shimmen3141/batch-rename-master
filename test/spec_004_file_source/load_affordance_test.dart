@@ -11,6 +11,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
+import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
@@ -305,18 +306,44 @@ void main() {
     expect(find.text('複数のフォルダ'), findsNothing);
   });
 
-  testWidgets('「すべて外す」で「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
+  testWidgets('「一覧を空にする」で「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
     await _pump(tester, controller);
     expect(_location(tester), 'Camera');
+    // **文言は `一覧を空にする`**(`008:T03` の決定)。checkbox が無くなり、この
+    // 操作は `clearFiles` の1義になったので、「選択を全部外す」と読める名前をやめた。
+    expect(find.text('一覧を空にする'), findsOneWidget);
+    expect(find.text('すべて外す'), findsNothing);
 
     await tester.tap(find.byKey(const Key('clear-files-button')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(_location(tester), '未選択');
     expect(_pickLabel(tester), 'ファイルを選ぶ');
+  });
+
+  testWidgets('「一覧を空にする」も取り消せる(002 REQ-017・代表例6d)', (tester) async {
+    final controller = FileListController(
+      files: [
+        _entry('a.jpg', handle: 'h:a', location: 'Camera'),
+        _entry('b.jpg', handle: 'h:b', location: 'Camera'),
+      ],
+    );
+    await _pump(tester, controller);
+
+    await tester.tap(find.byKey(const Key('clear-files-button')));
+    await tester.pumpAndSettle();
+    expect(controller.items, isEmpty);
+
+    expect(find.byKey(removalUndoKey), findsOneWidget);
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    // 操作前の並びのまま戻る。
+    expect(controller.items.map((f) => f.name), ['a.jpg', 'b.jpg']);
+    expect(_location(tester), 'Camera');
   });
 
   testWidgets('選択を全部外してもファイルは入っているので「別フォルダへ」のまま', (tester) async {

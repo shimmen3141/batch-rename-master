@@ -4,6 +4,7 @@ import '../../data/file_source/file_loading.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/permission/storage_permission.dart';
 import '../file_list/file_list_controller.dart';
+import '../file_list/removal_undo.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
@@ -388,17 +389,23 @@ class _FileSourceBarState extends State<FileSourceBar>
                               ),
                             ),
                           ),
-                          // 「すべて外す」は**一覧の件数と同じ階層へ置きたい**(2026-09-18 の
-                          // 指摘)が、その帯は 320dp・文字倍率1.3 で余白がほぼ無く、icon だけに
-                          // しても件数が切り詰められた(`008:T16` の N-9 の保証が壊れる)。
-                          // **置き場所の決着まではこの帯に置いたままにする。**
+                          // **`一覧を空にする` である**(`008:T03` の決定)。checkbox を
+                          // 廃止したのでこの操作は `clearFiles` の1義になり、「選択を全部外す」と
+                          // 読み違えられなくなった。**置き場所もここで決着する** — 一覧側に
+                          // 選択の帯が無くなったので、件数と場所を取り合う問題が消えた。
+                          //
+                          // **取り消せる形で空にする**(002 REQ-017)。
                           TextButton.icon(
                             key: const Key('clear-files-button'),
                             onPressed: hasFiles
-                                ? widget.controller.clearFiles
+                                ? () => removeUndoably(
+                                    context,
+                                    widget.controller,
+                                    widget.controller.clearFiles,
+                                  )
                                 : null,
                             icon: const Icon(Icons.playlist_remove, size: 16),
-                            label: const Text('すべて外す'),
+                            label: const Text('一覧を空にする'),
                             style: TextButton.styleFrom(
                               foregroundColor: colors.textSecondary,
                               disabledForegroundColor: colors.textDisabled,

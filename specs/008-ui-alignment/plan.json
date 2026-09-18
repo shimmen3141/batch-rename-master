@@ -30,6 +30,8 @@
     "tasks/T22-define-row-location-scope",
     "tasks/T23-source-path-legibility",
     "tasks/T24-define-row-grouping",
-    "tasks/T25-dismissible-toast"
+    "tasks/T25-dismissible-toast",
+    "tasks/T26-define-picker-state-restore",
+    "tasks/T27-define-removal-selection-mode"
   ]
 }

@@ -219,7 +219,11 @@ void main() {
     });
 
     testWidgets('狭幅で削られるのは更新日時の側である', (tester) async {
-      await _pumpAt(tester, const Size(360, 640));
+      // **幅を 360 から 280 へ下げた**(`008:T03`)。行の checkbox が無くなって
+      // サブ情報の取り分が広がり、360dp では更新日時が収まるようになった。
+      // 固定したいのは「足りなくなったとき**どちらから**削るか」なので、
+      // 足りなくなる幅で測る。
+      await _pumpAt(tester, const Size(280, 640));
 
       final modifiedAt = find.byKey(rowModifiedAtKey);
       expect(modifiedAt, findsOneWidget);
@@ -516,15 +520,15 @@ void main() {
               isFalse,
               reason: '$where で警告の件数が切り詰められている',
             );
-            // **総数が切れると `1000 / 1…` が「総数 1」と読める。**
+            // **総数が切れると `1000 件` が「1 件」と読める。**
+            // `008:T03` で「n/n 件を選択」は総件数だけになったが、**桁が消えると
+            // 誤読できる**という N-9 の保証は同じ形で続く。
             expect(
               tester
-                  .renderObject<RenderParagraph>(
-                    find.byKey(const Key('selection-count')),
-                  )
+                  .renderObject<RenderParagraph>(find.byKey(fileCountKey))
                   .didExceedMaxLines,
               isFalse,
-              reason: '$where で選択件数が切り詰められている',
+              reason: '$where で総件数が切り詰められている',
             );
           }
         }

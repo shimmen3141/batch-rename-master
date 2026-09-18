@@ -1303,9 +1303,9 @@
     {
       "id": "M188",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  '$selected / $total 件を選択',\n                  maxLines: 2,",
-      "replace": "                  '$selected / $total 件を選択',\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
-      "note": "008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1)"
+      "find": "          Text(\n            key: fileCountKey,\n            '$total 件',\n            maxLines: 2,\n",
+      "replace": "          SizedBox(\n            width: 24,\n            child: Text(\n            key: fileCountKey,\n            '$total 件',\n            maxLines: 1,\n            overflow: TextOverflow.ellipsis,\n",
+      "note": "008:T16 ヘッダの件数の幅を固定して切り詰める — `1000 件` が `1…` と読め、総数を誤読できる(独立reviewが見つけたP1)。**008:T04 で貼り直した** — 「n/n 件を選択」を総件数へ置き換えたことで元の形(`maxLines` を1にして省略する)は**等価mutantになり全件でSURVIVEDした**(短い文字列は省略が起きない)。保証は変えず、切り詰めが実際に起きる形へ替えた"
     },
     {
       "id": "M191",
@@ -1971,6 +1971,104 @@
       "find": "  final segments = text.split('/').where((s) => s.isNotEmpty).toList();",
       "replace": "  final segments = text.split('/').toList();",
       "note": "008:T23 空のsegmentを段として数える — `DCIM/` のような値で表示が空文字になり、場所が消える。独立review attempt 1 が置いた対照(R2)"
+    },
+    {
+      "id": "M291",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          // **checkbox は置かない**(002 REQ-016)。一覧にあるファイルはすべて\n          // rename 対象で、外すのは行の × である。\n          //\n",
+      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n",
+      "note": "008:T04 行へ checkbox を戻す — 002 REQ-016(行UIは選択の切り替えを提示しない)が壊れ、×との共存が復活する"
+    },
+    {
+      "id": "M292",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            '$total 件',",
+      "replace": "            '${controller.selectedCount} / $total 件を選択',",
+      "note": "008:T04 ヘッダを「n/n 件を選択」へ戻す — 選択の概念が無いのに選択件数を出す(002 REQ-016)"
+    },
+    {
+      "id": "M293",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setFiles(before);\n",
+      "replace": "",
+      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る"
+    },
+    {
+      "id": "M294",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setFiles(before);",
+      "replace": "            controller.setFiles(before.reversed.toList());",
+      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)"
+    },
+    {
+      "id": "M295",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "  if (messenger == null || removed <= 0) return;",
+      "replace": "  if (messenger == null) return;",
+      "note": "008:T04 何も外れていなくても「外しました」と出す — 002 REQ-009(一致が無ければ無変化)に対して嘘の通知になる"
+    },
+    {
+      "id": "M296",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setOccupiedNames(occupied);\n",
+      "replace": "",
+      "note": "008:T04 取り消しで占有名を戻さない — setFiles が捨てるので、外して戻しただけで一覧の重複警告が弱くなる(005 REQ-026)"
+    },
+    {
+      "id": "M297",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                            label: const Text('一覧を空にする'),",
+      "replace": "                            label: const Text('すべて外す'),",
+      "note": "008:T04 「すべて外す」へ戻す — checkbox が無いのに「選択を全部外す」と読める名前になる(008:T03 の決定)"
+    },
+    {
+      "id": "M298",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                ? () => removeUndoably(\n                                    context,\n                                    widget.controller,\n                                    widget.controller.clearFiles,\n                                  )\n",
+      "replace": "                                ? widget.controller.clearFiles\n",
+      "note": "008:T04 一覧を空にする操作を取り消せなくする — 代表例6d(一覧を空にした直後も戻せる)が壊れる"
+    },
+    {
+      "id": "M299",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            if (controller.sortMode != afterSortMode ||\n                !identical(controller.occupiedNames, occupied) ||\n                !_sameItems(controller.items, after)) {",
+      "replace": "            if (false) {",
+      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)"
+    },
+    {
+      "id": "M300",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            if (controller.sortMode != afterSortMode ||\n                !identical",
+      "replace": "            if (!identical",
+      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)"
+    },
+    {
+      "id": "M301",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "    if (!identical(a[i], b[i])) return false;",
+      "replace": "    if (a[i].name != b[i].name) return false;",
+      "note": "008:T04 項目の同一性を名前で代用する — 005 の改名は項目を新しいハンドルの値へ差し替えるので(005 REQ-018)、名前が同じだけの別物を「動いていない」と読む"
+    },
+    {
+      "id": "M302",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "                !identical(controller.occupiedNames, occupied) ||\n",
+      "replace": "",
+      "note": "008:T04 占有名の取り直しを見ない — 005 の実行準備は items にも sortMode にも触れずに占有名だけを取り直すので、取り消しが**取り直したばかりの観測を古い控えで上書きする**(独立review attempt 2 の N-3)"
+    },
+    {
+      "id": "M303",
+      "file": "lib/main.dart",
+      "find": "        // **行の × を出すために要る**（004 REQ-006）。\n        sourceHandle:\n            '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',\n",
+      "replace": "",
+      "note": "008:T04 demo dataからハンドルを落とす — 行の × が1件も出ず、checkbox を廃止した後(002 REQ-016)は対象の出し入れが確かめられなくなる(2026-09-18 の実機確認で観測した状態)"
+    },
+    {
+      "id": "M304",
+      "file": "lib/main.dart",
+      "find": "  const cameraFolder = 'demo:/DCIM/Camera';",
+      "replace": "  const cameraFolder = '/storage/emulated/0/DCIM/Camera';",
+      "note": "008:T04 demo dataのハンドルを実在しうるpathにする — デモのつもりの操作が**実機の本物のファイルを改名しうる**"
     }
   ]
 }
