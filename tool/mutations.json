@@ -1870,23 +1870,30 @@
     {
       "id": "M276",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "              child: Row(\n                children: [\n                  Expanded(\n                    child: locationLabel == null",
-      "replace": "              child: Wrap(\n                spacing: 8,\n                runSpacing: 4,\n                crossAxisAlignment: WrapCrossAlignment.center,\n                children: [\n                  SizedBox(\n                    child: locationLabel == null",
-      "note": "008:T08 帯を Wrap へ戻す — 中身の幅しか持たなくなり、読み込み前に短い帯が画面の中央へ浮く(2026-09-18 の実機確認で観測した退行そのもの)。button の位置も名前の長さで動く"
+      "find": "builder: (context, constraints) => Row(\n                  children: [\n                    Expanded(\n                      child: locationLabel == null",
+      "replace": "builder: (context, constraints) => Wrap(\n                  spacing: 8,\n                  runSpacing: 4,\n                  crossAxisAlignment: WrapCrossAlignment.center,\n                  children: [\n                    SizedBox(\n                      child: locationLabel == null",
+      "note": "008:T08 帯を Wrap へ戻す — button の位置が folder 名の長さで動く(2026-09-18 の実機確認の指摘)。**帯の幅は外側 Column の stretch が別に効いているので落ちない** — 落ちるのは button の位置の検査である(独立review attempt 3 の N-4 が因果の書き方を指摘した)"
     },
     {
       "id": "M277",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                  Expanded(\n                    child: locationLabel == null",
-      "replace": "                  Flexible(\n                    child: locationLabel == null",
+      "find": "                    Expanded(\n                      child: locationLabel == null",
+      "replace": "                    Flexible(\n                      child: locationLabel == null",
       "note": "008:T08 場所の取り分を可変にする — folder 名の長さで読み込み button の位置が動く(2026-09-18 の実機確認の指摘の本体)"
     },
     {
       "id": "M278",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                                  maxLines: 1,\n                                  overflow: TextOverflow.ellipsis,\n                                  style: TextStyle(\n                                    color: colors.textSecondary,\n                                    fontSize: 12,\n                                  ),",
-      "replace": "                                  maxLines: 3,\n                                  style: TextStyle(\n                                    color: colors.textSecondary,\n                                    fontSize: 12,\n                                  ),",
+      "find": "                                    maxLines: 1,\n                                    overflow: TextOverflow.ellipsis,\n                                    style: TextStyle(\n                                      color: colors.textSecondary,\n                                      fontSize: 12,\n                                    ),",
+      "replace": "                                    maxLines: 3,\n                                    style: TextStyle(\n                                      color: colors.textSecondary,\n                                      fontSize: 12,\n                                    ),",
       "note": "008:T08 長い folder 名を省略せず折り返す — 帯の高さが名前の長さで変わり、実機確認で「…で消えるのはこのままでよい」と確認した振る舞いが崩れる"
+    },
+    {
+      "id": "M279",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                      constraints: BoxConstraints(\n                        maxWidth: constraints.maxWidth * 0.75,\n                      ),\n",
+      "replace": "                      constraints: const BoxConstraints(),\n",
+      "note": "008:T08 button 群の幅の上限を外す — Row が非flexの子へ無限幅を渡すため Wrap が折り返さず、320dp・文字倍率1.3 で帯が17〜25px はみ出す(独立review attempt 3 の N-1 そのもの)"
     }
   ]
 }

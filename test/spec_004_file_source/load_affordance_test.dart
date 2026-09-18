@@ -92,6 +92,57 @@ void main() {
       expect(tester.getSize(find.byKey(sourceBarKey)).width, 360);
     });
 
+    testWidgets('狭幅・大きい文字でも帯がはみ出さない', (tester) async {
+      // **独立review attempt 3 の N-1。** button 群を `Row` へ直に並べていたとき、
+      // 320dp・倍率1.3 で 17px はみ出した。`008:T16` / `T18` が床にしてきた格子で測る。
+      // はみ出しは画面に赤帯として出るだけで、**test は黙って通ってしまう**ので
+      // `FlutterError.onError` を捕まえる。
+      for (final width in [320.0, 360.0, 411.0]) {
+        for (final scale in [1.0, 1.3, 2.0]) {
+          for (final location in [null, 'DCIM', '内部ストレージ/DCIM/t07-fixtures']) {
+            final errors = <String>[];
+            final previous = FlutterError.onError;
+            FlutterError.onError = (details) =>
+                errors.add(details.exception.toString());
+            await tester.binding.setSurfaceSize(Size(width, 640));
+            addTearDown(() => tester.binding.setSurfaceSize(null));
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: appDarkTheme(),
+                home: MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: Scaffold(
+                    body: FileSourceBar(
+                      source: FakeFileSource(),
+                      controller: FileListController(
+                        files: location == null
+                            ? const []
+                            : [
+                                _entry(
+                                  'a.jpg',
+                                  handle: 'h:a',
+                                  location: location,
+                                ),
+                              ],
+                      ),
+                      permission: const UnrestrictedStoragePermission(),
+                      kinds: FileKind.values,
+                    ),
+                  ),
+                ),
+              ),
+            );
+            FlutterError.onError = previous;
+            expect(
+              errors.where((e) => e.contains('overflow')),
+              isEmpty,
+              reason: '幅 $width / 文字 $scale / 場所 $location で帯がはみ出している',
+            );
+          }
+        }
+      }
+    });
+
     testWidgets('読み込み button の位置は folder 名の長さで動かない', (tester) async {
       // **これが実機の指摘の本体である。** 名前の長さで button が動くと、
       // 押す場所を毎回探すことになる。長い名前は省略されて button を押し出さない。

@@ -313,78 +313,105 @@ class _FileSourceBarState extends State<FileSourceBar>
               // **左に場所、右に読み込み button の固定配置**(実機確認 2026-09-18)。
               // folder 名の長さで button の位置が動くと、押す場所を毎回探すことになる。
               // 名前は `Expanded` 側で省略し、button は自分の幅を保つ。
-              child: Row(
-                children: [
-                  Expanded(
-                    child: locationLabel == null
-                        // 場所を出さないときも**左側の取り分は残す** — button の位置を
-                        // 状態によって動かさないためである。
-                        ? const SizedBox.shrink()
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.folder_outlined,
-                                size: 14,
-                                color: colors.textMuted,
-                              ),
-                              const SizedBox(width: 4),
-                              // 入りきらない分は省略する(実機確認で「このままでよい」と
-                              // 確認済み)。**button を押し出さない**のが要点である。
-                              Flexible(
-                                child: Text(
-                                  locationLabel,
-                                  key: sourceLocationLabelKey,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.textSecondary,
-                                    fontSize: 12,
+              //
+              // **button 群は `Wrap` に入れ、上限を帯の75%で切る。** `Row` へ直に並べると
+              // 狭幅 + 文字倍率で intrinsic 幅の合計が帯を超えて **overflow する**
+              // (320dp・倍率1.3 で17px。独立review attempt 3 の N-1)。`Row` は
+              // **非flexの子へ無限幅の制約を渡す**ので、`Wrap` に入れるだけでは折り返さない。
+              // 上限を与えて初めて次の行へ落ち、**幅は max(各行) に縮む**ので場所の取り分も残る。
+              // **位置が folder 名に依存しないこと**は変わらない — button 群の幅は名前と
+              // 無関係だからである。
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    Expanded(
+                      child: locationLabel == null
+                          // 場所を出さないときも**左側の取り分は残す** — button の位置を
+                          // 状態によって動かさないためである。
+                          ? const SizedBox.shrink()
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.folder_outlined,
+                                  size: 14,
+                                  color: colors.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                // 入りきらない分は省略する(実機確認で「このままでよい」と
+                                // 確認済み)。**button を押し出さない**のが要点である。
+                                Flexible(
+                                  child: Text(
+                                    locationLabel,
+                                    key: sourceLocationLabelKey,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: colors.textSecondary,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth * 0.75,
+                      ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        alignment: WrapAlignment.end,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          // **button は右端に固定する**(実機確認 2026-09-18)。folder 名の
+                          // 長さで位置が動くと、押す場所を毎回探すことになる。
+                          OutlinedButton.icon(
+                            key: const Key('pick-files-button'),
+                            onPressed: () => _openKindSheet(context),
+                            icon: const Icon(Icons.playlist_add, size: 16),
+                            label: Text(
+                              FileSourceBar.pickLabelOf(widget.controller),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: colors.primary,
+                              side: BorderSide(
+                                color: colors.primary.withValues(alpha: 0.45),
                               ),
-                            ],
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
                           ),
-                  ),
-                  const SizedBox(width: 8),
-                  // **button は右端に固定する**(実機確認 2026-09-18)。folder 名の
-                  // 長さで位置が動くと、押す場所を毎回探すことになる。
-                  OutlinedButton.icon(
-                    key: const Key('pick-files-button'),
-                    onPressed: () => _openKindSheet(context),
-                    icon: const Icon(Icons.playlist_add, size: 16),
-                    label: Text(
-                      FileSourceBar.pickLabelOf(widget.controller),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.primary,
-                      side: BorderSide(
-                        color: colors.primary.withValues(alpha: 0.45),
+                          // 「すべて外す」は**一覧の件数と同じ階層へ置きたい**(2026-09-18 の
+                          // 指摘)が、その帯は 320dp・文字倍率1.3 で余白がほぼ無く、icon だけに
+                          // しても件数が切り詰められた(`008:T16` の N-9 の保証が壊れる)。
+                          // **置き場所の決着まではこの帯に置いたままにする。**
+                          TextButton.icon(
+                            key: const Key('clear-files-button'),
+                            onPressed: hasFiles
+                                ? widget.controller.clearFiles
+                                : null,
+                            icon: const Icon(Icons.playlist_remove, size: 16),
+                            label: const Text('すべて外す'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: colors.textSecondary,
+                              disabledForegroundColor: colors.textDisabled,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
                     ),
-                  ),
-                  // 「すべて外す」は**一覧の件数と同じ階層へ置きたい**(2026-09-18 の
-                  // 指摘)が、その帯は 320dp・文字倍率1.3 で余白がほぼ無く、icon だけに
-                  // しても件数が切り詰められた(`008:T16` の N-9 の保証が壊れる)。
-                  // **置き場所の決着まではこの帯に置いたままにする。**
-                  TextButton.icon(
-                    key: const Key('clear-files-button'),
-                    onPressed: hasFiles ? widget.controller.clearFiles : null,
-                    icon: const Icon(Icons.playlist_remove, size: 16),
-                    label: const Text('すべて外す'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: colors.textSecondary,
-                      disabledForegroundColor: colors.textDisabled,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
