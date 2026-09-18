@@ -213,6 +213,22 @@ reviewer が**問題なしとして確かめたもの**:
 **同一性で「取り直された」ことが分かる**。取り直しただけで取り消しを断るのは安全側に倒しすぎだが、
 誤って戻すよりよい。`M299` / `M300` の錨も新しい判定へ貼り直した。
 
+### attempt 3(2026-09-18、range `161b024...0886f19`、Sonnet)— **PASS**
+
+P0/P1 なし。**新規の指摘も無い。** N-3 が塞がっていることを reviewer が probe を書き直して確認した。
+
+- **同一性で見る判断は妥当**と判定された。`_occupiedNames` を書き換えるのは `setFiles`(読み込み直し。
+  項目側で既に検知)と `RenameExecutionController.prepare()` の2か所だけで、**後者は利用者が「実行」を
+  押したときだけ呼ばれる** — つまり弾かれるのは必ず**利用者自身の次の操作**がきっかけであり、
+  002 REQ-017 の「次の操作の後は取り消せなくてよい」にそのまま当たる。冪等な再呼び出しで誤発火する
+  呼び出し元も無い。
+- **`M299`/`M300` の貼り直しが意図を保っている**ことを、reviewer が find/replace を自分で当てて確認
+  (`M300` は `sortMode` の項だけが落ち、他の2項目は残る)。`M299`〜`M302` を独立に回して **4 KILLED**。
+- **guard を素通りする経路が他に無いこと**を、`FileListController` の全メソッドを読んで洗い直した。
+  `setRule` は undo が触らない値だけを変える / `reorder` は並びが変わるので `_sameItems` が必ず検知 /
+  `replaceItems` は置き換えがあれば identity が変わり、0件なら早期returnで実際に無変化 /
+  `toggleSelection`・`selectAll`・`clearAll` は **`lib/` 内に呼び出し元が無く製品UIから到達しない**。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -229,9 +245,10 @@ reviewer が**問題なしとして確かめたもの**:
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 が **PASS**。受領した P2(N-3)も直した
-- Blocker category: review
-- Waiting for: 独立review attempt 3(N-3 の修正の確認)
-- Requested action: なし(人間の作業は実機確認から)
+- Last checkpoint: 独立review attempt 3 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `c7cf22b`**
+- Blocker category: human-verification
+- Waiting for: Android実機の確認(手順1〜4)
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4
 - Evidence revision: branch `asdd/008-ui-alignment/T04-implement-selection-flow`、Draft PR #173
-- Next Agent action: attempt 3 がPASSしたら実機確認を依頼する
+- Next Agent action: 結果を記録し、成立していれば PR #173 を ready にして merge する。
+  **確認が終わるまで `/workspace` のbranchを動かさない**
