@@ -266,26 +266,70 @@ P0/P1 なし。attempt 1 の4件が**すべて閉じている**ことを、revie
 - 上の安全網の穴(帯と行の合成test)と、**帯の右寄せが無くなったこと**(`Wrap` 化で `Spacer` を落とした)を
   [`T10`](../T10-spacing-and-typography/task.md) へ記録した。配置は元々 `T10` の範囲である。
 
+## manual確認の結果(2026-09-18。1回目)
+
+対象commit **`7387c9c`**、branch `asdd/008-ui-alignment/T08-load-affordance-and-path`、PR #170、
+**Android実機**と**Windows desktop**。手順書は[`manual-verification.md`](manual-verification.md)。
+**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 1 読み込み前(確認A・B) | **成立** | 「確認事項はすべて問題ありませんでした。」 |
+| 2 読み込み後 確認A・B・C・E | **言及なし**(確認Dだけが記述されている) | — |
+| 2 確認D(帯の崩れ) | **不成立** | 「button が画面外へ押し出されるようなことはない。『行が足りなければ次の行へ落ちている』ような挙動については、『すべて外す』ボタンだけファイル選択時に改行された。DCIM/t07-fixturesは表示されているが、幅がいっぱいのためか、『Internal shared storage/DCIM/t07-fix...』のように、入りきらなかった分は...で消えるようになっている。」「未選択のとき、帯が画面幅より短くなって不自然なUIになっている。」「そもそもフォルダ名の長さでボタンの位置が変わるUIがおかしい。フォルダの場所は画面左上、フォルダを選択/別フォルダへ ボタンは画面右上に固定すべき。『Internal shared storage/DCIM/t07-fix...』のように、入りきらなかった分が...で消えるようになっているのはこのままでよい。すべて外すボタンは後の実装で消えるとは思うが、こちらも『〇/〇件を選択』の帯と同じ階層に置くべき。」 |
+| 3 すべて外す(確認A) | **成立** | 「確認事項はすべて問題ありませんでした。」 |
+| 4 desktop 複数folder | **実行できず** | 「そもそも別のフォルダのファイルを同時に選択することができませんでした。」 |
+
+**手順2の確認A・B・C・Eは結果を受け取っていない。** 確認Dの記述だけで「他も成立した」と読まない
+(`development-findings/2026-09-01-prose-claimed-a-wider-verification-range-than-the-assertions.md`)。
+**確認Dを直した再確認のときに、あわせて見てもらう。**
+
+### 直したもの(`87814f8`)
+
+- **帯が画面幅より短い** — `Wrap` へ組み替えたとき外側 `Column` のcross軸が既定の `center` のままで、
+  帯が中身の幅しか持たなかった。**私が入れた退行である。** `stretch` にし、中身を
+  **「左に場所(`Expanded` で省略)・右にbutton」の固定配置**へ変えた。folder 名の長さで
+  button の位置は動かなくなり、長い名前は `...` で省略される(開発者が「このままでよい」とした振る舞い)。
+- **機械で固定した** — 帯の幅が画面幅と一致すること(読み込み前・後の両方)、**長い名前でも
+  button の矩形が1pxも動かないこと**、名前が省略されること。対照は `M276`〜`M278`(3 KILLED)。
+  **最初に置いた `M276` / `M278` は等価mutantで SURVIVED だった**ので、実際に退行を再現する形
+  (帯を `Wrap` へ戻す / 省略をやめる)へ差し替えた。
+
+### 決着していないもの
+
+- **「すべて外す」を「〇/〇件を選択」の帯へ移す**(開発者の指摘)。**その帯には余白が無い。**
+  320dp・文字倍率1.3 で、label付きでも **icon だけ**でも `008:T16` が閉じた保証
+  (「件数が多くても一覧を覆わない」「狭幅でも文字を大きくしても数字が消えない」)が壊れることを、
+  実際に3通り試して確認した(Wrapの中・右端固定・`Flexible`)。**保証を自分で緩めない**ので、
+  置き場所は人間へ選択肢として出した。
+- **desktopで複数folderを跨ぐ選択ができない。** Windows のファイル選択画面は1つのfolder内でしか
+  複数選択できない。**004 REQ-012(跨ぎ警告)と、行の場所の条件表示(002 代表例7c)は、いまのところ
+  どちらのplatformからも到達できない**ことになる(Androidは REQ-016 で常に1 folder)。
+  **判定・実装は両方向をtestで固定してある**ので機械側は閉じているが、**手順4は実行できない**。
+  仕様側の見直し(要否)は人間の判断であり、このtaskでは決めない。
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
 
 | 検査 | 結果 |
 |---|---|
-| `flutter test` | PASS(862) |
+| `flutter test` | PASS(865) |
 | `flutter analyze` | PASS(No issues found) |
 | `dart format --output=none --set-exit-if-changed .` | PASS(0 changed) |
-| `mutation_check.py --list`(全表) | `266 mutations, 0 with an unexpected match count` |
-| 範囲を絞った mutation | `M164`/`M265`〜`M272` = 9 KILLED、`M273`〜`M275` = 3 KILLED(いずれも 0 SURVIVED) |
+| `mutation_check.py --list`(全表) | `269 mutations, 0 with an unexpected match count` |
+| 範囲を絞った mutation | `M164`/`M265`〜`M275` = 12 KILLED(reviewerが再現)、`M276`〜`M278` = 3 KILLED |
 | `workspace.py check specs` | PASS(8 plans, 75 tasks) |
-| Android実機 / Windows desktop | **未実施**。[`manual-verification.md`](manual-verification.md)の手順1〜4 |
+| Android実機 | 手順1・3 = 成立。**手順2の確認Dが不成立 → 直した(`87814f8`)。再確認が要る** |
+| Windows desktop | 手順4 = **実行できない**(OSのpickerがfolderを跨いだ選択を許さない) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 が **PASS**。P3(記録)を直し、安全網の穴1件を `T10` へ引き渡した(2026-09-18)。
-  **`lib/` の最終commitは `7387c9c`**
-- Blocker category: human-verification
-- Waiting for: Android実機(手順1〜3)と Windows desktop(手順4)のmanual確認
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4
+- Last checkpoint: 実機確認の指摘(帯が画面幅より短い / buttonの位置が動く)を直し、機械で固定した(2026-09-18)。
+  **`lib/` の最終commitは `87814f8`**
+- Blocker category: human-decision
+- Waiting for: **「すべて外す」の置き場所**の判断(件数の帯には余白が無く、`008:T16` の保証と両立しない)。
+  そのあと帯の再確認(手順2)
+- Requested action: 選択肢は報告に出した
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: manual確認の結果を待つ。**確認が終わるまで `/workspace` のbranchを動かさない**
+- Next Agent action: 置き場所が決まったら反映し、独立reviewを1回回してから手順2の再確認を依頼する

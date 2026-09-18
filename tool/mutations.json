@@ -1870,9 +1870,9 @@
     {
       "id": "M276",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "          // **`stretch` が要る。** 既定の `center` だと帯が中身の幅しか持たず、\n          // 読み込み前に画面幅より短い帯が浮く(実機確認 2026-09-18 の手順2)。\n          crossAxisAlignment: CrossAxisAlignment.stretch,",
-      "replace": "          // **`stretch` が要る。** 既定の `center` だと帯が中身の幅しか持たず、\n          // 読み込み前に画面幅より短い帯が浮く(実機確認 2026-09-18 の手順2)。\n          crossAxisAlignment: CrossAxisAlignment.center,",
-      "note": "008:T08 帯が中身の幅しか持たない — 読み込み前に短い帯が画面の中央へ浮く(2026-09-18 の実機確認で観測した退行そのもの)"
+      "find": "              child: Row(\n                children: [\n                  Expanded(\n                    child: locationLabel == null",
+      "replace": "              child: Wrap(\n                spacing: 8,\n                runSpacing: 4,\n                crossAxisAlignment: WrapCrossAlignment.center,\n                children: [\n                  SizedBox(\n                    child: locationLabel == null",
+      "note": "008:T08 帯を Wrap へ戻す — 中身の幅しか持たなくなり、読み込み前に短い帯が画面の中央へ浮く(2026-09-18 の実機確認で観測した退行そのもの)。button の位置も名前の長さで動く"
     },
     {
       "id": "M277",
@@ -1884,9 +1884,9 @@
     {
       "id": "M278",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                              Flexible(\n                                child: Text(\n                                  locationLabel,",
-      "replace": "                              Expanded(\n                                child: Text(\n                                  locationLabel,",
-      "note": "008:T08 対照: 場所のTextの縮み方を変える。省略の有無と button の位置が保たれるかを見る"
+      "find": "                                  maxLines: 1,\n                                  overflow: TextOverflow.ellipsis,\n                                  style: TextStyle(\n                                    color: colors.textSecondary,\n                                    fontSize: 12,\n                                  ),",
+      "replace": "                                  maxLines: 3,\n                                  style: TextStyle(\n                                    color: colors.textSecondary,\n                                    fontSize: 12,\n                                  ),",
+      "note": "008:T08 長い folder 名を省略せず折り返す — 帯の高さが名前の長さで変わり、実機確認で「…で消えるのはこのままでよい」と確認した振る舞いが崩れる"
     }
   ]
 }
