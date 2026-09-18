@@ -345,6 +345,48 @@ P0/P1 なし。**新規の指摘も無い。** attempt 3 の4件がすべて閉�
 reviewer は「成果物の欠陥によるFAILが2回、次が3回目なら `blocked`」という読み方が `AGENTS.md`(累計3回)と
 整合していることも確かめている。
 
+## manual確認の結果(2026-09-18。2回目)
+
+対象commit **`f71e2f6`**(`lib/` の最終commit。以後は記録のみ)、branch
+`asdd/008-ui-alignment/T08-load-affordance-and-path`、PR #170、**Android実機**。
+依頼したのは**手順2だけ**(手順1・3は `7387c9c` で成立済み、手順4は実行不能)。
+**開発者の言葉をそのまま引用する。**
+
+| 手順 | 結果 | 開発者の記述(原文) |
+|---|---|---|
+| 2 読み込み後 確認A〜E | **成立** | 「手順A~Eまで確認できましたが、気になることがあります。」 |
+| 2 に付随する指摘(場所の読みやすさ) | **新しい要望**(承認済みの保証に反してはいない) | 「フォルダの表示は「Internal shared st...」のようになっており、肝心のt07-fixturesが見切れています。t07-fixturesが最も表示したいものなので、見切れる場合は最後のフォルダ名だけを表示するようにするか、「別フォルダへ」と「すべて外す」は右上に固定しつつ、フォルダ名はその次の行に改行して配置するのはどうでしょうか。」 |
+
+**1回目で受け取れていなかった確認A・B・C・Eが成立した。** これで手順1〜3がすべて成立し、
+`T08` が宣言した「machineで閉じられない範囲」のうち実行できるものは閉じた(手順4は実行不能)。
+
+### 場所の表示が末尾から消える件は `T23` へ送った
+
+帯が出す文字列は **`保存場所名 + rootからの相対path`**(`storage_browser_view.dart` の
+`_displayPathOf`。004 REQ-009。**独立review attempt 2 の P2-1** で「保存場所名だけにすると
+どのfolderから読み込んでも同じ表示になる」として決めた形)である。`Text` の
+`TextOverflow.ellipsis` は**末尾から削る**ので、どのfolderでも同じ接頭辞
+(`Internal shared storage/…`)だけが残り、**判別に効く末尾が消える**。
+
+- **承認済みの保証に反していない。** 004 REQ-009 は `should` で「人間可読の文字列」しか定めておらず、
+  省略の向きは決めていない。1回目の確認で開発者は「入りきらなかった分が...で消えるようになっているのは
+  このままでよい」と述べており、**今回その判断が更新された**。したがって `T08` の成果物の欠陥ではなく、
+  新しい要望として扱う。
+- **`T08` が固定した保証はそのまま有効である。** 帯が画面幅いっぱいであること、folder名の長さで
+  buttonが動かないこと、狭幅・大きい文字ではみ出さないこと、行の場所を混在時だけ出すことは、
+  いずれも実機で成立したまま変わらない。
+- したがって `T08` はここで閉じ、**省略の向き(と場所を2行目へ出すか)は
+  [`T23`](../T23-source-path-legibility/task.md) が引き受ける**。開発者へ選択肢を出した。
+
+### 2回目の確認で受領した質問と要望(2026-09-18、原文)
+
+| # | 原文 | 引き受け先 |
+|---|---|---|
+| 質問1 | 「複数フォルダにまたがる場合は、2つめ以降のフォルダはどのように表示されるのでしょうか。」 | **回答済み**(仕様変更なし)。帯は具体名を出さず `複数のフォルダ` だけを示し(要望12)、**どの行がどのfolderかは各行が出す**(002 代表例7c)。読み込み時に赤いSnackBarで跨ぎを警告する(004 REQ-012)。いずれも実装済みでtestがある |
+| 質問2 | 「現在pub run getしなおすと初期値のファイルが選択された状態から始まるのですが、ここで複数フォルダにまたがるファイルを初期値に設定しておけば、複数ファイルバージョンのUIも確認できるのではないでしょうか。」 | **できる。`T23` で行う。** demo dataは `main.dart` の `_sampleFiles()` で、いまは `sourceLocation` も `sourceFolder` も持たない(だから起動直後は帯にも行にも場所が出ない)。2 folder分を入れれば、**製品経路からは到達できない複数folder表示を実機で目視できる**(到達不能自体は `development-findings/2026-09-18-desktop-picker-cannot-span-folders-so-the-multi-folder-path-is-unreachable.md`) |
+| 質問3 | 「ヘッダーの「一括リネーム」という見出しはどこかで削除・縮小される予定でしたよね？」 | **予定どおり残っている。要望13 として [`T10`](../T10-spacing-and-typography/task.md) が持つ**(「見出しを消すか縮めるかはこのtaskの裁量」)。`T10` は構造が確定してから着手する依存なので、実装taskの後になる |
+| 要望1 | 「複数フォルダにまたがる場合、各行の詳細にフォルダ名を書いても見づらいので、フォルダの行を追加する案を思いつきました。…フォルダ行(名前だけの行なので縦幅は小さくてよい)で各ファイルをまとめ、各ファイルはフォルダ行に対して少しインデントさせるイメージです。また、フォルダ行をクリックすることで、配下のファイルを非表示にできたりするとよいです」(原文全文は `T24` に置いた) | **[`T24`](../T24-define-row-grouping/task.md) を作って引き受けた。** 002 の行構造とT22で承認した場所の出し方に触るので、仕様定義から始める |
+
 ## 検証の記録
 
 **この表は commit ごとに置き換える。**
@@ -357,15 +399,15 @@ reviewer は「成果物の欠陥によるFAILが2回、次が3回目なら `blo
 | `mutation_check.py --list`(全表) | `270 mutations, 0 with an unexpected match count` |
 | 範囲を絞った mutation | `M164`/`M265`〜`M275` = 12 KILLED(attempt 2 が再現)、`M276`〜`M279` = 4 KILLED |
 | `workspace.py check specs` | PASS(8 plans, 75 tasks) |
-| Android実機 | 手順1・3 = 成立。**手順2は修正後の再確認が要る** |
+| Android実機 | 手順1・2・3 = **成立**(手順2は `f71e2f6` で再確認済み) |
 | Windows desktop | 手順4 = **実行できない**(OSのpickerがfolderを跨いだ選択を許さない) |
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 4 が **PASS**(新規指摘なし)。**`lib/` の最終commitは `f71e2f6`**
-- Blocker category: human-verification
-- Waiting for: Android実機の**手順2だけ**の再確認(手順1・3は `7387c9c` で成立済み、手順4は実行不能)
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順2(確認A〜E)
-- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: 結果を記録し、成立していれば PR #170 を ready にして merge する。
-  **確認が終わるまで `/workspace` のbranchを動かさない**
+- Last checkpoint: **手順1〜3がすべて実機で成立**し、独立review attempt 4 も PASS(新規指摘なし)。
+  **`lib/` の最終commitは `f71e2f6`**
+- Blocker category: none
+- Waiting for: なし
+- Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、PR #170
+- Next Agent action: PR #170 を ready にして merge し、`dev` で smoke を確認する。
+  **場所の省略の向きは `T23`、folder行のグルーピングは `T24`** が引き受けるので、このtaskへ戻さない
