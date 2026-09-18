@@ -1303,9 +1303,9 @@
     {
       "id": "M188",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  '$selected / $total 件を選択',\n                  maxLines: 2,",
-      "replace": "                  '$selected / $total 件を選択',\n                  maxLines: 1,\n                  overflow: TextOverflow.ellipsis,",
-      "note": "008:T16 選択件数を折り返さず切り詰める — `1000 / 1…` のように総数を誤読できる(独立reviewが見つけたP1)"
+      "find": "            '$total 件',\n            maxLines: 2,",
+      "replace": "            '$total 件',\n            maxLines: 1,\n            overflow: TextOverflow.ellipsis,",
+      "note": "008:T16 ヘッダの件数を折り返さず切り詰める — `1000 件` が `1…` のように読め、総数を誤読できる(独立reviewが見つけたP1)。**008:T04 で錨が総件数へ移った** — 「n/n 件を選択」を廃止したが、「桁が消えると誤読できる」保証は同じである"
     },
     {
       "id": "M191",
@@ -1971,6 +1971,62 @@
       "find": "  final segments = text.split('/').where((s) => s.isNotEmpty).toList();",
       "replace": "  final segments = text.split('/').toList();",
       "note": "008:T23 空のsegmentを段として数える — `DCIM/` のような値で表示が空文字になり、場所が消える。独立review attempt 1 が置いた対照(R2)"
+    },
+    {
+      "id": "M291",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          // **checkbox は置かない**(002 REQ-016)。一覧にあるファイルはすべて\n          // rename 対象で、外すのは行の × である。\n          //\n",
+      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n",
+      "note": "008:T04 行へ checkbox を戻す — 002 REQ-016(行UIは選択の切り替えを提示しない)が壊れ、×との共存が復活する"
+    },
+    {
+      "id": "M292",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            '$total 件',",
+      "replace": "            '${controller.selectedCount} / $total 件を選択',",
+      "note": "008:T04 ヘッダを「n/n 件を選択」へ戻す — 選択の概念が無いのに選択件数を出す(002 REQ-016)"
+    },
+    {
+      "id": "M293",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setFiles(before);\n",
+      "replace": "",
+      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る"
+    },
+    {
+      "id": "M294",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setFiles(before);",
+      "replace": "            controller.setFiles(before.reversed.toList());",
+      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)"
+    },
+    {
+      "id": "M295",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "  if (messenger == null || removed <= 0) return;",
+      "replace": "  if (messenger == null) return;",
+      "note": "008:T04 何も外れていなくても「外しました」と出す — 002 REQ-009(一致が無ければ無変化)に対して嘘の通知になる"
+    },
+    {
+      "id": "M296",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "            controller.setOccupiedNames(occupied);\n",
+      "replace": "",
+      "note": "008:T04 取り消しで占有名を戻さない — setFiles が捨てるので、外して戻しただけで一覧の重複警告が弱くなる(005 REQ-026)"
+    },
+    {
+      "id": "M297",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                            label: const Text('一覧を空にする'),",
+      "replace": "                            label: const Text('すべて外す'),",
+      "note": "008:T04 「すべて外す」へ戻す — checkbox が無いのに「選択を全部外す」と読める名前になる(008:T03 の決定)"
+    },
+    {
+      "id": "M298",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                ? () => removeUndoably(\n                                    context,\n                                    widget.controller,\n                                    widget.controller.clearFiles,\n                                  )\n",
+      "replace": "                                ? widget.controller.clearFiles\n",
+      "note": "008:T04 一覧を空にする操作を取り消せなくする — 代表例6d(一覧を空にした直後も戻せる)が壊れる"
     }
   ]
 }

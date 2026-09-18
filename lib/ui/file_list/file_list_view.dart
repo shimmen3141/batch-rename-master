@@ -9,12 +9,17 @@ import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
+import 'removal_undo.dart';
 import 'rename_warning_view.dart';
 import 'row_preview_view.dart';
 import 'row_view.dart';
 
 /// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
 const Key shiftModifiedAtKey = Key('shift-modified-at');
+
+/// 一覧の総件数(002 REQ-016)。**選択された件数ではない** — 一覧にある
+/// ファイルはすべて rename 対象である。
+const Key fileCountKey = Key('file-count');
 
 /// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
 ///
@@ -143,11 +148,15 @@ class FileListView extends StatelessWidget {
                         // 片方だけが警告されたときに見分けられない)。
                         amongFiles: controller.rows.map((r) => r.source),
                       ),
-                      onToggle: () => controller.toggleSelection(row.source),
                       // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
+                      // **取り消せる形で外す**(002 REQ-017)。
                       onRemove: handle == null
                           ? null
-                          : () => controller.removeFile(handle),
+                          : () => removeUndoably(
+                              context,
+                              controller,
+                              () => controller.removeFile(handle),
+                            ),
                     );
                   },
                 ),
@@ -679,8 +688,6 @@ class _HeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final total = controller.items.length;
-    final selected = controller.selectedCount;
-    final allSelected = total > 0 && selected == total;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -696,33 +703,22 @@ class _HeaderBar extends StatelessWidget {
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _SelectAllButton(
-                key: const Key('select-all-toggle'),
-                allSelected: allSelected,
-                enabled: total > 0,
-                onPressed: allSelected
-                    ? controller.clearAll
-                    : controller.selectAll,
-              ),
-              const SizedBox(width: 12),
-              // 極端な文字サイズでは自分の中で折り返す(次の行へ落ちても
-              // なお入らないときの最後の逃げ道)。
-              Flexible(
-                child: Text(
-                  key: const Key('selection-count'),
-                  '$selected / $total 件を選択',
-                  maxLines: 2,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+          // **選択の切り替えは出さない**(002 REQ-016)。全選択トグルと
+          // 「n/n 件を選択」は `008:T03` の決定で撤去した — 一覧にあるファイルは
+          // すべて rename 対象なので、選択された件数という概念が無い。
+          // **総件数は残す**(いま何件を扱っているかは実行前に知りたい)。
+          //
+          // 極端な文字サイズでは自分の中で折り返す(次の行へ落ちても
+          // なお入らないときの最後の逃げ道)。
+          Text(
+            key: fileCountKey,
+            '$total 件',
+            maxLines: 2,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
           // **ルールが空のときは出さない** — 001 は空名と重複を返しているので
@@ -746,47 +742,6 @@ class _HeaderBar extends StatelessWidget {
 }
 
 /// 全選択/全解除を切り替える四角いチェックボタン(デザインの ✓ ボックス)。
-class _SelectAllButton extends StatelessWidget {
-  const _SelectAllButton({
-    super.key,
-    required this.allSelected,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  final bool allSelected;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Semantics(
-      button: true,
-      label: allSelected ? '全解除' : '全選択',
-      child: InkWell(
-        onTap: enabled ? onPressed : null,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          width: 22,
-          height: 22,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: allSelected ? colors.primary : Colors.transparent,
-            border: Border.all(
-              color: allSelected ? colors.primary : colors.textDisabled,
-            ),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: allSelected
-              ? Icon(Icons.check, size: 15, color: colors.onPrimary)
-              : null,
-        ),
-      ),
-    );
-  }
-}
-
 /// ソート種別を切り替えるチップ列(横スクロール)。
 class _SortBar extends StatelessWidget {
   const _SortBar({required this.controller});
@@ -920,7 +875,6 @@ class _FileRow extends StatelessWidget {
     super.key,
     required this.index,
     required this.row,
-    required this.onToggle,
     required this.showDragHandle,
     required this.sortMode,
     required this.showLocation,
@@ -960,8 +914,6 @@ class _FileRow extends StatelessWidget {
   /// 行の警告を押したときに**その行の**詳細を開く(005 REQ-009 (4))。
   final VoidCallback onShowWarningDetail;
 
-  final VoidCallback onToggle;
-
   /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
   final VoidCallback? onRemove;
 
@@ -975,12 +927,9 @@ class _FileRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Checkbox(
-            value: row.selected,
-            onChanged: (_) => onToggle(),
-            activeColor: colors.primary,
-            checkColor: colors.onPrimary,
-          ),
+          // **checkbox は置かない**(002 REQ-016)。一覧にあるファイルはすべて
+          // rename 対象で、外すのは行の × である。
+          //
           // 中身が見える行にする(参考designのリッチな行)。preview を出せない
           // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
           // 開始位置も揃う。

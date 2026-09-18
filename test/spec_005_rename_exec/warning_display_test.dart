@@ -14,6 +14,7 @@
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_builder_view.dart';
@@ -378,7 +379,11 @@ void main() {
       expect(c.warnings.whereType<MissingSourceDateWarning>().length, 30);
       // **描画された行すべて**で種別が読める((1) は件数ぶん出てよい)。
       // `ListView.builder` は見えている行しか作らないので、30 を直に数えない。
-      final renderedRows = tester.widgetList(find.byType(Checkbox)).length;
+      // **行の数え方は preview の枠である**(`008:T03` で checkbox が無くなった)。
+      // 枠は preview を出せない file でも必ず在るので、行と1:1で対応する。
+      final renderedRows = tester
+          .widgetList(find.byType(RowPreviewView))
+          .length;
       expect(renderedRows, greaterThan(1));
       expect(_rowWarnings(), findsNWidgets(renderedRows));
       // **ルール設定buttonには警告が載らない**(008:T20)。器は在る。
