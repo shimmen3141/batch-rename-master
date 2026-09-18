@@ -295,6 +295,12 @@ P0/P1 なし。attempt 1 の4件が**すべて閉じている**ことを、revie
   **最初に置いた `M276` / `M278` は等価mutantで SURVIVED だった**ので、実際に退行を再現する形
   (帯を `Wrap` へ戻す / 省略をやめる)へ差し替えた。
 
+### 決着したもの(2026-09-18 開発者の判断)
+
+- **「すべて外す」は読み込み帯のまま**にする。件数の帯へ移す案(B)と下部バーへ移す案(C)は採らない。
+  **置き場所の見直しは削除導線を作り直す [`T04`](../T04-implement-selection-flow/task.md) へ送った**
+  (「無くす」選択肢も含めて書いてある)。`T08` の修正で位置は固定され、改行も起きない。
+
 ### 決着していないもの
 
 - **「すべて外す」を「〇/〇件を選択」の帯へ移す**(開発者の指摘)。**その帯には余白が無い。**
@@ -325,11 +331,10 @@ P0/P1 なし。attempt 1 の4件が**すべて閉じている**ことを、revie
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認の指摘(帯が画面幅より短い / buttonの位置が動く)を直し、機械で固定した(2026-09-18)。
-  **`lib/` の最終commitは `87814f8`**
-- Blocker category: human-decision
-- Waiting for: **「すべて外す」の置き場所**の判断(件数の帯には余白が無く、`008:T16` の保証と両立しない)。
-  そのあと帯の再確認(手順2)
-- Requested action: 選択肢は報告に出した
+- Last checkpoint: 「すべて外す」の置き場所を開発者が決め(読み込み帯のまま)、`T04` へ見直しを送った。
+  desktopの到達不能をfindingへ記録した(2026-09-18)。**`lib/` の最終commitは `87814f8`**
+- Blocker category: なし
+- Waiting for: 独立review attempt 3 → そのあと手順2の再確認(Android)
+- Requested action: なし
 - Evidence revision: branch `asdd/008-ui-alignment/T08-load-affordance-and-path`(`dev@f2413e9` から作成)、Draft PR #170
-- Next Agent action: 置き場所が決まったら反映し、独立reviewを1回回してから手順2の再確認を依頼する
+- Next Agent action: 独立reviewを回し、PASSしたら手順2だけの再確認を依頼する(手順4は実行不能として閉じる)
