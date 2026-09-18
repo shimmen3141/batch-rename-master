@@ -16,6 +16,9 @@ import 'row_view.dart';
 const Key shiftModifiedAtKey = Key('shift-modified-at');
 
 /// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
+///
+/// **一覧に複数の場所が混ざっているときだけ出る**(002 の決定。2026-09-18 に開発者が
+/// 再承認。代表例 7b・7c / `008:T22`)。1つだけなら読み込み帯が一覧全体として示す。
 const Key rowLocationKey = Key('row-location');
 
 /// 行サブ情報の作成日時(002 REQ-013)。**並び順chipや代替警告と同じ語を含む**ため、
@@ -69,6 +72,18 @@ class FileListView extends StatelessWidget {
         final warnings = preview.warnings;
         // 005 REQ-020: ルールが空なら警告を提示しない。**行にも出さない。**
         final ruleIsEmpty = controller.isRuleEmpty;
+        // 002 の決定(2026-09-18 再承認・`008:T22`): 行が場所を表示するのは
+        // **一覧に複数の場所が混ざっているときだけ**である。1つだけなら読み込み帯が
+        // 一覧全体として示すので、全行へ同じ名前が並ぶのは冗長になる(代表例 7b・7c)。
+        //
+        // **ここで1回だけ数える。** 行ごとに数えると一覧の長さの2乗で効く。
+        final showRowLocation =
+            rows
+                .map((r) => r.source.sourceLocation)
+                .whereType<String>()
+                .toSet()
+                .length >
+            1;
         return Container(
           color: colors.background,
           child: Column(
@@ -107,6 +122,7 @@ class FileListView extends StatelessWidget {
                       // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
                       showDragHandle: controller.manualOrderMatters,
                       sortMode: controller.sortMode,
+                      showLocation: showRowLocation,
                       filePreview: filePreview,
                       // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
                       warnings: rowWarningsOf(
@@ -906,6 +922,7 @@ class _FileRow extends StatelessWidget {
     required this.onToggle,
     required this.showDragHandle,
     required this.sortMode,
+    required this.showLocation,
     required this.filePreview,
     required this.warnings,
     required this.onShowWarningDetail,
@@ -922,6 +939,12 @@ class _FileRow extends StatelessWidget {
 
   /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
   final FileSortMode sortMode;
+
+  /// この行に場所(元フォルダ)を出すか。
+  ///
+  /// **一覧に複数の場所が混ざっているときだけ真**である(002 の決定・`008:T22`)。
+  /// 判定は一覧の側が持つ — 行は自分だけを見ても「混ざっているか」を知れない。
+  final bool showLocation;
 
   /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
   final FilePreviewPort? filePreview;
@@ -1012,7 +1035,11 @@ class _FileRow extends StatelessWidget {
                     ),
                   ],
                 ),
-                _DateSubInfo(file: row.source, sortMode: sortMode),
+                _DateSubInfo(
+                  file: row.source,
+                  sortMode: sortMode,
+                  showLocation: showLocation,
+                ),
               ],
             ),
           ),
@@ -1046,17 +1073,26 @@ class _FileRow extends StatelessWidget {
 
 /// 行のサブ情報: 場所(元フォルダ)と、作成日時・更新日時の双方(REQ-010 / REQ-013)。
 ///
-/// 場所は同名・非同名に関わらず常時表示する(別フォルダの同名ファイルを見分ける
-/// 手がかりになる)。作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで
+/// 場所を出すのは**一覧に複数の場所が混ざっているときだけ**である(002 の決定。
+/// 2026-09-18 に開発者が再承認。代表例 7b・7c)。混ざっていれば別フォルダの同名
+/// ファイルを見分ける手がかりになり、1つだけなら読み込み帯が一覧全体として示す。
+/// 作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで
 /// 示し、更新日時で代替されたことを行レベルで見分けられるようにする。見た目は
 /// 非規範だが、色は [AppColors] のセマンティック名から取る(生の色値を書かない)。
 class _DateSubInfo extends StatelessWidget {
-  const _DateSubInfo({required this.file, required this.sortMode});
+  const _DateSubInfo({
+    required this.file,
+    required this.sortMode,
+    required this.showLocation,
+  });
 
   final FileEntry file;
 
   /// 現在のソート種別。**作成日時ソートのときだけ**不明を強調する(REQ-013)。
   final FileSortMode sortMode;
+
+  /// 場所を出すか(一覧に複数の場所が混ざっているときだけ真)。
+  final bool showLocation;
 
   static String _format(DateTime dt) {
     String two(int v) => v.toString().padLeft(2, '0');
@@ -1078,11 +1114,12 @@ class _DateSubInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 場所(元フォルダ)。004 が供給する行だけ表示する(REQ-010)。
+          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**
+          // 行だけ表示する(REQ-010 と 002 の決定。`008:T22`)。
           //
           // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
           // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
-          if (file.sourceLocation != null)
+          if (showLocation && file.sourceLocation != null)
             Text(
               file.sourceLocation!,
               key: rowLocationKey,
