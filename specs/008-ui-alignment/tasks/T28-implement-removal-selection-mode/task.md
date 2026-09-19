@@ -49,12 +49,72 @@
 - `flutter test` / `flutter analyze` / `dart format` / `mutation_check.py` が PASS。
 - Android 実機での manual 確認(`manual-verification.md` を作成する)。
 
+## 実装(2026-09-19)
+
+### 決めたこと
+
+- **選択モードの状態は `FileListView` 側に置いた**(`FileListController` へ入れない)。
+  controller の選択(`toggleSelection` / `selectedCount`)は **rename 対象の選択**で、
+  製品 UI では常に全件である(REQ-004 / REQ-016)。ここで選ぶのは**外す候補**で、
+  モードを抜ければ消える別物なので、同じ状態へ混ぜると「外す候補にしただけで
+  rename から外れる」振る舞いになりうる。`FileListView` を `StatefulWidget` へ変えた。
+- **覚えるのはハンドル**である。項目は改名や読み込み直しで別の値へ入れ替わるが
+  (005 REQ-018 / 004 REQ-004)、ハンドルは同じファイルを指す。**いま一覧にあるハンドルと
+  交差させてから数える**ので、読み込み直しで消えた行は件数に入らない
+  (「2 件」と出して1件しか外れない、を防ぐ)。
+- **まとめての除去は `removeFile` の反復**で行う。`setFiles(残り)` は**占有名を捨てる**ので
+  (005 REQ-026)、外しただけで一覧の重複警告が弱くなり、`T04` の控えの照合も毎回
+  「古い」と判定されて取り消せなくなる(mutation M315 がこの経路を塞いでいる)。
+- **常設の入口は「一覧が空でない間」で出す**(外せる行があるかでは出し入れしない)。
+  REQ-018 の文面がそれであり、行の中身でヘッダの高さが変わるのも避けられる。
+- **ハンドルを持たない行は選べない**(切り替えを出さず、幅だけ残して行頭を揃える)。
+  004 REQ-006 はハンドルで対象を指すので、選べても外せない — **選べるのに外れない件数**を
+  出すほうが悪い。製品経路では 004 が必ずハンドルを持たせる。
+- **端末の戻るでもモードを抜ける**(`PopScope`)。REQ-018 が課すのはヘッダの × だけだが、
+  選択モードから戻るの期待は強い。対照は mutation M318。
+
+### 参考designから離れた点
+
+`docs/design/Bulk Renamer.html` は**行に常時 checkbox** を持ち、ヘッダに
+`n / m 件を選択`、実行buttonに `対象を選択してください` を持つ。**離れる。**
+002 REQ-016(`T03` 承認)で常時の checkbox と件数表示を撤去し、REQ-018(`T27` 承認)で
+除去のための一時的なモードへ移したためである。designにこのモードの絵は無いので、
+ヘッダの3要素(× / 見出しと件数 / `リネーム候補から外す`)は spec の要求から組んだ。
+
+### machine検証できる範囲と引き受け先
+
+widget testで確かめたのは、代表例 6e〜6j、入口2系統、0 件での実行不可、モード中に
+つまみと `カスタム順` が出ないこと、モード中の長押しで並べ替えが始まらないこと、
+一覧が空になったときの畳み込み、読み込み直しで消えたハンドルの扱い、戻るでの離脱である。
+**CIで閉じられないのは実機の当たり判定・視覚(押しやすさ、文字の大きさ、余白)**で、
+これは manual 確認と `T10`(余白・階層・typography)が引き受ける。
+
+## 検証(2026-09-19)
+
+- `flutter test` **PASS(909)**。新規は `test/spec_002_file_list/removal_selection_mode_test.dart`(17件。
+  代表例 6e〜6j と、入口2系統・0件・モード中の並び替え・件数の食い違い・戻る)。
+- `flutter analyze` PASS / `dart format` PASS。
+- `mutation_check.py` は**表全体で 310 件・異常0**。`T28` 周辺へ範囲を絞って回した 37 件は
+  **36 KILLED / 1 SURVIVED**で、SURVIVED は既知の `M221`(現行名の行数上限。
+  **残余riskとして受容済みで引き受け先は `T10`**)だけである。新規の M305〜M319 はすべて KILLED。
+- **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
+
+### 既存testの付け替え
+
+行の × が無くなったので、除去を通っていた test を選択モード経由へ移した
+(`file_list_view_test.dart` の REQ-017 系 7件、`spec_004_file_source/ui_entry_test.dart` 1件、
+`widget_test.dart` 1件)。**経路は `test/spec_002_file_list/removal_mode.dart` の共通手順に集めた** —
+testごとに書き写すと、次に導線が変わったとき一部だけ古い前提のまま残る。
+
+`widget_test.dart` の「全行が外せる」は、`Checkbox` の総数では数えないように直した
+(demo の tree には下部バーの更新日時ずらしの checkbox も居る)。**作られた行を列挙して、
+その行の checkbox が在るか**を見る形にした。
+
 ## Current state / handoff
 
-- Last checkpoint: `T27` で 002 spec が承認され、実装taskとして起票した(2026-09-19)
-- Blocker category: none
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: 未着手
-- Next Agent action: 現行の行widgetとヘッダを読み、選択モードの状態の置き場所(controller か widget か)を
-  決めてから、代表例 6f〜6j の test を先に書く
+- Last checkpoint: 実装・test・mutationが揃った(2026-09-19)
+- Blocker category: manual(実機確認待ち)
+- Waiting for: 独立review と、Android実機での manual 確認
+- Requested action: 独立reviewの起動 → PASS後に [`manual-verification.md`](manual-verification.md) を依頼する
+- Evidence revision: 未取得(実機証拠はまだ無い)
+- Next Agent action: 独立reviewを走らせ、PASSならPRをready化して manual 確認を依頼する
