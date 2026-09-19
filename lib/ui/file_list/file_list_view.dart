@@ -271,9 +271,10 @@ class _FileListViewState extends State<FileListView> {
                         index: index,
                         row: row,
                         // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
-                        // **モード中は出さない**(REQ-018)。
-                        showDragHandle:
-                            widget.controller.manualOrderMatters && !selecting,
+                        // **モード中に出さない判定は行側が持つ** — 枠を
+                        // checkbox と取り合うので、同じ場所で決めないと
+                        // 「どちらも出ない」「両方出る」が作れてしまう。
+                        showDragHandle: widget.controller.manualOrderMatters,
                         sortMode: widget.controller.sortMode,
                         showLocation: showRowLocation,
                         filePreview: widget.filePreview,
@@ -1332,6 +1333,8 @@ class _FileRow extends StatelessWidget {
             SizedBox(
               width: 32,
               child: Center(
+                // **モード中はつまみを出さない**(REQ-018)。枠は同じなので、
+                // 入れ替わっても行の中身は動かない。
                 child: selecting
                     ? (onToggleMark == null
                           // 外せない行(元場所ハンドルが無い)。**枠だけ残す。**

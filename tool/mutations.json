@@ -2101,9 +2101,9 @@
     {
       "id": "M309",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        showDragHandle:\n                            widget.controller.manualOrderMatters && !selecting,",
-      "replace": "                        showDragHandle: widget.controller.manualOrderMatters,",
-      "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る"
+      "find": "                child: selecting\n                    ? (onToggleMark == null",
+      "replace": "                child: selecting && !showDragHandle\n                    ? (onToggleMark == null",
+      "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る。**008:T29 で checkbox とつまみが同じ枠を取り合うようになったので、判定を行側の1か所へ寄せて `find` を貼り直した**"
     },
     {
       "id": "M310",

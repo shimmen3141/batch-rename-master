@@ -421,6 +421,31 @@ void main() {
     expect(find.text('すべて選択'), findsOneWidget);
   });
 
+  testWidgets('モード中は下部の帯(ルール設定と実行)を出さない(008:T29)', (tester) async {
+    // 外す作業の最中に実行の導線が並んでいると混乱する(2026-09-19 の要望7)。
+    // **005 は提示の場所・文言・UI部品を自由とする点に残している** — REQ-019 が
+    // 課すのは「実行が始まらない・実ファイルを1件も変えない」という振る舞いである。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          body: FileListView(controller: c, onEditRule: () {}),
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+
+    await enterRemovalMode(tester);
+
+    expect(find.byKey(const Key('configure-rule')), findsNothing);
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+  });
+
   testWidgets('ケバブの「すべて選択」で全件が候補になる(008:T29)', (tester) async {
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
@@ -473,6 +498,9 @@ void main() {
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
     final before = tester.getTopLeft(find.text('a.txt'));
+    final nameWidthBefore = tester
+        .getSize(find.byKey(rowNewNameKey).first)
+        .width;
 
     await enterRemovalMode(tester);
 
@@ -482,6 +510,14 @@ void main() {
     expect(
       tester.getCenter(find.byKey(removalMarkKeyOf('h:a'))).dx,
       greaterThan(tester.getCenter(find.text('a.txt')).dx),
+    );
+
+    // **枠の幅が同じ**なので、行の中身が使える幅も変わらない(かくつきの本体)。
+    // 右端の枠だけを見ると checkbox と つまみ のどちらが居るかの話になるが、
+    // **効くのは中身の幅**なので、変更後名の欄の幅で見る。
+    expect(
+      tester.getSize(find.byKey(rowNewNameKey).first).width,
+      nameWidthBefore,
     );
 
     await toggleRemovalMark(tester, 'h:a');
