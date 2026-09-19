@@ -2593,7 +2593,14 @@
       "file": "lib/ui/file_list/removal_hint.dart",
       "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
       "replace": "    final safe = Rect.fromLTRB(\n      0,\n      0,\n      media.size.width,\n      media.size.height,\n    );",
-      "note": "008:T30 status bar の下から数えない — 上へ伸びる吹き出しが status bar の下へ潜り込み、本当に読めなくなる"
+      "note": "008:T30 status bar の下から数えない — **SURVIVED のまま残す対照**: `AppBar` が status bar の高さを含むので中身は必ずその下から始まり、吹き出しが status bar の下へ潜る状況が現在の画面構成では作れない。guard は意図の記録として残す(独立review attempt 5 由来)"
+    },
+    {
+      "id": "M387",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      media.padding.left,\n      media.padding.top,\n      media.size.width - media.padding.right,\n      media.size.height - media.padding.bottom,\n    );",
+      "note": "008:T30 左右と下の inset まで要求する — 横向き + ジェスチャーナビ(右に40程度の inset)の端末で**普通の文字でも一度も出なくなる**(実測で確認した)。この app は画面の端まで使う作りで、ヘッダのケバブも外すアイコンも inset の内側へ寄せていない"
     }
   ]
 }
