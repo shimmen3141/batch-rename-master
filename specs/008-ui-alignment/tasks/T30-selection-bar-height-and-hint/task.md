@@ -128,9 +128,9 @@
 
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(934)**(`T29` 時点は921。`T30` で9本、`T32` で1本追加) /
+- `flutter test` **PASS(936)**(`T29` 時点は921。`T30` で9本、`T32` で1本追加) /
   `flutter analyze` PASS / `dart format` PASS / `check specs` PASS(8 plans, 86 tasks)。
-- `mutation_check.py`: 表は**365件**(attempt 2 の対照 M372〜M376 を含む)。`T30` で M349〜M354・M364〜M367・M371 を、
+- `mutation_check.py`: 表は**369件**(attempt 2 の対照 M372〜M376、attempt 3 の M377〜M380 を含む)。`T30` で M349〜M354・M364〜M367・M371 を、
   `T32` で M355 / M357 / M358 / M368〜M370 を足し、独立reviewの対照 M359 / M360 / M362 / M363 を
   取り込んだ。**吹き出しを帯から `Overlay` へ移した際に、`_FileRow` の stateful 化で
   find がずれた12件(M171 / M179 / M218 / M291 / M309 / M323〜M328 / M350 / M354)を再アンカーした。**
@@ -299,11 +299,64 @@ M376 | KILLED   | 下へ回しても箱とツノの並び順を入れ替えな�
 8 mutations: 7 KILLED, 1 SURVIVED, 0 SKIPPED
 ```
 
+## 独立review attempt 3(2026-09-19)
+
+- `dev...c22bedd` — **FAIL**(Sonnet。`.worktrees/008-T30-review3`)。
+  - **P1(成果物の欠陥)**: **下へ回った吹き出しが、重なった行のtapを吸う。**
+    `Text` は `hitTestSelf` が**常に `true`** で(`RenderParagraph`)、描画範囲のtapを
+    無条件に取る。吹き出しがアイコンの下へ回って一覧の行に重なると、
+    **その行のcheckboxが押しても反応しない**まま最大3秒続く。**エラーも視覚の変化も
+    出ない**ので、利用者からは壊れて見える。reviewer は製品の木で再現し、
+    「吹き出しが出ている間はtapが通らない / 消えた後は同じ座標で通る」を実測した。
+    **これは attempt 2 の P1(画面外へ出る)を直したときに持ち込んだ副作用である。**
+    → **飾り(箱・本文・ツノ)を `IgnorePointer` で包み、閉じる操作だけ pointer を取る**
+    形にした。Flutter 自身の `Tooltip` と同じ作りで、条件を足す対症療法ではなく
+    「**装飾のoverlayは pointer を取らない**」という原則へ戻す修正である。
+    reviewer の再現をそのまま test にし(下へ回った吹き出しに重なった行のcheckboxが
+    押せる)、対照 `M380` を置いた。
+  - **P3(安全網の穴)**: 「出し直すときに向きをリセットする」ことを守る test が無かった
+    (`M377`)。→ **test を足して閉じた**(大きい文字で下へ回った後、小さくして入り直すと
+    上へ戻る)。
+  - **P3(安全網の穴・受容。引き受け先 `T30`)**: `M378` / `M379`(2つの `mounted` guard)は
+    **SURVIVED**。reviewer が構造から確かめたとおり、片方は callback が走る前に木ごと
+    捨てられる経路が無く、もう片方は `_entry == null` が既に守っている。guard は残し、
+    対照は表へ取り込んだ。
+  - reviewer が**問題無しと確かめた点**: 幅 × 倍率の格子を自分で測り直して
+    **attempt 2 の P1 は直っている**、`header_metrics.dart` の名前衝突は解消済み、
+    向きのリセットは実際に効いている、2段の `addPostFrameCallback` の間で木ごと
+    捨てても例外が飛ばない、`T29` と attempt 1・2 が閉じた保証は維持、`T32` は健全、
+    **`M359` / `M360` / `M373` の等価性は全件で再確認した**。
+
+### mutation の生出力(attempt 3 の指摘を直した分)
+
+```
+command: flutter test test/spec_002_file_list test/spec_004_file_source
+M352 | KILLED   | ツノの幅の半分を引かない(再アンカー)
+M367 | KILLED   | 箱に枠線を引く(再アンカー)
+M376 | KILLED   | 下へ回しても並び順を入れ替えない(再アンカー)
+M377 | KILLED   | 出し直すときに向きをリセットしない
+M378 | SURVIVED | insert 前の `mounted` guard を外す(等価。受容)
+M379 | SURVIVED | 向きを決める側の `mounted` guard を外す(等価。受容)
+M380 | KILLED   | 吹き出しの飾りが pointer を取る
+7 mutations: 5 KILLED, 2 SURVIVED, 0 SKIPPED
+```
+
+### 進め方について開発者へ確認したこと(2026-09-19)
+
+**成果物の欠陥による FAIL が2回続いた**(attempt 2 → attempt 3)ので、`AGENTS.md` に従い
+**次の独立reviewは Opus で回す**。あわせて「同じところを叩き続けていないか」を開発者へ
+一問で確認し、**このまま続行**を選んでもらった。示した選択肢は、続行 /
+帯の中へ戻す(1回目の形。はみ出しも重なりも原理的に起きないが、ツノが遠く文言が2行に
+縮み場所の取り分が減る)/ 吹き出しをやめて tooltip だけにする /
+ヘッダの下に一行の帯として出す(浮かせない)の4つで、**「そもそもここまでやる必要があるか」
+にあたる3つ目も含めた。**
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 の FAIL(P1: 大きい文字で吹き出しが画面外)を直した(2026-09-19)
-- Blocker category: none(次は独立review attempt 3)
+- Last checkpoint: 独立review attempt 3 の FAIL(P1: 下へ回った吹き出しが行のtapを吸う)を直した(2026-09-19)
+- Blocker category: none(次は独立review attempt 4。**成果物の欠陥のFAILが2回続いたので Opus**)
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
-- Next Agent action: attempt 3 を回し、PASS したら2回目の実機確認を依頼する
+- Next Agent action: attempt 4 を Opus で回す。**さらにFAILすると合計3回**になるので、
+  そのときは `blocked` にして人間へ返す
