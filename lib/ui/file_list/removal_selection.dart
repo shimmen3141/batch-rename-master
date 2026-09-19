@@ -55,6 +55,22 @@ class RemovalSelection extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 一覧から消えたハンドルを候補から落とす(`008:T29`)。
+  ///
+  /// **見えている0件と内部の0件を揃えるために要る。** 改名の取り消し(005 REQ-018 で
+  /// 項目のハンドルが入れ替わる)や読み込み直しで候補が一覧から消えると、
+  /// 画面は「0件選択中」なのに [marked] には残ったままになり、
+  /// [toggle] の「0件で抜ける」が効かない(独立review attempt 1 の P3)。
+  ///
+  /// **落とした結果0件になったらモードも抜ける。** 選ぶものが残っていないためである。
+  void retain(Set<String> available) {
+    final before = _marked.length;
+    _marked.retainWhere(available.contains);
+    if (_marked.length == before) return;
+    if (_marked.isEmpty) _selecting = false;
+    notifyListeners();
+  }
+
   /// 1件を選ぶ / 選ぶのをやめる。
   ///
   /// **選択が0件へ戻ったらモードを抜ける**(2026-09-19 の決定)。ただし

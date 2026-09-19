@@ -363,6 +363,52 @@ void main() {
     expect(find.byKey(removalModeRemoveKey), findsNothing);
   });
 
+  testWidgets('候補が一覧から消えて0件になったらモードを抜ける(008:T29)', (tester) async {
+    // **見えている0件と内部の0件を揃える。** 改名の取り消し(005 REQ-018 で項目の
+    // ハンドルが入れ替わる)で候補が消えると、画面は「0件選択中」なのに内部には
+    // 残っていて「0件で抜ける」が効かなかった(独立review attempt 1 の P3)。
+    final files = _abc();
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+    expect(removalModeCountText(tester), '1件選択中');
+
+    // a のハンドルが入れ替わる(改名とその取り消しで起きる形)。
+    c.replaceItems({files.first: _f('a.txt', handle: 'h:a2')});
+    await tester.pumpAndSettle();
+
+    expect(removalModeCountText(tester), isNull);
+    expect(find.byKey(listMenuKey), findsOneWidget);
+    // 一覧は変わっていない(抜けただけ)。
+    expect(c.items.length, 3);
+  });
+
+  testWidgets('候補の一部だけが消えてもモードは続く(008:T29)', (tester) async {
+    final files = _abc();
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+    await toggleRemovalMark(tester, 'h:b');
+
+    c.replaceItems({files.first: _f('a.txt', handle: 'h:a2')});
+    await tester.pumpAndSettle();
+
+    expect(removalModeCountText(tester), '1件選択中');
+  });
+
+  testWidgets('選択の印は円である(008:T29 / 要望2)', (tester) async {
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+
+    expect(
+      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).shape,
+      isA<CircleBorder>(),
+    );
+  });
+
   testWidgets('モード中に読み込み直すと、消えた行は数に入らない(REQ-018)', (tester) async {
     // 控えたハンドルがもう一覧に無いことがある。件数が実際に外せる数と
     // 食い違うと、「2 件」と出して1件しか外れない。

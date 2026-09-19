@@ -209,6 +209,15 @@ class _FileListViewState extends State<FileListView> {
             if (mounted && _selection.selecting) _selection.exit();
           });
         }
+        // **見えている0件と内部の0件を揃える**(`008:T29`)。改名の取り消しや
+        // 読み込み直しで候補が一覧から消えると、画面は「0件選択中」なのに
+        // 内部には残っていて「0件で抜ける」が効かない(独立review attempt 1 の P3)。
+        else if (_selection.selecting &&
+            marked.length != _selection.marked.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _selection.retain(removable);
+          });
+        }
         return PopScope(
           // 端末の戻るは**モードをやめる**に使う(画面を閉じない)。REQ-018 の
           // 「やめる操作」はヘッダの × が満たすが、選択モードから戻るの期待は強い。

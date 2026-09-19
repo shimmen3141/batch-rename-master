@@ -2300,6 +2300,62 @@
       "find": "  void selectAll(Iterable<String> handles) {\n    _selecting = true;",
       "replace": "  void selectAll(Iterable<String> handles) {\n    _selecting = _selecting;",
       "note": "008:T29 `すべて選択` がモードへ入らない — 通常表示のまま候補だけが溜まり、選んだ結果が画面から読めない"
+    },
+    {
+      "id": "M338",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (total > 0)\n            PopupMenuButton<VoidCallback?>(",
+      "replace": "          if (total > 0 && !selecting)\n            PopupMenuButton<VoidCallback?>(",
+      "note": "008:T29 ケバブをモード中に出さない — 「ケバブは両モードで同じ位置」(2026-09-19 の補足)が壊れ、モード中に すべて選択 / すべてをリネーム対象から外す へ到達できなくなる。独立review attempt 1 が設計した対照"
+    },
+    {
+      "id": "M339",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    _own?.dispose();",
+      "replace": "    _selection.dispose();",
+      "note": "008:T29 渡された notifier まで一覧が破棄する — composition root の持ち物を捨て、読み込み帯が購読できなくなる(幅の切り替えで FileListView が捨てられる経路)。独立review attempt 1 が設計した対照。**範囲を 002/004/005 に絞ると SURVIVED で、全件(test/spec_003_rule_builder)で KILLED** — 絞るときはこのmutationを外さないこと"
+    },
+    {
+      "id": "M340",
+      "file": "lib/ui/file_list/removal_selection.dart",
+      "find": "  Set<String> markedAmong(Set<String> available) =>\n      _marked.intersection(available);",
+      "replace": "  Set<String> markedAmong(Set<String> available) => _marked;",
+      "note": "008:T29 交差を notifier 側で取らない — M313 と同じ保証(一覧から消えたハンドルを数に入れない)を、状態を外へ出した後の置き場所から見る。独立review attempt 1 が設計した対照"
+    },
+    {
+      "id": "M341",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "        final selecting =\n            (widget.removalSelection?.selecting ?? false) && hasFiles;",
+      "replace": "        final selecting = widget.removalSelection?.selecting ?? false;",
+      "note": "008:T29 帯が一覧の空を見ない — 一覧が空なのにモード扱いのままだと、別フォルダへ が消えて読み込み直せない。**等価mutantでSURVIVEDする**: M326 の frame 後の片付けが同じことを保証しており差は1frame。安全網の穴ではなく防御の重複なので、どちらかへ寄せない(独立review attempt 1 が全件で確認: 2026-09-19)"
+    },
+    {
+      "id": "M342",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _selection.exit();",
+      "replace": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);",
+      "note": "008:T29 一覧を空にした後もモードの状態を残す — M326 が無ければ「一覧を空にする → 元に戻す」で誰も押していないのにモードが復活する経路。**等価mutantでSURVIVEDする**(M326 が片付けるので差は1frame)。防御の重複として残す(独立review attempt 1 が全件で確認: 2026-09-19)"
+    },
+    {
+      "id": "M343",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                              shape: const CircleBorder(),",
+      "replace": "",
+      "note": "008:T29 checkbox を四角へ戻す — 2026-09-19 の要望2(checkboxも円)。独立review attempt 1 の指摘で**testを足して閉じた**(attempt 1 の時点では SURVIVED だった)"
+    },
+    {
+      "id": "M344",
+      "file": "lib/ui/file_list/removal_selection.dart",
+      "find": "    _marked.retainWhere(available.contains);\n    if (_marked.length == before) return;\n    if (_marked.isEmpty) _selecting = false;",
+      "replace": "    _marked.retainWhere(available.contains);\n    if (_marked.length == before) return;",
+      "note": "008:T29 候補が一覧から消えて0件になってもモードを抜けない — 画面は「0件選択中」なのに内部に残っていて「0件で抜ける」が効かない(独立review attempt 1 の P3)"
+    },
+    {
+      "id": "M345",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        else if (_selection.selecting &&\n            marked.length != _selection.marked.length) {\n          WidgetsBinding.instance.addPostFrameCallback((_) {\n            if (mounted) _selection.retain(removable);\n          });\n        }",
+      "replace": "",
+      "note": "008:T29 一覧から消えた候補を片付けない — 上と同じ経路を、呼び出し側から見る対照(独立review attempt 1 の P3)"
     }
   ]
 }
