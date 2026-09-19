@@ -4,6 +4,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,6 +79,37 @@ void main() {
     expect(c.sortMode, FileSortMode.custom);
     // 先頭の a.txt が動いた(もう最上段ではない)。
     expect(c.items.first.name, isNot('a.txt'));
+  });
+
+  testWidgets('掴んだ行は面の色が変わる(008:T32)', (tester) async {
+    // 「掴めたのかどうか」が分からないまま動かすことになっていた
+    // (2026-09-19 の実機確認)。**掴んでいる間だけ**色が変わる。
+    final c = FileListController(
+      files: [_f('a.txt'), _f('b.txt')],
+      rule: _seq2,
+    );
+    await _pump(tester, c);
+    expect(find.byKey(draggingRowKey), findsNothing);
+
+    final handle = find.byIcon(Icons.drag_handle).first;
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    await tester.pump(const Duration(milliseconds: 250));
+    await gesture.moveBy(const Offset(0, 30));
+    await tester.pumpAndSettle();
+
+    final dragged = tester.widget<Material>(find.byKey(draggingRowKey));
+    final colors = appDarkTheme().extension<AppColors>()!;
+    expect(dragged.color, colors.surface);
+    // **選択モードの選択行とは別の色である。** 同じ色だと「掴んでいる」と
+    // 「選んでいる」が読み分けられない(`008:T29` で分けた区別)。
+    expect(dragged.color, isNot(colors.selectedSurface));
+    // 浮き上がりも残す(面の色を足すだけにする)。
+    expect(dragged.elevation, greaterThan(0));
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(draggingRowKey), findsNothing);
   });
 
   testWidgets('ドラッグハンドルが各行に表示される', (tester) async {

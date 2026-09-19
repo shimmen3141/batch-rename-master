@@ -2419,6 +2419,27 @@
       "find": "              key: removalModeRemoveKey,\n              onPressed: onRemoveMarked,\n              icon: const Icon(Icons.playlist_remove, size: 20),\n              color: colors.danger,\n              disabledColor: colors.textDisabled,\n              tooltip: '選んだファイルをリネーム候補から外す',\n              visualDensity: VisualDensity.compact,",
       "replace": "              key: removalModeRemoveKey,\n              onPressed: onRemoveMarked,\n              icon: const Icon(Icons.playlist_remove, size: 20),\n              color: colors.danger,\n              disabledColor: colors.textDisabled,\n              tooltip: '選んだファイルをリネーム候補から外す',\n              visualDensity: VisualDensity.standard,",
       "note": "008:T30 外すアイコンの tap target だけ広げる — 枠が 40 から 48 になり、**ツノだけが取り残されてずれる**(帯側は共有の数のまま)。片側だけ動かす対照。**両方が同じ定数を使っている限りずれない**ので、`headerIconExtent` を両側で変える mutant では意味がない"
+    },
+    {
+      "id": "M355",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            color: colors.surface,\n                            shadowColor: colors.background,",
+      "replace": "                            color: colors.selectedSurface,\n                            shadowColor: colors.background,",
+      "note": "008:T32 掴んだ行を選択モードの選択行と同じ色にする — 「掴んでいる」と「選んでいる」が読み分けられなくなる(`008:T29` で分けた区別)"
+    },
+    {
+      "id": "M357",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: colors.surface,",
+      "replace": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: null,",
+      "note": "008:T32 掴んだ行の面を染めない — 掴めたかどうかが分からないまま動かすことになる(2026-09-19 の要望)"
+    },
+    {
+      "id": "M358",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            elevation:\n                                Curves.easeInOut.transform(animation.value) * 6,",
+      "replace": "                            elevation: 0,",
+      "note": "008:T32 浮き上がりを消す — 面の色を足すだけにするはずが、既定の手掛かりを1つ減らす"
     }
   ]
 }

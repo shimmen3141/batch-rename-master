@@ -51,6 +51,9 @@ const Key removalModeCountKey = Key('removal-mode-count');
 /// 選ばれた行を一覧から外す(002 REQ-018)。0 件では押せない。
 const Key removalModeRemoveKey = Key('removal-mode-remove');
 
+/// 並び替えで**掴まれている行**(`008:T32`)。掴んでいる間だけ在る。
+const Key draggingRowKey = Key('dragging-row');
+
 /// 選択モードで [handle] の行に出る選択の切り替え(002 REQ-018)。
 Key removalMarkKeyOf(String handle) => ValueKey('removal-mark:$handle');
 
@@ -271,6 +274,29 @@ class _FileListViewState extends State<FileListView> {
                     itemCount: rows.length,
                     // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
                     onReorderItem: widget.controller.reorder,
+                    // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
+                    // いま掴めたのかどうかが分からないまま動かすことになっていた。
+                    //
+                    // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
+                    // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
+                    // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
+                    // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
+                    //
+                    // **影は既定と同じように上げる。** 面の色を足すだけにして、
+                    // 浮き上がりという手掛かりを減らさない。
+                    proxyDecorator: (child, index, animation) =>
+                        AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) => Material(
+                            key: draggingRowKey,
+                            color: colors.surface,
+                            shadowColor: colors.background,
+                            elevation:
+                                Curves.easeInOut.transform(animation.value) * 6,
+                            child: child,
+                          ),
+                          child: child,
+                        ),
                     itemBuilder: (context, index) {
                       final row = rows[index];
                       final handle = row.source.sourceHandle;
