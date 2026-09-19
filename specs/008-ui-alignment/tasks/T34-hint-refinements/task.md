@@ -53,7 +53,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `T30` の2回目の実機確認で受領した5点をtask化した(2026-09-19)
+- Last checkpoint: 幾何学的なツノ中心はアイコン枠の中心に一致している一方、`Icons.playlist_remove` の字面が枠内で左寄りに見えるため、視覚補正を定数と実測testで固定する方針を確認した(2026-09-19)
 - Blocker category: none(`T30` は merge 済み。着手可能)
 - Waiting for: なし
 - Requested action: なし
@@ -63,6 +63,5 @@
   `header_metrics.dart` だけは `file_list_view.dart` と共有している定数なので、
   **そこを動かすなら `T31` と順番を決める**
 - Evidence revision: 未着手
-- Next Agent action: 着手してよい。まず「ツノが右にずれて見える」原因を実測で確かめる
-  (アイコンの字面が枠の中で左寄りなのか、ツノの位置そのものか)。**`T31` と同じ file を
-  触る**ので、どちらかを先に終える
+- Machine verification scope: widget testでツノの意図した視覚補正、1行の文言、5秒の表示、黒地とシアン枠、画面内への収まり、閉じる操作、pointer透過を検証する。Android実機の見た目と操作感はmachineで閉じられないため、このtaskのmanual確認で受ける。
+- Next Agent action: `removal_hint.dart` と `removal_hint_test.dart` を更新し、格子・mutation・Flutter検査を実行する。
