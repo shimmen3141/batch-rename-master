@@ -151,11 +151,18 @@ reviewer の対照 `M362`(既定の長押しドラッグを戻す)を表へ取�
 **切り離して先に出すこともできる**(このbranchから `T32` の差分だけを取り出す) —
 `T32` は `file_list_view.dart` の `proxyDecorator` と `_FileRow` だけを触る。
 
+## manual確認の結果(2026-09-19)
+
+対象commit: **`cd29a23`**([`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)の手順3)。
+**成立** — つまみに**触れた瞬間**に行の色が変わり、一拍の振動が来る。そのままドラッグで
+並び替えられ、離すと色が戻り**離すときには振動しない**。選択モードの選択色とも見分けられる。
+振動の強さ・配色への追加の要望は無かった。
+
 ## Current state / handoff## Current state / handoff
 
-- Last checkpoint: 独立reviewを4回通過(指摘0件)。`T30` の判断待ちで止まっている(2026-09-19)
-- Blocker category: dependency(`T30` が `blocked`。同じ PR に載っている)
-- Waiting for: `T30` の吹き出しの作り方の判断
-- Requested action: なし(`T30` 側で一問返している)
-- Evidence revision: 未取得(実機)
-- Next Agent action: `T30` の判断を受けて一緒に進める。急ぐなら**切り離して先に出せる**
+- Last checkpoint: 実機確認が成立し、`T30` とまとめて `dev` へ merge した(2026-09-19)
+- Blocker category: none
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `cd29a23`。独立review 6回すべて指摘0件 / Android実機 手順3 成立
+- Next Agent action: なし(完了)
