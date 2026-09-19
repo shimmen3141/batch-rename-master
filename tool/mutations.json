@@ -2395,8 +2395,8 @@
     {
       "id": "M351",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "      offset: const Offset(removalHintRightOffset, -2),",
-      "replace": "      offset: Offset.zero,",
+      "find": "      offset: Offset(removalHintRightOffset, _below ? 2 : -2),",
+      "replace": "      offset: Offset(0, _below ? 2 : -2),",
       "note": "008:T30 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。**実測で確かめていないと通る**"
     },
     {
@@ -2524,6 +2524,41 @@
       "find": "const double removalHintRightOffset = headerMenuExtent;",
       "replace": "const double removalHintRightOffset = headerMenuExtent * 3;",
       "note": "008:T30 吹き出しを右へ寄せすぎる — 角へ引っかけた円が画面の外へ出て、**押せない閉じる操作**になる(実装中に一度そうなった)。枠の外は hit test に載らない"
+    },
+    {
+      "id": "M372",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    // **build の最中に `Overlay` を触らない。** frame の後へ回す。\n    WidgetsBinding.instance.addPostFrameCallback((_) {\n      if (!mounted || !widget.visible || _entry != null) return;\n      final overlay = Overlay.maybeOf(context);\n      if (overlay == null) return;\n      _entry = OverlayEntry(builder: _build);\n      overlay.insert(_entry!);",
+      "replace": "    {\n      if (!mounted || !widget.visible || _entry != null) return;\n      final overlay = Overlay.maybeOf(context);\n      if (overlay == null) return;\n      _entry = OverlayEntry(builder: _build);\n      overlay.insert(_entry!);",
+      "note": "008:T30 build の最中に `Overlay` へ insert する — frame の規約違反。独立review attempt 2 が設計した対照"
+    },
+    {
+      "id": "M373",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "      if (!mounted || !widget.visible || _entry != null) return;",
+      "replace": "      if (!mounted || !widget.visible) return;",
+      "note": "008:T30 二重 insert を防ぐ guard を外す — **SURVIVED のまま残す対照**: 同じ frame 内で `_schedule` が2回走る経路が無いので現状は等価で、通り抜けても重複描画にしかならない(独立review attempt 2 が設計・確認)"
+    },
+    {
+      "id": "M374",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    if (top >= safeTop) return;\n    _below = true;",
+      "replace": "    if (top >= safeTop || true) return;\n    _below = true;",
+      "note": "008:T30 上に収まらなくても下へ回さない — 文字倍率2.0で閉じる操作が、3.0では**本文ごと**画面の上端より外へ出て、誤解を防ぐ注記がいちばん助けの要る設定で消える(独立review attempt 2 の P1 そのもの)"
+    },
+    {
+      "id": "M375",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                          pointsUp: below,",
+      "replace": "                          pointsUp: false,",
+      "note": "008:T30 下へ回してもツノが下を向いたまま — 箱から外れた向きにツノが生え、どこを指しているのか読めない"
+    },
+    {
+      "id": "M376",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                verticalDirection: below\n                    ? VerticalDirection.up\n                    : VerticalDirection.down,",
+      "replace": "                verticalDirection: VerticalDirection.down,",
+      "note": "008:T30 下へ回しても箱とツノの並び順を入れ替えない — ツノがアイコンと反対側(箱の下)に出る"
     }
   ]
 }

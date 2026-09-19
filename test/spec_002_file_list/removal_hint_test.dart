@@ -31,12 +31,21 @@ FileEntry _entry(String name) => FileEntry(
   sourceLocation: 'Camera',
 );
 
-Future<FileListController> _pump(WidgetTester tester) async {
+Future<FileListController> _pump(
+  WidgetTester tester, {
+  double scale = 1.0,
+}) async {
   final controller = FileListController(files: [_entry('a.jpg')]);
   final shared = RemovalSelection();
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
       home: Scaffold(
         // **composition root と同じ組み立てにする**(`main.dart`)。吹き出しは帯へ
         // 重なるので、上に何があるかで収まり方が変わる。
@@ -64,6 +73,12 @@ Future<FileListController> _pump(WidgetTester tester) async {
   return controller;
 }
 
+/// ツノが上を向いているか。
+bool _tailPointsUp(WidgetTester tester) =>
+    (tester.widget<CustomPaint>(find.byKey(removalHintTailKey)).painter
+            as RemovalHintTailPainter)
+        .pointsUp;
+
 void main() {
   testWidgets('モード中だけ出て、ツノが外すアイコンの中心を指す', (tester) async {
     await _pump(tester);
@@ -81,6 +96,8 @@ void main() {
     );
     // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
     expect(removalHintText, contains('削除されません'));
+    // 上に出ているときのツノは下を向く。
+    expect(_tailPointsUp(tester), isFalse);
   });
 
   testWidgets('吹き出しは帯に重なり、アイコンのすぐ上に立つ(008:T30 2回目の実機確認)', (tester) async {
@@ -101,25 +118,60 @@ void main() {
     expect(icon.top - tail.bottom, greaterThanOrEqualTo(0));
   });
 
-  testWidgets('閉じる操作まで含めて画面の中に収まる(狭い画面でも)', (tester) async {
-    // **実装中に一度はみ出した。** 円は箱の角から外へ出るので、吹き出しの右端を
-    // 画面の余白ぴったりに置くと円が画面外へ行き、**押せない閉じる操作**になる。
+  testWidgets('狭い画面と大きい文字でも画面の中に収まり、閉じる操作が押せる', (tester) async {
+    // **2回ともここで壊れた。**
+    // 1回目: 円は箱の角から外へ出るので、吹き出しの右端を画面の余白ぴったりに置くと
+    //        円が画面外へ行き、**押せない閉じる操作**になった。
+    // 2回目: 箱の高さは文字倍率で伸びるので、上へ伸ばし続けると倍率2.0で円が、
+    //        倍率3.0では**本文ごと**画面の上端より外へ出た(独立review attempt 2 の P1)。
+    //        誤解を防ぐための注記が、いちばん助けが要る設定で消えていた。
+    const height = 800.0;
     for (final width in [320.0, 411.0, 800.0]) {
-      await tester.binding.setSurfaceSize(Size(width, 800));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await _pump(tester);
-      await enterRemovalMode(tester);
+      for (final scale in [1.0, 1.3, 2.0, 3.0]) {
+        await tester.binding.setSurfaceSize(Size(width, height));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await _pump(tester, scale: scale);
+        await enterRemovalMode(tester);
+        // 向きを決めるのに1 frame 測るので、落ち着くまで回す。
+        await tester.pump();
 
-      final close = tester.getRect(find.byKey(removalHintCloseKey));
-      final hint = tester.getRect(find.byKey(removalHintKey));
-      expect(close.right, lessThanOrEqualTo(width), reason: '幅 $width');
-      expect(close.top, greaterThanOrEqualTo(0), reason: '幅 $width');
-      expect(hint.left, greaterThanOrEqualTo(0), reason: '幅 $width');
-      // **押せること**まで見る(枠の外へ出た円は hit test に載らない)。
-      await tester.tap(find.byKey(removalHintCloseKey));
-      await tester.pump();
-      expect(find.byKey(removalHintKey), findsNothing, reason: '幅 $width');
+        final where = '幅 $width / 文字 $scale';
+        final close = tester.getRect(find.byKey(removalHintCloseKey));
+        final hint = tester.getRect(find.byKey(removalHintKey));
+        for (final rect in [close, hint]) {
+          expect(rect.left, greaterThanOrEqualTo(0), reason: where);
+          expect(rect.right, lessThanOrEqualTo(width), reason: where);
+          expect(rect.top, greaterThanOrEqualTo(0), reason: where);
+          expect(rect.bottom, lessThanOrEqualTo(height), reason: where);
+        }
+        // **押せること**まで見る(枠の外や画面の外の円は hit test に載らない)。
+        await tester.tap(find.byKey(removalHintCloseKey));
+        await tester.pump();
+        expect(find.byKey(removalHintKey), findsNothing, reason: where);
+      }
     }
+  });
+
+  testWidgets('上に収まらないときはアイコンの下へ回る(008:T30 independent review attempt 2)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(tester, scale: 3.0);
+    await enterRemovalMode(tester);
+    await tester.pump();
+
+    final icon = tester.getRect(find.byKey(removalModeRemoveKey));
+    final hint = tester.getRect(find.byKey(removalHintKey));
+    final tail = tester.getRect(find.byKey(removalHintTailKey));
+
+    // 箱はアイコンより下にあり、ツノは箱の上(= アイコン側)にある。
+    expect(hint.top, greaterThan(icon.top));
+    expect(tail.bottom, lessThanOrEqualTo(hint.top));
+    // ツノは向きが変わってもアイコンを指したままである。
+    expect(tail.center.dx, icon.center.dx);
+    // **ツノが上を向いている。** 描いた結果からは読めないので painter を見る。
+    expect(_tailPointsUp(tester), isTrue);
   });
 
   testWidgets('面もツノも同じ色で塗る(境界線を見せない)', (tester) async {
