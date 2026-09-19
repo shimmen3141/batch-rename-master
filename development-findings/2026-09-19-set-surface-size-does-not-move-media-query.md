@@ -19,7 +19,7 @@ await tester.binding.setSurfaceSize(const Size(360, 800));
 **危ないのは「半分効く」ことである。** 帯の幅や button の位置のような**layout の検査は
 本当に動いている**ので、同じ書き方が通用すると思い込む。`MediaQuery` を読む実装だけが
 黙って素通りし、**格子を回しているのに一度も条件を変えていない** test になる。
-独立reviewが `M386`(横方向の判定だけを無効化する対照)で見つけた。
+独立reviewが**横方向の判定だけを無効化する対照**(表では `M385`)で見つけた。
 
 ## なぜ起きたか
 
@@ -35,7 +35,7 @@ await tester.binding.setSurfaceSize(const Size(360, 800));
   `tester.view.physicalSize` / `devicePixelRatio` / `padding` で画面を変える形へ直した。
   格子を回し直して `task.md` の表を実測値へ更新した。
 - 横方向の判定を閉じる test(幅200dp)と、上の inset を数える test を足した
-  (対照 `M385` / `M386`)。
+  (対照 `M385` / `M387`)。
 - 未適用: **`MediaQuery` を読む実装を検査するときは `tester.view` で画面を変える**という
   規律。既存の `setSurfaceSize` 利用箇所は layout の検査なので直していないが、
   そこへ `MediaQuery` 依存の検査を足すと同じ穴が開く。forward-test は次に

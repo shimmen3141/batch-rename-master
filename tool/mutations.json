@@ -2601,6 +2601,13 @@
       "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
       "replace": "    final safe = Rect.fromLTRB(\n      media.padding.left,\n      media.padding.top,\n      media.size.width - media.padding.right,\n      media.size.height - media.padding.bottom,\n    );",
       "note": "008:T30 左右と下の inset まで要求する — 横向き + ジェスチャーナビ(右に40程度の inset)の端末で**普通の文字でも一度も出なくなる**(実測で確認した)。この app は画面の端まで使う作りで、ヘッダのケバブも外すアイコンも inset の内側へ寄せていない"
+    },
+    {
+      "id": "M388",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height + 1000000,\n    );",
+      "note": "008:T30 下端の収まり判定だけを無効化する — **SURVIVED のまま残す対照**: 置き場所をアイコンの上の1点に決めたので、箱の下端が画面の下端へ届く経路が無い(独立review attempt 6 が設計・全件で確認)。将来また下へ回すなら生き返る分岐である"
     }
   ]
 }
