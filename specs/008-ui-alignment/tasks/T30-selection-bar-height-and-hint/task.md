@@ -463,12 +463,12 @@ M379 | SURVIVED
 アイコンの tooltip は残る。将来ここを埋めるなら**全幅の帯にすれば大きい文字でも収まる**
 (本文が1〜2行で済む)ので、そのときに切り替えられる。
 
-## 検証(2026-09-19。作り直し後)
+## 検証(2026-09-19。attempt 5 の直しまで含む)
 
-- `flutter test` **PASS(936)** / `flutter analyze` PASS / `dart format` PASS /
+- `flutter test` **PASS(938)** / `flutter analyze` PASS / `dart format` PASS /
   `check specs` PASS(8 plans, 86 tasks)。
-- `mutation_check.py`: 表は**368件**(`M375` / `M376` / `M377` / `M381` を外し、
-  `M383` / `M384` を追加)。**全件の find が1回ずつ一致する**(異常0)。
+- `mutation_check.py`: 表は**371件**(`M375` / `M376` / `M377` / `M381` を対象コードごと外し、
+  `M383` / `M384` / `M385` / `M386` / `M387` を追加)。**全件の find が1回ずつ一致する**(異常0)。
 
 ### mutation の生出力
 
@@ -478,7 +478,7 @@ M350 | KILLED   | 外すアイコンへの補足を出さない
 M351 | KILLED   | 吹き出しを外すアイコンの真上へ置く
 M352 | KILLED   | ツノの幅の半分を引かない
 M353 | KILLED   | 「ファイルは削除されません」を落とす
-M363 | SURVIVED | 吹き出しの幅の上限を2倍にする → **test を足して閉じた**(下記)
+M363 | KILLED   | 吹き出しの幅の上限を2倍にする
 M367 | KILLED   | 箱に枠線を引く
 M371 | KILLED   | 吹き出しを右へ寄せすぎる
 M372 | KILLED   | build の最中に `Overlay` へ insert する
@@ -488,26 +488,27 @@ M378 | SURVIVED | insert 前の `mounted` guard を外す(等価。受容)
 M379 | SURVIVED | 収まるかを確かめる側の `mounted` guard を外す(等価。受容)
 M380 | KILLED   | 吹き出しの飾りが pointer を取る
 M383 | KILLED   | 収まっていても取り下げる
-M384 | SURVIVED | 測る前から見せる(1 frame のちらつき。観測できないので受容)
-15 mutations: 10 KILLED, 5 SURVIVED, 0 SKIPPED
+M384 | SURVIVED | 測る前から見せる(1 frame。観測できないので受容)
+M385 | KILLED   | 横方向の収まり判定だけを無効化する
+M386 | SURVIVED | status bar の下から数えない(到達しない。受容)
+17 mutations: 12 KILLED, 5 SURVIVED, 0 SKIPPED
 ```
 
 ```
 command: flutter test test/spec_002_file_list
-M363 | KILLED   | (「普通の画面・普通の文字では必ず出る」を足して閉じた)
+M387 | KILLED   | 左右と下の inset まで要求する
 1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
-`M363` は「**いつも出さない**」実装を排除する保証が無かったために通っていた。
-格子の test へ「**倍率1.3以下なら必ず出る**」を足して閉じた(対照は `M383`)。
-
-### 受容した残余risk(作り直し後)
+### 受容した残余risk
 
 - **`M373` / `M378` / `M379`**: `mounted` と二重insertの guard。独立reviewが構造から
   確かめたとおり**到達する経路が無い**。guard は残す。
 - **`M384`**: 測る前の1 frame を見せてしまう mutant。**1 frame の見た目**なので
-  widget test では観測できない。通り抜けても「一瞬ちらつく」だけで、
-  データ損失・無断置換には当たらない。
+  widget test では観測できない(独立review attempt 5 が「判定前のフレームは外から
+  観測できない」ことも別途確認している)。
+- **`M386`**: `AppBar` が status bar の高さを含むので、吹き出しが status bar の下へ
+  潜る状況を現在の画面構成では作れない。guard は意図の記録として残す。
 - `M359` / `M360`(以前からの等価mutant)。
 
 ## 独立review attempt 5(2026-09-19)
