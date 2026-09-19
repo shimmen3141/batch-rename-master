@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T28",
   "title": "まとめて外す選択モードを実装する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T27"
   ],
@@ -12,6 +12,6 @@
     "002:REQ-018"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 175,
   "manualVerification": "manual-verification.md"
 }
