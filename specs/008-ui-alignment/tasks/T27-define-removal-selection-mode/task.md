@@ -148,7 +148,8 @@
 - Last checkpoint: **枠組みは案A**と決まり、002 spec の改訂(REQ-016 の限定 / REQ-018 新設 / 代表例 6f〜6j /
   決定節)を**開発者が再承認**した(2026-09-19)。実装taskとして `T28` を起票した
 - Blocker category: none
-- Waiting for: 独立review
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: 仕様のみの変更で `lib/` を触っていない(実機証拠は不要。観測の出所は `T04` の `ce1b25d`)
-- Next Agent action: PRを出して独立reviewを受け、PASSならmergeする。実装は `T28`
+- Next Agent action: なし(`done`。PR #174 を `dev@4fd5bca` としてmergeした)。実装は
+  [`T28`](../T28-implement-removal-selection-mode/task.md)
