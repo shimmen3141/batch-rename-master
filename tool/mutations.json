@@ -2395,9 +2395,9 @@
     {
       "id": "M351",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "      offset: const Offset(removalHintRightOffset, -2),",
-      "replace": "      offset: const Offset(0, -2),",
-      "note": "008:T30 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。**実測で確かめていないと通る**"
+      "find": "      offset: const Offset(removalHintRightOffset, removalHintVerticalOffset),",
+      "replace": "      offset: const Offset(0, removalHintVerticalOffset),",
+      "note": "008:T34 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。字面へ寄せる実測testで検出する"
     },
     {
       "id": "M352",
