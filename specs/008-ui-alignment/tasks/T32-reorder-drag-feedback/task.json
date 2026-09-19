@@ -2,12 +2,12 @@
   "schema": "asdd.task/v1",
   "id": "T32",
   "title": "並び替えのドラッグ中の行を見分けられるようにする",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T29"
   ],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 177,
   "manualVerification": null
 }

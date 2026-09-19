@@ -4,6 +4,7 @@ import '../../data/file_source/file_loading.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/permission/storage_permission.dart';
 import '../file_list/file_list_controller.dart';
+import '../file_list/header_metrics.dart';
 import '../file_list/removal_selection.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
@@ -63,6 +64,9 @@ class FileSourceBar extends StatefulWidget {
   /// 読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる操作(004 REQ-004)と
   /// 取り違えやすい。**帯そのもの(場所の表示)は隠さない** — いまどこを扱っているかは
   /// モード中こそ読みたい。
+  ///
+  /// **隠しても帯の寸法は変えない**(`008:T30` の要望1)。空いた枠へ重ねる補足は
+  /// 一覧ヘッダ側が `Overlay` へ出す(`removal_hint.dart`)。
   final RemovalSelection? removalSelection;
 
   @override
@@ -322,7 +326,12 @@ class _FileSourceBarState extends State<FileSourceBar>
               ),
             Container(
               key: sourceBarKey,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              // 左右の padding は**吹き出しのツノの位置にも効く**ので共有する
+              // (`008:T30`)。
+              padding: const EdgeInsets.symmetric(
+                horizontal: sourceBarHorizontalPadding,
+                vertical: 8,
+              ),
               decoration: BoxDecoration(
                 color: colors.surface,
                 border: Border(bottom: BorderSide(color: colors.border)),
@@ -376,41 +385,66 @@ class _FileSourceBarState extends State<FileSourceBar>
                       constraints: BoxConstraints(
                         maxWidth: constraints.maxWidth * 0.75,
                       ),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        alignment: WrapAlignment.end,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      // **`IndexedStack` は出さない側も layout する。** これが
+                      // 「モードの出入りで帯の高さが変わらない」の作り方である
+                      // (`008:T30` の要望1)。`if (!selecting)` で button を外すと、
+                      // 枠(縦 padding 8 + 枠線を持つ `OutlinedButton`)が丸ごと消えて
+                      // 帯が場所のラベルの高さまで縮み、**下の一覧が跳ねる**。
+                      //
+                      // もう一方は**空の箱**である。`IndexedStack` は全部の子を
+                      // layout して**いちばん大きい子に合わせる**ので、帯の高さも幅も
+                      // 通常表示のまま動かない(場所の取り分も変わらない)。
+                      //
+                      // **描画と hit test と semantics は出している側だけ**である
+                      // (`IndexedStack` は index の子しか辿らない)。モード中に
+                      // `別フォルダへ` を押せず、読み上げもされず、既定の finder からも
+                      // 見つからない。
+                      //
+                      // **補足の吹き出しはここには無い**(`008:T30` の2回目の実機確認)。
+                      // 帯の中だとツノがアイコンから遠く、帯の寸法にも影響したので、
+                      // 一覧ヘッダが `Overlay` へ出して**帯に重ねる**
+                      // (`removal_hint.dart` の `RemovalHintAnchor`)。
+                      child: IndexedStack(
+                        alignment: Alignment.centerRight,
+                        index: selecting ? 1 : 0,
                         children: [
-                          // **button は右端に固定する**(実機確認 2026-09-18)。folder 名の
-                          // 長さで位置が動くと、押す場所を毎回探すことになる。
-                          //
-                          // **選択モード中は出さない**(2026-09-19 の要望7)。
-                          if (!selecting)
-                            OutlinedButton.icon(
-                              key: const Key('pick-files-button'),
-                              onPressed: () => _openKindSheet(context),
-                              icon: const Icon(Icons.playlist_add, size: 16),
-                              label: Text(
-                                FileSourceBar.pickLabelOf(widget.controller),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: colors.primary,
-                                side: BorderSide(
-                                  color: colors.primary.withValues(alpha: 0.45),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            alignment: WrapAlignment.end,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              // **button は右端に固定する**(実機確認 2026-09-18)。
+                              // folder 名の長さで位置が動くと、押す場所を毎回探すことになる。
+                              OutlinedButton.icon(
+                                key: const Key('pick-files-button'),
+                                onPressed: () => _openKindSheet(context),
+                                icon: const Icon(Icons.playlist_add, size: 16),
+                                label: Text(
+                                  FileSourceBar.pickLabelOf(widget.controller),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: colors.primary,
+                                  side: BorderSide(
+                                    color: colors.primary.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                 ),
                               ),
-                            ),
-                          // **`一覧を空にする` はここには無い。** `008:T29` で
-                          // 一覧のケバブの「すべてをリネーム対象から外す」へ移した
-                          // (`file_list_view.dart` の `menuClearAllKey`)。操作の
-                          // 意味は変えていない(`clearFiles` + 取り消し。002 REQ-017)。
+                              // **`一覧を空にする` はここには無い。** `008:T29` で
+                              // 一覧のケバブの「すべてをリネーム対象から外す」へ移した
+                              // (`file_list_view.dart` の `menuClearAllKey`)。操作の
+                              // 意味は変えていない(`clearFiles` + 取り消し。002 REQ-017)。
+                            ],
+                          ),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ),
