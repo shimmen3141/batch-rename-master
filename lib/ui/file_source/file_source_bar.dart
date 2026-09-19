@@ -4,7 +4,7 @@ import '../../data/file_source/file_loading.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/permission/storage_permission.dart';
 import '../file_list/file_list_controller.dart';
-import '../file_list/removal_undo.dart';
+import '../file_list/removal_selection.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
@@ -32,6 +32,7 @@ class FileSourceBar extends StatefulWidget {
     required this.controller,
     required this.permission,
     required this.kinds,
+    this.removalSelection,
   });
 
   /// 読み込み元(実装は **Android = app 内 file browser** / デスクトップのピッカー、
@@ -55,6 +56,14 @@ class FileSourceBar extends StatefulWidget {
   /// **既定値を置かない。** 既定で「制限しない」にできると、結線を忘れた経路が
   /// 黙って REQ-001 を素通りする(独立review attempt 1 の P1-3)。
   final StoragePermissionPort permission;
+
+  /// 一覧の**除去のための選択モード**(002 REQ-018)。`null` なら常に通常表示として扱う。
+  ///
+  /// **モード中は `別フォルダへ` を隠す**(2026-09-19 の要望7)。外す作業の最中に
+  /// 読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる操作(004 REQ-004)と
+  /// 取り違えやすい。**帯そのもの(場所の表示)は隠さない** — いまどこを扱っているかは
+  /// モード中こそ読みたい。
+  final RemovalSelection? removalSelection;
 
   @override
   State<FileSourceBar> createState() => _FileSourceBarState();
@@ -288,9 +297,15 @@ class _FileSourceBarState extends State<FileSourceBar>
   Widget build(BuildContext context) {
     final colors = context.colors;
     return ListenableBuilder(
-      listenable: widget.controller,
+      listenable: Listenable.merge([
+        widget.controller,
+        ?widget.removalSelection,
+      ]),
       builder: (context, _) {
         final hasFiles = widget.controller.items.isNotEmpty;
+        // 一覧が空ならモードは成り立たない(一覧側と同じ判定。002 REQ-018)。
+        final selecting =
+            (widget.removalSelection?.selecting ?? false) && hasFiles;
         final locationLabel = FileSourceBar.locationLabelOf(widget.controller);
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -369,51 +384,33 @@ class _FileSourceBarState extends State<FileSourceBar>
                         children: [
                           // **button は右端に固定する**(実機確認 2026-09-18)。folder 名の
                           // 長さで位置が動くと、押す場所を毎回探すことになる。
-                          OutlinedButton.icon(
-                            key: const Key('pick-files-button'),
-                            onPressed: () => _openKindSheet(context),
-                            icon: const Icon(Icons.playlist_add, size: 16),
-                            label: Text(
-                              FileSourceBar.pickLabelOf(widget.controller),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: colors.primary,
-                              side: BorderSide(
-                                color: colors.primary.withValues(alpha: 0.45),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
-                          // **`一覧を空にする` である**(`008:T03` の決定)。checkbox を
-                          // 廃止したのでこの操作は `clearFiles` の1義になり、「選択を全部外す」と
-                          // 読み違えられなくなった。**置き場所もここで決着する** — 一覧側に
-                          // 選択の帯が無くなったので、件数と場所を取り合う問題が消えた。
                           //
-                          // **取り消せる形で空にする**(002 REQ-017)。
-                          TextButton.icon(
-                            key: const Key('clear-files-button'),
-                            onPressed: hasFiles
-                                ? () => removeUndoably(
-                                    context,
-                                    widget.controller,
-                                    widget.controller.clearFiles,
-                                  )
-                                : null,
-                            icon: const Icon(Icons.playlist_remove, size: 16),
-                            label: const Text('一覧を空にする'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: colors.textSecondary,
-                              disabledForegroundColor: colors.textDisabled,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                          // **選択モード中は出さない**(2026-09-19 の要望7)。
+                          if (!selecting)
+                            OutlinedButton.icon(
+                              key: const Key('pick-files-button'),
+                              onPressed: () => _openKindSheet(context),
+                              icon: const Icon(Icons.playlist_add, size: 16),
+                              label: Text(
+                                FileSourceBar.pickLabelOf(widget.controller),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colors.primary,
+                                side: BorderSide(
+                                  color: colors.primary.withValues(alpha: 0.45),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                               ),
                             ),
-                          ),
+                          // **`一覧を空にする` はここには無い。** `008:T29` で
+                          // 一覧のケバブの「すべてをリネーム対象から外す」へ移した
+                          // (`file_list_view.dart` の `menuClearAllKey`)。操作の
+                          // 意味は変えていない(`clearFiles` + 取り消し。002 REQ-017)。
                         ],
                       ),
                     ),

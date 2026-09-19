@@ -17,6 +17,7 @@ import 'data/preview/video_file_preview.dart';
 import 'data/rename_exec/platform_rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
+import 'ui/file_list/removal_selection.dart';
 import 'ui/file_source/file_source_bar.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
@@ -74,9 +75,14 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     files: _sampleFiles(),
   );
 
+  /// 除去のための選択モード(002 REQ-018)。**読み込み帯と一覧で同じものを使う** —
+  /// モード中は帯の `別フォルダへ` と下部の帯も隠れるためである(`008:T29`)。
+  final RemovalSelection _removalSelection = RemovalSelection();
+
   @override
   void dispose() {
     _renameExecution.dispose();
+    _removalSelection.dispose();
     _files.dispose();
     // widget.rule は永続化セッションの所有物なのでここでは破棄しない。
     super.dispose();
@@ -151,6 +157,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
             controller: _files,
             permission: _permission,
             kinds: fileKindsFor(isAndroid: Platform.isAndroid),
+            removalSelection: _removalSelection,
           ),
           Expanded(
             child: RuleBuilderWorkspace(
@@ -158,6 +165,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
               rule: widget.rule,
               renameExecution: _renameExecution,
               filePreview: _filePreview,
+              removalSelection: _removalSelection,
             ),
           ),
         ],

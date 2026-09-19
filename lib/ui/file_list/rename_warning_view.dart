@@ -576,8 +576,11 @@ class WarningCountView extends StatelessWidget {
             Flexible(
               child: Text(
                 warningCountLabel(warnings),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                // **切らずに次の行へ落とす**(008:T16 の (i) と同じ理由)。
+                // 切り詰めは overflow を出さないまま `⚠ 1000 件の問題` を
+                // `⚠ 1…` と読ませる。`008:T29` でヘッダ右端にケバブが入り、
+                // 文字側の幅が狭まったのでここでも効くようになった。
+                maxLines: 2,
                 style: TextStyle(
                   color: has ? colors.danger : colors.textSecondary,
                   fontSize: 12,

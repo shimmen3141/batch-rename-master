@@ -17,7 +17,11 @@ import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../spec_002_file_list/removal_mode.dart';
 
 FileEntry _entry(String name, {required String handle, String? location}) =>
     FileEntry(
@@ -39,6 +43,43 @@ Future<void> _pump(WidgetTester tester, FileListController controller) async {
           controller: controller,
           permission: const UnrestrictedStoragePermission(),
           kinds: FileKind.values,
+        ),
+      ),
+    ),
+  );
+}
+
+/// 帯と一覧を**製品と同じ組み合わせ**で描く(`008:T29`)。
+///
+/// `一覧を空にする` は一覧のケバブ(`すべてをリネーム対象から外す`)へ移り、
+/// 選択モード中は帯の `別フォルダへ` が隠れるので、**両方が同じ
+/// [RemovalSelection] を読む**形でないと確かめられない。
+Future<void> _pumpWithList(
+  WidgetTester tester,
+  FileListController controller, {
+  RemovalSelection? selection,
+}) async {
+  final shared = selection ?? RemovalSelection();
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: appDarkTheme(),
+      home: Scaffold(
+        body: Column(
+          children: [
+            FileSourceBar(
+              source: FakeFileSource(),
+              controller: controller,
+              permission: const UnrestrictedStoragePermission(),
+              kinds: FileKind.values,
+              removalSelection: shared,
+            ),
+            Expanded(
+              child: FileListView(
+                controller: controller,
+                removalSelection: shared,
+              ),
+            ),
+          ],
         ),
       ),
     ),
@@ -306,35 +347,53 @@ void main() {
     expect(find.text('複数のフォルダ'), findsNothing);
   });
 
-  testWidgets('「一覧を空にする」で「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
+  testWidgets('一覧を空にすると「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
-    await _pump(tester, controller);
+    await _pumpWithList(tester, controller);
     expect(_location(tester), 'Camera');
-    // **文言は `一覧を空にする`**(`008:T03` の決定)。checkbox が無くなり、この
-    // 操作は `clearFiles` の1義になったので、「選択を全部外す」と読める名前をやめた。
-    expect(find.text('一覧を空にする'), findsOneWidget);
+    // **帯にはもう置かない**(`008:T29` で一覧のケバブへ移した)。
+    // 「選択を全部外す」と読める名前に戻していないことも見る(`008:T03` の決定)。
+    expect(find.byKey(const Key('clear-files-button')), findsNothing);
     expect(find.text('すべて外す'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('clear-files-button')));
-    await tester.pumpAndSettle();
+    await clearAllFiles(tester);
 
     expect(_location(tester), '未選択');
     expect(_pickLabel(tester), 'ファイルを選ぶ');
   });
 
-  testWidgets('「一覧を空にする」も取り消せる(002 REQ-017・代表例6d)', (tester) async {
+  testWidgets('選択モード中は「別フォルダへ」を出さない(008:T29)', (tester) async {
+    // 外す作業の最中に読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる
+    // 操作(004 REQ-004)と取り違えやすい。**帯そのもの(場所)は隠さない。**
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    await _pumpWithList(tester, controller);
+    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+
+    await enterRemovalMode(tester);
+
+    expect(find.byKey(const Key('pick-files-button')), findsNothing);
+    expect(_location(tester), 'Camera');
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+  });
+
+  testWidgets('一覧を空にする操作も取り消せる(002 REQ-017・代表例6d)', (tester) async {
     final controller = FileListController(
       files: [
         _entry('a.jpg', handle: 'h:a', location: 'Camera'),
         _entry('b.jpg', handle: 'h:b', location: 'Camera'),
       ],
     );
-    await _pump(tester, controller);
+    await _pumpWithList(tester, controller);
 
-    await tester.tap(find.byKey(const Key('clear-files-button')));
-    await tester.pumpAndSettle();
+    await clearAllFiles(tester);
     expect(controller.items, isEmpty);
 
     expect(find.byKey(removalUndoKey), findsOneWidget);
