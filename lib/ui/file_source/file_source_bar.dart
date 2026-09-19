@@ -9,7 +9,6 @@ import '../file_list/removal_selection.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
-import 'removal_hint_bubble.dart';
 import 'source_path_text.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
@@ -66,8 +65,8 @@ class FileSourceBar extends StatefulWidget {
   /// 取り違えやすい。**帯そのもの(場所の表示)は隠さない** — いまどこを扱っているかは
   /// モード中こそ読みたい。
   ///
-  /// **隠しても帯の寸法は変えない**(`008:T30` の要望1)。空いた枠には
-  /// [RemovalHintBubble] を出す(要望2)。
+  /// **隠しても帯の寸法は変えない**(`008:T30` の要望1)。空いた枠へ重ねる補足は
+  /// 一覧ヘッダ側が `Overlay` へ出す(`removal_hint.dart`)。
   final RemovalSelection? removalSelection;
 
   @override
@@ -392,13 +391,19 @@ class _FileSourceBarState extends State<FileSourceBar>
                       // 枠(縦 padding 8 + 枠線を持つ `OutlinedButton`)が丸ごと消えて
                       // 帯が場所のラベルの高さまで縮み、**下の一覧が跳ねる**。
                       //
-                      // 高さだけでなく**幅も両方の max で固定される**ので、場所の
-                      // 取り分もモードで変わらない。吹き出しの幅の上限を広げると
-                      // 通常表示の場所の取り分が減るのは、このためである。
+                      // もう一方は**空の箱**である。`IndexedStack` は全部の子を
+                      // layout して**いちばん大きい子に合わせる**ので、帯の高さも幅も
+                      // 通常表示のまま動かない(場所の取り分も変わらない)。
                       //
                       // **描画と hit test と semantics は出している側だけ**である
                       // (`IndexedStack` は index の子しか辿らない)。モード中に
-                      // `別フォルダへ` を押せず、読み上げもされない。
+                      // `別フォルダへ` を押せず、読み上げもされず、既定の finder からも
+                      // 見つからない。
+                      //
+                      // **補足の吹き出しはここには無い**(`008:T30` の2回目の実機確認)。
+                      // 帯の中だとツノがアイコンから遠く、帯の寸法にも影響したので、
+                      // 一覧ヘッダが `Overlay` へ出して**帯に重ねる**
+                      // (`removal_hint.dart` の `RemovalHintAnchor`)。
                       child: IndexedStack(
                         alignment: Alignment.centerRight,
                         index: selecting ? 1 : 0,
@@ -439,9 +444,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                               // 意味は変えていない(`clearFiles` + 取り消し。002 REQ-017)。
                             ],
                           ),
-                          // 空いた枠へ、外すアイコンを説明する吹き出しを出す
-                          // (`008:T30` の要望2)。
-                          const RemovalHintBubble(),
+                          const SizedBox.shrink(),
                         ],
                       ),
                     ),

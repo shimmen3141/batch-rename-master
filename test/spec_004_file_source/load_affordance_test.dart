@@ -14,7 +14,6 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
-import 'package:batch_rename_master/ui/file_source/removal_hint_bubble.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -458,47 +457,6 @@ void main() {
         reason: '文字倍率 $scale',
       );
     }
-  });
-
-  testWidgets('モード中は外すアイコンへ向けた吹き出しが出る(008:T30 要望2)', (tester) async {
-    // アイコンだけでは何が起きるか読めない(2026-09-19 の実機確認)。
-    // **ツノがアイコンの中心に立っていること**を実測で確かめる — 帯とヘッダは
-    // 別の widget なので、共有した数(`header_metrics.dart`)がずれたらここで落ちる。
-    final controller = FileListController(
-      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
-    );
-    await _pumpWithList(tester, controller);
-    expect(find.byKey(removalHintKey), findsNothing);
-
-    await enterRemovalMode(tester);
-
-    expect(find.byKey(removalHintKey), findsOneWidget);
-    expect(find.text(removalHintText), findsOneWidget);
-    expect(
-      tester.getCenter(find.byKey(removalHintTailKey)).dx,
-      tester.getCenter(find.byKey(removalModeRemoveKey)).dx,
-    );
-    // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
-    expect(removalHintText, contains('削除されません'));
-    // **吹き出しが帯の高さを決めてはいけない。** 高さを揃えるために通常表示でも
-    // layout されるので、`別フォルダへ` の枠より高くなると**通常表示の帯まで太る**。
-    // 文言や字の大きさを変えたときにここで気づく(見えていないので
-    // `skipOffstage: false` で測る)。
-    expect(
-      tester.getSize(find.byKey(removalHintKey)).height + removalHintTailHeight,
-      lessThanOrEqualTo(
-        tester
-            .getSize(
-              find.byKey(const Key('pick-files-button'), skipOffstage: false),
-            )
-            .height,
-      ),
-    );
-
-    await tester.tap(find.byKey(removalModeExitKey));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(removalHintKey), findsNothing);
   });
 
   testWidgets('一覧を空にする操作も取り消せる(002 REQ-017・代表例6d)', (tester) async {
