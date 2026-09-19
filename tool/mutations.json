@@ -2440,6 +2440,34 @@
       "find": "                            elevation:\n                                Curves.easeInOut.transform(animation.value) * 6,",
       "replace": "                            elevation: 0,",
       "note": "008:T32 浮き上がりを消す — 面の色を足すだけにするはずが、既定の手掛かりを1つ減らす"
+    },
+    {
+      "id": "M359",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                        alignment: Alignment.centerRight,",
+      "replace": "                        alignment: Alignment.centerLeft,",
+      "note": "008:T30 末尾の枠の中で button を左へ寄せる — 2026-09-18 の実機確認で直した「button は右端に固定」が戻る。**folder 名では動かないので既存の test は気づかない**(独立review attempt 1 の指摘1。最初 SURVIVED し、位置を実測する test を足して閉じた)"
+    },
+    {
+      "id": "M360",
+      "file": "lib/ui/file_list/header_metrics.dart",
+      "find": "const double headerMenuExtent = 48;",
+      "replace": "const double headerMenuExtent = 40;",
+      "note": "008:T30 共有定数(ケバブの枠)だけを変える — ヘッダの `PopupMenuButton` の実描画幅(48)と定数がずれ、ツノがアイコンの中心から外れる。**帯とヘッダが同じ定数を使っていることの対照**(独立review attempt 1 が設計)"
+    },
+    {
+      "id": "M362",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    buildDefaultDragHandles: false,",
+      "replace": "                    buildDefaultDragHandles: true,",
+      "note": "008:T32 既定の長押しドラッグを戻す — 行の長押しがドラッグを奪い、選択モードの入口(002 REQ-018)と衝突する。`proxyDecorator` の test が偶発的に緑になっていないかの対照(独立review attempt 1 が設計)"
+    },
+    {
+      "id": "M363",
+      "file": "lib/ui/file_source/removal_hint_bubble.dart",
+      "find": "      constraints: const BoxConstraints(maxWidth: removalHintMaxWidth),",
+      "replace": "      constraints: const BoxConstraints(maxWidth: removalHintMaxWidth * 2),",
+      "note": "008:T30 吹き出しの幅の上限を2倍にする — 通常表示の場所の取り分がさらに減る。**SURVIVED のまま残す対照**: 上限そのものは `task.md` が「残したコスト」として自認しており、実機で幅を詰めるか広げるかを開発者に見てもらう段階なので、いま数で固定しない(独立review attempt 1 が設計)"
     }
   ]
 }
