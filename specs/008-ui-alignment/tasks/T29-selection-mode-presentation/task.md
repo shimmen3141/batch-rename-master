@@ -2,7 +2,8 @@
 
 ## 目的
 
-`T28` で入れた除去のための選択モード(002 REQ-018)について、実機確認で受領した5件の要望を実装する。
+`T28` で入れた除去のための選択モード(002 REQ-018)について、実機確認で受領した要望
+**7件**(下の5件 + 「追加で受領した2件」)を実装する。
 **`T28` の欠陥ではない** — 承認済みの REQ-016 / REQ-017 / REQ-018 と代表例 6e〜6j はすべて
 実機で成立している(`T28` の「manual確認の結果(2026-09-19)」)。002 spec は文言・配色・レイアウトを
 非規範としているので、ここで変えるのはその範囲である。
@@ -127,8 +128,9 @@
 
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(918)** / `flutter analyze` PASS / `dart format` PASS。
-- `mutation_check.py` は**表全体で 328 件・異常0**(M327〜M337 を追加、移動した18件を再アンカー)。
+- `flutter test` **PASS(921)** / `flutter analyze` PASS / `dart format` PASS。
+- `mutation_check.py` は**表全体で 336 件・異常0**(M327〜M337 を追加、移動した18件を再アンカー、
+  独立reviewの対照 M338〜M343 と P3 の対照 M344 / M345 を取り込み)。
 - 範囲を絞って回した42件は **37 KILLED / 5 SURVIVED** → SURVIVED のうち **M309 / M328 / M331 は
   本物の穴だったので閉じた**(それぞれ「行側の1か所で決める」「変更後名の欄の幅を見る」
   「下部の帯が出ないことを見る」)。再実行で **3件とも KILLED**。
@@ -136,11 +138,65 @@
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
   `T28` の実機証拠は `lib/` が動いたので失効した — 手順5でつまみの長押しドラッグを取り直す。
 
+## 独立review(2026-09-19)
+
+- Review attempt 1: `dev...ec4be24` — **FAIL**(Opus。`.worktrees/008-T29-review` で実行)。
+  - **P1(成果物の欠陥・記録)**: **002/004 の決定節が実装と矛盾したまま**だった。
+    002 spec が「**帯の『一覧を空にする』は残す**」と書いたままこの実装が撤去しており、
+    置き場所(帯 → ケバブ)と文言(`外すファイルを選ぶ` → `〇件選択中`)の記述も古いままだった。
+    **この `task.md` と `plan.md` 自身が「取り消し線で差し替える」「記録が矛盾したままにはしない」と
+    約束していた**のに、実装だけ入れて正本を直していなかった。
+    → **002 の2か所と 004 の1か所を取り消し線+移設先+経緯で直し、Status 行にも
+    「要求は不変なので再承認は求めていない」と記録した。** REQ の改訂はしていない。
+  - **P3(成果物の欠陥)**: 「0件で抜ける」が**内部の集合**で判定されており、
+    **画面が「0件選択中」なのに抜けない**経路があった(改名の取り消しで項目のハンドルが
+    入れ替わると候補が stale になる。005 REQ-018)。
+    → 条件を足すのではなく **`RemovalSelection.retain` で一覧から消えた候補を片付ける**形にし、
+    表示0件と内部0件を揃えた。test 2本(0件になったら抜ける / 一部だけ消えたら続く)と
+    対照 M344 / M345 を足した。
+  - **P3(記録)**: 目的節が「5件」のままだった → 7件へ。mutation の**生出力が無かった**
+    → 下に貼った。
+  - **P3(安全網の穴)**: checkbox が円であることに test が無かった(`M343` SURVIVED)
+    → **test を足して閉じた**。
+  - reviewerが**問題無しと確認した点**: `RemovalSelection` を外へ出した副作用(所有と破棄・
+    二重購読・dispose 後の notify・listener 残留)は無い。`clearFiles` はケバブから到達でき、
+    取り消しも生きている。**モード中に実行へ行ける経路は無い**(`rename-action` は下部の帯の
+    1か所だけ)。005 REQ-020 の案内は一覧側なので隠れない。**320dp × 文字倍率 3.0 でも
+    ヘッダは壊れない**(overflow 0件、切り詰め無し、3つの操作すべて画面内)。
+
+### mutation の生出力
+
+`T29` の追加分と、独立reviewが設計した対照(M338〜M345)。**全件(`flutter test`)で実行した。**
+
+```
+command: flutter test
+M338 | KILLED   | ケバブをモード中に出さない
+M339 | KILLED   | 渡された notifier まで一覧が破棄する
+M340 | KILLED   | 交差を notifier 側で取らない
+M341 | SURVIVED | 帯が一覧の空を見ない
+M342 | SURVIVED | 一覧を空にした後もモードの状態を残す
+M343 | KILLED   | checkbox を四角へ戻す
+M344 | KILLED   | 消えた候補が0件になってもモードを抜けない
+M345 | KILLED   | 一覧から消えた候補を片付けない
+8 mutations: 6 KILLED, 2 SURVIVED, 0 SKIPPED
+```
+
+範囲を絞って回した分(`test/spec_002_file_list` ほか)は 42件 → **37 KILLED / 5 SURVIVED**で、
+SURVIVED のうち **M309 / M328 / M331 を閉じて再実行で KILLED**(`3 KILLED, 2 SURVIVED`。
+残る2件は `M320` / `M323`)。
+
+### 受容した残余risk
+
+**`M341` / `M342` は等価mutantである**(独立reviewが全件で確認)。`M326`(frame 後の片付け)が
+同じことを保証しているので、単独で外しても差は**1 frame**しかない。**安全網の穴ではなく防御の重複**で、
+どちらか一方へ寄せると「モードから抜けられない画面」側へ倒れるため両方残す。
+`T28` から引き継いだ **`M320` / `M323`** も同じ性質である。引き受け先は `T29`(この記録)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・test・mutationが揃った(2026-09-19)
+- Last checkpoint: 独立review attempt 1 の P1(記録)と P3(実装・記録)を直した(2026-09-19)
 - Blocker category: manual(実機確認待ち)
-- Waiting for: 独立review と、Android実機での manual 確認
-- Requested action: 独立reviewの起動 → PASS後に [`manual-verification.md`](manual-verification.md) を依頼する
+- Waiting for: 独立review attempt 2 と、Android実機での manual 確認
+- Requested action: attempt 2 が PASS したら [`manual-verification.md`](manual-verification.md) を依頼する
 - Evidence revision: 未取得(`T28` の実機証拠は `lib/` が動いたので失効した)
-- Next Agent action: 独立reviewを走らせ、PASSならPRをready化して manual 確認を依頼する
+- Next Agent action: attempt 2 を走らせ、PASSならPRをready化して manual 確認を依頼する
