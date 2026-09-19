@@ -343,8 +343,11 @@ M380 | KILLED   | 吹き出しの飾りが pointer を取る
 
 ### 進め方について開発者へ確認したこと(2026-09-19)
 
-**成果物の欠陥による FAIL が2回続いた**(attempt 2 → attempt 3)ので、`AGENTS.md` に従い
-**次の独立reviewは Opus で回す**。あわせて「同じところを叩き続けていないか」を開発者へ
+**成果物の欠陥による FAIL が2回続いた**(attempt 2 → attempt 3)ので、`AGENTS.md` の
+例外(「同じtaskで成果物の欠陥によるFAILが2回続いた後」)に当たると読んで Opus で起動した。
+**開発者の指示で Sonnet へ切り替えた**(2026-09-19)。既定は Sonnet であり、どちらで回すかは
+開発者の判断である。**`AGENTS.md` は変えていない** — 例外の読み方が実際の運用と合うかは、
+この回の結果を見てから改めて相談する。あわせて「同じところを叩き続けていないか」を開発者へ
 一問で確認し、**このまま続行**を選んでもらった。示した選択肢は、続行 /
 帯の中へ戻す(1回目の形。はみ出しも重なりも原理的に起きないが、ツノが遠く文言が2行に
 縮み場所の取り分が減る)/ 吹き出しをやめて tooltip だけにする /
@@ -354,7 +357,7 @@ M380 | KILLED   | 吹き出しの飾りが pointer を取る
 ## Current state / handoff
 
 - Last checkpoint: 独立review attempt 3 の FAIL(P1: 下へ回った吹き出しが行のtapを吸う)を直した(2026-09-19)
-- Blocker category: none(次は独立review attempt 4。**成果物の欠陥のFAILが2回続いたので Opus**)
+- Blocker category: none(次は独立review attempt 4。**開発者の指示で Sonnet**)
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
