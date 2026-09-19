@@ -116,53 +116,79 @@
 何の一覧かはヘッダの `〇件選択中` とアイコンの tooltip が示す。
 **この置き換えが妥当かは実機で見てもらう。**
 
-### 残したコスト
+### 残したコスト(1回目。**2回目の作り直しで解消した**)
 
 **通常表示でも帯の末尾の枠が `別フォルダへ`(320dpで約133)から吹き出しの幅(156)へ広がり、
 場所の取り分が約23px 減る。** 吹き出しを layout しないと高さを揃えられないためである。
 320dp では場所の幅が約155 → 約132になる(先頭省略・末尾優先は `008:T23` のまま)。
 **帯の高さは変わっていない**(65のまま)。
 
+→ **2回目で吹き出しを `Overlay` へ移し、帯の枠には空の箱を置くだけにしたので、
+この取り分の減りは無くなった。**
+
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(926)**(`T30` で4本、`T32` で1本追加。`T29` 時点は921) / `flutter analyze` PASS / `dart format` PASS。
-- `workspace.py check specs` PASS(8 plans, 86 tasks)。
-- `mutation_check.py`: 表は**352件**。`T30` で M349〜M354 を追加し、M332 を再アンカー、
-  M353 を文言の変更へ追随させ、`T32` で M355 / M357 / M358 を、独立reviewの対照として
-  M359 / M360 / M362 / M363 を足した。**全件の find が1回ずつ一致する**(異常0)。
+- `flutter test` **PASS(933)**(`T29` 時点は921。`T30` で9本、`T32` で1本追加) /
+  `flutter analyze` PASS / `dart format` PASS / `check specs` PASS(8 plans, 86 tasks)。
+- `mutation_check.py`: 表は**360件**。`T30` で M349〜M354・M364〜M367・M371 を、
+  `T32` で M355 / M357 / M358 / M368〜M370 を足し、独立reviewの対照 M359 / M360 / M362 / M363 を
+  取り込んだ。**吹き出しを帯から `Overlay` へ移した際に、`_FileRow` の stateful 化で
+  find がずれた12件(M171 / M179 / M218 / M291 / M309 / M323〜M328 / M350 / M354)を再アンカーした。**
+  **全件の find が1回ずつ一致する**(異常0)。
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
 
 ### mutation の生出力
 
-`test/spec_004_file_source` と `test/spec_002_file_list` へ範囲を絞って実行した
-(M353 だけ find の直し後に `test/spec_004_file_source` で再実行)。**SURVIVED は無いので
-全件での確かめ直しは要らない。**
+`test/spec_004_file_source` と `test/spec_002_file_list` へ範囲を絞って実行した。
 
 ```
 command: flutter test test/spec_004_file_source test/spec_002_file_list
-M332 | KILLED | モード中も `別フォルダへ` を出す(再アンカー)
-M333 | KILLED | 帯が選択モードを読まない
-M349 | KILLED | モード中は `別フォルダへ` の枠を layout しない
-M350 | KILLED | 空いた枠に吹き出しを出さない
-M351 | KILLED | ツノを吹き出しの右端へ寄せる
-M352 | KILLED | ツノの幅の半分を引かない
-M354 | KILLED | 外すアイコンの tap target だけ広げる
-8 mutations: 7 KILLED, 0 SURVIVED, 1 SKIPPED
+M332 | KILLED   | モード中も `別フォルダへ` を出す
+M333 | KILLED   | 帯が選択モードを読まない
+M349 | KILLED   | モード中は `別フォルダへ` の枠を layout しない
+M350 | KILLED   | 外すアイコンへの補足を出さない
+M351 | KILLED   | 吹き出しを外すアイコンの真上へ置く(ツノがケバブを指す)
+M352 | KILLED   | ツノの幅の半分を引かない
+M353 | KILLED   | 「ファイルは削除されません」を落とす
+M354 | KILLED   | 外すアイコンの tap target だけ広げる
+M355 | KILLED   | 掴んだ行を選択モードの選択行と同じ色にする
+M357 | KILLED   | 掴んだ行の面を染めない
+M358 | KILLED   | 浮き上がりを消す
+M359 | SURVIVED | 末尾の枠の中で button を左へ寄せる(等価。下記)
+M360 | SURVIVED | 共有定数(ケバブの枠)だけを変える(等価。下記)
+M362 | KILLED   | 既定の長押しドラッグを戻す
+M363 | KILLED   | 吹き出しの幅の上限を2倍にする
+M364 | KILLED   | 閉じる操作を効かなくする
+M365 | KILLED   | 時間が経っても消えない
+M366 | KILLED   | モードをやめてもフェードを待つ
+M367 | KILLED   | 箱に枠線を引く(継ぎ目が線になる)
+M368 | KILLED   | 触れた瞬間を見ない(動かすまで色も振動も出ない)
+M369 | KILLED   | 振動を鳴らさない
+M370 | KILLED   | 離すときにも振動を鳴らす
+22 mutations: 19 KILLED, 3 SURVIVED, 0 SKIPPED
 ```
 
 ```
-command: flutter test test/spec_004_file_source
-M353 | KILLED | 「ファイルは削除されません」を落とす
-1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+command: flutter test test/spec_004_file_source test/spec_002_file_list
+M363 | KILLED   | (画面に収まる test を足して閉じた)
+M371 | KILLED   | 吹き出しを右へ寄せすぎる(円が画面の外へ出て押せなくなる)
+M359 | SURVIVED | 等価
+M360 | SURVIVED | 等価
+4 mutations: 2 KILLED, 2 SURVIVED, 0 SKIPPED
 ```
 
-**最初の実行で M349 と M354 が SURVIVED した。**どちらも**本物の穴ではなく、
-実装のほうが間違っていた**:
+### 受容した残余risk
 
-- `M349`: 吹き出しが button より高かったので、button を layout から外しても高さが
-  変わらなかった。**帯が通常表示でも11px太っていた**ということで、文言と字を縮めて直した。
-- `M354`: `headerIconExtent` を両側で変える mutant にしていたため、**ずれようがなかった**。
-  片側(ヘッダの `visualDensity`)だけ動かす対照へ差し替えた。
+**`M359` と `M360` は等価mutantである。**
+
+- `M359`(末尾の枠の中で button を左へ寄せる): 吹き出しを帯から外したことで**枠に余裕が
+  無くなった**ので、寄せ方を変えても位置が動かない。右端に張り付いていること自体は
+  実測する test が別に見ている。
+- `M360`(ケバブの枠の定数を変える): ツノの絶対位置は
+  `アイコンの右端 + K -(K + アイコンの枠/2)` で **K が打ち消し合う**。この定数はいま
+  箱の横位置しか決めず、画面からはみ出すかどうかは `M371` が押さえている。
+
+どちらもデータ損失・無断置換には当たらない。引き受け先は `T30`(この記録)。
 
 ## 独立review(2026-09-19)
 
@@ -199,12 +225,39 @@ M363 | SURVIVED | 吹き出しの幅の上限を2倍にする(受容。実機で
 4 mutations: 3 KILLED, 1 SURVIVED, 0 SKIPPED
 ```
 
+## 2回目の実機確認で受領した要望(2026-09-19)
+
+手順1〜4は**手順3の確認A以外すべて成立**した(確認Aは `T32` の指摘。下の `T32` 側に書く)。
+あわせて吹き出しの作り直しを受領した。
+
+> 吹き出しはちゃんと見えているし、ツノもアイコンを指していますが、帯をまたいでいるため少し遠いです。また、ツノと長方形の間に境界線が入っていて、きれいな吹き出しではありません。フォルダ名を表示している帯に表示するのではなく、帯をまたいで上から重ねて表示させるのはどうでしょうか。そのほうが、ツノがアイコンから遠くなったり、帯の表示を気にしたりする必要がなくなります。また、背景は枠線と同じシアンで塗りつぶしてよいです(ツノとの境界線を見えなくする)。これに伴い、右上に円+×マークの閉じるボタン(吹き出し内に収める必要はない。円の1/4が吹き出しの角に重なるぐらいの配置)を追加してください。3秒の時間経過でフェードアウトし、選択モードが解除された場合と閉じるボタンを押された場合はその瞬間に消えます。
+
+### 直したこと
+
+- **吹き出しを `Overlay` へ移した**([`removal_hint.dart`](../../../../lib/ui/file_list/removal_hint.dart))。
+  位置は `LayerLink`(`CompositedTransformTarget` / `Follower`)が**外すアイコンから直に**決める。
+- **帯の枠は空の箱で残すだけ**にした(`IndexedStack` の2つめが `SizedBox.shrink()`)。
+  高さは通常表示のまま保たれ、**1回目に残したコスト(場所の取り分が約23px 減る)も消えた。**
+- 面もツノも `primary` 一色で塗り、**箱の枠線をやめた**(継ぎ目の線が見えなくなる)。
+- 角に**円+×の閉じる操作**を引っかけた(円の中心が箱の右上の角)。
+- **3秒でフェードアウト**し、**モードをやめた瞬間と閉じた瞬間は即消える。**
+- **文言を受領した原文へ戻した。** 帯へ収める高さの制約が消えたためである
+  (1回目は2行に縮めていた。「見てほしい点1」は解消した)。
+
+### この作り直しで分かったこと
+
+- **円を枠の外へ出すと押せない。** `Stack` は自分の大きさの外を hit test しないので、
+  角から完全にはみ出した円は**見えるのに押せない**。円が入るぶんだけ内側へ寄せ、
+  **枠の中で**箱の角へ重ねる形にした(対照は `M371`)。
+- **`headerMenuExtent` はツノの位置に効かなくなった。** ツノの絶対位置は
+  `アイコンの右端 + K -(K + アイコンの枠/2)` で **K が打ち消し合う**ためで、
+  この定数はいま**箱の横位置だけ**を決める(`M360` が等価mutantになった理由)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 が PASS し、その P3 のうち安いほうを直した(2026-09-19)
-- Blocker category: manual(実機確認待ち)
-- Waiting for: Android実機での manual 確認
-- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4と「見てほしい点」3つ
-- Evidence revision: 未取得(実機)
-- Next Agent action: manual 確認の結果を受け取って記録し、成立していれば `T32` とまとめて
-  mergeする。**待機中はこのbranchとcommitを動かさない**
+- Last checkpoint: 1回目の実機確認で受領した吹き出しの作り直しを実装した(2026-09-19)
+- Blocker category: none(次は独立review attempt 2)
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
+- Next Agent action: 独立reviewを回し、PASS したら2回目の実機確認を依頼する

@@ -103,11 +103,43 @@ M358 | KILLED | 浮き上がりを消す
 (`selecting` 中は `ReorderableDragStartListener` 自体を出さない)。
 reviewer の対照 `M362`(既定の長押しドラッグを戻す)を表へ取り込み、KILLED を確認した。
 
+## 2回目の実機確認で受領した指摘(2026-09-19)
+
+> 手順3の確認Aについて、つかめた瞬間ではなくつかんでから少し移動させて初めて色が変わりました。私の想定は、移動できる状態になったら(まだ動かしていなくても)色が変わるというものでした。
+
+**成果物の欠陥である。** 要望は「ドラッグ可能になったら色を変えてほしい」で、
+`proxyDecorator` だけでは**Flutter が約18px の移動でドラッグ開始と判定するまで色が出ない**。
+
+あわせて質問を受領した。
+
+> 並び替えのつまみで移動可能になった瞬間に一拍のバイブレーションが発生します。このようなことは可能でしょうか。
+
+**可能である**(`HapticFeedback`。view の触覚フィードバックを使うので `VIBRATE` 権限も
+プラグインも要らない)。
+
+### 開発者に確認したこと(2026-09-19)
+
+「移動できる状態になった瞬間」の定義を一問で確認し、**「触れた瞬間」**を選んでもらった。
+
+- **採った案**: つまみに触れた瞬間に色と振動。**いまの操作を変えない**
+  (押してすぐ動かす並び替えはこれまでどおり)。引き換えに、軽く触れて離しただけでも
+  一瞬色が付き振動する。
+- 採らなかった案: 長押し0.5秒で移動可能にする(他アプリと同じ作法だが、
+  **押してすぐ動かす操作では並び替わらず一覧がスクロールする** — できる操作が一つ減る)。
+
+### 直したこと
+
+- `_FileRow` を `StatefulWidget` にし、つまみを `Listener` で包んで
+  **`onPointerDown` で掴んだ状態**にした。行の面は掴んだ瞬間から `surface` になり、
+  実際に動き始めたら `proxyDecorator` が**同じ色で引き継ぐ**(見た目は変わらない)。
+- 同じ瞬間に `HapticFeedback.selectionClick()` を1回鳴らす。**離すときには鳴らさない**
+  (対照は `M370`)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 が PASS した(`T30` と同じ範囲。2026-09-19)
-- Blocker category: manual(実機確認待ち)
-- Waiting for: Android実機での manual 確認
-- Requested action: [`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)の手順3
-- Evidence revision: 未取得(実機)
-- Next Agent action: `T30` とまとめて結果を受け取り、成立していればmergeする
+- Last checkpoint: 色のタイミングを「触れた瞬間」へ直し、一拍の振動を足した(2026-09-19)
+- Blocker category: none(次は独立review attempt 2)
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
+- Next Agent action: `T30` とまとめて独立reviewを回し、PASS したら2回目の実機確認を依頼する
