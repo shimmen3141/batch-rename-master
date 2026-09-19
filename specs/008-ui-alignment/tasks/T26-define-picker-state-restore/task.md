@@ -53,6 +53,13 @@
 - 実装taskを切り出し、承認された REQ ID をその `covers` へ書く。
 - `python <asdd-plugin>/scripts/workspace.py check specs` が PASS。
 
+## `T24` から来た入力(2026-09-19)
+
+開発者が「**1 folder でも folder 行を一覧へ出し、そこから同じ選択状態・同じ folder へ
+飛んでファイルを追加する導線を作る**」案を出した(原文は [`T24`](../T24-define-row-grouping/task.md))。
+**この task が定義する「復元」の置き場所の候補である。** どちらが何を決めるかを先に切る
+(案: `T26` が**復元して追加する振る舞い**を、`T24` が**folder 行という提示**を定義する)。
+
 ## Current state / handoff
 
 - Last checkpoint: 開発者の指示で起票した(2026-09-18)

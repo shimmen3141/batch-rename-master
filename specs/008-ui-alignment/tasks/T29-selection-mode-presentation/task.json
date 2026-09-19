@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T29",
   "title": "選択モードの見せ方とケバブメニューを整える",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T28"
   ],
