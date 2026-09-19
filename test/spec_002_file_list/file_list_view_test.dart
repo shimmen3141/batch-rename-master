@@ -1,7 +1,9 @@
 // VER-002: ファイルリストの描画層(ウィジェット操作 → 状態反映)の検証。
 // 対象: REQ-002(ソート切替)/ **REQ-016(選択の切り替えを提示しない)** /
 //       **REQ-017(除去の取り消し)** / REQ-006/REQ-007(行の現在名・変更後名の表示)。
-//       ドラッグ並び替え(REQ-003)は T5。
+//       ドラッグ並び替え(REQ-003)は T5。**REQ-018(除去のための選択モード)は
+//       `removal_selection_mode_test.dart`。** ここでの除去は `removal_mode.dart`
+//       の共通手順(モードへ入る → 選ぶ → 外す)を通る。
 //
 // **REQ-004(`toggleSelection`/`selectAll`/`clearAll`)はここでは検証しない。**
 // `008:T03` の決定で行 UI が選択の切り替えを提示しなくなり、REQ-004 は状態層の
@@ -14,6 +16,8 @@ import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'removal_mode.dart';
 
 FileEntry _f(String name, {String? handle}) => FileEntry(
   name: name,
@@ -93,7 +97,7 @@ void main() {
     expect(find.textContaining('選択'), findsNothing);
   });
 
-  testWidgets('行の × で外すと、取り消して元の位置へ戻せる(REQ-017・代表例6b/6c)', (tester) async {
+  testWidgets('選択モードで外すと、取り消して元の位置へ戻せる(REQ-017・代表例6b/6c)', (tester) async {
     final files = [
       _f('a.txt', handle: 'h:a'),
       _f('b.txt', handle: 'h:b'),
@@ -103,8 +107,7 @@ void main() {
     await _pump(tester, c);
 
     // 2番目(b)を外す。
-    await tester.tap(find.byTooltip('このファイルを外す').at(1));
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:b');
     expect(c.items.map((f) => f.name), ['a.txt', 'c.txt']);
     // 連番は残った2件で詰め直される(代表例6b)。
     expect(find.text('02.txt'), findsOneWidget);
@@ -131,8 +134,7 @@ void main() {
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').at(1));
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:b');
     // 取り消しを押さないまま、別フォルダを読み込み直す。
     c.setFiles([_f('x.txt', handle: 'h:x'), _f('y.txt', handle: 'h:y')]);
     await tester.pumpAndSettle();
@@ -157,8 +159,7 @@ void main() {
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').first); // c を外す
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:c'); // c を外す
     c.setSortMode(FileSortMode.name);
     await tester.pumpAndSettle();
     final sorted = c.items.map((f) => f.name).toList();
@@ -180,8 +181,7 @@ void main() {
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // b を外す → [a]
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:b'); // b を外す → [a]
     // 同じ名前・同じ並びで読み込み直す(**別の項目**)。
     final reloaded = _f('a.txt', handle: 'h:a2');
     c.setFiles([reloaded]);
@@ -210,8 +210,7 @@ void main() {
     });
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').at(1));
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:b');
     c.setOccupiedNames({
       'folder': {'new.txt'},
     });
@@ -237,10 +236,8 @@ void main() {
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // b
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('このファイルを外す').at(1)); // c
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:b');
+    await removeOneFile(tester, 'h:c');
     expect(c.items.map((f) => f.name), ['a.txt']);
 
     await tester.tap(find.text('元に戻す'));
@@ -262,8 +259,7 @@ void main() {
     });
     await _pump(tester, c);
 
-    await tester.tap(find.byTooltip('このファイルを外す').first);
-    await tester.pumpAndSettle();
+    await removeOneFile(tester, 'h:a');
     await tester.tap(find.text('元に戻す'));
     await tester.pumpAndSettle();
 

@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../spec_002_file_list/removal_mode.dart';
+
 FileEntry _entry(String name, {required String handle, String? location}) =>
     FileEntry(
       name: name,
@@ -236,7 +238,7 @@ void main() {
     expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
   });
 
-  testWidgets('行の×で1件だけリストから外れる(REQ-006)', (tester) async {
+  testWidgets('選択モードで1件だけリストから外れる(REQ-006)', (tester) async {
     final controller = FileListController(
       files: [
         _entry('a.txt', handle: 'h:a'),
@@ -245,8 +247,8 @@ void main() {
     );
     await _pump(tester, FakeFileSource(), controller, withList: true);
 
-    await tester.tap(find.byTooltip('このファイルを外す').first);
-    await tester.pumpAndSettle();
+    // `008:T28` で除去は選択モード経由になった(002 REQ-018)。
+    await removeOneFile(tester, 'h:a');
 
     expect(controller.items.map((e) => e.name), ['b.txt']);
   });

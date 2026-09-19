@@ -186,7 +186,8 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 /// これで確かめられる。
 ///
 /// **元場所ハンドルと所属フォルダは `demo:` で始まる作り物にする**（`008:T04`）。
-/// 行の × はハンドルを持つ行にだけ出る（004 REQ-006）ので、持たせないと
+/// 選択モードの checkbox はハンドルを持つ行にだけ出る（004 REQ-006 / 002 REQ-018。
+/// `008:T28` で行の × から移した）ので、持たせないと
 /// **デモでは1件も外せない** — checkbox を廃止した後（002 REQ-016）は、対象の
 /// 出し入れが除去だけなので確かめようがなくなる。
 ///
@@ -224,7 +225,8 @@ List<FileEntry> _sampleFiles() {
         // **所属フォルダも揃えて持たせる。** 表示だけ2フォルダにすると、001 の
         // 重複判定（フォルダ単位）が1フォルダとして数えて表示と食い違う。
         sourceFolder: names[i].$4 == camera ? cameraFolder : downloadFolder,
-        // **行の × を出すために要る**（004 REQ-006）。
+        // **選択モードで外せるようにするために要る**（004 REQ-006 / 002 REQ-018。
+        // `008:T28` で行の × から選択モードへ移した）。
         sourceHandle:
             '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',
       ),

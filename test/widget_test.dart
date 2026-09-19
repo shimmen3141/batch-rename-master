@@ -5,8 +5,10 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'spec_002_file_list/removal_mode.dart';
 
 void main() {
   testWidgets('デモアプリが起動しファイルリストを表示する', (tester) async {
@@ -78,20 +80,36 @@ void main() {
   });
 
   testWidgets('demo dataの全行が外せる(008:T04 / 004 REQ-006)', (tester) async {
-    // **行の × はハンドルを持つ行にだけ出る。** checkbox を廃止した後
-    // (002 REQ-016)は対象の出し入れが除去だけなので、ハンドルを持たない
-    // demo data では**1件も外せない**(2026-09-18 の実機確認で観測した)。
+    // **選択モードの checkbox はハンドルを持つ行にだけ出る**(008:T28 で
+    // 行の × から移した)。checkbox を廃止した後(002 REQ-016)は対象の
+    // 出し入れが除去だけなので、ハンドルを持たない demo data では
+    // **1件も外せない**(2026-09-18 の実機確認で観測した)。
     final rule = RuleController();
     addTearDown(rule.dispose);
     await tester.pumpWidget(DemoApp(ruleController: rule));
     await tester.pump();
 
-    final rows = tester
-        .widgetList<RowPreviewView>(find.byType(RowPreviewView))
-        .length;
-    expect(rows, greaterThan(0));
-    // 描画されている行と同じ数だけ × がある(どれか1行だけ外せない、を排除する)。
-    expect(find.byTooltip('このファイルを外す'), findsNWidgets(rows));
+    await enterRemovalMode(tester);
+    // **`Checkbox` の総数では数えない。** demo の tree には行以外の checkbox も
+    // 居る(下部バーの更新日時ずらし)。**作られた行を列挙して、その行の
+    // checkbox が在るか**を見る — `ListView` は見えている行だけを作るので、
+    // 「何個あるはず」と書くと viewport の高さに依存した検査になる。
+    final builtRows = tester
+        .widgetList<RowPreviewView>(
+          find.byType(RowPreviewView, skipOffstage: false),
+        )
+        .map((row) => row.file)
+        .toList();
+    expect(builtRows, isNotEmpty);
+    for (final file in builtRows) {
+      final handle = file.sourceHandle;
+      expect(handle, isNotNull, reason: '${file.name} に元場所ハンドルが無い');
+      expect(
+        find.byKey(removalMarkKeyOf(handle!), skipOffstage: false),
+        findsOneWidget,
+        reason: '${file.name} を選べない',
+      );
+    }
   });
 
   testWidgets('demo dataのハンドルは実在しうるpathにしない(008:T04)', (tester) async {
