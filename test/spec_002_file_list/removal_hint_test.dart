@@ -131,7 +131,13 @@ void main() {
         await tester.pump();
 
         final where = '幅 $width / 文字 $scale';
-        if (find.byKey(removalHintKey).evaluate().isEmpty) continue;
+        final shown = find.byKey(removalHintKey).evaluate().isNotEmpty;
+        // **普通の画面・普通の文字では必ず出る。** 出さないのは収まらないときだけで、
+        // 「いつも出さない」という実装をここで排除する(対照は M363 / M383)。
+        if (scale <= 1.3) {
+          expect(shown, isTrue, reason: where);
+        }
+        if (!shown) continue;
 
         final close = tester.getRect(find.byKey(removalHintCloseKey));
         final hint = tester.getRect(find.byKey(removalHintKey));
