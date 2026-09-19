@@ -14,6 +14,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
+import 'package:batch_rename_master/ui/file_source/removal_hint_bubble.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -54,13 +55,7 @@ Future<void> _pump(WidgetTester tester, FileListController controller) async {
 /// `一覧を空にする` は一覧のケバブ(`すべてをリネーム対象から外す`)へ移り、
 /// 選択モード中は帯の `別フォルダへ` が隠れるので、**両方が同じ
 /// [RemovalSelection] を読む**形でないと確かめられない。
-Future<void> _pumpWithList(
-  WidgetTester tester,
-  FileListController controller, {
-  RemovalSelection? selection,
-}) async {
-  final shared = selection ?? RemovalSelection();
-  await tester.pumpWidget(
+Widget _barAndList(FileListController controller, RemovalSelection shared) =>
     MaterialApp(
       theme: appDarkTheme(),
       home: Scaffold(
@@ -82,7 +77,15 @@ Future<void> _pumpWithList(
           ],
         ),
       ),
-    ),
+    );
+
+Future<void> _pumpWithList(
+  WidgetTester tester,
+  FileListController controller, {
+  RemovalSelection? selection,
+}) async {
+  await tester.pumpWidget(
+    _barAndList(controller, selection ?? RemovalSelection()),
   );
 }
 
@@ -367,21 +370,114 @@ void main() {
   testWidgets('選択モード中は「別フォルダへ」を出さない(008:T29)', (tester) async {
     // 外す作業の最中に読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる
     // 操作(004 REQ-004)と取り違えやすい。**帯そのもの(場所)は隠さない。**
+    //
+    // **`008:T30` で「木から消す」から「出さない」へ変えた。** 枠を残さないと
+    // 帯の高さがモードの出入りで変わるためで、**利用者から見える意味は同じ** —
+    // 押せず、読み上げられない。押せることを見るのが要点なので `hitTestable` を使う。
+    final semantics = tester.ensureSemantics();
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
     await _pumpWithList(tester, controller);
-    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('pick-files-button')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('別フォルダへ'), findsOneWidget);
 
     await enterRemovalMode(tester);
 
-    expect(find.byKey(const Key('pick-files-button')), findsNothing);
+    expect(
+      find.byKey(const Key('pick-files-button')).hitTestable(),
+      findsNothing,
+    );
+    expect(find.bySemanticsLabel('別フォルダへ'), findsNothing);
     expect(_location(tester), 'Camera');
 
     await tester.tap(find.byKey(removalModeExitKey));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('pick-files-button')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('別フォルダへ'), findsOneWidget);
+    semantics.dispose();
+  });
+
+  testWidgets('モードの出入りで帯の高さが変わらない(008:T30 要望1)', (tester) async {
+    // `別フォルダへ` を隠すと枠(縦 padding + 枠線)が丸ごと消え、帯が場所の
+    // ラベルの高さまで縮んで**下の一覧が跳ねる**(2026-09-19 の実機確認)。
+    // **「だいたい同じ」ではなく同じ値**を見る。
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    await _pumpWithList(tester, controller);
+    final before = tester.getSize(find.byKey(sourceBarKey));
+
+    await enterRemovalMode(tester);
+
+    expect(tester.getSize(find.byKey(sourceBarKey)), before);
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byKey(sourceBarKey)), before);
+  });
+
+  testWidgets('狭い画面と大きい文字でも帯の高さが変わらない(008:T30 要望1)', (tester) async {
+    // 枠の高さは文字倍率で伸びるので、**片方だけ伸びると差が出る**。
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    for (final scale in [1.0, 2.0, 3.0]) {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: _barAndList(controller, RemovalSelection()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final before = tester.getSize(find.byKey(sourceBarKey)).height;
+
+      await enterRemovalMode(tester);
+
+      expect(
+        tester.getSize(find.byKey(sourceBarKey)).height,
+        before,
+        reason: '文字倍率 $scale',
+      );
+    }
+  });
+
+  testWidgets('モード中は外すアイコンへ向けた吹き出しが出る(008:T30 要望2)', (tester) async {
+    // アイコンだけでは何が起きるか読めない(2026-09-19 の実機確認)。
+    // **ツノがアイコンの中心に立っていること**を実測で確かめる — 帯とヘッダは
+    // 別の widget なので、共有した数がずれたらここで落ちる。
+    final semantics = tester.ensureSemantics();
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    await _pumpWithList(tester, controller);
+    expect(find.bySemanticsLabel(removalHintText), findsNothing);
+
+    await enterRemovalMode(tester);
+
+    expect(find.bySemanticsLabel(removalHintText), findsOneWidget);
+    expect(
+      tester.getCenter(find.byKey(removalHintTailKey)).dx,
+      tester.getCenter(find.byKey(removalModeRemoveKey)).dx,
+    );
+    // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
+    expect(removalHintText, contains('削除されません'));
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel(removalHintText), findsNothing);
+    semantics.dispose();
   });
 
   testWidgets('一覧を空にする操作も取り消せる(002 REQ-017・代表例6d)', (tester) async {

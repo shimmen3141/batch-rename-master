@@ -9,6 +9,7 @@ import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
+import 'header_metrics.dart';
 import 'removal_selection.dart';
 import 'removal_undo.dart';
 import 'rename_warning_view.dart';
@@ -891,7 +892,11 @@ class _HeaderBar extends StatelessWidget {
     final colors = context.colors;
     final total = controller.items.length;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // 左右の padding は**吹き出しのツノの位置にも効く**ので共有する(`008:T30`)。
+      padding: const EdgeInsets.symmetric(
+        horizontal: headerBarHorizontalPadding,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
@@ -905,7 +910,13 @@ class _HeaderBar extends StatelessWidget {
               color: colors.textSecondary,
               tooltip: '選ぶのをやめる',
               visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              // **tap target を数で固定する**(`008:T30`)。帯の吹き出しは
+              // この幅からツノの位置を出すので、実際の描画幅が数と一致している
+              // 必要がある(widget test が実測で確かめる)。
+              constraints: const BoxConstraints.tightFor(
+                width: headerIconExtent,
+                height: headerIconExtent,
+              ),
               padding: EdgeInsets.zero,
             ),
           // **文字は左、操作は右**(2026-09-19 の要望4)。
@@ -977,7 +988,13 @@ class _HeaderBar extends StatelessWidget {
               disabledColor: colors.textDisabled,
               tooltip: '選んだファイルをリネーム候補から外す',
               visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              // **tap target を数で固定する**(`008:T30`)。帯の吹き出しは
+              // この幅からツノの位置を出すので、実際の描画幅が数と一致している
+              // 必要がある(widget test が実測で確かめる)。
+              constraints: const BoxConstraints.tightFor(
+                width: headerIconExtent,
+                height: headerIconExtent,
+              ),
               padding: EdgeInsets.zero,
             ),
           // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
