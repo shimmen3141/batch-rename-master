@@ -94,12 +94,53 @@
 - `flutter test` / `flutter analyze` / `dart format` / `mutation_check.py` が PASS。
 - Android 実機での manual 確認(`manual-verification.md` を作る)。
 
+## 実装(2026-09-19)
+
+### 決めたこと
+
+- **選択モードの状態を [`RemovalSelection`](../../../../lib/ui/file_list/removal_selection.dart)
+  (`ChangeNotifier`)へ出した。** `T28` では `FileListView` の `State` に置いていたが、
+  **モード中は一覧の外側**(読み込み帯の `別フォルダへ`)**も隠れる**ので、一覧の外の widget も
+  同じ状態を読む必要がある。composition root(`main.dart`)が1つ作り、帯と一覧へ配る。
+  **`FileListController` とは別のままである**(rename 対象の選択と混ぜない)。
+- **配色はアプリのアクセント(シアン)で作った**(2026-09-19 の開発者の判断)。構造は要望どおり
+  (面を染める → 塗りつぶしの円 → 暗いチェック)で、**指定色(背景 `#41384D` / 円 `#D0BFEA`)は
+  `AppColors` の2 token を差し替えるだけで試せる**。
+- **0件で抜けるのは「利用者が選択を外して0件になったとき」だけ**である。入口(ケバブ)は0件で
+  始まるので、そこで抜けるとREQ-018 (b)の入口が機能しなくなる(対照は M330)。
+- **ケバブは一覧が空のときだけ出さない。** どの項目も対象が無いためである。
+- **checkbox とつまみは同じ 32px の枠に入れ、モード中に出す側を行が1か所で決める。**
+  親側にも `!selecting` を持たせると二重の判定になり、**片方を壊してもtestが気付かない**
+  (mutation M309 が最初 SURVIVED した)。
+
+### 参考designから離れた点
+
+`docs/design/Bulk Renamer.html` は行に常時 checkbox、ヘッダに `n / m 件を選択`、
+下部バーに実行を持つ。**選択モードもケバブも描かれていない。** 002 REQ-016 / REQ-018
+(`T03`・`T27` 承認)と 2026-09-19 の決定に従い、離れる。
+
+### 直した退行(実装中に見つけた)
+
+ヘッダ右端にケバブが入って文字側の幅が狭まり、**320dp・文字倍率2.0 で警告件数が
+`⚠ 1…` と切り詰められる**状態になった(`008:T16` が独立reviewのP1として閉じた保証)。
+件数ラベルを**2行まで折り返す**形にして戻した(`rename_warning_view.dart`)。
+
+## 検証(2026-09-19)
+
+- `flutter test` **PASS(918)** / `flutter analyze` PASS / `dart format` PASS。
+- `mutation_check.py` は**表全体で 328 件・異常0**(M327〜M337 を追加、移動した18件を再アンカー)。
+- 範囲を絞って回した42件は **37 KILLED / 5 SURVIVED** → SURVIVED のうち **M309 / M328 / M331 は
+  本物の穴だったので閉じた**(それぞれ「行側の1か所で決める」「変更後名の欄の幅を見る」
+  「下部の帯が出ないことを見る」)。再実行で **3件とも KILLED**。
+  残る **M320 / M323 は `T28` から引き継いだ等価mutant**(防御の重複。全件で確認済み)。
+- **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
+  `T28` の実機証拠は `lib/` が動いたので失効した — 手順5でつまみの長押しドラッグを取り直す。
+
 ## Current state / handoff
 
-- Last checkpoint: `T28` の実機確認で5件の要望を受領し、task化した(2026-09-19)
-- Blocker category: none
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: 未着手(観測は `T28` の `764fe74` に対する実機確認)
-- Next Agent action: 「決めること」を確定してから、ヘッダとケバブの実装に入る。
-  配色は `AppColors` の token を先に決める
+- Last checkpoint: 実装・test・mutationが揃った(2026-09-19)
+- Blocker category: manual(実機確認待ち)
+- Waiting for: 独立review と、Android実機での manual 確認
+- Requested action: 独立reviewの起動 → PASS後に [`manual-verification.md`](manual-verification.md) を依頼する
+- Evidence revision: 未取得(`T28` の実機証拠は `lib/` が動いたので失効した)
+- Next Agent action: 独立reviewを走らせ、PASSならPRをready化して manual 確認を依頼する
