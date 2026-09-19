@@ -1240,15 +1240,15 @@
     {
       "id": "M178",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      warnings: rowWarningsOf(\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                      ),",
-      "replace": "                      warnings: controller.sortMode == FileSortMode.createdAt\n                          ? rowWarningsOf(\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                            )\n                          : const <Warning>[],",
+      "find": "                        warnings: rowWarningsOf(\n                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                        ),",
+      "replace": "                        warnings: controller.sortMode == FileSortMode.createdAt\n                            ? rowWarningsOf(\n                                row.warnings,\n                                ruleIsEmpty: ruleIsEmpty,\n                              )\n                            : const <Warning>[],",
       "note": "008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2)"
     },
     {
       "id": "M179",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),",
-      "replace": "                RowWarningView(warnings: warnings),",
+      "find": "                  RowWarningView(\n                    warnings: warnings,\n                    onTap: onShowWarningDetail,\n                  ),\n",
+      "replace": "                  RowWarningView(warnings: warnings),\n",
       "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
     },
     {
@@ -1464,8 +1464,8 @@
     {
       "id": "M218",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),\n                Text(\n                  row.currentName,",
-      "replace": "                Text(\n                  row.currentName,",
+      "find": "                  RowWarningView(\n                    warnings: warnings,\n                    onTap: onShowWarningDetail,\n                  ),\n                  Text(\n                    row.currentName,",
+      "replace": "                  Text(\n                    row.currentName,",
       "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)"
     },
     {
@@ -1485,8 +1485,8 @@
     {
       "id": "M221",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                Text(\n                  row.currentName,\n                  maxLines: 1,",
-      "replace": "                Text(\n                  row.currentName,\n                  maxLines: 4,",
+      "find": "                  Text(\n                    row.currentName,\n                    maxLines: 1,",
+      "replace": "                  Text(\n                    row.currentName,\n                    maxLines: 4,",
       "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
     },
     {
@@ -1737,8 +1737,8 @@
     {
       "id": "M257",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        context,\n                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
-      "replace": "                        context,\n                        warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "find": "                          context,\n                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
+      "replace": "                          context,\n                          warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
       "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**"
     },
     {
@@ -1786,8 +1786,8 @@
     {
       "id": "M264",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        row.warnings,\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
-      "replace": "                        rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                        ruleIsEmpty: ruleIsEmpty,\n                        scopeFile: row.source,",
+      "find": "                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
+      "replace": "                          rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
       "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5"
     },
     {
@@ -1975,9 +1975,9 @@
     {
       "id": "M291",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          // **checkbox は置かない**(002 REQ-016)。一覧にあるファイルはすべて\n          // rename 対象で、外すのは行の × である。\n          //\n",
-      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n",
-      "note": "008:T04 行へ checkbox を戻す — 002 REQ-016(行UIは選択の切り替えを提示しない)が壊れ、×との共存が復活する"
+      "find": "            // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に\n            // あるファイルはすべて rename 対象で、外すのは選択モードである。\n            if (selecting)\n",
+      "replace": "            Checkbox(value: row.selected, onChanged: (_) {}),\n            if (selecting)\n",
+      "note": "008:T04 通常表示の行へ checkbox を戻す — 002 REQ-016(通常表示の行UIは選択の切り替えを提示しない)が壊れる。**008:T28 で選択モードのcheckboxが入ったので、`find` をモード外の位置へ追随させた**"
     },
     {
       "id": "M292",
@@ -2059,9 +2059,9 @@
     {
       "id": "M303",
       "file": "lib/main.dart",
-      "find": "        // **行の × を出すために要る**（004 REQ-006）。\n        sourceHandle:\n            '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',\n",
+      "find": "        // **選択モードで外せるようにするために要る**（004 REQ-006 / 002 REQ-018。\n        // `008:T28` で行の × から選択モードへ移した）。\n        sourceHandle:\n            '${names[i].$4 == camera ? cameraFolder : downloadFolder}/${names[i].$1}',\n",
       "replace": "",
-      "note": "008:T04 demo dataからハンドルを落とす — 行の × が1件も出ず、checkbox を廃止した後(002 REQ-016)は対象の出し入れが確かめられなくなる(2026-09-18 の実機確認で観測した状態)"
+      "note": "008:T04 demo dataからハンドルを落とす — 選択モードのcheckboxが1件も出ず、checkbox を廃止した後(002 REQ-016)は対象の出し入れが確かめられなくなる(2026-09-18 の実機確認で観測した状態。008:T28 で × から選択モードへ移した)"
     },
     {
       "id": "M304",
@@ -2069,6 +2069,111 @@
       "find": "  const cameraFolder = 'demo:/DCIM/Camera';",
       "replace": "  const cameraFolder = '/storage/emulated/0/DCIM/Camera';",
       "note": "008:T04 demo dataのハンドルを実在しうるpathにする — デモのつもりの操作が**実機の本物のファイルを改名しうる**"
+    },
+    {
+      "id": "M305",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                        onLongPressEnter: handle == null\n                            ? null\n                            : () => _enterRemovalMode(handle: handle),\n",
+      "replace": "",
+      "note": "008:T28 行の長押しでモードへ入れなくする — 002 REQ-018 の入口(a)が消え、常設の入口だけになる(代表例 6f)"
+    },
+    {
+      "id": "M306",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            : () => _enterRemovalMode(handle: handle),",
+      "replace": "                            : () => _enterRemovalMode(),",
+      "note": "008:T28 長押しした行を選ばずにモードへ入る — REQ-018 の「長押しで入ったときはその行が選択された状態で始まる」が壊れ、長押しの後もう一度その行を押す必要が出る(代表例 6f)"
+    },
+    {
+      "id": "M307",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  onEnterRemovalMode: rows.isEmpty\n                      ? null\n                      : () => _enterRemovalMode(),",
+      "replace": "                  onEnterRemovalMode: null,",
+      "note": "008:T28 長押しに依存しない入口を落とす — 長押しは押せることが画面から読めず支援技術からも辿りにくいので、REQ-018 (b) が要求している(代表例 6j)"
+    },
+    {
+      "id": "M308",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  onRemoveMarked: marked.isEmpty\n                      ? null\n                      : () => _removeMarked(context, marked),",
+      "replace": "                  onRemoveMarked: () => _removeMarked(context, marked),",
+      "note": "008:T28 0 件でも外すbuttonを押せるようにする — REQ-018 の「0 件選択では実行できない」が壊れ、押しても何も起きない操作になる"
+    },
+    {
+      "id": "M309",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                        showDragHandle:\n                            widget.controller.manualOrderMatters && !selecting,",
+      "replace": "                        showDragHandle: widget.controller.manualOrderMatters,",
+      "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る"
+    },
+    {
+      "id": "M310",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              if (controller.manualOrderMatters && !selecting) _customMode,",
+      "replace": "              if (controller.manualOrderMatters) _customMode,",
+      "note": "008:T28 モード中も `カスタム順` chip を出す — chip は REQ-014 が言う手動並び替えの提示そのもので、REQ-018 がモード中の提示を禁じている"
+    },
+    {
+      "id": "M311",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    buildDefaultDragHandles: false,",
+      "replace": "                    buildDefaultDragHandles: true,",
+      "note": "008:T28 既定の長押しドラッグを戻す — **選ぶつもりの長押しが並べ替えになる**(REQ-018 の入口(a)と REQ-003 が同じ操作を取り合う)"
+    },
+    {
+      "id": "M312",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        final selecting = _selecting && rows.isNotEmpty;",
+      "replace": "        final selecting = _selecting;",
+      "note": "008:T28 一覧が空でもモードのままにする — 選ぶものが無いモードに閉じ込められる(REQ-018 の入口は「一覧が空でない間」)"
+    },
+    {
+      "id": "M313",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        final marked = _marked.intersection(removable);",
+      "replace": "        final marked = _marked;",
+      "note": "008:T28 一覧から消えたハンドルも数に入れる — 「2 件」と出して1件しか外れない(件数と実行結果が食い違う)"
+    },
+    {
+      "id": "M314",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    });\n    _exitRemovalMode();\n  }",
+      "replace": "    });\n  }",
+      "note": "008:T28 外した後もモードに留まる — REQ-018 の「外し終えたらモードを抜ける」が壊れ、外した直後の一覧が選択モードのまま残る"
+    },
+    {
+      "id": "M315",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      for (final handle in handles) {\n        widget.controller.removeFile(handle);\n      }",
+      "replace": "      widget.controller.setFiles(\n        widget.controller.items\n            .where((item) => !handles.contains(item.sourceHandle))\n            .toList(),\n      );",
+      "note": "008:T28 まとめての除去を `setFiles` で行う — `setFiles` は占有名を捨てるので(005 REQ-026)、外しただけで一覧の重複警告が弱くなり、控えの照合も毎回「古い」と判定されて取り消せなくなる"
+    },
+    {
+      "id": "M316",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                        marked: handle != null && marked.contains(handle),",
+      "replace": "                        marked: false,",
+      "note": "008:T28 選んだ行に印が付かない — 何を選んだか読めないまま外すことになる(代表例 6f)"
+    },
+    {
+      "id": "M317",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                        onToggleMark: handle == null\n                            ? null\n                            : () => _toggleMark(handle),",
+      "replace": "                        onToggleMark: () => _toggleMark(handle ?? ''),",
+      "note": "008:T28 ハンドルを持たない行も選べるようにする — 004 REQ-006 はハンドルで対象を指すので、**選べるのに外れない件数**が出る"
+    },
+    {
+      "id": "M318",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          canPop: !selecting,",
+      "replace": "          canPop: true,",
+      "note": "008:T28 端末の戻るでモードを抜けられなくする — 戻るが画面ごと閉じる。対照として置く(REQ-018 が課すのはヘッダの × だけなので、これは残余の期待である)"
+    },
+    {
+      "id": "M319",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              onPressed: onExitRemovalMode,",
+      "replace": "              onPressed: () {},",
+      "note": "008:T28 モードをやめる操作を効かなくする — REQ-018 の「やめる操作」が見せかけになり、選択を破棄して戻れない(代表例 6i)"
     }
   ]
 }
