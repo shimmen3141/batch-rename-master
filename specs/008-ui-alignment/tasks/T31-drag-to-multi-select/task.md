@@ -74,6 +74,10 @@
 - Blocker category: none
 - Waiting for: なし
 - Requested action: なし
+- Touches: `lib/ui/file_list/file_list_view.dart`(行のgesture)、`removal_selection.dart`、
+  `specs/002-file-list/spec.md`(REQ-018 の追記。**再承認が要る**)
+- 並行: **`T34` とは別file**なので同時に進められる。`T33` / `T35` とも別。
+  ただし `tool/mutations.json` はどのtaskも触るので、**同時に走らせるとここだけ衝突しうる**
 - Evidence revision: 未着手
 - Next Agent action: 着手時に「なぞって戻ったときの扱い」を開発者へ一問で確認し(推奨は
   加えるだけ)、REQ-018 の追記案と代表例を出してから実装する

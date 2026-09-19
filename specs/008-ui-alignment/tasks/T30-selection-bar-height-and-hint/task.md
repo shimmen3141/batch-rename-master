@@ -344,10 +344,10 @@ M380 | KILLED   | 吹き出しの飾りが pointer を取る
 ### 進め方について開発者へ確認したこと(2026-09-19)
 
 **成果物の欠陥による FAIL が2回続いた**(attempt 2 → attempt 3)ので、`AGENTS.md` の
-例外(「同じtaskで成果物の欠陥によるFAILが2回続いた後」)に当たると読んで Opus で起動した。
-**開発者の指示で Sonnet へ切り替えた**(2026-09-19)。既定は Sonnet であり、どちらで回すかは
-開発者の判断である。**`AGENTS.md` は変えていない** — 例外の読み方が実際の運用と合うかは、
-この回の結果を見てから改めて相談する。あわせて「同じところを叩き続けていないか」を開発者へ
+例外(「同じtaskで成果物の欠陥によるFAILが2回続いた後」)に当たると読んで**実装と同等の
+model**(当時の名前では Opus)で起動した。**開発者の指示で一段軽いもの**(同 Sonnet)へ
+切り替えた。既定は一段軽いほうで、どちらで回すかは開発者の判断である。
+**このとき `AGENTS.md` は変えていない**(後日、model名を書かない形へ改めた)。あわせて「同じところを叩き続けていないか」を開発者へ
 一問で確認し、**このまま続行**を選んでもらった。示した選択肢は、続行 /
 帯の中へ戻す(1回目の形。はみ出しも重なりも原理的に起きないが、ツノが遠く文言が2行に
 縮み場所の取り分が減る)/ 吹き出しをやめて tooltip だけにする /
@@ -635,10 +635,14 @@ M388 | SURVIVED | 下端の収まり判定だけを無効化する(到達しな�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 の FAIL(P1: 下へ回った吹き出しが行のtapを吸う)を直した(2026-09-19)
-- Blocker category: none(次は独立review attempt 4。**開発者の指示で Sonnet**)
+- Last checkpoint: 2回目の実機確認が手順1〜5すべて成立し、`T32` とまとめて `dev` へ merge した(2026-09-19)
+- Blocker category: none
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
-- Next Agent action: attempt 4 を Opus で回す。**さらにFAILすると合計3回**になるので、
-  そのときは `blocked` にして人間へ返す
+- Touches(完了時点): `lib/ui/file_list/removal_hint.dart`(新設)、`header_metrics.dart`、
+  `file_list_view.dart`、`lib/ui/file_source/file_source_bar.dart`
+- Evidence revision: `cd29a23`(`lib/` の最終変更は `94474e4`)。`flutter test` 938 PASS /
+  `flutter analyze` PASS / `dart format` PASS / mutation表 372件・異常0 / CI PASS /
+  独立review attempt 6 PASS(指摘0件) / Android実機 手順1〜5 成立
+- Next Agent action: なし(完了)。受領した2件は [`T34`](../T34-hint-refinements/task.md) と
+  [`T35`](../T35-define-orientation-scope/task.md) が引き受けた

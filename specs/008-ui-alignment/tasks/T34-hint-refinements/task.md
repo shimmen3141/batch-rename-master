@@ -57,6 +57,11 @@
 - Blocker category: none(`T30` は merge 済み。着手可能)
 - Waiting for: なし
 - Requested action: なし
+- Touches: `lib/ui/file_list/removal_hint.dart`(必要なら `header_metrics.dart`)、
+  `test/spec_002_file_list/removal_hint_test.dart`、`tool/mutations.json`(M352/M353/M363/M367 の再アンカー)
+- 並行: **`T31` とは別file**(あちらは `file_list_view.dart`)なので同時に進められる。
+  `header_metrics.dart` だけは `file_list_view.dart` と共有している定数なので、
+  **そこを動かすなら `T31` と順番を決める**
 - Evidence revision: 未着手
 - Next Agent action: 着手してよい。まず「ツノが右にずれて見える」原因を実測で確かめる
   (アイコンの字面が枠の中で左寄りなのか、ツノの位置そのものか)。**`T31` と同じ file を

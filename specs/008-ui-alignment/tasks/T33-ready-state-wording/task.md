@@ -77,6 +77,9 @@
 - Blocker category: none
 - Waiting for: なし
 - Requested action: なし
+- Touches: `lib/ui/file_list/rename_warning_view.dart`、`specs/005-rename-exec/spec.md`
+  (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
+- 並行: **他のpending taskと触るfileが重ならない。** 単独で進められる
 - Evidence revision: 未着手
 - Next Agent action: 着手時に「変更が生じるファイルが0件のときに何と出すか」を開発者へ
   一問で確認してから実装する

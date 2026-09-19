@@ -57,6 +57,10 @@
 - Blocker category: none(着手可能。**ただし開発者は「今回はこのままでよい」と判断している**)
 - Waiting for: なし
 - Requested action: なし
+- Touches: 未特定(縞模様の出どころ次第。有力なのは下部の帯)。判断次第で
+  `android/app/src/main/AndroidManifest.xml`(**`.github/workflows` ではないので Agent が触れる**)
+- 並行: 出どころが特定されるまで**触るfileが分からない**ので、他のtaskと同時に走らせるなら
+  最初の調査までに留める
 - Evidence revision: 未着手
 - Next Agent action: 着手するときは、まず**縞模様の出どころを widget test で特定**してから
   (a)/(b) を開発者へ一問で確認する。**特定できていない状態で選択肢だけ出さない**
