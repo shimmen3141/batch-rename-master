@@ -128,9 +128,9 @@
 
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(933)**(`T29` 時点は921。`T30` で9本、`T32` で1本追加) /
+- `flutter test` **PASS(934)**(`T29` 時点は921。`T30` で9本、`T32` で1本追加) /
   `flutter analyze` PASS / `dart format` PASS / `check specs` PASS(8 plans, 86 tasks)。
-- `mutation_check.py`: 表は**360件**。`T30` で M349〜M354・M364〜M367・M371 を、
+- `mutation_check.py`: 表は**365件**(attempt 2 の対照 M372〜M376 を含む)。`T30` で M349〜M354・M364〜M367・M371 を、
   `T32` で M355 / M357 / M358 / M368〜M370 を足し、独立reviewの対照 M359 / M360 / M362 / M363 を
   取り込んだ。**吹き出しを帯から `Overlay` へ移した際に、`_FileRow` の stateful 化で
   find がずれた12件(M171 / M179 / M218 / M291 / M309 / M323〜M328 / M350 / M354)を再アンカーした。**
@@ -236,6 +236,7 @@ M363 | SURVIVED | 吹き出しの幅の上限を2倍にする(受容。実機で
 
 - **吹き出しを `Overlay` へ移した**([`removal_hint.dart`](../../../../lib/ui/file_list/removal_hint.dart))。
   位置は `LayerLink`(`CompositedTransformTarget` / `Follower`)が**外すアイコンから直に**決める。
+  **上に収まらないときはアイコンの下へ回す**(独立review attempt 2 の P1。下記)。
 - **帯の枠は空の箱で残すだけ**にした(`IndexedStack` の2つめが `SizedBox.shrink()`)。
   高さは通常表示のまま保たれ、**1回目に残したコスト(場所の取り分が約23px 減る)も消えた。**
 - 面もツノも `primary` 一色で塗り、**箱の枠線をやめた**(継ぎ目の線が見えなくなる)。
@@ -253,11 +254,56 @@ M363 | SURVIVED | 吹き出しの幅の上限を2倍にする(受容。実機で
   `アイコンの右端 + K -(K + アイコンの枠/2)` で **K が打ち消し合う**ためで、
   この定数はいま**箱の横位置だけ**を決める(`M360` が等価mutantになった理由)。
 
+## 独立review attempt 2(2026-09-19)
+
+- `dev...bcce889` — **FAIL**(Sonnet。`.worktrees/008-T30-review2`)。
+  - **P1(成果物の欠陥)**: **文字倍率を上げると吹き出しが画面の上端より外へ出る。**
+    箱の高さは倍率で伸びるのに、上方向へ伸ばすだけで**上端のクランプが無かった**。
+    reviewer の実測: 倍率2.0 で閉じる操作が `y = -18`(押せない)、倍率3.0 で
+    **本文ごと `y = -110`**(まったく見えない)。幅には依存せず倍率だけで壊れる。
+    **誤解を防ぐための注記が、いちばん助けの要る設定で消えていた。**
+    → **上に収まらないと分かったら、ツノを上に向けてアイコンの下へ回す**形にした。
+    高さは出してみるまで分からないので、出した直後の1 frame で測って向きを決める。
+    幅 × 倍率(320/411/800 × 1.0/1.3/2.0/3.0)の格子で、**箱も円も画面の中にあり、
+    円が押せる**ことを test で固定した(対照は `M374`)。
+  - **P2(成果物の欠陥・記録)**: `header_metrics.dart` の `removeIconCenterFromRight` と
+    `removalHintTailInsetFromRight` が**どこからも使われていなかった**。しかも
+    `removal_hint.dart` が**同じ名前で値の違う**定数を自分で宣言しており、Dart は
+    import した同名の宣言を**エラーもwarningも無しに上書きする**。`header_metrics.dart`
+    側を直しても何も変わらない罠だったので、**死んだ派生定数を消した。**
+    task.md の「両方がそれを使う」という記述もこの2つについては誤りだったので直した。
+  - **P3(安全網の穴・受容。引き受け先 `T30`)**: `_entry != null` の二重 insert 防止を
+    外しても落ちない(`M373` SURVIVED)。同じ frame 内で `_schedule` が2回走る経路が
+    無いため**現状は等価**で、通り抜けても重複描画にしかならない(データ損失等に当たらない)。
+    guard は残し、対照は表へ取り込んだ。
+  - reviewer が**問題無しと確かめた点**: 再アンカーした12件は**元の保証を弱めていない**
+    (全件で回し直して確認。`M323` の SURVIVED は以前から記録済みの等価mutant)。
+    `Overlay` の寿命(画面を捨てる・一覧が空になる・dispose)で entry / timer / ticker が
+    残らない。build 中に `Overlay` を触っていない(`M372` KILLED)。`T29` と attempt 1 が
+    閉じた保証は維持。`T32` の触覚と色は触れた瞬間に1回だけで、離すときは鳴らず、
+    選択モード中は構造上誤発火しない。**`M359` / `M360` の等価性の主張は式を自分で
+    導出して検証済み。**
+
+### mutation の生出力(attempt 2 の指摘を直した分)
+
+```
+command: flutter test test/spec_002_file_list test/spec_004_file_source
+M351 | KILLED   | 吹き出しを外すアイコンの真上へ置く(再アンカー)
+M363 | KILLED   | 吹き出しの幅の上限を2倍にする
+M371 | KILLED   | 吹き出しを右へ寄せすぎる
+M372 | KILLED   | build の最中に `Overlay` へ insert する
+M373 | SURVIVED | 二重 insert を防ぐ guard を外す(等価。受容)
+M374 | KILLED   | 上に収まらなくても下へ回さない
+M375 | KILLED   | 下へ回してもツノが下を向いたまま
+M376 | KILLED   | 下へ回しても箱とツノの並び順を入れ替えない
+8 mutations: 7 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
 ## Current state / handoff
 
-- Last checkpoint: 1回目の実機確認で受領した吹き出しの作り直しを実装した(2026-09-19)
-- Blocker category: none(次は独立review attempt 2)
+- Last checkpoint: 独立review attempt 2 の FAIL(P1: 大きい文字で吹き出しが画面外)を直した(2026-09-19)
+- Blocker category: none(次は独立review attempt 3)
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
-- Next Agent action: 独立reviewを回し、PASS したら2回目の実機確認を依頼する
+- Next Agent action: attempt 3 を回し、PASS したら2回目の実機確認を依頼する
