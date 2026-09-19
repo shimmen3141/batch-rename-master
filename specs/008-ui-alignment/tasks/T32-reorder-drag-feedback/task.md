@@ -91,11 +91,23 @@ M358 | KILLED | 浮き上がりを消す
 
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
 
+## 独立review(2026-09-19)
+
+`T30` と同じ範囲(`dev...07c218f`)をまとめて見た — 結果と生出力は
+[`T30` の task.md](../T30-selection-bar-height-and-hint/task.md#独立review2026-09-19)にある。
+**PASS。成果物の欠陥は0件。**
+
+`T32` に対して reviewer が確かめた点: 掴んだ瞬間に色が付く(animate するのは elevation だけ)、
+`selectedSurface` とは実値も別、`reorder → custom` の自動切替は無改変、
+**掴む(つまみ)と選ぶ(モード)はコード構造上同時に起こり得ない**
+(`selecting` 中は `ReorderableDragStartListener` 自体を出さない)。
+reviewer の対照 `M362`(既定の長押しドラッグを戻す)を表へ取り込み、KILLED を確認した。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と機械検証が揃った(`T30` と同じ branch。2026-09-19)
-- Blocker category: none(次は独立review)
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: 独立review attempt 1 が PASS した(`T30` と同じ範囲。2026-09-19)
+- Blocker category: manual(実機確認待ち)
+- Waiting for: Android実機での manual 確認
+- Requested action: [`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)の手順3
 - Evidence revision: 未取得(実機)
-- Next Agent action: `T30` とまとめて独立reviewを回し、PASS したら実機確認を依頼する
+- Next Agent action: `T30` とまとめて結果を受け取り、成立していればmergeする

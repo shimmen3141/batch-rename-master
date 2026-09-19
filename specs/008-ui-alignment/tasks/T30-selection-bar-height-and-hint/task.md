@@ -125,10 +125,11 @@
 
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(924)**(`T30` で3本追加) / `flutter analyze` PASS / `dart format` PASS。
+- `flutter test` **PASS(926)**(`T30` で4本、`T32` で1本追加。`T29` 時点は921) / `flutter analyze` PASS / `dart format` PASS。
 - `workspace.py check specs` PASS(8 plans, 86 tasks)。
-- `mutation_check.py`: 表は**345件**(M349〜M354 を追加、M332 を再アンカー、M353 を文言へ追随)。
-  **全件の find が1回ずつ一致する**(異常0)。
+- `mutation_check.py`: 表は**352件**。`T30` で M349〜M354 を追加し、M332 を再アンカー、
+  M353 を文言の変更へ追随させ、`T32` で M355 / M357 / M358 を、独立reviewの対照として
+  M359 / M360 / M362 / M363 を足した。**全件の find が1回ずつ一致する**(異常0)。
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
 
 ### mutation の生出力
@@ -163,12 +164,47 @@ M353 | KILLED | 「ファイルは削除されません」を落とす
 - `M354`: `headerIconExtent` を両側で変える mutant にしていたため、**ずれようがなかった**。
   片側(ヘッダの `visualDensity`)だけ動かす対照へ差し替えた。
 
+## 独立review(2026-09-19)
+
+- Review attempt 1: `dev...07c218f` — **PASS**(Sonnet。`.worktrees/008-T30-review` で実行。
+  `T32` と同じ範囲をまとめて見た)。**成果物の欠陥は0件。**
+  - reviewer が**機械で確かめた点**: `flutter test` 925 / `analyze` / `format` / `check specs` が
+    task.md の主張と一致すること、追加分と疑わしい mutation 11件を自分で回して
+    **11 KILLED / 0 SURVIVED**、**モード中に offstage な `pick-files-button` の座標を
+    直接 tap しても `_openKindSheet` が発火しない**(自作 probe で実測)、吹き出しの文言が
+    semantics に `削除されません` を含んで現れる、掴む(つまみ)と選ぶ(モード)は
+    コード構造上**同時に起こり得ない**、`reorder → custom` の自動切替は無改変。
+  - **P3(安全網の穴)**: `IndexedStack` の `alignment` を左寄せへ変えても**どの test も落ちない**
+    (`M359` SURVIVED)。`008:T30` で末尾の枠が吹き出しの幅で決まるようになり、
+    button の自然幅との差が**余白**になったためで、**2026-09-18 の実機確認で直した
+    「button は右端に固定」が黙って戻りうる**。既存の「folder 名の長さで動かない」test は
+    両方が同じだけ動くので気づかない。
+    → **位置を実測する test を足して閉じた**(帯の内側右端 == button の右端)。再実行で KILLED。
+    **FAIL の3条件は満たさない**(通り抜ける失敗は見た目のずれだけ)が、**安いので受容せず直した。**
+  - **P3(安全網の穴・受容。引き受け先 `T30`)**: `removalHintMaxWidth` を広げても落ちない
+    (`M363` SURVIVED)。**これは「残したコスト」として自認済みの上限**で、詰めるか広げるかを
+    **実機で開発者に見てもらう段階**である(`manual-verification.md` の「見てほしい点2」)。
+    いま数で固定すると、判断の前に決めたことになる。**対照は表へ残す。**
+  - reviewer の対照 **M359 / M360 / M362 / M363 を表へ取り込んだ**(`M361` は `M332` と
+    実質重複だったため reviewer 自身が投入前に外した。番号の欠番はそのためである)。
+
+### mutation の生出力(独立reviewの対照)
+
+```
+command: flutter test test/spec_004_file_source test/spec_002_file_list
+M359 | KILLED   | 末尾の枠の中で button を左へ寄せる(test を足して閉じた)
+M360 | KILLED   | 共有定数(ケバブの枠)だけを変える
+M362 | KILLED   | 既定の長押しドラッグを戻す
+M363 | SURVIVED | 吹き出しの幅の上限を2倍にする(受容。実機で判断してもらう)
+4 mutations: 3 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と機械検証が揃った(2026-09-19)
-- Blocker category: none(次は独立review)
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: 独立review attempt 1 が PASS し、その P3 のうち安いほうを直した(2026-09-19)
+- Blocker category: manual(実機確認待ち)
+- Waiting for: Android実機での manual 確認
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜4と「見てほしい点」3つ
 - Evidence revision: 未取得(実機)
-- Next Agent action: 独立reviewを回し、PASS したら `T32` を同じ branch へ足して
-  実機確認を1回にまとめる
+- Next Agent action: manual 確認の結果を受け取って記録し、成立していれば `T32` とまとめて
+  mergeする。**待機中はこのbranchとcommitを動かさない**
