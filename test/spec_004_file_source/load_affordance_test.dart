@@ -19,6 +19,7 @@ import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/header_metrics.dart';
 import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -389,6 +390,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+  });
+
+  testWidgets('通常表示の button は帯の右端に張り付いたままである(008:T30)', (tester) async {
+    // **`008:T30` で末尾の枠が吹き出しの幅(156)で決まるようになり、button の
+    // 自然幅(約133)との差が余白になった。** 枠の中で寄せ方を間違えると、
+    // 2026-09-18 の実機確認で直した「button が右端に固定されている」が戻る
+    // (folder 名では動かないので、既存の test は気づかない。対照は M359)。
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(
+      tester,
+      FileListController(
+        files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+      ),
+    );
+
+    expect(
+      tester.getTopRight(find.byKey(const Key('pick-files-button'))).dx,
+      tester.getTopRight(find.byKey(sourceBarKey)).dx -
+          sourceBarHorizontalPadding,
+    );
   });
 
   testWidgets('モードの出入りで帯の高さが変わらない(008:T30 要望1)', (tester) async {
