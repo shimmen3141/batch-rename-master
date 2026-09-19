@@ -18,6 +18,7 @@ import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/header_metrics.dart';
 import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -54,13 +55,7 @@ Future<void> _pump(WidgetTester tester, FileListController controller) async {
 /// `一覧を空にする` は一覧のケバブ(`すべてをリネーム対象から外す`)へ移り、
 /// 選択モード中は帯の `別フォルダへ` が隠れるので、**両方が同じ
 /// [RemovalSelection] を読む**形でないと確かめられない。
-Future<void> _pumpWithList(
-  WidgetTester tester,
-  FileListController controller, {
-  RemovalSelection? selection,
-}) async {
-  final shared = selection ?? RemovalSelection();
-  await tester.pumpWidget(
+Widget _barAndList(FileListController controller, RemovalSelection shared) =>
     MaterialApp(
       theme: appDarkTheme(),
       home: Scaffold(
@@ -82,7 +77,15 @@ Future<void> _pumpWithList(
           ],
         ),
       ),
-    ),
+    );
+
+Future<void> _pumpWithList(
+  WidgetTester tester,
+  FileListController controller, {
+  RemovalSelection? selection,
+}) async {
+  await tester.pumpWidget(
+    _barAndList(controller, selection ?? RemovalSelection()),
   );
 }
 
@@ -367,6 +370,10 @@ void main() {
   testWidgets('選択モード中は「別フォルダへ」を出さない(008:T29)', (tester) async {
     // 外す作業の最中に読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる
     // 操作(004 REQ-004)と取り違えやすい。**帯そのもの(場所)は隠さない。**
+    //
+    // **`008:T30` で枠だけは残るようになった**(帯の高さを変えないため。`IndexedStack`)。
+    // 出していない側は描画・hit test・semantics のいずれからも辿れないので、
+    // **既定の finder では見つからない** — 利用者から見える意味は変わっていない。
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
@@ -382,6 +389,74 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
+  });
+
+  testWidgets('通常表示の button は帯の右端に張り付いたままである(008:T30)', (tester) async {
+    // **`008:T30` で末尾の枠が吹き出しの幅(156)で決まるようになり、button の
+    // 自然幅(約133)との差が余白になった。** 枠の中で寄せ方を間違えると、
+    // 2026-09-18 の実機確認で直した「button が右端に固定されている」が戻る
+    // (folder 名では動かないので、既存の test は気づかない。対照は M359)。
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(
+      tester,
+      FileListController(
+        files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+      ),
+    );
+
+    expect(
+      tester.getTopRight(find.byKey(const Key('pick-files-button'))).dx,
+      tester.getTopRight(find.byKey(sourceBarKey)).dx -
+          sourceBarHorizontalPadding,
+    );
+  });
+
+  testWidgets('モードの出入りで帯の高さが変わらない(008:T30 要望1)', (tester) async {
+    // `別フォルダへ` を隠すと枠(縦 padding + 枠線)が丸ごと消え、帯が場所の
+    // ラベルの高さまで縮んで**下の一覧が跳ねる**(2026-09-19 の実機確認)。
+    // **「だいたい同じ」ではなく同じ値**を見る。
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    await _pumpWithList(tester, controller);
+    final before = tester.getSize(find.byKey(sourceBarKey));
+
+    await enterRemovalMode(tester);
+
+    expect(tester.getSize(find.byKey(sourceBarKey)), before);
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byKey(sourceBarKey)), before);
+  });
+
+  testWidgets('狭い画面と大きい文字でも帯の高さが変わらない(008:T30 要望1)', (tester) async {
+    // 枠の高さは文字倍率で伸びるので、**片方だけ伸びると差が出る**。
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = FileListController(
+      files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
+    );
+    for (final scale in [1.0, 2.0, 3.0]) {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: _barAndList(controller, RemovalSelection()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final before = tester.getSize(find.byKey(sourceBarKey)).height;
+
+      await enterRemovalMode(tester);
+
+      expect(
+        tester.getSize(find.byKey(sourceBarKey)).height,
+        before,
+        reason: '文字倍率 $scale',
+      );
+    }
   });
 
   testWidgets('一覧を空にする操作も取り消せる(002 REQ-017・代表例6d)', (tester) async {

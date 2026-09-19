@@ -54,15 +54,115 @@
 - **選択モードの選択行の色とは別の色である。**
 - 並び替えの結果(`reorder` → `custom` へ自動切替)が変わらない(既存testが緑のまま)。
 - `flutter test` / `flutter analyze` / `dart format` / `mutation_check.py` が PASS。
-- Android実機での manual 確認 — **`T30` と同じ回にまとめる**(どちらも同じ画面の見せ方で、
+- Android実機での manual 確認([`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)へまとめた)(どちらも同じ画面の見せ方で、
   実機での確認項目は数個ずつである)。
 
-## Current state / handoff
+## 実装(2026-09-19)
 
-- Last checkpoint: `T29` の実機確認で受領した1件をtask化した(2026-09-19)
+### 決めたこと
+
+- **`ReorderableListView.proxyDecorator` を与えた。** 掴んでいる間だけ差し替わる木を
+  そこで作れるので、行側に「掴まれているか」の状態を持たせずに済む。
+- **色は `surface`**(ヘッダ・帯と同じ面の色)。要望の「文字が読める程度の灰色
+  (ヘッダーの色とか)」そのままである。行の面は通常 `null`(背景が透ける)なので、
+  ここを敷くと掴んだ行だけが持ち上がって見える。**token は足していない。**
+- **選択モードの選択行(`selectedSurface`)とは別の色である**ことを test で固定した。
+  モード中はつまみを出さない(002 REQ-018)ので同時には起きないが、**同じ色なら
+  「掴んでいる」と「選んでいる」が読み分けられない** — `008:T29` で分けた区別が戻る。
+- **影は既定と同じように上げる。** 面の色を**足すだけ**にして、浮き上がりという
+  手掛かりを減らさない(対照は M358)。
+- **`008:T30` と同じ branch・同じ PR に載せた。** 同じ画面の見せ方で、実機での確認は
+  数項目ずつなので**manual確認を1回にまとめる**ためである(rollback の境界も同じ)。
+
+## 検証(2026-09-19)
+
+- `flutter test` **PASS(925)**(`T32` で1本追加) / `flutter analyze` PASS / `dart format` PASS。
+- `mutation_check.py`: **M355 / M357 / M358 を追加**(表は348件、find の一致は全件1回)。
+
+### mutation の生出力
+
+```
+command: flutter test test/spec_002_file_list
+M355 | KILLED | 掴んだ行を選択モードの選択行と同じ色にする
+M357 | KILLED | 掴んだ行の面を染めない
+M358 | KILLED | 浮き上がりを消す
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
+
+## 独立review(2026-09-19)
+
+`T30` と同じ範囲(`dev...07c218f`)をまとめて見た — 結果と生出力は
+[`T30` の task.md](../T30-selection-bar-height-and-hint/task.md#独立review2026-09-19)にある。
+**PASS。成果物の欠陥は0件。**
+
+`T32` に対して reviewer が確かめた点: 掴んだ瞬間に色が付く(animate するのは elevation だけ)、
+`selectedSurface` とは実値も別、`reorder → custom` の自動切替は無改変、
+**掴む(つまみ)と選ぶ(モード)はコード構造上同時に起こり得ない**
+(`selecting` 中は `ReorderableDragStartListener` 自体を出さない)。
+reviewer の対照 `M362`(既定の長押しドラッグを戻す)を表へ取り込み、KILLED を確認した。
+
+## 2回目の実機確認で受領した指摘(2026-09-19)
+
+> 手順3の確認Aについて、つかめた瞬間ではなくつかんでから少し移動させて初めて色が変わりました。私の想定は、移動できる状態になったら(まだ動かしていなくても)色が変わるというものでした。
+
+**成果物の欠陥である。** 要望は「ドラッグ可能になったら色を変えてほしい」で、
+`proxyDecorator` だけでは**Flutter が約18px の移動でドラッグ開始と判定するまで色が出ない**。
+
+あわせて質問を受領した。
+
+> 並び替えのつまみで移動可能になった瞬間に一拍のバイブレーションが発生します。このようなことは可能でしょうか。
+
+**可能である**(`HapticFeedback`。view の触覚フィードバックを使うので `VIBRATE` 権限も
+プラグインも要らない)。
+
+### 開発者に確認したこと(2026-09-19)
+
+「移動できる状態になった瞬間」の定義を一問で確認し、**「触れた瞬間」**を選んでもらった。
+
+- **採った案**: つまみに触れた瞬間に色と振動。**いまの操作を変えない**
+  (押してすぐ動かす並び替えはこれまでどおり)。引き換えに、軽く触れて離しただけでも
+  一瞬色が付き振動する。
+- 採らなかった案: 長押し0.5秒で移動可能にする(他アプリと同じ作法だが、
+  **押してすぐ動かす操作では並び替わらず一覧がスクロールする** — できる操作が一つ減る)。
+
+### 直したこと
+
+- `_FileRow` を `StatefulWidget` にし、つまみを `Listener` で包んで
+  **`onPointerDown` で掴んだ状態**にした。行の面は掴んだ瞬間から `surface` になり、
+  実際に動き始めたら `proxyDecorator` が**同じ色で引き継ぐ**(見た目は変わらない)。
+- 同じ瞬間に `HapticFeedback.selectionClick()` を1回鳴らす。**離すときには鳴らさない**
+  (対照は `M370`)。
+
+## 独立review(2026-09-19)
+
+`T30` と同じ範囲をまとめて4回見た。結果と生出力は
+[`T30` の task.md](../T30-selection-bar-height-and-hint/task.md)にある。
+
+**`T32` に対する指摘は4回とも0件である。** reviewer が確かめた点:
+触れた瞬間(`onPointerDown`)に色と振動が出る、**離すときには鳴らない**(`hasLength(1)`)、
+`selectedSurface` とは実値も別、`proxyDecorator` が同じ色を引き継ぐ、影は残る、
+`reorder → custom` の自動切替は無改変、**掴む(つまみ)と選ぶ(モード)は
+コード構造上同時に起こり得ない**(`selecting` 中は `ReorderableDragStartListener` 自体が出ない)。
+
+**ただし `T30` と同じ PR に載っているので、単独では進められない。**
+`T30` が `blocked`(吹き出しの作り方の判断待ち)である間、実機確認も merge も待つ。
+**切り離して先に出すこともできる**(このbranchから `T32` の差分だけを取り出す) —
+`T32` は `file_list_view.dart` の `proxyDecorator` と `_FileRow` だけを触る。
+
+## manual確認の結果(2026-09-19)
+
+対象commit: **`cd29a23`**([`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)の手順3)。
+**成立** — つまみに**触れた瞬間**に行の色が変わり、一拍の振動が来る。そのままドラッグで
+並び替えられ、離すと色が戻り**離すときには振動しない**。選択モードの選択色とも見分けられる。
+振動の強さ・配色への追加の要望は無かった。
+
+## Current state / handoff## Current state / handoff
+
+- Last checkpoint: 実機確認が成立し、`T30` とまとめて `dev` へ merge した(2026-09-19)
 - Blocker category: none
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: 未着手
-- Next Agent action: 着手時に `proxyDecorator` で面の色を足し、選択行の色と別であることを
-  test で固定する
+- Evidence revision: `cd29a23`。独立review 6回すべて指摘0件 / Android実機 手順3 成立
+- Next Agent action: なし(完了)

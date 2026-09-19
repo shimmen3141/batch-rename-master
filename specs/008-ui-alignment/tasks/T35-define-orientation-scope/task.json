@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T35",
+  "title": "横向きを対象にするかを決める",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

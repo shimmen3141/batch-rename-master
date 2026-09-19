@@ -1198,7 +1198,7 @@
     {
       "id": "M171",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: filePreview,\n                    ),",
+      "find": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: widget.filePreview,\n                    ),",
       "replace": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: null,\n                    ),",
       "note": "008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加)"
     },
@@ -1247,8 +1247,8 @@
     {
       "id": "M179",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        RowWarningView(\n                          warnings: warnings,\n                          onTap: onShowWarningDetail,\n                        ),\n",
-      "replace": "                        RowWarningView(warnings: warnings),\n",
+      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n",
+      "replace": "                        RowWarningView(warnings: widget.warnings),\n",
       "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
     },
     {
@@ -1464,7 +1464,7 @@
     {
       "id": "M218",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        RowWarningView(\n                          warnings: warnings,\n                          onTap: onShowWarningDetail,\n                        ),\n                        Text(\n                          row.currentName,",
+      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n                        Text(\n                          row.currentName,",
       "replace": "                        Text(\n                          row.currentName,",
       "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)"
     },
@@ -1975,8 +1975,8 @@
     {
       "id": "M291",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          if (selecting || showDragHandle)\n            SizedBox(\n              width: 32,",
-      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n          if (selecting || showDragHandle)\n            SizedBox(\n              width: 32,",
+      "find": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,",
+      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,",
       "note": "008:T04 通常表示の行へ checkbox を戻す — 002 REQ-016(通常表示の行UIは選択の切り替えを提示しない)が壊れる。**008:T29 で checkbox が行の右端へ移ったので、`find` をその外側へ貼り直した**"
     },
     {
@@ -2101,8 +2101,8 @@
     {
       "id": "M309",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                child: selecting\n                    ? (onToggleMark == null",
-      "replace": "                child: selecting && !showDragHandle\n                    ? (onToggleMark == null",
+      "find": "                child: selecting\n                    ? (widget.onToggleMark == null",
+      "replace": "                child: selecting && !widget.showDragHandle\n                    ? (widget.onToggleMark == null",
       "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る。**008:T29 で checkbox とつまみが同じ枠を取り合うようになったので、判定を行側の1か所へ寄せて `find` を貼り直した**"
     },
     {
@@ -2199,22 +2199,22 @@
     {
       "id": "M323",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              onTap: selecting ? onToggleMark : null,",
-      "replace": "              onTap: onToggleMark,",
+      "find": "              onTap: selecting ? widget.onToggleMark : null,",
+      "replace": "              onTap: widget.onToggleMark,",
       "note": "008:T28 通常表示の行tapでも外す候補が溜まる — REQ-016(通常表示は除去操作を提示しない)。**等価mutantでSURVIVEDする**: `_enterRemovalMode` が必ず `clear()` するので、溜まった候補はモードへ入る瞬間に捨てられ、利用者からは何も変わらない(独立review attempt 1 の N-1 はこの clear を見落としていた)。tapのガード自体は残す — clear を外したときに**誤tapが候補になる**側へ倒れるため。代表例6eのtestへ「入り直して0件」を足して、`clear` 側の保証は観測できるようにした(全件で確認: 2026-09-19)"
     },
     {
       "id": "M324",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              onLongPress: selecting ? null : onLongPressEnter,",
-      "replace": "              onLongPress: onLongPressEnter,",
+      "find": "              onLongPress: selecting ? null : widget.onLongPressEnter,",
+      "replace": "              onLongPress: widget.onLongPressEnter,",
       "note": "008:T28 モード中の長押しで選択が1件へ巻き戻る — 利用者の操作なしに選んだ分が失われる(独立review attempt 1 の N-2)"
     },
     {
       "id": "M325",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    : ReorderableDragStartListener(\n                        index: index,\n                        child: Icon(\n                          Icons.drag_handle,\n                          size: 18,\n                          color: colors.textMuted,\n                        ),\n                      ),",
-      "replace": "                    : GestureDetector(\n                        behavior: HitTestBehavior.opaque,\n                        onLongPress: selecting ? null : onLongPressEnter,\n                        child: ReorderableDragStartListener(\n                          index: index,\n                          child: Icon(\n                            Icons.drag_handle,\n                            size: 18,\n                            color: colors.textMuted,\n                          ),\n                        ),\n                      ),",
+      "find": "                        child: ReorderableDragStartListener(\n                          index: widget.index,",
+      "replace": "                        child: GestureDetector(\n                          behavior: HitTestBehavior.opaque,\n                          onLongPress: selecting ? null : widget.onLongPressEnter,\n                          child: ReorderableDragStartListener(\n                          index: widget.index,",
       "note": "008:T28 つまみの上の長押しも行の長押しへ渡す — 0.5秒以上保持してからドラッグすると、長押しが gesture arena を勝って選択モードが開き、`showDragHandle` が false になって**つまみが消え、掴んだままの指では並び替えを始められない**(REQ-003/REQ-014)。独立review attempt 1 の P1-1(実測: 450ms=並び替わる / 520ms=モード)"
     },
     {
@@ -2227,15 +2227,15 @@
     {
       "id": "M327",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        color: selecting && marked ? colors.selectedSurface : null,",
-      "replace": "        color: null,",
+      "find": "            : (selecting && marked ? colors.selectedSurface : null),",
+      "replace": "            : null,",
       "note": "008:T29 選んだ行の面を染めない — 何を選んだかが checkbox の小さな印だけになる(2026-09-19 の要望2)"
     },
     {
       "id": "M328",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          if (selecting || showDragHandle)\n            SizedBox(\n              width: 32,\n              child: Center(",
-      "replace": "          if (selecting || showDragHandle)\n            SizedBox(\n              child: Center(",
+      "find": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,\n              child: Center(",
+      "replace": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              child: Center(",
       "note": "008:T29 checkbox とつまみの枠の幅を固定しない — つまみ ↔ checkbox の入れ替わりで行の中身が横へ動く(2026-09-19 の要望1の「かくつき」)"
     },
     {
@@ -2262,9 +2262,9 @@
     {
       "id": "M332",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                          if (!selecting)\n                            OutlinedButton.icon(",
-      "replace": "                          if (true)\n                            OutlinedButton.icon(",
-      "note": "008:T29 モード中も `別フォルダへ` を出す — 外す作業の最中に、一覧を丸ごと置き換える読み込み(004 REQ-004)の導線が並ぶ(2026-09-19 の要望7)"
+      "find": "                        index: selecting ? 1 : 0,",
+      "replace": "                        index: 0,",
+      "note": "008:T29 モード中も `別フォルダへ` を出す — 外す作業の最中に、一覧を丸ごと置き換える読み込み(004 REQ-004)の導線が並ぶ(2026-09-19 の要望7)。**`008:T30` で再アンカー**: `if (!selecting)` は `IndexedStack` の `index` になった(枠を残すため)"
     },
     {
       "id": "M333",
@@ -2377,6 +2377,237 @@
       "find": "    if (_marked.length == before) return;\n",
       "replace": "",
       "note": "008:T29 retain が何も落とさなくても notify する — **等価mutantでSURVIVEDする**: 呼び出し側が「見えている件数と内部の件数に差があるとき」だけ frame 後に呼ぶので、外しても無駄な notify が1回増えるだけで build↔notify のループにはならない(全件 test が完走)。M341 / M342 と同じ防御の重複として残す。独立review attempt 2 が設計した対照(ループの有無を見るために置いた)"
+    },
+    {
+      "id": "M349",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                        children: [\n                          Wrap(",
+      "replace": "                        children: [\n                          if (selecting) const SizedBox.shrink() else Wrap(",
+      "note": "008:T30 モード中は `別フォルダへ` の枠を layout しない — 帯が場所のラベルの高さまで縮み、**下の一覧が跳ねる**(2026-09-19 の実機確認の要望1)。出さないことと寸法を残すことは別で、`findsNothing` 系の検査では捕まらない"
+    },
+    {
+      "id": "M350",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                RemovalHintAnchor(link: _hintLink, visible: selecting),",
+      "replace": "                const SizedBox.shrink(),",
+      "note": "008:T30 外すアイコンへの補足を出さない — 何が起きるのか初見で読めないまま(2026-09-19 の要望2)。**`008:T30` の2回目で帯から `Overlay` へ移したので再アンカーした**"
+    },
+    {
+      "id": "M351",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "      offset: const Offset(removalHintRightOffset, -2),",
+      "replace": "      offset: const Offset(0, -2),",
+      "note": "008:T30 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。**実測で確かめていないと通る**"
+    },
+    {
+      "id": "M352",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2 -\n                              removalHintTailWidth / 2,",
+      "replace": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2,",
+      "note": "008:T30 ツノの幅の半分を引かない — 中心ではなく左端がアイコンの中心に来る(7px ずれる)。小さいズレを見ているかの対照"
+    },
+    {
+      "id": "M353",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "const String removalHintText = '押すとリネームリストから外されます。\\nファイルは削除されません。';",
+      "replace": "const String removalHintText = '押すとリネームリストから外されます。';",
+      "note": "008:T30 「ファイルは削除されません」を落とす — 外すのは rename の一覧からで実ファイルには触れない、という 005 / 013 の境界が読めなくなる(`008:T03` が改名で避けた取り違えと同じ系統)"
+    },
+    {
+      "id": "M354",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                tooltip: '選んだファイルをリネーム候補から外す',\n                visualDensity: VisualDensity.compact,",
+      "replace": "                tooltip: '選んだファイルをリネーム候補から外す',\n                visualDensity: VisualDensity.standard,",
+      "note": "008:T30 外すアイコンの tap target だけ広げる — 枠が 40 から 48 になり、**ツノだけが取り残されてずれる**(帯側は共有の数のまま)。片側だけ動かす対照。**両方が同じ定数を使っている限りずれない**ので、`headerIconExtent` を両側で変える mutant では意味がない"
+    },
+    {
+      "id": "M355",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            color: colors.surface,\n                            shadowColor: colors.background,",
+      "replace": "                            color: colors.selectedSurface,\n                            shadowColor: colors.background,",
+      "note": "008:T32 掴んだ行を選択モードの選択行と同じ色にする — 「掴んでいる」と「選んでいる」が読み分けられなくなる(`008:T29` で分けた区別)"
+    },
+    {
+      "id": "M357",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: colors.surface,",
+      "replace": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: null,",
+      "note": "008:T32 掴んだ行の面を染めない — 掴めたかどうかが分からないまま動かすことになる(2026-09-19 の要望)"
+    },
+    {
+      "id": "M358",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            elevation:\n                                Curves.easeInOut.transform(animation.value) * 6,",
+      "replace": "                            elevation: 0,",
+      "note": "008:T32 浮き上がりを消す — 面の色を足すだけにするはずが、既定の手掛かりを1つ減らす"
+    },
+    {
+      "id": "M359",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                        alignment: Alignment.centerRight,",
+      "replace": "                        alignment: Alignment.centerLeft,",
+      "note": "008:T30 末尾の枠の中で button を左へ寄せる — **`008:T30` の2回目で吹き出しを帯から外したので、枠に余裕が無くなり等価mutantになった**(SURVIVED)。右端に張り付いていることは実測する test が別に見ている(独立review attempt 1 の指摘1)"
+    },
+    {
+      "id": "M360",
+      "file": "lib/ui/file_list/header_metrics.dart",
+      "find": "const double headerMenuExtent = 48;",
+      "replace": "const double headerMenuExtent = 40;",
+      "note": "008:T30 共有定数(ケバブの枠)だけを変える — **`008:T30` の2回目で等価mutantになった**(SURVIVED)。ツノの絶対位置は `アイコンの右端 + K - (K + アイコンの枠/2)` で **K が打ち消し合う**ので、この定数は吹き出しの箱の横位置しか動かさない(独立review attempt 1 が設計)"
+    },
+    {
+      "id": "M362",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    buildDefaultDragHandles: false,",
+      "replace": "                    buildDefaultDragHandles: true,",
+      "note": "008:T32 既定の長押しドラッグを戻す — 行の長押しがドラッグを奪い、選択モードの入口(002 REQ-018)と衝突する。`proxyDecorator` の test が偶発的に緑になっていないかの対照(独立review attempt 1 が設計)"
+    },
+    {
+      "id": "M363",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "const double removalHintMaxWidth = 232;",
+      "replace": "const double removalHintMaxWidth = 464;",
+      "note": "008:T30 吹き出しの幅の上限を2倍にする — **`008:T30` の2回目で帯から離したので、場所の取り分には効かなくなった**。いまは画面からのはみ出しだけが問題になる(独立review attempt 1 が設計)"
+    },
+    {
+      "id": "M364",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                onTap: onClose,",
+      "replace": "                onTap: null,",
+      "note": "008:T30 閉じる操作を効かなくする — 邪魔だと思っても消せない(2026-09-19 の2回目の要望)"
+    },
+    {
+      "id": "M365",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    _timer = Timer(removalHintLifetime, () {",
+      "replace": "    _timer = Timer(const Duration(days: 1), () {",
+      "note": "008:T30 時間が経っても消えない — 3秒でフェードアウトする約束が消え、補足が画面に residue として残る"
+    },
+    {
+      "id": "M366",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    } else {\n      // **モードをやめたらその瞬間に消える**(要望)。フェードは時間切れのときだけ。\n      _remove();\n    }",
+      "replace": "    } else {\n      _fade.reverse();\n    }",
+      "note": "008:T30 モードをやめてもフェードを待つ — 「その瞬間に消える」が守られず、通常表示に補足が残って見える(2026-09-19 の2回目の要望)"
+    },
+    {
+      "id": "M367",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                        borderRadius: BorderRadius.circular(8),\n                      ),",
+      "replace": "                        borderRadius: BorderRadius.circular(8),\n                        border: Border.all(color: colors.onPrimary),\n                      ),",
+      "note": "008:T30 箱に枠線を引く — 箱とツノの継ぎ目が線になって見える(2026-09-19 の2回目の実機確認。原文「ツノと長方形の間に境界線が入っていて、きれいな吹き出しではありません」)"
+    },
+    {
+      "id": "M368",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    : Listener(\n                        onPointerDown: (_) => _setGrabbed(true),",
+      "replace": "                    : Listener(\n                        onPointerDown: (_) {},",
+      "note": "008:T32 触れた瞬間を見ない — 約18px 動かすまで色も振動も出ず、掴めたことが分からない(2026-09-19 の2回目の実機確認)。`proxyDecorator` だけでは足りないことの対照"
+    },
+    {
+      "id": "M369",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (value) HapticFeedback.selectionClick();",
+      "replace": "    if (false) HapticFeedback.selectionClick();",
+      "note": "008:T32 振動を鳴らさない — 掴めたことが触覚で伝わらない(2026-09-19 の要望)"
+    },
+    {
+      "id": "M370",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (value) HapticFeedback.selectionClick();",
+      "replace": "    HapticFeedback.selectionClick();",
+      "note": "008:T32 離すときにも振動を鳴らす — 一拍のはずが往復で2回鳴る。`hasLength(1)` を見ているかの対照"
+    },
+    {
+      "id": "M371",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "const double removalHintRightOffset = headerMenuExtent;",
+      "replace": "const double removalHintRightOffset = headerMenuExtent * 3;",
+      "note": "008:T30 吹き出しを右へ寄せすぎる — 角へ引っかけた円が画面の外へ出て、**押せない閉じる操作**になる(実装中に一度そうなった)。枠の外は hit test に載らない"
+    },
+    {
+      "id": "M372",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    // **build の最中に `Overlay` を触らない。** frame の後へ回す。\n    WidgetsBinding.instance.addPostFrameCallback((_) {\n      if (!mounted || !widget.visible || _entry != null) return;\n      final overlay = Overlay.maybeOf(context);\n      if (overlay == null) return;\n      _entry = OverlayEntry(builder: _build);\n      overlay.insert(_entry!);",
+      "replace": "    {\n      if (!mounted || !widget.visible || _entry != null) return;\n      final overlay = Overlay.maybeOf(context);\n      if (overlay == null) return;\n      _entry = OverlayEntry(builder: _build);\n      overlay.insert(_entry!);",
+      "note": "008:T30 build の最中に `Overlay` へ insert する — frame の規約違反。独立review attempt 2 が設計した対照"
+    },
+    {
+      "id": "M373",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "      if (!mounted || !widget.visible || _entry != null) return;",
+      "replace": "      if (!mounted || !widget.visible) return;",
+      "note": "008:T30 二重 insert を防ぐ guard を外す — **SURVIVED のまま残す対照**: 同じ frame 内で `_schedule` が2回走る経路が無いので現状は等価で、通り抜けても重複描画にしかならない(独立review attempt 2 が設計・確認)"
+    },
+    {
+      "id": "M374",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {\n      _remove();\n      return;\n    }",
+      "replace": "    if (false) {\n      _remove();\n      return;\n    }",
+      "note": "008:T30 画面に収まらなくても取り下げない — 倍率2.0で閉じる操作が、3.0では本文ごと画面の外へ出る(独立review attempt 2 の P1)。横向きの低い画面では下端から出る(同 attempt 4 の P1)。**切れた半分を見せることになる**"
+    },
+    {
+      "id": "M378",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "      if (!mounted || !widget.visible || _entry != null) return;",
+      "replace": "      if (!widget.visible || _entry != null) return;",
+      "note": "008:T30 insert 前の `mounted` guard を外す — **SURVIVED のまま残す対照**: この callback が走る前に木ごと捨てられる経路が実際には無い(独立review attempt 3 が設計・確認)。guard は残す"
+    },
+    {
+      "id": "M379",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "  void _showIfItFits() {\n    if (!mounted || _entry == null) return;",
+      "replace": "  void _showIfItFits() {\n    if (_entry == null) return;",
+      "note": "008:T30 収まるかを確かめる側の `mounted` guard を外す — **SURVIVED のまま残す対照**: `dispose` が同期的に `_entry = null` にするので `_entry == null` が既に守っている(独立review attempt 3 が設計・確認)"
+    },
+    {
+      "id": "M380",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "            IgnorePointer(",
+      "replace": "            Offstage(\n              offstage: false,\n              child:",
+      "note": "008:T30 吹き出しの飾りが pointer を取る — `Text` は `hitTestSelf` が常に `true` なので、下へ回った吹き出しに重なった行が**押しても反応しない**まま3秒続く。エラーも出ない(独立review attempt 3 の P1 そのもの)"
+    },
+    {
+      "id": "M383",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {\n      _remove();\n      return;\n    }\n    _fade.value = 1;",
+      "replace": "    _remove();\n    return;",
+      "note": "008:T30 収まっていても取り下げる — 逆向きの対照。普通の画面で補足が一度も出なくなる"
+    },
+    {
+      "id": "M384",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    _fade.value = 0;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "replace": "    _fade.value = 1;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "note": "008:T30 測る前から見せる — 収まるかどうかを判定する前の1 frame だけ、はみ出した位置の吹き出しがちらつく。**現行のtestでは観測できない**(1 frame の見た目)ので SURVIVED のまま残す対照"
+    },
+    {
+      "id": "M385",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      -1000000,\n      media.padding.top,\n      media.size.width + 1000000,\n      media.size.height,\n    );",
+      "note": "008:T30 横方向の収まり判定だけを無効化する — 箱は overlay の幅に合わせて縮むので普通の端末では溢れないが、溢れた瞬間に気づけなくなる(独立review attempt 5 が設計。最初 SURVIVED し、狭い幅の test を足して閉じた)"
+    },
+    {
+      "id": "M386",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      0,\n      0,\n      media.size.width,\n      media.size.height,\n    );",
+      "note": "008:T30 status bar の下から数えない — **SURVIVED のまま残す対照**: `AppBar` が status bar の高さを含むので中身は必ずその下から始まり、吹き出しが status bar の下へ潜る状況が現在の画面構成では作れない。guard は意図の記録として残す(独立review attempt 5 由来)"
+    },
+    {
+      "id": "M387",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      media.padding.left,\n      media.padding.top,\n      media.size.width - media.padding.right,\n      media.size.height - media.padding.bottom,\n    );",
+      "note": "008:T30 左右と下の inset まで要求する — 横向き + ジェスチャーナビ(右に40程度の inset)の端末で**普通の文字でも一度も出なくなる**(実測で確認した)。この app は画面の端まで使う作りで、ヘッダのケバブも外すアイコンも inset の内側へ寄せていない"
+    },
+    {
+      "id": "M388",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height + 1000000,\n    );",
+      "note": "008:T30 下端の収まり判定だけを無効化する — **SURVIVED のまま残す対照**: 置き場所をアイコンの上の1点に決めたので、箱の下端が画面の下端へ届く経路が無い(独立review attempt 6 が設計・全件で確認)。将来また下へ回すなら生き返る分岐である"
     }
   ]
 }

@@ -38,6 +38,8 @@
     "tasks/T30-selection-bar-height-and-hint",
     "tasks/T31-drag-to-multi-select",
     "tasks/T32-reorder-drag-feedback",
-    "tasks/T33-ready-state-wording"
+    "tasks/T33-ready-state-wording",
+    "tasks/T34-hint-refinements",
+    "tasks/T35-define-orientation-scope"
   ]
 }

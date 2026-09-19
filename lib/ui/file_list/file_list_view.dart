@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
@@ -9,6 +10,8 @@ import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
+import 'header_metrics.dart';
+import 'removal_hint.dart';
 import 'removal_selection.dart';
 import 'removal_undo.dart';
 import 'rename_warning_view.dart';
@@ -49,6 +52,9 @@ const Key removalModeCountKey = Key('removal-mode-count');
 
 /// 選ばれた行を一覧から外す(002 REQ-018)。0 件では押せない。
 const Key removalModeRemoveKey = Key('removal-mode-remove');
+
+/// 並び替えで**掴まれている行**(`008:T32`)。掴んでいる間だけ在る。
+const Key draggingRowKey = Key('dragging-row');
 
 /// 選択モードで [handle] の行に出る選択の切り替え(002 REQ-018)。
 Key removalMarkKeyOf(String handle) => ValueKey('removal-mark:$handle');
@@ -126,6 +132,10 @@ class _FileListViewState extends State<FileListView> {
 
   RemovalSelection get _selection =>
       widget.removalSelection ?? (_own ??= RemovalSelection());
+
+  /// 外すアイコンと補足の吹き出しを結ぶ(`008:T30`)。**吹き出しは `Overlay` にある**ので、
+  /// 座標を計算せずこの link が位置を決める。
+  final LayerLink _hintLink = LayerLink();
 
   @override
   void dispose() {
@@ -253,7 +263,11 @@ class _FileListViewState extends State<FileListView> {
                   onRemoveMarked: marked.isEmpty
                       ? null
                       : () => _removeMarked(context, marked),
+                  hintLink: _hintLink,
                 ),
+                // 外すアイコンへ重ねる補足(`008:T30`)。**自分では何も描かず**、
+                // `Overlay` へ出して帯をまたぐ。モードをやめた瞬間に消える。
+                RemovalHintAnchor(link: _hintLink, visible: selecting),
                 _SortBar(controller: widget.controller, selecting: selecting),
                 _CreatedAtFallbackBanner(
                   warning: widget.controller.createdAtSortWarning,
@@ -270,6 +284,29 @@ class _FileListViewState extends State<FileListView> {
                     itemCount: rows.length,
                     // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
                     onReorderItem: widget.controller.reorder,
+                    // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
+                    // いま掴めたのかどうかが分からないまま動かすことになっていた。
+                    //
+                    // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
+                    // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
+                    // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
+                    // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
+                    //
+                    // **影は既定と同じように上げる。** 面の色を足すだけにして、
+                    // 浮き上がりという手掛かりを減らさない。
+                    proxyDecorator: (child, index, animation) =>
+                        AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) => Material(
+                            key: draggingRowKey,
+                            color: colors.surface,
+                            shadowColor: colors.background,
+                            elevation:
+                                Curves.easeInOut.transform(animation.value) * 6,
+                            child: child,
+                          ),
+                          child: child,
+                        ),
                     itemBuilder: (context, index) {
                       final row = rows[index];
                       final handle = row.source.sourceHandle;
@@ -858,6 +895,7 @@ class _HeaderBar extends StatelessWidget {
     required this.onRemoveMarked,
     required this.onSelectAll,
     required this.onClearAll,
+    required this.hintLink,
   });
 
   final FileListController controller;
@@ -886,12 +924,20 @@ class _HeaderBar extends StatelessWidget {
   /// 一覧を空にする(ケバブ。004 REQ-006)。一覧が空なら `null`。
   final VoidCallback? onClearAll;
 
+  /// 外すアイコンと補足の吹き出しを結ぶ(`008:T30`)。**吹き出しは `Overlay` にある**ので、
+  /// 位置は座標を計算するのではなくこの link がアイコンから直に決める。
+  final LayerLink hintLink;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final total = controller.items.length;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // 左右の padding は**吹き出しのツノの位置にも効く**ので共有する(`008:T30`)。
+      padding: const EdgeInsets.symmetric(
+        horizontal: headerBarHorizontalPadding,
+        vertical: 4,
+      ),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
@@ -905,7 +951,13 @@ class _HeaderBar extends StatelessWidget {
               color: colors.textSecondary,
               tooltip: '選ぶのをやめる',
               visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              // **tap target を数で固定する**(`008:T30`)。帯の吹き出しは
+              // この幅からツノの位置を出すので、実際の描画幅が数と一致している
+              // 必要がある(widget test が実測で確かめる)。
+              constraints: const BoxConstraints.tightFor(
+                width: headerIconExtent,
+                height: headerIconExtent,
+              ),
               padding: EdgeInsets.zero,
             ),
           // **文字は左、操作は右**(2026-09-19 の要望4)。
@@ -969,16 +1021,25 @@ class _HeaderBar extends StatelessWidget {
           // **外す操作はアイコン1つ**(2026-09-19 の要望4)。`一覧を空にする` が
           // 使っていたものと同じ icon にして、右寄せで置く。
           if (selecting)
-            IconButton(
-              key: removalModeRemoveKey,
-              onPressed: onRemoveMarked,
-              icon: const Icon(Icons.playlist_remove, size: 20),
-              color: colors.danger,
-              disabledColor: colors.textDisabled,
-              tooltip: '選んだファイルをリネーム候補から外す',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: EdgeInsets.zero,
+            CompositedTransformTarget(
+              link: hintLink,
+              child: IconButton(
+                key: removalModeRemoveKey,
+                onPressed: onRemoveMarked,
+                icon: const Icon(Icons.playlist_remove, size: 20),
+                color: colors.danger,
+                disabledColor: colors.textDisabled,
+                tooltip: '選んだファイルをリネーム候補から外す',
+                visualDensity: VisualDensity.compact,
+                // **tap target を数で固定する**(`008:T30`)。吹き出しはこの幅から
+                // ツノの位置を出すので、実際の描画幅が数と一致している必要がある
+                // (widget test が実測で確かめる)。
+                constraints: const BoxConstraints.tightFor(
+                  width: headerIconExtent,
+                  height: headerIconExtent,
+                ),
+                padding: EdgeInsets.zero,
+              ),
             ),
           // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
           // 一覧が空のときだけ出さない(どの項目も対象が無い)。
@@ -1162,7 +1223,7 @@ class _SortChip extends StatelessWidget {
 /// **通常表示には除去の操作を置かない**(002 REQ-016)。以前は右端に × があったが、
 /// 並び替えのつまみと隣り合って押し間違えうるので、除去は**選択モード**へ移した
 /// (REQ-018 / `008:T27`)。モード中はこの行の左へ選択の切り替えが出る。
-class _FileRow extends StatelessWidget {
+class _FileRow extends StatefulWidget {
   const _FileRow({
     super.key,
     required this.index,
@@ -1224,15 +1285,43 @@ class _FileRow extends StatelessWidget {
   final VoidCallback? onLongPressEnter;
 
   @override
+  State<_FileRow> createState() => _FileRowState();
+}
+
+class _FileRowState extends State<_FileRow> {
+  /// つまみに指が触れているか(`008:T32`)。
+  ///
+  /// **Flutter の並び替えは「触れてから約18px 動いた時点」でドラッグ開始と判定する**ので、
+  /// `proxyDecorator` だけだと**触れてすぐには色が変わらない**(2026-09-19 の2回目の
+  /// 実機確認)。つまみは触れた瞬間からもう動かせるので、**触れた瞬間**を見て同じ色にする。
+  bool _grabbed = false;
+
+  void _setGrabbed(bool value) {
+    if (_grabbed == value) return;
+    setState(() => _grabbed = value);
+    // **掴めたことを一拍の振動でも伝える**(2026-09-19 の要望)。
+    // `HapticFeedback` は view の触覚フィードバックを使うので、`VIBRATE` 権限は要らない。
+    if (value) HapticFeedback.selectionClick();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final row = widget.row;
+    final selecting = widget.selecting;
+    final marked = widget.marked;
     final handle = row.source.sourceHandle;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         // **選ばれた行は面を染める**(2026-09-19 の要望2)。行の高さも位置も
         // 変えずに、選んだものが一覧の中で読める。
-        color: selecting && marked ? colors.selectedSurface : null,
+        //
+        // **掴んでいる間はドラッグ中と同じ色**(`008:T32`)。`proxyDecorator` が
+        // 引き継ぐので、実際に動き始めても見た目は変わらない。
+        color: _grabbed
+            ? colors.surface
+            : (selecting && marked ? colors.selectedSurface : null),
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
       child: Row(
@@ -1250,10 +1339,10 @@ class _FileRow extends StatelessWidget {
               // 名前の文字の上だけ、にしない(この範囲の余白でも反応する)。
               behavior: HitTestBehavior.opaque,
               // **長押しは通常表示だけ**(モード中は既に入っている)。
-              onLongPress: selecting ? null : onLongPressEnter,
+              onLongPress: selecting ? null : widget.onLongPressEnter,
               // **モード中の tap は選択の切り替え**。通常表示では行 tap に意味を
               // 持たせない(誤って外す操作へ繋げない)。
-              onTap: selecting ? onToggleMark : null,
+              onTap: selecting ? widget.onToggleMark : null,
               child: Row(
                 children: [
                   // 中身が見える行にする(参考designのリッチな行)。preview を出せない
@@ -1263,7 +1352,7 @@ class _FileRow extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 10),
                     child: RowPreviewView(
                       file: row.source,
-                      preview: filePreview,
+                      preview: widget.filePreview,
                     ),
                   ),
                   // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
@@ -1288,8 +1377,8 @@ class _FileRow extends StatelessWidget {
                         // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
                         // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
                         RowWarningView(
-                          warnings: warnings,
-                          onTap: onShowWarningDetail,
+                          warnings: widget.warnings,
+                          onTap: widget.onShowWarningDetail,
                         ),
                         Text(
                           row.currentName,
@@ -1314,16 +1403,16 @@ class _FileRow extends StatelessWidget {
                             Expanded(
                               child: _NewName(
                                 row: row,
-                                ruleIsEmpty: ruleIsEmpty,
-                                hasWarning: warnings.isNotEmpty,
+                                ruleIsEmpty: widget.ruleIsEmpty,
+                                hasWarning: widget.warnings.isNotEmpty,
                               ),
                             ),
                           ],
                         ),
                         _DateSubInfo(
                           file: row.source,
-                          sortMode: sortMode,
-                          showLocation: showLocation,
+                          sortMode: widget.sortMode,
+                          showLocation: widget.showLocation,
                         ),
                       ],
                     ),
@@ -1338,20 +1427,20 @@ class _FileRow extends StatelessWidget {
           // **かくつく**(実機で観測)。右端なら行の読み始めが動かない。
           // 幅を固定しておくと、つまみ ↔ checkbox の入れ替わりでも中身が動かない。
           // **モード中はつまみを出さない**(REQ-018)ので、位置は取り合わない。
-          if (selecting || showDragHandle)
+          if (selecting || widget.showDragHandle)
             SizedBox(
               width: 32,
               child: Center(
                 // **モード中はつまみを出さない**(REQ-018)。枠は同じなので、
                 // 入れ替わっても行の中身は動かない。
                 child: selecting
-                    ? (onToggleMark == null
+                    ? (widget.onToggleMark == null
                           // 外せない行(元場所ハンドルが無い)。**枠だけ残す。**
                           ? const SizedBox(width: 24, height: 24)
                           : Checkbox(
                               key: removalMarkKeyOf(handle!),
                               value: marked,
-                              onChanged: (_) => onToggleMark!(),
+                              onChanged: (_) => widget.onToggleMark!(),
                               // **円にする**(2026-09-19 の要望2)。
                               shape: const CircleBorder(),
                               side: BorderSide(
@@ -1364,12 +1453,21 @@ class _FileRow extends StatelessWidget {
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ))
-                    : ReorderableDragStartListener(
-                        index: index,
-                        child: Icon(
-                          Icons.drag_handle,
-                          size: 18,
-                          color: colors.textMuted,
+                    // **触れた瞬間を見る**(`008:T32`)。`ReorderableDragStartListener`
+                    // だけだと、Flutter が約18px の移動でドラッグ開始と判定するまで
+                    // 色が変わらない(2026-09-19 の2回目の実機確認)。つまみは
+                    // 触れた瞬間からもう動かせるので、そこで色と振動を出す。
+                    : Listener(
+                        onPointerDown: (_) => _setGrabbed(true),
+                        onPointerUp: (_) => _setGrabbed(false),
+                        onPointerCancel: (_) => _setGrabbed(false),
+                        child: ReorderableDragStartListener(
+                          index: widget.index,
+                          child: Icon(
+                            Icons.drag_handle,
+                            size: 18,
+                            color: colors.textMuted,
+                          ),
                         ),
                       ),
               ),
