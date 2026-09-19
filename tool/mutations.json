@@ -2409,8 +2409,8 @@
     {
       "id": "M353",
       "file": "lib/ui/file_source/removal_hint_bubble.dart",
-      "find": "const String removalHintText = '押すとリネーム一覧から外れます。\\nファイルは削除されません。';",
-      "replace": "const String removalHintText = '押すとリネーム一覧から外れます。';",
+      "find": "const String removalHintText = '押すと一覧から外れます。\\nファイルは削除されません。';",
+      "replace": "const String removalHintText = '押すと一覧から外れます。';",
       "note": "008:T30 「ファイルは削除されません」を落とす — 外すのは rename の一覧からで実ファイルには触れない、という 005 / 013 の境界が読めなくなる(`008:T03` が改名で避けた取り違えと同じ系統)"
     },
     {
