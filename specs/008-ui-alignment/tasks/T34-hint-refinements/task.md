@@ -51,17 +51,51 @@
 - Android実機での manual 確認(`manual-verification.md` を作る)。**`T32` の確認は要らない**
   (触らないため)。
 
+## 実装と機械検証(2026-09-19)
+
+- ツノは、40dpのアイコン枠の幾何学的中心から字面に合わせて3dp左へ補正した。吹き出しは
+  4dp下へ寄せ、文言を改行なしの`押すとファイルをリネームリストから外します。削除はされません。`
+  へ替えた。5秒表示、黒地、シアンの連続外枠は一つの`CustomPainter`で描く。
+- `flutter test test/spec_002_file_list/removal_hint_test.dart` — PASS (13 tests)
+- `flutter test test/spec_002_file_list test/spec_004_file_source` — PASS (333 tests)
+- `dart format --output=none --set-exit-if-changed .` — PASS (131 files)
+- `flutter analyze` — PASS (`No issues found`)
+- 全回帰の`flutter test`は、この対話環境で親プロセスが出力上限により切れ、完走結果を取得
+  できなかった。関連回帰は上記333件で閉じている。Android SDKが無いため、buildと実機確認は
+  machineでは未実施。
+
+### mutation の生出力
+
+`mutation_check.py`を、対応するtest名だけへ絞った作業用表で実行した。
+
+```text
+M351 | KILLED | ツノをケバブの下へずらす | exit 1
+M352 | KILLED | ツノの中心計算から幅の半分を外す | exit 1
+M353 | KILLED | 「削除はされません」を落とす | exit 1
+M363 | KILLED | 吹き出し幅の上限を2倍にする | exit 1
+M364 | KILLED | 閉じる操作を無効にする | exit 1
+M365 | KILLED | 5秒後に消えないようにする | exit 1
+M366 | KILLED | モード終了時もフェードを待つ | exit 1
+M367 | KILLED | シアンの一体枠を黒へ替える | exit 1
+8 mutations: 8 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+### review
+
+- `SELF-REVIEW ONLY`: `8b0279f..e46bc84` の実装・test・mutation・task正本を照合した。
+  成果物の欠陥は見つからなかった。実機の色、相対位置、5秒の体感は手動確認で判定する。
+
 ## Current state / handoff
 
-- Last checkpoint: 幾何学的なツノ中心はアイコン枠の中心に一致している一方、`Icons.playlist_remove` の字面が枠内で左寄りに見えるため、視覚補正を定数と実測testで固定する方針を確認した(2026-09-19)
-- Blocker category: none(`T30` は merge 済み。着手可能)
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: 実装、関連widget回帰333件、format、analyze、対象mutationを完了し、Android manual確認を渡せる状態にした(2026-09-19)
+- Blocker category: manual verification
+- Waiting for: Android実機またはemulatorを操作する人間
+- Requested action: `manual-verification.md`の手順1〜3を対象revisionで確認し、結果を会話で返す。
 - Touches: `lib/ui/file_list/removal_hint.dart`(必要なら `header_metrics.dart`)、
   `test/spec_002_file_list/removal_hint_test.dart`、`tool/mutations.json`(M352/M353/M363/M367 の再アンカー)
 - 並行: **`T31` とは別file**(あちらは `file_list_view.dart`)なので同時に進められる。
   `header_metrics.dart` だけは `file_list_view.dart` と共有している定数なので、
   **そこを動かすなら `T31` と順番を決める**
-- Evidence revision: 未着手
+- Evidence revision: e46bc844a406f7038d1a44b555c74c03b06793e6
 - Machine verification scope: widget testでツノの意図した視覚補正、1行の文言、5秒の表示、黒地とシアン枠、画面内への収まり、閉じる操作、pointer透過を検証する。Android実機の見た目と操作感はmachineで閉じられないため、このtaskのmanual確認で受ける。
-- Next Agent action: `removal_hint.dart` と `removal_hint_test.dart` を更新し、格子・mutation・Flutter検査を実行する。
+- Next Agent action: manual結果をtaskへ記録し、証拠identityを確認してfinal-evidence reviewを行う。
