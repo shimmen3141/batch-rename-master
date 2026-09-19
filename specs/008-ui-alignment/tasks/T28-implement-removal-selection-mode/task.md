@@ -91,10 +91,10 @@ widget testで確かめたのは、代表例 6e〜6j、入口2系統、0 件で�
 
 ## 検証(2026-09-19)
 
-- `flutter test` **PASS(909)**。新規は `test/spec_002_file_list/removal_selection_mode_test.dart`(17件。
+- `flutter test` **PASS(912)**。新規は `test/spec_002_file_list/removal_selection_mode_test.dart`(20件。
   代表例 6e〜6j と、入口2系統・0件・モード中の並び替え・件数の食い違い・戻る)。
 - `flutter analyze` PASS / `dart format` PASS。
-- `mutation_check.py` は**表全体で 310 件・異常0**。`T28` 周辺へ範囲を絞って回した 37 件は
+- `mutation_check.py` は**表全体で 316 件・異常0**(独立reviewが設計した対照 M320〜M325 を含む)。`T28` 周辺へ範囲を絞って回した 37 件は
   **36 KILLED / 1 SURVIVED**で、SURVIVED は既知の `M221`(現行名の行数上限。
   **残余riskとして受容済みで引き受け先は `T10`**)だけである。新規の M305〜M319 はすべて KILLED。
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
@@ -110,11 +110,56 @@ testごとに書き写すと、次に導線が変わったとき一部だけ古�
 (demo の tree には下部バーの更新日時ずらしの checkbox も居る)。**作られた行を列挙して、
 その行の checkbox が在るか**を見る形にした。
 
+## 独立review(2026-09-19)
+
+- Review attempt 1: `dev...d538285` — **FAIL**(Opus。`.worktrees/008-T28-review` で実行)。
+  **成果物の欠陥2件を直した。**
+  - **P1-1(成果物の欠陥)**: 行全体を長押しで包んだため、**つまみを 0.5 秒以上保持してから
+    ドラッグすると並び替えが選択モードに奪われ、`showDragHandle` が false になって
+    つまみが消え、掴んだままの指では並び替えを始められない**(実測: 450ms=並び替わる /
+    520ms=モードが開く)。長押ししてからドラッグは Android の既定の並び替え操作で、
+    touchでは並び替えの導線はつまみだけである(REQ-003 / REQ-014)。既存の
+    `reorder_view_test.dart` は `pump(250ms)` で境界の手前だけを通っていた。
+    → **長押しを受ける範囲を preview と名前に限り、つまみを外へ出した。**
+    test「つまみを長押ししてからドラッグしても並び替えができる」と対照 M325 を足した。
+  - **P2-1(成果物の欠陥)**: 一覧が空のとき描画だけを畳んで `_selecting` / `_marked` を
+    残していたため、**「一覧を空にする → 元に戻す」で誰も押していないのにモードが戻り、
+    前の外す候補が選択済みで復活する**(畳んだ画面には「やめる ×」が無いので利用者に
+    片付ける手段が無い)。code注記の「次の操作で片付く」は起きていなかった。
+    → **frame の後に `_exitRemovalMode` を呼ぶ。** test「一覧が空になってから戻っても、
+    モードは復活しない」を足した。
+  - **P3-1 / P3-2(記録)**: `onEnterRemovalMode` の doc(「外せる行が無ければ null」→
+    「一覧が空なら null」)と、`manual-verification.md` の demo の内訳
+    (カメラ6/DL3 → **カメラ5/DL4**)を直した。手順2へ**つまみの長押しドラッグ**の確認Eを足した。
+  - **残余riskとして挙がった3件**のうち2件は testで閉じた(通常表示のtapが候補を溜めない /
+    モード中の長押しで選択が巻き戻らない)。3件目(M320)は下記のとおり等価mutantである。
+  - reviewerが**問題無しと確認した点**: `PopScope` は他の route(dialog / bottom sheet /
+    `StorageBrowserView`)を詰まらせない。取り消しのguardは弱まっていない(**1件ずつ
+    `removeUndoably` する自然な誤実装**も対照 M322 で KILLED)。rename 対象の選択
+    (REQ-004 / 005 REQ-026)と混ざっていない。004 REQ-006 の除去は UI から辿れる。
+    付け替えた `widget_test.dart` は viewport 依存が消えて**以前より強い**。
+
+### mutation(修正後。2026-09-19)
+
+範囲を絞って26件 → **20 KILLED / 6 SURVIVED**。SURVIVED を全件で確かめ直した結果:
+
+- **M179 / M218 は全件で KILLED**(killする test が `test/spec_005_rename_exec` にあり、
+  絞った範囲から外れていただけである)。
+- **M221** は既知で、**残余riskとして受容済み・引き受け先は `T10`**。
+- **M312 / M320 / M323 は等価mutant**で、全件でも SURVIVED する。いずれも
+  **防御が二重にある**ためで、外から見える振る舞いは変わらない。
+  - M312(空でもモードのまま): frame 後の `_exitRemovalMode` が同じ結果を保証する。
+  - M320(やめるときに選択を破棄しない): `_enterRemovalMode` 側の `clear()` が保証する。
+  - M323(通常表示のtapで候補が溜まる): 同じ `clear()` が入る瞬間に捨てる。
+    **独立reviewの N-1 はこの clear を見落としていた**(現物の振る舞いは変わらない)。
+  **薄いほうへ寄せない** — どれも外したら「外す候補が漏れる」側へ倒れる。
+  観測可能にするために防御を1本に減らすのは、この保証では逆である。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・test・mutationが揃った(2026-09-19)
+- Last checkpoint: 独立review attempt 1 の P1-1 / P2-1 / P3 を直した(2026-09-19)
 - Blocker category: manual(実機確認待ち)
-- Waiting for: 独立review と、Android実機での manual 確認
-- Requested action: 独立reviewの起動 → PASS後に [`manual-verification.md`](manual-verification.md) を依頼する
+- Waiting for: 独立review attempt 2 と、Android実機での manual 確認
+- Requested action: attempt 2 が PASS したら [`manual-verification.md`](manual-verification.md) を依頼する
 - Evidence revision: 未取得(実機証拠はまだ無い)
-- Next Agent action: 独立reviewを走らせ、PASSならPRをready化して manual 確認を依頼する
+- Next Agent action: attempt 2 を走らせ、PASSならPRをready化して manual 確認を依頼する

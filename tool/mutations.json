@@ -2124,7 +2124,7 @@
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "        final selecting = _selecting && rows.isNotEmpty;",
       "replace": "        final selecting = _selecting;",
-      "note": "008:T28 一覧が空でもモードのままにする — 選ぶものが無いモードに閉じ込められる(REQ-018 の入口は「一覧が空でない間」)"
+      "note": "008:T28 一覧が空でもモードのままにする — 選ぶものが無いモードに閉じ込められる(REQ-018 の入口は「一覧が空でない間」)。**独立review attempt 1 の P2-1 を直した後は等価mutantでSURVIVEDする**: frame の後に `_exitRemovalMode` が走るので、描画側の畳み込みを外しても差は1 frame のちらつきだけになる。**防御の重複**なので畳み込みは残す(全件で確認: 2026-09-19)"
     },
     {
       "id": "M313",
@@ -2180,7 +2180,7 @@
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "      _selecting = false;\n      _marked.clear();",
       "replace": "      _selecting = false;",
-      "note": "008:T28 やめるときに選択を破棄しない — REQ-018「モードをやめると選択は破棄される」(代表例6i)。**等価mutantでSURVIVEDする**: `_enterRemovalMode` 側の `clear()` が同じことを二重に保証しているため、外から観測できる振る舞いは変わらない。**安全網の穴ではなく防御の重複**なので、`clear()` を片方だけ残す形へは寄せない(独立review attempt 1 の N-3)"
+      "note": "008:T28 やめるときに選択を破棄しない — REQ-018「モードをやめると選択は破棄される」(代表例6i)。**等価mutantでSURVIVEDする**: `_enterRemovalMode` 側の `clear()` が同じことを二重に保証しているため、外から観測できる振る舞いは変わらない。**安全網の穴ではなく防御の重複**なので、`clear()` を片方だけ残す形へは寄せない(独立review attempt 1 の N-3。全件で確認: 2026-09-19)"
     },
     {
       "id": "M321",
@@ -2201,7 +2201,7 @@
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "              onTap: selecting ? onToggleMark : null,",
       "replace": "              onTap: onToggleMark,",
-      "note": "008:T28 通常表示の行tapでも外す候補が溜まる — REQ-016(通常表示は除去操作を提示しない)。スクロールの誤tapが候補になり、モードへ入った瞬間に身に覚えのない件数が出る(独立review attempt 1 の N-1。代表例6eのtestへ「入り直して0件」を足して閉じた)"
+      "note": "008:T28 通常表示の行tapでも外す候補が溜まる — REQ-016(通常表示は除去操作を提示しない)。**等価mutantでSURVIVEDする**: `_enterRemovalMode` が必ず `clear()` するので、溜まった候補はモードへ入る瞬間に捨てられ、利用者からは何も変わらない(独立review attempt 1 の N-1 はこの clear を見落としていた)。tapのガード自体は残す — clear を外したときに**誤tapが候補になる**側へ倒れるため。代表例6eのtestへ「入り直して0件」を足して、`clear` 側の保証は観測できるようにした(全件で確認: 2026-09-19)"
     },
     {
       "id": "M324",
