@@ -22,6 +22,30 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'removal_mode.dart';
 
+/// 画面の大きさを**本当に**変える。
+///
+/// **`tester.binding.setSurfaceSize` では足りない。** あちらは layout の制約は
+/// 変えるが `MediaQuery.of(context).size` は既定(800×600)のままで、
+/// **画面に収まるかの判定は `MediaQuery` を読む**ので素通りしてしまう
+/// (独立review attempt 5 の P1。`development-findings/2026-09-19-set-surface-size-does-not-move-media-query.md`)。
+void _setScreen(
+  WidgetTester tester,
+  Size size, {
+  EdgeInsets padding = EdgeInsets.zero,
+}) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  tester.view.padding = FakeViewPadding(
+    left: padding.left,
+    top: padding.top,
+    right: padding.right,
+    bottom: padding.bottom,
+  );
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPadding);
+}
+
 FileEntry _entry(String name) => FileEntry(
   name: name,
   createdAt: DateTime(2026, 1, 1),
@@ -123,8 +147,7 @@ void main() {
     const height = 800.0;
     for (final width in [320.0, 411.0, 800.0]) {
       for (final scale in [1.0, 1.3, 2.0, 3.0]) {
-        await tester.binding.setSurfaceSize(Size(width, height));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        _setScreen(tester, Size(width, height));
         await _pump(tester, scale: scale);
         await enterRemovalMode(tester);
         // 大きさを測って出すかどうかを決めるので、1 frame 余分に回す。
@@ -161,8 +184,7 @@ void main() {
     // 732×360(横向き)× 倍率3.0 で、箱の高さは 59 → **284** へ膨らむ。
     // どこへ置いても画面へ入らないので、**切れた半分を見せずに取り下げる**。
     // アイコンの tooltip は残るので、意味への入口は消えない。
-    await tester.binding.setSurfaceSize(const Size(732, 360));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _setScreen(tester, const Size(732, 360));
     await _pump(tester, scale: 3.0);
     await enterRemovalMode(tester);
     await tester.pump();
@@ -173,9 +195,41 @@ void main() {
     expect(find.byKey(removalModeRemoveKey), findsOneWidget);
   });
 
+  testWidgets('横にも入らない画面では出さない(分割画面のような狭い幅)', (tester) async {
+    // **縦だけでなく横も見る。** 箱は overlay の幅に合わせて自分も縮むので普通の
+    // 端末では横に溢れないが、判定を縦だけにすると溢れた瞬間に気づけない
+    // (独立review attempt 5 の `M386`)。
+    _setScreen(tester, const Size(200, 800));
+    await _pump(tester);
+    await enterRemovalMode(tester);
+    await tester.pump();
+
+    expect(find.byKey(removalHintKey), findsNothing);
+    expect(removalModeCountText(tester), isNotNull);
+  });
+
+  testWidgets('status bar の下から数える(上の inset を食い込まない)', (tester) async {
+    // 上へ伸びるので、status bar の下へ潜ると本当に読めなくなる。
+    // **左右と下の inset は数えない** — この app は画面の端まで使う作りで、
+    // ここだけ厳しくすると横向き + ジェスチャーナビで一度も出なくなる。
+    _setScreen(
+      tester,
+      const Size(320, 800),
+      padding: const EdgeInsets.fromLTRB(0, 24, 40, 48),
+    );
+    await _pump(tester);
+    await enterRemovalMode(tester);
+    await tester.pump();
+
+    expect(find.byKey(removalHintKey), findsOneWidget);
+    expect(
+      tester.getRect(find.byKey(removalHintCloseKey)).top,
+      greaterThanOrEqualTo(24),
+    );
+  });
+
   testWidgets('同じ画面でも、文字が小さければ出る(出さないのは収まらないときだけ)', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(732, 360));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _setScreen(tester, const Size(732, 360));
     await _pump(tester, scale: 1.0);
     await enterRemovalMode(tester);
     await tester.pump();

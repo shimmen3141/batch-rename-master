@@ -159,13 +159,20 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
     final origin = box.localToGlobal(Offset.zero);
     final rect = origin & box.size;
     final media = MediaQuery.of(context);
-    // 端末の status bar / navigation bar の内側を安全な範囲とする(`Overlay` は
-    // AppBar より前に描かれるので、AppBar への重なりは許す)。
+    // **画面の内側。上だけは status bar の下から数える。**
+    //
+    // `Overlay` は AppBar より前に描かれるので AppBar への重なりは許すが、
+    // status bar の下へ潜り込むと本当に読めなくなる。
+    //
+    // **左右と下の inset は数えない。** この app は画面の端まで使う作りで、
+    // ヘッダのケバブも外すアイコンも inset の内側へは寄せていない。ここだけ
+    // 厳しくすると、横向き + ジェスチャーナビ(右に 40 程度の inset)の端末で
+    // **普通の文字でも一度も出なくなる**(実測で確認した)。
     final safe = Rect.fromLTRB(
-      media.padding.left,
+      0,
       media.padding.top,
-      media.size.width - media.padding.right,
-      media.size.height - media.padding.bottom,
+      media.size.width,
+      media.size.height,
     );
     if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {
       _remove();

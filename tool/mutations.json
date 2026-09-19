@@ -2580,6 +2580,20 @@
       "find": "    _fade.value = 0;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
       "replace": "    _fade.value = 1;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
       "note": "008:T30 測る前から見せる — 収まるかどうかを判定する前の1 frame だけ、はみ出した位置の吹き出しがちらつく。**現行のtestでは観測できない**(1 frame の見た目)ので SURVIVED のまま残す対照"
+    },
+    {
+      "id": "M385",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      -1000000,\n      media.padding.top,\n      media.size.width + 1000000,\n      media.size.height,\n    );",
+      "note": "008:T30 横方向の収まり判定だけを無効化する — 箱は overlay の幅に合わせて縮むので普通の端末では溢れないが、溢れた瞬間に気づけなくなる(独立review attempt 5 が設計。最初 SURVIVED し、狭い幅の test を足して閉じた)"
+    },
+    {
+      "id": "M386",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
+      "replace": "    final safe = Rect.fromLTRB(\n      0,\n      0,\n      media.size.width,\n      media.size.height,\n    );",
+      "note": "008:T30 status bar の下から数えない — 上へ伸びる吹き出しが status bar の下へ潜り込み、本当に読めなくなる"
     }
   ]
 }
