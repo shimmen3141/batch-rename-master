@@ -54,15 +54,48 @@
 - **選択モードの選択行の色とは別の色である。**
 - 並び替えの結果(`reorder` → `custom` へ自動切替)が変わらない(既存testが緑のまま)。
 - `flutter test` / `flutter analyze` / `dart format` / `mutation_check.py` が PASS。
-- Android実機での manual 確認 — **`T30` と同じ回にまとめる**(どちらも同じ画面の見せ方で、
+- Android実機での manual 確認([`T30` の手順書](../T30-selection-bar-height-and-hint/manual-verification.md)へまとめた)(どちらも同じ画面の見せ方で、
   実機での確認項目は数個ずつである)。
+
+## 実装(2026-09-19)
+
+### 決めたこと
+
+- **`ReorderableListView.proxyDecorator` を与えた。** 掴んでいる間だけ差し替わる木を
+  そこで作れるので、行側に「掴まれているか」の状態を持たせずに済む。
+- **色は `surface`**(ヘッダ・帯と同じ面の色)。要望の「文字が読める程度の灰色
+  (ヘッダーの色とか)」そのままである。行の面は通常 `null`(背景が透ける)なので、
+  ここを敷くと掴んだ行だけが持ち上がって見える。**token は足していない。**
+- **選択モードの選択行(`selectedSurface`)とは別の色である**ことを test で固定した。
+  モード中はつまみを出さない(002 REQ-018)ので同時には起きないが、**同じ色なら
+  「掴んでいる」と「選んでいる」が読み分けられない** — `008:T29` で分けた区別が戻る。
+- **影は既定と同じように上げる。** 面の色を**足すだけ**にして、浮き上がりという
+  手掛かりを減らさない(対照は M358)。
+- **`008:T30` と同じ branch・同じ PR に載せた。** 同じ画面の見せ方で、実機での確認は
+  数項目ずつなので**manual確認を1回にまとめる**ためである(rollback の境界も同じ)。
+
+## 検証(2026-09-19)
+
+- `flutter test` **PASS(925)**(`T32` で1本追加) / `flutter analyze` PASS / `dart format` PASS。
+- `mutation_check.py`: **M355 / M357 / M358 を追加**(表は348件、find の一致は全件1回)。
+
+### mutation の生出力
+
+```
+command: flutter test test/spec_002_file_list
+M355 | KILLED | 掴んだ行を選択モードの選択行と同じ色にする
+M357 | KILLED | 掴んだ行の面を染めない
+M358 | KILLED | 浮き上がりを消す
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
 
 ## Current state / handoff
 
-- Last checkpoint: `T29` の実機確認で受領した1件をtask化した(2026-09-19)
-- Blocker category: none
+- Last checkpoint: 実装と機械検証が揃った(`T30` と同じ branch。2026-09-19)
+- Blocker category: none(次は独立review)
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: 未着手
-- Next Agent action: 着手時に `proxyDecorator` で面の色を足し、選択行の色と別であることを
-  test で固定する
+- Evidence revision: 未取得(実機)
+- Next Agent action: `T30` とまとめて独立reviewを回し、PASS したら実機確認を依頼する
