@@ -38,6 +38,9 @@ Future<FileListController> _pump(WidgetTester tester) async {
     MaterialApp(
       theme: appDarkTheme(),
       home: Scaffold(
+        // **composition root と同じ組み立てにする**(`main.dart`)。吹き出しは帯へ
+        // 重なるので、上に何があるかで収まり方が変わる。
+        appBar: AppBar(title: const Text('一括リネーム')),
         body: Column(
           children: [
             FileSourceBar(
@@ -96,6 +99,27 @@ void main() {
     // ツノの先とアイコンの上端の隙間は数px以内。
     expect(icon.top - tail.bottom, lessThan(8));
     expect(icon.top - tail.bottom, greaterThanOrEqualTo(0));
+  });
+
+  testWidgets('閉じる操作まで含めて画面の中に収まる(狭い画面でも)', (tester) async {
+    // **実装中に一度はみ出した。** 円は箱の角から外へ出るので、吹き出しの右端を
+    // 画面の余白ぴったりに置くと円が画面外へ行き、**押せない閉じる操作**になる。
+    for (final width in [320.0, 411.0, 800.0]) {
+      await tester.binding.setSurfaceSize(Size(width, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pump(tester);
+      await enterRemovalMode(tester);
+
+      final close = tester.getRect(find.byKey(removalHintCloseKey));
+      final hint = tester.getRect(find.byKey(removalHintKey));
+      expect(close.right, lessThanOrEqualTo(width), reason: '幅 $width');
+      expect(close.top, greaterThanOrEqualTo(0), reason: '幅 $width');
+      expect(hint.left, greaterThanOrEqualTo(0), reason: '幅 $width');
+      // **押せること**まで見る(枠の外へ出た円は hit test に載らない)。
+      await tester.tap(find.byKey(removalHintCloseKey));
+      await tester.pump();
+      expect(find.byKey(removalHintKey), findsNothing, reason: '幅 $width');
+    }
   });
 
   testWidgets('面もツノも同じ色で塗る(境界線を見せない)', (tester) async {

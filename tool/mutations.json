@@ -2446,14 +2446,14 @@
       "file": "lib/ui/file_source/file_source_bar.dart",
       "find": "                        alignment: Alignment.centerRight,",
       "replace": "                        alignment: Alignment.centerLeft,",
-      "note": "008:T30 末尾の枠の中で button を左へ寄せる — 2026-09-18 の実機確認で直した「button は右端に固定」が戻る。**folder 名では動かないので既存の test は気づかない**(独立review attempt 1 の指摘1。最初 SURVIVED し、位置を実測する test を足して閉じた)"
+      "note": "008:T30 末尾の枠の中で button を左へ寄せる — **`008:T30` の2回目で吹き出しを帯から外したので、枠に余裕が無くなり等価mutantになった**(SURVIVED)。右端に張り付いていることは実測する test が別に見ている(独立review attempt 1 の指摘1)"
     },
     {
       "id": "M360",
       "file": "lib/ui/file_list/header_metrics.dart",
       "find": "const double headerMenuExtent = 48;",
       "replace": "const double headerMenuExtent = 40;",
-      "note": "008:T30 共有定数(ケバブの枠)だけを変える — ヘッダの `PopupMenuButton` の実描画幅(48)と定数がずれ、ツノがアイコンの中心から外れる。**帯とヘッダが同じ定数を使っていることの対照**(独立review attempt 1 が設計)"
+      "note": "008:T30 共有定数(ケバブの枠)だけを変える — **`008:T30` の2回目で等価mutantになった**(SURVIVED)。ツノの絶対位置は `アイコンの右端 + K - (K + アイコンの枠/2)` で **K が打ち消し合う**ので、この定数は吹き出しの箱の横位置しか動かさない(独立review attempt 1 が設計)"
     },
     {
       "id": "M362",
@@ -2517,6 +2517,13 @@
       "find": "    if (value) HapticFeedback.selectionClick();",
       "replace": "    HapticFeedback.selectionClick();",
       "note": "008:T32 離すときにも振動を鳴らす — 一拍のはずが往復で2回鳴る。`hasLength(1)` を見ているかの対照"
+    },
+    {
+      "id": "M371",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "const double removalHintRightOffset = headerMenuExtent;",
+      "replace": "const double removalHintRightOffset = headerMenuExtent * 3;",
+      "note": "008:T30 吹き出しを右へ寄せすぎる — 角へ引っかけた円が画面の外へ出て、**押せない閉じる操作**になる(実装中に一度そうなった)。枠の外は hit test に載らない"
     }
   ]
 }
