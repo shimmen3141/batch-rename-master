@@ -129,8 +129,8 @@
 ## 検証(2026-09-19)
 
 - `flutter test` **PASS(921)** / `flutter analyze` PASS / `dart format` PASS。
-- `mutation_check.py` は**表全体で 336 件・異常0**(M327〜M337 を追加、移動した18件を再アンカー、
-  独立reviewの対照 M338〜M343 と P3 の対照 M344 / M345 を取り込み)。
+- `mutation_check.py` は**表全体で 339 件・異常0**(M327〜M337 を追加、移動した18件を再アンカー、
+  独立reviewの対照 M338〜M343・M346〜M348 と P3 の対照 M344 / M345 を取り込み)。
 - 範囲を絞って回した42件は **37 KILLED / 5 SURVIVED** → SURVIVED のうち **M309 / M328 / M331 は
   本物の穴だったので閉じた**(それぞれ「行側の1か所で決める」「変更後名の欄の幅を見る」
   「下部の帯が出ないことを見る」)。再実行で **3件とも KILLED**。
@@ -164,6 +164,29 @@
     1か所だけ)。005 REQ-020 の案内は一覧側なので隠れない。**320dp × 文字倍率 3.0 でも
     ヘッダは壊れない**(overflow 0件、切り詰め無し、3つの操作すべて画面内)。
 
+- Review attempt 2: `dev...5379a58` — **PASS**(Opus。同じworktree)。成果物の欠陥 P0/P1 は無い。
+  reviewerが機械で確かめた点: **320dp × 文字倍率3.0 でもモードのヘッダは壊れない**
+  (overflowなし・3つの操作すべて画面内)。**`retain` は frame を回し続けない**
+  (`replaceItems` 後 3 frame 以内に `hasScheduledFrame` が false)、build 中 notify なし、
+  木ごと捨てても例外なし、**並び替え・ソート・ルール変更では誤発火しない**。
+  `replaceItems` でモードを抜けるのは「候補が1つも残っていないとき」だけで、
+  一部だけ消えたら残りで続く(M346 が KILLED でこれを守る)。
+  - **P3(記録)**: 002 側の記述が「置き場所が変わった」としか言っておらず、**文言も変わった**
+    ことが見出しから読めなかった(004 側は正しい) → **004 に揃えた**。
+    勧告していた2か所(`〇件選択中` の助言 / 「一覧を空にする」への改名)に**取り消し線が無かった**
+    → `T27` と同じ形へ揃えた。
+  - **P3(cosmetic)**: test の `' 〜'.trim()` という書き方をやめ、素の literal にした。
+  - **P3(人間へ返す観測)**: **モード中のケバブの `すべてをリネーム対象から外す` は、
+    選んだ分ではなく一覧の全件を消す**(取り消せるのでデータ損失ではなく、REQ も文言を
+    縛っていないので仕様違反でもない)。ただし `T03` が「外す」の対象の取り違えを避けるために
+    改名した経緯と同じ系統の誤読が、**モード中という新しい文脈で**戻りうる。
+    → **`manual-verification.md` の手順4へ「一部だけ選んだ状態で押す」を足し、
+    意図どおりかを実機で開発者に見てもらう。**
+  - **P3(安全網の穴・受容。引き受け先 `T29`)**: `M347`(frame 後の `mounted` を見ない)は
+    **現在の構造では到達しない防御**で、通り抜ける失敗も例外でありデータ損失等に当たらない。
+    `M348`(`retain` の早期 return)は**等価mutant**(無駄な notify が1回増えるだけ)。
+    どちらも guard は残す。対照は表へ取り込んだ(M346〜M348)。
+
 ### mutation の生出力
 
 `T29` の追加分と、独立reviewが設計した対照(M338〜M345)。**全件(`flutter test`)で実行した。**
@@ -194,9 +217,10 @@ SURVIVED のうち **M309 / M328 / M331 を閉じて再実行で KILLED**(`3 KIL
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 の P1(記録)と P3(実装・記録)を直した(2026-09-19)
+- Last checkpoint: 独立review attempt 2 が PASS し、その P3 3件(記録2・cosmetic1)も直した(2026-09-19)
 - Blocker category: manual(実機確認待ち)
-- Waiting for: 独立review attempt 2 と、Android実機での manual 確認
-- Requested action: attempt 2 が PASS したら [`manual-verification.md`](manual-verification.md) を依頼する
+- Waiting for: Android実機での manual 確認
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜6(手順4の 0. を含む)
 - Evidence revision: 未取得(`T28` の実機証拠は `lib/` が動いたので失効した)
-- Next Agent action: attempt 2 を走らせ、PASSならPRをready化して manual 確認を依頼する
+- Next Agent action: manual 確認の結果を受け取って記録し、成立していればmergeする。
+  **待機中はこのbranchとcommitを動かさない**

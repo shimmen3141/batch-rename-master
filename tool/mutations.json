@@ -2356,6 +2356,27 @@
       "find": "        else if (_selection.selecting &&\n            marked.length != _selection.marked.length) {\n          WidgetsBinding.instance.addPostFrameCallback((_) {\n            if (mounted) _selection.retain(removable);\n          });\n        }",
       "replace": "",
       "note": "008:T29 一覧から消えた候補を片付けない — 上と同じ経路を、呼び出し側から見る対照(独立review attempt 1 の P3)"
+    },
+    {
+      "id": "M346",
+      "file": "lib/ui/file_list/removal_selection.dart",
+      "find": "    _marked.retainWhere(available.contains);",
+      "replace": "    _marked.clear();",
+      "note": "008:T29 一覧から消えたものだけでなく候補を全部落とす — 一部だけ消えたとき(改名の取り消しが一部の項目にだけ効いた場合)に、利用者が触っていないのにモードが抜けて選択が消える。独立review attempt 2 が設計した対照"
+    },
+    {
+      "id": "M347",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            if (mounted) _selection.retain(removable);",
+      "replace": "            _selection.retain(removable);",
+      "note": "008:T29 片付けを frame 後に回した後の mounted を見ない — 木ごと捨てられた後に破棄済みの notifier を叩く。**SURVIVED**: `addPostFrameCallback` は登録した frame の末尾で走るので、現在の構造では到達しない防御である。通り抜ける失敗も例外であってデータ損失・無断置換・偽の成功ではない → 安全網の穴の条件(2)を満たさず、残余riskとして受容する(引き受け先 T29)。frame をまたぐ形へ変えたら閉じ直すこと。独立review attempt 2 が設計した対照"
+    },
+    {
+      "id": "M348",
+      "file": "lib/ui/file_list/removal_selection.dart",
+      "find": "    if (_marked.length == before) return;\n",
+      "replace": "",
+      "note": "008:T29 retain が何も落とさなくても notify する — **等価mutantでSURVIVEDする**: 呼び出し側が「見えている件数と内部の件数に差があるとき」だけ frame 後に呼ぶので、外しても無駄な notify が1回増えるだけで build↔notify のループにはならない(全件 test が完走)。M341 / M342 と同じ防御の重複として残す。独立review attempt 2 が設計した対照(ループの有無を見るために置いた)"
     }
   ]
 }

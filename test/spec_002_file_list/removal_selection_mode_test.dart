@@ -459,7 +459,7 @@ void main() {
     // 外す操作は**アイコン1つ**で、押せることは tooltip が言う(要望4)。
     expect(
       tester.widget<IconButton>(find.byKey(removalModeRemoveKey)).tooltip,
-      ' 選んだファイルをリネーム候補から外す'.trim(),
+      '選んだファイルをリネーム候補から外す',
     );
     // ケバブの文言は結果を名指しする。
     await openListMenu(tester);
