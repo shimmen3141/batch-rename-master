@@ -54,9 +54,10 @@
 ## Current state / handoff
 
 - Last checkpoint: `T30` の2回目の実機確認で受領した5点をtask化した(2026-09-19)
-- Blocker category: dependency(`T30` の merge 後に着手する。同じ file を触る)
+- Blocker category: none(`T30` は merge 済み。着手可能)
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: 未着手
-- Next Agent action: `T30` が merge されたら着手する。まず「ツノが右にずれて見える」原因を
-  実測で確かめる(アイコンの字面か、ツノの位置そのものか)
+- Next Agent action: 着手してよい。まず「ツノが右にずれて見える」原因を実測で確かめる
+  (アイコンの字面が枠の中で左寄りなのか、ツノの位置そのものか)。**`T31` と同じ file を
+  触る**ので、どちらかを先に終える
