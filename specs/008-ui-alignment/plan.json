@@ -32,6 +32,7 @@
     "tasks/T24-define-row-grouping",
     "tasks/T25-dismissible-toast",
     "tasks/T26-define-picker-state-restore",
-    "tasks/T27-define-removal-selection-mode"
+    "tasks/T27-define-removal-selection-mode",
+    "tasks/T28-implement-removal-selection-mode"
   ]
 }

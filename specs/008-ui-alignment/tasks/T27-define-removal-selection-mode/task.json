@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T27",
   "title": "まとめて外す導線(長押しの選択モード)を定義する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [],
   "covers": [],
   "issue": null,
