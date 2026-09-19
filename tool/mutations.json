@@ -1198,8 +1198,8 @@
     {
       "id": "M171",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "            child: RowPreviewView(file: row.source, preview: filePreview),",
-      "replace": "            child: RowPreviewView(file: row.source, preview: null),",
+      "find": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: filePreview,\n                    ),",
+      "replace": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: null,\n                    ),",
       "note": "008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加)"
     },
     {
@@ -1247,8 +1247,8 @@
     {
       "id": "M179",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  RowWarningView(\n                    warnings: warnings,\n                    onTap: onShowWarningDetail,\n                  ),\n",
-      "replace": "                  RowWarningView(warnings: warnings),\n",
+      "find": "                        RowWarningView(\n                          warnings: warnings,\n                          onTap: onShowWarningDetail,\n                        ),\n",
+      "replace": "                        RowWarningView(warnings: warnings),\n",
       "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
     },
     {
@@ -1464,8 +1464,8 @@
     {
       "id": "M218",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  RowWarningView(\n                    warnings: warnings,\n                    onTap: onShowWarningDetail,\n                  ),\n                  Text(\n                    row.currentName,",
-      "replace": "                  Text(\n                    row.currentName,",
+      "find": "                        RowWarningView(\n                          warnings: warnings,\n                          onTap: onShowWarningDetail,\n                        ),\n                        Text(\n                          row.currentName,",
+      "replace": "                        Text(\n                          row.currentName,",
       "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)"
     },
     {
@@ -1485,8 +1485,8 @@
     {
       "id": "M221",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  Text(\n                    row.currentName,\n                    maxLines: 1,",
-      "replace": "                  Text(\n                    row.currentName,\n                    maxLines: 4,",
+      "find": "                        Text(\n                          row.currentName,\n                          maxLines: 1,",
+      "replace": "                        Text(\n                          row.currentName,\n                          maxLines: 4,",
       "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
     },
     {
@@ -1975,8 +1975,8 @@
     {
       "id": "M291",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "            // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に\n            // あるファイルはすべて rename 対象で、外すのは選択モードである。\n            if (selecting)\n",
-      "replace": "            Checkbox(value: row.selected, onChanged: (_) {}),\n            if (selecting)\n",
+      "find": "          // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に\n          // あるファイルはすべて rename 対象で、外すのは選択モードである。\n          if (selecting)\n",
+      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n          if (selecting)\n",
       "note": "008:T04 通常表示の行へ checkbox を戻す — 002 REQ-016(通常表示の行UIは選択の切り替えを提示しない)が壊れる。**008:T28 で選択モードのcheckboxが入ったので、`find` をモード外の位置へ追随させた**"
     },
     {
@@ -2174,6 +2174,48 @@
       "find": "              onPressed: onExitRemovalMode,",
       "replace": "              onPressed: () {},",
       "note": "008:T28 モードをやめる操作を効かなくする — REQ-018 の「やめる操作」が見せかけになり、選択を破棄して戻れない(代表例 6i)"
+    },
+    {
+      "id": "M320",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      _selecting = false;\n      _marked.clear();",
+      "replace": "      _selecting = false;",
+      "note": "008:T28 やめるときに選択を破棄しない — REQ-018「モードをやめると選択は破棄される」(代表例6i)。**等価mutantでSURVIVEDする**: `_enterRemovalMode` 側の `clear()` が同じことを二重に保証しているため、外から観測できる振る舞いは変わらない。**安全網の穴ではなく防御の重複**なので、`clear()` を片方だけ残す形へは寄せない(独立review attempt 1 の N-3)"
+    },
+    {
+      "id": "M321",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      if (!_marked.remove(handle)) _marked.add(handle);",
+      "replace": "      _marked.add(handle);",
+      "note": "008:T28 行の選択が一方向になる(外せない) — REQ-018「各行が選択の切り替えを提示し」。件数を0件へ戻せず、外すbuttonが押せたまま残る。独立reviewが設計した対照"
+    },
+    {
+      "id": "M322",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    removeUndoably(context, widget.controller, () {\n      for (final handle in handles) {\n        widget.controller.removeFile(handle);\n      }\n    });",
+      "replace": "    for (final handle in handles) {\n      removeUndoably(\n        context,\n        widget.controller,\n        () => widget.controller.removeFile(handle),\n      );\n    }",
+      "note": "008:T28 まとめての除去を1件ずつ取り消せる形で出す — REQ-017/REQ-018「まとめて外した分は1回の取り消しで全件が元の位置へ戻る」(代表例6h)が壊れ、最後の1件しか戻らない。**まとめて外す実装で最もありうる誤り**なので M315(setFiles版)と別に要る。独立reviewが設計した対照"
+    },
+    {
+      "id": "M323",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              onTap: selecting ? onToggleMark : null,",
+      "replace": "              onTap: onToggleMark,",
+      "note": "008:T28 通常表示の行tapでも外す候補が溜まる — REQ-016(通常表示は除去操作を提示しない)。スクロールの誤tapが候補になり、モードへ入った瞬間に身に覚えのない件数が出る(独立review attempt 1 の N-1。代表例6eのtestへ「入り直して0件」を足して閉じた)"
+    },
+    {
+      "id": "M324",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              onLongPress: selecting ? null : onLongPressEnter,",
+      "replace": "              onLongPress: onLongPressEnter,",
+      "note": "008:T28 モード中の長押しで選択が1件へ巻き戻る — 利用者の操作なしに選んだ分が失われる(独立review attempt 1 の N-2)"
+    },
+    {
+      "id": "M325",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          if (showDragHandle)\n            ReorderableDragStartListener(\n              index: index,\n              child: Padding(\n                padding: const EdgeInsets.only(left: 8),\n                child: Icon(\n                  Icons.drag_handle,\n                  size: 18,\n                  color: colors.textMuted,\n                ),\n              ),\n            ),",
+      "replace": "          if (showDragHandle)\n            GestureDetector(\n              behavior: HitTestBehavior.opaque,\n              onLongPress: selecting ? null : onLongPressEnter,\n              child: ReorderableDragStartListener(\n                index: index,\n                child: Padding(\n                  padding: const EdgeInsets.only(left: 8),\n                  child: Icon(\n                    Icons.drag_handle,\n                    size: 18,\n                    color: colors.textMuted,\n                  ),\n                ),\n              ),\n            ),",
+      "note": "008:T28 つまみの上の長押しも行の長押しへ渡す — 0.5秒以上保持してからドラッグすると、長押しが gesture arena を勝って選択モードが開き、`showDragHandle` が false になって**つまみが消え、掴んだままの指では並び替えを始められない**(REQ-003/REQ-014)。独立review attempt 1 の P1-1(実測: 450ms=並び替わる / 520ms=モード)"
     }
   ]
 }

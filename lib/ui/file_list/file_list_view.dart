@@ -180,9 +180,18 @@ class _FileListViewState extends State<FileListView> {
         };
         final marked = _marked.intersection(removable);
         // **一覧が空ならモードは成り立たない**(選ぶものが無く、REQ-018 の入口も
-        // 「一覧が空でない間」である)。`setState` はここで呼べないので、
-        // 描画の側で畳む — 次の操作で `_exitRemovalMode` が状態も片付ける。
+        // 「一覧が空でない間」である)。描画を畳むだけでなく、**状態も片付ける**。
+        //
+        // 畳んだ画面にはヘッダの × が無いので、**利用者には片付ける手段が無い**。
+        // 状態を残すと「一覧を空にする → 元に戻す」で**誰も押していないのに
+        // モードが戻り、前の外す候補が選択済みで復活する**(独立reviewが製品構成で
+        // 実測した)。`build` の中では `setState` を呼べないので frame の後に回す。
         final selecting = _selecting && rows.isNotEmpty;
+        if (_selecting && rows.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _selecting) _exitRemovalMode();
+          });
+        }
         return PopScope(
           // 端末の戻るは**モードをやめる**に使う(画面を閉じない)。REQ-018 の
           // 「やめる操作」はヘッダの × が満たすが、選択モードから戻るの期待は強い。
@@ -822,7 +831,7 @@ class _HeaderBar extends StatelessWidget {
   /// いま外す候補として選ばれている件数。
   final int markedCount;
 
-  /// モードへ入る(入口(b))。外せる行が無ければ `null`。
+  /// モードへ入る(入口(b))。**一覧が空なら** `null`(外せる行の有無では変えない)。
   final VoidCallback? onEnterRemovalMode;
 
   /// モードをやめる。**一覧は変わらない**(代表例 6i)。
@@ -1158,119 +1167,138 @@ class _FileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final handle = row.source.sourceHandle;
-    return GestureDetector(
-      // 行の余白でも反応させる(名前の文字の上だけ、にしない)。
-      behavior: HitTestBehavior.opaque,
-      // **長押しは通常表示だけ**(モード中は既に入っている)。
-      onLongPress: selecting ? null : onLongPressEnter,
-      // **モード中の tap は選択の切り替え**。通常表示では行 tap に意味を持たせない
-      // (誤って外す操作へ繋げない)。
-      onTap: selecting ? onToggleMark : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colors.border)),
-        ),
-        child: Row(
-          children: [
-            // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に
-            // あるファイルはすべて rename 対象で、外すのは選択モードである。
-            if (selecting)
-              Padding(
-                padding: const EdgeInsets.only(right: 2),
-                child: onToggleMark == null
-                    // 外せない行(元場所ハンドルが無い)。**幅だけ残す** —
-                    // 行頭が揃わないと、選べない行が「ずれた行」に見える。
-                    ? const SizedBox(width: 24, height: 24)
-                    : Checkbox(
-                        key: removalMarkKeyOf(handle!),
-                        value: marked,
-                        onChanged: (_) => onToggleMark!(),
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-              ),
-            //
-            // 中身が見える行にする(参考designのリッチな行)。preview を出せない
-            // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
-            // 開始位置も揃う。
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.border)),
+      ),
+      child: Row(
+        children: [
+          // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に
+          // あるファイルはすべて rename 対象で、外すのは選択モードである。
+          if (selecting)
             Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: RowPreviewView(file: row.source, preview: filePreview),
+              padding: const EdgeInsets.only(right: 2),
+              child: onToggleMark == null
+                  // 外せない行(元場所ハンドルが無い)。**幅だけ残す** —
+                  // 行頭が揃わないと、選べない行が「ずれた行」に見える。
+                  ? const SizedBox(width: 24, height: 24)
+                  : Checkbox(
+                      key: removalMarkKeyOf(handle!),
+                      value: marked,
+                      onChanged: (_) => onToggleMark!(),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
             ),
-            // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
-            //
-            // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
-            // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
-            // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+          // **長押しはここ(preview と名前の範囲)だけで受ける。**
+          //
+          // 行ごと包むと、**つまみの上の長押しも行が取る**。長押しは 500ms で
+          // gesture arena を勝つので、つまみを掴んで少し止めただけで選択モードが
+          // 開き、`showDragHandle` が false になって**つまみが消え、掴んだままの
+          // 指では並び替えを始められない**(独立reviewが実測: 450ms は並び替わり、
+          // 520ms でモードが開いた)。長押ししてからドラッグするのは Android の
+          // 既定の並び替え操作なので、REQ-003 / REQ-014 の導線が壊れる。
+          Expanded(
+            child: GestureDetector(
+              // 名前の文字の上だけ、にしない(この範囲の余白でも反応する)。
+              behavior: HitTestBehavior.opaque,
+              // **長押しは通常表示だけ**(モード中は既に入っている)。
+              onLongPress: selecting ? null : onLongPressEnter,
+              // **モード中の tap は選択の切り替え**。通常表示では行 tap に意味を
+              // 持たせない(誤って外す操作へ繋げない)。
+              onTap: selecting ? onToggleMark : null,
+              child: Row(
                 children: [
-                  // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
-                  // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
-                  // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
-                  // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
-                  // コンパクト案は上の行に `text-align:right` で置いている)。
+                  // 中身が見える行にする(参考designのリッチな行)。preview を出せない
+                  // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
+                  // 開始位置も揃う。
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: RowPreviewView(
+                      file: row.source,
+                      preview: filePreview,
+                    ),
+                  ),
+                  // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
                   //
-                  // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
-                  // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
-                  // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
-                  // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
-                  // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
-                  RowWarningView(
-                    warnings: warnings,
-                    onTap: onShowWarningDetail,
-                  ),
-                  Text(
-                    row.currentName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: colors.textPrimary, fontSize: 13),
-                  ),
-                  // 「現在名 → 変更後名」という読み方は矢印で残す。
-                  Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Icon(
-                          Icons.arrow_forward,
-                          size: 12,
-                          color: colors.textMuted,
+                  // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
+                  // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
+                  // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
+                        // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
+                        // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
+                        // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
+                        // コンパクト案は上の行に `text-align:right` で置いている)。
+                        //
+                        // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
+                        // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
+                        // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
+                        // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
+                        // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
+                        RowWarningView(
+                          warnings: warnings,
+                          onTap: onShowWarningDetail,
                         ),
-                      ),
-                      Expanded(
-                        child: _NewName(
-                          row: row,
-                          ruleIsEmpty: ruleIsEmpty,
-                          hasWarning: warnings.isNotEmpty,
+                        Text(
+                          row.currentName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  _DateSubInfo(
-                    file: row.source,
-                    sortMode: sortMode,
-                    showLocation: showLocation,
+                        // 「現在名 → 変更後名」という読み方は矢印で残す。
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(
+                                Icons.arrow_forward,
+                                size: 12,
+                                color: colors.textMuted,
+                              ),
+                            ),
+                            Expanded(
+                              child: _NewName(
+                                row: row,
+                                ruleIsEmpty: ruleIsEmpty,
+                                hasWarning: warnings.isNotEmpty,
+                              ),
+                            ),
+                          ],
+                        ),
+                        _DateSubInfo(
+                          file: row.source,
+                          sortMode: sortMode,
+                          showLocation: showLocation,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            if (showDragHandle)
-              ReorderableDragStartListener(
-                index: index,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.drag_handle,
-                    size: 18,
-                    color: colors.textMuted,
-                  ),
+          ),
+          if (showDragHandle)
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(
+                  Icons.drag_handle,
+                  size: 18,
+                  color: colors.textMuted,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

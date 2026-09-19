@@ -112,6 +112,81 @@ void main() {
     expect(c.sortMode, FileSortMode.custom);
   });
 
+  testWidgets('つまみを長押ししてからドラッグしても並び替えができる(REQ-003/REQ-014)', (tester) async {
+    // **長押ししてからドラッグは Android の既定の並び替え操作**である。行ごと
+    // 長押しで包むと、つまみの上の長押しも行が取り、500ms で選択モードが開いて
+    // `showDragHandle` が false になる — **つまみが消えて、掴んだままの指では
+    // 並び替えを始められない**(独立reviewが実測: 450ms は並び替わり、520ms で
+    // モードが開いた)。`pump(250ms)` で動かす既存の並び替えtestはこの手前を通る。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    final handle = tester.getCenter(find.byIcon(Icons.drag_handle).first);
+    final gesture = await tester.startGesture(handle);
+    // **長押しの閾値(500ms)を越えて保持する。**
+    await tester.pump(const Duration(milliseconds: 800));
+    await gesture.moveBy(const Offset(0, 70));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 70));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // 並び替わっている(a が下がった)。
+    expect(c.items.first.name, isNot('a.txt'));
+    // **選択モードは開いていない。**
+    expect(find.byKey(removalModeCountKey), findsNothing);
+  });
+
+  testWidgets('一覧が空になってから戻っても、モードは復活しない(REQ-018)', (tester) async {
+    // 畳んだ画面にはヘッダの × が無いので、**利用者には片付ける手段が無い**。
+    // 状態を残すと「一覧を空にする → 元に戻す」で誰も押していないのにモードが
+    // 戻り、前の外す候補が選択済みで復活する(独立reviewが製品構成で実測した)。
+    final files = _abc();
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+    await tester.longPress(find.text('b.txt'));
+    await tester.pump();
+    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '1 件');
+
+    c.setFiles(const []);
+    await tester.pumpAndSettle();
+    // 取り消しで元の一覧が戻る(002 代表例 6d)。
+    c.setFiles(files);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(removalModeCountKey), findsNothing);
+    expect(find.byKey(removalModeEnterKey), findsOneWidget);
+    // **前の候補も残っていない。**
+    await enterRemovalMode(tester);
+    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
+  });
+
+  testWidgets('モード中の長押しでは選択が巻き戻らない(REQ-018)', (tester) async {
+    // 長押しは「入る」操作なので、既に入っているところで効くと**選んだ分が
+    // その1件へ上書きされる**(利用者の操作なしに選択が失われる)。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+    await toggleRemovalMark(tester, 'h:c');
+
+    await tester.longPress(find.text('b.txt'));
+    await tester.pumpAndSettle();
+
+    // **モード中の長押しは tap として通る**(切り替えになる)。それはよい。
+    // 起きてはいけないのは、**選んだ2件が捨てられてこの1件だけになる**ことである。
+    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '3 件');
+    expect(
+      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).value,
+      isTrue,
+    );
+    expect(
+      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:c'))).value,
+      isTrue,
+    );
+  });
+
   testWidgets('選んだ2件をまとめて外し、モードを抜ける(REQ-018・代表例6g)', (tester) async {
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
@@ -259,6 +334,11 @@ void main() {
 
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
     expect(find.byKey(removalModeCountKey), findsNothing);
+    // **溜めてもいない。** 一覧が変わらないだけでは足りない — 通常表示の tap が
+    // 候補を足していると、モードへ入った瞬間に身に覚えのない件数が出る
+    // (スクロール中の誤 tap がそのまま候補になる。独立reviewの N-1)。
+    await enterRemovalMode(tester);
+    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
   });
 
   testWidgets('モード中に一覧が空になったら通常表示へ戻る(REQ-018)', (tester) async {
