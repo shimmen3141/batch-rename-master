@@ -94,9 +94,9 @@ widget testで確かめたのは、代表例 6e〜6j、入口2系統、0 件で�
 - `flutter test` **PASS(912)**。新規は `test/spec_002_file_list/removal_selection_mode_test.dart`(20件。
   代表例 6e〜6j と、入口2系統・0件・モード中の並び替え・件数の食い違い・戻る)。
 - `flutter analyze` PASS / `dart format` PASS。
-- `mutation_check.py` は**表全体で 316 件・異常0**(独立reviewが設計した対照 M320〜M325 を含む)。`T28` 周辺へ範囲を絞って回した 37 件は
-  **36 KILLED / 1 SURVIVED**で、SURVIVED は既知の `M221`(現行名の行数上限。
-  **残余riskとして受容済みで引き受け先は `T10`**)だけである。新規の M305〜M319 はすべて KILLED。
+- `mutation_check.py` は**表全体で 317 件・異常0**(独立reviewが設計した対照 M320〜M326 を含む)。
+  **実行結果は下の「mutation」節が正本である** — この行にあった「37 件 / 36 KILLED」は
+  **attempt 1 の修正より前の測定**だったので消した(attempt 2 の P3-2)。
 - **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
 
 ### 既存testの付け替え
@@ -139,6 +139,22 @@ testごとに書き写すと、次に導線が変わったとき一部だけ古�
     (REQ-004 / 005 REQ-026)と混ざっていない。004 REQ-006 の除去は UI から辿れる。
     付け替えた `widget_test.dart` は viewport 依存が消えて**以前より強い**。
 
+- Review attempt 2: `dev...6ef942b` — **PASS**(Opus。同じworktree)。成果物の欠陥 P0/P1 は無い。
+  reviewerが実測で確かめた点: つまみを 200 / 450 / 520 / 800 / 1500ms 保持してから
+  ドラッグすると**すべて並び替わり、選択モードは一度も開かない**(P1-1 の修正が効いている)。
+  P2-1 の修正に副作用なし(連続 `setFiles`、同一frameの空→再充填、dispose 競合、
+  自己再呼び出し、pending timer / exception のいずれも問題なし)。`M320` / `M323` の
+  等価主張は正しい。× は `lib/` から完全に消えている。付け替えた既存testは緩んでいない。
+  - **P2-1(記録)**: 上記のとおり `M312` は等価mutantではない → **testで閉じた**(KILLED)。
+  - **P3-1(表の穴)**: frame 後の片付けに対応する対照が無かった → **`M326` を取り込んだ**(KILLED)。
+  - **P3-2 / P3-3(記録)**: 「検証」節の古い mutation の数字と、`lib/main.dart` の
+    古い注記(「行の ×」)を直した。
+  - **P3-4(残余risk・引き受け先 `T10`)**: 長押しは**行の外側 padding**(左右12px・上下6px)と
+    **つまみの左8px** では効かない。入口(a) は行の大部分(preview + 名前の列)で成立し、
+    入口(b) も常設なので REQ-018 の到達可能性は壊れていない。行全体を当たり判定に
+    したいなら `padding` を `GestureDetector` の内側へ移すだけで済むが、
+    余白と押しやすさは `T10` とmanual確認の担当である。
+
 ### mutation(修正後。2026-09-19)
 
 範囲を絞って26件 → **20 KILLED / 6 SURVIVED**。SURVIVED を全件で確かめ直した結果:
@@ -146,20 +162,27 @@ testごとに書き写すと、次に導線が変わったとき一部だけ古�
 - **M179 / M218 は全件で KILLED**(killする test が `test/spec_005_rename_exec` にあり、
   絞った範囲から外れていただけである)。
 - **M221** は既知で、**残余riskとして受容済み・引き受け先は `T10`**。
-- **M312 / M320 / M323 は等価mutant**で、全件でも SURVIVED する。いずれも
-  **防御が二重にある**ためで、外から見える振る舞いは変わらない。
-  - M312(空でもモードのまま): frame 後の `_exitRemovalMode` が同じ結果を保証する。
+- **M312 は等価mutantではなかった**(attempt 2 の訂正。**私の記録が誤っていた**)。
+  frame 後の片付けがあるので差は**1 frame**だが、`pumpAndSettle` の前に `pump()` を
+  1回入れれば「空の一覧に選択モードのヘッダが残る」ことを観測できる。
+  **testをその形へ直して閉じた** → 現在は **KILLED**。畳み込み(1 frame目)と
+  片付け(frame の後)は役割が違うので両方残す。
+- **M320 / M323 は等価mutant**で、全件でも SURVIVED する。**防御が二重にある**ためで、
+  外から見える振る舞いは変わらない(attempt 2 が独立に確かめた — `selecting` が真になる
+  経路は必ず `_enterRemovalMode` = `clear()` を通り、`onRemoveMarked` は `selecting` の
+  ときしか使われないので、通常表示で溜まった候補が漏れる経路が無い)。
   - M320(やめるときに選択を破棄しない): `_enterRemovalMode` 側の `clear()` が保証する。
   - M323(通常表示のtapで候補が溜まる): 同じ `clear()` が入る瞬間に捨てる。
-    **独立reviewの N-1 はこの clear を見落としていた**(現物の振る舞いは変わらない)。
-  **薄いほうへ寄せない** — どれも外したら「外す候補が漏れる」側へ倒れる。
+    **attempt 1 の N-1 はこの clear を見落としていた**(現物の振る舞いは変わらない)。
+  **薄いほうへ寄せない** — どちらも外したら「外す候補が漏れる」側へ倒れる。
   観測可能にするために防御を1本に減らすのは、この保証では逆である。
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 の P1-1 / P2-1 / P3 を直した(2026-09-19)
+- Last checkpoint: 独立review attempt 2 が PASS し、その指摘(M312 の閉じ込め・M326・記録2件)も反映した(2026-09-19)
 - Blocker category: manual(実機確認待ち)
-- Waiting for: 独立review attempt 2 と、Android実機での manual 確認
-- Requested action: attempt 2 が PASS したら [`manual-verification.md`](manual-verification.md) を依頼する
+- Waiting for: Android実機での manual 確認
+- Requested action: [`manual-verification.md`](manual-verification.md) の手順1〜6(確認Eを含む)
 - Evidence revision: 未取得(実機証拠はまだ無い)
-- Next Agent action: attempt 2 を走らせ、PASSならPRをready化して manual 確認を依頼する
+- Next Agent action: manual 確認の結果を受け取って `task.md` へ記録し、成立していればmergeする。
+  **待機中はこのworktreeのbranchとcommitを動かさない**
