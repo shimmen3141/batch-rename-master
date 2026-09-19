@@ -79,12 +79,96 @@
 - `flutter test` / `flutter analyze` / `dart format` / `mutation_check.py` が PASS。
 - Android実機での manual 確認(`manual-verification.md` を作る。`T32` と同じ回にまとめる)。
 
+## 実装(2026-09-19)
+
+### 決めたこと
+
+- **枠の残し方は `IndexedStack` である。** `if (!selecting)` で button を外すと、
+  枠(縦 padding 8 + 枠線を持つ `OutlinedButton`)が丸ごと消えて帯が場所のラベルの高さまで縮み、
+  **下の一覧が跳ねる**。`IndexedStack` は**出していない側も layout する**ので、
+  高さも幅も両方の max で固定される。
+  **`Visibility(maintainSize:)` ではなくこちらにした理由**は、吹き出しを
+  「もう一方の状態」として同じ枠に入れられるからである(枠を空で確保してから
+  別の場所に吹き出しを作る、という二度手間が要らない)。
+- **`find.byKey` の見え方は変わらない。** `IndexedStack` の出していない側は
+  描画・hit test・semantics のいずれからも辿れないので、既定の finder から見つからない。
+  **`T29` の「モード中は `別フォルダへ` を出さない」test はそのままの形で通る**
+  (`skipOffstage: false` にして初めて見える)。M332 は `if (!selecting)` から
+  `index` へ再アンカーした。
+- **ツノの合わせ方は「右端合わせ」ではなく「共有した数」にした。** 当初の推奨は
+  右端合わせだったが、**外すアイコンは右端ではない**(右端はケバブである)。
+  [`header_metrics.dart`](../../../../lib/ui/file_list/header_metrics.dart) に
+  ヘッダの padding・アイコンの枠・ケバブの枠を置き、帯とヘッダの両方がそれを使う。
+  **合っているかは widget test が実測する**(ツノの中心 == アイコンの中心)ので、
+  数が実体とずれたら落ちる(対照は M354)。
+- **吹き出しは常にモード中に出す**(状態を持たない)。「一度見たら出さない」は
+  `007` の保存schemaを増やすので採らなかった。
+- **`GlobalKey` でアイコンを実測しない**(案2)。測る前の1 frameで位置がずれ、
+  文字倍率や再buildのたびに測り直すことになる。
+
+### 参考にした原文から離れた点
+
+**文言を「押すとリネームリストから外されます。」から「押すと一覧から外れます。」へ縮めた。**
+3行になると吹き出しが `別フォルダへ` の枠(40)より高くなり、**通常表示の帯まで太る** —
+高さを揃えるために吹き出しは通常表示でも layout されるので、高いほうが帯の高さを決める。
+実測で 1回この状態を作ってしまい(帯が 64 → 75 へ)、字を 10px・幅を 156・2行へ収めて戻した。
+**「ファイルは削除されません。」は落としていない**(005 / 013 の境界そのもの)。
+何の一覧かはヘッダの `〇件選択中` とアイコンの tooltip が示す。
+**この置き換えが妥当かは実機で見てもらう。**
+
+### 残したコスト
+
+**通常表示でも帯の末尾の枠が `別フォルダへ`(320dpで約133)から吹き出しの幅(156)へ広がり、
+場所の取り分が約23px 減る。** 吹き出しを layout しないと高さを揃えられないためである。
+320dp では場所の幅が約155 → 約132になる(先頭省略・末尾優先は `008:T23` のまま)。
+**帯の高さは変わっていない**(65のまま)。
+
+## 検証(2026-09-19)
+
+- `flutter test` **PASS(924)**(`T30` で3本追加) / `flutter analyze` PASS / `dart format` PASS。
+- `workspace.py check specs` PASS(8 plans, 86 tasks)。
+- `mutation_check.py`: 表は**345件**(M349〜M354 を追加、M332 を再アンカー、M353 を文言へ追随)。
+  **全件の find が1回ずつ一致する**(異常0)。
+- **実機buildはAI containerで実行できない**(Android SDK 無し)。manual確認が要る。
+
+### mutation の生出力
+
+`test/spec_004_file_source` と `test/spec_002_file_list` へ範囲を絞って実行した
+(M353 だけ find の直し後に `test/spec_004_file_source` で再実行)。**SURVIVED は無いので
+全件での確かめ直しは要らない。**
+
+```
+command: flutter test test/spec_004_file_source test/spec_002_file_list
+M332 | KILLED | モード中も `別フォルダへ` を出す(再アンカー)
+M333 | KILLED | 帯が選択モードを読まない
+M349 | KILLED | モード中は `別フォルダへ` の枠を layout しない
+M350 | KILLED | 空いた枠に吹き出しを出さない
+M351 | KILLED | ツノを吹き出しの右端へ寄せる
+M352 | KILLED | ツノの幅の半分を引かない
+M354 | KILLED | 外すアイコンの tap target だけ広げる
+8 mutations: 7 KILLED, 0 SURVIVED, 1 SKIPPED
+```
+
+```
+command: flutter test test/spec_004_file_source
+M353 | KILLED | 「ファイルは削除されません」を落とす
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+**最初の実行で M349 と M354 が SURVIVED した。**どちらも**本物の穴ではなく、
+実装のほうが間違っていた**:
+
+- `M349`: 吹き出しが button より高かったので、button を layout から外しても高さが
+  変わらなかった。**帯が通常表示でも11px太っていた**ということで、文言と字を縮めて直した。
+- `M354`: `headerIconExtent` を両側で変える mutant にしていたため、**ずれようがなかった**。
+  片側(ヘッダの `visualDensity`)だけ動かす対照へ差し替えた。
+
 ## Current state / handoff
 
-- Last checkpoint: `T29` の実機確認で受領した2件をtask化した(2026-09-19)
-- Blocker category: none
+- Last checkpoint: 実装と機械検証が揃った(2026-09-19)
+- Blocker category: none(次は独立review)
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: 未着手
-- Next Agent action: 着手時に「ツノをどう合わせるか」を決め(推奨は右端合わせ)、
-  帯の枠の確保 → 吹き出し → 高さの test の順に進める
+- Evidence revision: 未取得(実機)
+- Next Agent action: 独立reviewを回し、PASS したら `T32` を同じ branch へ足して
+  実機確認を1回にまとめる
