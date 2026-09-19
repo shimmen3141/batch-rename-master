@@ -348,6 +348,12 @@ void main() {
     await enterRemovalMode(tester);
 
     c.setFiles(const []);
+    // **最初の frame から通常表示である。** frame の後の片付けだけに頼ると、
+    // 空の一覧に選択モードのヘッダが1 frame残る(独立review attempt 2 が
+    // `M312` を `pump()` 一発で落とせると示した)。畳み込みと片付けの両方を見る。
+    await tester.pump();
+    expect(find.byKey(removalModeCountKey), findsNothing);
+
     await tester.pumpAndSettle();
 
     expect(find.byKey(removalModeCountKey), findsNothing);

@@ -2124,7 +2124,7 @@
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "        final selecting = _selecting && rows.isNotEmpty;",
       "replace": "        final selecting = _selecting;",
-      "note": "008:T28 一覧が空でもモードのままにする — 選ぶものが無いモードに閉じ込められる(REQ-018 の入口は「一覧が空でない間」)。**独立review attempt 1 の P2-1 を直した後は等価mutantでSURVIVEDする**: frame の後に `_exitRemovalMode` が走るので、描画側の畳み込みを外しても差は1 frame のちらつきだけになる。**防御の重複**なので畳み込みは残す(全件で確認: 2026-09-19)"
+      "note": "008:T28 一覧が空でもモードのままにする — 選ぶものが無いモードに閉じ込められる(REQ-018 の入口は「一覧が空でない間」)。**等価mutantではない**(独立review attempt 2 の訂正): frame 後の `_exitRemovalMode` が片付けるので差は**1 frame**だが、`pumpAndSettle` の前に `pump()` を1回入れれば観測できる。testをその形へ直して閉じた。畳み込みと片付けは**役割が違う**(描画の畳み込みが1 frame目、片付けが frame の後)ので両方残す"
     },
     {
       "id": "M313",
@@ -2216,6 +2216,13 @@
       "find": "          if (showDragHandle)\n            ReorderableDragStartListener(\n              index: index,\n              child: Padding(\n                padding: const EdgeInsets.only(left: 8),\n                child: Icon(\n                  Icons.drag_handle,\n                  size: 18,\n                  color: colors.textMuted,\n                ),\n              ),\n            ),",
       "replace": "          if (showDragHandle)\n            GestureDetector(\n              behavior: HitTestBehavior.opaque,\n              onLongPress: selecting ? null : onLongPressEnter,\n              child: ReorderableDragStartListener(\n                index: index,\n                child: Padding(\n                  padding: const EdgeInsets.only(left: 8),\n                  child: Icon(\n                    Icons.drag_handle,\n                    size: 18,\n                    color: colors.textMuted,\n                  ),\n                ),\n              ),\n            ),",
       "note": "008:T28 つまみの上の長押しも行の長押しへ渡す — 0.5秒以上保持してからドラッグすると、長押しが gesture arena を勝って選択モードが開き、`showDragHandle` が false になって**つまみが消え、掴んだままの指では並び替えを始められない**(REQ-003/REQ-014)。独立review attempt 1 の P1-1(実測: 450ms=並び替わる / 520ms=モード)"
+    },
+    {
+      "id": "M326",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        if (_selecting && rows.isEmpty) {\n          WidgetsBinding.instance.addPostFrameCallback((_) {\n            if (mounted && _selecting) _exitRemovalMode();\n          });\n        }\n",
+      "replace": "",
+      "note": "008:T28 frame 後の `_exitRemovalMode` を除去する — 描画だけを畳んで状態を残すと、「一覧を空にする → 元に戻す」で誰も押していないのにモードが戻り、前の外す候補が選択済みで復活する(畳んだ画面にはヘッダの × が無いので片付ける手段が無い)。独立review attempt 1 の P2-1 そのもの。**attempt 2 が設計した対照**"
     }
   ]
 }
