@@ -135,11 +135,27 @@ reviewer の対照 `M362`(既定の長押しドラッグを戻す)を表へ取�
 - 同じ瞬間に `HapticFeedback.selectionClick()` を1回鳴らす。**離すときには鳴らさない**
   (対照は `M370`)。
 
-## Current state / handoff
+## 独立review(2026-09-19)
 
-- Last checkpoint: 色のタイミングを「触れた瞬間」へ直し、一拍の振動を足した(2026-09-19)
-- Blocker category: none(次は独立review attempt 2)
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: 未取得(実機。**1回目の証拠は `lib/` が動いたので失効した**)
-- Next Agent action: `T30` とまとめて独立reviewを回し、PASS したら2回目の実機確認を依頼する
+`T30` と同じ範囲をまとめて4回見た。結果と生出力は
+[`T30` の task.md](../T30-selection-bar-height-and-hint/task.md)にある。
+
+**`T32` に対する指摘は4回とも0件である。** reviewer が確かめた点:
+触れた瞬間(`onPointerDown`)に色と振動が出る、**離すときには鳴らない**(`hasLength(1)`)、
+`selectedSurface` とは実値も別、`proxyDecorator` が同じ色を引き継ぐ、影は残る、
+`reorder → custom` の自動切替は無改変、**掴む(つまみ)と選ぶ(モード)は
+コード構造上同時に起こり得ない**(`selecting` 中は `ReorderableDragStartListener` 自体が出ない)。
+
+**ただし `T30` と同じ PR に載っているので、単独では進められない。**
+`T30` が `blocked`(吹き出しの作り方の判断待ち)である間、実機確認も merge も待つ。
+**切り離して先に出すこともできる**(このbranchから `T32` の差分だけを取り出す) —
+`T32` は `file_list_view.dart` の `proxyDecorator` と `_FileRow` だけを触る。
+
+## Current state / handoff## Current state / handoff
+
+- Last checkpoint: 独立reviewを4回通過(指摘0件)。`T30` の判断待ちで止まっている(2026-09-19)
+- Blocker category: dependency(`T30` が `blocked`。同じ PR に載っている)
+- Waiting for: `T30` の吹き出しの作り方の判断
+- Requested action: なし(`T30` 側で一問返している)
+- Evidence revision: 未取得(実機)
+- Next Agent action: `T30` の判断を受けて一緒に進める。急ぐなら**切り離して先に出せる**
