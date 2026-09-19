@@ -35,7 +35,12 @@ Future<FileListController> _pump(
   WidgetTester tester, {
   double scale = 1.0,
 }) async {
-  final controller = FileListController(files: [_entry('a.jpg')]);
+  // **ルールを入れておく。** 空だと「ルール未設定」の帯が一覧の上に出て、行の位置が
+  // 実利用と変わる(吹き出しが行に重なるかどうかがここで変わる)。
+  final controller = FileListController(
+    files: [_entry('a.jpg')],
+    rule: const RenameRule([OriginalNameToken()]),
+  );
   final shared = RemovalSelection();
   await tester.pumpWidget(
     MaterialApp(
@@ -226,6 +231,49 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(removalHintKey), findsNothing);
+  });
+
+  testWidgets(
+    '下へ回っても、重なった行のcheckboxが押せる(008:T30 independent review attempt 3)',
+    (tester) async {
+      // **`Text` は `hitTestSelf` が常に `true`** で、描画範囲のtapを無条件に吸う。
+      // 飾りを素通しにしないと、吹き出しに重なった行が**押しても反応しない**まま
+      // 3秒間続く。エラーも出ないので、利用者からは壊れて見える。
+      await tester.binding.setSurfaceSize(const Size(320, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pump(tester, scale: 3.0);
+      await enterRemovalMode(tester);
+      await tester.pump();
+
+      // 下へ回っていて、行の選択の切り替えと重なっている状況を作れていることを確かめる。
+      expect(_tailPointsUp(tester), isTrue);
+      final hint = tester.getRect(find.byKey(removalHintKey));
+      final mark = tester.getRect(find.byKey(removalMarkKeyOf('h:a.jpg')));
+      expect(hint.overlaps(mark), isTrue);
+
+      await tester.tap(find.byKey(removalMarkKeyOf('h:a.jpg')));
+      await tester.pump();
+
+      expect(removalModeCountText(tester), '1件選択中');
+    },
+  );
+
+  testWidgets('入り直すと向きを選び直す(下へ回ったままにしない)', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(tester, scale: 3.0);
+    await enterRemovalMode(tester);
+    await tester.pump();
+    expect(_tailPointsUp(tester), isTrue);
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+    // 文字を小さくして入り直すと、上に収まるので**上へ戻る**。
+    await _pump(tester, scale: 1.0);
+    await enterRemovalMode(tester);
+    await tester.pump();
+
+    expect(_tailPointsUp(tester), isFalse);
   });
 
   testWidgets('入り直すとまた出る', (tester) async {

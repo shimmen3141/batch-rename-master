@@ -2402,8 +2402,8 @@
     {
       "id": "M352",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                            removalHintTailInsetFromRight -\n                            removalHintCloseDiameter / 2 -\n                            removalHintTailWidth / 2,",
-      "replace": "                            removalHintTailInsetFromRight -\n                            removalHintCloseDiameter / 2,",
+      "find": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2 -\n                              removalHintTailWidth / 2,",
+      "replace": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2,",
       "note": "008:T30 ツノの幅の半分を引かない — 中心ではなく左端がアイコンの中心に来る(7px ずれる)。小さいズレを見ているかの対照"
     },
     {
@@ -2493,8 +2493,8 @@
     {
       "id": "M367",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                      borderRadius: BorderRadius.circular(8),\n                    ),",
-      "replace": "                      borderRadius: BorderRadius.circular(8),\n                      border: Border.all(color: colors.onPrimary),\n                    ),",
+      "find": "                        borderRadius: BorderRadius.circular(8),\n                      ),",
+      "replace": "                        borderRadius: BorderRadius.circular(8),\n                        border: Border.all(color: colors.onPrimary),\n                      ),",
       "note": "008:T30 箱に枠線を引く — 箱とツノの継ぎ目が線になって見える(2026-09-19 の2回目の実機確認。原文「ツノと長方形の間に境界線が入っていて、きれいな吹き出しではありません」)"
     },
     {
@@ -2556,9 +2556,37 @@
     {
       "id": "M376",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                verticalDirection: below\n                    ? VerticalDirection.up\n                    : VerticalDirection.down,",
-      "replace": "                verticalDirection: VerticalDirection.down,",
+      "find": "                  verticalDirection: below\n                      ? VerticalDirection.up\n                      : VerticalDirection.down,",
+      "replace": "                  verticalDirection: VerticalDirection.down,",
       "note": "008:T30 下へ回しても箱とツノの並び順を入れ替えない — ツノがアイコンと反対側(箱の下)に出る"
+    },
+    {
+      "id": "M377",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    _below = false;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "replace": "    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "note": "008:T30 出し直すときに向きをリセットしない — 一度下へ回ると、文字を小さくして入り直しても下に出たまま行を覆う(独立review attempt 3 が設計)"
+    },
+    {
+      "id": "M378",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "      if (!mounted || !widget.visible || _entry != null) return;",
+      "replace": "      if (!widget.visible || _entry != null) return;",
+      "note": "008:T30 insert 前の `mounted` guard を外す — **SURVIVED のまま残す対照**: この callback が走る前に木ごと捨てられる経路が実際には無い(独立review attempt 3 が設計・確認)。guard は残す"
+    },
+    {
+      "id": "M379",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "  void _flipIfClipped() {\n    if (!mounted || _below || _entry == null) return;",
+      "replace": "  void _flipIfClipped() {\n    if (_below || _entry == null) return;",
+      "note": "008:T30 向きを決める側の `mounted` guard を外す — **SURVIVED のまま残す対照**: `dispose` が同期的に `_entry = null` にするので `_entry == null` が既に守っている(独立review attempt 3 が設計・確認)"
+    },
+    {
+      "id": "M380",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "            IgnorePointer(",
+      "replace": "            Offstage(\n              offstage: false,\n              child:",
+      "note": "008:T30 吹き出しの飾りが pointer を取る — `Text` は `hitTestSelf` が常に `true` なので、下へ回った吹き出しに重なった行が**押しても反応しない**まま3秒続く。エラーも出ない(独立review attempt 3 の P1 そのもの)"
     }
   ]
 }

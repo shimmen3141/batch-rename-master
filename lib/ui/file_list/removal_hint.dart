@@ -224,69 +224,76 @@ class _RemovalHintBubble extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: removalHintMaxWidth),
         child: Stack(
           children: [
-            // **円が入るぶんだけ内側へ寄せる。** 円は箱の角からはみ出すが、
-            // 吹き出しの枠からは出さない(出すと押せなくなる)。
-            Padding(
-              padding: EdgeInsets.only(
-                top: below ? 0 : removalHintCloseDiameter / 2,
-                bottom: below ? removalHintCloseDiameter / 2 : 0,
-                right: removalHintCloseDiameter / 2,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                // **下へ出すときは箱とツノを入れ替える**(ツノが上を向く)。
-                verticalDirection: below
-                    ? VerticalDirection.up
-                    : VerticalDirection.down,
-                children: [
-                  Container(
-                    key: removalHintKey,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      removalHintText,
-                      style: TextStyle(
-                        color: colors.onPrimary,
-                        fontSize: 11,
-                        height: 1.35,
-                        fontWeight: FontWeight.w600,
+            // **飾りは pointer を取らない。** `Text` は `hitTestSelf` が常に `true` で、
+            // 描画範囲のtapを**無条件に吸う**。吹き出しがアイコンの下へ回ると一覧の行に
+            // 重なるので、そのままだと**重なった行のcheckboxが押しても反応しない**
+            // (独立review attempt 3 の P1。エラーも出ないので気づけない)。
+            // 押せる必要があるのは閉じる操作だけなので、そこだけ外に出す。
+            IgnorePointer(
+              // **円が入るぶんだけ内側へ寄せる。** 円は箱の角からはみ出すが、
+              // 吹き出しの枠からは出さない(出すと押せなくなる)。
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: below ? 0 : removalHintCloseDiameter / 2,
+                  bottom: below ? removalHintCloseDiameter / 2 : 0,
+                  right: removalHintCloseDiameter / 2,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  // **下へ出すときは箱とツノを入れ替える**(ツノが上を向く)。
+                  verticalDirection: below
+                      ? VerticalDirection.up
+                      : VerticalDirection.down,
+                  children: [
+                    Container(
+                      key: removalHintKey,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
                       ),
-                    ),
-                  ),
-                  // ツノは**箱の外**へ出す。右端からの距離で置くので、吹き出しの幅が
-                  // 変わってもアイコンとの関係は変わらない。
-                  Row(
-                    children: [
-                      const Spacer(),
-                      CustomPaint(
-                        key: removalHintTailKey,
-                        size: const Size(
-                          removalHintTailWidth,
-                          removalHintTailHeight,
-                        ),
-                        painter: RemovalHintTailPainter(
-                          fill: colors.primary,
-                          pointsUp: below,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        removalHintText,
+                        style: TextStyle(
+                          color: colors.onPrimary,
+                          fontSize: 11,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      // **閉じる操作のぶんの余白は既に引かれている**(この Row は
-                      // 右へ寄せた `Padding` の中にある)ので、その分を戻して測る。
-                      const SizedBox(
-                        width:
-                            removalHintTailInsetFromRight -
-                            removalHintCloseDiameter / 2 -
-                            removalHintTailWidth / 2,
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    // ツノは**箱の外**へ出す。右端からの距離で置くので、吹き出しの幅が
+                    // 変わってもアイコンとの関係は変わらない。
+                    Row(
+                      children: [
+                        const Spacer(),
+                        CustomPaint(
+                          key: removalHintTailKey,
+                          size: const Size(
+                            removalHintTailWidth,
+                            removalHintTailHeight,
+                          ),
+                          painter: RemovalHintTailPainter(
+                            fill: colors.primary,
+                            pointsUp: below,
+                          ),
+                        ),
+                        // **閉じる操作のぶんの余白は既に引かれている**(この Row は
+                        // 右へ寄せた `Padding` の中にある)ので、その分を戻して測る。
+                        const SizedBox(
+                          width:
+                              removalHintTailInsetFromRight -
+                              removalHintCloseDiameter / 2 -
+                              removalHintTailWidth / 2,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             // **円の中心を箱の右上の角へ置く**(円の1/4が角に重なる。要望)。
