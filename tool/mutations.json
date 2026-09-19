@@ -2262,9 +2262,9 @@
     {
       "id": "M332",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                          if (!selecting)\n                            OutlinedButton.icon(",
-      "replace": "                          if (true)\n                            OutlinedButton.icon(",
-      "note": "008:T29 モード中も `別フォルダへ` を出す — 外す作業の最中に、一覧を丸ごと置き換える読み込み(004 REQ-004)の導線が並ぶ(2026-09-19 の要望7)"
+      "find": "                        index: selecting ? 1 : 0,",
+      "replace": "                        index: 0,",
+      "note": "008:T29 モード中も `別フォルダへ` を出す — 外す作業の最中に、一覧を丸ごと置き換える読み込み(004 REQ-004)の導線が並ぶ(2026-09-19 の要望7)。**`008:T30` で再アンカー**: `if (!selecting)` は `IndexedStack` の `index` になった(枠を残すため)"
     },
     {
       "id": "M333",
@@ -2377,6 +2377,48 @@
       "find": "    if (_marked.length == before) return;\n",
       "replace": "",
       "note": "008:T29 retain が何も落とさなくても notify する — **等価mutantでSURVIVEDする**: 呼び出し側が「見えている件数と内部の件数に差があるとき」だけ frame 後に呼ぶので、外しても無駄な notify が1回増えるだけで build↔notify のループにはならない(全件 test が完走)。M341 / M342 と同じ防御の重複として残す。独立review attempt 2 が設計した対照(ループの有無を見るために置いた)"
+    },
+    {
+      "id": "M349",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                        children: [\n                          Wrap(",
+      "replace": "                        children: [\n                          if (selecting) const SizedBox.shrink() else Wrap(",
+      "note": "008:T30 モード中は `別フォルダへ` の枠を layout しない — 帯が場所のラベルの高さまで縮み、**下の一覧が跳ねる**(2026-09-19 の実機確認の要望1)。出さないことと寸法を残すことは別で、`findsNothing` 系の検査では捕まらない"
+    },
+    {
+      "id": "M350",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                          const RemovalHintBubble(),",
+      "replace": "                          const SizedBox.shrink(),",
+      "note": "008:T30 空いた枠に吹き出しを出さない — 外すアイコンが何をするのか初見で読めないまま(要望2)。高さは button 側が決めているのでこちらは落ちない"
+    },
+    {
+      "id": "M351",
+      "file": "lib/ui/file_source/removal_hint_bubble.dart",
+      "find": "                width: removalHintTailInsetFromRight - removalHintTailWidth / 2,",
+      "replace": "                width: 0,",
+      "note": "008:T30 ツノを吹き出しの右端へ寄せる — ケバブの下を指し、外すアイコンを指さなくなる。**実測で確かめていないと通る**"
+    },
+    {
+      "id": "M352",
+      "file": "lib/ui/file_source/removal_hint_bubble.dart",
+      "find": "                width: removalHintTailInsetFromRight - removalHintTailWidth / 2,",
+      "replace": "                width: removalHintTailInsetFromRight,",
+      "note": "008:T30 ツノの幅の半分を引かない — 中心ではなく左端がアイコンの中心に来る(7px ずれる)。小さいズレを見ているかの対照"
+    },
+    {
+      "id": "M353",
+      "file": "lib/ui/file_source/removal_hint_bubble.dart",
+      "find": "const String removalHintText = '押すとリネーム一覧から外れます。\\nファイルは削除されません。';",
+      "replace": "const String removalHintText = '押すとリネーム一覧から外れます。';",
+      "note": "008:T30 「ファイルは削除されません」を落とす — 外すのは rename の一覧からで実ファイルには触れない、という 005 / 013 の境界が読めなくなる(`008:T03` が改名で避けた取り違えと同じ系統)"
+    },
+    {
+      "id": "M354",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              key: removalModeRemoveKey,\n              onPressed: onRemoveMarked,\n              icon: const Icon(Icons.playlist_remove, size: 20),\n              color: colors.danger,\n              disabledColor: colors.textDisabled,\n              tooltip: '選んだファイルをリネーム候補から外す',\n              visualDensity: VisualDensity.compact,",
+      "replace": "              key: removalModeRemoveKey,\n              onPressed: onRemoveMarked,\n              icon: const Icon(Icons.playlist_remove, size: 20),\n              color: colors.danger,\n              disabledColor: colors.textDisabled,\n              tooltip: '選んだファイルをリネーム候補から外す',\n              visualDensity: VisualDensity.standard,",
+      "note": "008:T30 外すアイコンの tap target だけ広げる — 枠が 40 から 48 になり、**ツノだけが取り残されてずれる**(帯側は共有の数のまま)。片側だけ動かす対照。**両方が同じ定数を使っている限りずれない**ので、`headerIconExtent` を両側で変える mutant では意味がない"
     }
   ]
 }

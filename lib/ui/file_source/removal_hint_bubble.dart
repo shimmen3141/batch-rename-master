@@ -15,14 +15,21 @@ const Key removalHintTailKey = Key('removal-hint-tail');
 /// ファイルそのものには触れない — 005 / 013 が守っている境界そのものである。
 /// `008:T03` が「すべて外す」を「一覧を空にする」へ改名したのも同じ取り違えを
 /// 避けるためだった。
-const String removalHintText = '押すとリネーム一覧から外れます。\nファイルは削除されません。';
+///
+/// **受領した原文は「押すとリネームリストから外されます。」だった。** `リネーム` を
+/// 落としたのは**2行に収めるため**である — 3行になると吹き出しが `別フォルダへ` の枠より
+/// 高くなり、**帯が通常表示でも太る**(吹き出しは高さを揃えるため通常表示でも layout
+/// されるので、高いほうが帯の高さを決めてしまう)。何の一覧かはヘッダの `〇件選択中` と
+/// アイコンの tooltip(`選んだファイルをリネーム候補から外す`)が示す。
+const String removalHintText = '押すと一覧から外れます。\nファイルは削除されません。';
 
 /// 吹き出しの幅の上限。
 ///
-/// **`別フォルダへ` の枠(約114)より少しだけ広い**。ここを広げると通常表示でも
+/// **`別フォルダへ` の枠(320dp で約133)より少しだけ広い**。ここを広げると通常表示でも
 /// 場所の取り分が減る([RemovalHintBubble] は高さを揃えるために通常表示でも
-/// layout されるため)ので、文言が2行で収まる最小限に留める。
-const double removalHintMaxWidth = 164;
+/// layout され、枠の広いほうが末尾の取り分を決めるため)ので、文言が2行で収まる
+/// 最小限に留める。
+const double removalHintMaxWidth = 156;
 
 /// ツノの底辺と高さ。
 const double removalHintTailWidth = 14;
@@ -61,10 +68,12 @@ class RemovalHintBubble extends StatelessWidget {
             ),
             child: Text(
               removalHintText,
+              // **`別フォルダへ` の枠(40)より低く収める。** 高いほうが帯の高さを
+              // 決めるので、ここが伸びると通常表示の帯も太る。
               style: TextStyle(
                 color: colors.textSecondary,
-                fontSize: 10.5,
-                height: 1.25,
+                fontSize: 10,
+                height: 1.35,
               ),
             ),
           ),

@@ -371,38 +371,24 @@ void main() {
     // 外す作業の最中に読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる
     // 操作(004 REQ-004)と取り違えやすい。**帯そのもの(場所)は隠さない。**
     //
-    // **`008:T30` で「木から消す」から「出さない」へ変えた。** 枠を残さないと
-    // 帯の高さがモードの出入りで変わるためで、**利用者から見える意味は同じ** —
-    // 押せず、読み上げられない。押せることを見るのが要点なので `hitTestable` を使う。
-    final semantics = tester.ensureSemantics();
+    // **`008:T30` で枠だけは残るようになった**(帯の高さを変えないため。`IndexedStack`)。
+    // 出していない側は描画・hit test・semantics のいずれからも辿れないので、
+    // **既定の finder では見つからない** — 利用者から見える意味は変わっていない。
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
     await _pumpWithList(tester, controller);
-    expect(
-      find.byKey(const Key('pick-files-button')).hitTestable(),
-      findsOneWidget,
-    );
-    expect(find.bySemanticsLabel('別フォルダへ'), findsOneWidget);
+    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
 
     await enterRemovalMode(tester);
 
-    expect(
-      find.byKey(const Key('pick-files-button')).hitTestable(),
-      findsNothing,
-    );
-    expect(find.bySemanticsLabel('別フォルダへ'), findsNothing);
+    expect(find.byKey(const Key('pick-files-button')), findsNothing);
     expect(_location(tester), 'Camera');
 
     await tester.tap(find.byKey(removalModeExitKey));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const Key('pick-files-button')).hitTestable(),
-      findsOneWidget,
-    );
-    expect(find.bySemanticsLabel('別フォルダへ'), findsOneWidget);
-    semantics.dispose();
+    expect(find.byKey(const Key('pick-files-button')), findsOneWidget);
   });
 
   testWidgets('モードの出入りで帯の高さが変わらない(008:T30 要望1)', (tester) async {
@@ -455,29 +441,42 @@ void main() {
   testWidgets('モード中は外すアイコンへ向けた吹き出しが出る(008:T30 要望2)', (tester) async {
     // アイコンだけでは何が起きるか読めない(2026-09-19 の実機確認)。
     // **ツノがアイコンの中心に立っていること**を実測で確かめる — 帯とヘッダは
-    // 別の widget なので、共有した数がずれたらここで落ちる。
-    final semantics = tester.ensureSemantics();
+    // 別の widget なので、共有した数(`header_metrics.dart`)がずれたらここで落ちる。
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
     await _pumpWithList(tester, controller);
-    expect(find.bySemanticsLabel(removalHintText), findsNothing);
+    expect(find.byKey(removalHintKey), findsNothing);
 
     await enterRemovalMode(tester);
 
-    expect(find.bySemanticsLabel(removalHintText), findsOneWidget);
+    expect(find.byKey(removalHintKey), findsOneWidget);
+    expect(find.text(removalHintText), findsOneWidget);
     expect(
       tester.getCenter(find.byKey(removalHintTailKey)).dx,
       tester.getCenter(find.byKey(removalModeRemoveKey)).dx,
     );
     // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
     expect(removalHintText, contains('削除されません'));
+    // **吹き出しが帯の高さを決めてはいけない。** 高さを揃えるために通常表示でも
+    // layout されるので、`別フォルダへ` の枠より高くなると**通常表示の帯まで太る**。
+    // 文言や字の大きさを変えたときにここで気づく(見えていないので
+    // `skipOffstage: false` で測る)。
+    expect(
+      tester.getSize(find.byKey(removalHintKey)).height + removalHintTailHeight,
+      lessThanOrEqualTo(
+        tester
+            .getSize(
+              find.byKey(const Key('pick-files-button'), skipOffstage: false),
+            )
+            .height,
+      ),
+    );
 
     await tester.tap(find.byKey(removalModeExitKey));
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel(removalHintText), findsNothing);
-    semantics.dispose();
+    expect(find.byKey(removalHintKey), findsNothing);
   });
 
   testWidgets('一覧を空にする操作も取り消せる(002 REQ-017・代表例6d)', (tester) async {
