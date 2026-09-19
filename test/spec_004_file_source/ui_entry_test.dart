@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
+
 import '../spec_002_file_list/removal_mode.dart';
 
 FileEntry _entry(String name, {required String handle, String? location}) =>
@@ -36,13 +38,13 @@ Future<void> _pickKind(WidgetTester tester, FileKind kind) async {
 
 /// 種類「すべて」で読み込む(既定の経路)。
 Future<void> _pickAll(WidgetTester tester) => _pickKind(tester, FileKind.all);
-final _clearFiles = find.byKey(const Key('clear-files-button'));
 
 Future<void> _pump(
   WidgetTester tester,
   FileSource source,
   FileListController controller, {
   bool withList = false,
+  RemovalSelection? selection,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -55,8 +57,15 @@ Future<void> _pump(
               controller: controller,
               permission: const UnrestrictedStoragePermission(),
               kinds: FileKind.values,
+              removalSelection: selection,
             ),
-            if (withList) Expanded(child: FileListView(controller: controller)),
+            if (withList)
+              Expanded(
+                child: FileListView(
+                  controller: controller,
+                  removalSelection: selection,
+                ),
+              ),
           ],
         ),
       ),
@@ -194,48 +203,48 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('「すべて外す」でリストが空になる(REQ-006)', (tester) async {
+  testWidgets('一覧を空にする操作でリストが空になる(REQ-006)', (tester) async {
     final controller = FileListController(
       files: [
         _entry('a.txt', handle: 'h:a'),
         _entry('b.txt', handle: 'h:b'),
       ],
     );
-    await _pump(tester, FakeFileSource(), controller);
+    await _pump(tester, FakeFileSource(), controller, withList: true);
 
-    await tester.tap(_clearFiles);
-    await tester.pumpAndSettle();
+    await clearAllFiles(tester);
 
     expect(controller.items, isEmpty);
     expect(controller.selectedCount, 0);
   });
 
-  testWidgets('リストが空なら「すべて外す」は無効(T4: 件数に追随)', (tester) async {
+  testWidgets('リストが空ならケバブごと出ない(T4: 件数に追随)', (tester) async {
+    // **`008:T29` で判定が変わった。** 帯の button を無効にするのではなく、
+    // 一覧のケバブ自体を出さない(どの項目も対象が無い)。
     final controller = FileListController(files: const []);
-    await _pump(tester, FakeFileSource(), controller);
+    await _pump(tester, FakeFileSource(), controller, withList: true);
 
-    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
+    expect(find.byKey(listMenuKey), findsNothing);
   });
 
-  testWidgets('ファイルが入ると「すべて外す」が有効になり、外すとまた無効に戻る', (tester) async {
+  testWidgets('ファイルが入るとケバブが出て、空にするとまた消える', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
         Picked([_entry('a.txt', handle: 'h:a')]),
       ],
     );
-    await _pump(tester, source, controller);
-    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
+    await _pump(tester, source, controller, withList: true);
+    expect(find.byKey(listMenuKey), findsNothing);
 
     await _pickAll(tester);
     await tester.pumpAndSettle();
-    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNotNull);
+    expect(find.byKey(listMenuKey), findsOneWidget);
 
-    await tester.tap(_clearFiles);
-    await tester.pumpAndSettle();
+    await clearAllFiles(tester);
 
     expect(controller.items, isEmpty);
-    expect(tester.widget<TextButton>(_clearFiles).onPressed, isNull);
+    expect(find.byKey(listMenuKey), findsNothing);
   });
 
   testWidgets('選択モードで1件だけリストから外れる(REQ-006)', (tester) async {

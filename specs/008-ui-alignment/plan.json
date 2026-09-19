@@ -34,6 +34,10 @@
     "tasks/T26-define-picker-state-restore",
     "tasks/T27-define-removal-selection-mode",
     "tasks/T28-implement-removal-selection-mode",
-    "tasks/T29-selection-mode-presentation"
+    "tasks/T29-selection-mode-presentation",
+    "tasks/T30-selection-bar-height-and-hint",
+    "tasks/T31-drag-to-multi-select",
+    "tasks/T32-reorder-drag-feedback",
+    "tasks/T33-ready-state-wording"
   ]
 }

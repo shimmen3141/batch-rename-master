@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T31",
+  "title": "長押ししたままドラッグして複数選択する",
+  "status": "pending",
+  "dependsOn": [
+    "T29"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

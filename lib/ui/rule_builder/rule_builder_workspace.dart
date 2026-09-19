@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/preview/file_preview.dart';
 import '../file_list/file_list_controller.dart';
+import '../file_list/removal_selection.dart';
 import '../file_list/file_list_view.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
@@ -21,6 +22,7 @@ class RuleBuilderWorkspace extends StatefulWidget {
     required this.rule,
     this.renameExecution,
     this.filePreview,
+    this.removalSelection,
     this.breakpoint = 840,
   });
 
@@ -30,6 +32,10 @@ class RuleBuilderWorkspace extends StatefulWidget {
 
   /// 行の preview の供給元(008:T07)。[FileListView] へそのまま渡す。
   final FilePreviewPort? filePreview;
+
+  /// 一覧の**除去のための選択モード**(002 REQ-018)。読み込み帯と共有するため
+  /// composition root から通す(`008:T29`)。ここでは中身を見ず、一覧へ渡すだけである。
+  final RemovalSelection? removalSelection;
 
   /// モバイル/デスクトップの境界幅(dp)。既定 840(003 spec 決定済み)。
   final double breakpoint;
@@ -107,6 +113,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             controller: widget.fileList,
             renameExecution: widget.renameExecution,
             filePreview: widget.filePreview,
+            removalSelection: widget.removalSelection,
             // ルールビルダーが右ペインに常時見えているので、下部バーには
             // 実行だけを置く(ルール設定への導線は重複させない)。
           ),
@@ -143,6 +150,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       controller: widget.fileList,
       renameExecution: widget.renameExecution,
       filePreview: widget.filePreview,
+      removalSelection: widget.removalSelection,
       onEditRule: _openRuleSheet,
     );
   }

@@ -49,6 +49,15 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 情報・補助アクセント。
   final Color info;
 
+  /// 選択中の行の面(002 REQ-018 の選択モード)。
+  ///
+  /// **[primary] を薄く敷いた色**である。行の面([surfaceElevated])との差が
+  /// 一覧の中で読めて、かつ危険色・肯定色と取り違えない明度に置く。
+  final Color selectedSurface;
+
+  /// 選択の印(チェックの円)。上に載せるチェックは [onPrimary] を使う。
+  final Color selectionMark;
+
   const AppColors({
     required this.background,
     required this.surface,
@@ -64,6 +73,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.danger,
     required this.success,
     required this.info,
+    required this.selectedSurface,
+    required this.selectionMark,
   });
 
   /// 参考デザイン準拠のダークテーマ配色。
@@ -82,6 +93,12 @@ class AppColors extends ThemeExtension<AppColors> {
     danger: Color(0xFFF87171),
     success: Color(0xFF4ADE80),
     info: Color(0xFF3B82F6),
+    // `primary` を 12% ほど `surfaceElevated` へ混ぜた値。
+    // **参考にした配色(背景 #41384D / 円 #D0BFEA)は紫系で、このappのシアン基調とは
+    // 別系統になる**ため、同じ構造(面を染める → 塗りつぶしの円 → 暗いチェック)のまま
+    // accent 側へ寄せた(2026-09-19 の開発者の判断。見づらければ指定色で試す)。
+    selectedSurface: Color(0xFF1A333B),
+    selectionMark: Color(0xFF22D3EE),
   );
 
   @override
@@ -100,6 +117,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? danger,
     Color? success,
     Color? info,
+    Color? selectedSurface,
+    Color? selectionMark,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -116,6 +135,8 @@ class AppColors extends ThemeExtension<AppColors> {
       danger: danger ?? this.danger,
       success: success ?? this.success,
       info: info ?? this.info,
+      selectedSurface: selectedSurface ?? this.selectedSurface,
+      selectionMark: selectionMark ?? this.selectionMark,
     );
   }
 
@@ -137,6 +158,8 @@ class AppColors extends ThemeExtension<AppColors> {
       danger: Color.lerp(danger, other.danger, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
+      selectedSurface: Color.lerp(selectedSurface, other.selectedSurface, t)!,
+      selectionMark: Color.lerp(selectionMark, other.selectionMark, t)!,
     );
   }
 }

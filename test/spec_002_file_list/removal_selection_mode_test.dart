@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +71,7 @@ void main() {
       tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).value,
       isFalse,
     );
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '1 件');
+    expect(removalModeCountText(tester), '1件選択中');
     // **一覧は変わらない。** rename 対象は全件のままである。
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
     expect(c.selectedCount, 3);
@@ -147,7 +148,7 @@ void main() {
     await _pump(tester, c);
     await tester.longPress(find.text('b.txt'));
     await tester.pump();
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '1 件');
+    expect(removalModeCountText(tester), '1件選択中');
 
     c.setFiles(const []);
     await tester.pumpAndSettle();
@@ -156,10 +157,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(removalModeCountKey), findsNothing);
-    expect(find.byKey(removalModeEnterKey), findsOneWidget);
+    expect(find.byKey(listMenuKey), findsOneWidget);
     // **前の候補も残っていない。**
     await enterRemovalMode(tester);
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
+    expect(removalModeCountText(tester), '0件選択中');
   });
 
   testWidgets('モード中の長押しでは選択が巻き戻らない(REQ-018)', (tester) async {
@@ -176,7 +177,7 @@ void main() {
 
     // **モード中の長押しは tap として通る**(切り替えになる)。それはよい。
     // 起きてはいけないのは、**選んだ2件が捨てられてこの1件だけになる**ことである。
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '3 件');
+    expect(removalModeCountText(tester), '3件選択中');
     expect(
       tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).value,
       isTrue,
@@ -194,13 +195,13 @@ void main() {
     await tester.longPress(find.text('b.txt'));
     await tester.pump();
     await toggleRemovalMark(tester, 'h:c');
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '2 件');
+    expect(removalModeCountText(tester), '2件選択中');
     await removeMarked(tester);
 
     expect(c.items.map((f) => f.name), ['a.txt']);
     // **モードは抜ける**(外し終えたら選ぶ作業も終わり)。
     expect(find.byKey(removalModeCountKey), findsNothing);
-    expect(find.byKey(removalModeEnterKey), findsOneWidget);
+    expect(find.byKey(listMenuKey), findsOneWidget);
     // 通知は1回で、外した件数を言う。
     expect(find.text('2 件を一覧から外しました'), findsOneWidget);
   });
@@ -240,7 +241,7 @@ void main() {
 
     // **選択は破棄される** — 入り直したとき前回の選択が残っていない。
     await enterRemovalMode(tester);
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
+    expect(removalModeCountText(tester), '0件選択中');
   });
 
   testWidgets('長押し以外の入口からも入れる(REQ-018・代表例6j)', (tester) async {
@@ -249,21 +250,24 @@ void main() {
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
 
-    expect(find.byKey(removalModeEnterKey), findsOneWidget);
+    expect(find.byKey(listMenuKey), findsOneWidget);
     await enterRemovalMode(tester);
 
     expect(find.byKey(removalModeCountKey), findsOneWidget);
     expect(find.byKey(removalModeRemoveKey), findsOneWidget);
     expect(find.byKey(removalModeExitKey), findsOneWidget);
-    // 入口は入った後のヘッダには無い(同じ操作を二重に出さない)。
+    // 入口はモード中のケバブには無い(同じ操作を二重に出さない)。
+    await openListMenu(tester);
     expect(find.byKey(removalModeEnterKey), findsNothing);
+    expect(find.byKey(menuSelectAllKey), findsOneWidget);
+    expect(find.byKey(menuClearAllKey), findsOneWidget);
   });
 
-  testWidgets('一覧が空なら入口を出さない(REQ-018)', (tester) async {
+  testWidgets('一覧が空ならケバブごと出さない(REQ-018)', (tester) async {
     final c = FileListController(files: const [], rule: _seq2);
     await _pump(tester, c);
 
-    expect(find.byKey(removalModeEnterKey), findsNothing);
+    expect(find.byKey(listMenuKey), findsNothing);
   });
 
   testWidgets('0件では外せない(REQ-018)', (tester) async {
@@ -273,9 +277,9 @@ void main() {
 
     await enterRemovalMode(tester);
 
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
+    expect(removalModeCountText(tester), '0件選択中');
     expect(
-      tester.widget<TextButton>(find.byKey(removalModeRemoveKey)).onPressed,
+      tester.widget<IconButton>(find.byKey(removalModeRemoveKey)).onPressed,
       isNull,
     );
     // 押しても一覧は変わらない。
@@ -285,7 +289,9 @@ void main() {
     expect(find.byKey(removalUndoKey), findsNothing);
   });
 
-  testWidgets('選択を外すと件数が戻り、外せなくなる(REQ-018)', (tester) async {
+  testWidgets('長押しで入った後に選択を外すとモードを抜ける(008:T29)', (tester) async {
+    // 長押しは1件選ばれた状態で始まるので、その1件を外すと0件になる。
+    // **0件へ戻ったら抜ける**(2026-09-19 の決定)。
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
 
@@ -293,11 +299,8 @@ void main() {
     await tester.pump();
     await toggleRemovalMark(tester, 'h:b');
 
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
-    expect(
-      tester.widget<TextButton>(find.byKey(removalModeRemoveKey)).onPressed,
-      isNull,
-    );
+    expect(removalModeCountText(tester), isNull);
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
   });
 
   testWidgets('元場所ハンドルを持たない行は選べない(004 REQ-006)', (tester) async {
@@ -338,7 +341,7 @@ void main() {
     // 候補を足していると、モードへ入った瞬間に身に覚えのない件数が出る
     // (スクロール中の誤 tap がそのまま候補になる。独立reviewの N-1)。
     await enterRemovalMode(tester);
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '0 件');
+    expect(removalModeCountText(tester), '0件選択中');
   });
 
   testWidgets('モード中に一覧が空になったら通常表示へ戻る(REQ-018)', (tester) async {
@@ -360,6 +363,52 @@ void main() {
     expect(find.byKey(removalModeRemoveKey), findsNothing);
   });
 
+  testWidgets('候補が一覧から消えて0件になったらモードを抜ける(008:T29)', (tester) async {
+    // **見えている0件と内部の0件を揃える。** 改名の取り消し(005 REQ-018 で項目の
+    // ハンドルが入れ替わる)で候補が消えると、画面は「0件選択中」なのに内部には
+    // 残っていて「0件で抜ける」が効かなかった(独立review attempt 1 の P3)。
+    final files = _abc();
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+    expect(removalModeCountText(tester), '1件選択中');
+
+    // a のハンドルが入れ替わる(改名とその取り消しで起きる形)。
+    c.replaceItems({files.first: _f('a.txt', handle: 'h:a2')});
+    await tester.pumpAndSettle();
+
+    expect(removalModeCountText(tester), isNull);
+    expect(find.byKey(listMenuKey), findsOneWidget);
+    // 一覧は変わっていない(抜けただけ)。
+    expect(c.items.length, 3);
+  });
+
+  testWidgets('候補の一部だけが消えてもモードは続く(008:T29)', (tester) async {
+    final files = _abc();
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+    await toggleRemovalMark(tester, 'h:b');
+
+    c.replaceItems({files.first: _f('a.txt', handle: 'h:a2')});
+    await tester.pumpAndSettle();
+
+    expect(removalModeCountText(tester), '1件選択中');
+  });
+
+  testWidgets('選択の印は円である(008:T29 / 要望2)', (tester) async {
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+    await enterRemovalMode(tester);
+
+    expect(
+      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).shape,
+      isA<CircleBorder>(),
+    );
+  });
+
   testWidgets('モード中に読み込み直すと、消えた行は数に入らない(REQ-018)', (tester) async {
     // 控えたハンドルがもう一覧に無いことがある。件数が実際に外せる数と
     // 食い違うと、「2 件」と出して1件しか外れない。
@@ -372,7 +421,7 @@ void main() {
     c.setFiles([_f('b.txt', handle: 'h:b'), _f('x.txt', handle: 'h:x')]);
     await tester.pumpAndSettle();
 
-    expect(tester.widget<Text>(find.byKey(removalModeCountKey)).data, '1 件');
+    expect(removalModeCountText(tester), '1件選択中');
     await removeMarked(tester);
     expect(c.items.map((f) => f.name), ['x.txt']);
   });
@@ -389,21 +438,148 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(removalModeCountKey), findsNothing);
-    expect(find.byKey(removalModeEnterKey), findsOneWidget);
+    expect(find.byKey(listMenuKey), findsOneWidget);
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
   });
 
-  testWidgets('モード中もヘッダに「選択」の語を出さない(002 T27 の決定)', (tester) async {
-    // `T03` で UI から消した語である。`〇件選択中` だと「選んだものを rename する」
-    // と読まれうるので、**外すことを名指しする**見出しにしてある。
+  testWidgets('通常表示には選択の語を出さず、モード中だけ件数を出す(002 REQ-016)', (tester) async {
+    // **通常表示に「選択」を出さないのは REQ-016 である**(一覧＝rename対象)。
+    // モード中の `〇件選択中` は `T29` で開発者が選んだ文言で、`T27` の決定節が
+    // 勧めていた「外すことを名指しする見出し」を上書きしている。誤読を防ぐ役割は
+    // **外すアイコンの tooltip とケバブの文言**が引き受ける。
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
     expect(find.textContaining('選択'), findsNothing);
+    expect(find.textContaining('件'), findsOneWidget); // 総件数だけ
+
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+
+    expect(removalModeCountText(tester), '1件選択中');
+    // 外す操作は**アイコン1つ**で、押せることは tooltip が言う(要望4)。
+    expect(
+      tester.widget<IconButton>(find.byKey(removalModeRemoveKey)).tooltip,
+      '選んだファイルをリネーム候補から外す',
+    );
+    // ケバブの文言は結果を名指しする。
+    await openListMenu(tester);
+    expect(find.text('すべてをリネーム対象から外す'), findsOneWidget);
+    expect(find.text('すべて選択'), findsOneWidget);
+  });
+
+  testWidgets('モード中は下部の帯(ルール設定と実行)を出さない(008:T29)', (tester) async {
+    // 外す作業の最中に実行の導線が並んでいると混乱する(2026-09-19 の要望7)。
+    // **005 は提示の場所・文言・UI部品を自由とする点に残している** — REQ-019 が
+    // 課すのは「実行が始まらない・実ファイルを1件も変えない」という振る舞いである。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          body: FileListView(controller: c, onEditRule: () {}),
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('configure-rule')), findsOneWidget);
 
     await enterRemovalMode(tester);
 
-    expect(find.textContaining('選択'), findsNothing);
-    expect(find.text('外すファイルを選ぶ'), findsWidgets);
-    expect(find.text('リネーム候補から外す'), findsOneWidget);
+    expect(find.byKey(const Key('configure-rule')), findsNothing);
+
+    await tester.tap(find.byKey(removalModeExitKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+  });
+
+  testWidgets('ケバブの「すべて選択」で全件が候補になる(008:T29)', (tester) async {
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    await selectAllForRemoval(tester);
+
+    expect(removalModeCountText(tester), '3件選択中');
+    await removeMarked(tester);
+    expect(c.items, isEmpty);
+    // 取り消せる(002 REQ-017)。
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+  });
+
+  testWidgets('ケバブの「すべてをリネーム対象から外す」で一覧が空になる(004 REQ-006)', (tester) async {
+    // `008:T29` で読み込み帯の `一覧を空にする` から移した操作である。
+    // **取り消せる**(002 REQ-017・代表例6d)。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    await clearAllFiles(tester);
+
+    expect(c.items, isEmpty);
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+  });
+
+  testWidgets('選択が0件へ戻るとモードを抜ける(008:T29)', (tester) async {
+    // **入った直後の0件では抜けない** — ヘッダの入口(REQ-018 (b))は0件で始まるので、
+    // そこで抜けると入口が機能しなくなる。抜けるのは**利用者が選択を外して0件になった**ときである。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    await enterRemovalMode(tester);
+    expect(removalModeCountText(tester), '0件選択中'); // 入った直後は抜けない
+
+    await toggleRemovalMark(tester, 'h:b');
+    expect(removalModeCountText(tester), '1件選択中');
+    await toggleRemovalMark(tester, 'h:b');
+
+    expect(removalModeCountText(tester), isNull);
+    expect(find.byKey(listMenuKey), findsOneWidget);
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+  });
+
+  testWidgets('選んだ行は面が染まり、checkboxは右端に出る(008:T29)', (tester) async {
+    // **左に出すと preview と名前が横へずれてかくつく**(実機で観測)。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+    final before = tester.getTopLeft(find.text('a.txt'));
+    final nameWidthBefore = tester
+        .getSize(find.byKey(rowNewNameKey).first)
+        .width;
+
+    await enterRemovalMode(tester);
+
+    // 行の読み始めが動かない。
+    expect(tester.getTopLeft(find.text('a.txt')), before);
+    // checkbox は名前より右にある。
+    expect(
+      tester.getCenter(find.byKey(removalMarkKeyOf('h:a'))).dx,
+      greaterThan(tester.getCenter(find.text('a.txt')).dx),
+    );
+
+    // **枠の幅が同じ**なので、行の中身が使える幅も変わらない(かくつきの本体)。
+    // 右端の枠だけを見ると checkbox と つまみ のどちらが居るかの話になるが、
+    // **効くのは中身の幅**なので、変更後名の欄の幅で見る。
+    expect(
+      tester.getSize(find.byKey(rowNewNameKey).first).width,
+      nameWidthBefore,
+    );
+
+    await toggleRemovalMark(tester, 'h:a');
+
+    // 選んだ行だけ面が染まる。
+    final colors = AppColors.dark;
+    Color? rowColor(String name) {
+      final box = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(name), matching: find.byType(Container))
+            .first,
+      );
+      return (box.decoration as BoxDecoration?)?.color;
+    }
+
+    expect(rowColor('a.txt'), colors.selectedSurface);
+    expect(rowColor('b.txt'), isNot(colors.selectedSurface));
   });
 }
