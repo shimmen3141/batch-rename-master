@@ -78,12 +78,6 @@ Future<FileListController> _pump(
   return controller;
 }
 
-/// ツノが上を向いているか。
-bool _tailPointsUp(WidgetTester tester) =>
-    (tester.widget<CustomPaint>(find.byKey(removalHintTailKey)).painter
-            as RemovalHintTailPainter)
-        .pointsUp;
-
 void main() {
   testWidgets('モード中だけ出て、ツノが外すアイコンの中心を指す', (tester) async {
     await _pump(tester);
@@ -101,8 +95,6 @@ void main() {
     );
     // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
     expect(removalHintText, contains('削除されません'));
-    // 上に出ているときのツノは下を向く。
-    expect(_tailPointsUp(tester), isFalse);
   });
 
   testWidgets('吹き出しは帯に重なり、アイコンのすぐ上に立つ(008:T30 2回目の実機確認)', (tester) async {
@@ -123,13 +115,11 @@ void main() {
     expect(icon.top - tail.bottom, greaterThanOrEqualTo(0));
   });
 
-  testWidgets('狭い画面と大きい文字でも画面の中に収まり、閉じる操作が押せる', (tester) async {
-    // **2回ともここで壊れた。**
-    // 1回目: 円は箱の角から外へ出るので、吹き出しの右端を画面の余白ぴったりに置くと
-    //        円が画面外へ行き、**押せない閉じる操作**になった。
-    // 2回目: 箱の高さは文字倍率で伸びるので、上へ伸ばし続けると倍率2.0で円が、
-    //        倍率3.0では**本文ごと**画面の上端より外へ出た(独立review attempt 2 の P1)。
-    //        誤解を防ぐための注記が、いちばん助けが要る設定で消えていた。
+  testWidgets('出ているときは必ず画面の中にあり、閉じる操作が押せる', (tester) async {
+    // **収まらない画面では出さない**(2026-09-19 の開発者の判断)。置き場所を1つに
+    // 決めて、入らなければ取り下げる — 上へ伸ばせば上端から、下へ回せば横向きの
+    // 低い画面で下端から出る、という追いかけっこをやめるためである
+    // (独立review attempt 2・4 の P1)。**半分だけ見せるより出さないほうがよい。**
     const height = 800.0;
     for (final width in [320.0, 411.0, 800.0]) {
       for (final scale in [1.0, 1.3, 2.0, 3.0]) {
@@ -137,10 +127,12 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await _pump(tester, scale: scale);
         await enterRemovalMode(tester);
-        // 向きを決めるのに1 frame 測るので、落ち着くまで回す。
+        // 大きさを測って出すかどうかを決めるので、1 frame 余分に回す。
         await tester.pump();
 
         final where = '幅 $width / 文字 $scale';
+        if (find.byKey(removalHintKey).evaluate().isEmpty) continue;
+
         final close = tester.getRect(find.byKey(removalHintCloseKey));
         final hint = tester.getRect(find.byKey(removalHintKey));
         for (final rect in [close, hint]) {
@@ -157,26 +149,32 @@ void main() {
     }
   });
 
-  testWidgets('上に収まらないときはアイコンの下へ回る(008:T30 independent review attempt 2)', (
+  testWidgets('横向きの低い画面と大きい文字では出さない(008:T30 独立review attempt 4)', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(320, 800));
+    // 732×360(横向き)× 倍率3.0 で、箱の高さは 59 → **284** へ膨らむ。
+    // どこへ置いても画面へ入らないので、**切れた半分を見せずに取り下げる**。
+    // アイコンの tooltip は残るので、意味への入口は消えない。
+    await tester.binding.setSurfaceSize(const Size(732, 360));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await _pump(tester, scale: 3.0);
     await enterRemovalMode(tester);
     await tester.pump();
 
-    final icon = tester.getRect(find.byKey(removalModeRemoveKey));
-    final hint = tester.getRect(find.byKey(removalHintKey));
-    final tail = tester.getRect(find.byKey(removalHintTailKey));
+    expect(find.byKey(removalHintKey), findsNothing);
+    // **モードは続く。** 出さないのは補足だけである。
+    expect(removalModeCountText(tester), isNotNull);
+    expect(find.byKey(removalModeRemoveKey), findsOneWidget);
+  });
 
-    // 箱はアイコンより下にあり、ツノは箱の上(= アイコン側)にある。
-    expect(hint.top, greaterThan(icon.top));
-    expect(tail.bottom, lessThanOrEqualTo(hint.top));
-    // ツノは向きが変わってもアイコンを指したままである。
-    expect(tail.center.dx, icon.center.dx);
-    // **ツノが上を向いている。** 描いた結果からは読めないので painter を見る。
-    expect(_tailPointsUp(tester), isTrue);
+  testWidgets('同じ画面でも、文字が小さければ出る(出さないのは収まらないときだけ)', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(732, 360));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(tester, scale: 1.0);
+    await enterRemovalMode(tester);
+    await tester.pump();
+
+    expect(find.byKey(removalHintKey), findsOneWidget);
   });
 
   testWidgets('面もツノも同じ色で塗る(境界線を見せない)', (tester) async {
@@ -233,47 +231,28 @@ void main() {
     expect(find.byKey(removalHintKey), findsNothing);
   });
 
-  testWidgets(
-    '下へ回っても、重なった行のcheckboxが押せる(008:T30 independent review attempt 3)',
-    (tester) async {
-      // **`Text` は `hitTestSelf` が常に `true`** で、描画範囲のtapを無条件に吸う。
-      // 飾りを素通しにしないと、吹き出しに重なった行が**押しても反応しない**まま
-      // 3秒間続く。エラーも出ないので、利用者からは壊れて見える。
-      await tester.binding.setSurfaceSize(const Size(320, 800));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await _pump(tester, scale: 3.0);
-      await enterRemovalMode(tester);
-      await tester.pump();
-
-      // 下へ回っていて、行の選択の切り替えと重なっている状況を作れていることを確かめる。
-      expect(_tailPointsUp(tester), isTrue);
-      final hint = tester.getRect(find.byKey(removalHintKey));
-      final mark = tester.getRect(find.byKey(removalMarkKeyOf('h:a.jpg')));
-      expect(hint.overlaps(mark), isTrue);
-
-      await tester.tap(find.byKey(removalMarkKeyOf('h:a.jpg')));
-      await tester.pump();
-
-      expect(removalModeCountText(tester), '1件選択中');
-    },
-  );
-
-  testWidgets('入り直すと向きを選び直す(下へ回ったままにしない)', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320, 800));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _pump(tester, scale: 3.0);
-    await enterRemovalMode(tester);
-    await tester.pump();
-    expect(_tailPointsUp(tester), isTrue);
-
-    await tester.tap(find.byKey(removalModeExitKey));
-    await tester.pumpAndSettle();
-    // 文字を小さくして入り直すと、上に収まるので**上へ戻る**。
-    await _pump(tester, scale: 1.0);
+  testWidgets('飾りは pointer を取らない(重ねた下の操作を邪魔しない)', (tester) async {
+    // **`Text` は `hitTestSelf` が常に `true`** で、描画範囲のtapを無条件に吸う。
+    // 素通しにしないと、吹き出しに重なったものが**押しても反応しない**まま3秒続く
+    // (独立review attempt 3 の P1。エラーも出ないので気づけない)。
+    // いまの置き場所の下に押せる部品は無いが、**性質そのものを直接見ておく**。
+    await _pump(tester);
     await enterRemovalMode(tester);
     await tester.pump();
 
-    expect(_tailPointsUp(tester), isFalse);
+    final result = tester.hitTestOnBinding(
+      tester.getCenter(find.byKey(removalHintKey)),
+    );
+    final hintBox = tester.renderObject(find.byKey(removalHintKey));
+    expect(
+      result.path.map((entry) => entry.target),
+      isNot(contains(hintBox)),
+      reason: '吹き出しの箱が hit test に載っている',
+    );
+    // 閉じる操作だけは押せる(素通しの範囲が広すぎない)。
+    await tester.tap(find.byKey(removalHintCloseKey));
+    await tester.pump();
+    expect(find.byKey(removalHintKey), findsNothing);
   });
 
   testWidgets('入り直すとまた出る', (tester) async {

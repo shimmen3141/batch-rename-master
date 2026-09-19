@@ -83,9 +83,6 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
   OverlayEntry? _entry;
   Timer? _timer;
 
-  /// アイコンの**下**へ出しているか(上に収まらなかったとき)。
-  bool _below = false;
-
   /// 出した吹き出しの大きさを測るための鍵。
   final GlobalKey _bubbleKey = GlobalKey();
 
@@ -126,7 +123,9 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
         if (mounted) _remove();
       });
     });
-    _below = false;
+    // **測るまでは透明にしておく。** 収まるかどうかは出してみないと分からないので、
+    // 判定が済むまで見せない(`_showIfItFits` が 1 へ戻すか、取り下げる)。
+    _fade.value = 0;
     // **build の最中に `Overlay` を触らない。** frame の後へ回す。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.visible || _entry != null) return;
@@ -134,29 +133,45 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
       if (overlay == null) return;
       _entry = OverlayEntry(builder: _build);
       overlay.insert(_entry!);
-      // 出した直後の大きさが分かってから、上に収まるかを確かめる。
-      WidgetsBinding.instance.addPostFrameCallback((_) => _flipIfClipped());
+      // 出した直後の大きさが分かってから、画面に収まるかを確かめる。
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showIfItFits());
     });
   }
 
-  /// **上に収まらなければアイコンの下へ回す**(独立review attempt 2 の P1)。
+  /// **画面に収まらなければ出さない**(2026-09-19 の開発者の判断)。
   ///
-  /// 吹き出しの高さは文字倍率で伸びる。上へ伸ばし続けると、倍率2.0で閉じる操作が、
-  /// 倍率3.0では**本文ごと画面の外へ出て**、誤解を防ぐための注記が最大倍率で
-  /// 消えてしまう。**上端に収まらないと分かったら、ツノを上に向けて下へ出す。**
+  /// 箱の高さは文字倍率で伸びる(幅を固定しているので折り返しが増える)。
+  /// 320×800・倍率1.0 で高さ59 のものが、倍率3.0 では **284** になる。
+  /// 置き場所を解こうとすると、上へ伸ばせば上端から出て、下へ回せば
+  /// **横向きの低い画面で下端から出る**(732×360・倍率3.0 で 132px はみ出した)。
+  /// そのとき見えるのは箱の上半分だけで、**切れて消えるのは
+  /// 「ファイルは削除されません。」の側**である。
   ///
-  /// 高さは出してみるまで分からないので、**1 frame 後に測って向きを決める**。
-  void _flipIfClipped() {
-    if (!mounted || _below || _entry == null) return;
+  /// **半分だけ見せるくらいなら出さない。** 判定は上下左右をまとめて1回だけ行い、
+  /// 収まらなければ取り下げる(アイコンの tooltip は残るので、意味への入口は消えない)。
+  ///
+  /// 大きさは出してみるまで分からないので、**1 frame 後に測る**。それまでは
+  /// 透明にしておく(**測る前の位置がちらつかない**)。
+  void _showIfItFits() {
+    if (!mounted || _entry == null) return;
     final box = _bubbleKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
-    final top = box.localToGlobal(Offset.zero).dy;
-    // 端末の status bar の下までを安全な範囲とする(`Overlay` は AppBar より前に
-    // 描かれるので、AppBar への重なりは許す)。
-    final safeTop = MediaQuery.paddingOf(context).top;
-    if (top >= safeTop) return;
-    _below = true;
-    _entry!.markNeedsBuild();
+    final origin = box.localToGlobal(Offset.zero);
+    final rect = origin & box.size;
+    final media = MediaQuery.of(context);
+    // 端末の status bar / navigation bar の内側を安全な範囲とする(`Overlay` は
+    // AppBar より前に描かれるので、AppBar への重なりは許す)。
+    final safe = Rect.fromLTRB(
+      media.padding.left,
+      media.padding.top,
+      media.size.width - media.padding.right,
+      media.size.height - media.padding.bottom,
+    );
+    if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {
+      _remove();
+      return;
+    }
+    _fade.value = 1;
   }
 
   void _remove() {
@@ -173,18 +188,15 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
       link: widget.link,
       // **アイコンの右上へ吹き出しの右下を合わせる。** 右へ `headerMenuExtent` ずらすと
       // 吹き出しの右端がケバブの右端(= 画面の端から同じ余白)に揃う。
-      // **上に収まらないときは上下を入れ替える**(下へ出してツノを上に向ける)。
-      targetAnchor: _below ? Alignment.bottomRight : Alignment.topRight,
-      followerAnchor: _below ? Alignment.topRight : Alignment.bottomRight,
-      offset: Offset(removalHintRightOffset, _below ? 2 : -2),
+      // **置き場所はここ1つだけである**(2026-09-19 の開発者の判断)。収まらない画面では
+      // 別の場所を探さず、`_showIfItFits` が取り下げる。
+      targetAnchor: Alignment.topRight,
+      followerAnchor: Alignment.bottomRight,
+      offset: const Offset(removalHintRightOffset, -2),
       showWhenUnlinked: false,
       child: FadeTransition(
         opacity: _fade,
-        child: _RemovalHintBubble(
-          key: _bubbleKey,
-          below: _below,
-          onClose: _remove,
-        ),
+        child: _RemovalHintBubble(key: _bubbleKey, onClose: _remove),
       ),
     ),
   );
@@ -204,16 +216,9 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
 /// 吹き出しの見た目。**面も枠もツノも同じ色で塗る**(2026-09-19 の2回目の実機確認。
 /// 原文は「背景は枠線と同じシアンで塗りつぶしてよい(ツノとの境界線を見えなくする)」)。
 class _RemovalHintBubble extends StatelessWidget {
-  const _RemovalHintBubble({
-    super.key,
-    required this.onClose,
-    required this.below,
-  });
+  const _RemovalHintBubble({super.key, required this.onClose});
 
   final VoidCallback onClose;
-
-  /// アイコンの**下**へ出しているか。ツノの向きと、箱とツノの並び順が入れ替わる。
-  final bool below;
 
   @override
   Widget build(BuildContext context) {
@@ -233,18 +238,13 @@ class _RemovalHintBubble extends StatelessWidget {
               // **円が入るぶんだけ内側へ寄せる。** 円は箱の角からはみ出すが、
               // 吹き出しの枠からは出さない(出すと押せなくなる)。
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: below ? 0 : removalHintCloseDiameter / 2,
-                  bottom: below ? removalHintCloseDiameter / 2 : 0,
+                padding: const EdgeInsets.only(
+                  top: removalHintCloseDiameter / 2,
                   right: removalHintCloseDiameter / 2,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  // **下へ出すときは箱とツノを入れ替える**(ツノが上を向く)。
-                  verticalDirection: below
-                      ? VerticalDirection.up
-                      : VerticalDirection.down,
                   children: [
                     Container(
                       key: removalHintKey,
@@ -277,10 +277,7 @@ class _RemovalHintBubble extends StatelessWidget {
                             removalHintTailWidth,
                             removalHintTailHeight,
                           ),
-                          painter: RemovalHintTailPainter(
-                            fill: colors.primary,
-                            pointsUp: below,
-                          ),
+                          painter: _TailPainter(fill: colors.primary),
                         ),
                         // **閉じる操作のぶんの余白は既に引かれている**(この Row は
                         // 右へ寄せた `Padding` の中にある)ので、その分を戻して測る。
@@ -297,9 +294,8 @@ class _RemovalHintBubble extends StatelessWidget {
               ),
             ),
             // **円の中心を箱の右上の角へ置く**(円の1/4が角に重なる。要望)。
-            // 下へ出したときも**箱の右上**なので、ツノのぶんだけ下がる。
             Positioned(
-              top: below ? removalHintTailHeight : 0,
+              top: 0,
               right: 0,
               child: InkWell(
                 key: removalHintCloseKey,
@@ -331,34 +327,25 @@ class _RemovalHintBubble extends StatelessWidget {
   }
 }
 
-/// ツノ。**箱と同じ色で塗るだけ**で、境界線は引かない
+/// 下向きのツノ。**箱と同じ色で塗るだけ**で、境界線は引かない
 /// (引くと箱との継ぎ目が線になって見える)。
 ///
-/// **公開しているのは向きを test から読むためである**(どちらを向いているかは
-/// 利用者に見える性質で、描いた結果からは読み取れない)。
-class RemovalHintTailPainter extends CustomPainter {
-  const RemovalHintTailPainter({required this.fill, required this.pointsUp});
+/// **向きは1つだけである。** 上に収まらない画面では場所を変えずに取り下げるので
+/// (2026-09-19 の開発者の判断)、上向きは要らない。
+class _TailPainter extends CustomPainter {
+  const _TailPainter({required this.fill});
 
   final Color fill;
 
-  /// 上を向くか(吹き出しをアイコンの下へ出したとき)。
-  final bool pointsUp;
-
   @override
   void paint(Canvas canvas, Size size) {
-    final path = pointsUp
-        ? (Path()
-            ..moveTo(0, size.height)
-            ..lineTo(size.width / 2, 0)
-            ..lineTo(size.width, size.height))
-        : (Path()
-            ..moveTo(0, 0)
-            ..lineTo(size.width / 2, size.height)
-            ..lineTo(size.width, 0));
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, 0);
     canvas.drawPath(path, Paint()..color = fill);
   }
 
   @override
-  bool shouldRepaint(RemovalHintTailPainter old) =>
-      old.fill != fill || old.pointsUp != pointsUp;
+  bool shouldRepaint(_TailPainter old) => old.fill != fill;
 }

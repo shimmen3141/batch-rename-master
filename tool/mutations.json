@@ -2395,8 +2395,8 @@
     {
       "id": "M351",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "      offset: Offset(removalHintRightOffset, _below ? 2 : -2),",
-      "replace": "      offset: Offset(0, _below ? 2 : -2),",
+      "find": "      offset: const Offset(removalHintRightOffset, -2),",
+      "replace": "      offset: const Offset(0, -2),",
       "note": "008:T30 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。**実測で確かめていないと通る**"
     },
     {
@@ -2542,30 +2542,9 @@
     {
       "id": "M374",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "    if (top >= safeTop) return;\n    _below = true;",
-      "replace": "    if (top >= safeTop || true) return;\n    _below = true;",
-      "note": "008:T30 上に収まらなくても下へ回さない — 文字倍率2.0で閉じる操作が、3.0では**本文ごと**画面の上端より外へ出て、誤解を防ぐ注記がいちばん助けの要る設定で消える(独立review attempt 2 の P1 そのもの)"
-    },
-    {
-      "id": "M375",
-      "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                          pointsUp: below,",
-      "replace": "                          pointsUp: false,",
-      "note": "008:T30 下へ回してもツノが下を向いたまま — 箱から外れた向きにツノが生え、どこを指しているのか読めない"
-    },
-    {
-      "id": "M376",
-      "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                  verticalDirection: below\n                      ? VerticalDirection.up\n                      : VerticalDirection.down,",
-      "replace": "                  verticalDirection: VerticalDirection.down,",
-      "note": "008:T30 下へ回しても箱とツノの並び順を入れ替えない — ツノがアイコンと反対側(箱の下)に出る"
-    },
-    {
-      "id": "M377",
-      "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "    _below = false;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
-      "replace": "    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
-      "note": "008:T30 出し直すときに向きをリセットしない — 一度下へ回ると、文字を小さくして入り直しても下に出たまま行を覆う(独立review attempt 3 が設計)"
+      "find": "    if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {\n      _remove();\n      return;\n    }",
+      "replace": "    if (false) {\n      _remove();\n      return;\n    }",
+      "note": "008:T30 画面に収まらなくても取り下げない — 倍率2.0で閉じる操作が、3.0では本文ごと画面の外へ出る(独立review attempt 2 の P1)。横向きの低い画面では下端から出る(同 attempt 4 の P1)。**切れた半分を見せることになる**"
     },
     {
       "id": "M378",
@@ -2577,9 +2556,9 @@
     {
       "id": "M379",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "  void _flipIfClipped() {\n    if (!mounted || _below || _entry == null) return;",
-      "replace": "  void _flipIfClipped() {\n    if (_below || _entry == null) return;",
-      "note": "008:T30 向きを決める側の `mounted` guard を外す — **SURVIVED のまま残す対照**: `dispose` が同期的に `_entry = null` にするので `_entry == null` が既に守っている(独立review attempt 3 が設計・確認)"
+      "find": "  void _showIfItFits() {\n    if (!mounted || _entry == null) return;",
+      "replace": "  void _showIfItFits() {\n    if (_entry == null) return;",
+      "note": "008:T30 収まるかを確かめる側の `mounted` guard を外す — **SURVIVED のまま残す対照**: `dispose` が同期的に `_entry = null` にするので `_entry == null` が既に守っている(独立review attempt 3 が設計・確認)"
     },
     {
       "id": "M380",
@@ -2587,6 +2566,20 @@
       "find": "            IgnorePointer(",
       "replace": "            Offstage(\n              offstage: false,\n              child:",
       "note": "008:T30 吹き出しの飾りが pointer を取る — `Text` は `hitTestSelf` が常に `true` なので、下へ回った吹き出しに重なった行が**押しても反応しない**まま3秒続く。エラーも出ない(独立review attempt 3 の P1 そのもの)"
+    },
+    {
+      "id": "M383",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    if (!safe.contains(rect.topLeft) || !safe.contains(rect.bottomRight)) {\n      _remove();\n      return;\n    }\n    _fade.value = 1;",
+      "replace": "    _remove();\n    return;",
+      "note": "008:T30 収まっていても取り下げる — 逆向きの対照。普通の画面で補足が一度も出なくなる"
+    },
+    {
+      "id": "M384",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "    _fade.value = 0;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "replace": "    _fade.value = 1;\n    // **build の最中に `Overlay` を触らない。** frame の後へ回す。",
+      "note": "008:T30 測る前から見せる — 収まるかどうかを判定する前の1 frame だけ、はみ出した位置の吹き出しがちらつく。**現行のtestでは観測できない**(1 frame の見た目)ので SURVIVED のまま残す対照"
     }
   ]
 }
