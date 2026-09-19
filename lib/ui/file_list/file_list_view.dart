@@ -21,6 +21,25 @@ const Key shiftModifiedAtKey = Key('shift-modified-at');
 /// ファイルはすべて rename 対象である。
 const Key fileCountKey = Key('file-count');
 
+/// 除去のための選択モードへ入る入口(002 REQ-018 の入口(b))。
+///
+/// **長押しに依存しない入口が要る。** 長押しは Flutter ではマウスでも発火するが、
+/// **押せることが画面から読めない**(支援技術からも辿りにくい)。一覧が空でない間は
+/// 常にここから入れる(代表例 6j)。
+const Key removalModeEnterKey = Key('removal-mode-enter');
+
+/// 選択モードをやめる(002 REQ-018)。一覧は変わらない(代表例 6i)。
+const Key removalModeExitKey = Key('removal-mode-exit');
+
+/// 選択モードで選ばれている件数(002 REQ-018)。
+const Key removalModeCountKey = Key('removal-mode-count');
+
+/// 選ばれた行を一覧から外す(002 REQ-018)。0 件では押せない。
+const Key removalModeRemoveKey = Key('removal-mode-remove');
+
+/// 選択モードで [handle] の行に出る選択の切り替え(002 REQ-018)。
+Key removalMarkKeyOf(String handle) => ValueKey('removal-mark:$handle');
+
 /// 行サブ情報の場所(002 REQ-010)。行ごとに1つで、場所を持たない行には無い。
 ///
 /// **一覧に複数の場所が混ざっているときだけ出る**(002 の決定。2026-09-18 に開発者が
@@ -41,7 +60,7 @@ const Key rowModifiedAtKey = Key('row-modified-at');
 /// 現在名・変更後名・サブ情報を**縦に積み**(参考designのリッチな行。008:T07 で
 /// 横2カラムから移した)、上部にソート切替チップを置く。
 /// 視覚は参考デザインに準拠し、色は [AppColors] のセマンティック名で参照する。
-class FileListView extends StatelessWidget {
+class FileListView extends StatefulWidget {
   const FileListView({
     super.key,
     required this.controller,
@@ -66,18 +85,82 @@ class FileListView extends StatelessWidget {
   final VoidCallback? onEditRule;
 
   @override
+  State<FileListView> createState() => _FileListViewState();
+}
+
+/// 除去のための選択モードの状態(002 REQ-018)。
+///
+/// **[FileListController] へ置かない。** controller の選択(`toggleSelection` /
+/// `selectedCount`)は **rename 対象の選択**で、製品 UI では常に全件である
+/// (REQ-004 / REQ-016)。ここで選ぶのは**これから外す候補**で、モードを抜ければ
+/// 消える別物なので、同じ状態へ混ぜると「外す候補にしただけで rename から外れる」
+/// 振る舞いになりうる(代表例 6f・6i)。
+///
+/// **ハンドルで覚える。** 項目は改名や読み込み直しで別の値へ入れ替わるが
+/// (005 REQ-018 / 004 REQ-004)、ハンドルは同じファイルを指す識別子である。
+/// 覚えたハンドルが一覧から消えていれば、そのときの表示では数に入れない。
+class _FileListViewState extends State<FileListView> {
+  bool _selecting = false;
+  final Set<String> _marked = <String>{};
+
+  /// 長押し(入口(a))で入る。**長押しした行は選ばれた状態で始まる**(代表例 6f)。
+  void _enterRemovalMode({String? handle}) {
+    setState(() {
+      _selecting = true;
+      _marked
+        ..clear()
+        ..addAll({?handle});
+    });
+  }
+
+  /// モードをやめる。**選択は破棄し、一覧は触らない**(代表例 6i)。
+  void _exitRemovalMode() {
+    setState(() {
+      _selecting = false;
+      _marked.clear();
+    });
+  }
+
+  void _toggleMark(String handle) {
+    setState(() {
+      if (!_marked.remove(handle)) _marked.add(handle);
+    });
+  }
+
+  /// 選ばれた行をまとめて外す(REQ-018)。
+  ///
+  /// **1回の取り消しで全件が元の位置へ戻る**(代表例 6h)。[removeUndoably] は
+  /// 除去の**前後**を1組の控えとして見るので、除去をこの closure の中で
+  /// まとめて済ませれば、通知も取り消しも1回で足りる。
+  ///
+  /// **`setFiles` で残りへ置き換えない。** `setFiles` は占有名を捨てるので
+  /// (005 REQ-026)、外しただけで一覧の重複警告が弱くなり、控えの照合も
+  /// 毎回「古い」と判定される。`removeFile` の反復は占有名に触れない。
+  void _removeMarked(BuildContext context, Set<String> handles) {
+    removeUndoably(context, widget.controller, () {
+      for (final handle in handles) {
+        widget.controller.removeFile(handle);
+      }
+    });
+    _exitRemovalMode();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return ListenableBuilder(
-      listenable: Listenable.merge([controller, ?renameExecution]),
+      listenable: Listenable.merge([
+        widget.controller,
+        ?widget.renameExecution,
+      ]),
       builder: (context, _) {
         // 行データと警告は同じ検証から作れる。ビルド1回につき一度だけ評価する
         // (`rows` と `warnings` を別々に呼ぶと 001 の検証が2回走る)。
-        final preview = controller.preview;
+        final preview = widget.controller.preview;
         final rows = preview.rows;
         final warnings = preview.warnings;
         // 005 REQ-020: ルールが空なら警告を提示しない。**行にも出さない。**
-        final ruleIsEmpty = controller.isRuleEmpty;
+        final ruleIsEmpty = widget.controller.isRuleEmpty;
         // 002 の決定(2026-09-18 再承認・`008:T22`): 行が場所を表示するのは
         // **一覧に複数の場所が混ざっているときだけ**である。1つだけなら読み込み帯が
         // 一覧全体として示すので、全行へ同じ名前が並ぶのは冗長になる(代表例 7b・7c)。
@@ -90,94 +173,133 @@ class FileListView extends StatelessWidget {
                 .toSet()
                 .length >
             1;
-        return Container(
-          color: colors.background,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _HeaderBar(
-                controller: controller,
-                // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
-                // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
-                warnings: ruleIsEmpty ? const <Warning>[] : warnings,
-              ),
-              _SortBar(controller: controller),
-              _CreatedAtFallbackBanner(
-                warning: controller.createdAtSortWarning,
-              ),
-              // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
-              // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
-              if (ruleIsEmpty) const RuleNotConfiguredBanner(),
-              Expanded(
-                child: ReorderableListView.builder(
-                  // ドラッグは行末尾のハンドルからのみ開始する(チェックボックスや
-                  // 行タップと衝突させない)。
-                  buildDefaultDragHandles: false,
-                  itemCount: rows.length,
-                  // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
-                  onReorderItem: controller.reorder,
-                  itemBuilder: (context, index) {
-                    final row = rows[index];
-                    final handle = row.source.sourceHandle;
-                    return _FileRow(
-                      // ReorderableListView は各子に安定 Key を要求する。
-                      // FileEntry は同一性で扱う値なので ValueKey で追従する。
-                      key: ValueKey(row.source),
-                      index: index,
-                      row: row,
-                      // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
-                      showDragHandle: controller.manualOrderMatters,
-                      sortMode: controller.sortMode,
-                      showLocation: showRowLocation,
-                      filePreview: filePreview,
-                      // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
-                      warnings: rowWarningsOf(
-                        row.warnings,
-                        ruleIsEmpty: ruleIsEmpty,
-                      ),
-                      ruleIsEmpty: ruleIsEmpty,
-                      // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
-                      // 全件は件数表示から開く(2026-09-02 の要望2)。
-                      onShowWarningDetail: () => showWarningDetail(
-                        context,
-                        row.warnings,
-                        ruleIsEmpty: ruleIsEmpty,
-                        scopeFile: row.source,
-                        // 同名が一覧に並ぶときだけ場所を添える。**母集合は
-                        // 一覧のファイル**(警告を持つものだけだと、同名2件の
-                        // 片方だけが警告されたときに見分けられない)。
-                        amongFiles: controller.rows.map((r) => r.source),
-                      ),
-                      // 元場所ハンドルを持つ行だけ個別に外せる(004 REQ-006)。
-                      // **取り消せる形で外す**(002 REQ-017)。
-                      onRemove: handle == null
-                          ? null
-                          : () => removeUndoably(
-                              context,
-                              controller,
-                              () => controller.removeFile(handle),
-                            ),
-                    );
-                  },
-                ),
-              ),
-              // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
-              // まとめる(T09 で T04 の上部配置から移設)。
-              //
-              // 005 REQ-009 (2) の原因の提示は、**バーの手前へ積まない。**
-              // 独立した子として積むと、原因の数 × 文字倍率で伸びて一覧と
-              // 下部バーを押し出した(独立review attempt 3 のP1-1)。参考designの
-              // ルール設定buttonが持つ「命名ルール」見出しの右へ、**種別だけ**を
-              // 載せる。**広幅では下部バーに導線が無い**ため、
-              // `RuleBuilderWorkspace` が右ペイン側へ同じものを描く。
-              if (renameExecution != null || onEditRule != null)
-                _RenameActionBar(
-                  controller: controller,
-                  execution: renameExecution,
-                  onEditRule: onEditRule,
+        // **いま外せる行のハンドル**。控えたハンドルがもう一覧に無いことがある
+        // (取り消しの通知を出したまま読み込み直した場合など)。
+        final removable = <String>{
+          for (final row in rows) ?row.source.sourceHandle,
+        };
+        final marked = _marked.intersection(removable);
+        // **一覧が空ならモードは成り立たない**(選ぶものが無く、REQ-018 の入口も
+        // 「一覧が空でない間」である)。`setState` はここで呼べないので、
+        // 描画の側で畳む — 次の操作で `_exitRemovalMode` が状態も片付ける。
+        final selecting = _selecting && rows.isNotEmpty;
+        return PopScope(
+          // 端末の戻るは**モードをやめる**に使う(画面を閉じない)。REQ-018 の
+          // 「やめる操作」はヘッダの × が満たすが、選択モードから戻るの期待は強い。
+          canPop: !selecting,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _exitRemovalMode();
+          },
+          child: Container(
+            color: colors.background,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _HeaderBar(
+                  controller: widget.controller,
+                  // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
+                  // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
                   warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                  selecting: selecting,
+                  markedCount: marked.length,
+                  // **一覧が空でない間は常に入れる**(入口(b)。代表例 6j)。
+                  // 外せる行の有無で出し入れしない — ヘッダの高さが一覧の中身で
+                  // 変わるし、REQ-018 が課しているのは「一覧が空でない間」である。
+                  // ハンドルを持つ行が無ければ、入っても 0 件で外せないだけになる。
+                  onEnterRemovalMode: rows.isEmpty
+                      ? null
+                      : () => _enterRemovalMode(),
+                  onExitRemovalMode: _exitRemovalMode,
+                  // 0 件では外せない(REQ-018)。
+                  onRemoveMarked: marked.isEmpty
+                      ? null
+                      : () => _removeMarked(context, marked),
                 ),
-            ],
+                _SortBar(controller: widget.controller, selecting: selecting),
+                _CreatedAtFallbackBanner(
+                  warning: widget.controller.createdAtSortWarning,
+                ),
+                // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
+                // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
+                if (ruleIsEmpty) const RuleNotConfiguredBanner(),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
+                    // 行タップと衝突させない)。**既定の長押しドラッグを切って
+                    // あることが、選択モードの長押しの前提でもある。**
+                    buildDefaultDragHandles: false,
+                    itemCount: rows.length,
+                    // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
+                    onReorderItem: widget.controller.reorder,
+                    itemBuilder: (context, index) {
+                      final row = rows[index];
+                      final handle = row.source.sourceHandle;
+                      return _FileRow(
+                        // ReorderableListView は各子に安定 Key を要求する。
+                        // FileEntry は同一性で扱う値なので ValueKey で追従する。
+                        key: ValueKey(row.source),
+                        index: index,
+                        row: row,
+                        // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
+                        // **モード中は出さない**(REQ-018)。
+                        showDragHandle:
+                            widget.controller.manualOrderMatters && !selecting,
+                        sortMode: widget.controller.sortMode,
+                        showLocation: showRowLocation,
+                        filePreview: widget.filePreview,
+                        // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
+                        warnings: rowWarningsOf(
+                          row.warnings,
+                          ruleIsEmpty: ruleIsEmpty,
+                        ),
+                        ruleIsEmpty: ruleIsEmpty,
+                        // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
+                        // 全件は件数表示から開く(2026-09-02 の要望2)。
+                        onShowWarningDetail: () => showWarningDetail(
+                          context,
+                          row.warnings,
+                          ruleIsEmpty: ruleIsEmpty,
+                          scopeFile: row.source,
+                          // 同名が一覧に並ぶときだけ場所を添える。**母集合は
+                          // 一覧のファイル**(警告を持つものだけだと、同名2件の
+                          // 片方だけが警告されたときに見分けられない)。
+                          amongFiles: widget.controller.rows.map(
+                            (r) => r.source,
+                          ),
+                        ),
+                        selecting: selecting,
+                        marked: handle != null && marked.contains(handle),
+                        // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
+                        // ハンドルで対象を指す)。持たない行は選べない —
+                        // 選べるのに外れない件数を出すほうが悪い。
+                        onToggleMark: handle == null
+                            ? null
+                            : () => _toggleMark(handle),
+                        onLongPressEnter: handle == null
+                            ? null
+                            : () => _enterRemovalMode(handle: handle),
+                      );
+                    },
+                  ),
+                ),
+                // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
+                // まとめる(T09 で T04 の上部配置から移設)。
+                //
+                // 005 REQ-009 (2) の原因の提示は、**バーの手前へ積まない。**
+                // 独立した子として積むと、原因の数 × 文字倍率で伸びて一覧と
+                // 下部バーを押し出した(独立review attempt 3 のP1-1)。参考designの
+                // ルール設定buttonが持つ「命名ルール」見出しの右へ、**種別だけ**を
+                // 載せる。**広幅では下部バーに導線が無い**ため、
+                // `RuleBuilderWorkspace` が右ペイン側へ同じものを描く。
+                if (widget.renameExecution != null || widget.onEditRule != null)
+                  _RenameActionBar(
+                    controller: widget.controller,
+                    execution: widget.renameExecution,
+                    onEditRule: widget.onEditRule,
+                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -675,19 +797,96 @@ class _RuleButton extends StatelessWidget {
   }
 }
 
-/// 全選択トグルと選択件数を表示するヘッダ。
+/// 一覧の件数と警告の入口、または**除去のための選択モード**の操作を出すヘッダ。
+///
+/// モード中は 002 REQ-018 の3つ(やめる / 選択件数 / 外す)へ入れ替わる。
 class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({required this.controller, required this.warnings});
+  const _HeaderBar({
+    required this.controller,
+    required this.warnings,
+    required this.selecting,
+    required this.markedCount,
+    required this.onEnterRemovalMode,
+    required this.onExitRemovalMode,
+    required this.onRemoveMarked,
+  });
 
   final FileListController controller;
 
   /// 一覧全体の警告(005 REQ-009 (3) の入口。ルールが空なら空で渡る)。
   final List<Warning> warnings;
 
+  /// 除去のための選択モードか(002 REQ-018)。
+  final bool selecting;
+
+  /// いま外す候補として選ばれている件数。
+  final int markedCount;
+
+  /// モードへ入る(入口(b))。外せる行が無ければ `null`。
+  final VoidCallback? onEnterRemovalMode;
+
+  /// モードをやめる。**一覧は変わらない**(代表例 6i)。
+  final VoidCallback onExitRemovalMode;
+
+  /// 選ばれた行を外す。**0 件なら `null`**(REQ-018)。
+  final VoidCallback? onRemoveMarked;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final total = controller.items.length;
+    if (selecting) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.border)),
+        ),
+        // 通常時と同じ理由で `Wrap` である(狭幅でも文字倍率が高くても、
+        // 件数と外すbuttonのどちらも消えない)。
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            IconButton(
+              key: removalModeExitKey,
+              onPressed: onExitRemovalMode,
+              icon: const Icon(Icons.close, size: 18),
+              color: colors.textSecondary,
+              tooltip: '選ぶのをやめる',
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: EdgeInsets.zero,
+            ),
+            // **外すことを名指しする見出し**(002 の `T27` 決定)。
+            // `〇件選択中` だけでは「選んだものを rename する」と読まれうる。
+            Text(
+              '外すファイルを選ぶ',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              key: removalModeCountKey,
+              '$markedCount 件',
+              maxLines: 2,
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
+            ),
+            TextButton(
+              key: removalModeRemoveKey,
+              onPressed: onRemoveMarked,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: colors.danger,
+              ),
+              child: const Text('リネーム候補から外す', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -735,6 +934,20 @@ class _HeaderBar extends StatelessWidget {
                 amongFiles: controller.rows.map((r) => r.source),
               ),
             ),
+          // **長押しに依存しない入口**(REQ-018 (b)。代表例 6j)。長押しは
+          // 画面から読めないので、ここが無いとマウスと支援技術では辿れない。
+          // **文言に「選択」を使わない** — `T03` で UI から消した語であり、
+          // rename 対象の選択と読まれうる。
+          if (onEnterRemovalMode != null)
+            TextButton(
+              key: removalModeEnterKey,
+              onPressed: onEnterRemovalMode,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: colors.textSecondary,
+              ),
+              child: const Text('外すファイルを選ぶ', style: TextStyle(fontSize: 11)),
+            ),
         ],
       ),
     );
@@ -744,9 +957,12 @@ class _HeaderBar extends StatelessWidget {
 /// 全選択/全解除を切り替える四角いチェックボタン(デザインの ✓ ボックス)。
 /// ソート種別を切り替えるチップ列(横スクロール)。
 class _SortBar extends StatelessWidget {
-  const _SortBar({required this.controller});
+  const _SortBar({required this.controller, required this.selecting});
 
   final FileListController controller;
+
+  /// 除去のための選択モードか(002 REQ-018)。モード中は `カスタム順` を出さない。
+  final bool selecting;
 
   /// 常に提示するソート(閲覧・確認の用途があるため。REQ-014)。
   static const List<(FileSortMode, String)> _alwaysModes = [
@@ -776,7 +992,10 @@ class _SortBar extends StatelessWidget {
           children: [
             for (final (mode, label) in [
               ..._alwaysModes,
-              if (controller.manualOrderMatters) _customMode,
+              // **モード中は出さない。** `カスタム順` は REQ-014 が言う
+              // 「手動並び替えの提示」そのもので、REQ-018 はモード中それを
+              // 提示しないと定めている。ソート自体(名前順など)は常に出す。
+              if (controller.manualOrderMatters && !selecting) _customMode,
             ]) ...[
               _SortChip(
                 label: label,
@@ -869,7 +1088,11 @@ class _SortChip extends StatelessWidget {
   }
 }
 
-/// 1行: チェックボックス + 現在名(左) + 変更後名(右) + ドラッグハンドル。
+/// 1行: preview + 現在名・変更後名・サブ情報 + ドラッグハンドル。
+///
+/// **通常表示には除去の操作を置かない**(002 REQ-016)。以前は右端に × があったが、
+/// 並び替えのつまみと隣り合って押し間違えうるので、除去は**選択モード**へ移した
+/// (REQ-018 / `008:T27`)。モード中はこの行の左へ選択の切り替えが出る。
 class _FileRow extends StatelessWidget {
   const _FileRow({
     super.key,
@@ -882,7 +1105,10 @@ class _FileRow extends StatelessWidget {
     required this.warnings,
     required this.onShowWarningDetail,
     required this.ruleIsEmpty,
-    this.onRemove,
+    required this.selecting,
+    required this.marked,
+    required this.onToggleMark,
+    required this.onLongPressEnter,
   });
 
   /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
@@ -914,108 +1140,137 @@ class _FileRow extends StatelessWidget {
   /// 行の警告を押したときに**その行の**詳細を開く(005 REQ-009 (4))。
   final VoidCallback onShowWarningDetail;
 
-  /// この行を作業セットから外す(元場所ハンドルを持たない行では `null`)。
-  final VoidCallback? onRemove;
+  /// 除去のための選択モードか(002 REQ-018)。モード中は選択の切り替えを出し、
+  /// 並び替えのつまみを出さない。
+  final bool selecting;
+
+  /// この行が外す候補として選ばれているか(モード中だけ意味を持つ)。
+  final bool marked;
+
+  /// 外す候補にする/やめる。**元場所ハンドルを持たない行では `null`**
+  /// (ハンドルが無いと除去の対象を指せない。004 REQ-006)。
+  final VoidCallback? onToggleMark;
+
+  /// 長押しでモードへ入る(REQ-018 の入口(a))。ハンドルを持たない行では `null`。
+  final VoidCallback? onLongPressEnter;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: Row(
-        children: [
-          // **checkbox は置かない**(002 REQ-016)。一覧にあるファイルはすべて
-          // rename 対象で、外すのは行の × である。
-          //
-          // 中身が見える行にする(参考designのリッチな行)。preview を出せない
-          // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
-          // 開始位置も揃う。
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: RowPreviewView(file: row.source, preview: filePreview),
-          ),
-          // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
-          //
-          // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
-          // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
-          // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
-                // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
-                // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
-                // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
-                // コンパクト案は上の行に `text-align:right` で置いている)。
-                //
-                // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
-                // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
-                // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
-                // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
-                // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
-                RowWarningView(warnings: warnings, onTap: onShowWarningDetail),
-                Text(
-                  row.currentName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: colors.textPrimary, fontSize: 13),
-                ),
-                // 「現在名 → 変更後名」という読み方は矢印で残す。
-                Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.arrow_forward,
-                        size: 12,
-                        color: colors.textMuted,
+    final handle = row.source.sourceHandle;
+    return GestureDetector(
+      // 行の余白でも反応させる(名前の文字の上だけ、にしない)。
+      behavior: HitTestBehavior.opaque,
+      // **長押しは通常表示だけ**(モード中は既に入っている)。
+      onLongPress: selecting ? null : onLongPressEnter,
+      // **モード中の tap は選択の切り替え**。通常表示では行 tap に意味を持たせない
+      // (誤って外す操作へ繋げない)。
+      onTap: selecting ? onToggleMark : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: colors.border)),
+        ),
+        child: Row(
+          children: [
+            // **通常表示では checkbox も × も置かない**(002 REQ-016)。一覧に
+            // あるファイルはすべて rename 対象で、外すのは選択モードである。
+            if (selecting)
+              Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: onToggleMark == null
+                    // 外せない行(元場所ハンドルが無い)。**幅だけ残す** —
+                    // 行頭が揃わないと、選べない行が「ずれた行」に見える。
+                    ? const SizedBox(width: 24, height: 24)
+                    : Checkbox(
+                        key: removalMarkKeyOf(handle!),
+                        value: marked,
+                        onChanged: (_) => onToggleMark!(),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
-                    Expanded(
-                      child: _NewName(
-                        row: row,
-                        ruleIsEmpty: ruleIsEmpty,
-                        hasWarning: warnings.isNotEmpty,
+              ),
+            //
+            // 中身が見える行にする(参考designのリッチな行)。preview を出せない
+            // file は種別アイコンになるが、**枠は必ず在る**ので行の高さも名前の
+            // 開始位置も揃う。
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: RowPreviewView(file: row.source, preview: filePreview),
+            ),
+            // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
+            //
+            // 横2カラムだと各セルが行幅の半分しか使えず、狭幅ではサブ情報が
+            // 収まらない((h)の見切れの根本)。縦に積むと3つとも行幅を丸ごと
+            // 使える。002 specはレイアウトを非規範としている(「対象外」節)。
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
+                  // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
+                  // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
+                  // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
+                  // コンパクト案は上の行に `text-align:right` で置いている)。
+                  //
+                  // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
+                  // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
+                  // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
+                  // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
+                  // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
+                  RowWarningView(
+                    warnings: warnings,
+                    onTap: onShowWarningDetail,
+                  ),
+                  Text(
+                    row.currentName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: colors.textPrimary, fontSize: 13),
+                  ),
+                  // 「現在名 → 変更後名」という読み方は矢印で残す。
+                  Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(
+                          Icons.arrow_forward,
+                          size: 12,
+                          color: colors.textMuted,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                _DateSubInfo(
-                  file: row.source,
-                  sortMode: sortMode,
-                  showLocation: showLocation,
-                ),
-              ],
-            ),
-          ),
-          if (onRemove != null)
-            IconButton(
-              onPressed: onRemove,
-              icon: const Icon(Icons.close, size: 16),
-              color: colors.textMuted,
-              tooltip: 'このファイルを外す',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              padding: EdgeInsets.zero,
-            ),
-          if (showDragHandle)
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Icon(
-                  Icons.drag_handle,
-                  size: 18,
-                  color: colors.textMuted,
-                ),
+                      Expanded(
+                        child: _NewName(
+                          row: row,
+                          ruleIsEmpty: ruleIsEmpty,
+                          hasWarning: warnings.isNotEmpty,
+                        ),
+                      ),
+                    ],
+                  ),
+                  _DateSubInfo(
+                    file: row.source,
+                    sortMode: sortMode,
+                    showLocation: showLocation,
+                  ),
+                ],
               ),
             ),
-        ],
+            if (showDragHandle)
+              ReorderableDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.drag_handle,
+                    size: 18,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
