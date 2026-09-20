@@ -71,17 +71,43 @@
 - Android実機での manual 確認(`manual-verification.md` を作る)。**`T30` / `T32` と
   同じ回にまとめられる**(同じ画面である)。
 
+## 調査checkpoint(2026-09-20)
+
+文言判断に必要な状態は、すでに製品のcomposition rootまで届いている。
+
+| 状態 | 現在の判定 | 現在の表示 | 案(a)を選んだ場合 |
+|---|---|---|---|
+| ルールが空 | `controller.isRuleEmpty == true` | 件数labelを出さず、未設定の案内を出す | 変更しない |
+| 警告0件・変更あり | `warnings.isEmpty && changedFileCount > 0` | `問題なし` | 緑で `正常にリネームできます` |
+| 警告0件・変更0件 | `warnings.isEmpty && changedFileCount == 0` | `問題なし`、実行buttonは `変更されるファイルがありません` | 成功を主張せず、同じ理由を示す別文言にする |
+| 警告あり | `warnings.isNotEmpty` | 赤で `n 件の問題` | 変更しない |
+
+- `FileListController.changedFileCount` は、実行可否と同じ `rowHasNoChange` を使う。
+  新しい判定やルール形状による近似は不要である。
+- `_HeaderBar` は `FileListController` を持つため、`WarningCountView` へ変更有無を渡せる。
+- 既存testは `warning_display_test.dart` が警告0件の変更あり・変更0件を別fixtureで持ち、
+  `empty_rule_test.dart` が空ルールでlabelを隠す保証を持つ。`row_presentation_test.dart` は
+  狭幅320dp・文字倍率2.0まで切り詰めないことを検査している。これらを文言別のassertionへ
+  付け替えれば、三状態を製品経路で検査できる。
+- 案(a)は `file_list_view.dart` の `WarningCountView` 呼び出しにも数行触るため、同じfileで
+  gestureを実装する`T31`と統合時に小さな競合がありうる。責務は別で、並行調査・実装は可能。
+  `tool/mutations.json`はどちらのtaskも触るため、mutation追加位置も競合しうる。
+- 案(b)は `rename_warning_view.dart` 内で閉じられるが、変更0件と変更ありを同じ表示に保つ。
+
 ## Current state / handoff
 
-- Last checkpoint: `T29` への依存を満たすtask branch
-  `asdd/008-ui-alignment/T33-ready-state-wording` でclaimし、0件時の文言判断に必要な
-  現行仕様・実装・testの調査を開始した(2026-09-20)
-- Blocker category: product wording decision(調査完了後に一問で確認する)
-- Waiting for: 現行コードから変更ファイル0件の判定経路を確定した後の開発者判断
-- Requested action: 調査結果と相互排他的な文言案を提示するまでなし
-- Touches: `lib/ui/file_list/rename_warning_view.dart`、`specs/005-rename-exec/spec.md`
+- Last checkpoint: 警告0件を「変更あり / 変更0件」へ分ける既存判定と、composition root・
+  test fixtureまでの経路を確認した(2026-09-20)。実装差分はまだ無い
+- Blocker category: product wording decision
+- Waiting for: 開発者
+- Requested action: 警告0件の見出しを、(a) 変更ありだけ `正常にリネームできます`、
+  変更0件は `変更されるファイルがありません` と分けるか、(b) 変更有無を主張しない
+  `問題は見つかりません` に統一するかを選ぶ。推奨は(a)
+- Touches: `lib/ui/file_list/rename_warning_view.dart`、案(a)では
+  `lib/ui/file_list/file_list_view.dart`の呼び出し1か所、`specs/005-rename-exec/spec.md`
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
-- 並行: **他のpending taskと触るfileが重ならない。** 単独で進められる
-- Evidence revision: claim commit(2026-09-20、commit hashはcommit後に確定)
-- Next Agent action: `WarningCountView` の呼び出し元と既存testを照合し、変更ファイル0件を
-  既存の製品状態から判定できるか確定する
+- 並行: `T31`と並行できるが、案(a)では`file_list_view.dart`の別責務と
+  `tool/mutations.json`が重なるため、統合時に小さな競合がありうる
+- Evidence revision: `3a64e48` + 調査commit(2026-09-20、hashはcommit後に確定)
+- Next Agent action: 回答された文言を005代表例20fの記録へ反映し、widget testを
+  先に更新してから最小の表示変更を実装する
