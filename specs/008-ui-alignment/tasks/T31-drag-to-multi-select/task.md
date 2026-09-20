@@ -149,3 +149,12 @@
 ## 作業記録（2026-09-20）
 
 - 開発者が REQ-018 の追記と代表例 6k〜6o を承認。T33 の emulator manual verification 完了まで実装を開始しない。
+
+## 2026-09-20 実装再開（上のhandoffを置き換える）
+
+- Last checkpoint: T33 の emulator manual verification が PASS と受領され、承認済み REQ-018 の実装を開始した。製品codeはまだ変更していない。
+- Blocker category: none
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: T33 manual PASS 受領後の実装開始点（未commit）。
+- Next Agent action: 行矩形ベースのdrag sessionとedge auto-scrollを実装し、widget testとmutationで検証する。
