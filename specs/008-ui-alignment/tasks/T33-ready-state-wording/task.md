@@ -127,6 +127,15 @@ host Android emulator、2026-09-20に会話で受領。`manual-verification.md`�
 すべて問題なし。緑の見出し、変更0件と空ルールでの非表示、狭幅・最大文字倍率での全文表示と
 ケバブ操作を確認した。
 
+## final-evidence review(2026-09-20)
+
+- Review attempt: unknown（過去回数を資料から確定できない）。
+- Scope: `45112d9...f836ed8`、final-evidence phase。
+- Verdict: **PASS**。未解決P0/P1なし。
+- manual証拠は`45112d9`で実施され、同commitに対する独立implementation reviewはPASS済み。
+  `45112d9...f836ed8`の実差分はこのtaskのmanual evidence metadataとtask記録だけで、
+  code・dependency・build設定・manual手順を変えていない。したがって証拠identityは有効である。
+
 ## 調査checkpoint(2026-09-20)
 
 文言判断に必要な状態は、すでに製品のcomposition rootまで届いている。
@@ -152,8 +161,8 @@ host Android emulator、2026-09-20に会話で受領。`manual-verification.md`�
 
 ## Current state / handoff
 
-- Last checkpoint: Android emulatorのmanual確認を受領し、final-evidence review中になった
-  (2026-09-20)。manual対象code revisionは`45112d9`
+- Last checkpoint: Android emulator manual evidenceとfinal-evidence reviewがともにPASSし、
+  taskを完了した(2026-09-20)。manual対象code revisionは`45112d9`
 - Blocker category: none
 - Waiting for: none
 - Requested action: none
@@ -162,6 +171,5 @@ host Android emulator、2026-09-20に会話で受領。`manual-verification.md`�
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
 - 並行: `T31`と並行できるが、案(a)では`file_list_view.dart`の別責務と
   `tool/mutations.json`が重なるため、統合時に小さな競合がありうる
-- Evidence revision: `45112d9`（独立review済みのmanual対象code revision）
-- Next Agent action: `45112d9...manual evidence head`がevidence-onlyであることを確認し、
-  final-evidence reviewの判定を記録する
+- Evidence revision: `45112d9`（独立review・Android manual確認済みのcode revision）
+- Next Agent action: なし（完了）
