@@ -778,7 +778,7 @@ void main() {
   });
 
   group('REQ-010: 警告が 0 件なら提示しない', () {
-    testWidgets('該当が無ければ行にも説明にも出ず、「問題なし」になる', (tester) async {
+    testWidgets('変更がある場合、該当が無ければ行にも説明にも出ず、緑の準備完了を示す', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
         rule: const RenameRule([
@@ -791,15 +791,27 @@ void main() {
       expect(c.warnings, isEmpty);
       expect(_rowWarnings(), findsNothing);
       expect(_ruleKindTexts(), findsNothing);
-      // 「問題なし」は出してよい — **それは警告ではない。**
-      expect(find.text('問題なし'), findsOneWidget);
+      final ready = find.text('正常にリネームできます');
+      expect(ready, findsOneWidget);
+      expect(find.text('問題なし'), findsNothing);
       expect(find.textContaining('件の問題'), findsNothing);
+      final text = tester.widget<Text>(ready);
+      final style = text.style!;
+      expect(style.color, AppColors.dark.success);
+      expect(style.fontWeight, FontWeight.w600);
+      final icon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.check_circle_outline),
+        ),
+      );
+      expect(icon.color, AppColors.dark.success);
     });
 
-    testWidgets('件数表示を押しても、0 件のときは詳細が開かない', (tester) async {
+    testWidgets('変更がある警告0件の見出しを押しても、詳細は開かない', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt')],
-        rule: const RenameRule([OriginalNameToken()]),
+        rule: const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
       );
       await _pump(tester, c);
 
@@ -809,7 +821,35 @@ void main() {
       expect(_detail(), findsNothing);
     });
 
-    testWidgets('選択を外して警告が消えたら提示も消える', (tester) async {
+    testWidgets('320dp・最大文字倍率でも準備完了の文言を切り詰めない', (tester) async {
+      const size = Size(320, 640);
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: [_f('alpha.txt')],
+        rule: const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(2.0),
+            ),
+            child: Scaffold(body: FileListView(controller: c)),
+          ),
+        ),
+      );
+
+      final ready = find.text('正常にリネームできます');
+      expect(ready, findsOneWidget);
+      final paragraph = tester.renderObject<RenderParagraph>(ready);
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('ルール変更で変更が0件になったら、警告0件の見出しも出ない', (tester) async {
       final files = [_f('alpha.txt'), _f('bravo.txt')];
       final c = FileListController(
         files: files,
@@ -818,12 +858,14 @@ void main() {
       await _pump(tester, c);
       expect(_rowWarnings(), findsNWidgets(2));
 
-      c.toggleSelection(files[1]);
+      c.setRule(const RenameRule([OriginalNameToken()]));
       await tester.pump();
 
       expect(c.warnings, isEmpty);
+      expect(c.changedFileCount, 0);
       expect(_rowWarnings(), findsNothing);
-      expect(find.text('問題なし'), findsOneWidget);
+      expect(find.byKey(warningCountKey), findsNothing);
+      expect(find.text('正常にリネームできます'), findsNothing);
     });
 
     testWidgets('ファイルが 0 件でも警告は出ない', (tester) async {

@@ -1003,7 +1003,13 @@ class _HeaderBar extends StatelessWidget {
                         // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
                         // **ルールが空のときは出さない** — 001 は空名と重複を
                         // 返しているので「問題なし」は誤りになる。
-                        if (!controller.isRuleEmpty)
+                        //
+                        // 警告0件でも、実際に変更するfileがあるときだけ準備完了を
+                        // 出す。変更0件では実行buttonが理由を示すので、成功を主張する
+                        // 件数見出しは重ねない(008:T33)。
+                        if (!controller.isRuleEmpty &&
+                            (warnings.isNotEmpty ||
+                                controller.changedFileCount > 0))
                           WarningCountView(
                             warnings: warnings,
                             // 全件の入口。**特定のファイルに絞られない**(REQ-009 (4))。
