@@ -103,6 +103,7 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
 - Blocker category: none
 - Waiting for: none
 - Requested action: none
+- Pull request: #178 (https://github.com/shimmen3141/batch-rename-master/pull/178)
 - Touches: `lib/ui/file_list/removal_hint.dart`(必要なら `header_metrics.dart`)、
   `test/spec_002_file_list/removal_hint_test.dart`、`tool/mutations.json`(M363/M365/M367/M389 の再アンカー)
 - 並行: **`T31` とは別file**(あちらは `file_list_view.dart`)なので同時に進められる。
@@ -110,4 +111,4 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
   **そこを動かすなら `T31` と順番を決める**
 - Evidence revision: 4f0cb00a67b457300b5480a7babecd4ac57da975
 - Machine verification scope: widget testでツノの意図した視覚補正、明示改行のない文言、白文字と自然な2行表示、開始から完全消失まで7秒、黒地とシアン枠、画面内への収まり、閉じる操作、pointer透過を検証する。Android実機の見た目と操作感はmachineで閉じられないため、このtaskのmanual確認で受ける。
-- Next Agent action: 規定task branchをdev向けPRとして共有し、integration結果を確認する。
+- Next Agent action: PR #178のrequired CI、未解決thread、devとの競合を確認し、integration gateを満たせばmergeする。
