@@ -2498,7 +2498,7 @@
       "note": "008:T34 シアンの一体枠を消す — 黒い面とツノの外形が読めず、継ぎ目なしの吹き出しにならない"
     },
     {
-      "id": "M388",
+      "id": "M389",
       "file": "lib/ui/file_list/removal_hint.dart",
       "find": "                            color: Colors.white,",
       "replace": "                            color: colors.background,",
