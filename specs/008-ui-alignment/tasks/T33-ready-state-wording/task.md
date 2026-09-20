@@ -73,13 +73,15 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `T29` の実機確認で受領した1件をtask化した(2026-09-19)
-- Blocker category: none
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: `T29` への依存を満たすtask branch
+  `asdd/008-ui-alignment/T33-ready-state-wording` でclaimし、0件時の文言判断に必要な
+  現行仕様・実装・testの調査を開始した(2026-09-20)
+- Blocker category: product wording decision(調査完了後に一問で確認する)
+- Waiting for: 現行コードから変更ファイル0件の判定経路を確定した後の開発者判断
+- Requested action: 調査結果と相互排他的な文言案を提示するまでなし
 - Touches: `lib/ui/file_list/rename_warning_view.dart`、`specs/005-rename-exec/spec.md`
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
 - 並行: **他のpending taskと触るfileが重ならない。** 単独で進められる
-- Evidence revision: 未着手
-- Next Agent action: 着手時に「変更が生じるファイルが0件のときに何と出すか」を開発者へ
-  一問で確認してから実装する
+- Evidence revision: claim commit(2026-09-20、commit hashはcommit後に確定)
+- Next Agent action: `WarningCountView` の呼び出し元と既存testを照合し、変更ファイル0件を
+  既存の製品状態から判定できるか確定する
