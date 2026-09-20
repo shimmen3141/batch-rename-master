@@ -169,3 +169,20 @@
 - Waiting for: 独立 implementation review の結果。
 - Requested action: なし。
 - Next Agent action: review PASS 後、対象 commit を固定して Android 実機 manual を依頼し、結果をこの task へ記録する。
+
+
+## 2026-09-20 Android 実機 manual 待ち（上のhandoffを置き換える）
+
+- Last checkpoint: 独立 implementation review が `4f7c2c9..fd964da` を PASS と判定した（reviewer: GPT-5 Codex、P0/P1 なし）。製品コード・依存・build 設定は reviewed commit `fd964da` から凍結する。
+- Blocker category: external / Android physical-device manual verification
+- Waiting for: Android 実機で [`manual-verification.md`](manual-verification.md) の全項目を行った結果。emulator のポインタ操作だけでは指の長押し・端保持の証拠にならない。
+- Requested action: `fd964da` の製品コードを対象に Android 実機で manual-verification.md を実施し、端末名/Android 版、各項目の PASS/FAIL、失敗時の再現手順を会話で返す。branch の切替は不要。
+- Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品コード・依存・build 設定を変えない。
+- Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
+
+### M393〜M395 scoped mutation_check.py の生出力
+
+```text
+```
+
+`python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t31-mutations/mutations.json --root .` は stdout/stderr を出力せず exit status 0 で完了した。対象3 mutation は script の終了規約により KILLED と判定した。
