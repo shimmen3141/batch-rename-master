@@ -2465,9 +2465,9 @@
     {
       "id": "M363",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "const double removalHintMaxWidth = 312;",
-      "replace": "const double removalHintMaxWidth = 624;",
-      "note": "008:T34 吹き出しの幅の上限を2倍にする — 1行文言が画面外へ出ても検出できるよう、格子の横幅境界で確かめる"
+      "find": "const double removalHintMaxWidth = 180;",
+      "replace": "const double removalHintMaxWidth = 360;",
+      "note": "008:T34 吹き出しの幅を2倍にする — 16文字前後の自然な2行折り返しと画面内への収まりを崩す"
     },
     {
       "id": "M364",
@@ -2479,9 +2479,9 @@
     {
       "id": "M365",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "    _timer = Timer(removalHintLifetime, () {",
+      "find": "    _timer = Timer(removalHintVisibleDuration, () {",
       "replace": "    _timer = Timer(const Duration(days: 1), () {",
-      "note": "008:T30 時間が経っても消えない — 3秒でフェードアウトする約束が消え、補足が画面に residue として残る"
+      "note": "008:T34 表示開始から7秒で消えない — 補足が画面に残り続ける"
     },
     {
       "id": "M366",
@@ -2496,6 +2496,13 @@
       "find": "                    edge: colors.primary,",
       "replace": "                    edge: colors.background,",
       "note": "008:T34 シアンの一体枠を消す — 黒い面とツノの外形が読めず、継ぎ目なしの吹き出しにならない"
+    },
+    {
+      "id": "M388",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                            color: Colors.white,",
+      "replace": "                            color: colors.background,",
+      "note": "008:T34 黒地の文字を黒へ替える — 背景と同化して説明が読めなくなる"
     },
     {
       "id": "M368",

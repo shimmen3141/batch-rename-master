@@ -18,6 +18,7 @@ import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'removal_mode.dart';
@@ -111,6 +112,18 @@ void main() {
 
     expect(find.byKey(removalHintKey), findsOneWidget);
     expect(find.text(removalHintText), findsOneWidget);
+    final hintText = tester.widget<Text>(find.text(removalHintText));
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.text(removalHintText),
+    );
+    expect(hintText.style!.color, Colors.white);
+    final lineTops = paragraph
+        .getBoxesForSelection(
+          TextSelection(baseOffset: 0, extentOffset: removalHintText.length),
+        )
+        .map((box) => box.top)
+        .toSet();
+    expect(lineTops, hasLength(2));
     // アイコン枠の中心ではなく、左寄りに見える字面へ3dp補正していることを実測する。
     expect(
       tester.getCenter(find.byKey(removalHintTailKey)).dx,
@@ -197,7 +210,7 @@ void main() {
     // **縦だけでなく横も見る。** 箱は overlay の幅に合わせて自分も縮むので普通の
     // 端末では横に溢れないが、判定を縦だけにすると溢れた瞬間に気づけない
     // (独立review attempt 5 の `M386`)。
-    _setScreen(tester, const Size(200, 800));
+    _setScreen(tester, const Size(160, 800));
     await _pump(tester);
     await enterRemovalMode(tester);
     await tester.pump();
@@ -241,7 +254,7 @@ void main() {
 
     final colors = appDarkTheme().extension<AppColors>()!;
     final frame = tester.widget<CustomPaint>(find.byKey(removalHintKey));
-    final painter = frame.foregroundPainter! as RemovalHintFramePainter;
+    final painter = frame.painter! as RemovalHintFramePainter;
     expect(painter.fill, colors.background);
     expect(painter.edge, colors.primary);
   });
@@ -259,12 +272,12 @@ void main() {
     expect(removalModeCountText(tester), isNotNull);
   });
 
-  testWidgets('放っておくと5秒でフェードアウトして消える', (tester) async {
+  testWidgets('表示開始から7秒でフェードアウトを完了する', (tester) async {
     await _pump(tester);
     await enterRemovalMode(tester);
     expect(find.byKey(removalHintKey), findsOneWidget);
 
-    // **5秒までは残る。**
+    // **7秒までは残る。**
     await tester.pump(removalHintLifetime - const Duration(milliseconds: 100));
     expect(find.byKey(removalHintKey), findsOneWidget);
 

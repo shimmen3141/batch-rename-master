@@ -21,18 +21,22 @@ const Key removalHintCloseKey = Key('removal-hint-close');
 /// `008:T03` が「すべて外す」を「一覧を空にする」へ改名したのも同じ取り違えを
 /// 避けるためだった。
 ///
-/// 1行で「一覧から外す」と「実ファイルは削除しない」を続けて読めるようにする(`008:T34`)。
-/// 画面や文字倍率が狭くて折り返す場合にも、文字列自体へ改行は入れない。
+/// 文と文の間へ明示的な改行を入れず、幅に応じて自然に折り返す(`008:T34`)。
 const String removalHintText = '押すとファイルをリネームリストから外します。削除はされません。';
 
-/// 吹き出しが出ている時間。これを過ぎるとフェードアウトする。
-const Duration removalHintLifetime = Duration(seconds: 5);
+/// 表示開始からフェード完了までの時間。
+const Duration removalHintLifetime = Duration(seconds: 7);
 
 /// フェードアウトにかける時間。
 const Duration removalHintFadeOut = Duration(milliseconds: 400);
 
+/// フェードを始めるまでの表示時間。
+const Duration removalHintVisibleDuration = Duration(milliseconds: 6600);
+
 /// 吹き出しの幅の上限。
-const double removalHintMaxWidth = 312;
+///
+/// 通常倍率では日本語を約16文字ずつ、自然に2行へ折り返す幅にする。
+const double removalHintMaxWidth = 180;
 
 /// ツノの底辺と高さ。
 const double removalHintTailWidth = 14;
@@ -123,11 +127,11 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
     }
   }
 
-  /// 出してから [removalHintLifetime] 後にフェードアウトさせる。
+  /// 表示開始から [removalHintLifetime] で完全に消えるようにフェードアウトさせる。
   void _schedule() {
     _fade.value = 1;
     _timer?.cancel();
-    _timer = Timer(removalHintLifetime, () {
+    _timer = Timer(removalHintVisibleDuration, () {
       if (!mounted) return;
       _fade.reverse().then((_) {
         if (mounted) _remove();
@@ -263,7 +267,7 @@ class _RemovalHintBubble extends StatelessWidget {
                 ),
                 child: CustomPaint(
                   key: removalHintKey,
-                  foregroundPainter: RemovalHintFramePainter(
+                  painter: RemovalHintFramePainter(
                     fill: colors.background,
                     edge: colors.primary,
                   ),
@@ -276,14 +280,10 @@ class _RemovalHintBubble extends StatelessWidget {
                           horizontal: 6,
                           vertical: 7,
                         ),
-                        decoration: BoxDecoration(
-                          color: colors.background,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
                         child: Text(
                           removalHintText,
                           style: TextStyle(
-                            color: colors.textPrimary,
+                            color: Colors.white,
                             fontSize: 9.25,
                             height: 1.35,
                             fontWeight: FontWeight.w600,
