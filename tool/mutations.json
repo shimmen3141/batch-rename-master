@@ -2395,23 +2395,23 @@
     {
       "id": "M351",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "      offset: const Offset(removalHintRightOffset, -2),",
-      "replace": "      offset: const Offset(0, -2),",
-      "note": "008:T30 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。**実測で確かめていないと通る**"
+      "find": "      offset: const Offset(removalHintRightOffset, removalHintVerticalOffset),",
+      "replace": "      offset: const Offset(0, removalHintVerticalOffset),",
+      "note": "008:T34 吹き出しを外すアイコンの真上へ置く — ツノがアイコンではなくケバブの下を指す。字面へ寄せる実測testで検出する"
     },
     {
       "id": "M352",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2 -\n                              removalHintTailWidth / 2,",
-      "replace": "                              removalHintTailInsetFromRight -\n                              removalHintCloseDiameter / 2,",
-      "note": "008:T30 ツノの幅の半分を引かない — 中心ではなく左端がアイコンの中心に来る(7px ずれる)。小さいズレを見ているかの対照"
+      "find": "                                removalHintTailInsetFromRight +\n                                removalHintTailVisualInsetFromRight -\n                                removalHintCloseDiameter / 2 -\n                                removalHintTailWidth / 2,",
+      "replace": "                                removalHintTailInsetFromRight +\n                                removalHintTailVisualInsetFromRight -\n                                removalHintCloseDiameter / 2,",
+      "note": "008:T34 ツノの幅の半分を引かない — 中心ではなく左端が字面へ合わせた位置に来る(7pxずれる)。小さいズレを見ているかの対照"
     },
     {
       "id": "M353",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "const String removalHintText = '押すとリネームリストから外されます。\\nファイルは削除されません。';",
-      "replace": "const String removalHintText = '押すとリネームリストから外されます。';",
-      "note": "008:T30 「ファイルは削除されません」を落とす — 外すのは rename の一覧からで実ファイルには触れない、という 005 / 013 の境界が読めなくなる(`008:T03` が改名で避けた取り違えと同じ系統)"
+      "find": "const String removalHintText = '押すとファイルをリネームリストから外します。削除はされません。';",
+      "replace": "const String removalHintText = '押すとファイルをリネームリストから外します。';",
+      "note": "008:T34 「削除はされません」を落とす — 外すのは rename の一覧からで実ファイルには触れない、という 005 / 013 の境界が読めなくなる(`008:T03` が改名で避けた取り違えと同じ系統)"
     },
     {
       "id": "M354",
@@ -2465,9 +2465,9 @@
     {
       "id": "M363",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "const double removalHintMaxWidth = 232;",
-      "replace": "const double removalHintMaxWidth = 464;",
-      "note": "008:T30 吹き出しの幅の上限を2倍にする — **`008:T30` の2回目で帯から離したので、場所の取り分には効かなくなった**。いまは画面からのはみ出しだけが問題になる(独立review attempt 1 が設計)"
+      "find": "const double removalHintMaxWidth = 180;",
+      "replace": "const double removalHintMaxWidth = 360;",
+      "note": "008:T34 吹き出しの幅を2倍にする — 16文字前後の自然な2行折り返しと画面内への収まりを崩す"
     },
     {
       "id": "M364",
@@ -2479,9 +2479,9 @@
     {
       "id": "M365",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "    _timer = Timer(removalHintLifetime, () {",
+      "find": "    _timer = Timer(removalHintVisibleDuration, () {",
       "replace": "    _timer = Timer(const Duration(days: 1), () {",
-      "note": "008:T30 時間が経っても消えない — 3秒でフェードアウトする約束が消え、補足が画面に residue として残る"
+      "note": "008:T34 表示開始から7秒で消えない — 補足が画面に残り続ける"
     },
     {
       "id": "M366",
@@ -2493,9 +2493,16 @@
     {
       "id": "M367",
       "file": "lib/ui/file_list/removal_hint.dart",
-      "find": "                        borderRadius: BorderRadius.circular(8),\n                      ),",
-      "replace": "                        borderRadius: BorderRadius.circular(8),\n                        border: Border.all(color: colors.onPrimary),\n                      ),",
-      "note": "008:T30 箱に枠線を引く — 箱とツノの継ぎ目が線になって見える(2026-09-19 の2回目の実機確認。原文「ツノと長方形の間に境界線が入っていて、きれいな吹き出しではありません」)"
+      "find": "                    edge: colors.primary,",
+      "replace": "                    edge: colors.background,",
+      "note": "008:T34 シアンの一体枠を消す — 黒い面とツノの外形が読めず、継ぎ目なしの吹き出しにならない"
+    },
+    {
+      "id": "M389",
+      "file": "lib/ui/file_list/removal_hint.dart",
+      "find": "                            color: Colors.white,",
+      "replace": "                            color: colors.background,",
+      "note": "008:T34 黒地の文字を黒へ替える — 背景と同化して説明が読めなくなる"
     },
     {
       "id": "M368",

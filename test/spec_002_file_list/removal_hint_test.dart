@@ -18,6 +18,7 @@ import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'removal_mode.dart';
@@ -103,7 +104,7 @@ Future<FileListController> _pump(
 }
 
 void main() {
-  testWidgets('モード中だけ出て、ツノが外すアイコンの中心を指す', (tester) async {
+  testWidgets('モード中だけ出て、ツノが字面に合わせてアイコン中心の少し左を指す', (tester) async {
     await _pump(tester);
     expect(find.byKey(removalHintKey), findsNothing);
 
@@ -111,14 +112,25 @@ void main() {
 
     expect(find.byKey(removalHintKey), findsOneWidget);
     expect(find.text(removalHintText), findsOneWidget);
-    // **ツノがアイコンを指していること**を実測する。帯とヘッダは別の widget なので、
-    // 共有した数(`header_metrics.dart`)がずれたらここで落ちる。
+    final hintText = tester.widget<Text>(find.text(removalHintText));
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.text(removalHintText),
+    );
+    expect(hintText.style!.color, Colors.white);
+    final lineTops = paragraph
+        .getBoxesForSelection(
+          TextSelection(baseOffset: 0, extentOffset: removalHintText.length),
+        )
+        .map((box) => box.top)
+        .toSet();
+    expect(lineTops, hasLength(2));
+    // アイコン枠の中心ではなく、左寄りに見える字面へ3dp補正していることを実測する。
     expect(
       tester.getCenter(find.byKey(removalHintTailKey)).dx,
-      tester.getCenter(find.byKey(removalModeRemoveKey)).dx,
+      tester.getCenter(find.byKey(removalModeRemoveKey)).dx - 3,
     );
     // **ファイルそのものは消えないことを言い続ける**(005 / 013 の境界)。
-    expect(removalHintText, contains('削除されません'));
+    expect(removalHintText, contains('削除はされません'));
   });
 
   testWidgets('吹き出しは帯に重なり、アイコンのすぐ上に立つ(008:T30 2回目の実機確認)', (tester) async {
@@ -134,9 +146,8 @@ void main() {
 
     // 帯の内側まで食い込んでいる(帯の中に収まっていたときは起こらない)。
     expect(hint.top, lessThan(bar.bottom));
-    // ツノの先とアイコンの上端の隙間は数px以内。
-    expect(icon.top - tail.bottom, lessThan(8));
-    expect(icon.top - tail.bottom, greaterThanOrEqualTo(0));
+    // T34では吹き出しを4dp下げ、ツノの先をアイコンの上端より少し下へ寄せる。
+    expect(icon.top - tail.bottom, -2);
   });
 
   testWidgets('出ているときは必ず画面の中にあり、閉じる操作が押せる', (tester) async {
@@ -199,7 +210,7 @@ void main() {
     // **縦だけでなく横も見る。** 箱は overlay の幅に合わせて自分も縮むので普通の
     // 端末では横に溢れないが、判定を縦だけにすると溢れた瞬間に気づけない
     // (独立review attempt 5 の `M386`)。
-    _setScreen(tester, const Size(200, 800));
+    _setScreen(tester, const Size(160, 800));
     await _pump(tester);
     await enterRemovalMode(tester);
     await tester.pump();
@@ -237,16 +248,15 @@ void main() {
     expect(find.byKey(removalHintKey), findsOneWidget);
   });
 
-  testWidgets('面もツノも同じ色で塗る(境界線を見せない)', (tester) async {
+  testWidgets('黒い面をシアンの連続した枠で囲み、ツノとの継ぎ目を作らない', (tester) async {
     await _pump(tester);
     await enterRemovalMode(tester);
 
     final colors = appDarkTheme().extension<AppColors>()!;
-    final box = tester.widget<Container>(find.byKey(removalHintKey));
-    expect((box.decoration as BoxDecoration).color, colors.primary);
-    // **枠線を引かない。** 引くと箱とツノの継ぎ目が線になって見える
-    // (2026-09-19 の2回目の実機確認)。
-    expect((box.decoration as BoxDecoration).border, isNull);
+    final frame = tester.widget<CustomPaint>(find.byKey(removalHintKey));
+    final painter = frame.painter! as RemovalHintFramePainter;
+    expect(painter.fill, colors.background);
+    expect(painter.edge, colors.primary);
   });
 
   testWidgets('閉じる操作を押すとその瞬間に消える', (tester) async {
@@ -262,12 +272,12 @@ void main() {
     expect(removalModeCountText(tester), isNotNull);
   });
 
-  testWidgets('放っておくと3秒でフェードアウトして消える', (tester) async {
+  testWidgets('表示開始から7秒でフェードアウトを完了する', (tester) async {
     await _pump(tester);
     await enterRemovalMode(tester);
     expect(find.byKey(removalHintKey), findsOneWidget);
 
-    // **3秒までは残る。**
+    // **7秒までは残る。**
     await tester.pump(removalHintLifetime - const Duration(milliseconds: 100));
     expect(find.byKey(removalHintKey), findsOneWidget);
 

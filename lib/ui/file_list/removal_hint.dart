@@ -21,22 +21,33 @@ const Key removalHintCloseKey = Key('removal-hint-close');
 /// `008:T03` が「すべて外す」を「一覧を空にする」へ改名したのも同じ取り違えを
 /// 避けるためだった。
 ///
-/// **2回目の実機確認で受領した原文のままである。** 1回目は帯の中へ収めていたので
-/// 2行に縮めていたが、**帯へ重ねる形にして高さの制約が消えた**ので戻した。
-const String removalHintText = '押すとリネームリストから外されます。\nファイルは削除されません。';
+/// 文と文の間へ明示的な改行を入れず、幅に応じて自然に折り返す(`008:T34`)。
+const String removalHintText = '押すとファイルをリネームリストから外します。削除はされません。';
 
-/// 吹き出しが出ている時間。これを過ぎるとフェードアウトする。
-const Duration removalHintLifetime = Duration(seconds: 3);
+/// 表示開始からフェード完了までの時間。
+const Duration removalHintLifetime = Duration(seconds: 7);
 
 /// フェードアウトにかける時間。
 const Duration removalHintFadeOut = Duration(milliseconds: 400);
 
+/// フェードを始めるまでの表示時間。
+const Duration removalHintVisibleDuration = Duration(milliseconds: 6600);
+
 /// 吹き出しの幅の上限。
-const double removalHintMaxWidth = 232;
+///
+/// 通常倍率では日本語を約16文字ずつ、自然に2行へ折り返す幅にする。
+const double removalHintMaxWidth = 180;
 
 /// ツノの底辺と高さ。
 const double removalHintTailWidth = 14;
 const double removalHintTailHeight = 8;
+
+/// アイコン枠の中心から、字面の見た目に合わせてツノを左へ寄せる量。
+///
+/// `Icons.playlist_remove` の字面は 40dp のtap target内で左寄りに見えるため、幾何学的な
+/// 中心ではツノが右へずれて見える。右から測る距離を増やすことで、ツノの中心を3dp左へ
+/// 補正する(`008:T34`)。
+const double removalHintTailVisualInsetFromRight = 3;
 
 /// 閉じる操作の円の直径。
 const double removalHintCloseDiameter = 22;
@@ -55,6 +66,9 @@ const double removalHintRightOffset = headerMenuExtent;
 /// ここの数が実体とずれたら落ちる。
 const double removalHintTailInsetFromRight =
     removalHintRightOffset + headerIconExtent / 2;
+
+/// ツノの先端をアイコンへ少し近づける、縦方向の補正(`008:T34`)。
+const double removalHintVerticalOffset = 2;
 
 /// 外すアイコンの上に**重ねて**出す補足。
 ///
@@ -113,11 +127,11 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
     }
   }
 
-  /// 出してから [removalHintLifetime] 後にフェードアウトさせる。
+  /// 表示開始から [removalHintLifetime] で完全に消えるようにフェードアウトさせる。
   void _schedule() {
     _fade.value = 1;
     _timer?.cancel();
-    _timer = Timer(removalHintLifetime, () {
+    _timer = Timer(removalHintVisibleDuration, () {
       if (!mounted) return;
       _fade.reverse().then((_) {
         if (mounted) _remove();
@@ -199,7 +213,7 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
       // 別の場所を探さず、`_showIfItFits` が取り下げる。
       targetAnchor: Alignment.topRight,
       followerAnchor: Alignment.bottomRight,
-      offset: const Offset(removalHintRightOffset, -2),
+      offset: const Offset(removalHintRightOffset, removalHintVerticalOffset),
       showWhenUnlinked: false,
       child: FadeTransition(
         opacity: _fade,
@@ -220,8 +234,10 @@ class _RemovalHintAnchorState extends State<RemovalHintAnchor>
   Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
-/// 吹き出しの見た目。**面も枠もツノも同じ色で塗る**(2026-09-19 の2回目の実機確認。
-/// 原文は「背景は枠線と同じシアンで塗りつぶしてよい(ツノとの境界線を見えなくする)」)。
+/// 吹き出しの見た目。
+///
+/// 黒い面をシアンの一筆書きの外枠で囲む。箱の下辺をツノの底辺で分断しないので、
+/// ツノと箱の継ぎ目に横線が出ない(`008:T34`)。
 class _RemovalHintBubble extends StatelessWidget {
   const _RemovalHintBubble({super.key, required this.onClose});
 
@@ -249,54 +265,54 @@ class _RemovalHintBubble extends StatelessWidget {
                   top: removalHintCloseDiameter / 2,
                   right: removalHintCloseDiameter / 2,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      key: removalHintKey,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        removalHintText,
-                        style: TextStyle(
-                          color: colors.onPrimary,
-                          fontSize: 11,
-                          height: 1.35,
-                          fontWeight: FontWeight.w600,
+                child: CustomPaint(
+                  key: removalHintKey,
+                  painter: RemovalHintFramePainter(
+                    fill: colors.background,
+                    edge: colors.primary,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 7,
                         ),
-                      ),
-                    ),
-                    // ツノは**箱の外**へ出す。右端からの距離で置くので、吹き出しの幅が
-                    // 変わってもアイコンとの関係は変わらない。
-                    Row(
-                      children: [
-                        const Spacer(),
-                        CustomPaint(
-                          key: removalHintTailKey,
-                          size: const Size(
-                            removalHintTailWidth,
-                            removalHintTailHeight,
+                        child: Text(
+                          removalHintText,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.25,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
                           ),
-                          painter: _TailPainter(fill: colors.primary),
                         ),
-                        // **閉じる操作のぶんの余白は既に引かれている**(この Row は
-                        // 右へ寄せた `Padding` の中にある)ので、その分を戻して測る。
-                        const SizedBox(
-                          width:
-                              removalHintTailInsetFromRight -
-                              removalHintCloseDiameter / 2 -
-                              removalHintTailWidth / 2,
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      // [RemovalHintFramePainter] が、ここで取る大きさに合わせて
+                      // 箱と一体のツノを描く。SizedBox は位置を測るための的だけを置く。
+                      Row(
+                        children: [
+                          const Spacer(),
+                          const SizedBox(
+                            key: removalHintTailKey,
+                            width: removalHintTailWidth,
+                            height: removalHintTailHeight,
+                          ),
+                          // **閉じる操作のぶんの余白は既に引かれている**(この Row は
+                          // 右へ寄せた `Padding` の中にある)ので、その分を戻して測る。
+                          const SizedBox(
+                            width:
+                                removalHintTailInsetFromRight +
+                                removalHintTailVisualInsetFromRight -
+                                removalHintCloseDiameter / 2 -
+                                removalHintTailWidth / 2,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -334,25 +350,51 @@ class _RemovalHintBubble extends StatelessWidget {
   }
 }
 
-/// 下向きのツノ。**箱と同じ色で塗るだけ**で、境界線は引かない
-/// (引くと箱との継ぎ目が線になって見える)。
+/// 箱とツノを連続した一つの外形として描く painter。
 ///
-/// **向きは1つだけである。** 上に収まらない画面では場所を変えずに取り下げるので
-/// (2026-09-19 の開発者の判断)、上向きは要らない。
-class _TailPainter extends CustomPainter {
-  const _TailPainter({required this.fill});
+/// `Container` と三角を別々に枠線で囲むと、接する下辺が二重に見える。このpathはツノの
+/// 両辺だけを外形に含めるので、継ぎ目を作らない。
+class RemovalHintFramePainter extends CustomPainter {
+  const RemovalHintFramePainter({required this.fill, required this.edge});
 
   final Color fill;
+  final Color edge;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final boxBottom = size.height - removalHintTailHeight;
+    final radius = 8.0;
+    final tailCenter =
+        size.width -
+        (removalHintTailInsetFromRight +
+            removalHintTailVisualInsetFromRight -
+            removalHintCloseDiameter / 2);
     final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(size.width, 0);
-    canvas.drawPath(path, Paint()..color = fill);
+      ..moveTo(radius, 0)
+      ..lineTo(size.width - radius, 0)
+      ..quadraticBezierTo(size.width, 0, size.width, radius)
+      ..lineTo(size.width, boxBottom - radius)
+      ..quadraticBezierTo(size.width, boxBottom, size.width - radius, boxBottom)
+      ..lineTo(tailCenter + removalHintTailWidth / 2, boxBottom)
+      ..lineTo(tailCenter, size.height)
+      ..lineTo(tailCenter - removalHintTailWidth / 2, boxBottom)
+      ..lineTo(radius, boxBottom)
+      ..quadraticBezierTo(0, boxBottom, 0, boxBottom - radius)
+      ..lineTo(0, radius)
+      ..quadraticBezierTo(0, 0, radius, 0)
+      ..close();
+    canvas
+      ..drawPath(path, Paint()..color = fill)
+      ..drawPath(
+        path,
+        Paint()
+          ..color = edge
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.25,
+      );
   }
 
   @override
-  bool shouldRepaint(_TailPainter old) => old.fill != fill;
+  bool shouldRepaint(RemovalHintFramePainter old) =>
+      old.fill != fill || old.edge != edge;
 }
