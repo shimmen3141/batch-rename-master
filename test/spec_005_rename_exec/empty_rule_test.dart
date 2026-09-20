@@ -269,6 +269,7 @@ void main() {
       expect(find.text('桁不足'), findsNothing);
       // 件数も出さない。001 は空名と重複を返しているので「問題なし」は誤りになる。
       expect(find.byKey(warningCountKey), findsNothing);
+      expect(find.text('正常にリネームできます'), findsNothing);
       expect(find.byKey(ruleNotConfiguredKey), findsOneWidget);
       expect(find.textContaining('命名ルールが未設定'), findsOneWidget);
     });
