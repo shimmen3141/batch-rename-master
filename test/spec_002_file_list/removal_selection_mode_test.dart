@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
+import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -16,13 +17,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'removal_mode.dart';
 
-FileEntry _f(String name, {String? handle}) => FileEntry(
-  name: name,
-  createdAt: DateTime(2026, 1, 1),
-  modifiedAt: DateTime(2026, 1, 1),
-  size: 0,
-  sourceHandle: handle,
-);
+FileEntry _f(String name, {String? handle, String? sourceLocation}) =>
+    FileEntry(
+      name: name,
+      createdAt: DateTime(2026, 1, 1),
+      modifiedAt: DateTime(2026, 1, 1),
+      size: 0,
+      sourceHandle: handle,
+      sourceLocation: sourceLocation,
+    );
 
 const _seq2 = RenameRule([SequenceToken(start: 1, digits: 2)]);
 
@@ -33,13 +36,25 @@ List<FileEntry> _abc() => [
   _f('c.txt', handle: 'h:c'),
 ];
 
-Future<void> _pump(WidgetTester tester, FileListController c) async {
+Future<void> _pump(
+  WidgetTester tester,
+  FileListController c, {
+  RemovalSelection? selection,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
-      home: Scaffold(body: FileListView(controller: c)),
+      home: Scaffold(
+        body: FileListView(controller: c, removalSelection: selection),
+      ),
     ),
   );
+}
+
+Future<TestGesture> _startLongPress(WidgetTester tester, Finder target) async {
+  final gesture = await tester.startGesture(tester.getCenter(target));
+  await tester.pump(const Duration(milliseconds: 600));
+  return gesture;
 }
 
 void main() {
@@ -75,6 +90,98 @@ void main() {
     // **一覧は変わらない。** rename 対象は全件のままである。
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
     expect(c.selectedCount, 3);
+  });
+
+  testWidgets('長押しの往復では今回追加した行だけを外す(REQ-018・代表例6k)', (tester) async {
+    final selection = RemovalSelection();
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c, selection: selection);
+
+    final gesture = await _startLongPress(tester, find.text('a.txt'));
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // a → b → c → b は c だけを戻す。開始行と経路上の b は残る。
+    expect(selection.marked, {'h:a', 'h:b'});
+  });
+
+  testWidgets('モード中の長押し往復は以前の候補を保つ(REQ-018・代表例6l)', (tester) async {
+    final selection = RemovalSelection();
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c, selection: selection);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+
+    final gesture = await _startLongPress(tester, find.text('b.txt'));
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // 開始前からある a は、このドラッグが戻っても外れない。
+    expect(selection.marked, {'h:a', 'h:b'});
+  });
+
+  testWidgets('長押し前の通常ドラッグは候補を作らない(REQ-018・代表例6o)', (tester) async {
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('a.txt')),
+    );
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await gesture.up();
+    await tester.pump();
+
+    expect(find.byKey(removalModeCountKey), findsNothing);
+  });
+
+  testWidgets('端の保持で実在する行だけを連続して選びながらスクロールする(REQ-018・代表例6m/6n)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final selection = RemovalSelection();
+    final files = [
+      for (var i = 0; i < 12; i++)
+        _f(
+          'file-$i.txt',
+          handle: 'h:$i',
+          // 場所を持つ行と持たない行を混ぜ、表示行高を固定値で仮定できない形にする。
+          sourceLocation: i == 0 ? '/folder-a' : (i == 2 ? '/folder-b' : null),
+        ),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, selection: selection);
+
+    final gesture = await _startLongPress(tester, find.text('file-0.txt'));
+    final list = tester.getRect(find.byType(ReorderableListView));
+    await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+    await tester.pump();
+    // Timer tick ごとに固定された指位置で新しく表示された行を同じ経路として追う。
+    // widget test では frame を刻み、実機の連続 frame と同じ timer tick を流す。
+    for (var tick = 0; tick < 260; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pump();
+    final markedWhenLifted = selection.marked;
+    await tester.pump(const Duration(seconds: 1));
+
+    final handles = {for (var i = 0; i < 12; i++) 'h:$i'};
+    expect(selection.marked, markedWhenLifted);
+    expect(selection.marked, isNotEmpty);
+    expect(selection.marked, everyElement(isIn(handles)));
+    // 終端では overscroll せず、実在する末尾行までで止まる。
+    expect(selection.marked, contains('h:11'));
   });
 
   testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
