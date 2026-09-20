@@ -70,7 +70,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `T29` の実機確認で受領した1件をtask化した(2026-09-19)
+- Last checkpoint: 専用branch
+  `asdd/008-ui-alignment/T31-drag-to-multi-select` でclaimし、仕様判断前の調査を開始した
+  (2026-09-20)
 - Blocker category: none
 - Waiting for: なし
 - Requested action: なし
@@ -78,6 +80,6 @@
   `specs/002-file-list/spec.md`(REQ-018 の追記。**再承認が要る**)
 - 並行: **`T34` とは別file**なので同時に進められる。`T33` / `T35` とも別。
   ただし `tool/mutations.json` はどのtaskも触るので、**同時に走らせるとここだけ衝突しうる**
-- Evidence revision: 未着手
-- Next Agent action: 着手時に「なぞって戻ったときの扱い」を開発者へ一問で確認し(推奨は
-  加えるだけ)、REQ-018 の追記案と代表例を出してから実装する
+- Evidence revision: `feb3bf9` (claim開始点。実装差分なし)
+- Next Agent action: 現在のgesture経路とtestを調べ、「なぞって戻ったときの扱い」の
+  選択肢が実装・検証へ与える差を確定してから、開発者へ一問で確認する
