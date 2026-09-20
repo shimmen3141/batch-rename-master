@@ -158,3 +158,14 @@
 - Requested action: なし
 - Evidence revision: T33 manual PASS 受領後の実装開始点（未commit）。
 - Next Agent action: 行矩形ベースのdrag sessionとedge auto-scrollを実装し、widget testとmutationで検証する。
+
+
+## 2026-09-20 実装・review handoff（上のhandoffを置き換える）
+
+- Last checkpoint: `55966e7` が長押しの連続経路、開始時候補の保護、実描画行矩形、edge auto-scroll、widget test と Android 実機手順を追加した。`69a3117` が M393〜M395 を mutation 表へ追加した。
+- Status: `in_review`。独立 implementation review を依頼する段階であり、Android 実機 manual はまだ行っていない。
+- Machine verification scope: widget test は初回/モード中の往復、通常ドラッグ無効、可変行高の edge auto-scroll、lift/bounds を検証した。Android 実機でしか確認できない指の長押し・edge hold・cancel はこの T31 が引き受け、review PASS 後に実施する。
+- Verification: `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` PASS (32 tests)、`dart format --output=none --set-exit-if-changed .` PASS、`flutter analyze` PASS、`flutter test` PASS、`workspace.py check specs` PASS。M393〜M395 は scoped `mutation_check.py` で KILLED。
+- Waiting for: 独立 implementation review の結果。
+- Requested action: なし。
+- Next Agent action: review PASS 後、対象 commit を固定して Android 実機 manual を依頼し、結果をこの task へ記録する。
