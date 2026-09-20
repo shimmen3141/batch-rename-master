@@ -68,18 +68,62 @@
 - Android実機での manual 確認(`manual-verification.md` を作る) — **指の操作なので
   emulator だけでは足りない**。
 
+## 調査checkpoint (2026-09-20、仕様判断前)
+
+観測可能な振る舞いはまだ変更していない。現行実装と Flutter 3.44.6 のgesture APIを
+照合し、次を確認した。
+
+- 行の長押しは `_FileRow` の preview・名前領域にある `GestureDetector` だけが受け、
+  右端の並び替えつまみは別のpointer経路にある。この境界を保ったまま
+  `onLongPressStart` / `onLongPressMoveUpdate` / `onLongPressEnd` を足せる。
+- `onLongPressMoveUpdate` は起点の行から外れた後もglobal座標を渡す。ただし移動eventが
+  行ごとに来る保証はない。aからcへ一度に動いた場合もbを「通過」と数えるには、固定行高で
+  indexを推測せず、実際に描画された各行の矩形と直前座標からの線分を照合する必要がある。
+- 画面外の行は描画されていないため、自動scrollを足さなければ自然に「見えている行だけ」が
+  対象になる。`T31`では自動scrollを足さない既定と両立する。
+- 現行の `RemovalSelection.toggle` は最後の1件を外した瞬間にモードを抜ける。このため、
+  起点が選択済みなら外す案はgesture中だけ0件を許すsession APIが必要で、加えるだけの案より
+  状態遷移が広い。
+
+選択肢の観測結果と実装・検証への影響は次のとおり。
+
+| 案 | a→b→c→b の結果 | 選択済み行から開始 | 実装・検証への影響 |
+|---|---|---|---|
+| (a) 加えるだけ(推奨) | a,b,c のまま | その行を保ち、通過した未選択行だけ加える | idempotentな`mark`を足せばよく、指の震えで候補を失わない。現行の0件自動解除を変えない |
+| (b) 起点の状態と逆へ塗る | 戻っても一度塗った状態を保つ | 起点が未選択なら通過行を選択、選択済みなら通過行を解除 | まとめて解除できるが、最後の1件から始めてもdragを続けるため、gesture終了まで0件自動解除を遅延する必要がある |
+| (c) 戻った分を外す | cだけ外れ、a,b が残る。aまで戻ればb,cが外れる | gesture前から選択済みの行は保護し、このgestureで加えた行だけ戻り時に外す | 現在の軌跡とgesture開始時snapshotを持つ。分岐・飛び越しも含む経路testが必要で、3案中もっとも複雑 |
+
+判断後の最小checkpointは、(1) REQ-018と代表例を選択案・見えている範囲・通常表示では
+無効という文面で更新、(2) 実描画矩形に基づくgesture sessionとwidget test、(3) mutation・
+関連/全体回帰・独立review・Android実機確認、の3つである。
+
+既存Issue/PRは無い。実装では `file_list_view.dart`、`removal_selection.dart`、
+`removal_selection_mode_test.dart`、002の`spec.md`、T31のmanual、`tool/mutations.json`を
+触る見込みである。T33とは製品code・specが分かれるが、`tool/mutations.json`だけは統合時に
+競合しうる。
+
 ## Current state / handoff
 
-- Last checkpoint: 専用branch
-  `asdd/008-ui-alignment/T31-drag-to-multi-select` でclaimし、仕様判断前の調査を開始した
-  (2026-09-20)
-- Blocker category: none
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: 現行gesture経路、Flutter 3.44.6の長押し移動API、3案の状態遷移と
+  test境界を調査し、既存の関連widget test 28件がPASSする基準点を得た(2026-09-20)
+- Blocker category: product decision / spec approval
+- Waiting for: 開発者
+- Requested action: 「なぞって戻ったとき」を (a)加えるだけ / (b)起点の逆へ塗る /
+  (c)戻った分を外す、のいずれにするか選ぶ。推奨は(a)
 - Touches: `lib/ui/file_list/file_list_view.dart`(行のgesture)、`removal_selection.dart`、
   `specs/002-file-list/spec.md`(REQ-018 の追記。**再承認が要る**)
 - 並行: **`T34` とは別file**なので同時に進められる。`T33` / `T35` とも別。
   ただし `tool/mutations.json` はどのtaskも触るので、**同時に走らせるとここだけ衝突しうる**
-- Evidence revision: `feb3bf9` (claim開始点。実装差分なし)
-- Next Agent action: 現在のgesture経路とtestを調べ、「なぞって戻ったときの扱い」の
-  選択肢が実装・検証へ与える差を確定してから、開発者へ一問で確認する
+- Evidence revision: `0e5fac8` + working treeの調査記録(製品code・spec差分なし)
+- Next Agent action: 選択を受領したら、見えている範囲だけ・通常表示では無効・モード中の
+  行から始めても同じ規則、を含むREQ-018追記と代表例を確定し、実装へ進む
+
+## 作業記録
+
+- `python3 /home/dev/.agents/skills/asdd/scripts/workspace.py check specs` — PASS
+  (8 plans, 88 tasks)
+- `gh pr list --state open --head asdd/008-ui-alignment/T31-drag-to-multi-select ...` — `[]`
+- `gh issue list --state open --search 'T31 drag multi select in:title' ...` — `[]`
+- `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` — PASS (28 tests)
+- Flutter SDK sourceで `GestureDetector.onLongPressStart` / `onLongPressMoveUpdate` /
+  `onLongPressEnd` が利用可能であることを確認(Flutter 3.44.6)
