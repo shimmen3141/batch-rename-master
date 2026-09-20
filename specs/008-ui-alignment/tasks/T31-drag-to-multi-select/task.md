@@ -127,3 +127,12 @@
 - `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` — PASS (28 tests)
 - Flutter SDK sourceで `GestureDetector.onLongPressStart` / `onLongPressMoveUpdate` /
   `onLongPressEnd` が利用可能であることを確認(Flutter 3.44.6)
+
+## 2026-09-20 更新（上の未決定事項とhandoffを置き換える）
+
+- Last checkpoint: 開発者の決定(c)と画面端自動スクロールを、REQ-018の正確な追記案と代表例 6k〜6oへ文面化した。製品codeは変更していない。
+- Requested action: 002-file-list/spec.md の更新済み REQ-018 追記案と代表例 6k〜6o を承認する。
+- Evidence revision: 仕様承認checkpoint。製品code差分なし。
+- Next Agent action: 再承認を受領したら、実際の行矩形を使うdrag session、自動scroll、widget test、mutation、manual確認を実装する。
+
+- 開発者が「戻った分を外す」と画面端の自動スクロールを決定。REQ-018の正確な追記案と代表例6k〜6oを記録し、再承認待ちへ更新（製品code変更なし）。
