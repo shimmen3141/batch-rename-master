@@ -83,6 +83,14 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
 
 - SELF-REVIEW ONLY: 8b0279f..b902dc0 の実装・test・mutation・task正本を照合した。成果物の欠陥は見つからなかった。実機の色、相対位置、7秒の体感は手動確認で判定する。
 
+## Final-evidence independent review(2026-09-20)
+
+- Scope: 008 / T34、final-evidence、f19b1651e12efa076f1b8ba65716a18d29b9ea41..4f0cb00a67b457300b5480a7babecd4ac57da975。
+- Review attempt: unknown(過去の独立final-evidence attemptをtask記録から確定できない)。
+- 判定: PASS。成果物の欠陥なし、安全網の穴なし、未解決P0/P1なし。T34はdoneへ進められる。
+- Manual後の差分はtask記録とdevelopment findingだけで、code、dependency、build設定の変更はない。
+- Reviewer model: gpt-5。実装時のmodel指定との相対既定より、実際に利用可能だったreview model名を記録する。
+
 ## Manual evidence and branch remediation(2026-09-20)
 
 - Manual evidence: PASS — revision 70837562e6409571cd230c671db92626edaa584a、準備済みのAndroid実機またはemulator環境、2026-09-20に会話で「確認事項はすべて問題ありませんでした」と受領。manual-verification.mdの手順1〜3をすべて充足した。
@@ -91,15 +99,15 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
 
 ## Current state / handoff
 
-- Last checkpoint: manual-verification.mdの手順1〜3がrevision 7083756で全項目PASSし、規定task branchへ是正した(2026-09-20)
-- Blocker category: final-evidence review
-- Waiting for: final-evidence review
-- Requested action: 受領したmanual証拠とf19b165..7083756の差分をfinal-evidence reviewする。
+- Last checkpoint: f19b165..4f0cb00のfinal-evidence独立reviewがPASSし、manualを含む全受け入れ証拠が揃った(2026-09-20)
+- Blocker category: none
+- Waiting for: none
+- Requested action: none
 - Touches: `lib/ui/file_list/removal_hint.dart`(必要なら `header_metrics.dart`)、
   `test/spec_002_file_list/removal_hint_test.dart`、`tool/mutations.json`(M363/M365/M367/M389 の再アンカー)
 - 並行: **`T31` とは別file**(あちらは `file_list_view.dart`)なので同時に進められる。
   `header_metrics.dart` だけは `file_list_view.dart` と共有している定数なので、
   **そこを動かすなら `T31` と順番を決める**
-- Evidence revision: b902dc0e312dfd25d21ae20daa42084d2b5098ec
+- Evidence revision: 4f0cb00a67b457300b5480a7babecd4ac57da975
 - Machine verification scope: widget testでツノの意図した視覚補正、明示改行のない文言、白文字と自然な2行表示、開始から完全消失まで7秒、黒地とシアン枠、画面内への収まり、閉じる操作、pointer透過を検証する。Android実機の見た目と操作感はmachineで閉じられないため、このtaskのmanual確認で受ける。
-- Next Agent action: final-evidence reviewの判定を記録し、未解決P0/P1が無ければ完了判定へ進める。
+- Next Agent action: 規定task branchをdev向けPRとして共有し、integration結果を確認する。

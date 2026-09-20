@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T34",
   "title": "吹き出しの位置・文言・配色・時間を詰める",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T30"
   ],
