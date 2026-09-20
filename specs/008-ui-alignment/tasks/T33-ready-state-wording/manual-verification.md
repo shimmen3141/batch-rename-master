@@ -7,6 +7,8 @@
 
 検証対象code revision: **`45112d9`**（独立implementation review PASS済み）。
 
+Evidence metadata: **PASS** — host Android emulator、2026-09-20に会話で受領。
+
 ## 準備
 
 demoの初期ファイルを使う。実ファイルを選ばない。

@@ -120,6 +120,13 @@ KILLEDを確認した。対象sourceは各回で復元され、作業treeはclea
 - 以後のmanual対象code revisionは**`45112d9`**で固定する。今回以降はevidence/status
   metadataだけを変更し、code・dependency・build設定・manual手順は変更しない。
 
+## manual確認の結果(2026-09-20)
+
+Manual evidence: **PASS** — code revision `45112d9` / evidence head `9f705fb`、
+host Android emulator、2026-09-20に会話で受領。`manual-verification.md`の手順1〜4は
+すべて問題なし。緑の見出し、変更0件と空ルールでの非表示、狭幅・最大文字倍率での全文表示と
+ケバブ操作を確認した。
+
 ## 調査checkpoint(2026-09-20)
 
 文言判断に必要な状態は、すでに製品のcomposition rootまで届いている。
@@ -145,16 +152,16 @@ KILLEDを確認した。対象sourceは各回で復元され、作業treeはclea
 
 ## Current state / handoff
 
-- Last checkpoint: 独立implementation reviewがPASSし、Android manual確認待ちになった
-  (2026-09-20)。review済みcode revisionは`45112d9`
-- Blocker category: Android manual verification
-- Waiting for: 開発者（Android実機またはemulator）
-- Requested action: `45112d9`を起動し、`manual-verification.md`の手順1〜4を実施して
-  結果を会話で返す
+- Last checkpoint: Android emulatorのmanual確認を受領し、final-evidence review中になった
+  (2026-09-20)。manual対象code revisionは`45112d9`
+- Blocker category: none
+- Waiting for: none
+- Requested action: none
 - Touches: `lib/ui/file_list/rename_warning_view.dart`、案(a)では
   `lib/ui/file_list/file_list_view.dart`の呼び出し1か所、`specs/005-rename-exec/spec.md`
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
 - 並行: `T31`と並行できるが、案(a)では`file_list_view.dart`の別責務と
   `tool/mutations.json`が重なるため、統合時に小さな競合がありうる
 - Evidence revision: `45112d9`（独立review済みのmanual対象code revision）
-- Next Agent action: manual結果をrevision・環境・受領日時とともに記録し、final-evidence reviewへ渡す
+- Next Agent action: `45112d9...manual evidence head`がevidence-onlyであることを確認し、
+  final-evidence reviewの判定を記録する
