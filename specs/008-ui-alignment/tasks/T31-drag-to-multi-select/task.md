@@ -136,3 +136,16 @@
 - Next Agent action: 再承認を受領したら、実際の行矩形を使うdrag session、自動scroll、widget test、mutation、manual確認を実装する。
 
 - 開発者が「戻った分を外す」と画面端の自動スクロールを決定。REQ-018の正確な追記案と代表例6k〜6oを記録し、再承認待ちへ更新（製品code変更なし）。
+
+## 2026-09-20 承認と実装順序（上のhandoffを置き換える）
+
+- Last checkpoint: 開発者が REQ-018 の追記と代表例 6k〜6o を文面どおり承認した。製品codeは変更していない。
+- Blocker category: user sequencing / T33 manual verification
+- Waiting for: T33 の emulator manual verification 結果
+- Requested action: なし。開発者から T33 の manual確認完了以外の作業は求めない。
+- Evidence revision: 仕様承認checkpoint（未commit）。製品code差分なし。
+- Next Agent action: T33 の manual確認完了を受領した後にのみ、T31 の実装を再開する。
+
+## 作業記録（2026-09-20）
+
+- 開発者が REQ-018 の追記と代表例 6k〜6o を承認。T33 の emulator manual verification 完了まで実装を開始しない。
