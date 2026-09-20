@@ -79,7 +79,7 @@
 |---|---|---|---|
 | ルールが空 | `controller.isRuleEmpty == true` | 件数labelを出さず、未設定の案内を出す | 変更しない |
 | 警告0件・変更あり | `warnings.isEmpty && changedFileCount > 0` | `問題なし` | 緑で `正常にリネームできます` |
-| 警告0件・変更0件 | `warnings.isEmpty && changedFileCount == 0` | `問題なし`、実行buttonは `変更されるファイルがありません` | 成功を主張せず、同じ理由を示す別文言にする |
+| 警告0件・変更0件 | `warnings.isEmpty && changedFileCount == 0` | `問題なし`、実行buttonは `変更されるファイルがありません` | **件数見出しを出さない** |
 | 警告あり | `warnings.isNotEmpty` | 赤で `n 件の問題` | 変更しない |
 
 - `FileListController.changedFileCount` は、実行可否と同じ `rowHasNoChange` を使う。
@@ -96,18 +96,15 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 警告0件を「変更あり / 変更0件」へ分ける既存判定と、composition root・
-  test fixtureまでの経路を確認した(2026-09-20)。実装差分はまだ無い
-- Blocker category: product wording decision
-- Waiting for: 開発者
-- Requested action: 警告0件の見出しを、(a) 変更ありだけ `正常にリネームできます`、
-  変更0件は `変更されるファイルがありません` と分けるか、(b) 変更有無を主張しない
-  `問題は見つかりません` に統一するかを選ぶ。推奨は(a)
+- Last checkpoint: 開発者が案(a)を決定した。警告0件・変更ありは緑で
+  `正常にリネームできます`、変更0件と空ルールでは件数見出しを出さない(2026-09-20)
+- Blocker category: none
+- Waiting for: none
+- Requested action: none
 - Touches: `lib/ui/file_list/rename_warning_view.dart`、案(a)では
   `lib/ui/file_list/file_list_view.dart`の呼び出し1か所、`specs/005-rename-exec/spec.md`
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
 - 並行: `T31`と並行できるが、案(a)では`file_list_view.dart`の別責務と
   `tool/mutations.json`が重なるため、統合時に小さな競合がありうる
 - Evidence revision: `3a64e48` + 調査commit(2026-09-20、hashはcommit後に確定)
-- Next Agent action: 回答された文言を005代表例20fの記録へ反映し、widget testを
-  先に更新してから最小の表示変更を実装する
+- Next Agent action: 005代表例20fの記録を更新し、widget testを先に追加してから最小の表示変更を実装する
