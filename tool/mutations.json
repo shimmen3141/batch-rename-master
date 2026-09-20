@@ -1352,9 +1352,9 @@
     {
       "id": "M198",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        if (!controller.isRuleEmpty)\n                          WarningCountView(",
+      "find": "                        if (!controller.isRuleEmpty &&\n                            (warnings.isNotEmpty ||\n                                controller.changedFileCount > 0))\n                          WarningCountView(",
       "replace": "                        if (true)\n                          WarningCountView(",
-      "note": "008:T16 ルールが空でもヘッダに件数を出す — 001は空名と重複を返すので「問題なし」は誤りになる(005 REQ-020)(独立review attempt 4 が追加)"
+      "note": "008:T16/T33 ルールが空または警告0件・変更0件でもヘッダに件数を出す — 001は空名と重複を返し、変更0件は成功を主張できない(005 REQ-020 / 008:T33)"
     },
     {
       "id": "M199",
@@ -2608,6 +2608,28 @@
       "find": "    final safe = Rect.fromLTRB(\n      0,\n      media.padding.top,\n      media.size.width,\n      media.size.height,\n    );",
       "replace": "    final safe = Rect.fromLTRB(\n      media.padding.left,\n      media.padding.top,\n      media.size.width - media.padding.right,\n      media.size.height - media.padding.bottom,\n    );",
       "note": "008:T30 左右と下の inset まで要求する — 横向き + ジェスチャーナビ(右に40程度の inset)の端末で**普通の文字でも一度も出なくなる**(実測で確認した)。この app は画面の端まで使う作りで、ヘッダのケバブも外すアイコンも inset の内側へ寄せていない"
+    },
+    {
+      "id": "M390",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "(warnings.isNotEmpty ||\n                                controller.changedFileCount > 0)",
+      "replace": "(warnings.isNotEmpty ||\n                                true)",
+      "note": "008:T33 変更0件でも警告0件の準備完了を出す — 実行できない状態を成功と読ませる"
+    },
+    {
+      "id": "M391",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "return count == 0 ? '正常にリネームできます' : '$count 件の問題';",
+      "replace": "return count == 0 ? '問題なし' : '$count 件の問題';",
+      "note": "008:T33 警告0件・変更ありの準備完了文言を旧文言へ戻す"
+    },
+    {
+      "id": "M392",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "color: has ? colors.danger : colors.success,",
+      "replace": "color: has ? colors.danger : colors.textSecondary,",
+      "occurrences": 2,
+      "note": "008:T33 準備完了のiconまたは文字を成功色から外す。findが2箇所あるためmutation_checkが両方を置換する"
     },
     {
       "id": "M388",

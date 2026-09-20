@@ -430,10 +430,10 @@ String executeLabel({
   return '変更されるファイルがありません';
 }
 
-/// 一覧全体の件数(005 REQ-010: 0 件なら「問題なし」。**それは警告ではない**)。
+/// 一覧全体の件数。0 件なら、実行できる状態だけ準備完了を示す(008:T33)。
 String warningCountLabel(List<Warning> warnings) {
   final count = presentWarnings(warnings).length;
-  return count == 0 ? '問題なし' : '$count 件の問題';
+  return count == 0 ? '正常にリネームできます' : '$count 件の問題';
 }
 
 /// 行の警告(005 REQ-009 (1))。**展開操作を経ずに種別が読める。**
@@ -570,7 +570,7 @@ class WarningCountView extends StatelessWidget {
             Icon(
               has ? Icons.error_outline : Icons.check_circle_outline,
               size: 13,
-              color: has ? colors.danger : colors.textSecondary,
+              color: has ? colors.danger : colors.success,
             ),
             const SizedBox(width: 4),
             Flexible(
@@ -582,7 +582,7 @@ class WarningCountView extends StatelessWidget {
                 // 文字側の幅が狭まったのでここでも効くようになった。
                 maxLines: 2,
                 style: TextStyle(
-                  color: has ? colors.danger : colors.textSecondary,
+                  color: has ? colors.danger : colors.success,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
