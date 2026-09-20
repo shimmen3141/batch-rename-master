@@ -1352,7 +1352,7 @@
     {
       "id": "M198",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        if (!controller.isRuleEmpty &&\n                            (warnings.isNotEmpty || controller.changedFileCount > 0))\n                          WarningCountView(",
+      "find": "                        if (!controller.isRuleEmpty &&\n                            (warnings.isNotEmpty ||\n                                controller.changedFileCount > 0))\n                          WarningCountView(",
       "replace": "                        if (true)\n                          WarningCountView(",
       "note": "008:T16/T33 ルールが空または警告0件・変更0件でもヘッダに件数を出す — 001は空名と重複を返し、変更0件は成功を主張できない(005 REQ-020 / 008:T33)"
     },
@@ -2612,8 +2612,8 @@
     {
       "id": "M390",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "(warnings.isNotEmpty || controller.changedFileCount > 0)",
-      "replace": "(warnings.isNotEmpty || true)",
+      "find": "(warnings.isNotEmpty ||\n                                controller.changedFileCount > 0)",
+      "replace": "(warnings.isNotEmpty ||\n                                true)",
       "note": "008:T33 変更0件でも警告0件の準備完了を出す — 実行できない状態を成功と読ませる"
     },
     {
@@ -2628,6 +2628,7 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "color: has ? colors.danger : colors.success,",
       "replace": "color: has ? colors.danger : colors.textSecondary,",
+      "occurrences": 2,
       "note": "008:T33 準備完了のiconまたは文字を成功色から外す。findが2箇所あるためmutation_checkが両方を置換する"
     },
     {
