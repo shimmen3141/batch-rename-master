@@ -83,12 +83,18 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
 
 - SELF-REVIEW ONLY: 8b0279f..b902dc0 の実装・test・mutation・task正本を照合した。成果物の欠陥は見つからなかった。実機の色、相対位置、7秒の体感は手動確認で判定する。
 
+## Manual evidence and branch remediation(2026-09-20)
+
+- Manual evidence: PASS — revision 70837562e6409571cd230c671db92626edaa584a、準備済みのAndroid実機またはemulator環境、2026-09-20に会話で「確認事項はすべて問題ありませんでした」と受領。manual-verification.mdの手順1〜3をすべて充足した。
+- Branch deviation: T34の実装・証拠commitをintegration branchのdev上で作成していた。origin/devはf19b165のまま未変更・未pushであることを確認し、同じHEADに規定branch asdd/008-ui-alignment/T34-hint-refinementsを作成した後、local devをorigin/devへ戻した。T34のcommit rangeはf19b165..7083756として規定branchに保持している。
+- 人間確認後にcode、dependency、build設定の変更はない。
+
 ## Current state / handoff
 
-- Last checkpoint: 白文字、自然な2行表示、開始から完全消失まで7秒への修正、関連widget回帰333件、全回帰938件、format、analyze、対象mutationを完了した(2026-09-20)
-- Blocker category: manual verification
-- Waiting for: Android実機またはemulatorを操作する人間
-- Requested action: manual-verification.mdの手順1〜3をb902dc0以後のrevisionで確認し、結果を会話で返す。
+- Last checkpoint: manual-verification.mdの手順1〜3がrevision 7083756で全項目PASSし、規定task branchへ是正した(2026-09-20)
+- Blocker category: final-evidence review
+- Waiting for: final-evidence review
+- Requested action: 受領したmanual証拠とf19b165..7083756の差分をfinal-evidence reviewする。
 - Touches: `lib/ui/file_list/removal_hint.dart`(必要なら `header_metrics.dart`)、
   `test/spec_002_file_list/removal_hint_test.dart`、`tool/mutations.json`(M363/M365/M367/M389 の再アンカー)
 - 並行: **`T31` とは別file**(あちらは `file_list_view.dart`)なので同時に進められる。
@@ -96,4 +102,4 @@ mutation_check.pyを、対応するtest名だけへ絞った作業用表で実�
   **そこを動かすなら `T31` と順番を決める**
 - Evidence revision: b902dc0e312dfd25d21ae20daa42084d2b5098ec
 - Machine verification scope: widget testでツノの意図した視覚補正、明示改行のない文言、白文字と自然な2行表示、開始から完全消失まで7秒、黒地とシアン枠、画面内への収まり、閉じる操作、pointer透過を検証する。Android実機の見た目と操作感はmachineで閉じられないため、このtaskのmanual確認で受ける。
-- Next Agent action: manual結果をtaskへ記録し、証拠identityを確認してfinal-evidence reviewを行う。
+- Next Agent action: final-evidence reviewの判定を記録し、未解決P0/P1が無ければ完了判定へ進める。
