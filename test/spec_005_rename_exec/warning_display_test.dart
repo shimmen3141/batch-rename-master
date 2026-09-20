@@ -799,6 +799,13 @@ void main() {
       final style = text.style!;
       expect(style.color, AppColors.dark.success);
       expect(style.fontWeight, FontWeight.w600);
+      final icon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.check_circle_outline),
+        ),
+      );
+      expect(icon.color, AppColors.dark.success);
     });
 
     testWidgets('変更がある警告0件の見出しを押しても、詳細は開かない', (tester) async {
