@@ -83,6 +83,33 @@
 - 320dp・最大文字倍率(2.0)で`RenderParagraph.didExceedMaxLines == false`を確認する
   widget testを追加した。
 
+## 検証(2026-09-20)
+
+- `flutter test test/spec_005_rename_exec/warning_display_test.dart
+  test/spec_005_rename_exec/empty_rule_test.dart` PASS (45 tests)。
+- `dart format --output=none --set-exit-if-changed .` PASS(131 files) /
+  `flutter analyze` PASS /
+  `flutter test` PASS /
+  `python3 /home/dev/.agents/skills/asdd/scripts/workspace.py check specs` PASS(8 plans, 88 tasks)。
+- Android SDKがAI containerに無いため、実機・emulatorの表示確認とbuildは未実施。
+
+### mutationの生出力
+
+対象test: `flutter test test/spec_005_rename_exec/warning_display_test.dart`
+
+```text
+M198 | KILLED | 空ルールまたは警告0件・変更0件でも件数見出しを出す | exit 1
+M390 | KILLED | 変更0件でも準備完了を出す | exit 1
+M391 | KILLED | 準備完了文言を旧文言へ戻す | exit 1
+M392 | KILLED | 準備完了のiconと文字を成功色から外す | exit 1
+4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+M198/M390/M392は`mutation_check.py`の個別実行、M391は再アンカー前の同一実装に対する
+初回実行で得た生出力である。初回にM198/M390/M392がSKIPPEDとなったのは`dart format`後の
+文字列アンカーと`occurrences`が古かったためで、`tool/mutations.json`を直してから個別に
+KILLEDを確認した。対象sourceは各回で復元され、作業treeはcleanである。
+
 ## 調査checkpoint(2026-09-20)
 
 文言判断に必要な状態は、すでに製品のcomposition rootまで届いている。
@@ -108,8 +135,8 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 開発者が案(a)を決定した。警告0件・変更ありは緑で
-  `正常にリネームできます`、変更0件と空ルールでは件数見出しを出さない(2026-09-20)
+- Last checkpoint: 実装・関連/全回帰検査・mutation・manual手順を完了し、独立した
+  implementation review待ちになった(2026-09-20)
 - Blocker category: none
 - Waiting for: none
 - Requested action: none
@@ -118,5 +145,5 @@
   (代表例20f の記録更新。**要求(may)は変えないので再承認は求めない**)
 - 並行: `T31`と並行できるが、案(a)では`file_list_view.dart`の別責務と
   `tool/mutations.json`が重なるため、統合時に小さな競合がありうる
-- Evidence revision: `3a64e48` + 調査commit(2026-09-20、hashはcommit後に確定)
-- Next Agent action: 005代表例20fの記録を更新し、widget testを先に追加してから最小の表示変更を実装する
+- Evidence revision: `36ebfc2`(manualと証拠recordのみを除く最終code revision)
+- Next Agent action: `dev...36ebfc2`を独立reviewし、PASS後に同一revisionのAndroid manual確認を依頼する
