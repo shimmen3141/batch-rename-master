@@ -40,6 +40,8 @@
     "tasks/T32-reorder-drag-feedback",
     "tasks/T33-ready-state-wording",
     "tasks/T34-hint-refinements",
-    "tasks/T35-define-orientation-scope"
+    "tasks/T35-define-orientation-scope",
+    "tasks/T36-define-browser-range-selection",
+    "tasks/T37-implement-browser-range-selection"
   ]
 }

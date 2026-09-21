@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T36",
+  "title": "app内file browserの範囲選択を定義する",
+  "status": "done",
+  "dependsOn": [
+    "T31"
+  ],
+  "covers": [],
+  "issue": 181,
+  "pullRequest": 182,
+  "manualVerification": null
+}
