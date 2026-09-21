@@ -556,10 +556,7 @@ void main() {
       );
       expect(node.label, 'すべて選択');
       expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-      tester.binding.rootPipelineOwner.semanticsOwner!.performAction(
-        node.id,
-        SemanticsAction.tap,
-      );
+      tester.semantics.tap(find.semantics.byLabel('すべて選択'));
       await tester.pump();
 
       expect(_selectedCount(tester), '2 件を選択中');
