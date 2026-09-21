@@ -34,12 +34,30 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Android物理端末で`manual-verification.md`がPASSする。
 - exact rangeの独立reviewがPASSする。review modelは開発者指定のlunaを使う。
 
+## 実装・検証記録
+
+- 実装Agent: `gpt-5.6-sol`（ユーザー指定）。
+- implementation checkpoint: `c3e5963`。
+- verification checkpoint: `d88ab4f`。
+- 共通化: `DragSelectionController<T>`はactive pointer、実描画行との交差、drag経路の復路、edge auto-scroll、lift/cancelを所有する。選択集合と「選ぶ／外す」の意味は各画面が所有する。
+- browser固有: 現在folderのfileだけを全選択し、folder・近道を除外する。長押しdragはbrowserの`_selected`だけを更新し、folder移動時には既存どおり解除する。全選択は操作名とtap actionを持つSemantics controlとして公開する。
+- related tests: `flutter test test/spec_002_file_list/removal_selection_mode_test.dart test/spec_004_file_source/storage_browser_view_test.dart` — PASS（64 tests）。
+- T37 browser tests: `flutter test test/spec_004_file_source/storage_browser_view_test.dart` — PASS（27 tests）。
+- mutation: `python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t37-mutations.json --root .`（commandは上記related tests）— `M393`〜`M403`の11件すべてKILLED、SURVIVED 0、SKIPPED 0。
+- Semantics修正後の対照: M402のみをbrowser testsで再実行 — KILLED。
+- format: `dart format --output=none --set-exit-if-changed .` — PASS（132 files、変更0）。
+- static analysis: `flutter analyze` — PASS。
+- full regression: `flutter test --reporter compact` — PASS（954 tests）。
+- ASDD構造: `python3 /home/dev/.agents/skills/asdd/scripts/workspace.py check specs` — PASS（8 plans、90 tasks）。
+- Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
+- 独立review: 未実施。開発者指定に従い`gpt-5.6-luna`を使う。
+
 ## Current state / handoff
 
-- Last checkpoint: T36と同時に実装taskとして定義した。
-- Status: `in_progress`。T36はPR #182 / merge `bef8337`でdevへ統合済み。
-- Blocker category: none.
-- Evidence revision: `dev@bef8337`.
-- Waiting for: なし。
-- Requested action: なし。
-- Next Agent action: shared drag selection部品を抽出し、browser固有選択へ接続する。
+- Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
+- Status: `in_review`。
+- Blocker category: Android physical-device evidence pending.
+- Evidence revision: `d88ab4f`（code/test）。
+- Waiting for: `gpt-5.6-luna`によるexact range reviewと、同一code revisionのAndroid物理端末確認。
+- Requested action: Android物理端末で`manual-verification.md`を確認する。
+- Next Agent action: Draft PRを作成し、luna reviewを実施する。PASS後はreview/evidence checkpointを作り、物理端末確認用workspaceとexact commitを固定する。
