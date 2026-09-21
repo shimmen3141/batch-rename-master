@@ -2658,6 +2658,20 @@
       "find": "      if (mounted && identical(session, _dragSelection)) {\n        _traceSelection(session, session.pointer);\n      }",
       "replace": "      if (false) {\n        _traceSelection(session, session.pointer);\n      }",
       "note": "008:T31 auto-scroll 後に固定された指位置へ新規表示行を反映しない。端保持で末尾行を選べない"
+    },
+    {
+      "id": "M396",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "if (viewport == null ||\n        position.dx < viewport.left ||\n        position.dx > viewport.right) {",
+      "replace": "if (viewport == null || !viewport.contains(position)) {",
+      "note": "008:T31 header に入った上方向 drag を viewport 外として停止する。manual FAIL regression test が落とす"
+    },
+    {
+      "id": "M397",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "bottom: selecting ? _selectionViewportBottomPadding : 0,",
+      "replace": "bottom: 0,",
+      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ"
     }
   ]
 }
