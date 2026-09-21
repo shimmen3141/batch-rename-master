@@ -273,3 +273,15 @@ M399 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始�
 - Requested action: current head `1362afe` を対象に Android 実機で manual-verification.md を実施し、観測結果を会話で返す。branch の切替は不要。
 - Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品code・test・dependency・build 設定を変えない。
 - Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
+
+## 2026-09-21 Android 実機 manual PASS と final-evidence review handoff（上のhandoffを置き換える）
+
+- Last checkpoint: 人間が 2026-09-21 に Android physical-device manual の [`manual-verification.md`](manual-verification.md) 全項目 PASS を報告した。対象 current HEAD は `650448e`、製品code identity は `4e0ea21` である。
+- Manual evidence: 通常の往復選択・selection mode 内の開始・edge auto-scroll・edge 離脱/lift/cancel/list bounds での停止・normal mode での並べ替え無効・header 距離比例速度・最下段での選択開始位置安定・開始行が offscreen になった長距離の上→中央停止→下反転/往路候補解除・下→上反転/往路候補解除・offscreen 後の lift/cancel 停止を含む全 checklist 項目が PASS。
+- Device metadata: 端末名と Android 版は提供されていないため、捏造せず未記録とする。
+- Product identity: `4e0ea21` 以後 current HEAD `650448e` まで、製品code・dependency・build 設定の変更はない。manual 証拠は `4e0ea21` の製品内容に対応する。
+- Status: `in_review`。final-evidence review で正本、実機証拠、既存の implementation review と検証結果を照合する。
+- Verification: independent implementation review attempt 3 は exact `6b1220f..1362afe` を PASS と判定した（reviewer: GPT-6 Codex、related 37 / full 948 PASS、P0/P1/安全網の穴なし、M398〜M399 KILLED）。
+- Waiting for: final-evidence review の結果。
+- Requested action: なし。
+- Next Agent action: evidence-only checkpoint を基準に final-evidence review を行い、PASS なら統合条件を確認する。
