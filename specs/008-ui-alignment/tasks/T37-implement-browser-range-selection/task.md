@@ -50,7 +50,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - full regression: `flutter test --reporter compact` — PASS（954 tests）。
 - ASDD構造: `python3 /home/dev/.agents/skills/asdd/scripts/workspace.py check specs` — PASS（8 plans、90 tasks）。
 - Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
-- 独立review: 未実施。開発者指定に従い`gpt-5.6-luna`を使う。
+- 独立review attempt 1: `gpt-5.6-luna`、exact range `bef8337...c9f3fec` — BLOCKED。P0〜P3の成果物欠陥と安全網の穴はなし。related 64件PASS、reviewer対照を含むmutation 11件KILLED。必須のAndroid物理端末manualが未実施のためfinal-evidence判定だけを保留。
 
 ## Current state / handoff
 
@@ -58,6 +58,6 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Status: `in_review`。
 - Blocker category: Android physical-device evidence pending.
 - Evidence revision: `d88ab4f`（code/test）。
-- Waiting for: `gpt-5.6-luna`によるexact range reviewと、同一code revisionのAndroid物理端末確認。
+- Waiting for: 同一code revisionのAndroid物理端末確認。その結果を含むfinal-evidence reviewは`gpt-5.6-luna`で行う。
 - Requested action: Android物理端末で`manual-verification.md`を確認する。
-- Next Agent action: Draft PRを作成し、luna reviewを実施する。PASS後はreview/evidence checkpointを作り、物理端末確認用workspaceとexact commitを固定する。
+- Next Agent action: review記録をcheckpoint化し、同じcode revisionのAndroid物理端末確認を依頼する。結果記録後、`gpt-5.6-luna`でfinal-evidence reviewを行う。
