@@ -190,6 +190,100 @@ void main() {
   });
 
   testWidgets(
+    '開始行がoffscreenになった後も上から中央でscrollを止め、下端で反転して往路を戻す(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final selection = RemovalSelection();
+      final files = [
+        for (var i = 0; i < 40; i++) _f('long-$i.txt', handle: 'h:long-$i'),
+      ];
+      final c = FileListController(files: files, rule: _seq2);
+      await _pump(tester, c, selection: selection);
+      final target = find.text('long-20.txt');
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final gesture = await _startLongPress(tester, target);
+      final list = tester.getRect(find.byType(ReorderableListView));
+      await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+      for (var tick = 0; tick < 140; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(target, findsNothing); // 開始行は dispose されるほど遠くへ流れる。
+
+      // 中央へ戻すと、開始行の GestureDetector が消えていても timer は止まる。
+      await gesture.moveTo(list.center);
+      await tester.pump();
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final stoppedAt = scrollable.position.pixels;
+      for (var tick = 0; tick < 40; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(scrollable.position.pixels, closeTo(stoppedAt, 1));
+
+      // 同じ active pointer を下端へ戻すと下scrollへ反転し、往路の候補を解除する。
+      await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+      for (var tick = 0; tick < 180; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pump();
+      expect(selection.marked, isNot(contains('h:long-19')));
+      expect(selection.marked, contains('h:long-21'));
+    },
+  );
+
+  testWidgets('開始行がoffscreenになった後も下から上へ反転し、往路候補を解除する(2026-09-21 manual FAIL)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 360));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final selection = RemovalSelection();
+    final files = [
+      for (var i = 0; i < 40; i++) _f('reverse-$i.txt', handle: 'h:reverse-$i'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, selection: selection);
+    final target = find.text('reverse-20.txt');
+    await tester.scrollUntilVisible(
+      target,
+      120,
+      scrollable: find.descendant(
+        of: find.byType(ReorderableListView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    final gesture = await _startLongPress(tester, target);
+    final list = tester.getRect(find.byType(ReorderableListView));
+    await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+    for (var tick = 0; tick < 140; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(target, findsNothing);
+
+    await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+    for (var tick = 0; tick < 180; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pump();
+
+    expect(selection.marked, isNot(contains('h:reverse-21')));
+    expect(selection.marked, contains('h:reverse-19'));
+  });
+
+  testWidgets(
     'headerへ入った長押しdragでも上へauto-scrollし、深いほど速い(2026-09-21 manual FAIL)',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 420));

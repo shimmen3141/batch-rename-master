@@ -228,3 +228,15 @@ M397 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 選択開始時�
 - Requested action: `fe9397e` を対象に Android 実機で manual-verification.md を実施し、観測結果を会話で返す。branch の切替は不要。
 - Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品code・test・dependency・build 設定を変えない。
 - Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
+
+
+## 2026-09-21 Android 実機 manual 再FAIL と pointer 所有の修正再開（上のhandoffを置き換える）
+
+- Last checkpoint: Android physical-device manual は再度 FAIL。端末名/Android 版は受領していないため記録しない。
+- Observed failure: 15番目付近から先頭まで上へ auto-scroll 後に指を中央/下へ戻しても、選択解除も下方向への反転も起きない。逆方向でも同じ。20番目付近から上へ十分scrollした後は、指を中央/下へ戻しても指を離すまで上scrollが続く。
+- Working hypothesis: 長距離 scroll で開始行が offscreen となり `_FileRow` とその GestureDetector が dispose されると move/up/cancel が親へ届かず、親Stateの timer/session が古い pointer と速度を保持する。
+- Status: `in_progress`。row の lifecycle に依存しない active pointer 追跡を list 親で持つ。開始行が offscreen になった後の停止・反転・往路候補解除を、上→下と下→上の widget testで先に赤にする。
+- Machine verification scope: widget test で長距離往復、既存の header 速度・開始行位置維持・lift/cancel/boundsを検証する。Android 実機でしか確認できない連続 finger drag は修正後の T31 が再確認する。
+- Waiting for: なし。
+- Requested action: なし。
+- Next Agent action: 親Listenerへpointer所有を移した後、mutation・回帰・manual checklist更新を行う。
