@@ -284,6 +284,49 @@ void main() {
   });
 
   testWidgets(
+    '開始行がoffscreenになった後のcancelは親Listenerでauto-scrollを止める(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final files = [
+        for (var i = 0; i < 40; i++) _f('cancel-$i.txt', handle: 'h:cancel-$i'),
+      ];
+      final c = FileListController(files: files, rule: _seq2);
+      await _pump(tester, c);
+      final target = find.text('cancel-20.txt');
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final gesture = await _startLongPress(tester, target);
+      final list = tester.getRect(find.byType(ReorderableListView));
+      await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+      for (var tick = 0; tick < 140; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(target, findsNothing);
+
+      await gesture.cancel();
+      await tester.pump();
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final stoppedAt = scrollable.position.pixels;
+      for (var tick = 0; tick < 40; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(scrollable.position.pixels, closeTo(stoppedAt, 1));
+    },
+  );
+
+  testWidgets(
     'headerへ入った長押しdragでも上へauto-scrollし、深いほど速い(2026-09-21 manual FAIL)',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 420));
