@@ -186,3 +186,15 @@
 ```
 
 `python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t31-mutations/mutations.json --root .` は stdout/stderr を出力せず exit status 0 で完了した。対象3 mutation は script の終了規約により KILLED と判定した。
+
+
+## 2026-09-21 Android 実機 manual FAIL と修正再開（上のhandoffを置き換える）
+
+- Last checkpoint: Android physical-device manual は FAIL。端末名/Android 版は受領していないため記録しない。
+- Observed failure 1: 上方向へ drag した指がリスト外の header 付近へ入ると auto-scroll が止まる。header へ近づく/越えるほど上スクロールを速くする。
+- Observed failure 2: 最下部で最下段を長押しして選択モードへ入ると、下部 rename UI が隠れて viewport が広がり、開始行が画面最下部へ急に移動する。下部 UI を隠す仕様は維持しつつ、開始行の画面上の位置を安定させる。
+- Status: `in_progress`。既存の reviewed product code はこの修正の比較基準であり、2件の再現 widget test を先に追加する。
+- Machine verification scope: widget test で header 範囲の上方向 auto-scroll と、最下部開始行の位置安定を再現する。Android 実機でしか検証できない指の追従感は修正後のこの T31 が再確認する。
+- Waiting for: なし。
+- Requested action: なし。
+- Next Agent action: 再現testを赤にした後で実装・mutation・回帰検証を行い、manual checklistへ2件を追加する。

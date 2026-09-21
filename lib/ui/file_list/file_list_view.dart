@@ -142,15 +142,18 @@ class _FileListViewState extends State<FileListView> {
   /// スクロール位置と表示領域。ドラッグ中に実際に描画された行だけを拾う。
   final ScrollController _listScrollController = ScrollController();
   final GlobalKey _listViewportKey = GlobalKey();
+  final GlobalKey _renameActionBarKey = GlobalKey();
   final Map<String, GlobalKey> _rowGeometryKeys = <String, GlobalKey>{};
 
   _DragSelectionSession? _dragSelection;
   Timer? _autoScrollTimer;
-  double _autoScrollDirection = 0;
+  double _autoScrollPixelsPerTick = 0;
+  double _selectionViewportBottomPadding = 0;
   bool _traceAfterScrollPending = false;
 
   static const double _autoScrollEdgeExtent = 48;
   static const double _autoScrollStep = 4;
+  static const double _maxAutoScrollMultiplier = 4;
 
   @override
   void dispose() {
@@ -171,6 +174,10 @@ class _FileListViewState extends State<FileListView> {
     if (_selection.selecting) {
       _selection.mark(handle);
     } else {
+      // 選択モードへ入ると下部の rename UI が隠れ、list の viewport が広がる。
+      // 最下部を見ていると scroll extent が縮んで開始行が下へ跳ぶため、消える
+      // UI と同じ高さを list の末尾余白として先に確保する。
+      _selectionViewportBottomPadding = _renameActionBarHeight;
       _selection.enter(handle: handle);
     }
     final session = _DragSelectionSession(baseline, position);
@@ -217,16 +224,24 @@ class _FileListViewState extends State<FileListView> {
 
   void _updateAutoScroll(Offset position) {
     final viewport = _viewportRect;
-    if (viewport == null || !viewport.contains(position)) {
+    if (viewport == null ||
+        position.dx < viewport.left ||
+        position.dx > viewport.right) {
       _stopAutoScroll();
       return;
     }
-    final topDistance = position.dy - viewport.top;
-    final bottomDistance = viewport.bottom - position.dy;
-    _autoScrollDirection = topDistance < _autoScrollEdgeExtent
-        ? -1
-        : (bottomDistance < _autoScrollEdgeExtent ? 1 : 0);
-    if (_autoScrollDirection == 0 || !_canAutoScroll(_autoScrollDirection)) {
+
+    // 指が header へ入っても上方向の選択 drag は続く。viewport の内側だけに
+    // 限ると、実機では最上行を越えた瞬間に scroll が止まる。端からの深さで
+    // step を増やすので、header へ近づき越えるほど速くなる。
+    final aboveTopEdge = viewport.top + _autoScrollEdgeExtent - position.dy;
+    final belowBottomEdge =
+        position.dy - (viewport.bottom - _autoScrollEdgeExtent);
+    _autoScrollPixelsPerTick = aboveTopEdge > 0
+        ? -_scrollStepForDepth(aboveTopEdge)
+        : (belowBottomEdge > 0 ? _scrollStepForDepth(belowBottomEdge) : 0);
+    if (_autoScrollPixelsPerTick == 0 ||
+        !_canAutoScroll(_autoScrollPixelsPerTick)) {
       _stopAutoScroll();
       return;
     }
@@ -235,6 +250,17 @@ class _FileListViewState extends State<FileListView> {
       (_) => _autoScrollTick(),
     );
   }
+
+  double get _renameActionBarHeight {
+    final renderObject = _renameActionBarKey.currentContext?.findRenderObject();
+    return renderObject is RenderBox && renderObject.attached
+        ? renderObject.size.height
+        : 0;
+  }
+
+  double _scrollStepForDepth(double depth) =>
+      _autoScrollStep *
+      (depth / _autoScrollEdgeExtent).clamp(1, _maxAutoScrollMultiplier);
 
   Rect? get _viewportRect {
     final renderObject = _listViewportKey.currentContext?.findRenderObject();
@@ -258,13 +284,15 @@ class _FileListViewState extends State<FileListView> {
 
   void _autoScrollTick() {
     final session = _dragSelection;
-    if (session == null || !_canAutoScroll(_autoScrollDirection)) {
+    if (session == null || !_canAutoScroll(_autoScrollPixelsPerTick)) {
       _stopAutoScroll();
       return;
     }
     final position = _listScrollController.position;
-    final next = (position.pixels + _autoScrollDirection * _autoScrollStep)
-        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    final next = (position.pixels + _autoScrollPixelsPerTick).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
     if (next == position.pixels) {
       _stopAutoScroll();
       return;
@@ -288,11 +316,12 @@ class _FileListViewState extends State<FileListView> {
   void _stopAutoScroll() {
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
-    _autoScrollDirection = 0;
+    _autoScrollPixelsPerTick = 0;
   }
 
   void _exitRemovalMode() {
     _finishDragSelection();
+    _selectionViewportBottomPadding = 0;
     _selection.exit();
   }
 
@@ -430,6 +459,11 @@ class _FileListViewState extends State<FileListView> {
                   child: ReorderableListView.builder(
                     key: _listViewportKey,
                     scrollController: _listScrollController,
+                    // 選択開始で下部 action bar を隠しても、開始行の画面座標を
+                    // 保つため、消えた高さを list の末尾余白として残す。
+                    padding: EdgeInsets.only(
+                      bottom: selecting ? _selectionViewportBottomPadding : 0,
+                    ),
                     // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
                     // 行タップと衝突させない)。**既定の長押しドラッグを切って
                     // あることが、選択モードの長押しの前提でもある。**
@@ -538,6 +572,7 @@ class _FileListViewState extends State<FileListView> {
                     (widget.renameExecution != null ||
                         widget.onEditRule != null))
                   _RenameActionBar(
+                    key: _renameActionBarKey,
                     controller: widget.controller,
                     execution: widget.renameExecution,
                     onEditRule: widget.onEditRule,
@@ -620,6 +655,7 @@ double? _segmentEntry(Rect rect, Offset from, Offset to) {
 /// したうえで、ルール設定ボタンを主役の表示へ入れ替える(005 REQ-019 / REQ-020)。
 class _RenameActionBar extends StatelessWidget {
   const _RenameActionBar({
+    super.key,
     required this.controller,
     required this.execution,
     required this.onEditRule,

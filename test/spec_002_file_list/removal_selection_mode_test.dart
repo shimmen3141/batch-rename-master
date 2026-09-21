@@ -40,12 +40,17 @@ Future<void> _pump(
   WidgetTester tester,
   FileListController c, {
   RemovalSelection? selection,
+  VoidCallback? onEditRule,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
       home: Scaffold(
-        body: FileListView(controller: c, removalSelection: selection),
+        body: FileListView(
+          controller: c,
+          removalSelection: selection,
+          onEditRule: onEditRule,
+        ),
       ),
     ),
   );
@@ -182,6 +187,76 @@ void main() {
     expect(selection.marked, everyElement(isIn(handles)));
     // 終端では overscroll せず、実在する末尾行までで止まる。
     expect(selection.marked, contains('h:11'));
+  });
+
+  testWidgets(
+    'headerへ入った長押しdragでも上へauto-scrollし、深いほど速い(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 420));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      Future<double> moveUpFromHeader(double beyondTop) async {
+        final files = [
+          for (var i = 0; i < 20; i++) _f('up-$i.txt', handle: 'h:up-$i'),
+        ];
+        final c = FileListController(files: files, rule: _seq2);
+        await _pump(tester, c);
+        final target = find.text('up-10.txt');
+        await tester.scrollUntilVisible(
+          target,
+          120,
+          scrollable: find.descendant(
+            of: find.byType(ReorderableListView),
+            matching: find.byType(Scrollable),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final gesture = await _startLongPress(tester, target);
+        final list = tester.getRect(find.byType(ReorderableListView));
+        final before = tester.getTopLeft(target).dy;
+        await gesture.moveTo(Offset(list.center.dx, list.top - beyondTop));
+        for (var tick = 0; tick < 20; tick++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        final movedDown = tester.getTopLeft(target).dy - before;
+        await gesture.up();
+        await tester.pump();
+        return movedDown;
+      }
+
+      final nearHeader = await moveUpFromHeader(8);
+      final pastHeader = await moveUpFromHeader(96);
+
+      expect(nearHeader, greaterThan(0));
+      expect(pastHeader, greaterThan(nearHeader));
+    },
+  );
+
+  testWidgets('最下段から選択を始めても下部UIを隠す前後で開始行の位置を保つ(2026-09-21 manual FAIL)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final files = [
+      for (var i = 0; i < 12; i++) _f('bottom-$i.txt', handle: 'h:bottom-$i'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, onEditRule: () {});
+    final list = find.byType(ReorderableListView);
+    await tester.drag(list, const Offset(0, -2000));
+    await tester.pumpAndSettle();
+    final last = find.text('bottom-11.txt');
+    expect(last, findsOneWidget);
+    final before = tester.getTopLeft(last).dy;
+
+    final gesture = await _startLongPress(tester, last);
+    await tester.pump();
+    final after = tester.getTopLeft(last).dy;
+    await gesture.up();
+
+    expect(after, closeTo(before, 1));
+    expect(find.byKey(const Key('configure-rule')), findsNothing);
   });
 
   testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
