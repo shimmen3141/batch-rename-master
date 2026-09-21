@@ -285,3 +285,15 @@ M399 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始�
 - Waiting for: final-evidence review の結果。
 - Requested action: なし。
 - Next Agent action: evidence-only checkpoint を基準に final-evidence review を行い、PASS なら統合条件を確認する。
+
+
+## 2026-09-21 T31 完了・dev 統合
+
+- Last checkpoint: final-evidence review attempt 1 は PASS（reviewer: GPT-6 Codex）。Android 実機 manual は製品code `4e0ea21` に対して全項目 PASS で、未解決 P0/P1・安全網の穴はない。
+- Integration: PR #180 を merge commit `79966dd` で `dev` へ統合した。base/head は一意、競合・未解決thread・required check は無く、GraphQL で `dev` に branch protection rule が無いことを確認した。
+- Post-merge verification: `dev` の `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` PASS (37 tests)、`workspace.py check specs` PASS (8 plans / 88 tasks)。
+- Status: `done`。
+- Issue: #179 は OPEN。PR の `Closes #179` は integration branch `dev` へのmergeでは自動closeされず、明示依頼が必要なためcloseしていない。
+- Waiting for: なし。
+- Requested action: なし。
+- Next Agent action: なし。
