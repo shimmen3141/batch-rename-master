@@ -71,6 +71,24 @@ class RemovalSelection extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// [handle] を外す候補へ加える。既存の候補は保つ。
+  ///
+  /// 1回のドラッグで新しく通った行だけを戻り操作で外せるよう、
+  /// [enter] のように既存の候補を初期化しない。
+  void mark(String handle) {
+    if (_marked.add(handle)) notifyListeners();
+  }
+
+  /// [handle] を外す候補から外す。
+  ///
+  /// tap と同じく、候補が 0 件ならモードを閉じる。ドラッグ側は開始時に
+  /// 持っていた候補を呼ばないことで、それらを保護する。
+  void unmark(String handle) {
+    if (!_marked.remove(handle)) return;
+    if (_marked.isEmpty) _selecting = false;
+    notifyListeners();
+  }
+
   /// 1件を選ぶ / 選ぶのをやめる。
   ///
   /// **選択が0件へ戻ったらモードを抜ける**(2026-09-19 の決定)。ただし

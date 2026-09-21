@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -137,12 +139,230 @@ class _FileListViewState extends State<FileListView> {
   /// 座標を計算せずこの link が位置を決める。
   final LayerLink _hintLink = LayerLink();
 
+  /// スクロール位置と表示領域。ドラッグ中に実際に描画された行だけを拾う。
+  final ScrollController _listScrollController = ScrollController();
+  final GlobalKey _listViewportKey = GlobalKey();
+  final GlobalKey _renameActionBarKey = GlobalKey();
+  final Map<String, GlobalKey> _rowGeometryKeys = <String, GlobalKey>{};
+
+  _DragSelectionSession? _dragSelection;
+  final Map<int, Offset> _pointerPositions = <int, Offset>{};
+  int? _dragPointer;
+  Timer? _autoScrollTimer;
+  double _autoScrollPixelsPerTick = 0;
+  double _selectionViewportBottomPadding = 0;
+  bool _traceAfterScrollPending = false;
+
+  static const double _autoScrollEdgeExtent = 48;
+  static const double _autoScrollStep = 4;
+  static const double _maxAutoScrollMultiplier = 4;
+
   @override
   void dispose() {
+    _finishDragSelection();
+    _listScrollController.dispose();
     // **自分で作ったものだけ捨てる。** 渡されたものは composition root の持ち物で、
     // 読み込み帯も同じものを読んでいる。
     _own?.dispose();
     super.dispose();
+  }
+
+  GlobalKey _rowGeometryKey(String handle) =>
+      _rowGeometryKeys.putIfAbsent(handle, GlobalKey.new);
+
+  void _startDragSelection(String handle, Offset position) {
+    // Pointer の move/up/cancel は行の GestureDetector ではなく list 親の
+    // Listener が受け続ける。長距離 scroll で開始行が dispose されても、
+    // session と timer に古い座標が残らない。
+    final pointer = _nearestPointerTo(position);
+    _finishDragSelection();
+    _dragPointer = pointer;
+    final baseline = _selection.marked;
+    if (_selection.selecting) {
+      _selection.mark(handle);
+    } else {
+      // 選択モードへ入ると下部の rename UI が隠れ、list の viewport が広がる。
+      // 最下部を見ていると scroll extent が縮んで開始行が下へ跳ぶため、消える
+      // UI と同じ高さを list の末尾余白として先に確保する。
+      _selectionViewportBottomPadding = _renameActionBarHeight;
+      _selection.enter(handle: handle);
+    }
+    final session = _DragSelectionSession(baseline, position);
+    _dragSelection = session;
+    session.visit(handle, _selection);
+    _updateAutoScroll(position);
+  }
+
+  int? _nearestPointerTo(Offset position) {
+    int? result;
+    var distance = double.infinity;
+    for (final entry in _pointerPositions.entries) {
+      final candidate = (entry.value - position).distanceSquared;
+      if (candidate < distance) {
+        result = entry.key;
+        distance = candidate;
+      }
+    }
+    return result;
+  }
+
+  void _onListPointerDown(PointerDownEvent event) {
+    _pointerPositions[event.pointer] = event.position;
+  }
+
+  void _onListPointerMove(PointerMoveEvent event) {
+    _pointerPositions[event.pointer] = event.position;
+    if (event.pointer == _dragPointer) _moveDragSelection(event.position);
+  }
+
+  void _onListPointerUp(PointerUpEvent event) {
+    _pointerPositions.remove(event.pointer);
+    if (event.pointer == _dragPointer) _finishDragSelection();
+  }
+
+  void _onListPointerCancel(PointerCancelEvent event) {
+    _pointerPositions.remove(event.pointer);
+    if (event.pointer == _dragPointer) _finishDragSelection();
+  }
+
+  void _moveDragSelection(Offset position) {
+    final session = _dragSelection;
+    if (session == null) return;
+    _traceSelection(session, position);
+    _updateAutoScroll(position);
+  }
+
+  void _traceSelection(_DragSelectionSession session, Offset position) {
+    for (final crossing in _rowsCrossed(session.pointer, position)) {
+      session.visit(crossing.handle, _selection);
+    }
+    session.pointer = position;
+  }
+
+  List<_RowCrossing> _rowsCrossed(Offset from, Offset to) {
+    final crossings = <_RowCrossing>[];
+    for (final entry in _rowGeometryKeys.entries) {
+      final renderObject = entry.value.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) continue;
+      final origin = renderObject.localToGlobal(Offset.zero);
+      final t = _segmentEntry(
+        Rect.fromLTWH(
+          origin.dx,
+          origin.dy,
+          renderObject.size.width,
+          renderObject.size.height,
+        ),
+        from,
+        to,
+      );
+      if (t != null) crossings.add(_RowCrossing(entry.key, t));
+    }
+    crossings.sort((a, b) => a.t.compareTo(b.t));
+    return crossings;
+  }
+
+  void _updateAutoScroll(Offset position) {
+    final viewport = _viewportRect;
+    if (viewport == null ||
+        position.dx < viewport.left ||
+        position.dx > viewport.right) {
+      _stopAutoScroll();
+      return;
+    }
+
+    // 指が header へ入っても上方向の選択 drag は続く。viewport の内側だけに
+    // 限ると、実機では最上行を越えた瞬間に scroll が止まる。端からの深さで
+    // step を増やすので、header へ近づき越えるほど速くなる。
+    final aboveTopEdge = viewport.top + _autoScrollEdgeExtent - position.dy;
+    final belowBottomEdge =
+        position.dy - (viewport.bottom - _autoScrollEdgeExtent);
+    _autoScrollPixelsPerTick = aboveTopEdge > 0
+        ? -_scrollStepForDepth(aboveTopEdge)
+        : (belowBottomEdge > 0 ? _scrollStepForDepth(belowBottomEdge) : 0);
+    if (_autoScrollPixelsPerTick == 0 ||
+        !_canAutoScroll(_autoScrollPixelsPerTick)) {
+      _stopAutoScroll();
+      return;
+    }
+    _autoScrollTimer ??= Timer.periodic(
+      const Duration(milliseconds: 16),
+      (_) => _autoScrollTick(),
+    );
+  }
+
+  double get _renameActionBarHeight {
+    final renderObject = _renameActionBarKey.currentContext?.findRenderObject();
+    return renderObject is RenderBox && renderObject.attached
+        ? renderObject.size.height
+        : 0;
+  }
+
+  double _scrollStepForDepth(double depth) =>
+      _autoScrollStep *
+      (depth / _autoScrollEdgeExtent).clamp(1, _maxAutoScrollMultiplier);
+
+  Rect? get _viewportRect {
+    final renderObject = _listViewportKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.attached) return null;
+    final origin = renderObject.localToGlobal(Offset.zero);
+    return Rect.fromLTWH(
+      origin.dx,
+      origin.dy,
+      renderObject.size.width,
+      renderObject.size.height,
+    );
+  }
+
+  bool _canAutoScroll(double direction) {
+    if (!_listScrollController.hasClients) return false;
+    final position = _listScrollController.position;
+    return direction < 0
+        ? position.pixels > position.minScrollExtent
+        : position.pixels < position.maxScrollExtent;
+  }
+
+  void _autoScrollTick() {
+    final session = _dragSelection;
+    if (session == null || !_canAutoScroll(_autoScrollPixelsPerTick)) {
+      _stopAutoScroll();
+      return;
+    }
+    final position = _listScrollController.position;
+    final next = (position.pixels + _autoScrollPixelsPerTick).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (next == position.pixels) {
+      _stopAutoScroll();
+      return;
+    }
+    _listScrollController.jumpTo(next);
+    if (_traceAfterScrollPending) return;
+    _traceAfterScrollPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _traceAfterScrollPending = false;
+      if (mounted && identical(session, _dragSelection)) {
+        _traceSelection(session, session.pointer);
+      }
+    });
+  }
+
+  void _finishDragSelection() {
+    _dragSelection = null;
+    _dragPointer = null;
+    _stopAutoScroll();
+  }
+
+  void _stopAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _autoScrollPixelsPerTick = 0;
+  }
+
+  void _exitRemovalMode() {
+    _finishDragSelection();
+    _selectionViewportBottomPadding = 0;
+    _selection.exit();
   }
 
   /// 選ばれた行をまとめて外す(REQ-018)。
@@ -160,7 +380,7 @@ class _FileListViewState extends State<FileListView> {
         widget.controller.removeFile(handle);
       }
     });
-    _selection.exit();
+    _exitRemovalMode();
   }
 
   /// 一覧を空にする(004 REQ-006)。**取り消せる形で行う**(002 REQ-017)。
@@ -168,7 +388,7 @@ class _FileListViewState extends State<FileListView> {
   /// `008:T29` で読み込み帯の `一覧を空にする` からケバブへ移した。
   void _clearAll(BuildContext context) {
     removeUndoably(context, widget.controller, widget.controller.clearFiles);
-    _selection.exit();
+    _exitRemovalMode();
   }
 
   @override
@@ -233,7 +453,7 @@ class _FileListViewState extends State<FileListView> {
           // 「やめる操作」はヘッダの × が満たすが、選択モードから戻るの期待は強い。
           canPop: !selecting,
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) _selection.exit();
+            if (!didPop) _exitRemovalMode();
           },
           child: Container(
             color: colors.background,
@@ -258,7 +478,7 @@ class _FileListViewState extends State<FileListView> {
                       ? null
                       : () => _selection.selectAll(removable),
                   onClearAll: rows.isEmpty ? null : () => _clearAll(context),
-                  onExitRemovalMode: _selection.exit,
+                  onExitRemovalMode: _exitRemovalMode,
                   // 0 件では外せない(REQ-018)。
                   onRemoveMarked: marked.isEmpty
                       ? null
@@ -276,87 +496,106 @@ class _FileListViewState extends State<FileListView> {
                 // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
                 if (ruleIsEmpty) const RuleNotConfiguredBanner(),
                 Expanded(
-                  child: ReorderableListView.builder(
-                    // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
-                    // 行タップと衝突させない)。**既定の長押しドラッグを切って
-                    // あることが、選択モードの長押しの前提でもある。**
-                    buildDefaultDragHandles: false,
-                    itemCount: rows.length,
-                    // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
-                    onReorderItem: widget.controller.reorder,
-                    // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
-                    // いま掴めたのかどうかが分からないまま動かすことになっていた。
-                    //
-                    // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
-                    // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
-                    // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
-                    // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
-                    //
-                    // **影は既定と同じように上げる。** 面の色を足すだけにして、
-                    // 浮き上がりという手掛かりを減らさない。
-                    proxyDecorator: (child, index, animation) =>
-                        AnimatedBuilder(
-                          animation: animation,
-                          builder: (context, child) => Material(
-                            key: draggingRowKey,
-                            color: colors.surface,
-                            shadowColor: colors.background,
-                            elevation:
-                                Curves.easeInOut.transform(animation.value) * 6,
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: _onListPointerDown,
+                    onPointerMove: _onListPointerMove,
+                    onPointerUp: _onListPointerUp,
+                    onPointerCancel: _onListPointerCancel,
+                    child: ReorderableListView.builder(
+                      key: _listViewportKey,
+                      scrollController: _listScrollController,
+                      // 選択開始で下部 action bar を隠しても、開始行の画面座標を
+                      // 保つため、消えた高さを list の末尾余白として残す。
+                      padding: EdgeInsets.only(
+                        bottom: selecting ? _selectionViewportBottomPadding : 0,
+                      ),
+                      // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
+                      // 行タップと衝突させない)。**既定の長押しドラッグを切って
+                      // あることが、選択モードの長押しの前提でもある。**
+                      buildDefaultDragHandles: false,
+                      itemCount: rows.length,
+                      // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
+                      onReorderItem: widget.controller.reorder,
+                      // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
+                      // いま掴めたのかどうかが分からないまま動かすことになっていた。
+                      //
+                      // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
+                      // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
+                      // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
+                      // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
+                      //
+                      // **影は既定と同じように上げる。** 面の色を足すだけにして、
+                      // 浮き上がりという手掛かりを減らさない。
+                      proxyDecorator: (child, index, animation) =>
+                          AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, child) => Material(
+                              key: draggingRowKey,
+                              color: colors.surface,
+                              shadowColor: colors.background,
+                              elevation:
+                                  Curves.easeInOut.transform(animation.value) *
+                                  6,
+                              child: child,
+                            ),
                             child: child,
                           ),
-                          child: child,
-                        ),
-                    itemBuilder: (context, index) {
-                      final row = rows[index];
-                      final handle = row.source.sourceHandle;
-                      return _FileRow(
-                        // ReorderableListView は各子に安定 Key を要求する。
-                        // FileEntry は同一性で扱う値なので ValueKey で追従する。
-                        key: ValueKey(row.source),
-                        index: index,
-                        row: row,
-                        // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
-                        // **モード中に出さない判定は行側が持つ** — 枠を
-                        // checkbox と取り合うので、同じ場所で決めないと
-                        // 「どちらも出ない」「両方出る」が作れてしまう。
-                        showDragHandle: widget.controller.manualOrderMatters,
-                        sortMode: widget.controller.sortMode,
-                        showLocation: showRowLocation,
-                        filePreview: widget.filePreview,
-                        // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
-                        warnings: rowWarningsOf(
-                          row.warnings,
-                          ruleIsEmpty: ruleIsEmpty,
-                        ),
-                        ruleIsEmpty: ruleIsEmpty,
-                        // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
-                        // 全件は件数表示から開く(2026-09-02 の要望2)。
-                        onShowWarningDetail: () => showWarningDetail(
-                          context,
-                          row.warnings,
-                          ruleIsEmpty: ruleIsEmpty,
-                          scopeFile: row.source,
-                          // 同名が一覧に並ぶときだけ場所を添える。**母集合は
-                          // 一覧のファイル**(警告を持つものだけだと、同名2件の
-                          // 片方だけが警告されたときに見分けられない)。
-                          amongFiles: widget.controller.rows.map(
-                            (r) => r.source,
+                      itemBuilder: (context, index) {
+                        final row = rows[index];
+                        final handle = row.source.sourceHandle;
+                        return _FileRow(
+                          // ReorderableListView は各子に安定 Key を要求する。
+                          // FileEntry は同一性で扱う値なので ValueKey で追従する。
+                          key: ValueKey(row.source),
+                          index: index,
+                          row: row,
+                          // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
+                          // **モード中に出さない判定は行側が持つ** — 枠を
+                          // checkbox と取り合うので、同じ場所で決めないと
+                          // 「どちらも出ない」「両方出る」が作れてしまう。
+                          showDragHandle: widget.controller.manualOrderMatters,
+                          sortMode: widget.controller.sortMode,
+                          showLocation: showRowLocation,
+                          filePreview: widget.filePreview,
+                          // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
+                          warnings: rowWarningsOf(
+                            row.warnings,
+                            ruleIsEmpty: ruleIsEmpty,
                           ),
-                        ),
-                        selecting: selecting,
-                        marked: handle != null && marked.contains(handle),
-                        // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
-                        // ハンドルで対象を指す)。持たない行は選べない —
-                        // 選べるのに外れない件数を出すほうが悪い。
-                        onToggleMark: handle == null
-                            ? null
-                            : () => _selection.toggle(handle),
-                        onLongPressEnter: handle == null
-                            ? null
-                            : () => _selection.enter(handle: handle),
-                      );
-                    },
+                          ruleIsEmpty: ruleIsEmpty,
+                          // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
+                          // 全件は件数表示から開く(2026-09-02 の要望2)。
+                          onShowWarningDetail: () => showWarningDetail(
+                            context,
+                            row.warnings,
+                            ruleIsEmpty: ruleIsEmpty,
+                            scopeFile: row.source,
+                            // 同名が一覧に並ぶときだけ場所を添える。**母集合は
+                            // 一覧のファイル**(警告を持つものだけだと、同名2件の
+                            // 片方だけが警告されたときに見分けられない)。
+                            amongFiles: widget.controller.rows.map(
+                              (r) => r.source,
+                            ),
+                          ),
+                          selecting: selecting,
+                          marked: handle != null && marked.contains(handle),
+                          rowGeometryKey: handle == null
+                              ? null
+                              : _rowGeometryKey(handle),
+                          // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
+                          // ハンドルで対象を指す)。持たない行は選べない —
+                          // 選べるのに外れない件数を出すほうが悪い。
+                          onToggleMark: handle == null
+                              ? null
+                              : () => _selection.toggle(handle),
+                          onLongPressStart: handle == null
+                              ? null
+                              : (position) =>
+                                    _startDragSelection(handle, position),
+                        );
+                      },
+                    ),
                   ),
                 ),
                 // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
@@ -376,6 +615,7 @@ class _FileListViewState extends State<FileListView> {
                     (widget.renameExecution != null ||
                         widget.onEditRule != null))
                   _RenameActionBar(
+                    key: _renameActionBarKey,
                     controller: widget.controller,
                     execution: widget.renameExecution,
                     onEditRule: widget.onEditRule,
@@ -390,12 +630,75 @@ class _FileListViewState extends State<FileListView> {
   }
 }
 
+/// 1回の長押しドラッグの経路と、開始時から保護する候補を持つ。
+class _DragSelectionSession {
+  _DragSelectionSession(Set<String> baseline, this.pointer)
+    : _baseline = Set<String>.of(baseline);
+
+  final Set<String> _baseline;
+  final List<String> _path = <String>[];
+  Offset pointer;
+
+  /// 到達済み行へ戻った場合は、その後にこのドラッグが足した行だけを外す。
+  void visit(String handle, RemovalSelection selection) {
+    final previous = _path.lastIndexOf(handle);
+    if (previous >= 0) {
+      final leaving = _path.sublist(previous + 1);
+      _path.removeRange(previous + 1, _path.length);
+      for (final left in leaving) {
+        if (!_baseline.contains(left)) selection.unmark(left);
+      }
+      return;
+    }
+    _path.add(handle);
+    selection.mark(handle);
+  }
+}
+
+class _RowCrossing {
+  const _RowCrossing(this.handle, this.t);
+
+  final String handle;
+  final double t;
+}
+
+/// 線分が [rect] に初めて入る比率を返す。行高を仮定せず、画面へ実描画された
+/// 矩形だけで判定する。入らなければ `null`。
+double? _segmentEntry(Rect rect, Offset from, Offset to) {
+  var first = 0.0;
+  var last = 1.0;
+  final dx = to.dx - from.dx;
+  final dy = to.dy - from.dy;
+
+  bool clip(double p, double q) {
+    if (p == 0) return q >= 0;
+    final ratio = q / p;
+    if (p < 0) {
+      if (ratio > last) return false;
+      if (ratio > first) first = ratio;
+    } else {
+      if (ratio < first) return false;
+      if (ratio < last) last = ratio;
+    }
+    return true;
+  }
+
+  if (!clip(-dx, from.dx - rect.left) ||
+      !clip(dx, rect.right - from.dx) ||
+      !clip(-dy, from.dy - rect.top) ||
+      !clip(dy, rect.bottom - from.dy)) {
+    return null;
+  }
+  return first;
+}
+
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。
 ///
 /// 上段にルール設定への導線、下段に実行を置く。ルールが空のときは実行を無効に
 /// したうえで、ルール設定ボタンを主役の表示へ入れ替える(005 REQ-019 / REQ-020)。
 class _RenameActionBar extends StatelessWidget {
   const _RenameActionBar({
+    super.key,
     required this.controller,
     required this.execution,
     required this.onEditRule,
@@ -1243,8 +1546,9 @@ class _FileRow extends StatefulWidget {
     required this.ruleIsEmpty,
     required this.selecting,
     required this.marked,
+    required this.rowGeometryKey,
     required this.onToggleMark,
-    required this.onLongPressEnter,
+    required this.onLongPressStart,
   });
 
   /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
@@ -1287,8 +1591,12 @@ class _FileRow extends StatefulWidget {
   /// (ハンドルが無いと除去の対象を指せない。004 REQ-006)。
   final VoidCallback? onToggleMark;
 
-  /// 長押しでモードへ入る(REQ-018 の入口(a))。ハンドルを持たない行では `null`。
-  final VoidCallback? onLongPressEnter;
+  /// 表示済みの行矩形を、ドラッグの経路判定に使う。
+  final GlobalKey? rowGeometryKey;
+
+  /// 長押しドラッグの開始。move/up/cancel は list 親の Listener が追跡するので、
+  /// この行が offscreen で dispose されても active pointer は失われない。
+  final ValueChanged<Offset>? onLongPressStart;
 
   @override
   State<_FileRow> createState() => _FileRowState();
@@ -1318,6 +1626,7 @@ class _FileRowState extends State<_FileRow> {
     final marked = widget.marked;
     final handle = row.source.sourceHandle;
     return Container(
+      key: widget.rowGeometryKey,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         // **選ばれた行は面を染める**(2026-09-19 の要望2)。行の高さも位置も
@@ -1344,8 +1653,12 @@ class _FileRowState extends State<_FileRow> {
             child: GestureDetector(
               // 名前の文字の上だけ、にしない(この範囲の余白でも反応する)。
               behavior: HitTestBehavior.opaque,
-              // **長押しは通常表示だけ**(モード中は既に入っている)。
-              onLongPress: selecting ? null : widget.onLongPressEnter,
+              // 初回とモード中で同じ長押しドラッグを受ける。通常の短いドラッグは
+              // callback を持たず、選択へ影響しない。
+              onLongPressStart: widget.onLongPressStart == null
+                  ? null
+                  : (details) =>
+                        widget.onLongPressStart!(details.globalPosition),
               // **モード中の tap は選択の切り替え**。通常表示では行 tap に意味を
               // 持たせない(誤って外す操作へ繋げない)。
               onTap: selecting ? widget.onToggleMark : null,

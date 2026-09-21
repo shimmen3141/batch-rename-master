@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
+import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -16,13 +17,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'removal_mode.dart';
 
-FileEntry _f(String name, {String? handle}) => FileEntry(
-  name: name,
-  createdAt: DateTime(2026, 1, 1),
-  modifiedAt: DateTime(2026, 1, 1),
-  size: 0,
-  sourceHandle: handle,
-);
+FileEntry _f(String name, {String? handle, String? sourceLocation}) =>
+    FileEntry(
+      name: name,
+      createdAt: DateTime(2026, 1, 1),
+      modifiedAt: DateTime(2026, 1, 1),
+      size: 0,
+      sourceHandle: handle,
+      sourceLocation: sourceLocation,
+    );
 
 const _seq2 = RenameRule([SequenceToken(start: 1, digits: 2)]);
 
@@ -33,13 +36,30 @@ List<FileEntry> _abc() => [
   _f('c.txt', handle: 'h:c'),
 ];
 
-Future<void> _pump(WidgetTester tester, FileListController c) async {
+Future<void> _pump(
+  WidgetTester tester,
+  FileListController c, {
+  RemovalSelection? selection,
+  VoidCallback? onEditRule,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
-      home: Scaffold(body: FileListView(controller: c)),
+      home: Scaffold(
+        body: FileListView(
+          controller: c,
+          removalSelection: selection,
+          onEditRule: onEditRule,
+        ),
+      ),
     ),
   );
+}
+
+Future<TestGesture> _startLongPress(WidgetTester tester, Finder target) async {
+  final gesture = await tester.startGesture(tester.getCenter(target));
+  await tester.pump(const Duration(milliseconds: 600));
+  return gesture;
 }
 
 void main() {
@@ -75,6 +95,305 @@ void main() {
     // **一覧は変わらない。** rename 対象は全件のままである。
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
     expect(c.selectedCount, 3);
+  });
+
+  testWidgets('長押しの往復では今回追加した行だけを外す(REQ-018・代表例6k)', (tester) async {
+    final selection = RemovalSelection();
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c, selection: selection);
+
+    final gesture = await _startLongPress(tester, find.text('a.txt'));
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // a → b → c → b は c だけを戻す。開始行と経路上の b は残る。
+    expect(selection.marked, {'h:a', 'h:b'});
+  });
+
+  testWidgets('モード中の長押し往復は以前の候補を保つ(REQ-018・代表例6l)', (tester) async {
+    final selection = RemovalSelection();
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c, selection: selection);
+    await enterRemovalMode(tester);
+    await toggleRemovalMark(tester, 'h:a');
+
+    final gesture = await _startLongPress(tester, find.text('b.txt'));
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await tester.pump();
+    await gesture.moveTo(tester.getCenter(find.text('b.txt')));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    // 開始前からある a は、このドラッグが戻っても外れない。
+    expect(selection.marked, {'h:a', 'h:b'});
+  });
+
+  testWidgets('長押し前の通常ドラッグは候補を作らない(REQ-018・代表例6o)', (tester) async {
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('a.txt')),
+    );
+    await gesture.moveTo(tester.getCenter(find.text('c.txt')));
+    await gesture.up();
+    await tester.pump();
+
+    expect(find.byKey(removalModeCountKey), findsNothing);
+  });
+
+  testWidgets('端の保持で実在する行だけを連続して選びながらスクロールする(REQ-018・代表例6m/6n)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final selection = RemovalSelection();
+    final files = [
+      for (var i = 0; i < 12; i++)
+        _f(
+          'file-$i.txt',
+          handle: 'h:$i',
+          // 場所を持つ行と持たない行を混ぜ、表示行高を固定値で仮定できない形にする。
+          sourceLocation: i == 0 ? '/folder-a' : (i == 2 ? '/folder-b' : null),
+        ),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, selection: selection);
+
+    final gesture = await _startLongPress(tester, find.text('file-0.txt'));
+    final list = tester.getRect(find.byType(ReorderableListView));
+    await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+    await tester.pump();
+    // Timer tick ごとに固定された指位置で新しく表示された行を同じ経路として追う。
+    // widget test では frame を刻み、実機の連続 frame と同じ timer tick を流す。
+    for (var tick = 0; tick < 260; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pump();
+    final markedWhenLifted = selection.marked;
+    await tester.pump(const Duration(seconds: 1));
+
+    final handles = {for (var i = 0; i < 12; i++) 'h:$i'};
+    expect(selection.marked, markedWhenLifted);
+    expect(selection.marked, isNotEmpty);
+    expect(selection.marked, everyElement(isIn(handles)));
+    // 終端では overscroll せず、実在する末尾行までで止まる。
+    expect(selection.marked, contains('h:11'));
+  });
+
+  testWidgets(
+    '開始行がoffscreenになった後も上から中央でscrollを止め、下端で反転して往路を戻す(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final selection = RemovalSelection();
+      final files = [
+        for (var i = 0; i < 40; i++) _f('long-$i.txt', handle: 'h:long-$i'),
+      ];
+      final c = FileListController(files: files, rule: _seq2);
+      await _pump(tester, c, selection: selection);
+      final target = find.text('long-20.txt');
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final gesture = await _startLongPress(tester, target);
+      final list = tester.getRect(find.byType(ReorderableListView));
+      await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+      for (var tick = 0; tick < 140; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(target, findsNothing); // 開始行は dispose されるほど遠くへ流れる。
+
+      // 中央へ戻すと、開始行の GestureDetector が消えていても timer は止まる。
+      await gesture.moveTo(list.center);
+      await tester.pump();
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final stoppedAt = scrollable.position.pixels;
+      for (var tick = 0; tick < 40; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(scrollable.position.pixels, closeTo(stoppedAt, 1));
+
+      // 同じ active pointer を下端へ戻すと下scrollへ反転し、往路の候補を解除する。
+      await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+      for (var tick = 0; tick < 180; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pump();
+      expect(selection.marked, isNot(contains('h:long-19')));
+      expect(selection.marked, contains('h:long-21'));
+    },
+  );
+
+  testWidgets('開始行がoffscreenになった後も下から上へ反転し、往路候補を解除する(2026-09-21 manual FAIL)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 360));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final selection = RemovalSelection();
+    final files = [
+      for (var i = 0; i < 40; i++) _f('reverse-$i.txt', handle: 'h:reverse-$i'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, selection: selection);
+    final target = find.text('reverse-20.txt');
+    await tester.scrollUntilVisible(
+      target,
+      120,
+      scrollable: find.descendant(
+        of: find.byType(ReorderableListView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    final gesture = await _startLongPress(tester, target);
+    final list = tester.getRect(find.byType(ReorderableListView));
+    await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+    for (var tick = 0; tick < 140; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(target, findsNothing);
+
+    await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+    for (var tick = 0; tick < 180; tick++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pump();
+
+    expect(selection.marked, isNot(contains('h:reverse-21')));
+    expect(selection.marked, contains('h:reverse-19'));
+  });
+
+  testWidgets(
+    '開始行がoffscreenになった後のcancelは親Listenerでauto-scrollを止める(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final files = [
+        for (var i = 0; i < 40; i++) _f('cancel-$i.txt', handle: 'h:cancel-$i'),
+      ];
+      final c = FileListController(files: files, rule: _seq2);
+      await _pump(tester, c);
+      final target = find.text('cancel-20.txt');
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final gesture = await _startLongPress(tester, target);
+      final list = tester.getRect(find.byType(ReorderableListView));
+      await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+      for (var tick = 0; tick < 140; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(target, findsNothing);
+
+      await gesture.cancel();
+      await tester.pump();
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byType(ReorderableListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      final stoppedAt = scrollable.position.pixels;
+      for (var tick = 0; tick < 40; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(scrollable.position.pixels, closeTo(stoppedAt, 1));
+    },
+  );
+
+  testWidgets(
+    'headerへ入った長押しdragでも上へauto-scrollし、深いほど速い(2026-09-21 manual FAIL)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 420));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      Future<double> moveUpFromHeader(double beyondTop) async {
+        final files = [
+          for (var i = 0; i < 20; i++) _f('up-$i.txt', handle: 'h:up-$i'),
+        ];
+        final c = FileListController(files: files, rule: _seq2);
+        await _pump(tester, c);
+        final target = find.text('up-10.txt');
+        await tester.scrollUntilVisible(
+          target,
+          120,
+          scrollable: find.descendant(
+            of: find.byType(ReorderableListView),
+            matching: find.byType(Scrollable),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final gesture = await _startLongPress(tester, target);
+        final list = tester.getRect(find.byType(ReorderableListView));
+        final before = tester.getTopLeft(target).dy;
+        await gesture.moveTo(Offset(list.center.dx, list.top - beyondTop));
+        for (var tick = 0; tick < 20; tick++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        final movedDown = tester.getTopLeft(target).dy - before;
+        await gesture.up();
+        await tester.pump();
+        return movedDown;
+      }
+
+      final nearHeader = await moveUpFromHeader(8);
+      final pastHeader = await moveUpFromHeader(96);
+
+      expect(nearHeader, greaterThan(0));
+      expect(pastHeader, greaterThan(nearHeader));
+    },
+  );
+
+  testWidgets('最下段から選択を始めても下部UIを隠す前後で開始行の位置を保つ(2026-09-21 manual FAIL)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final files = [
+      for (var i = 0; i < 12; i++) _f('bottom-$i.txt', handle: 'h:bottom-$i'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c, onEditRule: () {});
+    final list = find.byType(ReorderableListView);
+    await tester.drag(list, const Offset(0, -2000));
+    await tester.pumpAndSettle();
+    final last = find.text('bottom-11.txt');
+    expect(last, findsOneWidget);
+    final before = tester.getTopLeft(last).dy;
+
+    final gesture = await _startLongPress(tester, last);
+    await tester.pump();
+    final after = tester.getTopLeft(last).dy;
+    await gesture.up();
+
+    expect(after, closeTo(before, 1));
+    expect(find.byKey(const Key('configure-rule')), findsNothing);
   });
 
   testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
