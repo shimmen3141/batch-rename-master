@@ -1,4 +1,6 @@
-// 004 VER-005: app 内 file browser(REQ-015〜REQ-019)。
+import 'dart:ui' show SemanticsAction;
+
+// 004 VER-005: app 内 file browser(REQ-015〜REQ-020)。
 //
 // 観点: 保存場所から始まり、既知の場所への近道を示し、階層を辿れる。現在地を常に
 // 示し、上位へ戻れるが**保存場所の root より上へは辿れない**。選択は同一フォルダ内に
@@ -111,6 +113,15 @@ Future<_Result> _open(WidgetTester tester, StorageBrowserPort browser) async {
   await tester.pumpAndSettle();
   return result;
 }
+
+Future<TestGesture> _startLongPress(WidgetTester tester, Finder target) async {
+  final gesture = await tester.startGesture(tester.getCenter(target));
+  await tester.pump(const Duration(milliseconds: 600));
+  return gesture;
+}
+
+String _selectedCount(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('browser-selected-count'))).data!;
 
 const _root = '/storage/emulated/0';
 
@@ -497,6 +508,226 @@ void main() {
         find.byKey(const Key('browser-confirm')),
       );
       expect(confirm.onPressed, isNull);
+    });
+  });
+
+  group('REQ-020: app内browserの範囲選択と全選択', () {
+    testWidgets('全選択は現在folderのfileだけを選び、folderと近道を含めない', (tester) async {
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [
+            _dir(_root, 'folder'),
+            _file(_root, 'a.txt'),
+            _file(_root, 'b.txt'),
+          ],
+        },
+        shortcutNames: const ['Download'],
+      );
+      final result = await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(browserSelectAllKey));
+      await tester.pump();
+      expect(_selectedCount(tester), '2 件を選択中');
+
+      await tester.tap(find.byKey(const Key('browser-confirm')));
+      await tester.pumpAndSettle();
+      expect(result.value!.paths, ['$_root/a.txt', '$_root/b.txt']);
+      expect(result.value!.paths, isNot(contains('$_root/folder')));
+      expect(result.value!.paths, isNot(contains('$_root/Download')));
+    });
+
+    testWidgets('全選択は支援技術から操作名とtap actionで実行できる', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_file(_root, 'a.txt'), _file(_root, 'b.txt')],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+
+      final node = tester.getSemantics(
+        find.byKey(browserSelectAllSemanticsKey),
+      );
+      expect(node.label, 'すべて選択');
+      expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      tester.binding.rootPipelineOwner.semanticsOwner!.performAction(
+        node.id,
+        SemanticsAction.tap,
+      );
+      await tester.pump();
+
+      expect(_selectedCount(tester), '2 件を選択中');
+      semantics.dispose();
+    });
+
+    testWidgets('長押しdragの往復は今回追加したfileだけを解除する', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [
+              _file(_root, 'a.txt'),
+              _file(_root, 'b.txt'),
+              _file(_root, 'c.txt'),
+            ],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+
+      final gesture = await _startLongPress(
+        tester,
+        find.byKey(const Key('browser-file-a.txt')),
+      );
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-b.txt'))),
+      );
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-c.txt'))),
+      );
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-b.txt'))),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(_selectedCount(tester), '2 件を選択中');
+      expect(
+        tester
+            .widget<CheckboxListTile>(find.byType(CheckboxListTile).at(2))
+            .value,
+        isFalse,
+        reason: 'a→b→c→b の戻りで c だけを解除する',
+      );
+    });
+
+    testWidgets('drag開始前から選択済みのfileは往復しても保護する', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [
+              _file(_root, 'a.txt'),
+              _file(_root, 'b.txt'),
+              _file(_root, 'c.txt'),
+            ],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-file-a.txt')));
+      await tester.pump();
+
+      final gesture = await _startLongPress(
+        tester,
+        find.byKey(const Key('browser-file-b.txt')),
+      );
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-c.txt'))),
+      );
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-a.txt'))),
+      );
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const Key('browser-file-b.txt'))),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(_selectedCount(tester), '2 件を選択中');
+      expect(
+        tester
+            .widget<CheckboxListTile>(find.byType(CheckboxListTile).at(0))
+            .value,
+        isTrue,
+        reason: 'drag開始前から選ばれていた a は解除しない',
+      );
+    });
+
+    testWidgets('長押し前の通常scrollはfileを選択しない', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [for (var i = 0; i < 20; i++) _file(_root, 'scroll-$i.txt')],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView), const Offset(0, -180));
+      await tester.pumpAndSettle();
+
+      expect(_selectedCount(tester), '0 件を選択中');
+    });
+
+    testWidgets('開始行がoffscreenでも中央で止まり、反転して往路の選択を解除する', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final result = await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [for (var i = 0; i < 40; i++) _file(_root, 'long-$i.txt')],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      final target = find.byKey(const Key('browser-file-long-20.txt'));
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, 70));
+      await tester.pumpAndSettle();
+
+      final gesture = await _startLongPress(tester, target);
+      final list = tester.getRect(find.byType(ListView));
+      await gesture.moveTo(Offset(list.center.dx, list.top + 2));
+      for (var tick = 0; tick < 140; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(target, findsNothing);
+
+      await gesture.moveTo(list.center);
+      await tester.pump();
+      final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
+      final stoppedAt = scrollable.position.pixels;
+      for (var tick = 0; tick < 40; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(scrollable.position.pixels, closeTo(stoppedAt, 1));
+
+      await gesture.moveTo(Offset(list.center.dx, list.bottom - 2));
+      for (var tick = 0; tick < 180; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('browser-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(result.value!.paths, isNot(contains('$_root/long-19.txt')));
+      expect(result.value!.paths, contains('$_root/long-21.txt'));
     });
   });
 

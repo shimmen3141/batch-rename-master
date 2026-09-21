@@ -3,7 +3,14 @@ import 'package:path/path.dart' as p;
 
 import '../../data/file_source/android_file_source.dart';
 import '../../data/file_source/storage_browser.dart';
+import '../common/drag_selection_controller.dart';
 import '../theme/app_colors.dart';
+
+/// 現在folderのfileだけを一操作で選ぶ(004 REQ-020)。
+const Key browserSelectAllKey = Key('browser-select-all');
+
+/// 支援技術が全選択の操作名とtap actionを認識するSemantics node。
+const Key browserSelectAllSemanticsKey = Key('browser-select-all-semantics');
 
 /// app 内 file browser(004 REQ-015〜REQ-018)。
 ///
@@ -50,6 +57,16 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
 
   /// **同一フォルダ内の選択**(REQ-016)。フォルダを移ると捨てる。
   final _selected = <String>{};
+  final ScrollController _listScrollController = ScrollController();
+  final GlobalKey _listViewportKey = GlobalKey();
+  late final DragSelectionController<String> _dragSelection =
+      DragSelectionController<String>(
+        scrollController: _listScrollController,
+        viewportKey: _listViewportKey,
+        select: _selectPath,
+        deselect: _deselectPath,
+        isMounted: () => mounted,
+      );
 
   bool _loading = true;
 
@@ -57,6 +74,13 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   void initState() {
     super.initState();
     _loadLocations();
+  }
+
+  @override
+  void dispose() {
+    _dragSelection.dispose();
+    _listScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLocations() async {
@@ -80,6 +104,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   }
 
   Future<void> _enter(StorageLocation location, {String? folder}) async {
+    _dragSelection.finish();
     setState(() {
       _loading = true;
       _location = location;
@@ -118,6 +143,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   /// **ここで選択を捨てる必要は無い。** 次に保存場所を選べば [_enter] が捨てる
   /// (REQ-016)。観測できない処理を残さない。
   void _backToLocations() {
+    _dragSelection.finish();
     setState(() {
       _location = null;
       _folder = null;
@@ -130,6 +156,33 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     setState(() {
       if (!_selected.remove(entry.path)) _selected.add(entry.path);
     });
+  }
+
+  void _selectPath(String path) {
+    if (_selected.add(path) && mounted) setState(() {});
+  }
+
+  void _deselectPath(String path) {
+    if (_selected.remove(path) && mounted) setState(() {});
+  }
+
+  void _startDragSelection(BrowserEntry entry, Offset position) {
+    _dragSelection.start(
+      entry.path,
+      position,
+      baseline: Set<String>.of(_selected),
+    );
+  }
+
+  List<BrowserEntry> get _selectableFiles {
+    final listing = _listing;
+    if (listing is! DirectoryListed) return const [];
+    return listing.entries.where((entry) => !entry.isDirectory).toList();
+  }
+
+  void _selectAll() {
+    final paths = _selectableFiles.map((entry) => entry.path);
+    setState(() => _selected.addAll(paths));
   }
 
   void _confirm() {
@@ -238,69 +291,93 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       );
     }
     final entries = (listing as DirectoryListed).entries;
-    return ListView(
-      children: [
-        // **`/Android/` 配下では、改名できない可能性を示す**(REQ-018)。
-        // 注記であって判定ではないので、表示も選択も妨げない。
-        if (showsRestrictedNotice(_folder!))
-          Container(
-            key: const Key('browser-restricted-notice'),
-            padding: const EdgeInsets.all(12),
-            color: colors.surfaceElevated,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, size: 16, color: colors.info),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'この場所のファイルは、名前を変更できないことがあります。'
-                    'アプリごとの保存領域のため、許可があっても書き込めない場合があります。',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _dragSelection.onPointerDown,
+      onPointerMove: _dragSelection.onPointerMove,
+      onPointerUp: _dragSelection.onPointerUp,
+      onPointerCancel: _dragSelection.onPointerCancel,
+      child: ListView(
+        key: _listViewportKey,
+        controller: _listScrollController,
+        children: [
+          // **`/Android/` 配下では、改名できない可能性を示す**(REQ-018)。
+          // 注記であって判定ではないので、表示も選択も妨げない。
+          if (showsRestrictedNotice(_folder!))
+            Container(
+              key: const Key('browser-restricted-notice'),
+              padding: const EdgeInsets.all(12),
+              color: colors.surfaceElevated,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: colors.info),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'この場所のファイルは、名前を変更できないことがあります。'
+                      'アプリごとの保存領域のため、許可があっても書き込めない場合があります。',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        for (final shortcut in _shortcuts)
-          ListTile(
-            key: Key('browser-shortcut-${shortcut.name}'),
-            leading: Icon(Icons.star_outline, color: colors.primary, size: 20),
-            title: Text(
-              shortcut.name,
-              style: TextStyle(color: colors.textPrimary),
-            ),
-            onTap: () => _enter(_location!, folder: shortcut.path),
-          ),
-        if (_shortcuts.isNotEmpty) Divider(color: colors.border, height: 1),
-        for (final entry in entries)
-          if (entry.isDirectory)
+          for (final shortcut in _shortcuts)
             ListTile(
-              key: Key('browser-folder-${entry.name}'),
+              key: Key('browser-shortcut-${shortcut.name}'),
               leading: Icon(
-                Icons.folder,
-                color: colors.textSecondary,
+                Icons.star_outline,
+                color: colors.primary,
                 size: 20,
               ),
               title: Text(
-                entry.name,
+                shortcut.name,
                 style: TextStyle(color: colors.textPrimary),
               ),
-              onTap: () => _enter(_location!, folder: entry.path),
-            )
-          else
-            CheckboxListTile(
-              key: Key('browser-file-${entry.name}'),
-              value: _selected.contains(entry.path),
-              onChanged: (_) => _toggle(entry),
-              title: Text(
-                entry.name,
-                style: TextStyle(color: colors.textPrimary),
-              ),
-              controlAffinity: ListTileControlAffinity.leading,
-              dense: true,
+              onTap: () => _enter(_location!, folder: shortcut.path),
             ),
-      ],
+          if (_shortcuts.isNotEmpty) Divider(color: colors.border, height: 1),
+          for (final entry in entries)
+            if (entry.isDirectory)
+              ListTile(
+                key: Key('browser-folder-${entry.name}'),
+                leading: Icon(
+                  Icons.folder,
+                  color: colors.textSecondary,
+                  size: 20,
+                ),
+                title: Text(
+                  entry.name,
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                onTap: () => _enter(_location!, folder: entry.path),
+              )
+            else
+              GestureDetector(
+                key: Key('browser-file-${entry.name}'),
+                behavior: HitTestBehavior.opaque,
+                onLongPressStart: (details) =>
+                    _startDragSelection(entry, details.globalPosition),
+                child: Container(
+                  key: _dragSelection.rowGeometryKey(entry.path),
+                  child: CheckboxListTile(
+                    value: _selected.contains(entry.path),
+                    onChanged: (_) => _toggle(entry),
+                    title: Text(
+                      entry.name,
+                      style: TextStyle(color: colors.textPrimary),
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                  ),
+                ),
+              ),
+        ],
+      ),
     );
   }
 
@@ -341,26 +418,49 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     ],
   );
 
-  Widget _footer(AppColors colors) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: colors.surface,
-      border: Border(top: BorderSide(color: colors.border)),
-    ),
-    child: Row(
-      children: [
-        Text(
-          key: const Key('browser-selected-count'),
-          '${_selected.length} 件を選択中',
-          style: TextStyle(color: colors.textSecondary, fontSize: 12),
-        ),
-        const Spacer(),
-        FilledButton(
-          key: const Key('browser-confirm'),
-          onPressed: _selected.isEmpty ? null : _confirm,
-          child: const Text('確定'),
-        ),
-      ],
-    ),
-  );
+  Widget _footer(AppColors colors) {
+    final files = _selectableFiles;
+    final allSelected =
+        files.isNotEmpty &&
+        files.every((entry) => _selected.contains(entry.path));
+    final selectAll = files.isEmpty || allSelected ? null : _selectAll;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.border)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            key: const Key('browser-selected-count'),
+            '${_selected.length} 件を選択中',
+            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          ),
+          const Spacer(),
+          Semantics(
+            key: browserSelectAllSemanticsKey,
+            container: true,
+            button: true,
+            enabled: selectAll != null,
+            label: 'すべて選択',
+            onTap: selectAll,
+            child: ExcludeSemantics(
+              child: TextButton(
+                key: browserSelectAllKey,
+                onPressed: selectAll,
+                child: const Text('すべて選択'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            key: const Key('browser-confirm'),
+            onPressed: _selected.isEmpty ? null : _confirm,
+            child: const Text('確定'),
+          ),
+        ],
+      ),
+    );
+  }
 }

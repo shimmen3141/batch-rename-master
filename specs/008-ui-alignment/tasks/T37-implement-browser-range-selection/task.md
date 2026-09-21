@@ -37,9 +37,9 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 ## Current state / handoff
 
 - Last checkpoint: T36と同時に実装taskとして定義した。
-- Status: `pending`（T36依存）。
-- Blocker category: dependency / T36.
-- Evidence revision: `dev@65fbc3b`.
-- Waiting for: T36完了。
+- Status: `in_progress`。T36はPR #182 / merge `bef8337`でdevへ統合済み。
+- Blocker category: none.
+- Evidence revision: `dev@bef8337`.
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: T36完了後、専用branch/worktreeで着手する。
+- Next Agent action: shared drag selection部品を抽出し、browser固有選択へ接続する。
