@@ -198,3 +198,25 @@
 - Waiting for: なし。
 - Requested action: なし。
 - Next Agent action: 再現testを赤にした後で実装・mutation・回帰検証を行い、manual checklistへ2件を追加する。
+
+
+## 2026-09-21 修正・review handoff（上のhandoffを置き換える）
+
+- Last checkpoint: `abc39cb` が header 範囲でも続く距離比例 auto-scroll と、選択開始時に隠す下部 rename UI と同じ高さの末尾余白を追加した。`08edfca` が M396〜M397 を追加した。
+- Status: `in_review`。製品codeの修正後、Android 実機 manual は未再実施である。
+- Verification: `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` PASS (34 tests)。再現testは header を越えた上方向scrollと、最下段開始行の位置安定を検証する。M396〜M397 は scoped mutation_check.py で KILLED。
+- Machine verification scope: Android 実機でしか確認できない finger の速度感と位置安定は、この修正後の commit で T31 が再確認する。
+- Waiting for: 独立 implementation review の結果。
+- Requested action: なし。
+- Next Agent action: review PASS 後、修正後 commit を固定して Android 実機 manual を依頼する。
+
+### M396〜M397 scoped mutation_check.py の生出力
+
+```text
+command: flutter test test/spec_002_file_list/removal_selection_mode_test.dart
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M396 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 header に入った上方向 drag を viewport 外として停止する。manual FAIL regression test が落とす | exit 1
+M397 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```

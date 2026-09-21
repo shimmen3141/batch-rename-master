@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T31",
   "title": "長押ししたままドラッグして複数選択する",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T29"
   ],
