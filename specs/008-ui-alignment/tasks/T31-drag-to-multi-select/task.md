@@ -262,3 +262,14 @@ M398 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始�
 M399 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始行後のpointer upを親Listenerで終えない。lift後のauto-scroll停止が失敗する | exit 1
 2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
+
+
+## 2026-09-21 長距離 pointer 修正後 Android 実機 manual 待ち（上のhandoffを置き換える）
+
+- Last checkpoint: 独立 implementation review attempt 3 が exact `6b1220f..1362afe` を PASS と判定した（reviewer: GPT-6 Codex、related 37 / full 948 PASS、P0/P1/安全網の穴なし、M398〜M399 KILLED）。
+- Manual target: 製品code commit は `4e0ea21`。current evidence head は `1362afe` であり、`4e0ea21` 以後は mutation・test・evidence/handoff のみで、製品code・dependency・build 設定を変えない。
+- Blocker category: external / Android physical-device manual verification
+- Waiting for: Android 実機で [`manual-verification.md`](manual-verification.md) を実施した自由形式の結果。emulator だけでは offscreen 後の連続 finger drag、反転、lift/cancel を証明できない。
+- Requested action: current head `1362afe` を対象に Android 実機で manual-verification.md を実施し、観測結果を会話で返す。branch の切替は不要。
+- Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品code・test・dependency・build 設定を変えない。
+- Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
