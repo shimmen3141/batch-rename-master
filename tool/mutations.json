@@ -2672,6 +2672,20 @@
       "find": "bottom: selecting ? _selectionViewportBottomPadding : 0,",
       "replace": "bottom: 0,",
       "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ"
+    },
+    {
+      "id": "M398",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "if (event.pointer == _dragPointer) _moveDragSelection(event.position);",
+      "replace": "if (false) _moveDragSelection(event.position);",
+      "note": "008:T31 offscreen開始行後も親Listenerが active pointer のmoveを反映する経路を無効化する。長距離の停止・反転・往路解除が失敗する"
+    },
+    {
+      "id": "M399",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "onPointerUp: _onListPointerUp,",
+      "replace": "onPointerUp: null,",
+      "note": "008:T31 offscreen開始行後のpointer upを親Listenerで終えない。lift後のauto-scroll停止が失敗する"
     }
   ]
 }
