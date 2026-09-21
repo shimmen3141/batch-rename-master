@@ -240,3 +240,25 @@ M397 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 選択開始時�
 - Waiting for: なし。
 - Requested action: なし。
 - Next Agent action: 親Listenerへpointer所有を移した後、mutation・回帰・manual checklist更新を行う。
+
+
+## 2026-09-21 長距離 pointer 修正・review handoff（上のhandoffを置き換える）
+
+- Last checkpoint: `4e0ea21` が active pointer の move/up/cancel を行の GestureDetector から list 親の Listener へ移した。`d0e2a09` が M398〜M399、`a16bcae` が offscreen 後 cancel regression test を追加した。
+- Status: `in_review`。開始行が dispose された後も、上→中央停止→下反転と下→上反転で往路候補を戻せる。
+- Verification: `flutter test test/spec_002_file_list/removal_selection_mode_test.dart` PASS (37 tests)。header 距離速度、最下段位置維持、lift/cancel/bounds、offscreen後の両方向反転と解除を含む。M398〜M399 は scoped mutation_check.py で KILLED。
+- Machine verification scope: Android 実機での長距離 finger drag と header 外からの反転はこの修正後の T31 が再確認する。
+- Waiting for: 独立 implementation review の結果。
+- Requested action: なし。
+- Next Agent action: review PASS 後、修正後 commit を固定して Android 実機 manual を依頼する。
+
+### M398〜M399 scoped mutation_check.py の生出力
+
+```text
+command: flutter test test/spec_002_file_list/removal_selection_mode_test.dart
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M398 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始行後も親Listenerが active pointer のmoveを反映する経路を無効化する。長距離の停止・反転・往路解除が失敗する | exit 1
+M399 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 offscreen開始行後のpointer upを親Listenerで終えない。lift後のauto-scroll停止が失敗する | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
