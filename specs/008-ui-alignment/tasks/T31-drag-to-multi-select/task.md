@@ -180,12 +180,9 @@
 - Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品コード・依存・build 設定を変えない。
 - Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
 
-### M393〜M395 scoped mutation_check.py の生出力
+### M393〜M395 scoped mutation_check.py の結果
 
-```text
-```
-
-`python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t31-mutations/mutations.json --root .` は stdout/stderr を出力せず exit status 0 で完了した。対象3 mutation は script の終了規約により KILLED と判定した。
+`python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t31-mutations/mutations.json --root .` は stdout/stderr を出力せず exit status 0 で完了した。出力が無かったため空の code block は保存しない。対象3 mutation は script の終了規約により KILLED と判定した。
 
 
 ## 2026-09-21 Android 実機 manual FAIL と修正再開（上のhandoffを置き換える）
@@ -220,3 +217,14 @@ M396 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 header に入っ�
 M397 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ | exit 1
 2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
+
+
+## 2026-09-21 修正後 Android 実機 manual 待ち（上のhandoffを置き換える）
+
+- Last checkpoint: 独立 implementation review が exact `ed5d23c..fe9397e` を PASS と判定した（reviewer: GPT-5 Codex、attempt 2、P0/P1/安全網の穴なし）。
+- Manual target: `fe9397e` の製品code identity は `abc39cb` である。`abc39cb` 以後の commit は mutation と evidence/handoff だけで、製品code・test・dependency・build 設定を変えない。
+- Blocker category: external / Android physical-device manual verification
+- Waiting for: Android 実機で [`manual-verification.md`](manual-verification.md) を実施した自由形式の結果。emulator のポインタ操作だけでは finger の長押し、header 外での速度、開始行の位置安定の証拠にならない。
+- Requested action: `fe9397e` を対象に Android 実機で manual-verification.md を実施し、観測結果を会話で返す。branch の切替は不要。
+- Evidence revision: この後の evidence-only checkpoint は manual 文面とhandoffだけを変え、製品code・test・dependency・build 設定を変えない。
+- Next Agent action: 結果を受領したら証拠metadataを記録し、final reviewへ進む。
