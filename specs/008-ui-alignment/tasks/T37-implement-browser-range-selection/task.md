@@ -60,13 +60,14 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - 手動手順の修正: TalkBackの「focus / activate」を実際のスワイプと2回タップへ言い換え、各場面の選択0件への戻し方を明記した。code/test/buildは変更していない。
 - 独立final-evidence review attempt 2: `gpt-5.6-luna`、exact range `bef8337..f4b7868` — **BLOCKED / `in_review`維持**。成果物欠陥・安全網の穴は追加なし。Android物理端末での項目2〜3・5〜11の個別結果と端末種別が未記録。「概ね機能」では必須実機証拠をPASSにできない。TalkBack項目4は開発者指示により今回は省略し、PASSと記録しない。
 - 開発者の2026-09-22追加判断: 「T37は完了としてよいです。端末はエミュレータでした」。前回の「概ね機能」「TalkBackは今回はスルー」と合わせ、Androidエミュレータでの概括確認をもってT37を完了としてよいという明示的な受け入れ例外。物理端末・TalkBack・項目別PASSは未確認のまま。T39で新しいUIの物理端末確認を引き受けるが、T37固有の長距離往復などを実機で再検証したことにはしない。
+- 独立final-evidence review attempt 3: `gpt-5.6-luna`、exact range `bef8337..5e97e73` — **PASS（開発者の受け入れ例外を適用）**。reviewerがrelated 64件を再実行しPASS、`git diff --check` PASS、成果物欠陥なし。物理端末差・TalkBack実動作・項目別挙動は残余riskであり、実機PASSを主張しない。Draft PR #184を作成した。
 
 ## Current state / handoff
 
 - Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
-- Status: `in_review`。
-- Blocker category: none（開発者が当初の物理端末manual要件を今回に限り免除）。
+- Status: `done`（開発者の明示的な受け入れ例外、独立review PASS）。
+- Blocker category: none。
 - Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
-- Waiting for: 明示的な受け入れ例外を含む独立final-evidence review。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: `gpt-5.6-luna`で受け入れ例外と残余riskを独立照合し、PASSならstatusとremote窓口を更新する。
+- Next Agent action: PR #184のrequired CIとlatest dev統合結果を確認し、条件が揃えばmergeする。
