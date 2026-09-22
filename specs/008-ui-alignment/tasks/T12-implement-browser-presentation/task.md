@@ -220,11 +220,17 @@ hostの`flutter run`が、共有された`android/local.properties`の`flutter.s
 `dev`経由でこのbranchへ入っている(`755041b` / `09a98f4`)。加えて`5456aa9`はこのbranch上で直接commitした同じ対処の続きである。
 **いずれも`lib/`・`test/`を触っていない**ので、T12の実装と手動確認の対象buildには影響しない。
 
+## merge(2026-09-22)
+
+- PR [#185](https://github.com/shimmen3141/batch-rename-master/pull/185) を **merge commit `a1134a9`** で`dev`へ統合した。head `e57cc04`、CI `check` pass、`mergeStateStatus: CLEAN`、未解決thread 0。
+- **Agentのauto-mergeではない** — auto-merge条件1(Issue無し)と条件5(1件端末の実機証拠の省略)を**開発者が受容してmergeを判断した**。
+- merge後の`dev`は`a1134a9`。あわせて環境側の`compose.ai.yml`(local.propertiesの逃がし)が`dbe889c`で入った。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・機械検証・implementation review PASS・**手動確認の受領**まで完了(`lib/`は`37bd08e`)。1件端末の入口は残余riskとして`T39`へ渡した。
+- Last checkpoint: **完了**(2026-09-22)。PR #185 が merge commit `a1134a9` で`dev`へ入った(head `e57cc04`、CI `check` pass、`CLEAN`)。1件端末の入口は残余riskとして`T39`へ渡した。
 - Blocker category: なし
-- Waiting for: **開発者のmerge判断**(auto-merge条件1・5を満たすと確定できないため)。
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
-- Next Agent action: final-evidence phaseの独立reviewを回し、PASSならPRを作ってCIを通し、auto-merge条件を確かめる。選択解除・画面を閉じる導線と、1件端末の入口の実機観測は`T39`へ渡す。
+- Next Agent action: なし。**このtaskは完了した。** 次は`T13`(browserのfile行にpreview)または`T38`(選択・戻る導線の仕様)。選択解除・画面を閉じる導線と、1件端末の入口の実機観測は`T39`が引き受ける。
