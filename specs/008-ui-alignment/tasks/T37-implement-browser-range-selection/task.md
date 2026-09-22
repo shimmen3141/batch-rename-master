@@ -31,15 +31,44 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - T31の関連testが継続PASSし、共通化で既存の除去選択を壊さない。
 - 必要なmutationがKILLED。
 - format/analyze/full test/workspace checkがPASSする。
-- Android物理端末で`manual-verification.md`がPASSする。
+- 当初の受け入れ条件: Android物理端末で`manual-verification.md`がPASSする。2026-09-22、開発者はエミュレータでの確認を明示し、未実施の物理端末・TalkBack項目を残したままT37の完了を承認した。今回の例外としてこの判断を受け入れ証拠に採用し、実機PASSとは記録しない。
 - exact rangeの独立reviewがPASSする。review modelは開発者指定のlunaを使う。
+
+## 実装・検証記録
+
+- 実装Agent: `gpt-5.6-sol`（ユーザー指定）。
+- implementation checkpoint: `c3e5963`。
+- verification checkpoint: `d88ab4f`。
+- 共通化: `DragSelectionController<T>`はactive pointer、実描画行との交差、drag経路の復路、edge auto-scroll、lift/cancelを所有する。選択集合と「選ぶ／外す」の意味は各画面が所有する。
+- browser固有: 現在folderのfileだけを全選択し、folder・近道を除外する。長押しdragはbrowserの`_selected`だけを更新し、folder移動時には既存どおり解除する。全選択は操作名とtap actionを持つSemantics controlとして公開する。
+- related tests: `flutter test test/spec_002_file_list/removal_selection_mode_test.dart test/spec_004_file_source/storage_browser_view_test.dart` — PASS（64 tests）。
+- T37 browser tests: `flutter test test/spec_004_file_source/storage_browser_view_test.dart` — PASS（27 tests）。
+- mutation: `python3 /home/dev/.agents/skills/asdd/scripts/mutation_check.py /tmp/t37-mutations.json --root .`（commandは上記related tests）— `M393`〜`M403`の11件すべてKILLED、SURVIVED 0、SKIPPED 0。
+- Semantics修正後の対照: M402のみをbrowser testsで再実行 — KILLED。
+- format: `dart format --output=none --set-exit-if-changed .` — PASS（132 files、変更0）。
+- static analysis: `flutter analyze` — PASS。
+- full regression: `flutter test --reporter compact` — PASS（954 tests）。
+- ASDD構造: `python3 /home/dev/.agents/skills/asdd/scripts/workspace.py check specs` — PASS（8 plans、90 tasks）。
+- Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
+- 独立review attempt 1: `gpt-5.6-luna`、exact range `bef8337...c9f3fec` — BLOCKED。P0〜P3の成果物欠陥と安全網の穴はなし。related 64件PASS、reviewer対照を含むmutation 11件KILLED。必須のAndroid物理端末manualが未実施のためfinal-evidence判定だけを保留。
+
+## 2026-09-22 実機報告と受け入れ境界
+
+- 開発者の会話報告: 「概ね機能していそう」。全選択のTalkBack操作は手順の意味が分からず未実施で、「今回は成立していそうなのでスルーでよい」と明示した。対象は案内済みworktreeのcode commit `d88ab4f`（報告時HEAD `90efb6c`。両者の間にcode/dependency/build設定差分なし）。端末の種類と各manual項目の個別結果は報告されていない。
+- 全選択の操作名・tap actionはwidget testでPASSし、mutation M402もKILLED。TalkBack実機動作をPASSと書き換えず、今回限りの未確認として記録する。
+- UI上の追加指摘: 全選択からの一括解除が無い。ヘッダの×が画面を閉じるのか選択解除なのか紛らわしい。file行のcheckboxの位置・形をリネーム画面と揃えたい。フッタ左下に明示的な「リネーム画面に戻る」ボタン、上部へ保存場所名・戻る矢印・選択件数をまとめる案、場所の帯へフォルダ内一括選択checkboxを置く案が出た。これらは004 REQ-020の範囲選択保証とは別のUI設計として後続taskへ送る。
+- 手動手順の修正: TalkBackの「focus / activate」を実際のスワイプと2回タップへ言い換え、各場面の選択0件への戻し方を明記した。code/test/buildは変更していない。
+- 独立final-evidence review attempt 2: `gpt-5.6-luna`、exact range `bef8337..f4b7868` — **BLOCKED / `in_review`維持**。成果物欠陥・安全網の穴は追加なし。Android物理端末での項目2〜3・5〜11の個別結果と端末種別が未記録。「概ね機能」では必須実機証拠をPASSにできない。TalkBack項目4は開発者指示により今回は省略し、PASSと記録しない。
+- 開発者の2026-09-22追加判断: 「T37は完了としてよいです。端末はエミュレータでした」。前回の「概ね機能」「TalkBackは今回はスルー」と合わせ、Androidエミュレータでの概括確認をもってT37を完了としてよいという明示的な受け入れ例外。物理端末・TalkBack・項目別PASSは未確認のまま。T39で新しいUIの物理端末確認を引き受けるが、T37固有の長距離往復などを実機で再検証したことにはしない。
+- 独立final-evidence review attempt 3: `gpt-5.6-luna`、exact range `bef8337..5e97e73` — **PASS（開発者の受け入れ例外を適用）**。reviewerがrelated 64件を再実行しPASS、`git diff --check` PASS、成果物欠陥なし。物理端末差・TalkBack実動作・項目別挙動は残余riskであり、実機PASSを主張しない。Draft PR #184を作成した。
+- latest dev統合: `e238169`でdevを取り込んだ。review済み`5e97e73`からcode/test/dependency/build設定差分なし。`flutter test --reporter compact` 954件PASS、`dart format --output=none --set-exit-if-changed .` 132 files/変更0、`flutter analyze` No issues、workspace check 8 plans/92 tasks PASS。remote PR #184 の初回CI `check` PASS（base更新前のrun）。
 
 ## Current state / handoff
 
-- Last checkpoint: T36と同時に実装taskとして定義した。
-- Status: `pending`（T36依存）。
-- Blocker category: dependency / T36.
-- Evidence revision: `dev@65fbc3b`.
-- Waiting for: T36完了。
+- Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
+- Status: `done`（開発者の明示的な受け入れ例外、独立review PASS）。
+- Blocker category: none。
+- Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: T36完了後、専用branch/worktreeで着手する。
+- Next Agent action: PR #184のrequired CIとlatest dev統合結果を確認し、条件が揃えばmergeする。

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T37",
   "title": "app内file browserへ範囲選択を実装する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T31",
     "T36"
@@ -10,7 +10,7 @@
   "covers": [
     "004:REQ-020"
   ],
-  "issue": null,
-  "pullRequest": null,
+  "issue": 183,
+  "pullRequest": 184,
   "manualVerification": "manual-verification.md"
 }

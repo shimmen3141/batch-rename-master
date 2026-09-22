@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +6,7 @@ import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../file_source/source_path_text.dart';
+import '../common/drag_selection_controller.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
@@ -143,23 +142,19 @@ class _FileListViewState extends State<FileListView> {
   final ScrollController _listScrollController = ScrollController();
   final GlobalKey _listViewportKey = GlobalKey();
   final GlobalKey _renameActionBarKey = GlobalKey();
-  final Map<String, GlobalKey> _rowGeometryKeys = <String, GlobalKey>{};
-
-  _DragSelectionSession? _dragSelection;
-  final Map<int, Offset> _pointerPositions = <int, Offset>{};
-  int? _dragPointer;
-  Timer? _autoScrollTimer;
-  double _autoScrollPixelsPerTick = 0;
+  late final DragSelectionController<String> _dragSelection =
+      DragSelectionController<String>(
+        scrollController: _listScrollController,
+        viewportKey: _listViewportKey,
+        select: (handle) => _selection.mark(handle),
+        deselect: (handle) => _selection.unmark(handle),
+        isMounted: () => mounted,
+      );
   double _selectionViewportBottomPadding = 0;
-  bool _traceAfterScrollPending = false;
-
-  static const double _autoScrollEdgeExtent = 48;
-  static const double _autoScrollStep = 4;
-  static const double _maxAutoScrollMultiplier = 4;
 
   @override
   void dispose() {
-    _finishDragSelection();
+    _dragSelection.dispose();
     _listScrollController.dispose();
     // **自分で作ったものだけ捨てる。** 渡されたものは composition root の持ち物で、
     // 読み込み帯も同じものを読んでいる。
@@ -167,127 +162,16 @@ class _FileListViewState extends State<FileListView> {
     super.dispose();
   }
 
-  GlobalKey _rowGeometryKey(String handle) =>
-      _rowGeometryKeys.putIfAbsent(handle, GlobalKey.new);
-
   void _startDragSelection(String handle, Offset position) {
-    // Pointer の move/up/cancel は行の GestureDetector ではなく list 親の
-    // Listener が受け続ける。長距離 scroll で開始行が dispose されても、
-    // session と timer に古い座標が残らない。
-    final pointer = _nearestPointerTo(position);
-    _finishDragSelection();
-    _dragPointer = pointer;
     final baseline = _selection.marked;
-    if (_selection.selecting) {
-      _selection.mark(handle);
-    } else {
+    if (!_selection.selecting) {
       // 選択モードへ入ると下部の rename UI が隠れ、list の viewport が広がる。
       // 最下部を見ていると scroll extent が縮んで開始行が下へ跳ぶため、消える
       // UI と同じ高さを list の末尾余白として先に確保する。
       _selectionViewportBottomPadding = _renameActionBarHeight;
-      _selection.enter(handle: handle);
+      _selection.enter();
     }
-    final session = _DragSelectionSession(baseline, position);
-    _dragSelection = session;
-    session.visit(handle, _selection);
-    _updateAutoScroll(position);
-  }
-
-  int? _nearestPointerTo(Offset position) {
-    int? result;
-    var distance = double.infinity;
-    for (final entry in _pointerPositions.entries) {
-      final candidate = (entry.value - position).distanceSquared;
-      if (candidate < distance) {
-        result = entry.key;
-        distance = candidate;
-      }
-    }
-    return result;
-  }
-
-  void _onListPointerDown(PointerDownEvent event) {
-    _pointerPositions[event.pointer] = event.position;
-  }
-
-  void _onListPointerMove(PointerMoveEvent event) {
-    _pointerPositions[event.pointer] = event.position;
-    if (event.pointer == _dragPointer) _moveDragSelection(event.position);
-  }
-
-  void _onListPointerUp(PointerUpEvent event) {
-    _pointerPositions.remove(event.pointer);
-    if (event.pointer == _dragPointer) _finishDragSelection();
-  }
-
-  void _onListPointerCancel(PointerCancelEvent event) {
-    _pointerPositions.remove(event.pointer);
-    if (event.pointer == _dragPointer) _finishDragSelection();
-  }
-
-  void _moveDragSelection(Offset position) {
-    final session = _dragSelection;
-    if (session == null) return;
-    _traceSelection(session, position);
-    _updateAutoScroll(position);
-  }
-
-  void _traceSelection(_DragSelectionSession session, Offset position) {
-    for (final crossing in _rowsCrossed(session.pointer, position)) {
-      session.visit(crossing.handle, _selection);
-    }
-    session.pointer = position;
-  }
-
-  List<_RowCrossing> _rowsCrossed(Offset from, Offset to) {
-    final crossings = <_RowCrossing>[];
-    for (final entry in _rowGeometryKeys.entries) {
-      final renderObject = entry.value.currentContext?.findRenderObject();
-      if (renderObject is! RenderBox || !renderObject.attached) continue;
-      final origin = renderObject.localToGlobal(Offset.zero);
-      final t = _segmentEntry(
-        Rect.fromLTWH(
-          origin.dx,
-          origin.dy,
-          renderObject.size.width,
-          renderObject.size.height,
-        ),
-        from,
-        to,
-      );
-      if (t != null) crossings.add(_RowCrossing(entry.key, t));
-    }
-    crossings.sort((a, b) => a.t.compareTo(b.t));
-    return crossings;
-  }
-
-  void _updateAutoScroll(Offset position) {
-    final viewport = _viewportRect;
-    if (viewport == null ||
-        position.dx < viewport.left ||
-        position.dx > viewport.right) {
-      _stopAutoScroll();
-      return;
-    }
-
-    // 指が header へ入っても上方向の選択 drag は続く。viewport の内側だけに
-    // 限ると、実機では最上行を越えた瞬間に scroll が止まる。端からの深さで
-    // step を増やすので、header へ近づき越えるほど速くなる。
-    final aboveTopEdge = viewport.top + _autoScrollEdgeExtent - position.dy;
-    final belowBottomEdge =
-        position.dy - (viewport.bottom - _autoScrollEdgeExtent);
-    _autoScrollPixelsPerTick = aboveTopEdge > 0
-        ? -_scrollStepForDepth(aboveTopEdge)
-        : (belowBottomEdge > 0 ? _scrollStepForDepth(belowBottomEdge) : 0);
-    if (_autoScrollPixelsPerTick == 0 ||
-        !_canAutoScroll(_autoScrollPixelsPerTick)) {
-      _stopAutoScroll();
-      return;
-    }
-    _autoScrollTimer ??= Timer.periodic(
-      const Duration(milliseconds: 16),
-      (_) => _autoScrollTick(),
-    );
+    _dragSelection.start(handle, position, baseline: baseline);
   }
 
   double get _renameActionBarHeight {
@@ -297,70 +181,8 @@ class _FileListViewState extends State<FileListView> {
         : 0;
   }
 
-  double _scrollStepForDepth(double depth) =>
-      _autoScrollStep *
-      (depth / _autoScrollEdgeExtent).clamp(1, _maxAutoScrollMultiplier);
-
-  Rect? get _viewportRect {
-    final renderObject = _listViewportKey.currentContext?.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.attached) return null;
-    final origin = renderObject.localToGlobal(Offset.zero);
-    return Rect.fromLTWH(
-      origin.dx,
-      origin.dy,
-      renderObject.size.width,
-      renderObject.size.height,
-    );
-  }
-
-  bool _canAutoScroll(double direction) {
-    if (!_listScrollController.hasClients) return false;
-    final position = _listScrollController.position;
-    return direction < 0
-        ? position.pixels > position.minScrollExtent
-        : position.pixels < position.maxScrollExtent;
-  }
-
-  void _autoScrollTick() {
-    final session = _dragSelection;
-    if (session == null || !_canAutoScroll(_autoScrollPixelsPerTick)) {
-      _stopAutoScroll();
-      return;
-    }
-    final position = _listScrollController.position;
-    final next = (position.pixels + _autoScrollPixelsPerTick).clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-    if (next == position.pixels) {
-      _stopAutoScroll();
-      return;
-    }
-    _listScrollController.jumpTo(next);
-    if (_traceAfterScrollPending) return;
-    _traceAfterScrollPending = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _traceAfterScrollPending = false;
-      if (mounted && identical(session, _dragSelection)) {
-        _traceSelection(session, session.pointer);
-      }
-    });
-  }
-
-  void _finishDragSelection() {
-    _dragSelection = null;
-    _dragPointer = null;
-    _stopAutoScroll();
-  }
-
-  void _stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-    _autoScrollPixelsPerTick = 0;
-  }
-
   void _exitRemovalMode() {
-    _finishDragSelection();
+    _dragSelection.finish();
     _selectionViewportBottomPadding = 0;
     _selection.exit();
   }
@@ -498,10 +320,10 @@ class _FileListViewState extends State<FileListView> {
                 Expanded(
                   child: Listener(
                     behavior: HitTestBehavior.translucent,
-                    onPointerDown: _onListPointerDown,
-                    onPointerMove: _onListPointerMove,
-                    onPointerUp: _onListPointerUp,
-                    onPointerCancel: _onListPointerCancel,
+                    onPointerDown: _dragSelection.onPointerDown,
+                    onPointerMove: _dragSelection.onPointerMove,
+                    onPointerUp: _dragSelection.onPointerUp,
+                    onPointerCancel: _dragSelection.onPointerCancel,
                     child: ReorderableListView.builder(
                       key: _listViewportKey,
                       scrollController: _listScrollController,
@@ -582,7 +404,7 @@ class _FileListViewState extends State<FileListView> {
                           marked: handle != null && marked.contains(handle),
                           rowGeometryKey: handle == null
                               ? null
-                              : _rowGeometryKey(handle),
+                              : _dragSelection.rowGeometryKey(handle),
                           // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
                           // ハンドルで対象を指す)。持たない行は選べない —
                           // 選べるのに外れない件数を出すほうが悪い。
@@ -628,68 +450,6 @@ class _FileListViewState extends State<FileListView> {
       },
     );
   }
-}
-
-/// 1回の長押しドラッグの経路と、開始時から保護する候補を持つ。
-class _DragSelectionSession {
-  _DragSelectionSession(Set<String> baseline, this.pointer)
-    : _baseline = Set<String>.of(baseline);
-
-  final Set<String> _baseline;
-  final List<String> _path = <String>[];
-  Offset pointer;
-
-  /// 到達済み行へ戻った場合は、その後にこのドラッグが足した行だけを外す。
-  void visit(String handle, RemovalSelection selection) {
-    final previous = _path.lastIndexOf(handle);
-    if (previous >= 0) {
-      final leaving = _path.sublist(previous + 1);
-      _path.removeRange(previous + 1, _path.length);
-      for (final left in leaving) {
-        if (!_baseline.contains(left)) selection.unmark(left);
-      }
-      return;
-    }
-    _path.add(handle);
-    selection.mark(handle);
-  }
-}
-
-class _RowCrossing {
-  const _RowCrossing(this.handle, this.t);
-
-  final String handle;
-  final double t;
-}
-
-/// 線分が [rect] に初めて入る比率を返す。行高を仮定せず、画面へ実描画された
-/// 矩形だけで判定する。入らなければ `null`。
-double? _segmentEntry(Rect rect, Offset from, Offset to) {
-  var first = 0.0;
-  var last = 1.0;
-  final dx = to.dx - from.dx;
-  final dy = to.dy - from.dy;
-
-  bool clip(double p, double q) {
-    if (p == 0) return q >= 0;
-    final ratio = q / p;
-    if (p < 0) {
-      if (ratio > last) return false;
-      if (ratio > first) first = ratio;
-    } else {
-      if (ratio < first) return false;
-      if (ratio < last) last = ratio;
-    }
-    return true;
-  }
-
-  if (!clip(-dx, from.dx - rect.left) ||
-      !clip(dx, rect.right - from.dx) ||
-      !clip(-dy, from.dy - rect.top) ||
-      !clip(dy, rect.bottom - from.dy)) {
-    return null;
-  }
-  return first;
 }
 
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。

@@ -2640,31 +2640,31 @@
     },
     {
       "id": "M393",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/common/drag_selection_controller.dart",
       "find": "    for (final crossing in _rowsCrossed(session.pointer, position)) {",
-      "replace": "    for (final crossing in const <_RowCrossing>[]) {",
-      "note": "008:T31 描画済み行矩形との連続経路照合を無効化する。a→b→c→b の通過選択が成立しない"
+      "replace": "    for (final crossing in <_RowCrossing<T>>[]) {",
+      "note": "008:T31/T37 描画済み行矩形との連続経路照合を無効化する。往復dragの通過選択が成立しない"
     },
     {
       "id": "M394",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        if (!_baseline.contains(left)) selection.unmark(left);",
-      "replace": "        if (false) selection.unmark(left);",
-      "note": "008:T31 戻った経路で今回追加した候補を外さない。a→b→c→b の c が残る"
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "        if (!_baseline.contains(left)) deselect(left);",
+      "replace": "        if (false) deselect(left);",
+      "note": "008:T31/T37 戻った経路で今回追加した候補を外さない。往復した行が選択に残る"
     },
     {
       "id": "M395",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      if (mounted && identical(session, _dragSelection)) {\n        _traceSelection(session, session.pointer);\n      }",
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "      if (isMounted() && identical(session, _session)) {\n        _traceSelection(session, session.pointer);\n      }",
       "replace": "      if (false) {\n        _traceSelection(session, session.pointer);\n      }",
-      "note": "008:T31 auto-scroll 後に固定された指位置へ新規表示行を反映しない。端保持で末尾行を選べない"
+      "note": "008:T31/T37 auto-scroll後に固定された指位置へ新規表示行を反映しない。端保持で遠方の行を選べない"
     },
     {
       "id": "M396",
-      "file": "lib/ui/file_list/file_list_view.dart",
+      "file": "lib/ui/common/drag_selection_controller.dart",
       "find": "if (viewport == null ||\n        position.dx < viewport.left ||\n        position.dx > viewport.right) {",
       "replace": "if (viewport == null || !viewport.contains(position)) {",
-      "note": "008:T31 header に入った上方向 drag を viewport 外として停止する。manual FAIL regression test が落とす"
+      "note": "008:T31/T37 headerへ入った上方向dragをviewport外として停止する。画面端まで動かす通常操作でscrollしない"
     },
     {
       "id": "M397",
@@ -2675,17 +2675,45 @@
     },
     {
       "id": "M398",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "if (event.pointer == _dragPointer) _moveDragSelection(event.position);",
-      "replace": "if (false) _moveDragSelection(event.position);",
-      "note": "008:T31 offscreen開始行後も親Listenerが active pointer のmoveを反映する経路を無効化する。長距離の停止・反転・往路解除が失敗する"
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "    if (event.pointer != _activePointer) return;",
+      "replace": "    return;",
+      "note": "008:T31/T37 親Listenerがactive pointerのmoveを反映する経路を無効化する。長距離の停止・反転・往路解除が失敗する"
     },
     {
       "id": "M399",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "onPointerUp: _onListPointerUp,",
+      "find": "onPointerUp: _dragSelection.onPointerUp,",
       "replace": "onPointerUp: null,",
       "note": "008:T31 offscreen開始行後のpointer upを親Listenerで終えない。lift後のauto-scroll停止が失敗する"
+    },
+    {
+      "id": "M400",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "    return listing.entries.where((entry) => !entry.isDirectory).toList();",
+      "replace": "    return listing.entries.toList();",
+      "note": "008:T37 全選択へfolderを混ぜる。現在folderのfileだけという境界を壊す"
+    },
+    {
+      "id": "M401",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "    final paths = _selectableFiles.map((entry) => entry.path);",
+      "replace": "    final paths = [..._shortcuts, ..._selectableFiles].map((entry) => entry.path);",
+      "note": "008:T37 全選択へ近道を混ぜる。列挙fileとnavigation entryの境界を壊す"
+    },
+    {
+      "id": "M402",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "            onTap: selectAll,",
+      "replace": "            onTap: null,",
+      "note": "008:T37 全選択Semanticsのtap actionを除去し、支援技術から実行できなくする"
+    },
+    {
+      "id": "M403",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "    if (_selected.remove(path) && mounted) setState(() {});",
+      "replace": "    if (false) setState(() {});",
+      "note": "008:T37 dragの復路で今回追加したfileを選択解除しない"
     }
   ]
 }
