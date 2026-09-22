@@ -33,7 +33,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 2026-09-22のT37実機報告から論点を登録した。候補UIは未承認。
+- Last checkpoint: 2026-09-22のT37実機報告から論点を登録した。候補UIは未承認。登録の独立reviewは `gpt-5.6-luna`、exact range `bef8337...edf4b08` でP2×3のFAIL、依存・証拠版・実機手順の引継ぎを修正後の `bef8337...5f31387` でPASS（P0〜P2なし）。T38の仕様・UI実装自体は未review。
 - Blocker category: dependency / T11.
 - Evidence revision: 2026-09-22会話報告をT37の `f4b7868` に記録。対象code/testは `d88ab4f`、報告時HEADは `90efb6c`。このtaskのbranch baseはdev@`bef8337`。
 - Waiting for: T11の仕様決定。
