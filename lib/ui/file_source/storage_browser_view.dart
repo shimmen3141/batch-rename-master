@@ -14,8 +14,9 @@ const Key browserSelectAllSemanticsKey = Key('browser-select-all-semantics');
 
 /// app 内 file browser(004 REQ-015〜REQ-018)。
 ///
-/// **保存場所の一覧から始まる。** 保存場所を選ぶと、実在する既知の場所への近道と、
-/// その root の中身が出る。現在の場所を常に示し、上位フォルダへ戻れる。
+/// **保存場所から始まる**(REQ-015)。保存場所が複数あるときは一覧から始まり、
+/// **1つだけのときは一覧を挟まずその保存場所の root から始まる**。複数あるときは
+/// browser を閉じずに別の保存場所へ切り替えられる。現在の場所を常に示し、上位フォルダへ戻れる。
 /// **辿れる上限は保存場所の root** で、`/storage` や `/` へは到達経路が無い
 /// (絞り込みで隠すのではなく、辿れないことで達成する)。
 ///
@@ -52,7 +53,6 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   /// 現在のフォルダ。[_location] が決まっているときだけ意味を持つ。
   String? _folder;
 
-  List<BrowserEntry> _shortcuts = const [];
   DirectoryListing? _listing;
 
   /// **同一フォルダ内の選択**(REQ-016)。フォルダを移ると捨てる。
@@ -97,11 +97,25 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       );
     }
     if (!mounted) return;
+    // **保存場所が1つだけなら一覧を挟まない**(REQ-015)。
+    final sole = soleLocation(locations);
+    if (sole != null) {
+      setState(() => _locations = locations);
+      await _enter(sole);
+      return;
+    }
     setState(() {
       _locations = locations;
       _loading = false;
     });
   }
+
+  /// 保存場所の一覧へ戻れるか(REQ-015)。
+  ///
+  /// **要求は「複数あるときは閉じずに切り替えられる」ことまで**で、切り替え先が
+  /// 無い端末で導線を出すかは自由とされている。**出さない** — 押しても1件の一覧が
+  /// 出るだけの空振りになるためで、これは `T11` が U1 で消した無駄な1手と同じものである。
+  bool get _canSwitchLocation => (_locations?.locations.length ?? 0) >= 2;
 
   Future<void> _enter(StorageLocation location, {String? folder}) async {
     _dragSelection.finish();
@@ -113,9 +127,6 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       _selected.clear();
     });
     final target = _folder!;
-    final shortcuts = target == location.root
-        ? await widget.browser.shortcuts(location)
-        : const <BrowserEntry>[];
     final listing = await widget.browser.list(target);
     if (!mounted) return;
     // **場所は「保存場所名 + rootからの相対」**である(004 REQ-009)。
@@ -123,7 +134,6 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     // (独立review attempt 2 のP2-1)。root の basename `0` も出さない。
     widget.onLocationName?.call(target, _displayPathOf(location, target));
     setState(() {
-      _shortcuts = shortcuts;
       _listing = listing;
       _loading = false;
     });
@@ -148,7 +158,6 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       _location = null;
       _folder = null;
       _listing = null;
-      _shortcuts = const [];
     });
   }
 
@@ -235,17 +244,19 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       child: Row(
         children: [
           // **root では出さない**(004 代表例 26d「上位へ戻る操作は無いか無効」)。
-          // 保存場所の一覧へは、この画面を閉じてから選び直す。
+          // **向きは `←`**(`013:T07` の U3。`↑` より馴染むという指摘)。keyと
+          // tooltipの意味は変えない — 辿る先は1つ上のfolderのままである。
           if (_location != null &&
               _folder != null &&
               canGoUp(folder: _folder!, root: _location!.root))
             IconButton(
               key: const Key('browser-up'),
-              icon: const Icon(Icons.arrow_upward, size: 18),
+              icon: const Icon(Icons.arrow_back, size: 18),
               tooltip: '上のフォルダへ',
               onPressed: _goUp,
             )
-          else if (_location != null)
+          // **保存場所が複数あるときだけ出す**(REQ-015)。
+          else if (_location != null && _canSwitchLocation)
             IconButton(
               key: const Key('browser-locations'),
               icon: const Icon(Icons.sd_storage, size: 18),
@@ -326,21 +337,19 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
                 ],
               ),
             ),
-          for (final shortcut in _shortcuts)
-            ListTile(
-              key: Key('browser-shortcut-${shortcut.name}'),
-              leading: Icon(
-                Icons.star_outline,
-                color: colors.primary,
-                size: 20,
+          // **空のfolderは「何も無い」で終わらせない**(`013:T07` の U6)。
+          // 「読み込み中」「開けなかった」「空」が同じ見た目になるのを避ける。
+          // **`browser-listing-failed` とは別のkey**で、両者を区別できるようにする。
+          if (entries.isEmpty)
+            Padding(
+              key: const Key('browser-listing-empty'),
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'このフォルダにファイルはありません',
+                style: TextStyle(color: colors.textSecondary),
+                textAlign: TextAlign.center,
               ),
-              title: Text(
-                shortcut.name,
-                style: TextStyle(color: colors.textPrimary),
-              ),
-              onTap: () => _enter(_location!, folder: shortcut.path),
             ),
-          if (_shortcuts.isNotEmpty) Divider(color: colors.border, height: 1),
           for (final entry in entries)
             if (entry.isDirectory)
               ListTile(

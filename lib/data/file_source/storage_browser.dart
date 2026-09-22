@@ -76,25 +76,23 @@ abstract interface class StorageBrowserPort {
   /// 保存場所の一覧(004 REQ-015)。
   Future<StorageLocations> locations();
 
-  /// [location] の中で**実在する**既知の場所への近道(004 REQ-015)。
-  ///
-  /// Downloads・DCIM・Pictures・Documents・Movies・Music のうち実在するもの。
-  /// **実在しないものは出さない** — 開いても空か失敗するだけである。
-  Future<List<BrowserEntry>> shortcuts(StorageLocation location);
-
   /// [folder] の直下の entry。**絞り込まない**(004 REQ-017)。
   Future<DirectoryListing> list(String folder);
 }
 
-/// 既知の場所の名前(004 REQ-015)。**この順で出す。**
-const knownShortcutNames = [
-  'Download',
-  'DCIM',
-  'Pictures',
-  'Documents',
-  'Movies',
-  'Music',
-];
+/// browser を開いたときに、いきなり中へ入る保存場所(004 REQ-015)。
+///
+/// **保存場所が1つだけのときは一覧を挟まない** — 選択肢が1つしかない画面を
+/// 1回押させないためである。複数あるときは `null` を返し、一覧から始める。
+///
+/// **`failure` があるときも `null` を返す。** 一部を列挙できていない状態では
+/// 「1つだけ」と言い切れず、**取れなかったことを知らせる notice も一覧の側にある**
+/// (`013:T08` の実機観測: 装着している SD カードが並ばないことに気づけなかった)。
+StorageLocation? soleLocation(StorageLocations locations) {
+  if (locations.failure != null) return null;
+  if (locations.locations.length != 1) return null;
+  return locations.locations.single;
+}
 
 /// [folder] から1つ上へ辿れるか(004 REQ-015: 上限は保存場所の root)。
 ///
