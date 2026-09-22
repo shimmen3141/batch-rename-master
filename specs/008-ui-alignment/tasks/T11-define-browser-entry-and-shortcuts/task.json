@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T11",
   "title": "app内file browserの入口と近道の提示を定義する",
-  "status": "blocked",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,

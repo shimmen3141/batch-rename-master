@@ -227,7 +227,22 @@ attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff
   「同じfileを複数のcommitで直した場合も1行にまとめてある」と見出しへ明記した。**
 
 **AGENTS.mdの「同じtaskで独立reviewが合計3回FAILしたら`blocked`にして人間へ返す」に達したので、
-attempt 4 を自分の判断で起動せず、開発者へ判断を返す。** 残っている指摘はこのP2だけで、上の修正で閉じている。
+attempt 4 を自分の判断で起動せず、開発者へ判断を返した。** 残っている指摘はこのP2だけで、上の修正(`0dc08bd`)で閉じている。
+
+### 開発者の決定(2026-09-22): **reviewを打ち切り、`done`にする**
+
+選択肢は「attempt 4 を走らせる」「reviewを打ち切ってdoneにする」「記録の粒度を見直す」の3つを出し、
+開発者は**打ち切り**を選んだ。**完了判定は開発者が持つ。**
+
+- **受容したもの**: attempt 3 のP2(変更file表の重複)。**`0dc08bd`で修正済みなので、未修正のまま受容したのではない。**
+  修正後のrange `fbb19aa..0dc08bd` に対する独立reviewのPASSは**得ていない**。
+- **PASSを主張しない。** このtaskの完了は「3回のreviewでP0/P1と安全網の穴が無いことを確認し、
+  最後に残ったP2を修正したうえでの開発者判断」であり、**独立PASSの代用にはしない**(AGENTS.md)。
+- **3回とも落ちたのは「記録と現実の一致」であって、仕様変更の中身ではない。** U1/U2の決定、REQ-015の文面、
+  代表例、Play審査riskの書き方は3回とも妥当と判定されている。
+- **記録の粒度そのものの見直し**(gitから機械的に得られる情報をtask.mdへ手で維持することの是非)は、
+  [`development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md`](../../../../development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md)
+  への追記として残し、**このtaskでは扱わない。**
 
 ## 2026-09-22 handoff記録の検査
 
@@ -238,11 +253,11 @@ attempt 4 を自分の判断で起動せず、開発者へ判断を返す。** �
 
 ## Current state / handoff
 
-- Last checkpoint: **004 specの変更を開発者が再承認した**(2026-09-22)。plan・`T12`への引き渡しまで記録済み。
-- Blocker category: process(独立review 3回FAIL)
-- Waiting for: **開発者の判断**(独立reviewが3回FAILしたため`blocked`)。残っている指摘はattempt 3 のP2だけで、修正済み。
+- Last checkpoint: **完了**(2026-09-22)。004 specの再承認、plan・`T12`・`T38`/`T39`への引き渡し、近道前提の写しの全件分類、development findingまで記録した。**独立review 3回でP0/P1と安全網の穴なし、最後のP2は修正済み。開発者の判断でreviewを打ち切った(独立PASSは得ていない)。**
+- Blocker category: なし
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: 起点は`dev@fbb19aa`。branchは`asdd/008-ui-alignment/T11-define-browser-entry-and-shortcuts`。
   `python <asdd-plugin>/scripts/workspace.py check specs` = PASS(8 plans, 92 tasks)。**実装もtestも変えていないので`flutter test`の対象は無い。**
-- Next Agent action: 開発者が「attempt 4 を走らせる」を選べばP2修正後のrangeでreviewを再実行する。PASSしたら`done`にし、`T12`(実装)と`T38`(選択・戻る導線の仕様)を着手可能として扱う。
+- Next Agent action: なし。**このtaskは完了した。** 次は`T12`(実装)または`T38`(選択・戻る導線の仕様)で、どちらも着手可能。
   **`T38`は近道が無くなった前提で状態表を作る。**
