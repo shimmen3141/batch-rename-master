@@ -150,6 +150,16 @@ task.md自身**で連続して踏んだ。`tool/check_normative_terms.py`は lit
     `git fetch`後に`git merge-base --is-ancestor origin/dev HEAD`で**祖先であることを確かめた**。
   - `compose.ai.yml`の未commit変更は人間のもので、rangeにも含まれず、reviewerも触っていない。
 
+- final-evidence attempt 2: `2df2cff..609b64f` — **BLOCKED(P0/P1・安全網の穴なし)**。PR #185は非Draft・HEAD一致・
+  `CLEAN`/`MERGEABLE`、CI `check` pass、未解決thread 0、full 960 PASS / analyze / format / normative / workspace check PASS、
+  manual identity保持、環境側のcommitはsandbox・secret境界の変更に当たらない、と確認された。
+  **BLOCKEDの理由はauto-merge 7条件のうち2つを満たすと確定できないこと**で、成果物の欠陥ではない。
+  - 条件1: `task.json`の`issue`が`null`。**実装Agentの見解**: 条件は「一意であること」で、AGENTS.mdはIssueを
+    共有編集を始めるtaskだけに作るとしているので、Issueが無いこと自体は違反ではないと読む。ただし読みが割れるので人間へ返す。
+  - 条件5: 1件端末の入口の実機証拠を開発者の判断で省略した。残余riskとしての受容は整合と判定されたが、
+    **「必須UI・実機証拠がそろっている」とは言えないので、Agentの自己判断でのmergeはしない。**
+  - **mergeは開発者の判断を待つ。**
+
 ## 手動確認の準備で見つかった、環境側の不具合(2026-09-22)
 
 hostの`flutter run`が、共有された`android/local.properties`の`flutter.sdk`(container内のFlutterのpath)を
@@ -212,7 +222,7 @@ hostの`flutter run`が、共有された`android/local.properties`の`flutter.s
 
 - Last checkpoint: 実装・機械検証・implementation review PASS・**手動確認の受領**まで完了(`lib/`は`37bd08e`)。1件端末の入口は残余riskとして`T39`へ渡した。
 - Blocker category: なし
-- Waiting for: final-evidence phaseの独立review。
+- Waiting for: **開発者のmerge判断**(auto-merge条件1・5を満たすと確定できないため)。
 - Requested action: なし
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
 - Next Agent action: final-evidence phaseの独立reviewを回し、PASSならPRを作ってCIを通し、auto-merge条件を確かめる。選択解除・画面を閉じる導線と、1件端末の入口の実機観測は`T39`へ渡す。
