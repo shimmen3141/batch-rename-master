@@ -52,12 +52,19 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
 - 独立review attempt 1: `gpt-5.6-luna`、exact range `bef8337...c9f3fec` — BLOCKED。P0〜P3の成果物欠陥と安全網の穴はなし。related 64件PASS、reviewer対照を含むmutation 11件KILLED。必須のAndroid物理端末manualが未実施のためfinal-evidence判定だけを保留。
 
+## 2026-09-22 実機報告と受け入れ境界
+
+- 開発者の会話報告: 「概ね機能していそう」。全選択のTalkBack操作は手順の意味が分からず未実施で、「今回は成立していそうなのでスルーでよい」と明示した。対象は案内済みworktreeのcode commit `d88ab4f`（報告時HEAD `90efb6c`。両者の間にcode/dependency/build設定差分なし）。端末の種類と各manual項目の個別結果は報告されていない。
+- 全選択の操作名・tap actionはwidget testでPASSし、mutation M402もKILLED。TalkBack実機動作をPASSと書き換えず、今回限りの未確認として記録する。
+- UI上の追加指摘: 全選択からの一括解除が無い。ヘッダの×が画面を閉じるのか選択解除なのか紛らわしい。file行のcheckboxの位置・形をリネーム画面と揃えたい。フッタ左下に明示的な「リネーム画面に戻る」ボタン、上部へ保存場所名・戻る矢印・選択件数をまとめる案、場所の帯へフォルダ内一括選択checkboxを置く案が出た。これらは004 REQ-020の範囲選択保証とは別のUI設計として後続taskへ送る。
+- 手動手順の修正: TalkBackの「focus / activate」を実際のスワイプと2回タップへ言い換え、各場面の選択0件への戻し方を明記した。code/test/buildは変更していない。
+
 ## Current state / handoff
 
 - Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
 - Status: `in_review`。
 - Blocker category: Android physical-device evidence pending.
-- Evidence revision: `d88ab4f`（code/test）。
-- Waiting for: 同一code revisionのAndroid物理端末確認。その結果を含むfinal-evidence reviewは`gpt-5.6-luna`で行う。
-- Requested action: Android物理端末で`manual-verification.md`を確認する。
-- Next Agent action: review記録をcheckpoint化し、同じcode revisionのAndroid物理端末確認を依頼する。結果記録後、`gpt-5.6-luna`でfinal-evidence reviewを行う。
+- Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
+- Waiting for: 報告の部分受け入れとTalkBack実機省略を踏まえたfinal-evidence review（`gpt-5.6-luna`）。端末種別・各項目の個別結果は未記録。
+- Requested action: なし。未確認をPASSとせず、reviewerの証拠判定を先に得る。
+- Next Agent action: manual報告と後続UI taskの境界を記録し、`gpt-5.6-luna`でfinal-evidence reviewを行う。必要な一点だけを開発者に確認する。
