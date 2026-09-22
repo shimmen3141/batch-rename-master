@@ -112,7 +112,7 @@ M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空のfolderと�
 
 - attempt 1: `2df2cff..98c440e`、phase=implementation — **FAIL**。
   - **P1(成果物の欠陥)**: `task.md`が full regression を「960 PASS」と記録していたが、実際は `959 pass / 1 fail`
-    だった。**原因は手動確認の手順書へ`/Android/data`という規範文言を書き写したこと**で、
+    だった。**原因は手動確認の手順書へ、004 REQ-018が正本とする path を literal で書き写したこと**で、
     `tool/check_normative_terms.py`(full regressionに含まれる)が落ちていた。**960 PASSを測ったのは
     手順書を書く前で、記録が現実と一致していなかった。** → 文言をREQ ID参照(004 REQ-018)へ置き換え、
     **full regressionを測り直して960 PASSを確認した。**
@@ -121,6 +121,20 @@ M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空のfolderと�
   - 仕様に対する過不足、REQ-016〜020の維持、`soleLocation`の`failure`時の判断、related 184 PASS、
     analyze、format、mutation 6件KILLED、workspace checkは**いずれも妥当と確認された**。
 
+- attempt 2: `2df2cff..d383ff7` — **FAIL**。
+  - **P1(成果物の欠陥)**: **同じ違反を`task.md`自身が持っていた** — attempt 1 の指摘を記録するときに、
+    004 REQ-018が正本とする path を literal で書いてしまい、full regression がまた `959 pass / 1 fail` になっていた。
+    **「直した」と書いた本文が、同じ規則を破っていた。** → literal をやめて REQ ID で参照する形に変え、
+    **full regression を測り直した。**
+  - **P2(成果物の欠陥)**: handoffの `Next Agent action` が実装前のまま「実装する」だった。→ 現在地に合わせた。
+  - REQ-015〜020の実装、mutation 6件KILLED、related 184 PASS、analyze、format、workspace check、
+    `lib/`が`37bd08e`と同一であることは**いずれも再確認された**。
+
+**この型(規範文言の書き写し)は`008:T11`でも2回続けてFAILしている。** 今回は**手順書と、その修正を記録した
+task.md自身**で連続して踏んだ。`tool/check_normative_terms.py`は literal 一致を見るので、
+**記録を書き換えたあとに full regression を回し直せば必ず捕まる** — その一手を省かないこと。
+経緯は[`development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md`](../../../../development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md)へ追記した。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と機械検証まで完了(`37bd08e`)。**Android実機の手動確認と独立reviewが残っている。**
@@ -128,4 +142,4 @@ M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空のfolderと�
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
-- Next Agent action: 保存場所入口(1件ならroot・複数なら一覧と切り替え)・**近道の撤去**・U3の戻る矢印・U6の空folderを一つの確認単位で実装する。**U3だけを先に出さない。** T37のdrag/全選択を維持し、選択解除・画面を閉じる導線はT39へ渡す。
+- Next Agent action: **実装と機械検証は終わっている。** 残りは①開発者からAndroidの手動確認の結果を受け取り、証拠metadata(端末・対象build・実施日)を記録する ②final-evidence phaseの独立reviewを回す ③PRとmergeを判断する、の3つ。**`lib/`を動かさずに待つ。** 選択解除・画面を閉じる導線は`T39`へ渡す。
