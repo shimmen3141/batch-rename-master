@@ -52,7 +52,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
 - 独立review attempt 1: `gpt-5.6-luna`、exact range `bef8337...c9f3fec` — BLOCKED。P0〜P3の成果物欠陥と安全網の穴はなし。related 64件PASS、reviewer対照を含むmutation 11件KILLED。必須のAndroid物理端末manualが未実施のためfinal-evidence判定だけを保留。
 
-## 2026-09-22 実機報告と受け入れ境界
+## 2026-09-22 エミュレータ報告と受け入れ境界
 
 - 開発者の会話報告: 「概ね機能していそう」。全選択のTalkBack操作は手順の意味が分からず未実施で、「今回は成立していそうなのでスルーでよい」と明示した。対象は案内済みworktreeのcode commit `d88ab4f`（報告時HEAD `90efb6c`。両者の間にcode/dependency/build設定差分なし）。端末の種類と各manual項目の個別結果は報告されていない。
 - 全選択の操作名・tap actionはwidget testでPASSし、mutation M402もKILLED。TalkBack実機動作をPASSと書き換えず、今回限りの未確認として記録する。
