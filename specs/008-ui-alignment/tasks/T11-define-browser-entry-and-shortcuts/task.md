@@ -115,6 +115,7 @@ folder内の全選択と長押し+drag範囲選択は、2026-09-21に`T36`(仕�
 - これはT11仕様案のreviewではなく、次担当向けhandoff文書のreview。実装・仕様決定は未着手。
 - Review attempt 1: `180ab77...27c98d1` — `gpt-5.6-luna` FAIL、P1記録欠陥: T37のエミュレータ報告を「実機」と呼び、物理端末証拠と誤認されうる。
 - Review attempt 2: `180ab77...494a701` — `gpt-5.6-luna` FAIL、P1記録欠陥: T11内の「emulatorで...実機で確認」が残存。同種の置換を重ねず、`013:T07`とT37の証拠出所を関連task・plan全体で走査して修正した。
+- Review attempt 3: `180ab77...2cfabf9` — `gpt-5.6-luna` PASS。変更したplanと5 taskの証拠呼称・依存・T37の例外・T39の物理端末要件を照合し、未解決P0/P1なし。T11仕様案自体の承認・reviewではない。
 
 ## Current state / handoff
 
