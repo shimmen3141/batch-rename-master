@@ -65,10 +65,10 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 
 ## Current state / handoff
 
-- Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
+- Last checkpoint: app内browserの全選択・長押しdrag・edge auto-scrollをPR #184のmerge commit `180ab77`でdevへ統合した。latest headのCI、全954件、merge後の関連64件、ASDD構造検査がPASS。
 - Status: `done`（開発者の明示的な受け入れ例外、独立review PASS）。
 - Blocker category: none。
-- Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
+- Evidence revision: code/test `d88ab4f`、人間のエミュレータ報告時HEAD `90efb6c`、merge commit `180ab77`。報告後にcode/dependency/build設定差分なし。物理端末・TalkBackは未確認のまま。
 - Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: PR #184のrequired CIとlatest dev統合結果を確認し、条件が揃えばmergeする。
+- Next Agent action: なし。後続のbrowser UIはT11/T12/T38/T39で扱う。

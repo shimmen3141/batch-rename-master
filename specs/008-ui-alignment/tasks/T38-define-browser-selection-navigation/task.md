@@ -35,7 +35,7 @@
 
 - Last checkpoint: 2026-09-22のT37実機報告から論点を登録した。候補UIは未承認。登録の独立reviewは `gpt-5.6-luna`、exact range `bef8337...edf4b08` でP2×3のFAIL、依存・証拠版・実機手順の引継ぎを修正後の `bef8337...5f31387` でPASS（P0〜P2なし）。T38の仕様・UI実装自体は未review。
 - Blocker category: dependency / T11.
-- Evidence revision: 2026-09-22会話報告をT37の `f4b7868` に記録。対象code/testは `d88ab4f`、報告時HEADは `90efb6c`。このtaskのbranch baseはdev@`bef8337`。
+- Evidence revision: 2026-09-22会話報告をT37の `f4b7868` に記録。対象code/testは `d88ab4f`。T37はPR #184でdev@`180ab77`へ統合済み。T38のUI候補は未承認。
 - Waiting for: T11の仕様決定。
 - Requested action: なし。
-- Next Agent action: T11の仕様決定後、T12およびT37の最新状態を照合し、状態表と仕様変更案を作る。物質的な選択だけ一問ずつ開発者へ尋ねる。
+- Next Agent action: T11の仕様承認後、T12の担当範囲とT37の既存選択動作を照合し、全選択/全解除・×・戻る・footerを状態表で定義する。候補の配置、文言、folder全体checkboxの範囲は未承認なので、仕様を変える選択だけ一問ずつ開発者へ尋ねる。

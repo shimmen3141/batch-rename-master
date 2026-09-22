@@ -112,10 +112,9 @@ folder内の全選択と長押し+drag範囲選択は、2026-09-21に`T36`(仕�
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
+- Last checkpoint: 未着手。T37はPR #184でdev@`180ab77`へ統合済み。T38がこのtaskの承認済みの入口・戻る意味を待つ。
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@ae59859`
-- Next Agent action: 他taskと独立に着手できる。**先に`013:T07`のtask.mdのU1/U2の原文と
-  004 spec REQ-015を読むこと。** 変更案を作ったら人間の再承認を求める(実装へ進まない)
+- Evidence revision: `dev@180ab77`。T37の利用者報告・受け入れ例外はT37のtask.md、追加UI案はT38のtask.mdを参照。
+- Next Agent action: **先に`013:T07`のtask.mdのU1/U2の原文と004 spec REQ-015を読む。** 保存場所が1件/複数件の場合と近道の見分けを状態表にし、REQ-015と代表例の変更案を作って人間の再承認を得る。実装はT12、選択・画面を閉じる導線はT38/T39へ引き渡す。

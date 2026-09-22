@@ -53,9 +53,8 @@
 ## Current state / handoff
 
 - Last checkpoint: 定義しただけ。未着手
-- Blocker category: なし
+- Blocker category: dependency / T11。
 - Waiting for: `T11`の承認
 - Requested action: なし
-- Evidence revision: `dev@ae59859`
-- Next Agent action: `T11`が承認されてから着手する。**U3だけを先に出さない** — 同じ画面を
-  2回manual確認することになる
+- Evidence revision: `dev@180ab77`（T37のdrag/全選択実装を含む）。
+- Next Agent action: `T11`が承認されてから、保存場所入口・近道・U3の戻る矢印・U6の空folderを一つの確認単位で実装する。**U3だけを先に出さない。** T37のdrag/全選択を維持し、選択解除・画面を閉じる導線はT39へ渡す。
