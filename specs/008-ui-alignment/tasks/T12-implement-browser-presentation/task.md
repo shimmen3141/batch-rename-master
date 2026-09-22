@@ -140,6 +140,16 @@ task.md自身**で連続して踏んだ。`tool/check_normative_terms.py`は lit
   analyze PASS / format PASS / mutation 6件 KILLED・0 SURVIVED / workspace check PASS。
   **未確認領域はAndroid buildと実機の見え方だけ**で、宣言どおり手動確認が引き受ける。
 
+- final-evidence attempt 1: `2df2cff..d6d164d` — **BLOCKED(成果物の欠陥なし)**。
+  - `37bd08e`以後の差分は`android/.gitignore`(ignore規則)だけで、**`lib/`・dependency・build設定は変わっていない**
+    — manual証拠のidentityは保たれていると確認された。
+  - reviewer自身の再実行: full 960 PASS / analyze PASS / format PASS / normative terms 0 violations / workspace check PASS。
+  - 1件端末の入口を残余riskとして受容した判断は、安全網の穴のFAIL条件に当たらないと確認された。
+  - **BLOCKEDの理由はPRとCIがまだ無いこと**(`task.json`の`pullRequest`が`null`、required CI・branch protection・
+    review threadを確認できない)。reviewerが記録した「`origin/dev`が祖先でない」は、fetch前の古いrefで測った値で、
+    `git fetch`後に`git merge-base --is-ancestor origin/dev HEAD`で**祖先であることを確かめた**。
+  - `compose.ai.yml`の未commit変更は人間のもので、rangeにも含まれず、reviewerも触っていない。
+
 ## 手動確認の準備で見つかった、環境側の不具合(2026-09-22)
 
 hostの`flutter run`が、共有された`android/local.properties`の`flutter.sdk`(container内のFlutterのpath)を
