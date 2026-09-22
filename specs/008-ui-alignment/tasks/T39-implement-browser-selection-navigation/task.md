@@ -29,8 +29,8 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 ## Current state / handoff
 
 - Last checkpoint: T38と同時に実装taskとして登録した。
-- Blocker category: dependency / T12, T37, T38.
-- Evidence revision: dev@bef8337（T37 codeは別worktree）。
-- Waiting for: T12、T37、T38の完了。
+- Blocker category: dependency / T12, T38（T37はdone）。
+- Evidence revision: dev@`180ab77`（T37はPR #184で統合済み）。
+- Waiting for: T12とT38の完了。
 - Requested action: なし。
-- Next Agent action: T38の承認済み状態表を受けて専用branch/worktreeで着手する。
+- Next Agent action: T38の承認済み状態表とT12の実装結果を受けて専用branch/worktreeで着手する。T37に対するエミュレータ完了の例外をT39へ自動適用せず、着手前に実機手順を具体化する。

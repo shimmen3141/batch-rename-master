@@ -52,7 +52,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Android build / 物理端末: AI containerにはAndroid SDKが無いため未実施。`manual-verification.md`で同一code revisionを確認する。
 - 独立review attempt 1: `gpt-5.6-luna`、exact range `bef8337...c9f3fec` — BLOCKED。P0〜P3の成果物欠陥と安全網の穴はなし。related 64件PASS、reviewer対照を含むmutation 11件KILLED。必須のAndroid物理端末manualが未実施のためfinal-evidence判定だけを保留。
 
-## 2026-09-22 実機報告と受け入れ境界
+## 2026-09-22 エミュレータ報告と受け入れ境界
 
 - 開発者の会話報告: 「概ね機能していそう」。全選択のTalkBack操作は手順の意味が分からず未実施で、「今回は成立していそうなのでスルーでよい」と明示した。対象は案内済みworktreeのcode commit `d88ab4f`（報告時HEAD `90efb6c`。両者の間にcode/dependency/build設定差分なし）。端末の種類と各manual項目の個別結果は報告されていない。
 - 全選択の操作名・tap actionはwidget testでPASSし、mutation M402もKILLED。TalkBack実機動作をPASSと書き換えず、今回限りの未確認として記録する。
@@ -65,10 +65,10 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 
 ## Current state / handoff
 
-- Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
+- Last checkpoint: app内browserの全選択・長押しdrag・edge auto-scrollをPR #184のmerge commit `180ab77`でdevへ統合した。latest headのCI、全954件、merge後の関連64件、ASDD構造検査がPASS。
 - Status: `done`（開発者の明示的な受け入れ例外、独立review PASS）。
 - Blocker category: none。
-- Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
+- Evidence revision: code/test `d88ab4f`、人間のエミュレータ報告時HEAD `90efb6c`、merge commit `180ab77`。報告後にcode/dependency/build設定差分なし。物理端末・TalkBackは未確認のまま。
 - Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: PR #184のrequired CIとlatest dev統合結果を確認し、条件が揃えばmergeする。
+- Next Agent action: なし。後続のbrowser UIはT11/T12/T38/T39で扱う。

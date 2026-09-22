@@ -2,7 +2,7 @@
 
 ## 目的
 
-`013:T07`の実機確認で開発者が挙げた**U1(入口)**と**U2(近道の見分け)**を、004 specの
+`013:T07`のAndroidエミュレータ確認で開発者が挙げた**U1(入口)**と**U2(近道の見分け)**を、004 specの
 要求として定義し、**人間の再承認を得る**。実装は`T12`が行う。
 
 **これは仕様変更である。** 独立reviewは「近道を★で示すこと」を004 REQ-015違反では
@@ -14,7 +14,7 @@
 ## 入力と依存
 
 - **観測の出所**: [`013:T07`のtask.md](../../../013-safe-android-rename/tasks/T07-implement-android-file-browser/task.md)
-  「受領したUIの改善点」の U1・U2(2026-08-25、`sdk_gphone16k_x86_64`での実機確認)。
+  「受領したUIの改善点」の U1・U2(2026-08-25、`sdk_gphone16k_x86_64`でのAndroidエミュレータ確認)。
 - 004 spec の REQ-015・REQ-017 と代表例 22 / 26d / 26e。**REQ-017(絞り込まない)は
   変えない** — 近道と同名のfolderが下にも並ぶのはこの要求の必然である。
 - 現行実装: `lib/ui/file_source/storage_browser_view.dart`(近道は`browser-shortcut-*`の
@@ -27,10 +27,10 @@
 
 ### 前提が変わった(2026-08-26、`013:T12`)
 
-**保存場所が2つ並ぶ端末が実在することが確かめられた。** `013:T07` の実装は `/storage` を
+**保存場所が2つ並ぶ構成をAndroidエミュレータで確認した。** `013:T07` の実装は `/storage` を
 列挙しており、**app からは `EACCES` で1件も取れなかった** — つまり U1 が観測されたときの
 画面は「常に内部ストレージ1件」だった。`013:T12` が `StorageManager.getStorageVolumes()`
-へ差し替え、**emulator で `内部共有ストレージ` と `SDCARD` の2件が並ぶことを実機で確認した**
+へ差し替え、**Androidエミュレータで `内部共有ストレージ` と `SDCARD` の2件が並ぶことを確認した**
 (2026-08-26)。
 
 **したがって U1 の判断材料が変わっている。**
@@ -107,15 +107,21 @@ folder内の全選択と長押し+drag範囲選択は、2026-09-21に`T36`(仕�
 
 ## 作業記録
 
-- 2026-08-25 / `013:T07`の実機確認(U1・U2)を受けて定義。開発者が「U1〜U5をすべてtask化
+- 2026-08-25 / `013:T07`のAndroidエミュレータ確認(U1・U2)を受けて定義。開発者が「U1〜U5をすべてtask化
   する」と決定した。
+
+## 2026-09-22 handoff記録の検査
+
+- これはT11仕様案のreviewではなく、次担当向けhandoff文書のreview。実装・仕様決定は未着手。
+- Review attempt 1: `180ab77...27c98d1` — `gpt-5.6-luna` FAIL、P1記録欠陥: T37のエミュレータ報告を「実機」と呼び、物理端末証拠と誤認されうる。
+- Review attempt 2: `180ab77...494a701` — `gpt-5.6-luna` FAIL、P1記録欠陥: T11内の「emulatorで...実機で確認」が残存。同種の置換を重ねず、`013:T07`とT37の証拠出所を関連task・plan全体で走査して修正した。
+- Review attempt 3: `180ab77...2cfabf9` — `gpt-5.6-luna` PASS。変更したplanと5 taskの証拠呼称・依存・T37の例外・T39の物理端末要件を照合し、未解決P0/P1なし。T11仕様案自体の承認・reviewではない。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
+- Last checkpoint: 未着手。T37はPR #184でdev@`180ab77`へ統合済み。T38がこのtaskの承認済みの入口・戻る意味を待つ。
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@ae59859`
-- Next Agent action: 他taskと独立に着手できる。**先に`013:T07`のtask.mdのU1/U2の原文と
-  004 spec REQ-015を読むこと。** 変更案を作ったら人間の再承認を求める(実装へ進まない)
+- Evidence revision: `dev@180ab77`。T37の利用者報告・受け入れ例外はT37のtask.md、追加UI案はT38のtask.mdを参照。
+- Next Agent action: **先に`013:T07`のtask.mdのU1/U2の原文と004 spec REQ-015を読む。** 保存場所が1件/複数件の場合と近道の見分けを状態表にし、REQ-015と代表例の変更案を作って人間の再承認を得る。実装はT12、選択・画面を閉じる導線はT38/T39へ引き渡す。
