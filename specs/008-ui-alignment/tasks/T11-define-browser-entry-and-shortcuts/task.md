@@ -163,6 +163,10 @@ folder内の全選択と長押し+drag範囲選択は、2026-09-21に`T36`(仕�
 | `T12`の`manual-verification.md` | U1を新しい入口へ、U2を**近道が出ないことの確認**へ書き換えた(review attempt 1 のP1) |
 | `T38`の`task.md` | T11待ちの解除と、近道撤去・新しい入口を前提にした記述(review attempt 1 のP1) |
 | `013:T03`の`task.md` | 決定表の「何を見せるか」が2026-08-22時点の決着であることと、現行の正本がREQ-015であることの注記(review attempt 1 のP1) |
+| `T39`の`task.md` / `T38`の`task.md`(2回目) / `T26`の`task.md` / `specs/product-map.md` | 近道の維持・test対象・担当範囲の記述を現行REQ-015へ(review attempt 2 のP1) |
+| `013:T07` / `013:T12` / `008:T07` / `008:T37` の`manual-verification.md` | 冒頭に同一文面の注記。**記録した結果は書き換えていない**(review attempt 2 のP1) |
+| `T12`の`manual-verification.md`(2回目) | 参照先(`013:T07`手順0)の目印のうち現行でないものを明示し、このtaskのbuildの見分けをU1/U2で行うと書いた(review attempt 2 のP1) |
+| `development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md` | 同じ型が2回続いたことと、解き方を変えた内容の記録 |
 
 **`lib/`と`test/`に差分は無い。**
 
@@ -185,6 +189,32 @@ Claude Opus 5で行った。**開発者がlunaを指定したためそれに従�
     近道を挙げたままだった。**T12が誤った前提で実装・manualを行う実害がある。** → 3fileとも現行REQ-015へ更新した。
   - **P2(成果物の欠陥)**: `task.md`の「変更したfile」がexact diffと一致していなかった(`T38`の`task.md`が抜けていた)。
     → 表にして実diffと一致させた。
+
+### attempt 2 (`fbb19aa..43b3b65`) — **FAIL**。同じ型が2回続いたので解き方を変えた
+
+attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff 9fileを網羅していると確認された)。
+残ったのは**同じ「写しが古くなる型」の別箇所**である。
+
+- **P1(成果物の欠陥)**: `T12`のmanualが**参照している**`013:T07`のmanualに、手順0の見分けの目印
+  「最初に出るのは保存場所の一覧」と手順1の「近道が上に出る」が残っていた。**参照元を直しても参照先が古いと
+  現行でない期待が復活する。**
+- **P1(成果物の欠陥)**: `T39`の`task.md`(近道の維持・test対象)、`T38`の別の行(`folder/shortcut行`)に前提が残っていた。
+
+**AGENTS.mdの「同じ根本原因が修正後も2回続いたら、同じ種類の修正を繰り返さず解き方を変える」に該当する。**
+指摘された箇所を追う方法をやめ、**`specs/`配下の全occurrence(`近道` / `shortcut` / `保存場所の一覧`)を
+機械的に洗い出して分類し、種類ごとに一度に処理した。** 経緯は
+[`development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md`](../../../../development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md)。
+
+| 分類 | 扱い | 対象 |
+|---|---|---|
+| **現行の指示**(activeなtask・これから使うmanual) | 現行REQ-015へ更新する | `T12`の`task.md`/`manual-verification.md`、`T38`、`T39`、`T26`、`product-map.md`、`008/plan.md`、`013:T03`の決定表 |
+| **当時の証拠**(doneしたtaskのmanual) | **結果は書き換えない。** 冒頭へ同一文面の注記を入れ、「入口と近道の期待だけは現行でない。正本は004 REQ-015」と示す | `013:T07`、`013:T12`、`008:T07`、`008:T37`の各`manual-verification.md` |
+| **当時の証拠**(doneしたtaskの`task.md`の記録) | **触らない。** 観測・review・決定の記録であって、これから従う指示ではない | `013:T07`、`013:T12`、`008:T36`、`008:T37`の`task.md` |
+| **無関係な語** | 触らない | `002 spec`と`008:T27`の「全部空にする近道」(機能としての近道ではない) |
+
+**doneしたtaskの`task.md`を書き換えないのは、それが対象commitに対する証拠のidentityを持つためである**
+(AGENTS.md「manual証拠は対象commit以後にcode、dependency、build設定が変わったら再利用しない」)。
+**再利用されうる入口はmanualの側なので、注記はそちらへ置いた。**
 
 ## 2026-09-22 handoff記録の検査
 
