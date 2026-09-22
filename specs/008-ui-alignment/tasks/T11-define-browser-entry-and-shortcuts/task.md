@@ -152,20 +152,21 @@ folder内の全選択と長押し+drag範囲選択は、2026-09-21に`T36`(仕�
 | 近道の示し方 | 自由 | — (対象が無くなった) |
 | 全選択の対象(REQ-020) | fileのみ。folder・近道は対象外 | fileのみ。folderは対象外(**意味は不変**) |
 
-**変更したfile**(`git diff fbb19aa..HEAD` と一致させること):
+**変更したfile**(`git diff fbb19aa..035b86d` の17fileと一対一。**同じfileを複数のcommitで直した場合も1行にまとめてある**)
 
 | file | 何を変えたか |
 |---|---|
 | `specs/004-file-source/spec.md` | REQ-015 / REQ-020 / 代表例22→22・22b・22c・22d / 代表例29 / 自由とする点 / `013:T03`由来の記録・Play policy節・`008:T36`由来の記録への追記 / Status行 / 「008:T11 由来の更新」節 |
 | `specs/008-ui-alignment/plan.md` | 対象・全体の受け入れ条件・人間の決定を3行追加 |
-| `T11`の`task.json` / `task.md` | status、決定と根拠、増減、残余risk、論点が決着済みである注記 |
+| `T11`の`task.json` / `task.md` | status、決定と根拠、増減、残余risk、論点が決着済みである注記、review attempt 1〜3の記録、分類表 |
 | `T12`の`task.json` / `task.md` | `covers`(`004:REQ-015` / `004:REQ-020`)、承認済み要求の引き渡し、`M109`の置き換え指示 |
-| `T12`の`manual-verification.md` | U1を新しい入口へ、U2を**近道が出ないことの確認**へ書き換えた(review attempt 1 のP1) |
-| `T38`の`task.md` | T11待ちの解除と、近道撤去・新しい入口を前提にした記述(review attempt 1 のP1) |
-| `013:T03`の`task.md` | 決定表の「何を見せるか」が2026-08-22時点の決着であることと、現行の正本がREQ-015であることの注記(review attempt 1 のP1) |
-| `T39`の`task.md` / `T38`の`task.md`(2回目) / `T26`の`task.md` / `specs/product-map.md` | 近道の維持・test対象・担当範囲の記述を現行REQ-015へ(review attempt 2 のP1) |
-| `013:T07` / `013:T12` / `008:T07` / `008:T37` の`manual-verification.md` | 冒頭に同一文面の注記。**記録した結果は書き換えていない**(review attempt 2 のP1) |
-| `T12`の`manual-verification.md`(2回目) | 参照先(`013:T07`手順0)の目印のうち現行でないものを明示し、このtaskのbuildの見分けをU1/U2で行うと書いた(review attempt 2 のP1) |
+| `T12`の`manual-verification.md` | U1を新しい入口へ、U2を**近道が出ないことの確認**へ(attempt 1)。参照先(`013:T07`手順0)の目印のうち現行でないものを明示し、このbuildの見分けをU1/U2で行うと追記(attempt 2) |
+| `T38`の`task.md` | T11待ちの解除と新しい入口の前提(attempt 1)。`folder/shortcut行`の記述を現行へ(attempt 2) |
+| `T39`の`task.md` | 近道の維持・test対象・T12の担当範囲の記述を現行REQ-015へ(attempt 2) |
+| `T26`の`task.md` | 「入口と近道の提示」を「入口の定義と近道の取りやめ」へ(attempt 2) |
+| `specs/product-map.md` | 同上(attempt 2) |
+| `013:T03`の`task.md` | 決定表の「何を見せるか」が2026-08-22時点の決着であることと、現行の正本がREQ-015であることの注記(attempt 1) |
+| `013:T07` / `013:T12` / `008:T07` / `008:T37` の`manual-verification.md`(4file) | 冒頭に同一文面の注記。**記録した観測値・結果は書き換えていない**(attempt 2) |
 | `development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md` | 同じ型が2回続いたことと、解き方を変えた内容の記録 |
 
 **`lib/`と`test/`に差分は無い。**
@@ -216,6 +217,18 @@ attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff
 (AGENTS.md「manual証拠は対象commit以後にcode、dependency、build設定が変わったら再利用しない」)。
 **再利用されうる入口はmanualの側なので、注記はそちらへ置いた。**
 
+### attempt 3 (`fbb19aa..035b86d`) — **FAIL(P2のみ)**。3回目のFAILなので`blocked`にする
+
+- **P0 / P1 / 安全網の穴は無い。** attempt 1・2のP1はすべて閉じたと確認され、分類漏れが無いこと、
+  注記を入れた4つのmanualの**観測値・結果本文が書き換えられていない**こと、REQ-015 / REQ-020 / 代表例 /
+  自由とする点 / VER-005 / `T12`の`covers` / reviewer modelとattemptの記録の整合も確認された。
+- **P2(成果物の欠陥)**: 「変更したfile」表が`git diff`の**一意な17file**と厳密には一致せず、
+  `T12`の`manual-verification.md`と`T38`の`task.md`が別行で重複していた。→ **1行にまとめ、
+  「同じfileを複数のcommitで直した場合も1行にまとめてある」と見出しへ明記した。**
+
+**AGENTS.mdの「同じtaskで独立reviewが合計3回FAILしたら`blocked`にして人間へ返す」に達したので、
+attempt 4 を自分の判断で起動せず、開発者へ判断を返す。** 残っている指摘はこのP2だけで、上の修正で閉じている。
+
 ## 2026-09-22 handoff記録の検査
 
 - これはT11仕様案のreviewではなく、次担当向けhandoff文書のreview。実装・仕様決定は未着手。
@@ -226,10 +239,10 @@ attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff
 ## Current state / handoff
 
 - Last checkpoint: **004 specの変更を開発者が再承認した**(2026-09-22)。plan・`T12`への引き渡しまで記録済み。
-- Blocker category: なし
-- Waiting for: exact rangeの独立review。
+- Blocker category: process(独立review 3回FAIL)
+- Waiting for: **開発者の判断**(独立reviewが3回FAILしたため`blocked`)。残っている指摘はattempt 3 のP2だけで、修正済み。
 - Requested action: なし
 - Evidence revision: 起点は`dev@fbb19aa`。branchは`asdd/008-ui-alignment/T11-define-browser-entry-and-shortcuts`。
   `python <asdd-plugin>/scripts/workspace.py check specs` = PASS(8 plans, 92 tasks)。**実装もtestも変えていないので`flutter test`の対象は無い。**
-- Next Agent action: 独立reviewがPASSしたら`done`にし、`T12`(実装)と`T38`(選択・戻る導線の仕様)を着手可能として扱う。
+- Next Agent action: 開発者が「attempt 4 を走らせる」を選べばP2修正後のrangeでreviewを再実行する。PASSしたら`done`にし、`T12`(実装)と`T38`(選択・戻る導線の仕様)を着手可能として扱う。
   **`T38`は近道が無くなった前提で状態表を作る。**
