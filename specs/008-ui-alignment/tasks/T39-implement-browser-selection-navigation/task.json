@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T39",
+  "title": "app内browserの選択・戻る導線を実装する",
+  "status": "pending",
+  "dependsOn": [
+    "T12",
+    "T37",
+    "T38"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
