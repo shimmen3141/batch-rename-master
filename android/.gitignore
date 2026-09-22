@@ -4,6 +4,9 @@ gradle-wrapper.jar
 /gradlew
 /gradlew.bat
 /local.properties
+# AI container の flutter が書く local.properties の逃がし先(compose.ai.yml の単一file bind)。
+# container の path が入るので、host と共有しない。
+/local.properties.ai
 GeneratedPluginRegistrant.java
 .cxx/
 
