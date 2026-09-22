@@ -18,4 +18,7 @@ target="$root/android/local.properties"
 [ -f "$target" ] || exit 0
 grep -q '^flutter\.sdk=/' "$target" || exit 0
 
-rm -f "$target"
+# **消せなくても失敗しない。** compose側で単一fileのbind mountで覆った場合、
+# mountpointはunlinkできない(EBUSY)。その構成ではそもそもhostへ漏れないので、
+# ここは何もしなくてよい。
+rm -f "$target" 2>/dev/null || exit 0

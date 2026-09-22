@@ -38,29 +38,15 @@ flutter.sdk=/home/dev/flutter      # ← 書き戻されている
   POSIX path のときだけ** file を捨てる。hostで走っても、hostが書いた値(`C:\...`)は触らない。
   3つの分岐(container由来を消す / host由来を残す / `AI_SANDBOX` 無しでは何もしない)を実際に動かして確かめた。
 
-## 残っている作業(人間)
+## 採らなかった案: Claude Codeのhook
 
-**Claude Codeの設定変更はAgentから拒否された**(auto modeの自己変更ガード)。**人間が`.claude/settings.json`へ
-hookを足す**と、container内でBashを使うたびに上のscriptが走り、書き換えが残らなくなる。
+`PostToolUse`(Bash)で上のscriptを毎回走らせる案は、**Agentからの設定変更が自己変更ガードで拒否された**うえ、
+**開発者が「Claude以外でも使えるようにするため」に見送ると決めた**(2026-09-22)。
+Codexや人間が直接`flutter`を動かしたときには効かないので、**tool非依存のcompose側で閉じる**。
 
-```json
-"hooks": {
-  "PostToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "sh \"$CLAUDE_PROJECT_DIR/scripts/clear-container-local-properties.sh\" 2>/dev/null || true",
-          "timeout": 10
-        }
-      ]
-    }
-  ]
-}
-```
+scriptは残す — **手で走らせる復旧手段**として使えるし、compose側の対応が入るまでの当座の手当てになる。
 
-## より根本的な案(compose側。人間の作業)
+## 採る案: compose側で覆う(人間の作業)
 
 hookは「書き換わった後に消す」対症である。**そもそも共有しない**ほうが確実で、次が候補になる。
 
