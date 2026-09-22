@@ -31,7 +31,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - T31の関連testが継続PASSし、共通化で既存の除去選択を壊さない。
 - 必要なmutationがKILLED。
 - format/analyze/full test/workspace checkがPASSする。
-- Android物理端末で`manual-verification.md`がPASSする。
+- 当初の受け入れ条件: Android物理端末で`manual-verification.md`がPASSする。2026-09-22、開発者はエミュレータでの確認を明示し、未実施の物理端末・TalkBack項目を残したままT37の完了を承認した。今回の例外としてこの判断を受け入れ証拠に採用し、実機PASSとは記録しない。
 - exact rangeの独立reviewがPASSする。review modelは開発者指定のlunaを使う。
 
 ## 実装・検証記録
@@ -59,13 +59,14 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - UI上の追加指摘: 全選択からの一括解除が無い。ヘッダの×が画面を閉じるのか選択解除なのか紛らわしい。file行のcheckboxの位置・形をリネーム画面と揃えたい。フッタ左下に明示的な「リネーム画面に戻る」ボタン、上部へ保存場所名・戻る矢印・選択件数をまとめる案、場所の帯へフォルダ内一括選択checkboxを置く案が出た。これらは004 REQ-020の範囲選択保証とは別のUI設計として後続taskへ送る。
 - 手動手順の修正: TalkBackの「focus / activate」を実際のスワイプと2回タップへ言い換え、各場面の選択0件への戻し方を明記した。code/test/buildは変更していない。
 - 独立final-evidence review attempt 2: `gpt-5.6-luna`、exact range `bef8337..f4b7868` — **BLOCKED / `in_review`維持**。成果物欠陥・安全網の穴は追加なし。Android物理端末での項目2〜3・5〜11の個別結果と端末種別が未記録。「概ね機能」では必須実機証拠をPASSにできない。TalkBack項目4は開発者指示により今回は省略し、PASSと記録しない。
+- 開発者の2026-09-22追加判断: 「T37は完了としてよいです。端末はエミュレータでした」。前回の「概ね機能」「TalkBackは今回はスルー」と合わせ、Androidエミュレータでの概括確認をもってT37を完了としてよいという明示的な受け入れ例外。物理端末・TalkBack・項目別PASSは未確認のまま。T39で新しいUIの物理端末確認を引き受けるが、T37固有の長距離往復などを実機で再検証したことにはしない。
 
 ## Current state / handoff
 
 - Last checkpoint: app内browserへ全選択・長押しdrag・edge auto-scrollを実装し、T31の仕組みを選択意味から分離して共通化した。machine verificationとmutationはPASS。
 - Status: `in_review`。
-- Blocker category: Android physical-device evidence pending.
+- Blocker category: none（開発者が当初の物理端末manual要件を今回に限り免除）。
 - Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
-- Waiting for: Android物理端末で行った項目2〜3・5〜11の個別結果と端末種別。TalkBack項目4は今回省略する。
-- Requested action: 開発者から、Android物理端末での項目2〜3・5〜11の結果と端末種別を受け取る。
-- Next Agent action: 個別結果を受領して同一code/buildとの対応を確認し、`gpt-5.6-luna`へ最終証拠を再照合させる。
+- Waiting for: 明示的な受け入れ例外を含む独立final-evidence review。
+- Requested action: なし。
+- Next Agent action: `gpt-5.6-luna`で受け入れ例外と残余riskを独立照合し、PASSならstatusとremote窓口を更新する。
