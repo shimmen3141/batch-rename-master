@@ -61,6 +61,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - 独立final-evidence review attempt 2: `gpt-5.6-luna`、exact range `bef8337..f4b7868` — **BLOCKED / `in_review`維持**。成果物欠陥・安全網の穴は追加なし。Android物理端末での項目2〜3・5〜11の個別結果と端末種別が未記録。「概ね機能」では必須実機証拠をPASSにできない。TalkBack項目4は開発者指示により今回は省略し、PASSと記録しない。
 - 開発者の2026-09-22追加判断: 「T37は完了としてよいです。端末はエミュレータでした」。前回の「概ね機能」「TalkBackは今回はスルー」と合わせ、Androidエミュレータでの概括確認をもってT37を完了としてよいという明示的な受け入れ例外。物理端末・TalkBack・項目別PASSは未確認のまま。T39で新しいUIの物理端末確認を引き受けるが、T37固有の長距離往復などを実機で再検証したことにはしない。
 - 独立final-evidence review attempt 3: `gpt-5.6-luna`、exact range `bef8337..5e97e73` — **PASS（開発者の受け入れ例外を適用）**。reviewerがrelated 64件を再実行しPASS、`git diff --check` PASS、成果物欠陥なし。物理端末差・TalkBack実動作・項目別挙動は残余riskであり、実機PASSを主張しない。Draft PR #184を作成した。
+- latest dev統合: `e238169`でdevを取り込んだ。review済み`5e97e73`からcode/test/dependency/build設定差分なし。`flutter test --reporter compact` 954件PASS、`dart format --output=none --set-exit-if-changed .` 132 files/変更0、`flutter analyze` No issues、workspace check 8 plans/92 tasks PASS。remote PR #184 の初回CI `check` PASS（base更新前のrun）。
 
 ## Current state / handoff
 
