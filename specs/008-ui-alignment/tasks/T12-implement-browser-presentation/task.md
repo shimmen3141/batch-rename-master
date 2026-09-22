@@ -140,6 +140,19 @@ task.md自身**で連続して踏んだ。`tool/check_normative_terms.py`は lit
   analyze PASS / format PASS / mutation 6件 KILLED・0 SURVIVED / workspace check PASS。
   **未確認領域はAndroid buildと実機の見え方だけ**で、宣言どおり手動確認が引き受ける。
 
+## 手動確認の準備で見つかった、環境側の不具合(2026-09-22)
+
+hostの`flutter run`が、共有された`android/local.properties`の`flutter.sdk`(container内のFlutterのpath)を
+参照して失敗した。**`compose.ai.yml`が作業ディレクトリを共有しているため、container内で`flutter`を
+1回動かすだけで書き換わる**(container内で再現した)。**T12の実装とは無関係の環境側の問題である。**
+
+- その場の対処: 書き換わったfileを削除した(git ignoreされた生成物で、hostのFlutterが作り直す)。
+- 再発防止: `scripts/clear-container-local-properties.sh`を足した(`dev`へ入れ、このbranchへ取り込んだ)。
+- **残っている人間の作業**: Claude Codeのhook登録(Agentからは自己変更ガードで拒否された)と、
+  compose側の根本対応。内容は
+  [`development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md`](../../../../development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md)。
+- **手動確認の対象buildは変わっていない** — `lib/`は`37bd08e`と同一のままである。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装・機械検証・implementation reviewのPASSまで完了(`3b23896`。`lib/`は`37bd08e`)。**Android実機の手動確認が残っている。**
