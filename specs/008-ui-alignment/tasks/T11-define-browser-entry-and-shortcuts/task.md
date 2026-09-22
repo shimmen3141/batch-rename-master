@@ -217,7 +217,7 @@ attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff
 (AGENTS.md「manual証拠は対象commit以後にcode、dependency、build設定が変わったら再利用しない」)。
 **再利用されうる入口はmanualの側なので、注記はそちらへ置いた。**
 
-### attempt 3 (`fbb19aa..035b86d`) — **FAIL(P2のみ)**。3回目のFAILなので`blocked`にする
+### attempt 3 (`fbb19aa..035b86d`) — **PASS**(reviewerの表記は「FAIL」だが、規約に照らすとPASSである)
 
 - **P0 / P1 / 安全網の穴は無い。** attempt 1・2のP1はすべて閉じたと確認され、分類漏れが無いこと、
   注記を入れた4つのmanualの**観測値・結果本文が書き換えられていない**こと、REQ-015 / REQ-020 / 代表例 /
@@ -226,20 +226,25 @@ attempt 1 のP1/P2は閉じたと確認された(変更file表もrangeの実diff
   `T12`の`manual-verification.md`と`T38`の`task.md`が別行で重複していた。→ **1行にまとめ、
   「同じfileを複数のcommitで直した場合も1行にまとめてある」と見出しへ明記した。**
 
-**AGENTS.mdの「同じtaskで独立reviewが合計3回FAILしたら`blocked`にして人間へ返す」に達したので、
-attempt 4 を自分の判断で起動せず、開発者へ判断を返した。** 残っている指摘はこのP2だけで、上の修正(`0dc08bd`)で閉じている。
+**判定の訂正(2026-09-22、開発者の指摘)**: AGENTS.mdは成果物の欠陥について
+「**P0/P1が一つでもあればFAILにする**」と定めており、**P2だけのこのreviewはFAILにあたらない**。
+reviewerは「FAIL」と書いたが、**判定表記を規約へ照らさずそのまま採ったのは実装Agent側の誤り**である
+(AGENTS.md「他のAgentの結果を鵜呑みにしない」)。**attempt 3 は規約上PASSとして扱う。**
 
-### 開発者の決定(2026-09-22): **reviewを打ち切り、`done`にする**
+- したがって**FAILは2回**であり、「3回FAILで`blocked`」には達していない。**一度`blocked`にしたのは誤りで、
+  `done`へ戻した。**
+- P2(変更file表の重複)は**指摘のとおり`0dc08bd`で修正した**。P2はFAIL条件ではないので、
+  修正後のrangeで再reviewはしていない。
 
-選択肢は「attempt 4 を走らせる」「reviewを打ち切ってdoneにする」「記録の粒度を見直す」の3つを出し、
-開発者は**打ち切り**を選んだ。**完了判定は開発者が持つ。**
+### 完了の根拠
 
-- **受容したもの**: attempt 3 のP2(変更file表の重複)。**`0dc08bd`で修正済みなので、未修正のまま受容したのではない。**
-  修正後のrange `fbb19aa..0dc08bd` に対する独立reviewのPASSは**得ていない**。
-- **PASSを主張しない。** このtaskの完了は「3回のreviewでP0/P1と安全網の穴が無いことを確認し、
-  最後に残ったP2を修正したうえでの開発者判断」であり、**独立PASSの代用にはしない**(AGENTS.md)。
-- **3回とも落ちたのは「記録と現実の一致」であって、仕様変更の中身ではない。** U1/U2の決定、REQ-015の文面、
-  代表例、Play審査riskの書き方は3回とも妥当と判定されている。
+- **独立review attempt 3(`fbb19aa..035b86d`、`gpt-5.6-luna`)で、未解決のP0/P1と安全網の穴が無いことを確認した。**
+  REQ-015 / REQ-020 / 代表例 / 自由とする点 / VER-005 / `T12`の`covers` / 写しの分類 / manualの観測値が
+  書き換えられていないこと / reviewer modelとattemptの記録の整合も、そのreviewで確認されている。
+- その後の差分は**P2の修正(`0dc08bd`)と本記録の訂正だけ**で、仕様・要求・受け入れ条件を変えていない。
+- 開発者は2026-09-22、**T11の完了と`dev`へのmerge**を判断した。
+- **2回のFAILはいずれも「記録と現実の一致」であり、仕様変更の中身(U1/U2の決定、REQ-015の文面、代表例、
+  Play審査riskの書き方)は3回とも妥当と判定されている。**
 - **記録の粒度そのものの見直し**(gitから機械的に得られる情報をtask.mdへ手で維持することの是非)は、
   [`development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md`](../../../../development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md)
   への追記として残し、**このtaskでは扱わない。**
@@ -253,7 +258,7 @@ attempt 4 を自分の判断で起動せず、開発者へ判断を返した。*
 
 ## Current state / handoff
 
-- Last checkpoint: **完了**(2026-09-22)。004 specの再承認、plan・`T12`・`T38`/`T39`への引き渡し、近道前提の写しの全件分類、development findingまで記録した。**独立review 3回でP0/P1と安全網の穴なし、最後のP2は修正済み。開発者の判断でreviewを打ち切った(独立PASSは得ていない)。**
+- Last checkpoint: **完了**(2026-09-22)。004 specの再承認、plan・`T12`・`T38`/`T39`への引き渡し、近道前提の写しの全件分類、development findingまで記録した。**独立review attempt 3(`fbb19aa..035b86d`)がP0/P1・安全網の穴なしでPASS**(reviewerの表記はFAILだが、規約のFAIL基準はP0/P1)。**指摘されたP2は`0dc08bd`で修正済み。**
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
