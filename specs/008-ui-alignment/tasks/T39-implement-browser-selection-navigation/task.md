@@ -17,6 +17,7 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 - widget test: root/下位folder/選択0/一部/全件の導線、全選択からの一括解除、戻る操作と未確定選択破棄の区別、file行のcheckbox配置と選択表示、folder非対象(**近道はもう無い**)、T37のdrag回帰。
 - semantics widget test: 戻る、一括選択、一括解除の操作名とactionを区別する。
 - Android物理端末: 上記の見え方、手での選択・解除、TalkBackの読み上げと操作、狭幅と長い場所名。T39が引き受ける。
+- **`T12`から引き受けた残余risk(2026-09-22)**: 保存場所が**1件**の端末で、browserが一覧を挟まずrootから始まること(004 REQ-015)。`T12`はエミュレータにSDカードがあり観測できなかった(widget testとmutation `M109`では固定済み)。**物理端末がSDカードを持たないなら、入口の見え方を1項目足す。** 持つなら観測できないことを記録する。
 - desktopはOS picker経路のためmanual対象外。
 
 ## 受け入れ証拠

@@ -173,11 +173,36 @@ hostの`flutter run`が、共有された`android/local.properties`の`flutter.s
    **widget testでは固定済み**(`保存場所が1つだけのときは一覧を挟まず、rootの中身が出る` / mutation `M109`)。
    実機側が取れない場合は**残余risk**として受け入れ、引き受け先を記録する。
 
+## 手動確認の受領(2026-09-22、2回目)と残余risk
+
+環境: Androidエミュレータ(SDカードあり。保存場所は2件)。対象build: `lib/`が`37bd08e`と同一。
+
+| 項目 | 結果 |
+|---|---|
+| A 複数保存場所での切り替え(手順1の後半) | **確認できた** — 一覧から始まり、rootの選び直しでbrowserを閉じずに一覧へ戻り、SDカードへ切り替えられる |
+| B 保存場所が1件のときの入口 | **開発者の判断で省略**(SDカード無しのAVDが要るため) |
+
+**手順1〜5のうち、Bを除くすべてを受領した。**
+
+### 残余risk(受容)
+
+| risk | 分類と根拠 | 引き受け先 |
+|---|---|---|
+| **保存場所が1件の端末で、実機上も一覧を挟まずrootから始まるか**は観測していない | **安全網の穴**(実装は正しいと機械検証で閉じている)。widget test `保存場所が1つだけのときは一覧を挟まず、rootの中身が出る` とmutation `M109`(KILLED)で固定済み。**AGENTS.mdの3条件のうち「このprojectのCIで閉じられる」は既に満たされている** — 残るのは実機の見え方だけで、実機・emulatorを要するのでCIでは閉じられない。FAIL条件に当たらないので受容する | **`008:T39`**(同じbrowser画面の実装で、**Android物理端末**のmanualを持つ)。SDカードを持たない端末なら入口の観測を足す |
+
+受容はtask所有Agentとして記録する(AGENTS.md)。**開発者はBの省略を2026-09-22に判断した。**
+
+### 同じrangeに入った環境側のcommit
+
+手動確認の準備で見つかった環境側の不具合(container内のFlutterが`android/local.properties`を書き換える)への対処が、
+`dev`経由でこのbranchへ入っている(`755041b` / `09a98f4`)。加えて`5456aa9`はこのbranch上で直接commitした同じ対処の続きである。
+**いずれも`lib/`・`test/`を触っていない**ので、T12の実装と手動確認の対象buildには影響しない。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・機械検証・implementation reviewのPASSまで完了(`3b23896`。`lib/`は`37bd08e`)。**Android実機の手動確認が残っている。**
-- Blocker category: human(手動確認)
-- Waiting for: **開発者の手動確認の残り2点**([`manual-verification.md`](manual-verification.md)の手順1)。手順2〜5は2026-09-22に受領済み。
-- Requested action: **手動確認の残り2点** — ①複数保存場所での切り替え(エミュレータで観測できる) ②1件の端末の入口(SDカード無しのAVDが要る。取れなければ残余riskとして受容)。手順2〜5は受領済み。
+- Last checkpoint: 実装・機械検証・implementation review PASS・**手動確認の受領**まで完了(`lib/`は`37bd08e`)。1件端末の入口は残余riskとして`T39`へ渡した。
+- Blocker category: なし
+- Waiting for: final-evidence phaseの独立review。
+- Requested action: なし
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
-- Next Agent action: **実装と機械検証は終わっている。** 残りは①開発者からAndroidの手動確認の結果を受け取り、証拠metadata(端末・対象build・実施日)を記録する ②final-evidence phaseの独立reviewを回す ③PRとmergeを判断する、の3つ。**`lib/`を動かさずに待つ。** 選択解除・画面を閉じる導線は`T39`へ渡す。
+- Next Agent action: final-evidence phaseの独立reviewを回し、PASSならPRを作ってCIを通し、auto-merge条件を確かめる。選択解除・画面を閉じる導線と、1件端末の入口の実機観測は`T39`へ渡す。
