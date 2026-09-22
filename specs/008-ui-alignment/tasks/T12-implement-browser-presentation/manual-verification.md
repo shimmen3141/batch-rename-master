@@ -1,6 +1,6 @@
 # 手動確認: app内file browserの提示
 
-**対象commitは `37bd08e`。** これ以後にcode・dependency・build設定が変わったら、この結果は再利用しない。
+**対象commitは `2fae34f`**(branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEAD)。**codeの差分は`37bd08e`で入り、`2fae34f`は記録だけである**ので、どちらからbuildしても見え方は同じになる。これ以後にcode・dependency・build設定が変わったら、この結果は再利用しない。
 
 ## 使う端末と準備
 
@@ -19,7 +19,7 @@ U1・U2で行う** — 保存場所が1つの端末ならいきなりfolderの�
 
 ## 対象build
 
-- branch `asdd/008-ui-alignment/T12-implement-browser-presentation`、commit `37bd08e`。
+- branch `asdd/008-ui-alignment/T12-implement-browser-presentation`、commit `2fae34f`(codeは`37bd08e`と同一)。
 - **Androidのbuildはこの環境で実行できない**(AI containerにAndroid SDKが無い)。**hostでbuildして流し込む。**
 
 ## 手順と期待
