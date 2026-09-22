@@ -71,7 +71,7 @@
 装着しているSDカードが並ばないことに誰も気づけなかった)。**004 specはこの場合を定めていない**ので、
 要求を足さずに実装の判断として置き、mutation `M405`で固定した。
 
-## 検証結果(2026-09-22、`37bd08e`)
+## 検証結果(2026-09-22。`lib/`は`37bd08e`)
 
 | 検証 | 結果 |
 |---|---|
@@ -105,11 +105,27 @@ M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空のfolderと�
 **`M109`は消さずに置き換えた**(近道の対象が消えたため、REQ-015の新しい要求である「1つだけなら一覧を挟まない」を守る形にした)。
 `M105`/`M117`が守るrootの上限は要求が変わっていないので、そのまま残した。**`M404`〜`M406`は今回足した対照である。**
 
+## 独立review
+
+**reviewerのmodelは`gpt-5.6-luna`**(開発者指定。実装はClaude Opus 5で行っており、AGENTS.mdの既定
+「実装より一段軽いもの」とも一致する)。
+
+- attempt 1: `2df2cff..98c440e`、phase=implementation — **FAIL**。
+  - **P1(成果物の欠陥)**: `task.md`が full regression を「960 PASS」と記録していたが、実際は `959 pass / 1 fail`
+    だった。**原因は手動確認の手順書へ`/Android/data`という規範文言を書き写したこと**で、
+    `tool/check_normative_terms.py`(full regressionに含まれる)が落ちていた。**960 PASSを測ったのは
+    手順書を書く前で、記録が現実と一致していなかった。** → 文言をREQ ID参照(004 REQ-018)へ置き換え、
+    **full regressionを測り直して960 PASSを確認した。**
+  - **P2(成果物の欠陥)**: 対象revisionの記録が`2fae34f` / `37bd08e` / branch HEADで割れていた。
+    → **「`lib/`が`37bd08e`と同一であること」**という形に統一した。記録だけのcommitを足しても揺れない。
+  - 仕様に対する過不足、REQ-016〜020の維持、`soleLocation`の`failure`時の判断、related 184 PASS、
+    analyze、format、mutation 6件KILLED、workspace checkは**いずれも妥当と確認された**。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と機械検証まで完了(`37bd08e`)。**Android実機の手動確認と独立reviewが残っている。**
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `37bd08e`(branch `asdd/008-ui-alignment/T12-implement-browser-presentation`、base `dev@2df2cff`)。**このcommitを動かさずに待つ。**
+- Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
 - Next Agent action: 保存場所入口(1件ならroot・複数なら一覧と切り替え)・**近道の撤去**・U3の戻る矢印・U6の空folderを一つの確認単位で実装する。**U3だけを先に出さない。** T37のdrag/全選択を維持し、選択解除・画面を閉じる導線はT39へ渡す。
