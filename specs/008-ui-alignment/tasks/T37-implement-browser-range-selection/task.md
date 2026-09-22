@@ -58,6 +58,7 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - 全選択の操作名・tap actionはwidget testでPASSし、mutation M402もKILLED。TalkBack実機動作をPASSと書き換えず、今回限りの未確認として記録する。
 - UI上の追加指摘: 全選択からの一括解除が無い。ヘッダの×が画面を閉じるのか選択解除なのか紛らわしい。file行のcheckboxの位置・形をリネーム画面と揃えたい。フッタ左下に明示的な「リネーム画面に戻る」ボタン、上部へ保存場所名・戻る矢印・選択件数をまとめる案、場所の帯へフォルダ内一括選択checkboxを置く案が出た。これらは004 REQ-020の範囲選択保証とは別のUI設計として後続taskへ送る。
 - 手動手順の修正: TalkBackの「focus / activate」を実際のスワイプと2回タップへ言い換え、各場面の選択0件への戻し方を明記した。code/test/buildは変更していない。
+- 独立final-evidence review attempt 2: `gpt-5.6-luna`、exact range `bef8337..f4b7868` — **BLOCKED / `in_review`維持**。成果物欠陥・安全網の穴は追加なし。Android物理端末での項目2〜3・5〜11の個別結果と端末種別が未記録。「概ね機能」では必須実機証拠をPASSにできない。TalkBack項目4は開発者指示により今回は省略し、PASSと記録しない。
 
 ## Current state / handoff
 
@@ -65,6 +66,6 @@ T36で承認された004 REQ-020をAndroid app内file browserへ実装する。T
 - Status: `in_review`。
 - Blocker category: Android physical-device evidence pending.
 - Evidence revision: code/test `d88ab4f`、2026-09-22の会話報告時HEAD `90efb6c`（code/dependency/build設定差分なし）。
-- Waiting for: 報告の部分受け入れとTalkBack実機省略を踏まえたfinal-evidence review（`gpt-5.6-luna`）。端末種別・各項目の個別結果は未記録。
-- Requested action: なし。未確認をPASSとせず、reviewerの証拠判定を先に得る。
-- Next Agent action: manual報告と後続UI taskの境界を記録し、`gpt-5.6-luna`でfinal-evidence reviewを行う。必要な一点だけを開発者に確認する。
+- Waiting for: Android物理端末で行った項目2〜3・5〜11の個別結果と端末種別。TalkBack項目4は今回省略する。
+- Requested action: 開発者から、Android物理端末での項目2〜3・5〜11の結果と端末種別を受け取る。
+- Next Agent action: 個別結果を受領して同一code/buildとの対応を確認し、`gpt-5.6-luna`へ最終証拠を再照合させる。
