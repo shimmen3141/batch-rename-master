@@ -25,6 +25,10 @@ services:
       - dart_tool:/workspace/.dart_tool
       - flutter_build:/workspace/build
       - pub_cache:/workspace/.pub-cache
+      # local.properties はマシンごとの生成物。container 内の flutter を1回動かすだけで
+      # flutter.sdk が container の path へ書き換わり、ホストの flutter run が壊れる。
+      # container 側の書き込みを別ファイルへ逃がし、ホストの local.properties を守る。
+      - ./android/local.properties.ai:/workspace/android/local.properties
       # AI エージェント CLI のログイン・設定の永続化(Rebuild してもログインが消えない)
       - claude_config:/home/dev/.claude
       - codex_config:/home/dev/.codex

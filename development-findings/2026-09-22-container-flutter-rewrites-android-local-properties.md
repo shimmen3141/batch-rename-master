@@ -56,3 +56,39 @@ hookは「書き換わった後に消す」対症である。**そもそも共�
 - 同じ型の副作用は他にもありうる(`.dart_tool/`、`build/`、`.flutter-plugins-dependencies` など、
   container固有のpathを書く生成物)。**hostのbuildが壊れたときは、まずこの型を疑う。**
   一般化先の `ai-sandbox-setup` にも、Flutter profileの既知の落とし穴として足す候補である。
+
+## 改善結果(2026-09-22)
+
+`compose.ai.yml` へ次の1行を足し、開発者がDev ContainerをRebuildした。
+
+```yaml
+      - ./android/local.properties.ai:/workspace/android/local.properties
+```
+
+**単一fileのbind mountで覆う形**を採った。匿名/名前付きvolumeは必ずdirectoryとして作られるので、
+fileであるこのpathには使えない。逃がし先(`android/local.properties.ai`)はhost側にあらかじめ空fileとして
+作っておく必要がある — 無いとDockerがdirectoryを作ってしまう。`android/.gitignore`へも足した。
+
+**検証(container内)**:
+
+```console
+$ findmnt -T android/local.properties -o TARGET,SOURCE
+TARGET                              SOURCE
+/workspace/android/local.properties C:\[/Users/.../android/local.properties.ai]
+$ cat android/local.properties
+flutter.sdk=/home/dev/flutter
+```
+
+container内の`android/local.properties`の実体は逃がし先のfileで、**hostの`android/local.properties`は
+containerから見えない**。**Rebuild後に`flutter test`がエラーなく通った**(開発者報告: `All tests passed!`)ので、
+「Flutterがこのfileをrenameで置き換えるならEBUSYになる」という懸念も外れた。
+
+host側では次で確かめられる。
+
+```powershell
+Get-Content android\local.properties.ai   # container の書き込み先。flutter.sdk=/home/dev/flutter
+Get-Content android\local.properties      # host の値(C:\...)のまま
+```
+
+**`scripts/clear-container-local-properties.sh`は残す** — この構成が入っていない環境(別のworktree、
+Rebuild前のcontainer)での手当てとして使える。bind mountを外せないときも失敗しないようにしてある。
