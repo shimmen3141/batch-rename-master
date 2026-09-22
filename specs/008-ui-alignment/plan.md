@@ -135,6 +135,10 @@
 - Review attempt 4(同上、修正後): `ae59859...2c2339b` — **PASS** — 未解決P0/P1なし、**auto-merge 7条件すべて充足**。新規P2×3(`T14`のmanualが新しい分担に未追随、`T08`が`T14`の旧文言を現在形で引用、「Androidでは必ずsheet越し」は platform ではなく**幅**(`breakpoint` = 840dp)で決まる)も**merge前に直した**。
 - Review attempt 2: `ea1dd04..72dd5f8` — PASS — 未解決P0/P1なし。残P2×3(行widgetのT04/T07/T09間の分担未宣言、T08 task.mdの内部矛盾、product-mapのlive status寄り記述)は`ec2e74f`のmerge後に解消した。
 
+### 2026-09-22: browserの選択・戻る導線
+
+T37の実機報告では範囲選択は概ね機能したが、全選択からの一括解除が無く、headerの×が選択解除に見え、checkboxがメイン一覧と揃っていないとの指摘を受けた。保存場所名・左矢印・選択件数を上部へ整理し、現在地帯にfolder一括選択、footerに明示的な「リネーム画面に戻る」を置く案も受領した。T37のREQ-020の範囲選択保証は変えず、T38で意味と状態表を定義し、T39でT12/T37統合後に実装する。提案の配置・文言はこの時点では未承認である。
+
 ## タスク
 
 タスクのID・依存・状態は`plan.json`と各`tasks/*/task.json`が正本。詳細は各`task.md`を読む。番号は安定した識別子であり、実行順や優先順位ではない。
@@ -178,3 +182,5 @@
 | T35 | [task.md](tasks/T35-define-orientation-scope/task.md) |
 | T36 | [task.md](tasks/T36-define-browser-range-selection/task.md) |
 | T37 | [task.md](tasks/T37-implement-browser-range-selection/task.md) |
+| T38 | [task.md](tasks/T38-define-browser-selection-navigation/task.md) |
+| T39 | [task.md](tasks/T39-implement-browser-selection-navigation/task.md) |
