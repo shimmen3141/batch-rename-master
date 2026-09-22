@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T12",
   "title": "app内file browserの提示を実装する",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T11"
   ],
@@ -11,6 +11,6 @@
     "004:REQ-020"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 185,
   "manualVerification": "manual-verification.md"
 }

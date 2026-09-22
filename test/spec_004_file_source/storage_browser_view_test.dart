@@ -30,14 +30,12 @@ class _FakeBrowser implements StorageBrowserPort {
     this.locationList = const [
       StorageLocation(name: '内部ストレージ', root: '/storage/emulated/0'),
     ],
-    this.shortcutNames = const [],
     this.failures = const {},
     this.locationsFailure,
   });
 
   final Map<String, List<BrowserEntry>> tree;
   final List<StorageLocation> locationList;
-  final List<String> shortcutNames;
   final Set<String> failures;
 
   /// 保存場所の一部を取得できなかったときの理由(`013:T12`)。
@@ -48,16 +46,6 @@ class _FakeBrowser implements StorageBrowserPort {
   @override
   Future<StorageLocations> locations() async =>
       StorageLocations(locationList, failure: locationsFailure);
-
-  @override
-  Future<List<BrowserEntry>> shortcuts(StorageLocation location) async => [
-    for (final name in shortcutNames)
-      BrowserEntry(
-        name: name,
-        path: '${location.root}/$name',
-        isDirectory: true,
-      ),
-  ];
 
   @override
   Future<DirectoryListing> list(String folder) async {
@@ -147,8 +135,8 @@ void main() {
     });
   });
 
-  group('REQ-015: 保存場所から始まり、近道を示し、階層を辿れる', () {
-    testWidgets('保存場所の一覧が出て、選ぶと中身と近道が出る', (tester) async {
+  group('REQ-015: 保存場所から始まり、階層を辿れる', () {
+    testWidgets('保存場所が2つ以上あるときは一覧から始まり、選ぶと中身が出る', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A'), _file(_root, 'memo.txt')],
@@ -157,23 +145,88 @@ void main() {
           StorageLocation(name: '内部ストレージ', root: _root),
           StorageLocation(name: 'SD カード', root: '/storage/1A2B'),
         ],
-        shortcutNames: const ['Download', 'DCIM'],
       );
       await _open(tester, browser);
 
       expect(find.byKey(const Key('browser-location-内部ストレージ')), findsOneWidget);
       expect(find.byKey(const Key('browser-location-SD カード')), findsOneWidget);
+      expect(
+        find.byKey(const Key('browser-folder-A')),
+        findsNothing,
+        reason: '選ぶまで中へ入らない',
+      );
 
       await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const Key('browser-shortcut-Download')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const Key('browser-shortcut-DCIM')), findsOneWidget);
       expect(find.byKey(const Key('browser-folder-A')), findsOneWidget);
       expect(find.byKey(const Key('browser-file-memo.txt')), findsOneWidget);
+    });
+
+    testWidgets('保存場所が1つだけのときは一覧を挟まず、rootの中身が出る', (tester) async {
+      // **選択肢が1つしかない画面を1回押させない**(`013:T07` の U1)。
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A'), _file(_root, 'memo.txt')],
+        },
+      );
+      await _open(tester, browser);
+
+      expect(find.byKey(const Key('browser-folder-A')), findsOneWidget);
+      expect(find.byKey(const Key('browser-file-memo.txt')), findsOneWidget);
+      expect(
+        find.byKey(const Key('browser-location-内部ストレージ')),
+        findsNothing,
+        reason: '1件の一覧を挟まない',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('browser-current-location')))
+            .data,
+        '内部ストレージ',
+        reason: 'どの保存場所にいるかは現在地が示す',
+      );
+    });
+
+    testWidgets('保存場所を取得できていなければ、1件でも一覧を出す', (tester) async {
+      // **「1つだけ」と言い切れない。** 取れなかったことを知らせる notice は一覧の側に
+      // あるので、黙って中へ入ると**装着しているSDカードが並ばないことに気づけない**
+      // (`013:T08` の実機観測)。
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+        },
+        locationsFailure: '一部を取得できませんでした',
+      );
+      await _open(tester, browser);
+
+      expect(find.byKey(const Key('browser-location-内部ストレージ')), findsOneWidget);
+      expect(
+        find.byKey(const Key('browser-locations-failure')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('既知の名前のfolderは一覧に1回しか並ばない(近道を出さない)', (tester) async {
+      // **近道は2026-09-22の`008:T11`で取りやめた**(REQ-015)。近道は保存場所のrootでだけ
+      // 出て、行き先は同じ画面に並ぶ同名folderと同一pathであり、手数を減らしていなかった。
+      // **同じfolderが2回並ぶことが混乱の本体だった。**
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'DCIM'), _dir(_root, 'Download')],
+        },
+      );
+      await _open(tester, browser);
+
+      expect(find.byKey(const Key('browser-folder-DCIM')), findsOneWidget);
+      expect(find.byKey(const Key('browser-folder-Download')), findsOneWidget);
+      expect(
+        find.textContaining('DCIM'),
+        findsOneWidget,
+        reason: '近道と実体で二重に出ない',
+      );
+      expect(find.textContaining('Download'), findsOneWidget);
+      expect(find.byIcon(Icons.star_outline), findsNothing);
     });
 
     testWidgets('辿ったfolderごとに、表示用の場所を知らせる(004 REQ-009)', (tester) async {
@@ -199,8 +252,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       expect(named[_root], '内部ストレージ');
 
       await tester.tap(find.byKey(const Key('browser-folder-DCIM')));
@@ -216,31 +267,6 @@ void main() {
       );
     });
 
-    testWidgets('近道は保存場所の始まりだけに出す', (tester) async {
-      // 004 REQ-015 は「保存場所の一覧から始まり、既知の場所への**近道**を示し、
-      // そこからフォルダ階層を辿れる」と定めている。**辿った先にも出すと、
-      // どこにいるのか分からなくなる。**
-      final browser = _FakeBrowser(
-        tree: {
-          _root: [_dir(_root, 'A')],
-          '$_root/A': [_file('$_root/A', 'a.txt')],
-        },
-        shortcutNames: const ['Download'],
-      );
-      final _ = await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key('browser-shortcut-Download')),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.byKey(const Key('browser-folder-A')));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('browser-shortcut-Download')), findsNothing);
-    });
-
     testWidgets('現在地を常に示し、階層を辿ると更新される', (tester) async {
       final browser = _FakeBrowser(
         tree: {
@@ -249,8 +275,6 @@ void main() {
         },
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       expect(
         tester
@@ -272,13 +296,17 @@ void main() {
     });
 
     testWidgets('rootでは「上へ」を出さない(004 代表例 26d)', (tester) async {
-      // **上位へ戻る操作は無いか無効。** 代わりに保存場所を選び直す導線を出す
-      // (上位 path へ辿るのではない)。
+      // **上位へ戻る操作は無いか無効。** 保存場所が複数あるときは、代わりに
+      // 保存場所を切り替える導線を出す(上位 path へ辿るのではない)。
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A')],
           '$_root/A': [_file('$_root/A', 'a.txt')],
         },
+        locationList: const [
+          StorageLocation(name: '内部ストレージ', root: _root),
+          StorageLocation(name: 'SD カード', root: '/storage/1A2B'),
+        ],
       );
       final _ = await _open(tester, browser);
       await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
@@ -297,12 +325,55 @@ void main() {
       expect(find.byKey(const Key('browser-locations')), findsNothing);
     });
 
-    testWidgets('上位へ戻れる。保存場所を選び直しても上位pathを辿らない', (tester) async {
+    testWidgets('上へ戻るのは `←` である(013:T07 の U3)', (tester) async {
+      // `↑` より馴染むという指摘。**辿る先は1つ上のfolderのままで、keyもtooltipも
+      // 変えていない。**
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A')],
           '$_root/A': [_file('$_root/A', 'a.txt')],
         },
+      );
+      await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+
+      final icon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const Key('browser-up')),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(icon.icon, Icons.arrow_back);
+    });
+
+    testWidgets('保存場所が1つだけなら、切り替えの導線を出さない', (tester) async {
+      // **要求は「複数あるときは閉じずに切り替えられる」ことまで**で、切り替え先が
+      // 無い端末で出すかは自由(004 spec の自由とする点)。**押しても1件の一覧が出る
+      // だけの空振りになるので出さない。**
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+        },
+      );
+      await _open(tester, browser);
+
+      expect(find.byKey(const Key('browser-up')), findsNothing);
+      expect(find.byKey(const Key('browser-locations')), findsNothing);
+    });
+
+    testWidgets('上位へ戻れる。保存場所を切り替えても上位pathを辿らない', (tester) async {
+      // **保存場所が複数あるときは、browserを閉じずに切り替えられる**(REQ-015)。
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+          '$_root/A': [_file('$_root/A', 'a.txt')],
+          '/storage/1A2B': [_file('/storage/1A2B', 'sd.txt')],
+        },
+        locationList: const [
+          StorageLocation(name: '内部ストレージ', root: _root),
+          StorageLocation(name: 'SD カード', root: '/storage/1A2B'),
+        ],
       );
       await _open(tester, browser);
       await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
@@ -314,13 +385,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('browser-folder-A')), findsOneWidget);
 
-      // root では保存場所を選び直す導線になる。**上位の path は辿らない。**
+      // root では保存場所を切り替える導線になる。**上位の path は辿らない。**
       await tester.tap(find.byKey(const Key('browser-locations')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('browser-location-内部ストレージ')), findsOneWidget);
+
+      // **閉じずにSDカードへ移れる。**
+      await tester.tap(find.byKey(const Key('browser-location-SD カード')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('browser-file-sd.txt')), findsOneWidget);
+
       // **`/storage` を列挙しに行っていない。**
       expect(browser.listed, isNot(contains('/storage')));
       expect(browser.listed, isNot(contains('/')));
+    });
+
+    test('一覧を挟まずに入る保存場所の決定(純関数)', () {
+      const internal = StorageLocation(name: '内部ストレージ', root: _root);
+      const sd = StorageLocation(name: 'SD カード', root: '/storage/1A2B');
+
+      expect(soleLocation(const StorageLocations([internal])), internal);
+      expect(soleLocation(const StorageLocations([internal, sd])), isNull);
+      expect(soleLocation(const StorageLocations([])), isNull);
+      expect(
+        soleLocation(const StorageLocations([internal], failure: '一部が取れない')),
+        isNull,
+        reason: '取れていないなら「1つだけ」と言い切れない',
+      );
     });
 
     test('辿れる上限は保存場所のrootである(純関数)', () {
@@ -385,8 +476,6 @@ void main() {
         },
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-folder-A')));
       await tester.pumpAndSettle();
 
@@ -460,8 +549,6 @@ void main() {
       );
       final result = await _open(tester, browser);
 
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-folder-A')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-file-a1.txt')));
@@ -483,8 +570,6 @@ void main() {
       );
       final result = await _open(tester, browser);
 
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-file-r.txt')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-cancel')));
@@ -501,8 +586,6 @@ void main() {
         },
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       final confirm = tester.widget<FilledButton>(
         find.byKey(const Key('browser-confirm')),
@@ -512,7 +595,7 @@ void main() {
   });
 
   group('REQ-020: app内browserの範囲選択と全選択', () {
-    testWidgets('全選択は現在folderのfileだけを選び、folderと近道を含めない', (tester) async {
+    testWidgets('全選択は現在folderのfileだけを選び、folderを含めない', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [
@@ -521,11 +604,8 @@ void main() {
             _file(_root, 'b.txt'),
           ],
         },
-        shortcutNames: const ['Download'],
       );
       final result = await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(browserSelectAllKey));
       await tester.pump();
@@ -535,7 +615,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(result.value!.paths, ['$_root/a.txt', '$_root/b.txt']);
       expect(result.value!.paths, isNot(contains('$_root/folder')));
-      expect(result.value!.paths, isNot(contains('$_root/Download')));
     });
 
     testWidgets('全選択は支援技術から操作名とtap actionで実行できる', (tester) async {
@@ -548,8 +627,6 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       final node = tester.getSemantics(
         find.byKey(browserSelectAllSemanticsKey),
@@ -576,8 +653,6 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       final gesture = await _startLongPress(
         tester,
@@ -621,8 +696,6 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-file-a.txt')));
       await tester.pump();
 
@@ -666,8 +739,6 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       await tester.drag(find.byType(ListView), const Offset(0, -180));
       await tester.pumpAndSettle();
@@ -686,8 +757,6 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       final target = find.byKey(const Key('browser-file-long-20.txt'));
       await tester.scrollUntilVisible(
         target,
@@ -740,8 +809,6 @@ void main() {
         },
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('browser-folder-sub')), findsOneWidget);
       expect(find.byKey(const Key('browser-file-.hidden')), findsOneWidget);
@@ -773,8 +840,6 @@ void main() {
         },
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-folder-Android')));
       await tester.pumpAndSettle();
 
@@ -794,6 +859,44 @@ void main() {
     });
   });
 
+  group('空のfolderと、開けなかったfolderを区別する(013:T07 の U6)', () {
+    testWidgets('空のfolderは「ファイルはありません」を出す', (tester) async {
+      // **「読み込み中」「開けなかった」「空」が同じ見た目(何も無い)になるのを避ける。**
+      // 004 REQ-017 は0件のときの提示を定めていないので、要求は変えていない。
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'empty')],
+          '$_root/empty': const [],
+        },
+      );
+      await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-folder-empty')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('browser-listing-empty')), findsOneWidget);
+      expect(
+        find.byKey(const Key('browser-listing-failed')),
+        findsNothing,
+        reason: '開けなかったのとは別物',
+      );
+    });
+
+    testWidgets('開けなかったfolderは空とは別の提示になる', (tester) async {
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'locked')],
+        },
+        failures: {'$_root/locked'},
+      );
+      await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-folder-locked')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('browser-listing-failed')), findsOneWidget);
+      expect(find.byKey(const Key('browser-listing-empty')), findsNothing);
+    });
+  });
+
   group('列挙に失敗しても例外を投げず、理由を出す(004 REQ-001)', () {
     testWidgets('開けなかったフォルダは理由を示す', (tester) async {
       final browser = _FakeBrowser(
@@ -803,8 +906,6 @@ void main() {
         failures: {'$_root/locked'},
       );
       await _open(tester, browser);
-      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('browser-folder-locked')));
       await tester.pumpAndSettle();
 
@@ -817,9 +918,6 @@ void main() {
 class _ThrowingBrowser implements StorageBrowserPort {
   @override
   Future<StorageLocations> locations() async => throw StateError('列挙が落ちた');
-
-  @override
-  Future<List<BrowserEntry>> shortcuts(StorageLocation location) async => [];
 
   @override
   Future<DirectoryListing> list(String folder) async =>

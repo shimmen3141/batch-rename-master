@@ -87,19 +87,6 @@ class AndroidStorageBrowser implements StorageBrowserPort {
     return const [];
   }
 
-  /// **実在するものだけ**返す(004 REQ-015)。
-  @override
-  Future<List<BrowserEntry>> shortcuts(StorageLocation location) async {
-    final found = <BrowserEntry>[];
-    for (final name in knownShortcutNames) {
-      final path = p.join(location.root, name);
-      if (await Directory(path).exists()) {
-        found.add(BrowserEntry(name: name, path: path, isDirectory: true));
-      }
-    }
-    return found;
-  }
-
   /// **絞り込まない**(004 REQ-017)。隠しファイルもサブフォルダもそのまま返す。
   ///
   /// 並びは「フォルダが先、その中で名前順」。判定を新設しているのではなく、

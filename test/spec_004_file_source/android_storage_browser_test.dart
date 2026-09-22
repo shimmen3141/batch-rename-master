@@ -141,30 +141,17 @@ void main() {
     });
   });
 
-  group('REQ-015: 既知の場所への近道', () {
-    test('実在するものだけを、決まった順で返す', () async {
+  group('REQ-015: 既知の場所への近道は出さない(2026-09-22に取りやめた)', () {
+    test('rootの列挙は、既知の名前のfolderを1回だけ返す', () async {
+      // **近道は`008:T11`で取りやめた。** 実体のfolderが一覧に並ぶだけで、
+      // 同じfolderが二重に出ない。
       final root = p.join(dir.path, 'emulated', '0');
       await Directory(p.join(root, 'Download')).create(recursive: true);
       await Directory(p.join(root, 'Pictures')).create();
-      // `DCIM` は作らない。
-      final location = StorageLocation(name: '内部ストレージ', root: root);
 
-      final shortcuts = await browserOf().shortcuts(location);
+      final listing = await browserOf().list(root) as DirectoryListed;
 
-      expect(shortcuts.map((s) => s.name), ['Download', 'Pictures']);
-      expect(shortcuts.every((s) => s.isDirectory), isTrue);
-      expect(shortcuts.first.path, p.join(root, 'Download'));
-    });
-
-    test('1つも実在しなければ空(開いても空か失敗するだけの近道を出さない)', () async {
-      final root = p.join(dir.path, 'emulated', '0');
-      await Directory(root).create(recursive: true);
-
-      final shortcuts = await browserOf().shortcuts(
-        StorageLocation(name: '内部ストレージ', root: root),
-      );
-
-      expect(shortcuts, isEmpty);
+      expect(listing.entries.map((e) => e.name), ['Download', 'Pictures']);
     });
   });
 
