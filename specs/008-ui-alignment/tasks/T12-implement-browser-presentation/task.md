@@ -153,11 +153,31 @@ hostの`flutter run`が、共有された`android/local.properties`の`flutter.s
   [`development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md`](../../../../development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md)。
 - **手動確認の対象buildは変わっていない** — `lib/`は`37bd08e`と同一のままである。
 
+## 手動確認の受領(2026-09-22、1回目)
+
+環境: **Androidエミュレータ**(開発者報告)。対象build: `lib/`が`37bd08e`と同一。
+
+| 手順 | 結果 |
+|---|---|
+| 1 入口(U1) | **未確認。** エミュレータには**SDカードが出る**ため、保存場所は2件になり、「1件だから一覧を挟まない」側は観測できない。**これは不具合ではなく、REQ-015が定める複数件の振る舞いである。** 未観測なのは**1件の端末の入口**と、**複数件での切り替え**(手順1の後半)である |
+| 2 近道(U2) | **確認できた** |
+| 3 上へ戻る矢印(U3) | **確認できた** |
+| 4 空のfolder(U6) | **確認できた** |
+| 5 T37の回帰 | **確認できた** |
+
+**残りの確認**は次の2つに絞られる。
+
+1. **複数件での切り替え**(手順1の後半): 一覧 → 内部ストレージ → rootで保存場所を選び直す → SDカード。
+   **エミュレータでそのまま観測できる**(REQ-015の「複数あるときは閉じずに切り替えられる」)。
+2. **1件の端末の入口**: SDカードを持たないAVD(またはSDカードを外した端末)が要る。
+   **widget testでは固定済み**(`保存場所が1つだけのときは一覧を挟まず、rootの中身が出る` / mutation `M109`)。
+   実機側が取れない場合は**残余risk**として受け入れ、引き受け先を記録する。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装・機械検証・implementation reviewのPASSまで完了(`3b23896`。`lib/`は`37bd08e`)。**Android実機の手動確認が残っている。**
 - Blocker category: human(手動確認)
-- Waiting for: **開発者のAndroid手動確認**([`manual-verification.md`](manual-verification.md))。
-- Requested action: **Android端末での手動確認**(U1入口 / U2近道が出ないこと / U3戻る矢印 / U6空folder / T37の回帰)。buildはhostで行う。
+- Waiting for: **開発者の手動確認の残り2点**([`manual-verification.md`](manual-verification.md)の手順1)。手順2〜5は2026-09-22に受領済み。
+- Requested action: **手動確認の残り2点** — ①複数保存場所での切り替え(エミュレータで観測できる) ②1件の端末の入口(SDカード無しのAVDが要る。取れなければ残余riskとして受容)。手順2〜5は受領済み。
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
 - Next Agent action: **実装と機械検証は終わっている。** 残りは①開発者からAndroidの手動確認の結果を受け取り、証拠metadata(端末・対象build・実施日)を記録する ②final-evidence phaseの独立reviewを回す ③PRとmergeを判断する、の3つ。**`lib/`を動かさずに待つ。** 選択解除・画面を閉じる導線は`T39`へ渡す。
