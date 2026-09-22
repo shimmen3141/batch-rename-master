@@ -135,11 +135,16 @@ task.md自身**で連続して踏んだ。`tool/check_normative_terms.py`は lit
 **記録を書き換えたあとに full regression を回し直せば必ず捕まる** — その一手を省かないこと。
 経緯は[`development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md`](../../../../development-findings/2026-09-22-shortcut-removal-stale-copies-across-handoff-docs.md)へ追記した。
 
+- attempt 3: `2df2cff..3b23896` — **PASS**(implementation phase)。P0〜P3の指摘なし。
+  reviewerが自分で再実行した結果は `check_normative_terms` PASS / related 184 PASS / full 960 PASS /
+  analyze PASS / format PASS / mutation 6件 KILLED・0 SURVIVED / workspace check PASS。
+  **未確認領域はAndroid buildと実機の見え方だけ**で、宣言どおり手動確認が引き受ける。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と機械検証まで完了(`37bd08e`)。**Android実機の手動確認と独立reviewが残っている。**
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
+- Last checkpoint: 実装・機械検証・implementation reviewのPASSまで完了(`3b23896`。`lib/`は`37bd08e`)。**Android実機の手動確認が残っている。**
+- Blocker category: human(手動確認)
+- Waiting for: **開発者のAndroid手動確認**([`manual-verification.md`](manual-verification.md))。
+- Requested action: **Android端末での手動確認**(U1入口 / U2近道が出ないこと / U3戻る矢印 / U6空folder / T37の回帰)。buildはhostで行う。
 - Evidence revision: **`lib/`が commit `37bd08e` と同一であること**(base `dev@2df2cff`)。branch `asdd/008-ui-alignment/T12-implement-browser-presentation` のHEADはこれを満たす — `37bd08e`以後のcommitは記録だけである。**`lib/`を動かさずに手動確認を待つ。**
 - Next Agent action: **実装と機械検証は終わっている。** 残りは①開発者からAndroidの手動確認の結果を受け取り、証拠metadata(端末・対象build・実施日)を記録する ②final-evidence phaseの独立reviewを回す ③PRとmergeを判断する、の3つ。**`lib/`を動かさずに待つ。** 選択解除・画面を閉じる導線は`T39`へ渡す。
