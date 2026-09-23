@@ -38,7 +38,7 @@
 ## machine検証範囲
 
 widget testとmutationで閉じる(上の受け入れ証拠)。**manual確認は受け入れ証拠に含めない**(`task.json`の`manualVerification`は`null`のまま)。
-tapの押しやすさ(当たり判定の広さ)の実機での感触は機械で閉じられないので、残余riskとして受容する(引き受け先のtaskは無い)。
+tapの押しやすさ(当たり判定の広さ)のエミュレータ上の感触は機械で閉じられないので、残余riskとして受容する。**引き受け先は`008:T13`**(同じbrowser画面のfile行を触り、エミュレータのmanual確認を持つ。その手順へ「パンくずの途中の区切りを1回押す」を1項目足す)。
 
 ## 変更範囲の見込み
 
@@ -89,11 +89,15 @@ M430 | KILLED | lib/ui/file_source/storage_browser_view.dart | 区切りをbutto
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
 
+- attempt 1: `6e3cc95..8098562`(全範囲) — **PASS**(P2が1件)。P0/P1なし、安全網の穴なし。決定とREQ-015/016・T38/T39との整合、追加testが本物であること、M427〜M430の妥当性、full test 989件PASSを確認された。reviewerの範囲付きmutation 6件(M108・M412・M427〜M430)はKILLED。
+  - **P2(成果物の欠陥)**: tapの押しやすさの残余riskに引き受け先のtaskが無かった。→ `008:T13`を引き受け先にし、T13のhandoffへ1項目を足した。
+  - **SELF-CHECK**(AGENTS.mdの差分review): P2を閉じる差分は`specs/`だけ(T40とT13のtask.md)で、`lib/`・`test/`・`tool/`・依存・build設定に差分が無いことを`git diff --stat 8098562..HEAD`で確かめた。再reviewは起動しない。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-23、`3dd417d`)。
+- Last checkpoint: 独立review attempt 1 PASS(P2はSELF-CHECKで閉じた。2026-09-23)。
 - Blocker category: なし。
 - Evidence revision: base `dev`@`6e3cc95`、code `3dd417d`。
-- Waiting for: 独立review attempt 1(`gpt-6-luna`、全範囲)。
+- Waiting for: PR #189のCI。
 - Requested action: なし。
 - Next Agent action: review PASSなら PR #189 をready → CI → auto-merge条件を確かめてmerge。
