@@ -81,8 +81,8 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
 ## Current state / handoff
 
 - Last checkpoint: 定義しただけ。未着手。**2026-08-27 に`T07`がpreview基盤を作ったので、調査から始める必要は無くなった**
-- Blocker category: dependency
-- Waiting for: `T12`(同じ行を作り直すため)。`T07`の基盤は済み
+- Blocker category: なし(**`T12`は2026-09-22にdone**)
+- Waiting for: なし。`T07`の基盤も`T12`の行も済んでいる
 - Requested action: なし
-- Evidence revision: `dev@ae59859`(定義)、基盤は`008:T07`(PR #159)
-- Next Agent action: `T12`の後に着手し、`lib/data/preview/`のportをbrowserの行へ繋ぐ。**textのpreviewを入れるかを最初に決める**(残っている論点はそこだけ)
+- Evidence revision: 起点は `dev@7d8a597`。基盤は`008:T07`(PR #159)、browserの行は`008:T12`(PR #185)
+- Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。**

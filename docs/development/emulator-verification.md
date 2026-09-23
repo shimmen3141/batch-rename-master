@@ -49,6 +49,19 @@ $adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
 
 ADBはローカルTCP 5037番のサーバー1つを複数クライアントで共有する。したがって、このエラーは通常 `ANDROID_HOME` の値そのものではなく、残留サーバー・競合・オフラインのエミュレータを先に疑う。
 
+### `flutter run` が `flutter.sdk` で失敗する場合
+
+`android/local.properties` の `flutter.sdk` が **コンテナ内のパス**(`/home/dev/flutter`)になっていないか見る。
+このファイルはマシンごとの生成物だが、`compose.ai.yml` が作業ディレクトリを共有しているため、
+**コンテナ内で `flutter` を1回動かすだけで書き換わっていた**。
+
+**2026-09-23 に対処済み** — `compose.ai.yml` がこのファイルを `android/local.properties.ai` への単一ファイル
+bind mountで覆い、コンテナ側の書き込みはそちらへ入る。**ホストの `android/local.properties` は守られる。**
+
+- それでも壊れていたら、`android/local.properties` を**消してから** `flutter run` する(正しい値で作り直される)。
+- `android/local.properties.ai` がホストに無いと、Dockerがディレクトリを作ってしまう。**空ファイルとして用意しておく。**
+- 経緯: [`development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md`](../../development-findings/2026-09-22-container-flutter-rewrites-android-local-properties.md)
+
 ## エージェント（AI）の変更を反映する
 
 `compose.ai.yml` は `- ./:/workspace` でホストのリポジトリを**バインドマウント**している。つまりコンテナ（AI サンドボックス）とホストは**同じ作業ツリー（1つの git チェックアウト）を共有**する。エージェントの編集はホストのファイルにも即現れる（ファイル自体は git pull 不要）。ただし「自動で画面に反映」にはならない:

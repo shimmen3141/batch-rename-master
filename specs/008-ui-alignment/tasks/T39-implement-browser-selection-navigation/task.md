@@ -48,9 +48,19 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 
 ## Current state / handoff
 
-- Last checkpoint: T38と同時に実装taskとして登録した。
-- Blocker category: dependency / T38（T12とT37はdone）。**T38の仕様は2026-09-23に承認済みで、残るのはT38自身のreviewだけ。**
-- Evidence revision: dev@`180ab77`（T37はPR #184で統合済み）。
-- Waiting for: `T38`の完了(独立review)。
+- Last checkpoint: **未着手だが着手できる。** `T38`が2026-09-23にdone(操作状態表とUIの決定、004 REQ-020への一括解除が承認済み)、`T12`も統合済み。依存はすべて外れた。
+- Blocker category: なし。
+- Evidence revision: 起点は `dev@7d8a597`(T11・T12・T38が統合済み)。参照する実装は `lib/ui/file_source/storage_browser_view.dart`、`lib/ui/file_list/file_list_view.dart`(T29のcheckboxの形)、`lib/ui/common/drag_selection_controller.dart`(T37)。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: T38の承認済み状態表とT12の実装結果を受けて専用branch/worktreeで着手する。T37に対するエミュレータ完了の例外をT39へ自動適用せず、着手前に実機手順を具体化する。
+- Next Agent action: **次の順で進める。**
+  1. 専用のbranch/worktree(`asdd/008-ui-alignment/T39-implement-browser-selection-navigation`)を`dev`から作る。
+  2. **`T38`の操作状態表**(`../T38-define-browser-selection-navigation/task.md`の「操作状態表」)を上から実装する。
+     **正本はそこで、ここへ複製しない。**
+  3. 状態表の各行をwidget testで検査する(上の受け入れ証拠の行)。**一括解除は004 REQ-020が正本。**
+  4. `tool/mutations.json`へ、一括解除と`×`が画面を閉じないことを守るmutationを足す。
+  5. `flutter test` / `analyze` / `dart format` / `python3 tool/check_normative_terms.py` を通す。
+  6. `manual-verification.md`を具体化してから人間へ依頼する。**T37のエミュレータ完了の例外を自動適用しない。**
+     **`T12`から引き受けた残余risk(保存場所が1件の端末の入口)も同じ手順書へ入れる**(端末がSDカードを持たない場合)。
+  7. 独立review(開発者指定の`gpt-5.6-luna`)→ PR → CI → merge判断。
+  **パンくずのtap移動は作らない**(`T40`)。
