@@ -106,12 +106,19 @@
   - attempt 1 のP1/P2(rootの選択中、`plan.md`のT40索引)は**閉じたと確認された**。REQ-020と代表例、`×`と`←`の記録、
     T40の登録と粒度、近道撤去との整合、各checkのPASSも再確認された。
 
+- attempt 3: `3a0c9fa..8c9b25a` — **PASS**。P0/P1と安全網の穴なし。操作状態表の網羅、REQ-020の追記と代表例、
+  `×`と`←`の代償の記録、`plan.json`/`plan.md`/T39依存/T40の粒度、近道の古い記録の扱い、承認状態の表現、
+  workspace check / normative check / `git diff --check` / `lib`・`test`に差分が無いことを確認した。
+
+**PASS後に1か所だけ直した(記録のみ)**: `plan.md`の`T38`の説明に「提案の配置・文言はこの時点では未承認である」が
+残っていたので、**2026-09-23に承認された**ことを追記した。**仕様・状態表・引き渡しは変えていない。**
+
 ## Current state / handoff
 
-- Last checkpoint: **2026-09-23に操作状態表を作り、UIの決定と004 REQ-020への一括解除の追加を開発者が承認した。** `T39`へ引き渡し、パンくずのtap移動は`T40`として新設した。**残るのはこのtask自身の独立reviewだけ。**
+- Last checkpoint: **完了**(2026-09-23)。操作状態表とUIの決定、004 REQ-020への一括解除の追加を開発者が承認し、独立review attempt 3 がPASSした。`T39`へ引き渡し、パンくずのtap移動は`T40`として新設した。
   - 登録時(2026-09-22)の記録: T37エミュレータ確認報告から論点を登録した。**その時点ではUI候補は未承認だった**(2026-09-23に承認された)。登録の独立reviewは `gpt-5.6-luna`、exact range `bef8337...edf4b08` でP2×3のFAIL、依存・証拠版・実機手順の引継ぎを修正後の `bef8337...5f31387` でPASS（P0〜P2なし）。**これは登録内容のreviewで、2026-09-23の決定のreviewではない。**
 - Blocker category: なし(**T11は2026-09-22に承認済み**)。
 - Evidence revision: base は `dev@3a0c9fa`。**決定と承認は2026-09-23の会話で受領し、このtask.mdと`plan.md`の「人間の決定」、004 specのStatus行が正本である。** 観測の出所(2026-09-22のT37エミュレータ確認報告)はT37の `f4b7868` に記録され、対象code/testは `d88ab4f`、T37はPR #184でdev@`180ab77`へ統合済み。
-- Waiting for: exact rangeの独立review。
+- Waiting for: `dev`へのmerge判断。
 - Requested action: なし。
-- Next Agent action: 独立reviewがPASSしたら`done`にし、`T39`(実装)を着手可能として扱う。**`T40`は`T39`の後。**
+- Next Agent action: `dev`へmergeし、`T39`(実装)を着手可能として扱う。**`T40`は`T39`の後。**
