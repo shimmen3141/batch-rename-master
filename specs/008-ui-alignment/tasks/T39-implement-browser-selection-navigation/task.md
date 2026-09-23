@@ -227,9 +227,9 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
 
 ## Current state / handoff
 
-- Last checkpoint: **開発者が案Aを選び、`blocked`を解いた**(2026-09-23)。PR #186をreadyにした。manual 3回目はPASS(`lib/`=`2cf0e09`)。
-- Blocker category: なし(merge待ち)。
-- Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
-- Waiting for: **人間によるPR #186のmerge**(最終rangeの独立PASSが無いため、Agentはmergeしない)。
-- Requested action: 人間がPR #186をmerge commitでmergeする。
-- Next Agent action: merge後に`dev`上の結果とCIを確かめ、T39を`done`にしてworktreeを片付ける。次は`T40`(パンくずのtap移動)。
+- Last checkpoint: **完了**(2026-09-23)。PR #186を開発者がmergeした(`dev`@`c392b44`)。統合後の`dev`@`23b2522`で`flutter analyze` PASS、`flutter test` 983件PASS、workspace check PASS。manual(Androidエミュレータ、`lib/`=`2cf0e09`)は3回目でPASS。
+- Blocker category: なし。
+- Evidence revision: code `2cf0e09`、統合 merge commit `c392b44`。`2cf0e09`以後の`lib/`・dependency・build設定の差分なし。
+- Waiting for: なし。
+- Requested action: なし。
+- Next Agent action: なし。後続は`T40`(パンくずのtap移動。`breadcrumbOf`の各区切りのpathをtap先に使える)。残余risk(保存場所1件の入口、TalkBackの実際の読み上げ、物理端末固有の差)は上の表のとおり受容済み。
