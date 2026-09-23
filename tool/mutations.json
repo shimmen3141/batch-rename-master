@@ -2819,6 +2819,13 @@
       "note": "008:T39 file行の名前とcheckboxを別々のsemantics nodeにする — 支援技術で1行が2項目に割れ、名前を聞いても選択状態が分からない(manual 10の前提)",
       "find": "    return MergeSemantics(\n      child: ListTile(",
       "replace": "    return Semantics(\n      child: ListTile("
+    },
+    {
+      "id": "M419",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "[reviewer追加 R-T39-1][対照] 008:T39 「すべて選択」を押せる状態でも無効にする(M413の逆向き。004 REQ-020の全選択が実行できない)",
+      "find": "        enabled: _canSelectAll,",
+      "replace": "        enabled: false,"
     }
   ]
 }

@@ -14,7 +14,11 @@
 
 ### 準備するファイル
 
-ホストのPowerShellから、端末の`Download`へ置く。**捨ててよいファイルだけ**である。
+ホストのPowerShellから、端末の`Download`へ**確認専用のフォルダ`asdd-008-t39`**を作って置く。**捨ててよいファイルだけ**である。
+
+hostの`%TEMP%\asdd-008-t39`は**この手順専用の作業場所で、毎回作り直す**(最初の`Remove-Item`が消すのはここだけ)。
+
+**端末のファイルは消さない。** 同じ名前のフォルダが既にあれば、**何も置かずに止まる**(下の`if`)。止まったら、そのフォルダが何かを確かめてから知らせてほしい — 前回この確認で作ったものなら、中身を見てから自分で消してよい。
 
 ```powershell
 $adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
@@ -28,14 +32,21 @@ Set-Content -LiteralPath "$fixturePath\t39\b.jpg" -Value 'b'
 Set-Content -LiteralPath "$fixturePath\t39\c.pdf" -Value 'c'
 Set-Content -LiteralPath "$fixturePath\t39\sub\s.txt" -Value 's'
 Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
-& $adbPath shell "rm -rf /sdcard/Download/t39"
-& $adbPath push "$fixturePath\t39" /sdcard/Download/
-& $adbPath shell "rm -f /sdcard/Download/t39/empty/.keep"
-& $adbPath shell "ls -R /sdcard/Download/t39"
+$existing = "$(& $adbPath shell 'if [ -e /sdcard/Download/asdd-008-t39 ]; then echo exists; fi')".Trim()
+if ($existing -eq 'exists') {
+  Write-Host '端末に Download/asdd-008-t39 が既にあります。何も置かずに止めました。' -ForegroundColor Red
+} else {
+  & $adbPath shell "mkdir /sdcard/Download/asdd-008-t39"
+  & $adbPath push "$fixturePath\t39\." /sdcard/Download/asdd-008-t39/
+  & $adbPath shell "rm -f /sdcard/Download/asdd-008-t39/empty/.keep"
+  & $adbPath shell "ls -R /sdcard/Download/asdd-008-t39"
+}
 ```
 
 **期待**: 最後の`ls`に`a.txt` `b.jpg` `c.pdf`、フォルダ`sub`(中に`s.txt`)、空の`empty`、長い名前のフォルダが出る。
-(`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。)
+(`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。消すのは**このfixtureの`.keep`だけ**である。)
+
+**後片付け**: 確認が終わったら、端末のファイルアプリで`Download/asdd-008-t39`を消してよい(中身はすべてこの手順で置いたもの)。
 
 **確認の前に**、リネーム画面に何か1件読み込んでおく(1〜6とは別のファイルでよい)。**7で「戻っても元の一覧が保たれる」ことを見るため**である。
 
@@ -67,13 +78,13 @@ Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
 
 ## 2. フォルダの中(何も選んでいない)
 
-1. `Download` → `t39` へ入る。
+1. `Download` → `asdd-008-t39` へ入る。
 
 - 上の段: 左に **`←`**、中央は「**内部ストレージ**」のまま。
-- 帯: 「**内部ストレージ › Download › t39**」。
+- 帯: 「**内部ストレージ › Download › asdd-008-t39**」。
 - フォルダの行(`sub`・`empty`・長い名前)は**右端に `›`** があり、**丸いチェックが無い**。
 - ファイルの行(`a.txt`など)は**右端に丸いチェック**がある。
-- `←`を押すと`Download`へ戻る。もう一度`t39`へ入る。
+- `←`を押すと`Download`へ戻る。もう一度`asdd-008-t39`へ入る。
 
 ## 3. 1件選ぶ
 
@@ -95,7 +106,7 @@ Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
 
 1. 左上の **`×`** を押す。
 
-- **画面は閉じない。** 3件とも選択が外れ、上の段が **`←` + 「内部ストレージ」** に戻る。帯も`t39`のまま。
+- **画面は閉じない。** 3件とも選択が外れ、上の段が **`←` + 「内部ストレージ」** に戻る。帯も`asdd-008-t39`のまま。
 
 ## 6. ︙から解除する / フォルダを移ると解除される
 
@@ -105,29 +116,29 @@ Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
 
 2. `a.txt`と`b.jpg`を選んだまま、`sub`フォルダを押す。
 
-- `sub`の中へ入り、**選択は解除される**(上の段は `←` + 「内部ストレージ」)。帯は「… › t39 › sub」。
+- `sub`の中へ入り、**選択は解除される**(上の段は `←` + 「内部ストレージ」)。帯は「… › asdd-008-t39 › sub」。
 
-3. `←`で`t39`へ戻り、`empty`へ入る。
+3. `←`で`asdd-008-t39`へ戻り、`empty`へ入る。
 
 - 「**このフォルダにファイルはありません**」と出る。︙の「すべて選択」は**灰色**、「確定」も**灰色**。
 
 ## 7. 画面を閉じる導線
 
-1. `t39`で`a.txt`を選び、**「リネーム画面に戻る」**を押す。
+1. `asdd-008-t39`で`a.txt`を選び、**「リネーム画面に戻る」**を押す。
 
 - リネーム画面へ戻る。**`a.txt`は読み込まれず**、準備で読み込んでおいた**元の一覧がそのまま**残っている。
 
-2. もう一度開いて`t39`で`a.txt`を選び、**端末の戻る操作**(戻るボタン、または画面端からのスワイプ)をする。
+2. もう一度開いて`asdd-008-t39`で`a.txt`を選び、**端末の戻る操作**(戻るボタン、または画面端からのスワイプ)をする。
 
 - 1と同じ: **親フォルダへ戻るのでも、選択の解除でもなく**、リネーム画面へ戻る。一覧はそのまま。
 
-3. もう一度開いて`t39`で`a.txt`と`c.pdf`を選び、「確定」を押す。
+3. もう一度開いて`asdd-008-t39`で`a.txt`と`c.pdf`を選び、「確定」を押す。
 
 - リネーム画面の一覧にその**2件だけ**が加わる。
 
 ## 8. 長押しでまとめて選ぶ(`T37`の回帰)
 
-1. `t39`で`a.txt`を長押しし、指を離さずに`c.pdf`までなぞって離す。
+1. `asdd-008-t39`で`a.txt`を長押しし、指を離さずに`c.pdf`までなぞって離す。
 
 - `a.txt`〜`c.pdf`の3件が選ばれ、「3件選択中」になる。
 - 長押しせずに上下へスクロールしただけでは、何も選ばれない。
@@ -135,11 +146,11 @@ Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
 ## 9. 狭い幅と長い名前
 
 1. 端末の設定で**フォントサイズと表示サイズを最大**にする(終わったら戻す)。
-2. `t39` → 長い名前のフォルダ → `さらに深いフォルダ`へ入る。
+2. `asdd-008-t39` → 長い名前のフォルダ → `さらに深いフォルダ`へ入る。
 
 - 帯は**末尾(`さらに深いフォルダ`)が見えている**。左右にスワイプすると先頭の「内部ストレージ」まで見られる。
 - 上の段の文字、下の「リネーム画面に戻る」「確定」が**重ならず、はみ出さない**(文字が「…」で切れるのは許容)。
-- 何か1件選べる場所(`t39`)で「N件選択中」も同じく重ならない。
+- 何か1件選べる場所(`asdd-008-t39`)で「N件選択中」も同じく重ならない。
 
 ## 10. TalkBack(読み上げ)で操作する
 
@@ -149,7 +160,7 @@ Set-Content -LiteralPath "$fixturePath\t39\empty\.keep" -Value ''
 - **TalkBack中の操作**: **1本指で右へスワイプ**すると次の項目へ移り、読み上げる。左へスワイプで前の項目。**どこでもよいので2回タップ**すると、いま読み上げた項目を押す。スクロールは**2本指**でなぞる。
 - **オフにする**: 同じ設定画面でオフにする(オンのまま設定画面へ行くには、上の操作で「設定」を選んで2回タップ)。
 
-1. `t39`を開いた状態で、画面の上から順に右スワイプで項目を読ませる。
+1. `asdd-008-t39`を開いた状態で、画面の上から順に右スワイプで項目を読ませる。
 
 - 左上は「**上のフォルダへ**」と読まれる。右上は「**その他の操作**」と読まれる。
 - 下の左は「**リネーム画面に戻る**」と読まれる。

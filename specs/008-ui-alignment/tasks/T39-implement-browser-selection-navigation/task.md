@@ -110,11 +110,19 @@ M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前�
 **reviewerのmodelは`gpt-6-luna`**(2026-09-23に開発者がこのsessionで指定。実装はClaude Opus 5.5)。
 **これまでの記録(`T38`・このtaskの登録時)は`gpt-5.6-luna`だった** — 開発者の新しい指定に従い、食い違いとしてここへ残す。
 
+- attempt 1: `0fd66d1..f1526cd` — **FAIL**。
+  - **P1(成果物の欠陥)**: `manual-verification.md`のfixture準備が端末の`Download/t39`を**無条件に`rm -rf`していた**。
+    利用者の既存フォルダがあれば失われる。→ **確認専用の`Download/asdd-008-t39`へ変え、既にあれば何も置かずに止まる**
+    手順にした。端末側で消すのはこのfixtureの`.keep`だけ。後片付けは人間がファイルアプリで行う。
+  - 状態表の全行との一致、T40を先取りしていないこと、T12/T37のtestを弱めていないこと、M117/M402の追随とM407〜M418の妥当性、
+    T12の残余riskがmanualに入っていることは**確認された**。reviewerの範囲付きmutation 15件はすべてKILLED。
+  - reviewerの対照`R-T39-1`(「すべて選択」を押せる状態でも無効にする)を`M419`として`tool/mutations.json`へ取り込んだ。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装とmachine検証が済んだ(2026-09-23)。状態表の全行のwidget test、full regression、format/analyze、browser関連mutation 32件KILLED。`manual-verification.md`を物理端末向けに具体化した(`T12`の残余riskの入口を含む)。
 - Blocker category: なし。
 - Evidence revision: `lib/`は`073b354`。base は`dev@0fd66d1`。
-- Waiting for: 独立review(`gpt-6-luna`)。その後、Android物理端末のmanual確認。
+- Waiting for: 独立review attempt 2(`gpt-6-luna`)。その後、Android物理端末のmanual確認。
 - Requested action: なし(review後に manual を依頼する)。
 - Next Agent action: 独立reviewを`gpt-6-luna`で行う → Draft PR → manual依頼。**パンくずのtap移動は作らない**(`T40`)。
