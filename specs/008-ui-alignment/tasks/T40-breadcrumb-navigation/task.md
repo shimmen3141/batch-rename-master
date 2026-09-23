@@ -96,4 +96,4 @@ M430 | KILLED | lib/ui/file_source/storage_browser_view.dart | 区切りをbutto
 - Evidence revision: base `dev`@`6e3cc95`、code `3dd417d`。
 - Waiting for: 独立review attempt 1(`gpt-6-luna`、全範囲)。
 - Requested action: なし。
-- Next Agent action: review PASSなら PR #? をready → CI → auto-merge条件を確かめてmerge。
+- Next Agent action: review PASSなら PR #189 をready → CI → auto-merge条件を確かめてmerge。
