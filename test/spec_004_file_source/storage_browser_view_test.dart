@@ -22,6 +22,7 @@ import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/storage_browser_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
@@ -1375,6 +1376,46 @@ void main() {
       expect(last.right, lessThanOrEqualTo(band.right));
       expect(last.left, greaterThanOrEqualTo(band.left));
     });
+
+    for (final kind in [PointerDeviceKind.touch, PointerDeviceKind.mouse]) {
+      testWidgets('深い階層のパンくずは横へ送って先頭まで見られる($kind)', (tester) async {
+        // **マウスでも送れる**: エミュレータの2回目の確認で、マウスのドラッグでは
+        // 動かず「内部ストレージ」が見られなかった(Flutterの既定はタッチ等だけ)。
+        await tester.binding.setSurfaceSize(const Size(320, 480));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const long = 'very_long_folder_name_for_breadcrumb_check_2026_09';
+        await _open(
+          tester,
+          _FakeBrowser(
+            tree: {
+              _root: [_dir(_root, long)],
+              '$_root/$long': [_dir('$_root/$long', 'deeper_folder')],
+            },
+          ),
+        );
+        await tester.tap(find.byKey(const Key('browser-folder-$long')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('browser-folder-deeper_folder')));
+        await tester.pumpAndSettle();
+        final band = tester.getRect(find.byKey(browserBreadcrumbKey));
+        Rect first() =>
+            tester.getRect(find.byKey(browserBreadcrumbSegmentKey(0)));
+        expect(first().left, lessThan(band.left), reason: '最初は末尾側が見えている');
+
+        await tester.drag(
+          find.byKey(browserBreadcrumbKey),
+          const Offset(2000, 0),
+          kind: kind,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          first().left,
+          closeTo(band.left + 16, 1),
+          reason: '先頭の保存場所名まで戻れる',
+        );
+      });
+    }
 
     testWidgets('空のfolderの文言は一覧の領域の中央に出る(2026-09-23)', (tester) async {
       await _open(tester, _FakeBrowser(tree: _stateTree()));

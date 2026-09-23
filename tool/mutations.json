@@ -2868,6 +2868,13 @@
       "note": "008:T39 深い階層でパンくずを先頭側に寄せる — 現在のfolder(末尾)が見えなくなる",
       "find": "          reverse: true,",
       "replace": "          reverse: false,"
+    },
+    {
+      "id": "M426",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 パンくずのマウスでの横送りを外す — エミュレータ(マウス)で先頭の保存場所名まで戻れない(2026-09-23のエミュレータ確認2回目)",
+      "find": "      ).copyWith(dragDevices: PointerDeviceKind.values.toSet()),",
+      "replace": "      ).copyWith(),"
     }
   ]
 }

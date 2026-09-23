@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -371,50 +372,59 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   /// `Row` を左から詰める。
   Widget _breadcrumb(AppColors colors) {
     final segments = breadcrumbOf(_location!, _folder!);
-    return Container(
-      key: browserBreadcrumbKey,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          reverse: true,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: Row(
-              children: [
-                for (final (index, segment) in segments.indexed) ...[
-                  if (index > 0)
-                    ExcludeSemantics(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        // **区切りは`textSecondary`**。`textMuted`では薄くて見づらかった
-                        // (2026-09-23 のエミュレータ確認)。
-                        child: Text(
-                          key: browserBreadcrumbSeparatorKey(index),
-                          '›',
-                          style: TextStyle(
-                            color: colors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+    // **マウスのドラッグでも横へ送れる**ようにする。Flutter の既定はタッチ等だけで、
+    // エミュレータのマウス操作では先頭の保存場所名まで戻れなかった
+    // (2026-09-23 のエミュレータ確認2回目)。帯には選択の操作が無いので、
+    // ドラッグの意味は横送りだけである。
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(
+        context,
+      ).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+      child: Container(
+        key: browserBreadcrumbKey,
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: Row(
+                children: [
+                  for (final (index, segment) in segments.indexed) ...[
+                    if (index > 0)
+                      ExcludeSemantics(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          // **区切りは`textSecondary`**。`textMuted`では薄くて見づらかった
+                          // (2026-09-23 のエミュレータ確認)。
+                          child: Text(
+                            key: browserBreadcrumbSeparatorKey(index),
+                            '›',
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
+                    Text(
+                      key: browserBreadcrumbSegmentKey(index),
+                      segment.name,
+                      style: TextStyle(
+                        color: index == segments.length - 1
+                            ? colors.textPrimary
+                            : colors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: index == segments.length - 1
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
                     ),
-                  Text(
-                    key: browserBreadcrumbSegmentKey(index),
-                    segment.name,
-                    style: TextStyle(
-                      color: index == segments.length - 1
-                          ? colors.textPrimary
-                          : colors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: index == segments.length - 1
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
