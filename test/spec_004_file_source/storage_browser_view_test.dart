@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsAction;
+import 'dart:ui' show CheckedState, SemanticsAction;
 
 // 004 VER-005: app 内 file browser(REQ-015〜REQ-020)。
 //
@@ -1286,6 +1286,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(_isChecked(tester, 'r1.txt'), isTrue);
       expect(tile().tileColor, colors.selectedSurface, reason: '選択済みの面');
+    });
+
+    testWidgets('file行は名前と選択状態を1つのsemantics nodeで示す', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+
+      final checkbox = find.descendant(
+        of: find.byKey(const Key('browser-file-r1.txt')),
+        matching: find.byType(Checkbox),
+      );
+      row() => tester.getSemantics(checkbox).getSemanticsData();
+      expect(row().label, contains('r1.txt'), reason: '名前とcheckboxが同じnode');
+      expect(row().flagsCollection.isChecked, CheckedState.isFalse);
+
+      tester.semantics.tap(find.semantics.byLabel('r1.txt'));
+      await tester.pumpAndSettle();
+      expect(row().flagsCollection.isChecked, CheckedState.isTrue);
+      expect(_title(tester), '1件選択中', reason: '1回の操作で1回だけ切り替わる');
+      semantics.dispose();
     });
 
     testWidgets('folder行はcheckboxを持たず、navigationとして識別できる', (tester) async {
