@@ -168,6 +168,12 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
 | 9 長い名前のフォルダ | **作られなかった**(`adb push`の出力は5 files、`ls`に長い名前のフォルダが無い) | **手順書の欠陥**: `adb push`は空のフォルダを送らず、`deeper_folder`が空だった。`d.txt`を入れ、残っているfixtureへ足すコマンドも書いた。**9は未実施** |
 | 1 入口 | 報告に個別の記載なし(「概ね問題なかった」) | 2回目で確かめる |
 
+### 3回目(2026-09-23、Androidエミュレータ、`lib/`は`2cf0e09`) — **PASS**
+
+開発者の報告(会話):「確認事項について、全て確認できました。」**0〜9のすべてがPASS**(10のTalkBackは2026-09-23の決定で行わない)。
+2回目の指摘(9: 深い階層のパンくずをマウスで送れない)は解消した。1の入口も含まれる(エミュレータはSDカードを持つので、保存場所の一覧から始まる側)。
+**このmanual証拠は`lib/`が`2cf0e09`のbuildに対応する。** 以後`lib/`・dependency・build設定を変えたら再利用しない。
+
 ### 2回目(2026-09-23、Androidエミュレータ、`lib/`は`30be394`)
 
 開発者の報告:「ほぼすべて問題ないことが確認できた」。1回目の指摘(パンくずの左寄せ・位置・`›`、空の表示の中央、「← リネーム画面へ」)は解消した。
@@ -199,9 +205,9 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
 
 ## Current state / handoff
 
-- Last checkpoint: **manual 2回目の指摘(パンくずがマウスで横へ送れない)を`2cf0e09`で直した**(2026-09-23)。full test 983件PASS。manual 3回目を待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、3回目)。
+- Last checkpoint: **manual 3回目がPASS**(2026-09-23、エミュレータ、`lib/`は`2cf0e09`)。独立review(implementation + final-evidence)を待つ。
+- Blocker category: なし。
 - Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜9の結果(10は行わない)。**9でマウスのドラッグで先頭まで戻れるか**、**1で最初に保存場所の一覧が出たか**。
-- Requested action: 人間がhostでworktreeのbranch HEADをエミュレータで`flutter run`し、manualを実行して会話で結果を知らせる。branch移動は不要(worktree `.worktrees/008-T39-browser-selection-navigation`)。
+- Waiting for: 独立review attempt 3(`gpt-6-luna`、`0fd66d1..HEAD`)。
+- Requested action: なし。
 - Next Agent action: 結果を`task.md`へ記録する。PASSなら **`0fd66d1..HEAD`の独立review(`gpt-6-luna`。`bebbe74`以後の実装変更を含むので、implementationとfinal-evidenceを合わせて見る)**→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
