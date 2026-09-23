@@ -16,7 +16,7 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 
 - widget test: **`T38`の操作状態表の行をそのまま検査する** — 保存場所の一覧 / root(複数) / root(1件) / 下位folder / 空folderの各行で、header左(`←`の有無と行き先 / 選択中は`×`)・header中央(保存場所名 / 「N件選択中」)・**常に右端にあるケバブ**・パンくず・footer(「リネーム画面に戻る」「確定」の有効条件)が表のとおりであること。あわせて**一括解除**(004 REQ-020。`×`とケバブの両方から実行でき、**選択0件では解除が提示されない**)、**folder移動で選択が解除される**こと、file行のcheckbox配置と選択表示、folderが全選択の対象外であること、T37のdrag回帰。
 - semantics widget test: 戻る、一括選択、一括解除の操作名とactionを区別する。
-- **Androidエミュレータ**(2026-09-23 開発者の決定で物理端末から変更。下の「人間の決定」): 上記の見え方、マウスでの選択・解除、TalkBackの読み上げと操作(system imageにあれば)、狭幅と長い場所名。T39が引き受ける。**物理端末に固有の差は見ない。**
+- **Androidエミュレータ**(2026-09-23 開発者の決定で物理端末から変更。下の「人間の決定」): 上記の見え方、マウスでの選択・解除、狭幅と長い場所名。**TalkBackは範囲外**(2026-09-23の決定。操作名と実行はsemantics widget testが見る)。T39が引き受ける。**物理端末に固有の差は見ない。**
 - **`T12`から引き受けた残余risk(2026-09-22)**: 保存場所が**1件**の端末で、browserが一覧を挟まずrootから始まること(004 REQ-015)。`T12`はエミュレータにSDカードがあり観測できなかった(widget testとmutation `M109`では固定済み)。**物理端末がSDカードを持たないなら、入口の見え方を1項目足す。** 持つなら観測できないことを記録する。
 - desktopはOS picker経路のためmanual対象外。
 
@@ -217,12 +217,18 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
   - 実装変更と開発者の決定・状態表・REQ-015の整合、T40を先取りしていないこと、追加testが本物であること、manual証拠と
     `2cf0e09`の対応、エミュレータ・TalkBack・残余riskの記録、full test 983件PASSは**確認された**。
   - **FAILは累計2回**(attempt 1・3)。次にFAILすればAGENTS.mdに従い`blocked`にして人間へ返す。
+- attempt 4: `0fd66d1..cf68e3e` — **FAIL(指摘はP2の1件だけ)**。
+  - **P2(成果物の欠陥)**: TalkBackを行わない決定と、`manual-verification.md`の10の詳細手順・報告欄、`task.md`の検証範囲の記述が食い違っていた。
+    → 10を「行わない」とだけ書いた節へ置き換え、報告欄と検証範囲からTalkBackを外した(記録のみ。`lib/`・`test/`は変えていない)。
+  - attempt 3のP1・P2・安全網の穴は**閉じたと確認された**。実装と決定・状態表・REQ-015の整合、test、M406・M420〜M426の8件KILLED、
+    manual証拠(`lib/`=`2cf0e09`、以後`lib/`・dependency・build設定の差分なし)、full test 983件PASS、PR #186のCI SUCCESSも確認された。
+  - **FAILが累計3回(attempt 1・3・4)に達したので、AGENTS.mdに従い`blocked`にして人間へ返す。** attempt 5は起動しない。
 
 ## Current state / handoff
 
-- Last checkpoint: **独立review attempt 3(FAIL)の指摘を直した**(2026-09-23、`e2d4717`)。manual 3回目はPASS(`lib/`=`2cf0e09`、以後`lib/`の差分なし)。
-- Blocker category: なし。
+- Last checkpoint: **独立reviewのFAILが累計3回に達し`blocked`**(2026-09-23)。attempt 4の指摘(P2の文書不整合1件)は直した。manual 3回目はPASS(`lib/`=`2cf0e09`)。
+- Blocker category: 独立review FAIL 3回(AGENTS.md)。人間の判断待ち。
 - Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
-- Waiting for: 独立review attempt 4(`gpt-6-luna`)。
-- Requested action: なし。
-- Next Agent action: 結果を`task.md`へ記録する。PASSなら **`0fd66d1..HEAD`の独立review(`gpt-6-luna`。`bebbe74`以後の実装変更を含むので、implementationとfinal-evidenceを合わせて見る)**→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
+- Waiting for: 進め方の判断(会話で選択肢を提示した: attempt 5を許可する / attempt 4の指摘修正を確認して完了扱いにする / その他)。
+- Requested action: 人間が上の判断を返す。
+- Next Agent action: 判断に従う。完了扱いなら PR #186 をready → CI → merge判断。attempt 5なら同じ`gpt-6-luna`で`0fd66d1..HEAD`をreviewする。
