@@ -1,6 +1,6 @@
 # 手動確認: app内browserの選択と戻る導線(Androidエミュレータ)
 
-**対象buildは、`lib/`の内容が commit `30be394` と同一のもの**である(2回目。1回目は`073b354`で、結果は`task.md`に記録済み)。branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`の内容が commit `2cf0e09` と同一のもの**である(3回目。1回目は`073b354`、2回目は`30be394`で、結果は`task.md`に記録済み)。branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
 
 **提示の正本は`T38`の操作状態表**([`../T38-define-browser-selection-navigation/task.md`](../T38-define-browser-selection-navigation/task.md)の「操作状態表」)である。ここでは実機で見る点だけを書く。
 
@@ -155,7 +155,7 @@ widget testとmutation `M109`で固定してあり、見られないことは`ta
 1. エミュレータの設定で**フォントサイズと表示サイズを最大**にする(設定 → ディスプレイ(またはユーザー補助)→ 表示サイズとテキスト。終わったら戻す)。
 2. `asdd-008-t39` → `very_long_folder_name_…` → `deeper_folder`へ入る。
 
-- 帯は**末尾(`deeper_folder`)が見えている**。左右にスワイプすると先頭の「内部ストレージ」まで見られる。
+- 帯は**末尾(`deeper_folder`)が見えている**。**帯をマウスで右へドラッグする**(押したまま右へ動かす)と、先頭の「内部ストレージ」まで見られる。2回目はここが動かなかった。
 - 上の段の文字、下の「← リネーム画面へ」「確定」が**重ならず、はみ出さない**(文字が「…」で切れるのは許容)。
 - 何か1件選べる場所(`asdd-008-t39`)で「N件選択中」も同じく重ならない。
 

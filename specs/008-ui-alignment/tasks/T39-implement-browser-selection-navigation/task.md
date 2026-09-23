@@ -119,6 +119,18 @@ M422 | KILLED | lib/ui/file_source/storage_browser_view.dart | (test修正後に
 1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+**2回目の修正後(`2cf0e09`)** — AGENTS.mdの方針(2026-09-23 開発者承認: 所有taskも関連testへ絞り、SURVIVEDだけ全件で確かめ直す)に従い、`command`を`flutter test test/spec_004_file_source/storage_browser_view_test.dart`へ絞り、パンくずに関わる4件だけを回した生出力(54秒):
+
+```text
+M420 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずを右寄せに戻す | exit 1
+M422 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの帯にheaderと同じ面の色を敷く | exit 1
+M425 | KILLED | lib/ui/file_source/storage_browser_view.dart | 深い階層でパンくずを先頭側に寄せる | exit 1
+M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずのマウスでの横送りを外す | exit 1
+4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。他の35件はパンくずの帯のscroll設定に触れないので、`30be394`での結果から変わらない。)
+
 `M422`のSURVIVEDは、testが`Container.decoration`だけを見ていたため(`Container(color:)`は色を`color`に持つ)。`color`も見るよう直した。他の33件(M105〜M419)は1回目と同じくKILLED。
 
 **T39の範囲外で観測したこと**: `tool/mutations.json`の`M116`・`M178`・`M257`・`M264`・`M298`・`M305`・`M306`・`M314`・`M317`・`M324`・`M342`・`M355`・`M357`・`M358`は、**`dev@0fd66d1`の時点で既に`find`が対象fileに見つからない**(`file_list_view.dart`と`android_storage_browser.dart`で、T39は触っていない)。全件実行では`SKIPPED`になり、守っていたつもりの保証が検査されていない。所有taskの追随が要る。
@@ -156,6 +168,17 @@ M422 | KILLED | lib/ui/file_source/storage_browser_view.dart | (test修正後に
 | 9 長い名前のフォルダ | **作られなかった**(`adb push`の出力は5 files、`ls`に長い名前のフォルダが無い) | **手順書の欠陥**: `adb push`は空のフォルダを送らず、`deeper_folder`が空だった。`d.txt`を入れ、残っているfixtureへ足すコマンドも書いた。**9は未実施** |
 | 1 入口 | 報告に個別の記載なし(「概ね問題なかった」) | 2回目で確かめる |
 
+### 2回目(2026-09-23、Androidエミュレータ、`lib/`は`30be394`)
+
+開発者の報告:「ほぼすべて問題ないことが確認できた」。1回目の指摘(パンくずの左寄せ・位置・`›`、空の表示の中央、「← リネーム画面へ」)は解消した。
+
+| 項目 | 結果 | 対応 |
+|---|---|---|
+| 9 深い階層のパンくず | **末尾(`deeper_folder`)は見える。左右にスワイプできず、先頭の「内部ストレージ」が見られない** | **実装の不具合(成果物の欠陥)**。Flutterの既定の`ScrollBehavior`は**マウスのドラッグでスクロールしない**。widget testで、タッチでは送れてマウスでは`pixels=0`のままになることを再現した。エミュレータのマウス操作はマウスとして届くと判断した(1回目・2回目で一覧の縦送りは報告されているが、ホイールで行える)。`2cf0e09`で帯の`ScrollConfiguration`をマウスでも送れるようにし、touch/mouseの両方のtestと`M426`を足した |
+| 1 入口 | 個別の記載なし | 3回目で確かめる |
+
+**2回目の結果も`30be394`のbuildに対するもので、`2cf0e09`では再利用しない。** `30be394..2cf0e09`の`lib/`差分はパンくずの帯のscroll設定だけだが、3回目も0〜9を通して見る(10は行わない)。
+
 **1回目の結果は`073b354`のbuildに対するもので、`30be394`では再利用しない**(AGENTS.md)。`073b354..30be394`の`lib/`差分はパンくず・空の表示・footerの描画だけで、選択・解除・移動の処理は変えていないが、**2回目は0〜9を通して見る**(10は行わない)。
 
 ## 独立review
@@ -176,9 +199,9 @@ M422 | KILLED | lib/ui/file_source/storage_browser_view.dart | (test修正後に
 
 ## Current state / handoff
 
-- Last checkpoint: **manual 1回目の指摘を`30be394`で直した**(2026-09-23)。full test 981件PASS、browser関連mutation 39件KILLED(`M422`は1回SURVIVEDし、testを直してKILLED)。manual 2回目を待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、2回目)。
-- Evidence revision: **manualの対象は`lib/`が`30be394`と同一のbuild**(1回目は`073b354`)。base は`dev@0fd66d1`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜9の結果(10は行わない)。**1で最初に保存場所の一覧が出たか**、**9の長い名前のフォルダ**。
+- Last checkpoint: **manual 2回目の指摘(パンくずがマウスで横へ送れない)を`2cf0e09`で直した**(2026-09-23)。full test 983件PASS。manual 3回目を待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、3回目)。
+- Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜9の結果(10は行わない)。**9でマウスのドラッグで先頭まで戻れるか**、**1で最初に保存場所の一覧が出たか**。
 - Requested action: 人間がhostでworktreeのbranch HEADをエミュレータで`flutter run`し、manualを実行して会話で結果を知らせる。branch移動は不要(worktree `.worktrees/008-T39-browser-selection-navigation`)。
 - Next Agent action: 結果を`task.md`へ記録する。PASSなら **`0fd66d1..HEAD`の独立review(`gpt-6-luna`。`bebbe74`以後の実装変更を含むので、implementationとfinal-evidenceを合わせて見る)**→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
