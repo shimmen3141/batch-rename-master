@@ -2837,9 +2837,9 @@
     {
       "id": "M421",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "008:T39 パンくずの`›`を薄い`textMuted`に戻す — 2026-09-23のエミュレータ確認で見づらいとされた",
-      "find": "'›',\n                          style: TextStyle(\n                            color: colors.textSecondary,",
-      "replace": "'›',\n                          style: TextStyle(\n                            color: colors.textMuted,"
+      "note": "008:T39 パンくずの`›`を薄い`textMuted`に戻す — 2026-09-23のエミュレータ確認で見づらいとされた。**`2cf0e09`でパンくずを`ScrollConfiguration`で包み字下げが変わったので`find`を追随させた**(独立review attempt 3 のP2)",
+      "find": "'›',\n                            style: TextStyle(\n                              color: colors.textSecondary,",
+      "replace": "'›',\n                            style: TextStyle(\n                              color: colors.textMuted,"
     },
     {
       "id": "M422",
