@@ -42,6 +42,8 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 - **現在地の帯はパンくずの表示だけ**を作る。**tapによる移動は`T40`**であって、このtaskでは作らない。
 - file行のcheckboxは`T29`へ揃える(右端・円・アクセント色)。選択済み行の面色も揃える。
 
+> **2026-09-23 の注記**: 下の段落はT38からの引き渡し時点の指示である。**manualは開発者の決定でAndroidエミュレータへ変わった**(下の「人間の決定」)。現行の手順は`manual-verification.md`が正本。
+
 **manual確認の手順は着手前に具体化する** — `T37`のエミュレータ完了の例外を自動適用せず、Android物理端末で
 何を見るかを`manual-verification.md`へ書いてから人間へ依頼する。**`T12`から引き受けた残余risk(保存場所が1件の端末の入口)も
 同じ手順書へ入れる**(端末がSDカードを持たない場合)。
@@ -203,11 +205,24 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
   成果物の欠陥・安全網の穴ともに無し。reviewerの範囲付きmutation 15件(M117・M402・M407〜M419)はすべてKILLED。
   **これはimplementation reviewで、manualの証拠はまだ無い** — manual結果の受領後にfinal-evidenceを確かめる。
 
+- attempt 3: `0fd66d1..86225cd`(implementation + final-evidence) — **FAIL**。
+  - **P1(成果物の欠陥)**: `3d5a3ae`が`git add -A`で、`linux/` `macos/` `windows/`の生成plugin registrantから`file_selector`
+    (macOSは`shared_preferences`も)の登録を消す差分を含めていた。T39の範囲外のdesktop経路を壊しうる。
+    → `e2d4717`で`dev`の内容へ戻した(`git diff 0fd66d1 -- linux macos windows`が空)。**Androidのbuildには入らないfileで、
+    3回目のmanual時のhostのworking treeは戻した後の内容だった**ので、manual証拠(`lib/`=`2cf0e09`)は再利用できる。
+    経緯は[development finding](../../../../development-findings/2026-09-23-worktree-dart-tool-and-registrants-shared-with-host.md)。
+  - **P2(成果物の欠陥)**: 本文の「T38からの引き渡し」に物理端末で行う指示が残っていた。→ 現行はエミュレータである旨の注記を足した。
+  - **P2(安全網の穴)**: `M421`の`find`が`2cf0e09`の字下げ変更で一致せず`SKIPPED`になっていた。→ 追随させ、関連testへ絞って
+    `M421 | KILLED`(1 mutations: 1 KILLED)。browser関連の他のmutationの`find`は全件一致することを確かめた。
+  - 実装変更と開発者の決定・状態表・REQ-015の整合、T40を先取りしていないこと、追加testが本物であること、manual証拠と
+    `2cf0e09`の対応、エミュレータ・TalkBack・残余riskの記録、full test 983件PASSは**確認された**。
+  - **FAILは累計2回**(attempt 1・3)。次にFAILすればAGENTS.mdに従い`blocked`にして人間へ返す。
+
 ## Current state / handoff
 
-- Last checkpoint: **manual 3回目がPASS**(2026-09-23、エミュレータ、`lib/`は`2cf0e09`)。独立review(implementation + final-evidence)を待つ。
+- Last checkpoint: **独立review attempt 3(FAIL)の指摘を直した**(2026-09-23、`e2d4717`)。manual 3回目はPASS(`lib/`=`2cf0e09`、以後`lib/`の差分なし)。
 - Blocker category: なし。
 - Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
-- Waiting for: 独立review attempt 3(`gpt-6-luna`、`0fd66d1..HEAD`)。
+- Waiting for: 独立review attempt 4(`gpt-6-luna`)。
 - Requested action: なし。
 - Next Agent action: 結果を`task.md`へ記録する。PASSなら **`0fd66d1..HEAD`の独立review(`gpt-6-luna`。`bebbe74`以後の実装変更を含むので、implementationとfinal-evidenceを合わせて見る)**→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
