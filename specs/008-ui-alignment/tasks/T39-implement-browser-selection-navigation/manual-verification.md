@@ -1,15 +1,16 @@
-# 手動確認: app内browserの選択と戻る導線(Android物理端末)
+# 手動確認: app内browserの選択と戻る導線(Androidエミュレータ)
 
 **対象buildは、`lib/`の内容が commit `073b354` と同一のもの**である。branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
 
 **提示の正本は`T38`の操作状態表**([`../T38-define-browser-selection-navigation/task.md`](../T38-define-browser-selection-navigation/task.md)の「操作状態表」)である。ここでは実機で見る点だけを書く。
 
-**`T37`のエミュレータ完了の例外は適用しない。** このtaskは**Android物理端末**で確認する。
+**Androidエミュレータで確認する**(2026-09-23 開発者の決定: 手動確認はこれまでどおりエミュレータで行う)。物理端末に固有の差(実際の指での操作感、端末ごとの保存場所の構成)は見ない。
 
 ## 使う端末と準備
 
-- **Android物理端末**。共通の起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)(実機でも同じ。`flutter devices`に端末が出ること)。
-- **Androidのbuildはこの環境で実行できない**(AI containerにAndroid SDKが無い)。**hostでbuildして流し込む。** branchの移動は不要 — worktree `.worktrees/008-T39-browser-selection-navigation` がこのbranchのHEADにある。
+- **Androidエミュレータ**。起動と`flutter run`は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)の「エミュレータで起動する」のとおり。**エミュレータを起動して`flutter devices`に出てから**、下のfixture準備を実行する(`adb`がエミュレータへ届く必要がある)。
+- **Androidのbuildはこの環境で実行できない**(AI containerにAndroid SDKが無い)。**hostでbuildして流し込む。** branchの移動は不要 — **host側でworktree `.worktrees/008-T39-browser-selection-navigation` へ`cd`してから`flutter pub get` → `flutter run -d <emulator>`**する(このbranchのHEADがある)。
+- **`adb devices`にエミュレータが1台だけ出ている**ことを確かめる。複数あると下の`adb`コマンドがどちらへ送るか決まらず失敗する。
 - 全ファイルアクセスの許可は済んでいる前提(`013:T07`の手順書の「使う端末」)。
 
 ### 準備するファイル
@@ -26,7 +27,7 @@ $fixturePath = Join-Path $env:TEMP 'asdd-008-t39'
 Remove-Item -Recurse -Force -LiteralPath $fixturePath -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path "$fixturePath\t39\sub" | Out-Null
 New-Item -ItemType Directory -Force -Path "$fixturePath\t39\empty" | Out-Null
-New-Item -ItemType Directory -Force -Path "$fixturePath\t39\とても長い名前のフォルダ_写真の整理_2026年9月_旅行と家族の記録\さらに深いフォルダ" | Out-Null
+New-Item -ItemType Directory -Force -Path "$fixturePath\t39\very_long_folder_name_for_breadcrumb_check_2026_09_travel_and_family\deeper_folder" | Out-Null
 Set-Content -LiteralPath "$fixturePath\t39\a.txt" -Value 'a'
 Set-Content -LiteralPath "$fixturePath\t39\b.jpg" -Value 'b'
 Set-Content -LiteralPath "$fixturePath\t39\c.pdf" -Value 'c'
@@ -44,7 +45,7 @@ if ($existing -eq 'exists') {
 ```
 
 **期待**: 最後の`ls`に`a.txt` `b.jpg` `c.pdf`、フォルダ`sub`(中に`s.txt`)、空の`empty`、長い名前のフォルダが出る。
-(`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。消すのは**このfixtureの`.keep`だけ**である。)
+(長い名前のフォルダを**ASCIIにしている**のは、Windowsの`adb push`が日本語のpathで失敗することがあるため。`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。消すのは**このfixtureの`.keep`だけ**である。)
 
 **後片付け**: 確認が終わったら、端末のファイルアプリで`Download/asdd-008-t39`を消してよい(中身はすべてこの手順で置いたもの)。
 
@@ -60,17 +61,14 @@ if ($existing -eq 'exists') {
 
 どれかが違えば古いbuildである。
 
-## 1. 入口(`T12`から引き受けた残余risk)
+## 1. 入口
 
-**SDカードを挿していない端末(保存場所が1件)**
+**エミュレータにはSDカードが出る**(`T12`の確認で観測済み)ので、保存場所は**2件**になる。したがって**保存場所の一覧から始まる**のが正しい。
 
-- **保存場所の一覧を挟まず**、いきなり内部ストレージの中身が出る。
-- 上の段: **左に何も無い**(`←`も`×`も無い)。中央は「**内部ストレージ**」。
-- その下の帯: 「**内部ストレージ**」だけ。
-- ︙を押す: 「**すべて選択**」だけがある(root直下にfileが無ければ灰色)。「選択をすべて解除」は**無い**。
-- 「確定」は**灰色**。
-
-**SDカードを挿している端末(保存場所が複数)** — 上の代わりにこちらを見る。**どちらの端末だったかを報告に書いてほしい。**
+**保存場所が1件のときの入口**(一覧を挟まずrootから始まる)は**このエミュレータでは見られない**。
+widget testとmutation `M109`で固定してあり、見られないことは`task.md`へ残余riskとして記録済みである。**この項目は実施不要。**
+(もし最初に一覧が出ず、いきなり内部ストレージの中身が出たなら、そのエミュレータはSDカードを持っていない。その場合は
+上の段の**左に何も無い**こと、中央が「内部ストレージ」、帯が「内部ストレージ」だけ、︙に「すべて選択」だけ、「確定」が灰色であることを見て、報告に書いてほしい。)
 
 - 最初に**保存場所の一覧**が出る。上の段の中央は「**ファイルを選ぶ**」、**左に何も無い**。
 - ︙を押す: 「すべて選択」が**灰色**。「確定」も**灰色**。
@@ -128,7 +126,7 @@ if ($existing -eq 'exists') {
 
 - リネーム画面へ戻る。**`a.txt`は読み込まれず**、準備で読み込んでおいた**元の一覧がそのまま**残っている。
 
-2. もう一度開いて`asdd-008-t39`で`a.txt`を選び、**端末の戻る操作**(戻るボタン、または画面端からのスワイプ)をする。
+2. もう一度開いて`asdd-008-t39`で`a.txt`を選び、**端末の戻る操作**をする(エミュレータ右のツールバーの`◁`、画面下のナビゲーションの`◁`、またはジェスチャーナビなら画面の左端から右へドラッグ。PowerShellから`& $adbPath shell input keyevent 4`でもよい)。
 
 - 1と同じ: **親フォルダへ戻るのでも、選択の解除でもなく**、リネーム画面へ戻る。一覧はそのまま。
 
@@ -138,17 +136,17 @@ if ($existing -eq 'exists') {
 
 ## 8. 長押しでまとめて選ぶ(`T37`の回帰)
 
-1. `asdd-008-t39`で`a.txt`を長押しし、指を離さずに`c.pdf`までなぞって離す。
+1. `asdd-008-t39`で`a.txt`の行を**マウスの左ボタンで押したまま約1秒待ち**、ボタンを離さずに`c.pdf`まで動かして離す(エミュレータではマウスが指の代わりになる)。
 
 - `a.txt`〜`c.pdf`の3件が選ばれ、「3件選択中」になる。
 - 長押しせずに上下へスクロールしただけでは、何も選ばれない。
 
 ## 9. 狭い幅と長い名前
 
-1. 端末の設定で**フォントサイズと表示サイズを最大**にする(終わったら戻す)。
-2. `asdd-008-t39` → 長い名前のフォルダ → `さらに深いフォルダ`へ入る。
+1. エミュレータの設定で**フォントサイズと表示サイズを最大**にする(設定 → ディスプレイ(またはユーザー補助)→ 表示サイズとテキスト。終わったら戻す)。
+2. `asdd-008-t39` → `very_long_folder_name_…` → `deeper_folder`へ入る。
 
-- 帯は**末尾(`さらに深いフォルダ`)が見えている**。左右にスワイプすると先頭の「内部ストレージ」まで見られる。
+- 帯は**末尾(`deeper_folder`)が見えている**。左右にスワイプすると先頭の「内部ストレージ」まで見られる。
 - 上の段の文字、下の「リネーム画面に戻る」「確定」が**重ならず、はみ出さない**(文字が「…」で切れるのは許容)。
 - 何か1件選べる場所(`asdd-008-t39`)で「N件選択中」も同じく重ならない。
 
@@ -156,8 +154,10 @@ if ($existing -eq 'exists') {
 
 **TalkBackを使ったことがなくても、この節だけで進められるように書く。**
 
+- **エミュレータにTalkBackが無いことがある**(Google Playの入っていないsystem imageには入っていない)。設定 → ユーザー補助に**TalkBackが見当たらなければ、この節は飛ばし、「TalkBackが無かった」と報告に書いてほしい**(操作名と実行はwidget testで固定済み)。
 - **オンにする**: 設定 → ユーザー補助 → TalkBack → オン。
-- **TalkBack中の操作**: **1本指で右へスワイプ**すると次の項目へ移り、読み上げる。左へスワイプで前の項目。**どこでもよいので2回タップ**すると、いま読み上げた項目を押す。スクロールは**2本指**でなぞる。
+- **TalkBack中の操作(エミュレータではマウスで行う)**: マウスで**右へ素早くドラッグ**すると次の項目へ移り、読み上げる。左へドラッグで前の項目。**どこでもよいので2回素早くクリック**すると、いま読み上げた項目を押す。スクロールはマウスではやりにくいので、この節ではスクロールしない。
+- **音**: 読み上げはPCのスピーカーから出る。聞こえなくても、**押せる項目に緑の枠が付く**ので、枠と画面の変化で進めてよい。
 - **オフにする**: 同じ設定画面でオフにする(オンのまま設定画面へ行くには、上の操作で「設定」を選んで2回タップ)。
 
 1. `asdd-008-t39`を開いた状態で、画面の上から順に右スワイプで項目を読ませる。
@@ -180,4 +180,4 @@ if ($existing -eq 'exists') {
 
 ## 報告
 
-結果は会話で自由に書いてよい。決まった書式は不要である。**1でSDカードの有無のどちらを見たか**と、期待と違った点(写真があると助かる)を書いてほしい。
+結果は会話で自由に書いてよい。決まった書式は不要である。**1で最初に保存場所の一覧が出たか**、**10を実施できたか(TalkBackがあったか)**、期待と違った点(スクリーンショットがあると助かる)を書いてほしい。
