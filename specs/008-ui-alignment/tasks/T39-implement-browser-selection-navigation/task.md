@@ -117,12 +117,15 @@ M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前�
   - 状態表の全行との一致、T40を先取りしていないこと、T12/T37のtestを弱めていないこと、M117/M402の追随とM407〜M418の妥当性、
     T12の残余riskがmanualに入っていることは**確認された**。reviewerの範囲付きmutation 15件はすべてKILLED。
   - reviewerの対照`R-T39-1`(「すべて選択」を押せる状態でも無効にする)を`M419`として`tool/mutations.json`へ取り込んだ。
+- attempt 2: `0fd66d1..bebbe74` — **PASS**。P1は閉じた(専用フォルダが既にあれば止まり、端末のファイルを消さない)。
+  成果物の欠陥・安全網の穴ともに無し。reviewerの範囲付きmutation 15件(M117・M402・M407〜M419)はすべてKILLED。
+  **これはimplementation reviewで、物理端末の証拠はまだ無い** — manual結果の受領後にfinal-evidenceを確かめる。
 
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-23)。状態表の全行のwidget test、full regression、format/analyze、browser関連mutation 32件KILLED。`manual-verification.md`を物理端末向けに具体化した(`T12`の残余riskの入口を含む)。
-- Blocker category: なし。
-- Evidence revision: `lib/`は`073b354`。base は`dev@0fd66d1`。
-- Waiting for: 独立review attempt 2(`gpt-6-luna`)。その後、Android物理端末のmanual確認。
-- Requested action: なし(review後に manual を依頼する)。
-- Next Agent action: 独立reviewを`gpt-6-luna`で行う → Draft PR → manual依頼。**パンくずのtap移動は作らない**(`T40`)。
+- Last checkpoint: **implementation reviewがPASSした**(2026-09-23、`gpt-6-luna` attempt 2、`0fd66d1..bebbe74`)。Android物理端末のmanual確認を待つ。
+- Blocker category: 人間のmanual確認(Android物理端末)。
+- Evidence revision: **manualの対象は`lib/`が`073b354`と同一のbuild**。base は`dev@0fd66d1`。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜10の結果。**1ではSDカードの有無のどちらを見たか**(`T12`の残余risk)。
+- Requested action: 人間がhostでbranch HEADのbuildを物理端末へ入れ、manualを実行して会話で結果を知らせる。branch移動は不要(worktree `.worktrees/008-T39-browser-selection-navigation`)。
+- Next Agent action: 結果を`task.md`へ記録する。PASSなら final-evidence のreview(`gpt-6-luna`)→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
