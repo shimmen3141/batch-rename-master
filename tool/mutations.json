@@ -2732,9 +2732,9 @@
     {
       "id": "M406",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "空のfolderと開けなかったfolderを同じ見た目にする(013:T07のU6。008:T12)",
-      "find": "          if (entries.isEmpty)",
-      "replace": "          if (false)"
+      "note": "空のfolderと開けなかったfolderを同じ見た目にする(013:T07のU6。008:T12)。**008:T39で空の表示を一覧の外(中央)へ移したので`find`を追随させた**",
+      "find": "    if (entries.isEmpty) {\n      return Column(",
+      "replace": "    if (false) {\n      return Column("
     },
     {
       "id": "M407",
@@ -2826,6 +2826,48 @@
       "note": "[reviewer追加 R-T39-1][対照] 008:T39 「すべて選択」を押せる状態でも無効にする(M413の逆向き。004 REQ-020の全選択が実行できない)",
       "find": "        enabled: _canSelectAll,",
       "replace": "        enabled: false,"
+    },
+    {
+      "id": "M420",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 パンくずを右寄せに戻す(帯の幅いっぱいに詰めない) — 2026-09-23のエミュレータ確認で左寄せを求められた",
+      "find": "constraints: BoxConstraints(minWidth: constraints.maxWidth),",
+      "replace": "constraints: const BoxConstraints(),"
+    },
+    {
+      "id": "M421",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 パンくずの`›`を薄い`textMuted`に戻す — 2026-09-23のエミュレータ確認で見づらいとされた",
+      "find": "'›',\n                          style: TextStyle(\n                            color: colors.textSecondary,",
+      "replace": "'›',\n                          style: TextStyle(\n                            color: colors.textMuted,"
+    },
+    {
+      "id": "M422",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 パンくずの帯にheaderと同じ面の色を敷く — headerの一部に見える(2026-09-23のエミュレータ確認)",
+      "find": "      key: browserBreadcrumbKey,\n",
+      "replace": "      key: browserBreadcrumbKey,\n      color: colors.surface,\n"
+    },
+    {
+      "id": "M423",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 footerで「確定」との間に`Spacer`を戻す — 「リネーム画面へ」が半分の幅になり文言が切れる(2026-09-23のエミュレータ確認)",
+      "find": "        const SizedBox(width: 8),\n        FilledButton(",
+      "replace": "        const SizedBox(width: 8),\n        const Spacer(),\n        FilledButton("
+    },
+    {
+      "id": "M424",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 空のfolderの文言を上端に寄せる — 2026-09-23のエミュレータ確認で画面中央を求められた",
+      "find": "            child: Center(\n              child: Padding(\n                key: const Key('browser-listing-empty'),",
+      "replace": "            child: Align(\n              alignment: Alignment.topCenter,\n              child: Padding(\n                key: const Key('browser-listing-empty'),"
+    },
+    {
+      "id": "M425",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 深い階層でパンくずを先頭側に寄せる — 現在のfolder(末尾)が見えなくなる",
+      "find": "          reverse: true,",
+      "replace": "          reverse: false,"
     }
   ]
 }

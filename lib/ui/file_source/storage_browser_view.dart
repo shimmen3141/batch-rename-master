@@ -29,13 +29,19 @@ const Key browserTitleKey = Key('browser-title');
 /// 現在地の帯(パンくず)。**表示だけ**で、tap による移動は `008:T40` が持つ。
 const Key browserBreadcrumbKey = Key('browser-breadcrumb');
 
-/// footer 左下の「リネーム画面に戻る」。**画面を閉じる唯一の導線**(`008:T38`)。
+/// footer 左下の「← リネーム画面へ」。**画面を閉じる唯一の導線**(`008:T38`)。
+///
+/// 文言は2026-09-23 のエミュレータ確認で「リネーム画面に戻る」から短くした。
 ///
 /// 未確定の選択は捨て、「決定していない」を返す(004 REQ-001)。
 const Key browserBackToRenameKey = Key('browser-cancel');
 
 /// パンくずの [index] 番目の区切り(0 が保存場所の root)。
 Key browserBreadcrumbSegmentKey(int index) => Key('browser-breadcrumb-$index');
+
+/// パンくずの [index] 番目の区切りの前に置く `›`(1 から)。
+Key browserBreadcrumbSeparatorKey(int index) =>
+    Key('browser-breadcrumb-separator-$index');
 
 /// app 内 file browser(004 REQ-015〜REQ-018)。
 ///
@@ -53,7 +59,7 @@ Key browserBreadcrumbSegmentKey(int index) => Key('browser-breadcrumb-$index');
 ///
 /// **header・現在地の帯・footer の提示は `008:T38` の操作状態表が正本**である。
 /// 要点: header 左の位置を `←` と `×` が共有し(選択中は `×` = 全解除)、ケバブは
-/// 常に右端、画面を閉じるのは footer の「リネーム画面に戻る」だけ。
+/// 常に右端、画面を閉じるのは footer の「← リネーム画面へ」だけ。
 class StorageBrowserView extends StatefulWidget {
   const StorageBrowserView({
     super.key,
@@ -253,7 +259,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     return Scaffold(
       appBar: AppBar(
         // **暗黙の戻るを出さない。** header 左は `←` と `×` が共有する位置で、
-        // 画面を閉じる導線は footer の「リネーム画面に戻る」だけにする(`008:T38`)。
+        // 画面を閉じる導線は footer の「← リネーム画面へ」だけにする(`008:T38`)。
         automaticallyImplyLeading: false,
         leading: _leading(),
         title: Text(
@@ -356,47 +362,61 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
 
   /// 現在地の帯。**パンくずの表示だけ**(`008:T38`)。tap による移動は `008:T40`。
   ///
-  /// 深い階層でも**現在の folder が見えるよう末尾側へ寄せる**(`reverse`)。
+  /// **header ではなく一覧の上の帯として見せる**(2026-09-23 のエミュレータ確認)。
+  /// header と同じ面の色を敷かず、一覧と同じ背景に置く。**一覧と一緒には流さない** —
+  /// 現在地を常に示すため(004 REQ-015)。
+  ///
+  /// **左寄せ**にする。はみ出す深さでは**現在の folder が見えるよう末尾側へ寄せる**
+  /// (`reverse`)。`reverse` だけだと短いときに右寄せになるので、帯の幅いっぱいの
+  /// `Row` を左から詰める。
   Widget _breadcrumb(AppColors colors) {
     final segments = breadcrumbOf(_location!, _folder!);
     return Container(
       key: browserBreadcrumbKey,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        reverse: true,
-        child: Row(
-          children: [
-            for (final (index, segment) in segments.indexed) ...[
-              if (index > 0)
-                ExcludeSemantics(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      '›',
-                      style: TextStyle(color: colors.textMuted, fontSize: 13),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          reverse: true,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: Row(
+              children: [
+                for (final (index, segment) in segments.indexed) ...[
+                  if (index > 0)
+                    ExcludeSemantics(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        // **区切りは`textSecondary`**。`textMuted`では薄くて見づらかった
+                        // (2026-09-23 のエミュレータ確認)。
+                        child: Text(
+                          key: browserBreadcrumbSeparatorKey(index),
+                          '›',
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    key: browserBreadcrumbSegmentKey(index),
+                    segment.name,
+                    style: TextStyle(
+                      color: index == segments.length - 1
+                          ? colors.textPrimary
+                          : colors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: index == segments.length - 1
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
-                ),
-              Text(
-                key: browserBreadcrumbSegmentKey(index),
-                segment.name,
-                style: TextStyle(
-                  color: index == segments.length - 1
-                      ? colors.textPrimary
-                      : colors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: index == segments.length - 1
-                      ? FontWeight.w600
-                      : FontWeight.w400,
-                ),
-              ),
-            ],
-          ],
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -426,6 +446,31 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       );
     }
     final entries = (listing as DirectoryListed).entries;
+    // **空のfolderは「何も無い」で終わらせない**(`013:T07` の U6)。
+    // 「読み込み中」「開けなかった」「空」が同じ見た目になるのを避ける。
+    // **`browser-listing-failed` とは別のkey**で、両者を区別できるようにする。
+    // **一覧の領域の中央に出す**(2026-09-23 のエミュレータ確認)。
+    if (entries.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showsRestrictedNotice(_folder!)) _restrictedNotice(colors),
+          Expanded(
+            child: Center(
+              child: Padding(
+                key: const Key('browser-listing-empty'),
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'このフォルダにファイルはありません',
+                  style: TextStyle(color: colors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: _dragSelection.onPointerDown,
@@ -436,44 +481,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
         key: _listViewportKey,
         controller: _listScrollController,
         children: [
-          // **`/Android/` 配下では、改名できない可能性を示す**(REQ-018)。
-          // 注記であって判定ではないので、表示も選択も妨げない。
-          if (showsRestrictedNotice(_folder!))
-            Container(
-              key: const Key('browser-restricted-notice'),
-              padding: const EdgeInsets.all(12),
-              color: colors.surfaceElevated,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: colors.info),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'この場所のファイルは、名前を変更できないことがあります。'
-                      'アプリごとの保存領域のため、許可があっても書き込めない場合があります。',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          // **空のfolderは「何も無い」で終わらせない**(`013:T07` の U6)。
-          // 「読み込み中」「開けなかった」「空」が同じ見た目になるのを避ける。
-          // **`browser-listing-failed` とは別のkey**で、両者を区別できるようにする。
-          if (entries.isEmpty)
-            Padding(
-              key: const Key('browser-listing-empty'),
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'このフォルダにファイルはありません',
-                style: TextStyle(color: colors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          if (showsRestrictedNotice(_folder!)) _restrictedNotice(colors),
           for (final entry in entries)
             if (entry.isDirectory)
               // **folder は navigation として識別できる形を保つ**(`008:T38` の6)。
@@ -511,6 +519,28 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       ),
     );
   }
+
+  /// **`/Android/` 配下では、改名できない可能性を示す**(REQ-018)。
+  /// 注記であって判定ではないので、表示も選択も妨げない。
+  Widget _restrictedNotice(AppColors colors) => Container(
+    key: const Key('browser-restricted-notice'),
+    padding: const EdgeInsets.all(12),
+    color: colors.surfaceElevated,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, size: 16, color: colors.info),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'この場所のファイルは、名前を変更できないことがあります。'
+            'アプリごとの保存領域のため、許可があっても書き込めない場合があります。',
+            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _locationList(AppColors colors) => ListView(
     children: [
@@ -576,7 +606,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     );
   }
 
-  /// footer。**左下の「リネーム画面に戻る」が画面を閉じる唯一の導線**(`008:T38`)。
+  /// footer。**左下の「← リネーム画面へ」が画面を閉じる唯一の導線**(`008:T38`)。
   ///
   /// 状態表のすべての行に出る。「確定」は選択があるときだけ押せる。
   Widget _footer(AppColors colors) => Container(
@@ -585,10 +615,14 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       color: colors.surface,
       border: Border(top: BorderSide(color: colors.border)),
     ),
+    // **「確定」の残りを全部「リネーム画面へ」が使える**ようにする。`Spacer`と
+    // 分け合うと半分の幅しか無く、通常の文字サイズでも「リネーム画面...」と
+    // 切れていた(2026-09-23 のエミュレータ確認)。
     child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Flexible(
-          child: OutlinedButton(
+          child: OutlinedButton.icon(
             key: browserBackToRenameKey,
             style: OutlinedButton.styleFrom(
               backgroundColor: colors.background,
@@ -598,11 +632,13 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
             // **決定していない**(004 REQ-001)。`null` を返し、未確定の選択は捨てる。
             // rename 画面の既存状態は呼び出し側が保つ。
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('リネーム画面に戻る', overflow: TextOverflow.ellipsis),
+            // **`←`付きの短い文言**(2026-09-23 の開発者の決定。`T38`の
+            // 「リネーム画面に戻る」を置き換えた)。
+            icon: const Icon(Icons.arrow_back, size: 18),
+            label: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),
           ),
         ),
         const SizedBox(width: 8),
-        const Spacer(),
         FilledButton(
           key: const Key('browser-confirm'),
           onPressed: _hasSelection ? _confirm : null,

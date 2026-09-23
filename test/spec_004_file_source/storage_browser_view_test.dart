@@ -23,6 +23,7 @@ import 'package:batch_rename_master/ui/file_source/storage_browser_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 
 /// folder -> entry の対応で階層を作る fake。
@@ -215,12 +216,12 @@ Future<void> _expectRow(
     expect(_breadcrumb(tester), breadcrumb);
   }
 
-  // footer: 「リネーム画面に戻る」は常に押せ、「確定」は選択があるときだけ押せる。
+  // footer: 「← リネーム画面へ」は常に押せ、「確定」は選択があるときだけ押せる。
   expect(
     tester.widget<OutlinedButton>(find.byKey(browserBackToRenameKey)).enabled,
     isTrue,
   );
-  expect(find.text('リネーム画面に戻る'), findsOneWidget);
+  expect(find.text('リネーム画面へ'), findsOneWidget);
   expect(
     tester
         .widget<FilledButton>(find.byKey(const Key('browser-confirm')))
@@ -704,7 +705,7 @@ void main() {
       expect(selection.paths, ['$_root/A/a1.txt', '$_root/A/a2.txt']);
     });
 
-    testWidgets('「リネーム画面に戻る」は「決定していない」を返す(004 REQ-001)', (tester) async {
+    testWidgets('「リネーム画面へ」は「決定していない」を返す(004 REQ-001)', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_file(_root, 'r.txt')],
@@ -721,7 +722,7 @@ void main() {
       expect(result.value, isNull, reason: '選んでいても、閉じたら確定しない');
     });
 
-    testWidgets('システムバックは「リネーム画面に戻る」と同じ(`008:T38`)', (tester) async {
+    testWidgets('システムバックは「リネーム画面へ」と同じ(`008:T38`)', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A')],
@@ -1237,7 +1238,7 @@ void main() {
       expect(up.tooltip, '上のフォルダへ');
       expect(up.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
       final back = tester.getSemantics(find.byKey(browserBackToRenameKey));
-      expect(back.label, 'リネーム画面に戻る');
+      expect(back.label, 'リネーム画面へ');
       expect(back.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
       await tester.tap(find.byKey(const Key('browser-file-a1.txt')));
@@ -1317,6 +1318,107 @@ void main() {
       expect(
         find.descendant(of: folder, matching: find.byIcon(Icons.chevron_right)),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('パンくずは左寄せで、headerの面の色を敷かない(2026-09-23)', (tester) async {
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+
+      final band = tester.getRect(find.byKey(browserBreadcrumbKey));
+      final first = tester.getRect(find.byKey(browserBreadcrumbSegmentKey(0)));
+      expect(first.left, closeTo(band.left + 16, 1), reason: '左寄せ(右寄せにしない)');
+      expect(
+        tester.widget<Container>(find.byKey(browserBreadcrumbKey)).decoration,
+        isNull,
+        reason: 'headerと同じ面の色を敷かない',
+      );
+      final colors = appDarkTheme().extension<AppColors>()!;
+      expect(
+        tester
+            .widget<Text>(find.byKey(browserBreadcrumbSeparatorKey(1)))
+            .style!
+            .color,
+        colors.textSecondary,
+        reason: '`›`は`textMuted`より濃く',
+      );
+      // **一覧の上にあり、一覧と一緒には流れない**(REQ-015: 現在地を常に示す)。
+      expect(
+        band.bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(ListView)).top),
+      );
+    });
+
+    testWidgets('深い階層では、パンくずの末尾(現在のfolder)が見えている', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      const long = 'very_long_folder_name_for_breadcrumb_check_2026_09';
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_dir(_root, long)],
+            '$_root/$long': [_dir('$_root/$long', 'deeper_folder')],
+            '$_root/$long/deeper_folder': [
+              _file('$_root/$long/deeper_folder', 'd.txt'),
+            ],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-folder-$long')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-deeper_folder')));
+      await tester.pumpAndSettle();
+
+      final band = tester.getRect(find.byKey(browserBreadcrumbKey));
+      final last = tester.getRect(find.byKey(browserBreadcrumbSegmentKey(2)));
+      expect(last.right, lessThanOrEqualTo(band.right));
+      expect(last.left, greaterThanOrEqualTo(band.left));
+    });
+
+    testWidgets('空のfolderの文言は一覧の領域の中央に出る(2026-09-23)', (tester) async {
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-empty')));
+      await tester.pumpAndSettle();
+
+      final message = tester.getCenter(find.text('このフォルダにファイルはありません'));
+      final top = tester.getRect(find.byKey(browserBreadcrumbKey)).bottom;
+      final bottom = tester.getRect(find.byKey(browserBackToRenameKey)).top - 8;
+      expect(message.dy, closeTo((top + bottom) / 2, 12), reason: '縦の中央');
+      final screen = tester.getRect(find.byType(Scaffold));
+      expect(message.dx, closeTo(screen.center.dx, 1), reason: '横の中央');
+    });
+
+    testWidgets('「← リネーム画面へ」は狭い幅でも文言が切れない(2026-09-23)', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+
+      expect(
+        find.descendant(
+          of: find.byKey(browserBackToRenameKey),
+          matching: find.byIcon(Icons.arrow_back),
+        ),
+        findsOneWidget,
+      );
+      final label = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: find.descendant(
+            of: find.byKey(browserBackToRenameKey),
+            matching: find.text('リネーム画面へ'),
+          ),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(label.text.toPlainText(), 'リネーム画面へ');
+      expect(label.didExceedMaxLines, isFalse);
+      // **文言の本来の幅が、描かれた幅に収まっている**(「リネーム画面...」と切れない)。
+      expect(
+        label.getMaxIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(label.size.width + 0.5),
       );
     });
 
