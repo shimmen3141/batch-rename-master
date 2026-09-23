@@ -145,6 +145,7 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
 | 2026-09-23 | パンくずの見せ方 | **左寄せ**。headerの一部に見せず**一覧の上**に置く。`›`を濃くする。**一覧と一緒には流さない**(REQ-015「現在地を常に示す」を守るためAgentが選んだ) | 開発者(流さない点はAgent) |
 | 2026-09-23 | 空のfolderの文言 | **一覧の領域の中央**に出す | 開発者 |
 | 2026-09-23 | TalkBack(manual 10) | **skip**。エミュレータではダブルタップが効かず使えなかった。操作名と実行はwidget test(semantics)とmutation `M418`等で固定済み | 開発者 |
+| 2026-09-23 | 独立reviewのFAIL 3回(`blocked`)の扱い | **案Aを採る**: attempt 4の指摘はP2(文書の不整合)1件だけで、修正(`ea36729`)は記録のみ(`lib/`・`test/`・`tool/`・build設定に差分なし)。**attempt 4を実質PASSとして完了へ進める。** 最終rangeの独立PASSが無いので**AGENTS.mdのauto-merge条件2を満たさず、mergeは人間が行う** | 開発者 |
 | 2026-09-23 | manual確認の環境 | **Androidエミュレータで行う**(「これまでエミュレータを用いてきており、今後もそうするつもり」)。**物理端末の確認は受け入れ証拠から外す。** `T37`の一回限りの例外とは違い、今後の方針として受領した | 開発者 |
 
 ### この決定で残る残余risk(task所有Agentが受容する)
@@ -226,9 +227,9 @@ M426 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの�
 
 ## Current state / handoff
 
-- Last checkpoint: **独立reviewのFAILが累計3回に達し`blocked`**(2026-09-23)。attempt 4の指摘(P2の文書不整合1件)は直した。manual 3回目はPASS(`lib/`=`2cf0e09`)。
-- Blocker category: 独立review FAIL 3回(AGENTS.md)。人間の判断待ち。
+- Last checkpoint: **開発者が案Aを選び、`blocked`を解いた**(2026-09-23)。PR #186をreadyにした。manual 3回目はPASS(`lib/`=`2cf0e09`)。
+- Blocker category: なし(merge待ち)。
 - Evidence revision: **manualの対象は`lib/`が`2cf0e09`と同一のbuild**(1回目は`073b354`、2回目は`30be394`)。base は`dev@0fd66d1`。
-- Waiting for: 進め方の判断(会話で選択肢を提示した: attempt 5を許可する / attempt 4の指摘修正を確認して完了扱いにする / その他)。
-- Requested action: 人間が上の判断を返す。
-- Next Agent action: 判断に従う。完了扱いなら PR #186 をready → CI → merge判断。attempt 5なら同じ`gpt-6-luna`で`0fd66d1..HEAD`をreviewする。
+- Waiting for: **人間によるPR #186のmerge**(最終rangeの独立PASSが無いため、Agentはmergeしない)。
+- Requested action: 人間がPR #186をmerge commitでmergeする。
+- Next Agent action: merge後に`dev`上の結果とCIを確かめ、T39を`done`にしてworktreeを片付ける。次は`T40`(パンくずのtap移動)。
