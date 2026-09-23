@@ -190,3 +190,4 @@ T37のエミュレータ確認報告では範囲選択は概ね機能したが�
 | T37 | [task.md](tasks/T37-implement-browser-range-selection/task.md) |
 | T38 | [task.md](tasks/T38-define-browser-selection-navigation/task.md) |
 | T39 | [task.md](tasks/T39-implement-browser-selection-navigation/task.md) |
+| T40 | [task.md](tasks/T40-breadcrumb-navigation/task.md) |
