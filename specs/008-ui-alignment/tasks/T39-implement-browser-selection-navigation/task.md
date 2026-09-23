@@ -25,7 +25,7 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 - T38が承認された仕様と状態表に対応するwidget testがPASSし、T12/T37関連testを弱めずPASSする。
 - 必要なmutationがKILLED。format/analyze/full test/workspace check PASS。
 - Android物理端末のmanual確認PASS。exact rangeの独立review PASS。review modelは開発者指定のluna。
-- design土台との差分: T38の状態表で確定した後、適用画面範囲と離れた点・理由をここに追記する。
+- design土台との差分: **`docs/design/Bulk Renamer.html`にはapp内browserの画面が無い**(2026-09-23に確認。「保存場所」「ファイルを選ぶ」「リネーム画面に戻る」のいずれも出てこない)。適用する画面範囲は無く、離れた点も無い。提示は`T38`の操作状態表だけに従った。
 
 ## T38からの引き渡し(2026-09-23)
 
@@ -46,21 +46,75 @@ T38で承認されたbrowserの選択・一括解除・戻る導線をAndroid ap
 何を見るかを`manual-verification.md`へ書いてから人間へ依頼する。**`T12`から引き受けた残余risk(保存場所が1件の端末の入口)も
 同じ手順書へ入れる**(端末がSDカードを持たない場合)。
 
+## 実装の記録(2026-09-23)
+
+実装は Claude Opus 5.5。起点は `dev@0fd66d1`、branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation`。
+
+- `lib/ui/file_source/storage_browser_view.dart`: `AppBar`の`leading`を`←`(親folder / 保存場所の一覧)と`×`(全解除)で共有し、**暗黙の戻るを出さない**(`automaticallyImplyLeading: false`)。中央は保存場所名 /「N件選択中」/「ファイルを選ぶ」。右端のケバブに「すべて選択」(常設・押せないときは無効)と「選択をすべて解除」(選択があるときだけ)。現在地の帯はパンくず(表示だけ。末尾側へ寄せる)。footerは「リネーム画面に戻る」(暗い背景・シアンの枠と文字)と「確定」を**状態表の全行**に出す。file行は右端・円・`selectionMark`のcheckboxと`selectedSurface`の面(`T29`と同じtoken)で、名前とcheckboxを1つのsemantics nodeにした。folder行は右端に`›`を付け、checkboxを持たない。
+- `lib/data/file_source/storage_browser.dart`: `breadcrumbOf`(純関数)。各区切りがfolderのpathを持つので、**`T40`はこれをtap先に使える**。rootの外は名指ししない。
+- **システムバックはcodeを足さずに成立している** — route を pop して`null`を返す既定の振る舞いが「リネーム画面に戻る」と同じである(widget testで固定)。
+- 既存keyの`browser-cancel`は「リネーム画面に戻る」へ、`browser-select-all`はケバブの項目へ移した。`browser-current-location`(現在地の文字列)と`browser-selected-count`(footerの件数)は、状態表に対応する置き場が無くなったので消した(header中央の`browser-title`とパンくずが引き継ぐ)。
+
+### 自動検証
+
+- `flutter test test/spec_004_file_source/storage_browser_view_test.dart`: 51件 PASS。**状態表の各行**(保存場所一覧 / root(複数)0・一部・全件 / root(1件)0・一部・全件 / 下位folder 0・一部・全件 / 空folder)を`_expectRow`で表の列どおりに検査する。ほかに`×`とケバブの解除が画面を閉じないこと、folder移動で選択が解除され`←`側へ戻ること、システムバック、ケバブと`←`/`×`の位置、semanticsの操作名(戻る・全解除・画面を閉じる)と実行、T29へ揃えたcheckbox、folder行、パンくずの純関数。T12/T37の既存testは**同じ保証を新しい導線で見る形に書き換えただけで、assertionを削っていない**(選択中は`←`が無いので、「移動で解除」は下位folderへ入る経路で見る)。
+- `flutter test`: 977件 PASS。`flutter analyze`: No issues。`dart format --output=none --set-exit-if-changed .`: 0 changed。
+
+### mutation
+
+`tool/mutations.json`へ`M407`〜`M418`を足し、`find`が消えた`M117`・`M402`を追随させた。browser関連(`storage_browser_view.dart`・`storage_browser.dart`)の32件を`command: flutter test`(全件)のまま実行した生出力:
+
+```text
+M105 | KILLED | lib/data/file_source/storage_browser.dart | 保存場所のrootより上へ辿れるようにする | exit 1
+M106 | KILLED | lib/data/file_source/storage_browser.dart | 書き込める場所でも注記を出す | exit 1
+M107 | KILLED | lib/data/file_source/storage_browser.dart | 注記を一切出さない | exit 1
+M108 | KILLED | lib/ui/file_source/storage_browser_view.dart | folderを移動しても選択を残す | exit 1
+M109 | KILLED | lib/ui/file_source/storage_browser_view.dart | 保存場所が1つだけでも一覧を挟む | exit 1
+M117 | KILLED | lib/ui/file_source/storage_browser_view.dart | rootでも「上へ」を出す(findを追随) | exit 1
+M119 | KILLED | lib/ui/file_source/storage_browser_view.dart | 表示用の場所をrootへ紐づける | exit 1
+M120 | KILLED | lib/ui/file_source/storage_browser_view.dart | 表示用の場所を一切知らせない | exit 1
+M121 | KILLED | lib/data/file_source/storage_browser.dart | [対照] /Android直下で注記を出さない | exit 1
+M151 | KILLED | lib/ui/file_source/storage_browser_view.dart | 保存場所の欠落を画面に出さない | exit 1
+M156 | KILLED | lib/ui/file_source/storage_browser_view.dart | [対照] 注記から理由を落とす | exit 1
+M159 | KILLED | lib/ui/file_source/storage_browser_view.dart | 画面側でportの例外を受けない | exit 1
+M162 | KILLED | lib/ui/file_source/storage_browser_view.dart | 画面側が例外を黙って空にする | exit 1
+M400 | KILLED | lib/ui/file_source/storage_browser_view.dart | 全選択へfolderを混ぜる | exit 1
+M401 | KILLED | lib/ui/file_source/storage_browser_view.dart | 全選択へ近道を混ぜる | exit 1
+M402 | KILLED | lib/ui/file_source/storage_browser_view.dart | 全選択を実行できなくする(findを追随) | exit 1
+M403 | KILLED | lib/ui/file_source/storage_browser_view.dart | dragの復路で今回追加したfileを解除しない | exit 1
+M404 | KILLED | lib/ui/file_source/storage_browser_view.dart | 既知の名前のfolderを二重に並べる | exit 1
+M405 | KILLED | lib/data/file_source/storage_browser.dart | 列挙できていなくても「1つだけ」とみなす | exit 1
+M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空と開けなかったfolderを同じ見た目にする | exit 1
+M407 | KILLED | lib/ui/file_source/storage_browser_view.dart | `×`で画面を閉じる | exit 1
+M408 | KILLED | lib/ui/file_source/storage_browser_view.dart | 「選択をすべて解除」を選択0件でも出す | exit 1
+M409 | KILLED | lib/ui/file_source/storage_browser_view.dart | 「選択をすべて解除」が何も解除しない | exit 1
+M410 | KILLED | lib/ui/file_source/storage_browser_view.dart | 下位folderで選択中も`←`を残す | exit 1
+M411 | KILLED | lib/ui/file_source/storage_browser_view.dart | 選択0件でも「確定」を押せる | exit 1
+M412 | KILLED | lib/data/file_source/storage_browser.dart | パンくずがrootより上を名指しする | exit 1
+M413 | KILLED | lib/ui/file_source/storage_browser_view.dart | 「すべて選択」を常に有効にする | exit 1
+M414 | KILLED | lib/ui/file_source/storage_browser_view.dart | checkboxを円にしない | exit 1
+M415 | KILLED | lib/ui/file_source/storage_browser_view.dart | 選択済みの行の面を染めない | exit 1
+M416 | KILLED | lib/ui/file_source/storage_browser_view.dart | 暗黙の戻るを出す | exit 1
+M417 | KILLED | lib/ui/file_source/storage_browser_view.dart | `×`を押しても選択が残る | exit 1
+31 mutations: 31 KILLED, 0 SURVIVED, 0 SKIPPED
+M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前とcheckboxを別々のsemantics nodeにする | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは長いので要約した。STATUSとDETAILは生出力のまま。対象commitは`073b354`、M418は`073b354`のlibに対して実行。)
+
+**T39の範囲外で観測したこと**: `tool/mutations.json`の`M116`・`M178`・`M257`・`M264`・`M298`・`M305`・`M306`・`M314`・`M317`・`M324`・`M342`・`M355`・`M357`・`M358`は、**`dev@0fd66d1`の時点で既に`find`が対象fileに見つからない**(`file_list_view.dart`と`android_storage_browser.dart`で、T39は触っていない)。全件実行では`SKIPPED`になり、守っていたつもりの保証が検査されていない。所有taskの追随が要る。
+
+## 独立review
+
+**reviewerのmodelは`gpt-6-luna`**(2026-09-23に開発者がこのsessionで指定。実装はClaude Opus 5.5)。
+**これまでの記録(`T38`・このtaskの登録時)は`gpt-5.6-luna`だった** — 開発者の新しい指定に従い、食い違いとしてここへ残す。
+
 ## Current state / handoff
 
-- Last checkpoint: **未着手だが着手できる。** `T38`が2026-09-23にdone(操作状態表とUIの決定、004 REQ-020への一括解除が承認済み)、`T12`も統合済み。依存はすべて外れた。
+- Last checkpoint: 実装とmachine検証が済んだ(2026-09-23)。状態表の全行のwidget test、full regression、format/analyze、browser関連mutation 32件KILLED。`manual-verification.md`を物理端末向けに具体化した(`T12`の残余riskの入口を含む)。
 - Blocker category: なし。
-- Evidence revision: 起点は `dev@7d8a597`(T11・T12・T38が統合済み)。参照する実装は `lib/ui/file_source/storage_browser_view.dart`、`lib/ui/file_list/file_list_view.dart`(T29のcheckboxの形)、`lib/ui/common/drag_selection_controller.dart`(T37)。
-- Waiting for: なし。
-- Requested action: なし。
-- Next Agent action: **次の順で進める。**
-  1. 専用のbranch/worktree(`asdd/008-ui-alignment/T39-implement-browser-selection-navigation`)を`dev`から作る。
-  2. **`T38`の操作状態表**(`../T38-define-browser-selection-navigation/task.md`の「操作状態表」)を上から実装する。
-     **正本はそこで、ここへ複製しない。**
-  3. 状態表の各行をwidget testで検査する(上の受け入れ証拠の行)。**一括解除は004 REQ-020が正本。**
-  4. `tool/mutations.json`へ、一括解除と`×`が画面を閉じないことを守るmutationを足す。
-  5. `flutter test` / `analyze` / `dart format` / `python3 tool/check_normative_terms.py` を通す。
-  6. `manual-verification.md`を具体化してから人間へ依頼する。**T37のエミュレータ完了の例外を自動適用しない。**
-     **`T12`から引き受けた残余risk(保存場所が1件の端末の入口)も同じ手順書へ入れる**(端末がSDカードを持たない場合)。
-  7. 独立review(開発者指定の`gpt-5.6-luna`)→ PR → CI → merge判断。
-  **パンくずのtap移動は作らない**(`T40`)。
+- Evidence revision: `lib/`は`073b354`。base は`dev@0fd66d1`。
+- Waiting for: 独立review(`gpt-6-luna`)。その後、Android物理端末のmanual確認。
+- Requested action: なし(review後に manual を依頼する)。
+- Next Agent action: 独立reviewを`gpt-6-luna`で行う → Draft PR → manual依頼。**パンくずのtap移動は作らない**(`T40`)。
