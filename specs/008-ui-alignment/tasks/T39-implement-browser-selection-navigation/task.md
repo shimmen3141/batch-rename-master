@@ -103,12 +103,34 @@ M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前�
 
 (NOTEは長いので要約した。STATUSとDETAILは生出力のまま。対象commitは`073b354`、M418は`073b354`のlibに対して実行。)
 
+**manual 1回目の修正後(`30be394`)** — browser関連39件を`command: flutter test`(全件)で実行した生出力のうち、追随・追加した分と集計:
+
+```text
+M406 | KILLED | lib/ui/file_source/storage_browser_view.dart | 空のfolderと開けなかったfolderを同じ見た目にする(013:T07のU6。008:T12)。**008:T39で空の表示を一覧の外(中央)へ移したので`find`を追随させた** | exit 1
+M420 | KILLED | lib/ui/file_source/storage_browser_view.dart | 008:T39 パンくずを右寄せに戻す(帯の幅いっぱいに詰めない) — 2026-09-23のエミュレータ確認で左寄せを求められた | exit 1
+M421 | KILLED | lib/ui/file_source/storage_browser_view.dart | 008:T39 パンくずの`›`を薄い`textMuted`に戻す — 2026-09-23のエミュレータ確認で見づらいとされた | exit 1
+M422 | SURVIVED | lib/ui/file_source/storage_browser_view.dart | 008:T39 パンくずの帯にheaderと同じ面の色を敷く — headerの一部に見える(2026-09-23のエミュレータ確認) | exit 0: the tests passed with the mutation applied
+M423 | KILLED | lib/ui/file_source/storage_browser_view.dart | 008:T39 footerで「確定」との間に`Spacer`を戻す — 「リネーム画面へ」が半分の幅になり文言が切れる(2026-09-23のエミュレータ確認) | exit 1
+M424 | KILLED | lib/ui/file_source/storage_browser_view.dart | 008:T39 空のfolderの文言を上端に寄せる — 2026-09-23のエミュレータ確認で画面中央を求められた | exit 1
+ERROR: M422 SURVIVED
+M425 | KILLED | lib/ui/file_source/storage_browser_view.dart | 008:T39 深い階層でパンくずを先頭側に寄せる — 現在のfolder(末尾)が見えなくなる | exit 1
+39 mutations: 38 KILLED, 1 SURVIVED, 0 SKIPPED
+M422 | KILLED | lib/ui/file_source/storage_browser_view.dart | (test修正後に単独で再実行) | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+`M422`のSURVIVEDは、testが`Container.decoration`だけを見ていたため(`Container(color:)`は色を`color`に持つ)。`color`も見るよう直した。他の33件(M105〜M419)は1回目と同じくKILLED。
+
 **T39の範囲外で観測したこと**: `tool/mutations.json`の`M116`・`M178`・`M257`・`M264`・`M298`・`M305`・`M306`・`M314`・`M317`・`M324`・`M342`・`M355`・`M357`・`M358`は、**`dev@0fd66d1`の時点で既に`find`が対象fileに見つからない**(`file_list_view.dart`と`android_storage_browser.dart`で、T39は触っていない)。全件実行では`SKIPPED`になり、守っていたつもりの保証が検査されていない。所有taskの追随が要る。
 
 ## 人間の決定
 
 | 日付 | 論点 | 決定 | 決定者 |
 |---|---|---|---|
+| 2026-09-23 | footerの文言 | **「← リネーム画面へ」**(`←`付きで短くする)。`T38`の「リネーム画面に戻る」は通常の文字サイズでも「リネーム画面...」と切れていた。画面を閉じる唯一の導線という意味は変えない | 開発者 |
+| 2026-09-23 | パンくずの見せ方 | **左寄せ**。headerの一部に見せず**一覧の上**に置く。`›`を濃くする。**一覧と一緒には流さない**(REQ-015「現在地を常に示す」を守るためAgentが選んだ) | 開発者(流さない点はAgent) |
+| 2026-09-23 | 空のfolderの文言 | **一覧の領域の中央**に出す | 開発者 |
+| 2026-09-23 | TalkBack(manual 10) | **skip**。エミュレータではダブルタップが効かず使えなかった。操作名と実行はwidget test(semantics)とmutation `M418`等で固定済み | 開発者 |
 | 2026-09-23 | manual確認の環境 | **Androidエミュレータで行う**(「これまでエミュレータを用いてきており、今後もそうするつもり」)。**物理端末の確認は受け入れ証拠から外す。** `T37`の一回限りの例外とは違い、今後の方針として受領した | 開発者 |
 
 ### この決定で残る残余risk(task所有Agentが受容する)
@@ -117,6 +139,24 @@ M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前�
 |---|---|---|
 | **保存場所が1件の端末で、実機上も一覧を挟まずrootから始まるか**(`T12`から引き受けた項目) | **安全網の穴**。widget test `保存場所が1つだけのときは一覧を挟まず、rootの中身が出る`とmutation `M109`(KILLED)で固定済み。エミュレータにSDカードが出るため観測できない。AGENTS.mdの条件3(CIで閉じられる)は既に満たされ、残るのは実機の見え方だけ | **受容する。引き受け先のtaskは無い** — 物理端末を使うtaskが今後できたときに、そこで1項目足す。エミュレータにSDカードが無かった場合は`manual-verification.md`の1で観測する |
 | 物理端末に固有の差(指での長押し・dragの感触、TalkBackのジェスチャー、端末ごとの保存場所の構成) | **安全網の穴**(実装の誤りではない。CIでは閉じられない) | 受容する。引き受け先のtaskは無い |
+| **TalkBackでの実際の読み上げと操作**(エミュレータで使えずskip) | **安全網の穴**。操作名・tap action・行の1 node化はwidget testで固定済み。実機の読み上げはCIで閉じられない | 受容する。引き受け先のtaskは無い |
+
+## manual確認の結果
+
+### 1回目(2026-09-23、Androidエミュレータ、`lib/`は`073b354`)
+
+開発者の報告(会話):「各確認事項は概ね問題なかった」。そのうえで次を受領した。
+
+| 項目 | 結果 | 対応 |
+|---|---|---|
+| パンくず | **右寄せになっている**。headerに含めず一覧の上に出したい。`›`が薄く見づらい | `30be394`で左寄せ・一覧の上の帯(面の色を外した)・`›`を`textSecondary`へ。`M420`〜`M422`・`M425` |
+| 空のfolder | 文言を画面中央に出したい | `30be394`で一覧の領域の中央へ。`M424`(`M406`の`find`を追随) |
+| footer | 「リネーム画面に戻る」が通常の文字サイズでも「リネーム画面...」と切れる。`←`を付けて「← リネーム画面へ」にしたい | `30be394`。**原因は`Spacer`と幅を分け合う配置**(残りの半分しか使えなかった)で、配置も直した。`M423` |
+| 10 TalkBack | 有効にできたが、エミュレータではダブルタップが効かず**skip** | 人間の決定として記録。残余riskへ |
+| 9 長い名前のフォルダ | **作られなかった**(`adb push`の出力は5 files、`ls`に長い名前のフォルダが無い) | **手順書の欠陥**: `adb push`は空のフォルダを送らず、`deeper_folder`が空だった。`d.txt`を入れ、残っているfixtureへ足すコマンドも書いた。**9は未実施** |
+| 1 入口 | 報告に個別の記載なし(「概ね問題なかった」) | 2回目で確かめる |
+
+**1回目の結果は`073b354`のbuildに対するもので、`30be394`では再利用しない**(AGENTS.md)。`073b354..30be394`の`lib/`差分はパンくず・空の表示・footerの描画だけで、選択・解除・移動の処理は変えていないが、**2回目は0〜9を通して見る**(10は行わない)。
 
 ## 独立review
 
@@ -136,9 +176,9 @@ M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前�
 
 ## Current state / handoff
 
-- Last checkpoint: **implementation reviewがPASSした**(2026-09-23、`gpt-6-luna` attempt 2、`0fd66d1..bebbe74`)。Androidエミュレータのmanual確認を待つ(2026-09-23に物理端末から変更。手順書もエミュレータ向けに直した)。
-- Blocker category: 人間のmanual確認(Androidエミュレータ)。
-- Evidence revision: **manualの対象は`lib/`が`073b354`と同一のbuild**。base は`dev@0fd66d1`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜10の結果。**1で最初に保存場所の一覧が出たか**と、**10(TalkBack)を実施できたか**。
+- Last checkpoint: **manual 1回目の指摘を`30be394`で直した**(2026-09-23)。full test 981件PASS、browser関連mutation 39件KILLED(`M422`は1回SURVIVEDし、testを直してKILLED)。manual 2回目を待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、2回目)。
+- Evidence revision: **manualの対象は`lib/`が`30be394`と同一のbuild**(1回目は`073b354`)。base は`dev@0fd66d1`。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜9の結果(10は行わない)。**1で最初に保存場所の一覧が出たか**、**9の長い名前のフォルダ**。
 - Requested action: 人間がhostでworktreeのbranch HEADをエミュレータで`flutter run`し、manualを実行して会話で結果を知らせる。branch移動は不要(worktree `.worktrees/008-T39-browser-selection-navigation`)。
-- Next Agent action: 結果を`task.md`へ記録する。PASSなら final-evidence のreview(`gpt-6-luna`)→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。
+- Next Agent action: 結果を`task.md`へ記録する。PASSなら **`0fd66d1..HEAD`の独立review(`gpt-6-luna`。`bebbe74`以後の実装変更を含むので、implementationとfinal-evidenceを合わせて見る)**→ PRをready → CI → merge判断。期待と違う点があれば、仕様(`T38`の状態表)との差か実装の不具合かを分けて返す。**パンくずのtap移動は作らない**(`T40`)。

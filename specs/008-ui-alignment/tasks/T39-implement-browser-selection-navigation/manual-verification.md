@@ -1,10 +1,10 @@
 # 手動確認: app内browserの選択と戻る導線(Androidエミュレータ)
 
-**対象buildは、`lib/`の内容が commit `073b354` と同一のもの**である。branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`の内容が commit `30be394` と同一のもの**である(2回目。1回目は`073b354`で、結果は`task.md`に記録済み)。branch `asdd/008-ui-alignment/T39-implement-browser-selection-navigation` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
 
 **提示の正本は`T38`の操作状態表**([`../T38-define-browser-selection-navigation/task.md`](../T38-define-browser-selection-navigation/task.md)の「操作状態表」)である。ここでは実機で見る点だけを書く。
 
-**Androidエミュレータで確認する**(2026-09-23 開発者の決定: 手動確認はこれまでどおりエミュレータで行う)。物理端末に固有の差(実際の指での操作感、端末ごとの保存場所の構成)は見ない。
+**Androidエミュレータで確認する**(2026-09-23 開発者の決定: 手動確認はこれまでどおりエミュレータで行う)。**10(TalkBack)は行わない** — 1回目にエミュレータでダブルタップが効かず、開発者がskipを決めた。物理端末に固有の差(実際の指での操作感、端末ごとの保存場所の構成)は見ない。
 
 ## 使う端末と準備
 
@@ -28,6 +28,7 @@ Remove-Item -Recurse -Force -LiteralPath $fixturePath -ErrorAction SilentlyConti
 New-Item -ItemType Directory -Force -Path "$fixturePath\t39\sub" | Out-Null
 New-Item -ItemType Directory -Force -Path "$fixturePath\t39\empty" | Out-Null
 New-Item -ItemType Directory -Force -Path "$fixturePath\t39\very_long_folder_name_for_breadcrumb_check_2026_09_travel_and_family\deeper_folder" | Out-Null
+Set-Content -LiteralPath "$fixturePath\t39\very_long_folder_name_for_breadcrumb_check_2026_09_travel_and_family\deeper_folder\d.txt" -Value 'd'
 Set-Content -LiteralPath "$fixturePath\t39\a.txt" -Value 'a'
 Set-Content -LiteralPath "$fixturePath\t39\b.jpg" -Value 'b'
 Set-Content -LiteralPath "$fixturePath\t39\c.pdf" -Value 'c'
@@ -44,8 +45,16 @@ if ($existing -eq 'exists') {
 }
 ```
 
-**期待**: 最後の`ls`に`a.txt` `b.jpg` `c.pdf`、フォルダ`sub`(中に`s.txt`)、空の`empty`、長い名前のフォルダが出る。
-(長い名前のフォルダを**ASCIIにしている**のは、Windowsの`adb push`が日本語のpathで失敗することがあるため。`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。消すのは**このfixtureの`.keep`だけ**である。)
+**期待**: 最後の`ls`に`a.txt` `b.jpg` `c.pdf`、フォルダ`sub`(中に`s.txt`)、空の`empty`、長い名前のフォルダ(その下に`deeper_folder/d.txt`)が出る。
+
+**1回目のfixtureが端末に残っている場合**は、上の全体を流し直さず(既にあるので止まる)、足りない長い名前のフォルダだけを足せばよい:
+
+```powershell
+& $adbPath shell "mkdir -p /sdcard/Download/asdd-008-t39/very_long_folder_name_for_breadcrumb_check_2026_09_travel_and_family/deeper_folder"
+& $adbPath shell "echo d > /sdcard/Download/asdd-008-t39/very_long_folder_name_for_breadcrumb_check_2026_09_travel_and_family/deeper_folder/d.txt"
+& $adbPath shell "ls -R /sdcard/Download/asdd-008-t39"
+```
+(**`adb push`は空のフォルダを送らない**ので、`deeper_folder`には`d.txt`を入れてある(1回目はこれが無く、長い名前のフォルダごと届かなかった)。長い名前のフォルダを**ASCIIにしている**のは、Windowsの`adb push`が日本語のpathで失敗することがあるため。`empty`は空のフォルダを`adb push`で送れないため、`.keep`を送ってから消している。消すのは**このfixtureの`.keep`だけ**である。)
 
 **後片付け**: 確認が終わったら、端末のファイルアプリで`Download/asdd-008-t39`を消してよい(中身はすべてこの手順で置いたもの)。
 
@@ -55,7 +64,7 @@ if ($existing -eq 'exists') {
 
 「ファイルを選ぶ」→「すべて」を押して開いた画面で:
 
-- **画面の下の左に「リネーム画面に戻る」**(暗い背景・シアンの枠と文字)、右に「確定」がある。
+- **画面の下の左に「← リネーム画面へ」**(暗い背景・シアンの枠と文字。**文言が「…」で切れずに全部見える**)、右に「確定」がある。
 - **左上に「×」が無い**(何も選んでいないとき)。
 - 右上に**︙(ケバブ)**がある。
 
@@ -79,7 +88,7 @@ widget testとmutation `M109`で固定してあり、見られないことは`ta
 1. `Download` → `asdd-008-t39` へ入る。
 
 - 上の段: 左に **`←`**、中央は「**内部ストレージ**」のまま。
-- 帯: 「**内部ストレージ › Download › asdd-008-t39**」。
+- 帯: 上の段の下、フォルダの一覧の上に「**内部ストレージ › Download › asdd-008-t39**」。**左寄せ**で、上の段と同じ色の背景は敷かれていない(一覧と同じ背景)。`›`は**はっきり読める濃さ**。
 - フォルダの行(`sub`・`empty`・長い名前)は**右端に `›`** があり、**丸いチェックが無い**。
 - ファイルの行(`a.txt`など)は**右端に丸いチェック**がある。
 - `←`を押すと`Download`へ戻る。もう一度`asdd-008-t39`へ入る。
@@ -118,11 +127,11 @@ widget testとmutation `M109`で固定してあり、見られないことは`ta
 
 3. `←`で`asdd-008-t39`へ戻り、`empty`へ入る。
 
-- 「**このフォルダにファイルはありません**」と出る。︙の「すべて選択」は**灰色**、「確定」も**灰色**。
+- 「**このフォルダにファイルはありません**」が**一覧の領域の中央**(上下・左右とも)に出る。︙の「すべて選択」は**灰色**、「確定」も**灰色**。
 
 ## 7. 画面を閉じる導線
 
-1. `asdd-008-t39`で`a.txt`を選び、**「リネーム画面に戻る」**を押す。
+1. `asdd-008-t39`で`a.txt`を選び、**「← リネーム画面へ」**を押す。
 
 - リネーム画面へ戻る。**`a.txt`は読み込まれず**、準備で読み込んでおいた**元の一覧がそのまま**残っている。
 
@@ -147,7 +156,7 @@ widget testとmutation `M109`で固定してあり、見られないことは`ta
 2. `asdd-008-t39` → `very_long_folder_name_…` → `deeper_folder`へ入る。
 
 - 帯は**末尾(`deeper_folder`)が見えている**。左右にスワイプすると先頭の「内部ストレージ」まで見られる。
-- 上の段の文字、下の「リネーム画面に戻る」「確定」が**重ならず、はみ出さない**(文字が「…」で切れるのは許容)。
+- 上の段の文字、下の「← リネーム画面へ」「確定」が**重ならず、はみ出さない**(文字が「…」で切れるのは許容)。
 - 何か1件選べる場所(`asdd-008-t39`)で「N件選択中」も同じく重ならない。
 
 ## 10. TalkBack(読み上げ)で操作する
@@ -163,7 +172,7 @@ widget testとmutation `M109`で固定してあり、見られないことは`ta
 1. `asdd-008-t39`を開いた状態で、画面の上から順に右スワイプで項目を読ませる。
 
 - 左上は「**上のフォルダへ**」と読まれる。右上は「**その他の操作**」と読まれる。
-- 下の左は「**リネーム画面に戻る**」と読まれる。
+- 下の左は「**リネーム画面へ**」と読まれる。
 - ファイルの行は、名前とチェックの状態(未選択 / 選択済み)が**1つの項目として**読まれる。
 
 2. 「その他の操作」を2回タップ →「**すべて選択**」を読ませて2回タップ。
