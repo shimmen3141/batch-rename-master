@@ -1,10 +1,10 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T38",
-  "title": "app内browserの選択・戻る導線を定義する",
-  "status": "done",
+  "id": "T40",
+  "title": "パンくずからfolderへ移動できるようにする",
+  "status": "pending",
   "dependsOn": [
-    "T11"
+    "T39"
   ],
   "covers": [],
   "issue": null,

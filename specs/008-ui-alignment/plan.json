@@ -44,6 +44,7 @@
     "tasks/T36-define-browser-range-selection",
     "tasks/T37-implement-browser-range-selection",
     "tasks/T38-define-browser-selection-navigation",
-    "tasks/T39-implement-browser-selection-navigation"
+    "tasks/T39-implement-browser-selection-navigation",
+    "tasks/T40-breadcrumb-navigation"
   ]
 }
