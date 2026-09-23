@@ -108,6 +108,29 @@ bool canGoUp({required String folder, required String root}) {
 /// [folder] の1つ上。[canGoUp] が `false` のときは呼ばない。
 String parentOf(String folder) => p.dirname(p.normalize(folder));
 
+/// パンくずの1区切り(`008:T38` の現在地の帯)。
+///
+/// [path] は区切りが指す folder である。**T39 は表示だけに使う** — tap による
+/// 移動は `008:T40` が持つ。
+typedef BreadcrumbSegment = ({String name, String path});
+
+/// [folder] までのパンくず。先頭は保存場所の root で、名前は保存場所名になる。
+///
+/// **root より上の区切りは作らない**(004 REQ-015: 上限は保存場所の root)。
+/// [folder] が root の外なら root だけを返す — 辿れない場所を名指ししない。
+List<BreadcrumbSegment> breadcrumbOf(StorageLocation location, String folder) {
+  final root = p.normalize(location.root);
+  final segments = <BreadcrumbSegment>[(name: location.name, path: root)];
+  final normalized = p.normalize(folder);
+  if (!p.isWithin(root, normalized)) return segments;
+  var path = root;
+  for (final part in p.split(p.relative(normalized, from: root))) {
+    path = p.join(path, part);
+    segments.add((name: part, path: path));
+  }
+  return segments;
+}
+
 /// **`/Android/` 配下を表示しているとき**、改名できない可能性を示すか
 /// (004 REQ-018)。
 ///

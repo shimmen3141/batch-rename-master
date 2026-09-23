@@ -820,9 +820,9 @@
     {
       "id": "M117",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "rootでも「上へ」を出す(004 代表例26d「上位へ戻る操作は無いか無効」。attempt 1 のP2-2)",
-      "find": "          if (_location != null &&\n              _folder != null &&\n              canGoUp(folder: _folder!, root: _location!.root))",
-      "replace": "          if (_location != null)"
+      "note": "rootでも「上へ」を出す(004 代表例26d「上位へ戻る操作は無いか無効」。attempt 1 のP2-2)。**`find`を008:T39のheader左の組み替えへ追随させた**",
+      "find": "    if (canGoUp(folder: folder, root: location.root)) {\n      return IconButton(\n        key: const Key('browser-up'),",
+      "replace": "    if (true) {\n      return IconButton(\n        key: const Key('browser-up'),"
     },
     {
       "id": "M118",
@@ -2704,9 +2704,9 @@
     {
       "id": "M402",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "find": "            onTap: selectAll,",
-      "replace": "            onTap: null,",
-      "note": "008:T37 全選択Semanticsのtap actionを除去し、支援技術から実行できなくする"
+      "find": "        value: _selectAll,",
+      "replace": "        value: () {},",
+      "note": "008:T37 全選択を実行できなくする(操作名で押しても何も選ばれない。004 REQ-020)。**008:T39でケバブの項目へ移したので`find`を追随させた**"
     },
     {
       "id": "M403",
@@ -2735,6 +2735,83 @@
       "note": "空のfolderと開けなかったfolderを同じ見た目にする(013:T07のU6。008:T12)",
       "find": "          if (entries.isEmpty)",
       "replace": "          if (false)"
+    },
+    {
+      "id": "M407",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 `×`で画面を閉じる — `×`は全解除だけを意味し、閉じるのはfooterの「リネーム画面に戻る」だけ(008:T38の決定)",
+      "find": "        tooltip: '選択をすべて解除',\n        onPressed: _clearSelection,",
+      "replace": "        tooltip: '選択をすべて解除',\n        onPressed: () => Navigator.of(context).pop(),"
+    },
+    {
+      "id": "M408",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 ケバブの「選択をすべて解除」を選択0件でも出す — 004 REQ-020「選択が1件も無いときは提示しない」",
+      "find": "      if (_hasSelection)\n        PopupMenuItem<VoidCallback>(\n          key: browserMenuClearSelectionKey,",
+      "replace": "      if (true)\n        PopupMenuItem<VoidCallback>(\n          key: browserMenuClearSelectionKey,"
+    },
+    {
+      "id": "M409",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 ケバブの「選択をすべて解除」が何も解除しない — 004 REQ-020の一括解除(操作名で実行できる経路)が空振りする",
+      "find": "          value: _clearSelection,",
+      "replace": "          value: () {},"
+    },
+    {
+      "id": "M410",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 下位folderで選択中も`←`を残す(`×`が出ない) — `←`と`×`は同じ位置を共有し、選択中は`×`(008:T38の状態表)",
+      "find": "    if (_hasSelection) {\n      return IconButton(",
+      "replace": "    if (_hasSelection && !canGoUp(folder: _folder!, root: _location!.root)) {\n      return IconButton("
+    },
+    {
+      "id": "M411",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 選択0件でも「確定」を押せる — 空の選択が確定される(004 REQ-001/状態表のfooter)",
+      "find": "        onPressed: _hasSelection ? _confirm : null,",
+      "replace": "        onPressed: _confirm,"
+    },
+    {
+      "id": "M412",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "note": "008:T39 パンくずがrootより上を名指しする — 004 REQ-015 の上限(辿れない場所を示さない)",
+      "find": "  if (!p.isWithin(root, normalized)) return segments;\n",
+      "replace": ""
+    },
+    {
+      "id": "M413",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 「すべて選択」を常に有効にする — 状態表の保存場所一覧・全件・空folderで無効でなくなる",
+      "find": "        enabled: _canSelectAll,",
+      "replace": "        enabled: true,"
+    },
+    {
+      "id": "M414",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 file行のcheckboxを円にしない — メイン一覧(008:T29)へ揃える決定(008:T38の6)",
+      "find": "          shape: const CircleBorder(),\n",
+      "replace": ""
+    },
+    {
+      "id": "M415",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 選択済みのfile行の面を染めない — メイン一覧(008:T29)の選択済みの面へ揃える決定(008:T38の6)",
+      "find": "        tileColor: selected ? colors.selectedSurface : null,",
+      "replace": "        tileColor: null,"
+    },
+    {
+      "id": "M416",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 暗黙の戻るを出す — header左に画面を閉じる`←`が現れ、「上へ」「保存場所の一覧へ」と取り違える(008:T38)",
+      "find": "        automaticallyImplyLeading: false,",
+      "replace": "        automaticallyImplyLeading: true,"
+    },
+    {
+      "id": "M417",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T39 `×`を押しても選択が残る — 004 REQ-020の一括解除(速い経路)が空振りする",
+      "find": "    _dragSelection.finish();\n    setState(_selected.clear);",
+      "replace": "    _dragSelection.finish();\n    setState(() {});"
     }
   ]
 }
