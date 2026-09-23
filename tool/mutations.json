@@ -2875,6 +2875,34 @@
       "note": "008:T39 パンくずのマウスでの横送りを外す — エミュレータ(マウス)で先頭の保存場所名まで戻れない(2026-09-23のエミュレータ確認2回目)",
       "find": "      ).copyWith(dragDevices: PointerDeviceKind.values.toSet()),",
       "replace": "      ).copyWith(),"
+    },
+    {
+      "id": "M427",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T40 パンくずの区切りを押しても移動しない — 選択中に上へ移る手段が無くなる",
+      "find": "        onTap: () => _enter(_location!, folder: segment.path),",
+      "replace": "        onTap: () {},"
+    },
+    {
+      "id": "M428",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T40 どの区切りを押してもrootへ移る — 途中のfolderへ移れない",
+      "find": "        onTap: () => _enter(_location!, folder: segment.path),",
+      "replace": "        onTap: () => _enter(_location!),"
+    },
+    {
+      "id": "M429",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T40 いま居るfolder(末尾)も押せる — 同じfolderへ入り直して選択が消える",
+      "find": "    if (isCurrent) return label;\n",
+      "replace": ""
+    },
+    {
+      "id": "M430",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T40 区切りをbuttonとして支援技術へ示さない — 名前を聞いても押せることが分からない",
+      "find": "    return Semantics(\n      button: true,",
+      "replace": "    return Semantics(\n      button: false,"
     }
   ]
 }

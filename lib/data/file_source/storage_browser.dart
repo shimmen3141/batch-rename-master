@@ -110,8 +110,7 @@ String parentOf(String folder) => p.dirname(p.normalize(folder));
 
 /// パンくずの1区切り(`008:T38` の現在地の帯)。
 ///
-/// [path] は区切りが指す folder である。**T39 は表示だけに使う** — tap による
-/// 移動は `008:T40` が持つ。
+/// [path] は区切りが指す folder で、**tap したときの移動先**になる(`008:T40`)。
 typedef BreadcrumbSegment = ({String name, String path});
 
 /// [folder] までのパンくず。先頭は保存場所の root で、名前は保存場所名になる。

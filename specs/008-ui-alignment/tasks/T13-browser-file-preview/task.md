@@ -85,4 +85,4 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
 - Waiting for: なし。`T07`の基盤も`T12`の行も済んでいる
 - Requested action: なし
 - Evidence revision: 起点は `dev@7d8a597`。基盤は`008:T07`(PR #159)、browserの行は`008:T12`(PR #185)
-- Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。**
+- Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。** **`T40`から引き受けた残余risk(2026-09-23)**: manual確認の手順へ「深い階層でパンくずの途中の区切りを1回押し、そのfolderへ移ること(押しやすさ)」を1項目足す。

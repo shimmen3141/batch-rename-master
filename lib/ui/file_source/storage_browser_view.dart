@@ -27,7 +27,7 @@ const Key browserMenuKey = Key('browser-menu');
 /// header 中央。保存場所名、選択中は「N件選択中」、一覧では「ファイルを選ぶ」。
 const Key browserTitleKey = Key('browser-title');
 
-/// 現在地の帯(パンくず)。**表示だけ**で、tap による移動は `008:T40` が持つ。
+/// 現在地の帯(パンくず)。末尾以外の区切りは tap でその folder へ移る(`008:T40`)。
 const Key browserBreadcrumbKey = Key('browser-breadcrumb');
 
 /// footer 左下の「← リネーム画面へ」。**画面を閉じる唯一の導線**(`008:T38`)。
@@ -39,6 +39,10 @@ const Key browserBackToRenameKey = Key('browser-cancel');
 
 /// パンくずの [index] 番目の区切り(0 が保存場所の root)。
 Key browserBreadcrumbSegmentKey(int index) => Key('browser-breadcrumb-$index');
+
+/// パンくずの [index] 番目の区切りを押す対象(`008:T40`)。**末尾には無い。**
+Key browserBreadcrumbButtonKey(int index) =>
+    Key('browser-breadcrumb-button-$index');
 
 /// パンくずの [index] 番目の区切りの前に置く `›`(1 から)。
 Key browserBreadcrumbSeparatorKey(int index) =>
@@ -297,9 +301,9 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
 
   /// header 左。**`←` と `×` は同じ位置を共有する**(`008:T38`)。
   ///
-  /// 選択中は `×`(全解除)になり、`←` は消える — 上へ戻るには先に解除する。
-  /// これは `T38` が受け入れた代償で、選択したまま上へ移る手段は `008:T40`
-  /// (パンくずの tap 移動)が入れる。
+  /// 選択中は `×`(全解除)になり、`←` は消える(`T38` が受け入れた代償)。
+  /// 選択したまま上へ移るには**パンくずの区切りを押す**(`008:T40`。移動すると
+  /// 選択は解除される。004 REQ-016)。
   Widget? _leading() {
     if (_hasSelection) {
       return IconButton(
@@ -361,7 +365,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     ],
   );
 
-  /// 現在地の帯。**パンくずの表示だけ**(`008:T38`)。tap による移動は `008:T40`。
+  /// 現在地の帯(`008:T38`)。末尾以外の区切りは tap で移動できる(`008:T40`)。
   ///
   /// **header ではなく一覧の上の帯として見せる**(2026-09-23 のエミュレータ確認)。
   /// header と同じ面の色を敷かず、一覧と同じ背景に置く。**一覧と一緒には流さない** —
@@ -382,7 +386,8 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       ).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
       child: Container(
         key: browserBreadcrumbKey,
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+        // 区切りの当たり判定の余白(左右4・上下6)を足した分だけ減らし、文字の位置は保つ。
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -395,7 +400,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
                     if (index > 0)
                       ExcludeSemantics(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
                           // **区切りは`textSecondary`**。`textMuted`では薄くて見づらかった
                           // (2026-09-23 のエミュレータ確認)。
                           child: Text(
@@ -409,18 +414,11 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
                           ),
                         ),
                       ),
-                    Text(
-                      key: browserBreadcrumbSegmentKey(index),
-                      segment.name,
-                      style: TextStyle(
-                        color: index == segments.length - 1
-                            ? colors.textPrimary
-                            : colors.textSecondary,
-                        fontSize: 13,
-                        fontWeight: index == segments.length - 1
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
+                    _breadcrumbSegment(
+                      colors,
+                      index,
+                      segment,
+                      isCurrent: index == segments.length - 1,
                     ),
                   ],
                 ],
@@ -428,6 +426,44 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// パンくずの1区切り。**末尾(いま居る folder)以外は tap でその folder へ移る**(`008:T40`)。
+  ///
+  /// 先頭の保存場所名は**その保存場所の root** へ移る — 保存場所の一覧へ戻る操作
+  /// (root(複数)の `←`)とは別物である(2026-09-23 の開発者の決定)。移動は
+  /// [_enter] を通るので、**選択は解除され**(004 REQ-016)、行き先は `breadcrumbOf` が
+  /// 作った root 以下の path だけである(REQ-015 の上限)。
+  ///
+  /// **末尾は button にしない。** 押すと同じ folder へ入り直し、選択が消えるだけになる。
+  Widget _breadcrumbSegment(
+    AppColors colors,
+    int index,
+    BreadcrumbSegment segment, {
+    required bool isCurrent,
+  }) {
+    final label = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: Text(
+        key: browserBreadcrumbSegmentKey(index),
+        segment.name,
+        style: TextStyle(
+          color: isCurrent ? colors.textPrimary : colors.textSecondary,
+          fontSize: 13,
+          fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+    );
+    if (isCurrent) return label;
+    return Semantics(
+      button: true,
+      child: InkWell(
+        key: browserBreadcrumbButtonKey(index),
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => _enter(_location!, folder: segment.path),
+        child: label,
       ),
     );
   }

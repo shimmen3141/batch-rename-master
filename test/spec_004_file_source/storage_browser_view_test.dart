@@ -1477,6 +1477,154 @@ void main() {
     });
   });
 
+  group('008:T40 パンくずからfolderへ移動する', () {
+    /// root › A › B へ入り、B のfileを1件選んだ状態にする。
+    Future<(_FakeBrowser, _Result)> openDeepWithSelection(
+      WidgetTester tester,
+    ) async {
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A'), _file(_root, 'r1.txt')],
+          '$_root/A': [_dir('$_root/A', 'B'), _file('$_root/A', 'a1.txt')],
+          '$_root/A/B': [_file('$_root/A/B', 'b1.txt')],
+        },
+      );
+      final result = await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-B')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-file-b1.txt')));
+      await tester.pumpAndSettle();
+      expect(_title(tester), '1件選択中');
+      expect(
+        find.byKey(const Key('browser-up')),
+        findsNothing,
+        reason: '選択中は`←`が無い',
+      );
+      return (browser, result);
+    }
+
+    testWidgets('途中のfolder名を押すと、そのfolderへ移り選択は解除される(REQ-016)', (tester) async {
+      final (browser, result) = await openDeepWithSelection(tester);
+
+      await tester.tap(find.byKey(browserBreadcrumbButtonKey(1)));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ', 'A']);
+      expect(find.byKey(const Key('browser-file-a1.txt')), findsOneWidget);
+      expect(_title(tester), '内部ストレージ', reason: '選択は解除される');
+      expect(find.byKey(const Key('browser-up')), findsOneWidget);
+      expect(browser.listed.last, '$_root/A');
+      expect(result.closed, isFalse, reason: '画面は閉じない');
+    });
+
+    testWidgets('先頭の保存場所名を押すと、その保存場所のrootへ移る', (tester) async {
+      final (browser, _) = await openDeepWithSelection(tester);
+
+      await tester.tap(find.byKey(browserBreadcrumbButtonKey(0)));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ']);
+      expect(find.byKey(const Key('browser-file-r1.txt')), findsOneWidget);
+      expect(_title(tester), '内部ストレージ');
+      expect(browser.listed.last, _root);
+      // **rootより上へは行かない**(REQ-015)。
+      expect(browser.listed, isNot(contains('/storage')));
+      expect(browser.listed, isNot(contains('/')));
+    });
+
+    testWidgets('保存場所が複数でも、先頭はrootへ移るだけで一覧へは戻らない', (tester) async {
+      final browser = _FakeBrowser(
+        tree: {
+          _root: [_dir(_root, 'A')],
+          '$_root/A': [_file('$_root/A', 'a1.txt')],
+        },
+        locationList: _twoLocations,
+      );
+      await _open(tester, browser);
+      await tester.tap(find.byKey(const Key('browser-location-内部ストレージ')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-A')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(browserBreadcrumbButtonKey(0)));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ'], reason: 'rootにいる');
+      expect(find.byKey(const Key('browser-location-SD カード')), findsNothing);
+      expect(find.byKey(const Key('browser-locations')), findsOneWidget);
+    });
+
+    testWidgets('いま居るfolder(末尾)は押せず、押しても選択は残る', (tester) async {
+      final (browser, _) = await openDeepWithSelection(tester);
+      final listedBefore = browser.listed.length;
+
+      expect(find.byKey(browserBreadcrumbButtonKey(2)), findsNothing);
+      await tester.tap(find.byKey(browserBreadcrumbSegmentKey(2)));
+      await tester.pumpAndSettle();
+
+      expect(_title(tester), '1件選択中', reason: '入り直して選択を消さない');
+      expect(browser.listed.length, listedBefore, reason: '列挙し直さない');
+    });
+
+    testWidgets('区切りは支援技術からbuttonとして名前で押せる(末尾は除く)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await openDeepWithSelection(tester);
+
+      final a = tester.getSemantics(find.byKey(browserBreadcrumbButtonKey(1)));
+      expect(a.label, 'A');
+      expect(a.getSemanticsData().flagsCollection.isButton, isTrue);
+      expect(a.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      final current = tester
+          .getSemantics(find.byKey(browserBreadcrumbSegmentKey(2)))
+          .getSemanticsData();
+      expect(current.flagsCollection.isButton, isFalse);
+      expect(current.hasAction(SemanticsAction.tap), isFalse);
+
+      tester.semantics.tap(find.semantics.byLabel('A'));
+      await tester.pumpAndSettle();
+      expect(_breadcrumb(tester), ['内部ストレージ', 'A']);
+      semantics.dispose();
+    });
+
+    testWidgets('幅に収まらないときも、横へ送った先の先頭を押してrootへ移れる', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      const long = 'very_long_folder_name_for_breadcrumb_check_2026_09';
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_dir(_root, long), _file(_root, 'r1.txt')],
+            '$_root/$long': [_dir('$_root/$long', 'deeper_folder')],
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const Key('browser-folder-$long')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-folder-deeper_folder')));
+      await tester.pumpAndSettle();
+      final band = tester.getRect(find.byKey(browserBreadcrumbKey));
+      expect(
+        tester.getRect(find.byKey(browserBreadcrumbSegmentKey(0))).right,
+        lessThan(band.left),
+        reason: '最初は先頭が見えていない',
+      );
+
+      await tester.drag(
+        find.byKey(browserBreadcrumbKey),
+        const Offset(2000, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(browserBreadcrumbButtonKey(0)));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ']);
+      expect(find.byKey(const Key('browser-file-r1.txt')), findsOneWidget);
+    });
+  });
+
   group('REQ-017: 絞り込まない', () {
     testWidgets('隠しファイルもサブフォルダもそのまま並ぶ', (tester) async {
       final browser = _FakeBrowser(
