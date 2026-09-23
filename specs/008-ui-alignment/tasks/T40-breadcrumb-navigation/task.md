@@ -27,6 +27,19 @@
 - **パンくずが画面幅に収まらないとき**の扱い(省略、横scroll、末尾優先など)。tapできる範囲が幅で変わってよいか。
 - **いま居るfolder自身**(パンくずの末尾)を押したときに何も起きないことを、要求にするか実装裁量にするか。
 
+## 決定(2026-09-23)
+
+| 論点 | 決定 | 決定者 |
+|---|---|---|
+| どこまでtapできるか | **先頭の保存場所名もtap対象にし、その保存場所のrootへ移動する。** 保存場所の一覧へ戻す操作(root(複数)の`←`)とは別物のまま | 開発者 |
+| 幅に収まらないとき | **`T39`の形(末尾を見せ、横へ送れば先頭まで見える)を保ち、送った先の区切りもtapできる。** 省略表示は入れない。tapできる範囲は幅で変わらない | Agent(`T39`の結果に沿う既定。開発者へ報告済み) |
+| いま居るfolder(末尾) | **tapしても何も起きない**(buttonにしない)。実装裁量として扱い、widget testで固定する — 押すと同じfolderへ入り直して選択が消えるため | Agent(同上) |
+
+## machine検証範囲
+
+widget testとmutationで閉じる(上の受け入れ証拠)。**manual確認は受け入れ証拠に含めない**(`task.json`の`manualVerification`は`null`のまま)。
+tapの押しやすさ(当たり判定の広さ)の実機での感触は機械で閉じられないので、残余riskとして受容する(引き受け先のtaskは無い)。
+
 ## 変更範囲の見込み
 
 - `lib/ui/file_source/storage_browser_view.dart` のパンくず。
@@ -43,9 +56,9 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `T38`の決定で新設した(2026-09-23)。未着手。
-- Blocker category: dependency / T39(パンくずの表示)。
-- Waiting for: `T39`の実装。
+- Last checkpoint: 着手(2026-09-23)。上の3点を決めた。
+- Blocker category: なし(`T39`は2026-09-23にdone)。
+- Waiting for: なし。
 - Requested action: なし。
-- Evidence revision: 未着手。
-- Next Agent action: `T39`の完了後、上の「決めること」を開発者へ一問ずつ確かめてから着手する。
+- Evidence revision: 起点は`dev`@`6e3cc95`。
+- Next Agent action: パンくずの区切り(末尾以外)をtapで移動できるようにし、widget testとmutationで固定する。

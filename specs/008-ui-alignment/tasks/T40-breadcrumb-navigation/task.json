@@ -2,11 +2,14 @@
   "schema": "asdd.task/v1",
   "id": "T40",
   "title": "パンくずからfolderへ移動できるようにする",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T39"
   ],
-  "covers": [],
+  "covers": [
+    "004:REQ-015",
+    "004:REQ-016"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": null
