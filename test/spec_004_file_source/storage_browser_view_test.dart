@@ -1329,11 +1329,10 @@ void main() {
       final band = tester.getRect(find.byKey(browserBreadcrumbKey));
       final first = tester.getRect(find.byKey(browserBreadcrumbSegmentKey(0)));
       expect(first.left, closeTo(band.left + 16, 1), reason: '左寄せ(右寄せにしない)');
-      expect(
-        tester.widget<Container>(find.byKey(browserBreadcrumbKey)).decoration,
-        isNull,
-        reason: 'headerと同じ面の色を敷かない',
-      );
+      // **帯に色を塗らない**(`Container`は`color`を`decoration`とは別に持つので両方を見る)。
+      final band0 = tester.widget<Container>(find.byKey(browserBreadcrumbKey));
+      expect(band0.color, isNull, reason: 'headerと同じ面の色を敷かない');
+      expect(band0.decoration, isNull, reason: 'headerと同じ面の色を敷かない');
       final colors = appDarkTheme().extension<AppColors>()!;
       expect(
         tester
