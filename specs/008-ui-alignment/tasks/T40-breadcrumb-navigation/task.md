@@ -54,11 +54,46 @@ tapの押しやすさ(当たり判定の広さ)の実機での感触は機械で
 - `flutter test` / `flutter analyze` / `dart format` がPASS。
 - exact rangeの独立review PASS。
 
+## 実装の記録(2026-09-23)
+
+実装は Claude Opus 5.5。起点は`dev`@`6e3cc95`、branch `asdd/008-ui-alignment/T40-breadcrumb-navigation`。
+
+- `lib/ui/file_source/storage_browser_view.dart`: 末尾以外の区切りを`Semantics(button)` + `InkWell`にし、押すと`_enter(location, folder: segment.path)`で移る。**既存の`_enter`を通すので、選択の解除(REQ-016)とdrag選択の終了は既存の処理がそのまま担う。** 行き先は`breadcrumbOf`が作るroot以下のpathだけ(REQ-015)。当たり判定の余白(左右4・上下6)を足した分だけ帯の余白を減らし、文字の位置は`T39`のまま(左寄せのtestが変わらずPASS)。
+- 004 specは変えていない(現在地の提示方法は「自由とする点」。移動してもREQ-015の上限とREQ-016の解除は変わらない)。
+
+### 自動検証
+
+- `flutter test test/spec_004_file_source/storage_browser_view_test.dart`: 63件PASS(T40で6件追加: 途中のfolderへ移動し選択解除 / 先頭でrootへ(`/storage`を列挙しない) / 保存場所が複数でも一覧へは戻らない / 末尾は押せず選択が残る / semanticsでbuttonとして名前で押せる / 幅に収まらないとき横へ送った先の先頭を押せる)。
+- `flutter test`: 989件PASS。`flutter analyze`: No issues。`dart format`: 0 changed。
+
+### mutation
+
+AGENTS.mdの方針どおり、`command`を`flutter test test/spec_004_file_source/storage_browser_view_test.dart`へ絞り、T40で足した4件とパンくず・移動を守る既存5件を回した(2分):
+
+```text
+M108 | KILLED | lib/ui/file_source/storage_browser_view.dart | folderを移動しても選択を残す | exit 1
+M412 | KILLED | lib/data/file_source/storage_browser.dart | パンくずがrootより上を名指しする | exit 1
+M420 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずを右寄せに戻す | exit 1
+M421 | KILLED | lib/ui/file_source/storage_browser_view.dart | パンくずの`›`を薄い`textMuted`に戻す | exit 1
+M425 | KILLED | lib/ui/file_source/storage_browser_view.dart | 深い階層でパンくずを先頭側に寄せる | exit 1
+M427 | KILLED | lib/ui/file_source/storage_browser_view.dart | 区切りを押しても移動しない | exit 1
+M428 | KILLED | lib/ui/file_source/storage_browser_view.dart | どの区切りを押してもrootへ移る | exit 1
+M429 | KILLED | lib/ui/file_source/storage_browser_view.dart | いま居るfolder(末尾)も押せる | exit 1
+M430 | KILLED | lib/ui/file_source/storage_browser_view.dart | 区切りをbuttonとして支援技術へ示さない | exit 1
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。browser関連の全mutationの`find`が現行コードに1回ずつ一致することも確かめた。)
+
+## 独立review
+
+**reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手(2026-09-23)。上の3点を決めた。
-- Blocker category: なし(`T39`は2026-09-23にdone)。
-- Waiting for: なし。
+- Last checkpoint: 実装とmachine検証が済んだ(2026-09-23、`3dd417d`)。
+- Blocker category: なし。
+- Evidence revision: base `dev`@`6e3cc95`、code `3dd417d`。
+- Waiting for: 独立review attempt 1(`gpt-6-luna`、全範囲)。
 - Requested action: なし。
-- Evidence revision: 起点は`dev`@`6e3cc95`。
-- Next Agent action: パンくずの区切り(末尾以外)をtapで移動できるようにし、widget testとmutationで固定する。
+- Next Agent action: review PASSなら PR #? をready → CI → auto-merge条件を確かめてmerge。
