@@ -87,11 +87,47 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
 - 2026-08-25 / `013:T07`の実機確認(U4)を受けて定義。開発者が「U1〜U5をすべてtask化する」
   と決定した。
 
+## 実装の記録(2026-09-24)
+
+実装は Claude Opus 5.5。起点は`dev`@`15a15f0`、branch `asdd/008-ui-alignment/T13-browser-file-preview`。
+
+- `lib/ui/file_source/storage_browser_view.dart`: file行の`leading`へ一覧と同じ`RowPreviewView`を置いた。`BrowserEntry`から`FileEntry`(名前・元場所ハンドル=path。日時と大きさは埋め草 — portは使わない)を作って渡す。`StorageBrowserView`は任意の`preview`を受け取り、`null`なら種別アイコンだけ。
+- `lib/main.dart`: browserを開くたびに`CachedFilePreview(const KindRoutingFilePreview())`を渡す(上の決定)。
+- **件数の多いfolder**: `ListView(children:)`は行のwidgetを作っても、**stateを持つ子は見えている分(とcache extent)しかbuildしない**ので、`RowPreviewView`の要求も見えている行の分だけになる(widget testで300件中30件未満を確認)。同時実行数と件数の上限は`T07`の`CachedFilePreview`が持つ。
+- 004 specは変えていない(REQ-017: previewは絞り込みではなく、出せないfileも隠さず並べ替えない)。
+
+### 自動検証
+
+- `flutter test test/spec_004_file_source/storage_browser_view_test.dart`: 67件PASS(T13で4件追加: thumbnail・出せない・読めないの提示と並び順 / portへpathを渡しfolderには要求しない / 300件で見える分だけ要求 / previewの上を押しても選択が切り替わる)。
+- `flutter test`: 993件PASS。`flutter analyze`: No issues。`dart format`: 0 changed。
+
+### mutation
+
+`command`を`flutter test test/spec_004_file_source/storage_browser_view_test.dart`へ絞り、T13で足した3件と、file行の見た目・semanticsを守る既存3件を回した:
+
+```text
+M414 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行のcheckboxを円にしない | exit 1
+M415 | KILLED | lib/ui/file_source/storage_browser_view.dart | 選択済みのfile行の面を染めない | exit 1
+M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前とcheckboxを別々のsemantics nodeにする | exit 1
+M431 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行からpreviewの枠を外す | exit 1
+M432 | KILLED | lib/ui/file_source/storage_browser_view.dart | 渡されたportを使わない | exit 1
+M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハンドルにpathではなく名前を渡す | exit 1
+6 mutations: 6 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。browser関連の全mutationの`find`が現行コードに1回ずつ一致することも確かめた。)
+
+**安全網の穴(受容)**: `lib/main.dart`がbrowserへpreviewを渡すこと自体はtestで固定していない(composition rootのwidget testが無い)。落ちても「previewが出ない」だけで、AGENTS.mdのFAIL条件2(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらない。**manualの0が観測する**(引き受け先はこのtaskのmanual)。
+
+## 独立review
+
+**reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手(2026-09-24)。テキストは入れないと決めた。
-- Blocker category: なし(**`T12`は2026-09-22にdone**)
-- Waiting for: なし。`T07`の基盤も`T12`の行も済んでいる
-- Requested action: なし
-- Evidence revision: 起点は`dev`@`15a15f0`(T39・T40が統合済み)。
-- Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。** **`T40`から引き受けた残余risk(2026-09-23)**: manual確認の手順へ「深い階層でパンくずの途中の区切りを1回押し、そのfolderへ移ること(押しやすさ)」を1項目足す。
+- Last checkpoint: 実装とmachine検証が済んだ(2026-09-24、`lib/`は`ba6e815`)。`manual-verification.md`をエミュレータ向けに具体化した(`T40`から引き受けた項目を含む)。
+- Blocker category: なし。
+- Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
+- Waiting for: 独立review attempt 1(`gpt-6-luna`、全範囲)。その後エミュレータのmanual確認。
+- Requested action: なし(review後にmanualを依頼する)。
+- Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
