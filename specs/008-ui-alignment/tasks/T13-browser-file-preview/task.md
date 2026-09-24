@@ -56,6 +56,15 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
   一覧の行(`FileEntry`)とは型が違う。port の入口を合わせる必要がある。
 - **`013:T07` が入れた既存testが継続 PASS すること。**
 
+## 決定(2026-09-24)
+
+| 論点 | 決定 | 決定者 |
+|---|---|---|
+| テキストのpreview | **入れない。画像・動画だけ**(`T07`の基盤を行へ繋ぐ)。行の狭い枠では先頭の数文字しか読めず、binary判定を新設する割に得るものが少ない。**テキストは将来候補**として`product-map.md`へ残す | 開発者 |
+| cacheの寿命 | **browserを開くたびに専用の`CachedFilePreview`を作る**(一覧のcacheと共有しない)。`BrowserEntry`は更新日時を持たず、cacheのkeyに更新日時が入るため、共有すると一覧のkeyと食い違い、同じsession中に中身が変わったfileの古いthumbnailが残りうる。寿命を画面1回分にすれば起きない | Agent |
+
+上の「このtaskに残るもの」のうち、テキストの項は**この決定で対象外になった**。manual手順の「中身のあるテキストfile」「binaryだがテキスト拡張子のfile」も同じく対象外にする(テキストはpreviewの対象外 = 種別アイコンになることだけを見る)。
+
 ## 変更範囲
 
 - `lib/ui/file_source/storage_browser_view.dart` の file 行。
@@ -80,9 +89,9 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手。**2026-08-27 に`T07`がpreview基盤を作ったので、調査から始める必要は無くなった**
+- Last checkpoint: 着手(2026-09-24)。テキストは入れないと決めた。
 - Blocker category: なし(**`T12`は2026-09-22にdone**)
 - Waiting for: なし。`T07`の基盤も`T12`の行も済んでいる
 - Requested action: なし
-- Evidence revision: 起点は `dev@7d8a597`。基盤は`008:T07`(PR #159)、browserの行は`008:T12`(PR #185)
+- Evidence revision: 起点は`dev`@`15a15f0`(T39・T40が統合済み)。
 - Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。** **`T40`から引き受けた残余risk(2026-09-23)**: manual確認の手順へ「深い階層でパンくずの途中の区切りを1回押し、そのfolderへ移ること(押しやすさ)」を1項目足す。

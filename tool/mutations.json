@@ -2903,6 +2903,27 @@
       "note": "008:T40 区切りをbuttonとして支援技術へ示さない — 名前を聞いても押せることが分からない",
       "find": "    return Semantics(\n      button: true,",
       "replace": "    return Semantics(\n      button: false,"
+    },
+    {
+      "id": "M431",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T13 browserのfile行からpreviewの枠を外す — 画像の中身が行から分からない(013:T07のU4)",
+      "find": "        leading: RowPreviewView(\n          file: _previewEntryOf(entry),\n          preview: widget.preview,\n        ),\n",
+      "replace": ""
+    },
+    {
+      "id": "M432",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T13 渡されたportを使わない — composition rootが渡してもpreviewが出ない",
+      "find": "          file: _previewEntryOf(entry),\n          preview: widget.preview,",
+      "replace": "          file: _previewEntryOf(entry),\n          preview: null,"
+    },
+    {
+      "id": "M433",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T13 元場所ハンドルにpathではなく名前を渡す — portがfileを開けず、全行が「出せない」になる",
+      "find": "    sourceHandle: entry.path,",
+      "replace": "    sourceHandle: entry.name,"
     }
   ]
 }

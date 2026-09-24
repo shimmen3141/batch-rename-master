@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T13",
   "title": "browserのファイル行にpreviewを出す",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T07",
     "T12"
