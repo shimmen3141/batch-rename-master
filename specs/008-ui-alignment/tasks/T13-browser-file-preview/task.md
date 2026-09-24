@@ -123,11 +123,15 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
 
+- attempt 1: `15a15f0..de16159`(全範囲、implementation) — **PASS、指摘なし**。決定(画像・動画だけ、開くたびの新しいcache)とREQ-017、T07の基盤の区別・古い応答の破棄・同時実行上限の維持、T39/T40の行・選択・semantics、MediaStoreを使わないこと、300件のtestの妥当性、manualのコマンドの正しさと既存fileを消さないこと、記録の一致、full test 993件PASSを確認された。reviewerの範囲付きmutation 5件(M414・M418・M431〜M433)と対照1件はKILLED。
+  - reviewerの対照`R-T13-FAILED-VS-UNSUPPORTED`(読めなかったfileを「出せない」と同じアイコンにする)を`M434`として`tool/mutations.json`へ取り込んだ。
+  - **manualの結果はまだ無い**。受領後、`de16159`以後の差分をreviewする(差分review)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-24、`lib/`は`ba6e815`)。`manual-verification.md`をエミュレータ向けに具体化した(`T40`から引き受けた項目を含む)。
-- Blocker category: なし。
+- Last checkpoint: 独立review attempt 1 PASS(2026-09-24)。エミュレータのmanual確認を待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ)。
 - Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
-- Waiting for: 独立review attempt 1(`gpt-6-luna`、全範囲)。その後エミュレータのmanual確認。
-- Requested action: なし(review後にmanualを依頼する)。
-- Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(`lib/`が`ba6e815`のbuild)。
+- Requested action: 人間がhostでworktree `.worktrees/008-T13-browser-file-preview`から`flutter pub get` → `flutter run`し、手順書を実行して会話で結果を知らせる。
+- Next Agent action: 結果を記録し、`de16159..HEAD`の差分review(記録だけならSELF-CHECK)→ PRをready → CI → merge判断。

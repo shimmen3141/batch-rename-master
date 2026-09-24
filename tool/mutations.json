@@ -2924,6 +2924,13 @@
       "note": "008:T13 元場所ハンドルにpathではなく名前を渡す — portがfileを開けず、全行が「出せない」になる",
       "find": "    sourceHandle: entry.path,",
       "replace": "    sourceHandle: entry.name,"
+    },
+    {
+      "id": "M434",
+      "file": "lib/ui/file_list/row_preview_view.dart",
+      "note": "[reviewer追加 R-T13-FAILED-VS-UNSUPPORTED][対照] 008:T13 読めなかったfileを「出せない」と同じアイコンにする — 読めなかったことが見えなくなる(browserの行で検出する)",
+      "find": "        PreviewFailed() => _icon(Icons.broken_image_outlined, colors.textMuted),",
+      "replace": "        PreviewFailed() => _icon(fileTypeIconOf(widget.file.name), colors.textMuted),"
     }
   ]
 }
