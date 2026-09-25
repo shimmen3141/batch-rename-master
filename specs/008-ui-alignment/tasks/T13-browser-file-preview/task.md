@@ -119,6 +119,19 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 **安全網の穴(受容)**: `lib/main.dart`がbrowserへpreviewを渡すこと自体はtestで固定していない(composition rootのwidget testが無い)。落ちても「previewが出ない」だけで、AGENTS.mdのFAIL条件2(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらない。**manualの0が観測する**(引き受け先はこのtaskのmanual)。
 
+## manual確認の結果
+
+### 1回目(2026-09-25、Androidエミュレータ、debug build、`lib/`は`ba6e815`)
+
+開発者の報告(会話):「確認事項は全体的にほとんど問題なかったが、件数の多いフォルダにおいての素早いスクロールだけは引っかかった。ゆっくりだとうまくスクロールできた。ただ、PCの性能やエミュレータの挙動による部分もあるかもしれない」。
+
+| 項目 | 結果 |
+|---|---|
+| 0〜1、3、4 | 問題なし(個別の指摘なし) |
+| 2 件数の多いfolder | **素早いscrollで引っかかる。** ゆっくりなら問題ない |
+
+**切り分け(Agent)**: `flutter run`の既定は**debug build**(JIT)で、scrollの滑らかさを判断する材料にならない。また`008:T07`の同じ観測(N-5)で、開発者はscrollの引っかかりを**previewより前からのもの**と判断している。**開発者の決定(2026-09-25)で、release buildで2だけを再確認する。** 滑らかならdebug由来として記録してmergeへ進み、引っかかるなら`dev`(previewの無いbrowser)のrelease buildと比べてT13が原因かを分ける。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
@@ -129,9 +142,9 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(2026-09-24)。エミュレータのmanual確認を待つ。
+- Last checkpoint: manual 1回目(debug build)を受領。素早いscrollの引っかかりだけが残り、release buildで再確認する(2026-09-25)。
 - Blocker category: 人間のmanual確認(Androidエミュレータ)。
 - Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(`lib/`が`ba6e815`のbuild)。
-- Requested action: 人間がhostでworktree `.worktrees/008-T13-browser-file-preview`から`flutter pub get` → `flutter run`し、手順書を実行して会話で結果を知らせる。
+- Waiting for: release buildでの手順2の結果(`lib/`が`ba6e815`)。
+- Requested action: 人間がworktreeから`flutter run --release -d <emulator>`し、`many`を素早くscrollして結果を知らせる。
 - Next Agent action: 結果を記録し、`de16159..HEAD`の差分review(記録だけならSELF-CHECK)→ PRをready → CI → merge判断。
