@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T13",
+  "title": "release buildでもnative改名ライブラリを同梱する",
+  "status": "in_review",
+  "dependsOn": [
+    "T05"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}
