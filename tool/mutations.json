@@ -2903,6 +2903,20 @@
       "note": "008:T40 区切りをbuttonとして支援技術へ示さない — 名前を聞いても押せることが分からない",
       "find": "    return Semantics(\n      button: true,",
       "replace": "    return Semantics(\n      button: false,"
+    },
+    {
+      "id": "M435",
+      "file": "hook/build.dart",
+      "note": "013:T13 release(linkingEnabled)で改名ライブラリをlink hookへ送る — link hookが無いのでFlutterのrelease buildが作れない",
+      "find": "      routing: const [ToAppBundle()],",
+      "replace": "      routing: [ToLinkHook(input.packageName)],"
+    },
+    {
+      "id": "M436",
+      "file": "hook/build.dart",
+      "note": "013:T13 静的ライブラリにする — app へ同梱されず、FFI が library を開けない(link hookが無い)",
+      "find": "      linkModePreference: LinkModePreference.dynamic,",
+      "replace": "      linkModePreference: LinkModePreference.static,"
     }
   ]
 }
