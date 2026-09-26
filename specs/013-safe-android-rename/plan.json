@@ -16,6 +16,7 @@
     "tasks/T08-verify-device-coverage",
     "tasks/T10-add-existing-names-to-collision-check",
     "tasks/T11-implement-renumbering-execution",
-    "tasks/T12-enumerate-storage-volumes"
+    "tasks/T12-enumerate-storage-volumes",
+    "tasks/T13-release-native-bundle"
   ]
 }

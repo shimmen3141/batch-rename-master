@@ -2903,6 +2903,27 @@
       "note": "008:T40 区切りをbuttonとして支援技術へ示さない — 名前を聞いても押せることが分からない",
       "find": "    return Semantics(\n      button: true,",
       "replace": "    return Semantics(\n      button: false,"
+    },
+    {
+      "id": "M435",
+      "file": "hook/build.dart",
+      "note": "013:T13 release(linkingEnabled)で改名ライブラリをlink hookへ送る — link hookが無いのでFlutterのrelease buildが作れない",
+      "find": "      routing: const [ToAppBundle()],",
+      "replace": "      routing: [ToLinkHook(input.packageName)],"
+    },
+    {
+      "id": "M436",
+      "file": "hook/build.dart",
+      "note": "013:T13 静的ライブラリにする — app へ同梱されず、FFI が library を開けない(link hookが無い)",
+      "find": "      linkModePreference: LinkModePreference.dynamic,",
+      "replace": "      linkModePreference: LinkModePreference.static,"
+    },
+    {
+      "id": "M437",
+      "file": "hook/build.dart",
+      "note": "[reviewer追加 R-CONTROL-1][対照] 013:T13 hostから渡るlink mode preferenceを使う。**等価mutantでSURVIVEDする** — testはdynamicを渡しており、Flutterも現在dynamicを渡す。dynamicを明示しているのは、hostの既定が変わっても静的にしないためである(防御の明示として残す。独立review attempt 1 が確認: 2026-09-26)",
+      "find": "      linkModePreference: LinkModePreference.dynamic,",
+      "replace": "      linkModePreference: input.config.code.linkModePreference,"
     }
   ]
 }
