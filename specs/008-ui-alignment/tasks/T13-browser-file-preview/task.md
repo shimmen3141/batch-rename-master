@@ -132,6 +132,10 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 **切り分け(Agent)**: `flutter run`の既定は**debug build**(JIT)で、scrollの滑らかさを判断する材料にならない。また`008:T07`の同じ観測(N-5)で、開発者はscrollの引っかかりを**previewより前からのもの**と判断している。**開発者の決定(2026-09-25)で、release buildで2だけを再確認する。** 滑らかならdebug由来として記録してmergeへ進み、引っかかるなら`dev`(previewの無いbrowser)のrelease buildと比べてT13が原因かを分ける。
 
+### release buildでの再確認(2026-09-25) — **build自体が失敗**
+
+`flutter run --release`が`Hook.build hook of package:batch_rename_master has invalid output ... does not have a link hook`で失敗した(開発者の調査で受領)。**T13のpreview実装ではなく、`013:T05`のbuild hookの欠陥**で、release buildは一度も作られていなかった。**`013:T13`(PR #191)として所有planへ切り出して直している。** T13側では直さない。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
@@ -142,9 +146,9 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目(debug build)を受領。素早いscrollの引っかかりだけが残り、release buildで再確認する(2026-09-25)。
-- Blocker category: 人間のmanual確認(Androidエミュレータ)。
+- Last checkpoint: release buildで手順2を再確認しようとしたが、release build自体が`013:T05`由来の欠陥で失敗した(2026-09-25)。
+- Blocker category: dependency / `013:T13`(release buildでnative改名ライブラリを同梱する。PR #191)。
 - Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
-- Waiting for: release buildでの手順2の結果(`lib/`が`ba6e815`)。
-- Requested action: 人間がworktreeから`flutter run --release -d <emulator>`し、`many`を素早くscrollして結果を知らせる。
-- Next Agent action: 結果を記録し、`de16159..HEAD`の差分review(記録だけならSELF-CHECK)→ PRをready → CI → merge判断。
+- Waiting for: `013:T13`のmerge。
+- Requested action: なし(`013:T13`のmanualを先に依頼している)。
+- Next Agent action: `013:T13`のmerge後、このbranchへ`dev`を取り込み(競合が無ければ差分reviewの対象はmergeだけ)、release buildで手順2(素早いscroll)を依頼する。**release確認が通るまでmanual完了・ready化・mergeをしない。**
