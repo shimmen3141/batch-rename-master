@@ -2,13 +2,15 @@
   "schema": "asdd.task/v1",
   "id": "T13",
   "title": "browserのファイル行にpreviewを出す",
-  "status": "pending",
+  "status": "blocked",
   "dependsOn": [
     "T07",
     "T12"
   ],
-  "covers": [],
+  "covers": [
+    "004:REQ-017"
+  ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 190,
   "manualVerification": "manual-verification.md"
 }

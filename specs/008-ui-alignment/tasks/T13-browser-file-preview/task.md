@@ -56,6 +56,15 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
   一覧の行(`FileEntry`)とは型が違う。port の入口を合わせる必要がある。
 - **`013:T07` が入れた既存testが継続 PASS すること。**
 
+## 決定(2026-09-24)
+
+| 論点 | 決定 | 決定者 |
+|---|---|---|
+| テキストのpreview | **入れない。画像・動画だけ**(`T07`の基盤を行へ繋ぐ)。行の狭い枠では先頭の数文字しか読めず、binary判定を新設する割に得るものが少ない。**テキストは将来候補**として`product-map.md`へ残す | 開発者 |
+| cacheの寿命 | **browserを開くたびに専用の`CachedFilePreview`を作る**(一覧のcacheと共有しない)。`BrowserEntry`は更新日時を持たず、cacheのkeyに更新日時が入るため、共有すると一覧のkeyと食い違い、同じsession中に中身が変わったfileの古いthumbnailが残りうる。寿命を画面1回分にすれば起きない | Agent |
+
+上の「このtaskに残るもの」のうち、テキストの項は**この決定で対象外になった**。manual手順の「中身のあるテキストfile」「binaryだがテキスト拡張子のfile」も同じく対象外にする(テキストはpreviewの対象外 = 種別アイコンになることだけを見る)。
+
 ## 変更範囲
 
 - `lib/ui/file_source/storage_browser_view.dart` の file 行。
@@ -78,11 +87,68 @@ binary を text として出さない判定 / 「無い」と「読めなかっ�
 - 2026-08-25 / `013:T07`の実機確認(U4)を受けて定義。開発者が「U1〜U5をすべてtask化する」
   と決定した。
 
+## 実装の記録(2026-09-24)
+
+実装は Claude Opus 5.5。起点は`dev`@`15a15f0`、branch `asdd/008-ui-alignment/T13-browser-file-preview`。
+
+- `lib/ui/file_source/storage_browser_view.dart`: file行の`leading`へ一覧と同じ`RowPreviewView`を置いた。`BrowserEntry`から`FileEntry`(名前・元場所ハンドル=path。日時と大きさは埋め草 — portは使わない)を作って渡す。`StorageBrowserView`は任意の`preview`を受け取り、`null`なら種別アイコンだけ。
+- `lib/main.dart`: browserを開くたびに`CachedFilePreview(const KindRoutingFilePreview())`を渡す(上の決定)。
+- **件数の多いfolder**: `ListView(children:)`は行のwidgetを作っても、**stateを持つ子は見えている分(とcache extent)しかbuildしない**ので、`RowPreviewView`の要求も見えている行の分だけになる(widget testで300件中30件未満を確認)。同時実行数と件数の上限は`T07`の`CachedFilePreview`が持つ。
+- 004 specは変えていない(REQ-017: previewは絞り込みではなく、出せないfileも隠さず並べ替えない)。
+
+### 自動検証
+
+- `flutter test test/spec_004_file_source/storage_browser_view_test.dart`: 67件PASS(T13で4件追加: thumbnail・出せない・読めないの提示と並び順 / portへpathを渡しfolderには要求しない / 300件で見える分だけ要求 / previewの上を押しても選択が切り替わる)。
+- `flutter test`: 993件PASS。`flutter analyze`: No issues。`dart format`: 0 changed。
+
+### mutation
+
+`command`を`flutter test test/spec_004_file_source/storage_browser_view_test.dart`へ絞り、T13で足した3件と、file行の見た目・semanticsを守る既存3件を回した:
+
+```text
+M414 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行のcheckboxを円にしない | exit 1
+M415 | KILLED | lib/ui/file_source/storage_browser_view.dart | 選択済みのfile行の面を染めない | exit 1
+M418 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行の名前とcheckboxを別々のsemantics nodeにする | exit 1
+M431 | KILLED | lib/ui/file_source/storage_browser_view.dart | file行からpreviewの枠を外す | exit 1
+M432 | KILLED | lib/ui/file_source/storage_browser_view.dart | 渡されたportを使わない | exit 1
+M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハンドルにpathではなく名前を渡す | exit 1
+6 mutations: 6 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。browser関連の全mutationの`find`が現行コードに1回ずつ一致することも確かめた。)
+
+**安全網の穴(受容)**: `lib/main.dart`がbrowserへpreviewを渡すこと自体はtestで固定していない(composition rootのwidget testが無い)。落ちても「previewが出ない」だけで、AGENTS.mdのFAIL条件2(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらない。**manualの0が観測する**(引き受け先はこのtaskのmanual)。
+
+## manual確認の結果
+
+### 1回目(2026-09-25、Androidエミュレータ、debug build、`lib/`は`ba6e815`)
+
+開発者の報告(会話):「確認事項は全体的にほとんど問題なかったが、件数の多いフォルダにおいての素早いスクロールだけは引っかかった。ゆっくりだとうまくスクロールできた。ただ、PCの性能やエミュレータの挙動による部分もあるかもしれない」。
+
+| 項目 | 結果 |
+|---|---|
+| 0〜1、3、4 | 問題なし(個別の指摘なし) |
+| 2 件数の多いfolder | **素早いscrollで引っかかる。** ゆっくりなら問題ない |
+
+**切り分け(Agent)**: `flutter run`の既定は**debug build**(JIT)で、scrollの滑らかさを判断する材料にならない。また`008:T07`の同じ観測(N-5)で、開発者はscrollの引っかかりを**previewより前からのもの**と判断している。**開発者の決定(2026-09-25)で、release buildで2だけを再確認する。** 滑らかならdebug由来として記録してmergeへ進み、引っかかるなら`dev`(previewの無いbrowser)のrelease buildと比べてT13が原因かを分ける。
+
+### release buildでの再確認(2026-09-25) — **build自体が失敗**
+
+`flutter run --release`が`Hook.build hook of package:batch_rename_master has invalid output ... does not have a link hook`で失敗した(開発者の調査で受領)。**T13のpreview実装ではなく、`013:T05`のbuild hookの欠陥**で、release buildは一度も作られていなかった。**`013:T13`(PR #191)として所有planへ切り出して直している。** T13側では直さない。
+
+## 独立review
+
+**reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
+
+- attempt 1: `15a15f0..de16159`(全範囲、implementation) — **PASS、指摘なし**。決定(画像・動画だけ、開くたびの新しいcache)とREQ-017、T07の基盤の区別・古い応答の破棄・同時実行上限の維持、T39/T40の行・選択・semantics、MediaStoreを使わないこと、300件のtestの妥当性、manualのコマンドの正しさと既存fileを消さないこと、記録の一致、full test 993件PASSを確認された。reviewerの範囲付きmutation 5件(M414・M418・M431〜M433)と対照1件はKILLED。
+  - reviewerの対照`R-T13-FAILED-VS-UNSUPPORTED`(読めなかったfileを「出せない」と同じアイコンにする)を`M434`として`tool/mutations.json`へ取り込んだ。
+  - **manualの結果はまだ無い**。受領後、`de16159`以後の差分をreviewする(差分review)。
+
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手。**2026-08-27 に`T07`がpreview基盤を作ったので、調査から始める必要は無くなった**
-- Blocker category: なし(**`T12`は2026-09-22にdone**)
-- Waiting for: なし。`T07`の基盤も`T12`の行も済んでいる
-- Requested action: なし
-- Evidence revision: 起点は `dev@7d8a597`。基盤は`008:T07`(PR #159)、browserの行は`008:T12`(PR #185)
-- Next Agent action: 着手できる。`lib/data/preview/`のportを`lib/ui/file_source/storage_browser_view.dart`のfile行へ繋ぐ。**textのpreviewを入れるかを最初に開発者へ確かめる**(残っている論点はそこだけ)。**`T39`と同じ画面を触るので、同時に走らせない。** **`T40`から引き受けた残余risk(2026-09-23)**: manual確認の手順へ「深い階層でパンくずの途中の区切りを1回押し、そのfolderへ移ること(押しやすさ)」を1項目足す。
+- Last checkpoint: release buildで手順2を再確認しようとしたが、release build自体が`013:T05`由来の欠陥で失敗した(2026-09-25)。
+- Blocker category: dependency / `013:T13`(release buildでnative改名ライブラリを同梱する。PR #191)。
+- Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
+- Waiting for: `013:T13`のmerge。
+- Requested action: なし(`013:T13`のmanualを先に依頼している)。
+- Next Agent action: `013:T13`のmerge後、このbranchへ`dev`を取り込み(競合が無ければ差分reviewの対象はmergeだけ)、release buildで手順2(素早いscroll)を依頼する。**release確認が通るまでmanual完了・ready化・mergeをしない。**
