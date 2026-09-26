@@ -7,7 +7,7 @@
 ## 使う端末と準備
 
 - 共通の手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。**host側でworktree `.worktrees/013-T13-release-native-bundle` へ`cd`**して実行する(branchの移動は不要)。
-- `adb devices`にエミュレータが**1台だけ**出ていることを確かめる。
+- `adb devices`にエミュレータが**1台だけ**出ていることを確かめる(1台なら`flutter run`は`-d`無しでその端末を使う。**PowerShellでは`-d <emulator>`の`<`がそのまま書けない**ので、指定するなら`-d emulator-5554`のように実際のIDを書く)。
 
 ### 準備するファイル
 
@@ -36,7 +36,7 @@ if ($existing -eq 'exists') {
 
 ```powershell
 flutter pub get
-flutter run --release -d <emulator>
+flutter run --release
 ```
 
 - **`Hook.build hook ... has invalid output` / `does not have a link hook` が出ない。** アプリが起動する。

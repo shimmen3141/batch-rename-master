@@ -73,11 +73,17 @@ M436 | KILLED | hook/build.dart | 静的ライブラリにする | exit 1
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
 
+- attempt 1: `15a15f0..250ac5c`(全範囲、implementation) — **PASS**(P2が1件)。packageのsourceで、変更前の`CLibrary`がreleaseで静的ライブラリをlink hookへ送り、変更後は両経路で動的ライブラリをbundleへ出すこと、名前・asset id・sources・includes・definesが保たれること、link hookを採らない理由の妥当性、仕様・contract・権限・データ保護の判定を変えていないことを確認された。**修正前のhookへ戻すとtestが落ちる**ことも実行で確かめられた。full test 991件PASS。
+  - **P2(成果物の欠陥)**: manualの`flutter run --release -d <emulator>`はPowerShellで`<`が演算子になり、そのまま実行できない。→ `flutter run --release`(端末が1台なら`-d`不要)へ直し、IDを書く場合の注意を足した。
+  - **SELF-CHECK**(AGENTS.mdの差分review): P2を閉じる差分は`specs/`だけで、ほかは`tool/mutations.json`へ対照を足しただけ(`lib/`・`hook/`・`src/`・`test/`・依存・build設定は変えていない)ことを`git diff --stat 250ac5c..HEAD`で確かめた。再reviewは起動しない。
+  - reviewerの対照`R-CONTROL-1`(hostから渡るlink mode preferenceを使う)を`M437`として取り込んだ。**等価mutantでSURVIVEDする**(testもFlutterもdynamicを渡す)。dynamicの明示は防御として残す。
+  - reviewerの補足: `M436`のKILLEDはこのcontainerではarchiver不足による。archiverのある環境では、static linkの成果物(`StaticLinking`)が`DynamicLoadingBundled`の検査で落ちる設計である(未実証として記録する)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-25、code `a13877b`)。
-- Blocker category: なし。
+- Last checkpoint: 独立review attempt 1 PASS(P2はSELF-CHECKで閉じた。2026-09-26)。hostのrelease buildのmanualを待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
 - Evidence revision: 起点は`dev`@`15a15f0`。
-- Waiting for: 独立review attempt 1(全範囲)。その後、host のrelease buildのmanual。
-- Requested action: なし。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の1〜2の結果(code `a13877b`)。
+- Requested action: 人間がhostでworktree `.worktrees/013-T13-release-native-bundle`から`flutter run --release`し、手順書を実行して結果を知らせる。
 - Next Agent action: mutation → 独立review → manual依頼。**`008:T13`のrelease確認はこのtaskのmerge後**(そのbranchへ`dev`を取り込んでから)。
