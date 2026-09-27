@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T13",
   "title": "release buildでもnative改名ライブラリを同梱する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T05"
   ],

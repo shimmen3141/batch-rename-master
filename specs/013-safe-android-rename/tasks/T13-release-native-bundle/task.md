@@ -95,9 +95,9 @@ M436 | KILLED | hook/build.dart | 静的ライブラリにする | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: **manual PASS**(2026-09-27、release build、code `a13877b`)。独立review attempt 1 PASS + SELF-CHECK。
+- Last checkpoint: **完了**(2026-09-27)。PR #191をAgentがmergeした(auto-merge条件1〜7: review連鎖 = attempt 1 PASS + SELF-CHECK、CI SUCCESS、未解決threadなし、`dev`と競合なし、最新headでfull test 991件PASS、manual証拠はcode `a13877b`でその後code差分なし)。統合後の`dev`@`4aa46e0`で`flutter analyze` PASS、`flutter test` 991件PASS。
 - Blocker category: なし。
-- Evidence revision: 起点は`dev`@`15a15f0`。
-- Waiting for: なし(PR #191のCIとmerge)。
+- Evidence revision: code `a13877b`、merge commit `4aa46e0`。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: PR #191をready → CI → auto-merge条件を確かめてmerge → `dev`上で確認 → done。その後`008:T13`のbranchへ`dev`を取り込み、release buildでscrollの再確認を依頼する。
+- Next Agent action: なし。`008:T13`のrelease確認がこの修正を使う。
