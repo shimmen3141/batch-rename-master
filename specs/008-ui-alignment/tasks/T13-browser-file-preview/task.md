@@ -141,6 +141,17 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 - release buildは`013:T05`由来のbuild hookの欠陥で失敗した(`013:T13`)。`013:T13`がPR #191で`dev`へ入った(`4aa46e0`)ので、このbranchへ`dev`を取り込んだ(merge commit `025aa18`)。`tool/mutations.json`の競合は両側で足したmutation(`M431`〜`M434` / `M435`〜`M437`)を両方残して解き、新しく足した7件の`find`が現行コードに1回ずつ一致することを確かめた。full test 995件PASS、analyze・format PASS。
 - **manualの2回目は`--release`で0〜4を通して見る**(1回目以後にbuild設定`hook/`が変わったため、1回目は再利用しない)。
 
+### 2回目(2026-09-27、Androidエミュレータ、**release build**、code `025aa18`)
+
+開発者の報告(会話):「`many`フォルダでのスクロールに関しては、ややゆっくりスクロールしないと引っかかります。それ以外は正常でした」。
+
+| 項目 | 結果 |
+|---|---|
+| 0、1、3、4 | 正常 |
+| 2 件数の多いfolder | **releaseでも、素早いscrollで引っかかる**(ややゆっくりなら問題ない) |
+
+**debug由来ではなかった。** 次は、**previewの無いbrowser(`dev`@`795ae65`、release修正は入っている)のrelease build**で同じfolderを素早くscrollし、T13が原因かを分ける(開発者の決定2026-09-25の手順どおり)。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
@@ -152,9 +163,9 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 ## Current state / handoff
 
-- Last checkpoint: `013:T13`を取り込んだ(2026-09-27、`025aa18`)。release buildでの手動確認の2回目を依頼する。
+- Last checkpoint: manual 2回目(release)を受領。素早いscrollの引っかかりがreleaseでも残った(2026-09-27)。T13が原因かを切り分ける。
 - Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
 - Evidence revision: base `dev`@`795ae65`(取り込み後)、code `025aa18`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(release build、code `025aa18`)。
-- Requested action: 人間がworktreeから`flutter pub get` → `flutter run --release`し、0〜4を実行して結果を知らせる。
-- Next Agent action: 結果を記録 → review連鎖を確かめる → PRをready → CI → merge判断。
+- Waiting for: previewの無い`dev`@`795ae65`のrelease buildで`many`を素早くscrollした結果(比較)。
+- Requested action: 人間がrepository直下(本体のcheckout、`dev`)から`flutter run --release`し、`many`を同じ速さでscrollして引っかかるかを知らせる。
+- Next Agent action: 比較で`dev`も引っかかるなら、previewより前からの現象として記録(残余risk)しmergeへ。`dev`が滑らかならT13が原因なので、previewの要求・生成の負荷を下げる修正を設計する。
