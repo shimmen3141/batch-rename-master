@@ -148,12 +148,13 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 - attempt 1: `15a15f0..de16159`(全範囲、implementation) — **PASS、指摘なし**。決定(画像・動画だけ、開くたびの新しいcache)とREQ-017、T07の基盤の区別・古い応答の破棄・同時実行上限の維持、T39/T40の行・選択・semantics、MediaStoreを使わないこと、300件のtestの妥当性、manualのコマンドの正しさと既存fileを消さないこと、記録の一致、full test 993件PASSを確認された。reviewerの範囲付きmutation 5件(M414・M418・M431〜M433)と対照1件はKILLED。
   - reviewerの対照`R-T13-FAILED-VS-UNSUPPORTED`(読めなかったfileを「出せない」と同じアイコンにする)を`M434`として`tool/mutations.json`へ取り込んだ。
   - **manualの結果はまだ無い**。**`dev`を取り込んで競合を解いたので、次のreviewはAGENTS.mdに従い全範囲(`dev...HEAD`)を見る。**
+- attempt 2: `795ae65...adefced`(**全範囲**。`dev`を取り込んで競合を解いたため) — **PASS、指摘なし**。merge commit `025aa18`の競合解消(`M431`〜`M434`と`M435`〜`M437`を両方残し、ID重複なし)、取り込みでT13の実装・testが変わっていないこと、その後`lib/`・`hook/`・`src/`・依存・build設定の差分が無いこと、manualの2回目の手順と記録の一致、full test 995件PASSを確認された。reviewerの範囲付きmutation 7件のうち6件KILLED、`M437`は記録どおりの等価mutantでSURVIVED(全件testでも確認)。review専用のdetached worktreeで実行し、manualに使うworktreeには触れていない。
 
 ## Current state / handoff
 
 - Last checkpoint: `013:T13`を取り込んだ(2026-09-27、`025aa18`)。release buildでの手動確認の2回目を依頼する。
 - Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
 - Evidence revision: base `dev`@`795ae65`(取り込み後)、code `025aa18`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(release build、code `025aa18`)。並行して独立review attempt 2(全範囲)。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(release build、code `025aa18`)。
 - Requested action: 人間がworktreeから`flutter pub get` → `flutter run --release`し、0〜4を実行して結果を知らせる。
 - Next Agent action: 結果を記録 → review連鎖を確かめる → PRをready → CI → merge判断。
