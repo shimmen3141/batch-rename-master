@@ -69,6 +69,20 @@ M436 | KILLED | hook/build.dart | 静的ライブラリにする | exit 1
 
 経緯は[development finding](../../../../development-findings/2026-09-25-release-build-never-built-native-hook.md)。
 
+## manual確認の結果
+
+### 1回目(2026-09-27、Androidエミュレータ、**release build**、code `a13877b`) — **PASS**
+
+開発者の報告(会話)。
+
+| 項目 | 結果 |
+|---|---|
+| 1 release buildが通る | **確認できた**(`does not have a link hook`が出ずに起動した) |
+| 2 release版で改名が動く | **実行は正常に完了し、fileの内容等も想定どおりだった**(`x_one.txt`、`x_two (1).txt`が作られ、既存の`x_two.txt`は上書きされなかった) |
+
+- 開発者の補足:「`two.txt`の変更後名が`x_two.txt`と衝突する旨の警告は、実際にリネームbuttonを押すまで出なかった。警告modalが出てからはfile行に警告が出続けた」。**これは仕様どおり**である — 005 代表例25が求めるのは「**実行前に**重複警告として提示される」ことで、読み込んでいないfileの実在名は実行の時点で読む(`013:T07`の確認と同じ形)。**手順書の期待(一覧に先に出る)が不正確だった**ので、手順書を直した(記録のみ)。
+- **このmanual証拠はcode `a13877b`に対応する。** その後の差分は`specs/`と`tool/mutations.json`(対照の追加)だけで、code・dependency・build設定は変えていない。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
@@ -81,9 +95,9 @@ M436 | KILLED | hook/build.dart | 静的ライブラリにする | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(P2はSELF-CHECKで閉じた。2026-09-26)。hostのrelease buildのmanualを待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
+- Last checkpoint: **manual PASS**(2026-09-27、release build、code `a13877b`)。独立review attempt 1 PASS + SELF-CHECK。
+- Blocker category: なし。
 - Evidence revision: 起点は`dev`@`15a15f0`。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の1〜2の結果(code `a13877b`)。
-- Requested action: 人間がhostでworktree `.worktrees/013-T13-release-native-bundle`から`flutter run --release`し、手順書を実行して結果を知らせる。
-- Next Agent action: mutation → 独立review → manual依頼。**`008:T13`のrelease確認はこのtaskのmerge後**(そのbranchへ`dev`を取り込んでから)。
+- Waiting for: なし(PR #191のCIとmerge)。
+- Requested action: なし。
+- Next Agent action: PR #191をready → CI → auto-merge条件を確かめてmerge → `dev`上で確認 → done。その後`008:T13`のbranchへ`dev`を取り込み、release buildでscrollの再確認を依頼する。
