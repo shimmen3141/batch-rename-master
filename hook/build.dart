@@ -9,7 +9,7 @@ void main(List<String> args) async {
     }
 
     final targetOS = input.config.code.targetOS;
-    final library = CLibrary(
+    final library = CBuilder.library(
       name: 'batch_rename_native',
       assetName: 'data/rename_exec/native_exclusive_rename.dart',
       sources: ['src/native_exclusive_rename.c'],
@@ -19,7 +19,19 @@ void main(List<String> args) async {
       includes: ['src'],
       defines: nativeDefines(targetOS),
     );
-    await library.build(input: input, output: output);
+    // **debug でも release でも、動的ライブラリを app へ直接同梱する**(`013:T13`)。
+    //
+    // 以前の `CLibrary` は release(`linkingEnabled`)で静的ライブラリを同じ package の
+    // link hook へ送り、link hook が無いので Flutter の release build が失敗した。
+    // link hook を足す案は採らない — debug(`013:T08` が実機で確かめた形)と経路が
+    // 分かれ、FFI が呼ぶ symbol をリンカが落とすと**release だけ改名が実行時に
+    // 失敗しうる**。C は1本で、LTO で得るものも無い。
+    await library.run(
+      input: input,
+      output: output,
+      routing: const [ToAppBundle()],
+      linkModePreference: LinkModePreference.dynamic,
+    );
   });
 }
 

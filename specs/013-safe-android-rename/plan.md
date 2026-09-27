@@ -124,7 +124,10 @@ ADR-002 の退避経路(Android未対応へ戻す)へ落とす**という設計�
 | T10 | [task.md](tasks/T10-add-existing-names-to-collision-check/task.md) |
 | T11 | [task.md](tasks/T11-implement-renumbering-execution/task.md) |
 | T12 | [task.md](tasks/T12-enumerate-storage-volumes/task.md) |
+| T13 | [task.md](tasks/T13-release-native-bundle/task.md) |
 
 `T09`(preflightの実行制御)は**2026-08-14に削除した**。preflightそのものが不要になったため。IDは再利用しない。
 
 `T12`(保存場所の列挙の作り直し)は**2026-08-26に追加した**。`T08`の実機観測で、app が `/storage` を `EACCES` で列挙できず、**装着されている SD カード・USB が保存場所に並ばない**ことが判明したためである(004 REQ-015 / 代表例26e に対する `T07` の欠陥)。**要求は変えず、列挙の手段だけを差し替える**(手段は 004 spec が自由としている)。開発者の判断(2026-08-26)。
+
+`T13`(release buildでのnative改名ライブラリの同梱)は**2026-09-25に追加した**。`008:T13`のrelease build確認で、`T05`のbuild hookがrelease(`linkingEnabled`)で静的ライブラリを存在しないlink hookへ送り、**release buildを作れない**ことが判明したためである。**要求は変えず、ライブラリの作り方だけを直す**。
