@@ -32,3 +32,10 @@
 
 - `compose.ai.yml`で`.worktrees/*/.dart_tool`もcontainer専用にする(host側の変更。人間の作業)。
 - commit前に`git diff --cached --stat`で、task外のpath(生成registrant等)が入っていないかを確かめる手順を明記する。
+
+## 追記(2026-09-25): worktreeの`.git`がhostから読めない
+
+containerで作ったworktreeの`.git`は`gitdir: /workspace/.git/worktrees/<name>`という**container内の絶対path**になる。Windows hostではこのpathが存在しないので、**hostのgitはそのdirectoryをworktreeとして認識しない**(開発者の観測: hostのpromptが`(dev)`と出る)。buildやtestには影響しない。
+
+- `git worktree add`の相対path(`worktree.useRelativePaths`)はgit 2.48以降で、containerのgitは2.39.5なので使えない。
+- 候補: containerのgitを2.48以上にして`worktree.useRelativePaths=true`にする(`.devcontainer/`の変更なので人間の作業)、またはhost側で`git worktree repair`する(repairはhost向けの絶対pathを書くので、今度はcontainer側が読めなくなる — 採らない)。
