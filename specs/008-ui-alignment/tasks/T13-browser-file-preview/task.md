@@ -152,6 +152,18 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 **debug由来ではなかった。** 次は、**previewの無いbrowser(`dev`@`795ae65`、release修正は入っている)のrelease build**で同じfolderを素早くscrollし、T13が原因かを分ける(開発者の決定2026-09-25の手順どおり)。
 
+### 比較(2026-09-27、`dev`@`795ae65`のrelease build — previewの無いbrowser)
+
+開発者の報告(会話):「devでも素早いスクロールだと反応しなさそうです」。
+
+**T13(preview)は原因ではない。** 素早いscrollの引っかかりはpreviewより前からbrowserの一覧にある(`008:T07`のN-5と同じ判断)。
+
+| 残余risk | 分類 | 扱い |
+|---|---|---|
+| 件数の多いfolderを素早くscrollすると引っかかる・反応しない | **このtaskの成果物の欠陥ではない**(previewの無いbuildでも起きる)。**安全網の穴でもない**(データ損失等に当たらない) | 受容する。**引き受け先は`008:T41`**(原因の調査。2026-09-27に登録) |
+
+これで**manual 2回目(release、code `025aa18`)は0〜4すべてが、T13の受け入れとしてPASS**である(2の引っかかりはT13の外の現象と切り分けた)。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
@@ -160,12 +172,13 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
   - reviewerの対照`R-T13-FAILED-VS-UNSUPPORTED`(読めなかったfileを「出せない」と同じアイコンにする)を`M434`として`tool/mutations.json`へ取り込んだ。
   - **manualの結果はまだ無い**。**`dev`を取り込んで競合を解いたので、次のreviewはAGENTS.mdに従い全範囲(`dev...HEAD`)を見る。**
 - attempt 2: `795ae65...adefced`(**全範囲**。`dev`を取り込んで競合を解いたため) — **PASS、指摘なし**。merge commit `025aa18`の競合解消(`M431`〜`M434`と`M435`〜`M437`を両方残し、ID重複なし)、取り込みでT13の実装・testが変わっていないこと、その後`lib/`・`hook/`・`src/`・依存・build設定の差分が無いこと、manualの2回目の手順と記録の一致、full test 995件PASSを確認された。reviewerの範囲付きmutation 7件のうち6件KILLED、`M437`は記録どおりの等価mutantでSURVIVED(全件testでも確認)。review専用のdetached worktreeで実行し、manualに使うworktreeには触れていない。
+- **SELF-CHECK**(AGENTS.mdの差分review): attempt 2以後の差分(`adefced..HEAD`)は`specs/`だけ(manualの結果、比較、残余risk、`T41`の登録)で、`lib/`・`hook/`・`src/`・`test/`・`tool/`・依存・build設定は変えていない。再reviewは起動しない。
 
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目(release)を受領。素早いscrollの引っかかりがreleaseでも残った(2026-09-27)。T13が原因かを切り分ける。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
+- Last checkpoint: **manual 2回目(release、code `025aa18`)PASS**。素早いscrollの引っかかりはpreviewの無いbuildでも起きるので`008:T41`へ切り出した(2026-09-27)。
+- Blocker category: なし。
 - Evidence revision: base `dev`@`795ae65`(取り込み後)、code `025aa18`。
-- Waiting for: previewの無い`dev`@`795ae65`のrelease buildで`many`を素早くscrollした結果(比較)。
-- Requested action: 人間がrepository直下(本体のcheckout、`dev`)から`flutter run --release`し、`many`を同じ速さでscrollして引っかかるかを知らせる。
-- Next Agent action: 比較で`dev`も引っかかるなら、previewより前からの現象として記録(残余risk)しmergeへ。`dev`が滑らかならT13が原因なので、previewの要求・生成の負荷を下げる修正を設計する。
+- Waiting for: なし(PR #190のCIとmerge)。
+- Requested action: なし。
+- Next Agent action: PR #190をready → CI → auto-merge条件を確かめてmerge → `dev`上で確認 → done。次は`008:T41`。
