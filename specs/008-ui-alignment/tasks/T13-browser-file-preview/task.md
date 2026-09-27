@@ -136,19 +136,24 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 `flutter run --release`が`Hook.build hook of package:batch_rename_master has invalid output ... does not have a link hook`で失敗した(開発者の調査で受領)。**T13のpreview実装ではなく、`013:T05`のbuild hookの欠陥**で、release buildは一度も作られていなかった。**`013:T13`(PR #191)として所有planへ切り出して直している。** T13側では直さない。
 
+### release buildでの再確認の準備(2026-09-27)
+
+- release buildは`013:T05`由来のbuild hookの欠陥で失敗した(`013:T13`)。`013:T13`がPR #191で`dev`へ入った(`4aa46e0`)ので、このbranchへ`dev`を取り込んだ(merge commit `025aa18`)。`tool/mutations.json`の競合は両側で足したmutation(`M431`〜`M434` / `M435`〜`M437`)を両方残して解き、新しく足した7件の`find`が現行コードに1回ずつ一致することを確かめた。full test 995件PASS、analyze・format PASS。
+- **manualの2回目は`--release`で0〜4を通して見る**(1回目以後にbuild設定`hook/`が変わったため、1回目は再利用しない)。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。AGENTS.mdの差分review(連鎖)に従う。
 
 - attempt 1: `15a15f0..de16159`(全範囲、implementation) — **PASS、指摘なし**。決定(画像・動画だけ、開くたびの新しいcache)とREQ-017、T07の基盤の区別・古い応答の破棄・同時実行上限の維持、T39/T40の行・選択・semantics、MediaStoreを使わないこと、300件のtestの妥当性、manualのコマンドの正しさと既存fileを消さないこと、記録の一致、full test 993件PASSを確認された。reviewerの範囲付きmutation 5件(M414・M418・M431〜M433)と対照1件はKILLED。
   - reviewerの対照`R-T13-FAILED-VS-UNSUPPORTED`(読めなかったfileを「出せない」と同じアイコンにする)を`M434`として`tool/mutations.json`へ取り込んだ。
-  - **manualの結果はまだ無い**。受領後、`de16159`以後の差分をreviewする(差分review)。
+  - **manualの結果はまだ無い**。**`dev`を取り込んで競合を解いたので、次のreviewはAGENTS.mdに従い全範囲(`dev...HEAD`)を見る。**
 
 ## Current state / handoff
 
-- Last checkpoint: release buildで手順2を再確認しようとしたが、release build自体が`013:T05`由来の欠陥で失敗した(2026-09-25)。
-- Blocker category: dependency / `013:T13`(release buildでnative改名ライブラリを同梱する。PR #191)。
-- Evidence revision: base `dev`@`15a15f0`、code `ba6e815`。
-- Waiting for: `013:T13`のmerge。
-- Requested action: なし(`013:T13`のmanualを先に依頼している)。
-- Next Agent action: `013:T13`のmerge後、このbranchへ`dev`を取り込み(競合が無ければ差分reviewの対象はmergeだけ)、release buildで手順2(素早いscroll)を依頼する。**release確認が通るまでmanual完了・ready化・mergeをしない。**
+- Last checkpoint: `013:T13`を取り込んだ(2026-09-27、`025aa18`)。release buildでの手動確認の2回目を依頼する。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、release build)。
+- Evidence revision: base `dev`@`795ae65`(取り込み後)、code `025aa18`。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜4の結果(release build、code `025aa18`)。並行して独立review attempt 2(全範囲)。
+- Requested action: 人間がworktreeから`flutter pub get` → `flutter run --release`し、0〜4を実行して結果を知らせる。
+- Next Agent action: 結果を記録 → review連鎖を確かめる → PRをready → CI → merge判断。

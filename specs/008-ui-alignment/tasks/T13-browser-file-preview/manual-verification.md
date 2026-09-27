@@ -1,15 +1,19 @@
 # 手動確認: browserのファイル行のpreview(Androidエミュレータ)
 
-**対象buildは、`lib/`の内容が commit `ba6e815` と同一のもの**である。branch `asdd/008-ui-alignment/T13-browser-file-preview` のHEADからbuildすればこれを満たす — それ以後のcommitは記録だけで、`lib/`を変えていない。**`lib/`・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `025aa18` と同一のもの**である(2回目。`013:T13`のrelease修正を取り込んだ後)。branch `asdd/008-ui-alignment/T13-browser-file-preview` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
+
+**2回目は`--release`で起動する**(1回目はdebugで、scrollの滑らかさを判断できなかった。結果は`task.md`)。**0〜4を通して見る** — 1回目以後にbuild設定(`hook/`)が変わったため、1回目の結果は再利用しない。
 
 **Androidエミュレータで確認する**(`008:T39`で開発者が決めた方針)。**テキストのpreviewは出さない**(2026-09-24の決定。テキストは種別アイコンになることだけを見る)。
 
 ## 使う端末と準備
 
-- 起動と`flutter run`は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)のとおり。**host側でworktree `.worktrees/008-T13-browser-file-preview` へ`cd`してから`flutter pub get` → `flutter run -d <emulator>`**する(branchの移動は不要)。
+- 起動と`flutter run`は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)のとおり。**host側でworktree `.worktrees/008-T13-browser-file-preview` へ`cd`してから`flutter pub get` → `flutter run --release`**する(branchの移動は不要。エミュレータが1台なら`-d`は要らない。**PowerShellでは`-d <emulator>`の`<`がそのまま書けない**ので、指定するなら`-d emulator-5554`のように実際のIDを書く)。
 - `adb devices`にエミュレータが**1台だけ**出ていることを確かめる。
 
 ### 準備するファイル
+
+**1回目のfixtureが端末に残っていれば、この節は飛ばしてよい**(下のcommandは既にあれば止まる)。
 
 **画像と動画はエミュレータの中で作る**(`screencap`は画面のPNG、`screenrecord`は画面の動画を書き出す。hostで画像を用意しなくてよい)。確認専用のフォルダ`Download/asdd-008-t13`だけを使い、**既にあれば何も置かずに止まる**。
 
