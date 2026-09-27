@@ -176,9 +176,9 @@ M433 | KILLED | lib/ui/file_source/storage_browser_view.dart | 元場所ハン�
 
 ## Current state / handoff
 
-- Last checkpoint: **manual 2回目(release、code `025aa18`)PASS**。素早いscrollの引っかかりはpreviewの無いbuildでも起きるので`008:T41`へ切り出した(2026-09-27)。
+- Last checkpoint: **完了**(2026-09-27)。PR #190をAgentがmergeした(auto-merge条件1〜7: review連鎖 = attempt 2(全範囲)PASS + SELF-CHECK、CI SUCCESS、未解決threadなし、`dev`と競合なし、最新headでfull test 995件PASS、manual 2回目はcode `025aa18`でその後code差分なし、素早いscrollの残余riskは`008:T41`が引き受け)。統合後の`dev`@`b87230e`で`flutter analyze` PASS、`flutter test` 995件PASS。
 - Blocker category: なし。
-- Evidence revision: base `dev`@`795ae65`(取り込み後)、code `025aa18`。
-- Waiting for: なし(PR #190のCIとmerge)。
+- Evidence revision: code `025aa18`、merge commit `b87230e`。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: PR #190をready → CI → auto-merge条件を確かめてmerge → `dev`上で確認 → done。次は`008:T41`。
+- Next Agent action: なし。後続は`008:T41`(browserの一覧が素早いscrollに反応しない原因の調査)。`T40`から引き受けた項目(パンくずの押しやすさ)はmanual 4でPASSした。

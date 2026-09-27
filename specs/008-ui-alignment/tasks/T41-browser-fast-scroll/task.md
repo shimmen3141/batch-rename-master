@@ -32,8 +32,8 @@ app内browserで件数の多いfolder(200件)を**素早くscrollすると引っ
 ## Current state / handoff
 
 - Last checkpoint: `008:T13`の確認で観測し、登録した(2026-09-27)。未着手。
-- Blocker category: dependency / `008:T13`。
+- Blocker category: なし(`008:T13`は2026-09-27にdone)。
 - Evidence revision: 観測は`008:T13`の`025aa18`と`dev`@`795ae65`のrelease build。
-- Waiting for: `008:T13`のmerge。
+- Waiting for: なし。
 - Requested action: なし。
 - Next Agent action: まずwidget testで素早いflingを再現できるかを見る(touch / mouse)。
