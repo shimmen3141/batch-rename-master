@@ -103,6 +103,9 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
         builder: (_) => StorageBrowserView(
           browser: const AndroidStorageBrowser(),
           onLocationName: (folder, name) => _locationNames[folder] = name,
+          // **開くたびに新しい cache**(`008:T13`)。一覧の [_filePreview] とは共有しない —
+          // browser の行は更新日時を持たず、共有すると古い絵が残りうる。
+          preview: CachedFilePreview(const KindRoutingFilePreview()),
         ),
       ),
     );

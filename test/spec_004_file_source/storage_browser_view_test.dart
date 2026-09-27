@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' show CheckedState, SemanticsAction;
 
 // 004 VER-005: app 内 file browser(REQ-015〜REQ-020)。
@@ -18,6 +19,8 @@ import 'dart:ui' show CheckedState, SemanticsAction;
 import 'package:batch_rename_master/data/file_source/android_file_source.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:batch_rename_master/data/file_source/storage_browser.dart';
+import 'package:batch_rename_master/data/preview/file_preview.dart';
+import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/storage_browser_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
@@ -75,7 +78,11 @@ class _Result {
   bool closed = false;
 }
 
-Future<_Result> _open(WidgetTester tester, StorageBrowserPort browser) async {
+Future<_Result> _open(
+  WidgetTester tester,
+  StorageBrowserPort browser, {
+  FilePreviewPort? preview,
+}) async {
   final result = _Result();
   await tester.pumpWidget(
     MaterialApp(
@@ -89,7 +96,10 @@ Future<_Result> _open(WidgetTester tester, StorageBrowserPort browser) async {
                 result.value = await Navigator.of(context)
                     .push<BrowserSelection>(
                       MaterialPageRoute(
-                        builder: (_) => StorageBrowserView(browser: browser),
+                        builder: (_) => StorageBrowserView(
+                          browser: browser,
+                          preview: preview,
+                        ),
                       ),
                     );
                 result.closed = true;
@@ -1622,6 +1632,123 @@ void main() {
 
       expect(_breadcrumb(tester), ['内部ストレージ']);
       expect(find.byKey(const Key('browser-file-r1.txt')), findsOneWidget);
+    });
+  });
+
+  group('008:T13 file行のpreview', () {
+    /// 8x8 の PNG。**test の中で作らない**(fake async で `toImage` が止まる)。
+    final png = Uint8List.fromList([
+      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, //
+      0, 0, 0, 8, 0, 0, 0, 8, 8, 2, 0, 0, 0, 75, 109, 41, //
+      220, 0, 0, 0, 17, 73, 68, 65, 84, 120, 218, 99, 48, 78, 59, 131, //
+      21, 49, 12, 45, 9, 0, 185, 134, 89, 65, 110, 38, 132, 252, 0, 0, //
+      0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+    ]);
+
+    Finder previewOf(String name) => find.descendant(
+      of: find.byKey(Key('browser-file-$name')),
+      matching: find.byKey(rowPreviewKey),
+    );
+
+    testWidgets('画像はthumbnail、出せない・読めないfileは別のアイコンで、行は隠れも並び替わりもしない', (
+      tester,
+    ) async {
+      final preview = FakeFilePreview(
+        byHandle: {
+          '$_root/a.jpg': PreviewReady(png),
+          '$_root/c.jpg': const PreviewFailed('壊れている'),
+        },
+      );
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [
+              _file(_root, 'a.jpg'),
+              _file(_root, 'b.txt'),
+              _file(_root, 'c.jpg'),
+            ],
+          },
+        ),
+        preview: preview,
+      );
+
+      expect(
+        find.descendant(of: previewOf('a.jpg'), matching: find.byType(Image)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: previewOf('c.jpg'),
+          matching: find.byIcon(Icons.broken_image_outlined),
+        ),
+        findsOneWidget,
+        reason: '読めなかったことを黙らせない',
+      );
+      expect(
+        find.descendant(of: previewOf('b.txt'), matching: find.byType(Image)),
+        findsNothing,
+        reason: 'テキストは出さない(2026-09-24の決定)',
+      );
+      expect(previewOf('b.txt'), findsOneWidget, reason: '枠は在り、種別アイコンになる');
+      // **絞り込まず、並び替えない**(004 REQ-017)。
+      final ys = [
+        for (final n in ['a.jpg', 'b.txt', 'c.jpg'])
+          tester.getTopLeft(find.byKey(Key('browser-file-$n'))).dy,
+      ];
+      expect(ys, orderedEquals([...ys]..sort()));
+    });
+
+    testWidgets('portへは各fileのpathを元場所ハンドルとして渡し、folderには要求しない', (tester) async {
+      final preview = FakeFilePreview();
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_dir(_root, 'DCIM'), _file(_root, 'a.jpg')],
+          },
+        ),
+        preview: preview,
+      );
+
+      expect(preview.requested, ['$_root/a.jpg']);
+    });
+
+    testWidgets('件数の多いfolderでも、見えている行の分だけを要求する', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final preview = FakeFilePreview();
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [for (var i = 0; i < 300; i++) _file(_root, 'IMG_$i.jpg')],
+          },
+        ),
+        preview: preview,
+      );
+
+      expect(preview.requested, isNotEmpty);
+      expect(preview.requested.length, lessThan(30), reason: '300件を一度に開きに行かない');
+      expect(preview.requested.first, '$_root/IMG_0.jpg');
+    });
+
+    testWidgets('previewがあっても、行を押せば選択が切り替わる', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_file(_root, 'a.jpg')],
+          },
+        ),
+        preview: FakeFilePreview(byHandle: {'$_root/a.jpg': PreviewReady(png)}),
+      );
+
+      await tester.tap(previewOf('a.jpg'));
+      await tester.pumpAndSettle();
+
+      expect(_isChecked(tester, 'a.jpg'), isTrue);
+      expect(_title(tester), '1件選択中');
     });
   });
 

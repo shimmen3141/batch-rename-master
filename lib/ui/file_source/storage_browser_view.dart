@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../data/file_source/android_file_source.dart';
+import '../../core/file_entry.dart';
 import '../../data/file_source/storage_browser.dart';
+import '../../data/preview/file_preview.dart';
 import '../common/drag_selection_controller.dart';
+import '../file_list/row_preview_view.dart';
 import '../theme/app_colors.dart';
 
 /// 現在folderのfileだけを一操作で選ぶ(004 REQ-020)。ケバブの項目である。
@@ -70,9 +73,17 @@ class StorageBrowserView extends StatefulWidget {
     super.key,
     required this.browser,
     this.onLocationName,
+    this.preview,
   });
 
   final StorageBrowserPort browser;
+
+  /// file 行の preview(`008:T13`)。`null` なら種別アイコンだけを出す。
+  ///
+  /// **画像と動画だけ**(2026-09-24 の決定。テキストは出さない)。composition root は
+  /// **browser を開くたびに新しい cache を渡す** — [BrowserEntry] は更新日時を持たず、
+  /// 画面をまたいで cache を使い回すと、中身が変わった file の古い絵が残りうる。
+  final FilePreviewPort? preview;
 
   /// 辿った folder と、それが属する保存場所の名前を知らせる(004 REQ-009)。
   ///
@@ -636,6 +647,12 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       child: ListTile(
         dense: true,
         tileColor: selected ? colors.selectedSurface : null,
+        // **preview は一覧の行と同じ部品**(`008:T13`)。出せない file・まだ届かない
+        // file は種別アイコンになり、**行を隠しも並べ替えもしない**(004 REQ-017)。
+        leading: RowPreviewView(
+          file: _previewEntryOf(entry),
+          preview: widget.preview,
+        ),
         title: Text(entry.name, style: TextStyle(color: colors.textPrimary)),
         trailing: Checkbox(
           value: selected,
@@ -651,6 +668,16 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       ),
     );
   }
+
+  /// preview の port へ渡す形。**port が読むのは名前と元場所ハンドル(path)だけ**で、
+  /// 日時と大きさは使わない。browser は列挙のときに stat しない(件数の多い folder を
+  /// 開く速さを保つ)ので、ここでは埋め草を入れる。
+  static FileEntry _previewEntryOf(BrowserEntry entry) => FileEntry(
+    name: entry.name,
+    modifiedAt: DateTime.fromMicrosecondsSinceEpoch(0),
+    size: 0,
+    sourceHandle: entry.path,
+  );
 
   /// footer。**左下の「← リネーム画面へ」が画面を閉じる唯一の導線**(`008:T38`)。
   ///
