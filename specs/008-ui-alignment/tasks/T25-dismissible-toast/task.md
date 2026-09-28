@@ -49,7 +49,7 @@
 | 自動で消えるまでの時間 | **変えない**(改名の取り消しは005 REQ-007の5秒、それ以外はFlutterの既定) | Agent(既定) |
 | 各通知の重大度 | 成功: 改名の結果(失敗を含まないとき)・除去・元に戻した結果(失敗を含まないとき)。エラー: 今の赤の通知(読み込みの失敗、複数folder、実在名を取得できない、権限が無い2種)と、失敗を含む改名・元に戻した結果。案内: 今の青の通知(未実装の種類)と「一覧が変わったため、取り消せませんでした」(何も失っていない) | Agent |
 
-| 通知の位置(2026-09-28、manual 1回目の指摘) | **フッター(ルール設定とリネームのbutton)の少し上**(8px)に出す。フッターが無い画面(除去の選択モードなど)ではdesign土台の下18px。フッターは自分の高さを`ToastFooter`で知らせる(高さは文字の大きさ・ルールの有無で変わるので数で決め打ちしない) | 開発者(位置) / Agent(作り方) |
+| 通知の位置(2026-09-28、manual 1回目の指摘) | **フッター(ルール設定とリネームのbutton)の少し上**(8px)に出す。フッターが無い画面(除去の選択モードなど)ではdesign土台の下18px。**作り方は通知の置き場(`ToastHost`)**: 一覧とフッターを含む領域に内側の`ScaffoldMessenger`/`Scaffold`を持たせ、フッターを`bottomNavigationBar`にする。浮いた通知はScaffoldが毎frameフッターの上へ置き(表示中に高さが変わっても追随)、領域の幅に収まる(2ペインでも右ペインを覆わない)。置き場の外(読み込みbar)の通知も置き場へ送る。**最初はフッターの高さをグローバルに受け渡して`SnackBar`の余白にしたが、独立review attempt 2 のP1 2件でやめた** | 開発者(位置) / Agent(作り方) |
 | 通知の面の色(同) | **一覧の行(`surfaceElevated`)より一段明るい`#262C36`**、枠線は白16%。同じ色だと暗い背景と行に埋もれて見づらかった | 開発者(明るく) / Agent(値) |
 | フッターの区切り線(同。**通知とは別だがこのtaskで入れる**) | フッターの上端にdesign土台と同じ区切り線(白8%、`colors.border`)を入れる。一覧との境目が読めなかった | 開発者 |
 
@@ -123,11 +123,11 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
 
 | 指摘 | 対応(`1005f11`) |
 |---|---|
-| 通知が画面下部に出て、リネームのbuttonなどと干渉して押しにくい。フッターの少し上へずらしたい | フッターの高さの上に8pxの隙間で出す。`M446`・`M449` |
+| 通知が画面下部に出て、リネームのbuttonなどと干渉して押しにくい。フッターの少し上へずらしたい | フッターの上に8pxの隙間で出す(`1005f11`で高さの受け渡し → `aa78f2a`で通知の置き場へ作り直した)。`M446`・`M449`〜`M451` |
 | 通知の色が背景と同化して見づらい。参考デザインのように明るいトーンにしたい | 面を`#262C36`、枠線を白16%へ。`M447` |
 | (通知とは別)フッターの境界に参考デザインのような明るい区切り線を入れたい | フッターの上端に白8%の線。`M448` |
 
-**1回目の結果は`a207dae`のbuildに対するもので、`1005f11`では再利用しない。** 2回目は0〜5に、位置・色・区切り線の確認を足して通して見る。
+**1回目の結果は`a207dae`のbuildに対するもので、再利用しない。** 2回目の対象は`aa78f2a`。 2回目は0〜5に、位置・色・区切り線の確認を足して通して見る。
 
 ## 独立review
 
@@ -138,6 +138,12 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
   - **P2(成果物の欠陥)**: manualのfixture準備で、同名のフォルダが既にあった場合に、後片付けの「消してよい」が既存のフォルダを誤って消す余地を残していた。→ 既にあって止まった場合は後片付けで消さないことを明記した。
   - reviewerの対照(閉じる円で「元に戻す」を実行する)を`M445`として取り込んだ。
   - **SELF-CHECK**(AGENTS.mdの差分review): P2を閉じる差分は`specs/`と`tool/mutations.json`(対照の追加)だけで、`lib/`・`test/`・依存・build設定は変えていない。再reviewは起動しない。
+
+- attempt 2: `f954f96..bd38890`(差分) — **FAIL**(このtaskで1回目)。色・枠線・区切り線は決定表と一致、閉じる・「元に戻す」・自動で消える時間・重大度に回帰なし、testを弱めていない、full test 1010件PASS、は確認された。
+  - **P1(成果物の欠陥)**: 通知を出した時点のフッターの高さで`SnackBar.margin`を固定していたので、**表示中にフッターの高さが変わっても追随しない**。
+  - **P1(成果物の欠陥)**: 通知はアプリ全体の`ScaffoldMessenger`から出るので、**desktopの2ペインでは左のフッターで持ち上げたカードが右ペインにも重なる**。
+  - → **解き方を変えた**(同じ枠組みに条件を足しても2件とも解けない): 一覧とフッターの領域に通知の置き場(`ToastHost`、内側の`ScaffoldMessenger`/`Scaffold`)を持たせ、フッターを`bottomNavigationBar`にした(`aa78f2a`)。高さの受け渡し(`ToastFooter`/`toastBottomInset`)は廃止した。表示中の高さの変化・2ペイン・置き場の外からの通知をwidget testで固定した。
+  - reviewerの対照(実測高に24px足す)を、置き場の形へ移して`M451`として取り込んだ。**最初はSURVIVEDした** — testが隙間の期待値を定数から取っていたため。決定の値(8px)を直接書くよう直してKILLED。
 
 ### manual 1回目の指摘への対応(`1005f11`)の mutation
 
@@ -155,11 +161,41 @@ M449 | KILLED | lib/ui/common/app_toast.dart | フッターが高さを知らせ
 
 full test 1010件PASS。触ったfileのmutationで`find`が一致しないのは、`dev`時点から一致しない既存13件だけである。
 
+### attempt 2 のFAIL後の作り直し(`aa78f2a`)の mutation
+
+`command`を`flutter test test/spec_002_file_list test/spec_005_rename_exec test/spec_004_file_source/ui_entry_test.dart`へ絞り、置き場に関わるもの(`M446`・`M449`は`find`を入れ替え、`M450`・`M451`を新設)と、作り直しで`find`がずれて追随させたもの(`M307`・`M308`・`M331`・`M335`・`M397`は一覧を置き場で包んだ字下げ・整形、`M438`・`M444`・`M445`は送り先を`target`にしたため)、同じfileの既存の取り消し・除去の保証(`M293`・`M299`・`M439`・`M442`・`M447`・`M448`)を回した:
+
+```text
+M293 | KILLED | lib/ui/file_list/removal_undo.dart | 取り消しが一覧を戻さない | exit 1
+M299 | KILLED | lib/ui/file_list/removal_undo.dart | 控えが古くなっていても戻す | exit 1
+M307 | KILLED | lib/ui/file_list/file_list_view.dart | 長押しに依存しない入口を落とす(find追随) | exit 1
+M308 | KILLED | lib/ui/file_list/file_list_view.dart | 0件でも外すbuttonを押せる(find追随) | exit 1
+M331 | KILLED | lib/ui/file_list/file_list_view.dart | モード中も下部の帯を出す(findを書き直し) | exit 1
+M335 | KILLED | lib/ui/file_list/file_list_view.dart | ケバブのすべて選択を効かなくする(find追随) | exit 1
+M397 | KILLED | lib/ui/file_list/file_list_view.dart | 選択開始時の末尾余白を除く(find追随) | exit 1
+M438 | KILLED | lib/ui/common/app_toast.dart | 閉じる円を押しても通知が消えない(find追随) | exit 1
+M439 | KILLED | lib/ui/common/app_toast.dart | 操作があっても右を空けない | exit 1
+M442 | KILLED | lib/ui/file_list/removal_undo.dart | 除去の通知を自動で消す | exit 1
+M444 | KILLED | lib/ui/common/app_toast.dart | 「元に戻す」を押しても通知を下げない(find追随) | exit 1
+M445 | KILLED | lib/ui/common/app_toast.dart | [対照] 閉じる円で「元に戻す」を実行する(find追随) | exit 1
+M446 | KILLED | lib/ui/common/app_toast.dart | フッターとの隙間の指定を外す(find入れ替え) | exit 1
+M447 | KILLED | lib/ui/common/app_toast.dart | 通知の面を一覧の行と同じ色に戻す | exit 1
+M448 | KILLED | lib/ui/file_list/file_list_view.dart | フッターの上端の区切り線を消す | exit 1
+M449 | KILLED | lib/ui/common/app_toast.dart | 置き場へ送らず呼び出し側のmessengerへ出す(find入れ替え) | exit 1
+M450 | KILLED | lib/ui/common/app_toast.dart | 置き場を登録しない | exit 1
+M451 | SURVIVED | lib/ui/common/app_toast.dart | [対照] フッターとの隙間を24pxにする | exit 0: the tests passed with the mutation applied
+18 mutations: 17 KILLED, 1 SURVIVED, 0 SKIPPED
+M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査するよう直して単独で再実行) | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。full test 1013件PASS。触ったfileで`find`が一致しないのは`dev`時点からの既存13件だけ。)
+
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目のデザインの指摘(位置・色・フッターの区切り線)を`1005f11`で直した(2026-09-28)。
+- Last checkpoint: 独立review attempt 2 のFAIL(P1 2件)を、通知の置き場(`ToastHost`)へ作り直して閉じた(2026-09-28、`aa78f2a`)。**FAILは累計1回。**
 - Blocker category: なし(差分review → manual 2回目)。
-- Waiting for: 独立review attempt 2(差分`f954f96..HEAD`)。その後manual 2回目(code `1005f11`)。
+- Waiting for: 独立review attempt 3(差分`bd38890..HEAD`。attempt 2 の指摘が閉じたかを含む)。その後manual 2回目(code `aa78f2a`)。
 - Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。

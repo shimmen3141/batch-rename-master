@@ -1,6 +1,6 @@
 # 手動確認: 通知(toast)の見た目と閉じる操作(Androidエミュレータ)
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `1005f11` と同一のもの**である(2回目。1回目は`a207dae`で、結果は`task.md`)。branch `asdd/008-ui-alignment/T25-dismissible-toast` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `aa78f2a` と同一のもの**である(2回目。1回目は`a207dae`で、結果は`task.md`)。branch `asdd/008-ui-alignment/T25-dismissible-toast` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
 
 **Androidエミュレータで確認する**(`008:T39`で開発者が決めた方針)。見るのは**見た目と閉じる操作**で、速さは見ないので debug build でよい。
 
