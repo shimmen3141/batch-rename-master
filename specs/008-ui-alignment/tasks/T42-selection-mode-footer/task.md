@@ -53,7 +53,7 @@
 
 ### 自動検証
 
-- `removal_selection_mode_test.dart`に`008:T42`のgroupを足した(6件): フッターに「戻る」「N件を外す」と説明が出て帯に外すアイコンが無く`×`は残り、「外す」がシアンの塗り / 「戻る」でモードをやめ一覧は変わらない / 「N件を外す」で外れ取り消しの通知が出てモードを抜ける / **フッターの大きさと一覧の下端がモードの出入りで変わらない(スマホ幅とdesktop幅)** / 見えていない側のフッターは見つからない。
+- `removal_selection_mode_test.dart`に`008:T42`のgroupを足した(6件): フッターに「戻る」「N件を外す」と説明が出て帯に外すアイコンが無く`×`は残り、「外す」がシアンの塗り / 「戻る」でモードをやめ一覧は変わらない / 「N件を外す」で外れ取り消しの通知が出てモードを抜ける / **フッターの大きさと一覧の下端がモードの出入りで変わらない(スマホ幅の構成 = ルール設定+リネーム、desktop幅の構成 = リネームだけ。どちらも画面は360px幅で試す)** / 見えていない側のフッターは見つからない。
 - 既存testの書き換え: 外すbuttonの型(`IconButton` → `FilledButton`。0件で`onPressed == null`は同じ) / 件数の文言のtestでtooltipの代わりに「1件を外す」と説明(「削除されません」を含む)を見る / 帯へ入った長押しdragのtestは、モード中もフッターが出る分だけ画面を高くして以前と同じ一覧の表示域で測る(420→520。assertionは変えていない)。
 - `flutter test`: 1011件PASS(吹き出しのtest 13件を削除、6件追加)。`flutter analyze`: No issues。`dart format`: 0 changed。
 
@@ -88,11 +88,15 @@ M448 | KILLED | lib/ui/file_list/file_list_view.dart | (全件のcommandで再�
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
 
+- attempt 1: `ea4741a..89b1c08`(全範囲、implementation) — **PASS**(P2が1件)。決定表・002 REQ-017/018との一致、`_FixedFooter`のoffstage側が操作・semantics・finderの対象外であること、`ToastHost`との関係、吹き出しの削除で残る保証を失っていないこと、testの書き換えが保証を弱めていないこと、mutationの整理の妥当性、manualの具体性、full test 1011件PASSを確認された。reviewerの範囲付きmutation 7件(M308・M331・M397・M448・M457〜M459)はKILLED。
+  - **P2(安全網の穴)**: 「desktop幅」と名付けた高さ固定のtestは、画面を360px幅のまま通常のフッターの中身(リネームだけ)を変えて試しており、2ペインの配置そのものは通していない。**受容する**: 幅がフッターに効くのは中身(ルール設定の有無)だけで、それはtestが再現している。`_FixedFooter`は幅に依らず`IntrinsicHeight`で高い方に揃える。FAIL条件(データ損失等)に当たらない。引き受け先のtaskは無い(desktopはmanualの対象外 — エミュレータで確認する方針)。記録上の呼び方を「desktop幅の構成」に正確にした。
+  - **SELF-CHECK**: この対応は記録(`specs/`)だけ。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-28、code `8e4f130`)。
-- Blocker category: なし(`T25`は2026-09-28にdone)。
-- Waiting for: 独立review attempt 1(全範囲)。その後エミュレータのmanual。
-- Requested action: なし。
+- Last checkpoint: 独立review attempt 1 PASS(2026-09-28)。エミュレータのmanualを待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ)。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の1〜5の結果(code `8e4f130`)。
+- Requested action: 人間がworktree `.worktrees/008-T42-selection-mode-footer`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`ea4741a`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
