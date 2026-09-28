@@ -332,7 +332,9 @@ void main() {
     final footer = tester.getRect(find.byKey(const Key('footer')));
     final card = cardRect(tester);
     expect(card.bottom, lessThanOrEqualTo(footer.top), reason: 'フッターに重ならない');
-    expect(footer.top - card.bottom, closeTo(toastGapAboveFooter, 1));
+    // **決定の値(8px)をそのまま書く**。定数から取ると、定数を変えたときに期待値も
+    // 一緒に動いて検出できない(mutation `M451` が SURVIVED した)。
+    expect(footer.top - card.bottom, closeTo(8, 1));
   });
 
   testWidgets('表示中にフッターの高さが変わっても、通知はフッターの上へ追随する', (tester) async {
