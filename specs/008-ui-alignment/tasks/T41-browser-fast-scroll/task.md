@@ -56,6 +56,10 @@ app内browserで件数の多いfolder(200件)を**素早くscrollすると引っ
 - **コードは変えない。** 同じ誤解を避けるため、共通の手順書`docs/development/emulator-verification.md`の「注意」へ、scrollの速さはreleaseと`adb shell input swipe`で見ること、エミュレータのマウスdrag・トラックパッドの扱いを足した。
 - `008:T13`から引き受けた残余risk(素早いscrollの引っかかり)と、`008:T07`のN-5(previewより前からのscrollの引っかかり)は、この結論で説明される。
 
+## 独立review
+
+**reviewerのmodelは`gpt-6-luna`**(開発者指定。調査はClaude Opus 5.5)。
+
 ## Current state / handoff
 
 - Last checkpoint: 結論を出した(2026-09-28)。エミュレータのトラックパッド固有で、appの欠陥ではない。コード変更なし。
