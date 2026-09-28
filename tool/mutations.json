@@ -3078,6 +3078,13 @@
       "note": "008:T25 「元に戻す」を持つ失敗結果を閉じるまで残す — 期限(5秒。005 REQ-007)が過ぎて押せなくなった「元に戻す」が残る",
       "find": "      persist: execution.canUndo ? false : null,",
       "replace": "      persist: null,"
+    },
+    {
+      "id": "M456",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "[reviewer追加 M-review-undo-settings-control][対照] 008:T25 元に戻すの権限のエラーの「設定」が設定画面を開かない — 独立review attempt 4 でSURVIVEDした(安全網の穴)ので、testを足して閉じた",
+      "find": "action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () => execution.permission.openSettings(),\n          ),\n        );\n      }\n      return;\n    }\n    if (outcome == null) return;\n    final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');",
+      "replace": "action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () {},\n          ),\n        );\n      }\n      return;\n    }\n    if (outcome == null) return;\n    final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');"
     }
   ]
 }

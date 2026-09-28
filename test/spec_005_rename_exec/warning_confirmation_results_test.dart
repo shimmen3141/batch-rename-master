@@ -435,6 +435,41 @@ void main() {
     expect(executor.calls, isEmpty, reason: '実体には触れていない(013 INV-002)');
   });
 
+  testWidgets('元に戻すときの権限のエラーも残り、「設定」で設定画面を開ける(008:T25)', (tester) async {
+    // 改名の後で許可が取り消された(013 REQ-004)。独立review attempt 4 の安全網の穴を閉じる。
+    final permission = _SwitchablePermission();
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      permission: permission,
+      files: files,
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    permission.state = StoragePermissionState.denied;
+    await tester.tap(find.byKey(const Key('rename-undo')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('undo-permission-denied')), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.danger)), findsOneWidget);
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('undo-permission-denied')), findsOneWidget);
+    expect(permission.opens, 0, reason: '自動では開かない');
+
+    await tester.tap(find.byKey(permissionSettingsActionKey));
+    await tester.pumpAndSettle();
+    expect(permission.opens, 1);
+    expect(executor.calls, ['/files/a.txt -> renamed.txt'], reason: '元に戻していない');
+  });
+
   testWidgets('5秒後はundoを提示せず実体を変更しない(REQ-007)', (tester) async {
     final files = FileListController(
       files: [_file('a.txt')],
@@ -506,6 +541,21 @@ class _DeniedPermission implements StoragePermissionPort {
 
   @override
   Future<StoragePermissionState> check() async => StoragePermissionState.denied;
+
+  @override
+  Future<bool> openSettings() async {
+    opens++;
+    return true;
+  }
+}
+
+/// 状態を切り替えられる権限 port。設定画面を開いた回数を数える(`008:T25`)。
+class _SwitchablePermission implements StoragePermissionPort {
+  StoragePermissionState state = StoragePermissionState.granted;
+  int opens = 0;
+
+  @override
+  Future<StoragePermissionState> check() async => state;
 
   @override
   Future<bool> openSettings() async {
