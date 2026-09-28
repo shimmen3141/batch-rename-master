@@ -46,7 +46,9 @@
 | 形と位置 | 下から浮いたカード(左右14・下18の余白、角丸13、`#1a1f26`相当の面、薄い枠線と影)。design土台のとおり | Agent(design土台) |
 | 閉じる操作 | 右上の円と×。**カードの角へ一部重なる**(要望のとおり)。押せる範囲はカードの外側の余白に確保し、当たり判定を失わない。tooltip「通知を閉じる」 | 開発者(要望) / Agent(作り方) |
 | 「元に戻す」 | design土台のシアンを薄く敷いたpill。**本文側(右端の×とは別の位置)**に置き、押し間違いで取り消しを失わない | Agent(design土台) |
-| 自動で消えるまでの時間 | **変えない**(改名の取り消しは005 REQ-007の5秒、それ以外はFlutterの既定) | Agent(既定) |
+| 自動で消えるまでの時間 | **2026-09-28(manual 2回目)に変えた**: **エラーは閉じるまで残る**(読み落とさせない)。それ以外は一定時間(4秒)で消える。**除去の通知もほかと同じ時間で消す**(以前は`SnackBarAction`付きの既定で残り続けていたが、除去だけ残るのは不自然。002 REQ-017は「提示が消えた後は取り消せなくてよい」)。例外: 期限のある「元に戻す」を持つ改名の結果は、失敗を含んでも005 REQ-007の5秒で消す(押せなくなった操作を残さない)。当初は「変えない」とした(Agent) | 開発者 |
+| 権限のエラーから設定画面へ(2026-09-28) | 改名・元に戻すの権限のエラーに「**設定**」を置き、押すとこのappの「すべてのファイルへのアクセス」の設定画面を開く。**押したときだけ開く**(013 REQ-003: 自動では開かない) | 開発者 |
+| 通知の枠線(2026-09-28) | design 土台の`border:1px solid`のとおり枠線を見せる。**背面に描いていて不透明な面に隠れていた**ので前面に描く(白16%) | 開発者(指摘) / Agent(原因と直し方) |
 | 各通知の重大度 | 成功: 改名の結果(失敗を含まないとき)・除去・元に戻した結果(失敗を含まないとき)。エラー: 今の赤の通知(読み込みの失敗、複数folder、実在名を取得できない、権限が無い2種)と、失敗を含む改名・元に戻した結果。案内: 今の青の通知(未実装の種類)と「一覧が変わったため、取り消せませんでした」(何も失っていない) | Agent |
 
 | 通知の位置(2026-09-28、manual 1回目の指摘) | **フッター(ルール設定とリネームのbutton)の少し上**(8px)に出す。フッターが無い画面(除去の選択モードなど)ではdesign土台の下18px。**作り方は通知の置き場(`ToastHost`)**: 一覧とフッターを含む領域に内側の`ScaffoldMessenger`/`Scaffold`を持たせ、フッターを`bottomNavigationBar`にする。浮いた通知はScaffoldが毎frameフッターの上へ置き(表示中に高さが変わっても追随)、領域の幅に収まる(2ペインでも右ペインを覆わない)。置き場の外(読み込みbar)の通知も置き場へ送る。**最初はフッターの高さをグローバルに受け渡して`SnackBar`の余白にしたが、独立review attempt 2 のP1 2件でやめた** | 開発者(位置) / Agent(作り方) |
@@ -129,6 +131,19 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
 
 **1回目の結果は`a207dae`のbuildに対するもので、再利用しない。** 2回目の対象は`aa78f2a`。 2回目は0〜5に、位置・色・区切り線の確認を足して通して見る。
 
+### 2回目(2026-09-28、Androidエミュレータ、debug、code `aa78f2a`)
+
+開発者の報告(会話):「確認できましたが、もう少し修正したい点があります」。**位置(フッターの少し上)・色・区切り線を含めて確認できた。** 追加の指摘:
+
+| 指摘 | 対応(`b14a261`) |
+|---|---|
+| 参考デザインにはトーストに枠線があった。付けてほしい | **枠線は指定していたが、背面に描いていて不透明な面に隠れていた**。前面に描く。`M453` |
+| ファイルを外したときだけトーストが残り続けるのは不自然。ほかと同じ一定時間で消えてほしい | 除去の通知の`persist`を外した。`M442`(向きを入れ替え) |
+| エラーのトーストは残り続けるようにしてほしい | エラーは既定で閉じるまで残る(`showAppToast`の既定)。期限のある「元に戻す」を持つ失敗結果はその期限で消す。`M452`・`M455` |
+| エラーから権限を許可する画面に直接移れるとよい(「元に戻す」の部分を「設定」にするなど) | 改名・元に戻すの権限のエラーに「設定」を置いた。`M454` |
+
+**2回目の結果は`aa78f2a`のbuildに対するもので、再利用しない。** 3回目の対象は`b14a261`。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
@@ -146,6 +161,26 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
   - reviewerの対照(実測高に24px足す)を、置き場の形へ移して`M451`として取り込んだ。**最初はSURVIVEDした** — testが隙間の期待値を定数から取っていたため。決定の値(8px)を直接書くよう直してKILLED。
 
 - attempt 3: `bd38890..66ee22c`(差分) — **PASS、指摘なし**。attempt 2のP1 2件(表示中のフッター高の変化に追随しない、2ペインで右ペインを覆う)は**閉じた**と確認された(testが直接検査している)。内側Scaffoldによる一覧・フッター・除去の選択モード・`PopScope`の構成、`_hosts`の登録と解除、`replaceCurrent`・閉じる・「元に戻す」が選ばれた送り先に効くこと、app内browserのrouteから置き場へ送る製品経路が無いこと、`find`の追随が意味を変えていないこと(特に`M331`)、記録の一致、full test 1013件PASSを確認された。reviewerの範囲付きmutation 5件(M331・M446・M449〜M451)はKILLED。
+
+### manual 2回目の指摘への対応(`b14a261`)の mutation
+
+`command`を`flutter test test/spec_002_file_list test/spec_005_rename_exec/warning_confirmation_results_test.dart test/spec_004_file_source/ui_entry_test.dart`へ絞り、今回足した4件と向きを入れ替えた`M442`、同じfileの閉じる・「元に戻す」・重大度・面の色の保証を回した:
+
+```text
+M438 | KILLED | lib/ui/common/app_toast.dart | 閉じる円を押しても通知が消えない | exit 1
+M441 | KILLED | lib/ui/file_list/file_list_view.dart | 失敗を含む改名の結果を成功の見せ方で出す | exit 1
+M442 | KILLED | lib/ui/file_list/removal_undo.dart | 除去の通知を残し続ける(向きを入れ替え) | exit 1
+M444 | KILLED | lib/ui/common/app_toast.dart | 「元に戻す」を押しても通知を下げない | exit 1
+M445 | KILLED | lib/ui/common/app_toast.dart | [対照] 閉じる円で「元に戻す」を実行する | exit 1
+M447 | KILLED | lib/ui/common/app_toast.dart | 通知の面を一覧の行と同じ色に戻す | exit 1
+M452 | KILLED | lib/ui/common/app_toast.dart | エラーを既定で残さない | exit 1
+M453 | KILLED | lib/ui/common/app_toast.dart | 枠線を面の背面へ戻す | exit 1
+M454 | KILLED | lib/ui/file_list/file_list_view.dart | 権限のエラーの「設定」が設定画面を開かない | exit 1
+M455 | KILLED | lib/ui/file_list/file_list_view.dart | 「元に戻す」を持つ失敗結果を閉じるまで残す | exit 1
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。full test 1017件PASS。追加したtest: エラーは既定で残り期限付きの操作を持つものは期限で消える、枠線が面の上にある、除去の通知が一定時間で消える、一部が失敗しても「元に戻す」を持つ間はその期限で消える、権限のエラーが残り「設定」で設定画面を開き自動では開かない。)
 
 ### manual 1回目の指摘への対応(`1005f11`)の mutation
 
@@ -195,9 +230,9 @@ M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査す�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 PASS(2026-09-28)。エミュレータのmanual 2回目を待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、2回目)。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜6の結果(code `aa78f2a`)。
+- Last checkpoint: manual 2回目の指摘(枠線・除去の通知の時間・エラーを残す・「設定」)を`b14a261`で直した(2026-09-28)。
+- Blocker category: なし(差分review → manual 3回目)。
+- Waiting for: 独立review attempt 4(差分`ce1e1e0..HEAD`)。その後manual 3回目(code `b14a261`)。
 - Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
