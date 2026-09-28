@@ -13,7 +13,6 @@ import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
 import 'header_metrics.dart';
-import 'removal_hint.dart';
 import 'removal_selection.dart';
 import 'removal_undo.dart';
 import 'rename_warning_view.dart';
@@ -137,7 +136,6 @@ class _FileListViewState extends State<FileListView> {
 
   /// 外すアイコンと補足の吹き出しを結ぶ(`008:T30`)。**吹き出しは `Overlay` にある**ので、
   /// 座標を計算せずこの link が位置を決める。
-  final LayerLink _hintLink = LayerLink();
 
   /// スクロール位置と表示領域。ドラッグ中に実際に描画された行だけを拾う。
   final ScrollController _listScrollController = ScrollController();
@@ -151,7 +149,6 @@ class _FileListViewState extends State<FileListView> {
         deselect: (handle) => _selection.unmark(handle),
         isMounted: () => mounted,
       );
-  double _selectionViewportBottomPadding = 0;
 
   @override
   void dispose() {
@@ -166,25 +163,16 @@ class _FileListViewState extends State<FileListView> {
   void _startDragSelection(String handle, Offset position) {
     final baseline = _selection.marked;
     if (!_selection.selecting) {
-      // 選択モードへ入ると下部の rename UI が隠れ、list の viewport が広がる。
-      // 最下部を見ていると scroll extent が縮んで開始行が下へ跳ぶため、消える
-      // UI と同じ高さを list の末尾余白として先に確保する。
-      _selectionViewportBottomPadding = _renameActionBarHeight;
+      // 選択モードへ入ると下部の rename UI がモードのフッターへ入れ替わる。**高さは
+      // 同じ**(`008:T42`。[_FixedFooter])なので list の viewport は変わらず、開始行は
+      // 跳ばない(`008:T31`。以前はフッターが消える分を末尾余白で補っていた)。
       _selection.enter();
     }
     _dragSelection.start(handle, position, baseline: baseline);
   }
 
-  double get _renameActionBarHeight {
-    final renderObject = _renameActionBarKey.currentContext?.findRenderObject();
-    return renderObject is RenderBox && renderObject.attached
-        ? renderObject.size.height
-        : 0;
-  }
-
   void _exitRemovalMode() {
     _dragSelection.finish();
-    _selectionViewportBottomPadding = 0;
     _selection.exit();
   }
 
@@ -271,6 +259,15 @@ class _FileListViewState extends State<FileListView> {
             if (mounted) _selection.retain(removable);
           });
         }
+        // 選択モードのフッター(`008:T42`)。
+        final removalModeBar = _RemovalModeBar(
+          markedCount: marked.length,
+          onExit: _exitRemovalMode,
+          // 0 件では外せない(REQ-018)。
+          onRemove: marked.isEmpty
+              ? null
+              : () => _removeMarked(context, marked),
+        );
         return PopScope(
           // 端末の戻るは**モードをやめる**に使う(画面を閉じない)。REQ-018 の
           // 「やめる操作」はヘッダの × が満たすが、選択モードから戻るの期待は強い。
@@ -303,15 +300,7 @@ class _FileListViewState extends State<FileListView> {
                         : () => _selection.selectAll(removable),
                     onClearAll: rows.isEmpty ? null : () => _clearAll(context),
                     onExitRemovalMode: _exitRemovalMode,
-                    // 0 件では外せない(REQ-018)。
-                    onRemoveMarked: marked.isEmpty
-                        ? null
-                        : () => _removeMarked(context, marked),
-                    hintLink: _hintLink,
                   ),
-                  // 外すアイコンへ重ねる補足(`008:T30`)。**自分では何も描かず**、
-                  // `Overlay` へ出して帯をまたぐ。モードをやめた瞬間に消える。
-                  RemovalHintAnchor(link: _hintLink, visible: selecting),
                   _SortBar(controller: widget.controller, selecting: selecting),
                   _CreatedAtFallbackBanner(
                     warning: widget.controller.createdAtSortWarning,
@@ -329,13 +318,6 @@ class _FileListViewState extends State<FileListView> {
                       child: ReorderableListView.builder(
                         key: _listViewportKey,
                         scrollController: _listScrollController,
-                        // 選択開始で下部 action bar を隠しても、開始行の画面座標を
-                        // 保つため、消えた高さを list の末尾余白として残す。
-                        padding: EdgeInsets.only(
-                          bottom: selecting
-                              ? _selectionViewportBottomPadding
-                              : 0,
-                        ),
                         // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
                         // 行タップと衝突させない)。**既定の長押しドラッグを切って
                         // あることが、選択モードの長押しの前提でもある。**
@@ -444,17 +426,23 @@ class _FileListViewState extends State<FileListView> {
               // 作業に専念させる。005 は提示の場所・文言・UI部品を自由とする点に
               // 残しており、REQ-019 が課すのは「実行が始まらない・実ファイルを
               // 1件も変えない」という振る舞いである。
+              // **モード中は「戻る」と「N件を外す」のフッター**(`008:T42`)。
+              // **通常のフッターと同じ大きさに固定する**([_FixedFooter])。
               footer:
-                  !selecting &&
-                      (widget.renameExecution != null ||
-                          widget.onEditRule != null)
-                  ? _RenameActionBar(
-                      key: _renameActionBarKey,
-                      controller: widget.controller,
-                      execution: widget.renameExecution,
-                      onEditRule: widget.onEditRule,
-                      warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                  (widget.renameExecution != null || widget.onEditRule != null)
+                  ? _FixedFooter(
+                      showRemovalMode: selecting,
+                      normal: _RenameActionBar(
+                        key: _renameActionBarKey,
+                        controller: widget.controller,
+                        execution: widget.renameExecution,
+                        onEditRule: widget.onEditRule,
+                        warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                      ),
+                      removalMode: removalModeBar,
                     )
+                  : selecting
+                  ? removalModeBar
                   : null,
             ),
           ),
@@ -464,11 +452,140 @@ class _FileListViewState extends State<FileListView> {
   }
 }
 
+/// 選択モードのフッターの「戻る」(`008:T42`)。**モードをやめる**(帯の `×` と同じ)。
+const Key removalModeBackKey = Key('removal-mode-back');
+
+/// 通常のフッターと選択モードのフッターを重ねる枠(`008:T42`)。大きさを test が測る。
+const Key fixedFooterKey = Key('fixed-footer');
+
+/// 選択モードのフッターの面(`008:T42`)。高さを test が測るための key。
+const Key removalModeBarKey = Key('removal-mode-bar');
+
+/// 選択モードのフッターの説明(`008:T42`)。**削除ではないこと**をモード中ずっと示す。
+const Key removalModeNoteKey = Key('removal-mode-note');
+
+/// 選択モードのフッターの説明の文言(2026-09-28 の開発者の決定)。
+///
+/// **後半(ファイルは消えない)を落とさない。** 外すのは rename の一覧からで、
+/// ファイルそのものには触れない — 005 / 013 が守っている境界そのものである。
+const String removalModeNoteText = 'リネームリストから外します。ファイルは削除されません。';
+
 /// 権限のエラーの通知から設定画面を開く操作(`008:T25`)。
 const Key permissionSettingsActionKey = Key('permission-settings-action');
 
 /// フッター([_RenameActionBar])の面。上端の区切り線を test が見るための key。
 const Key renameActionBarSurfaceKey = Key('rename-action-bar-surface');
+
+/// 除去の選択モードのフッター(`008:T42`。002 REQ-018)。
+///
+/// 左に「← 戻る」(モードをやめる。帯の `×` と同じ)、右に「N件を外す」(0件では押せない)。
+/// 上に**削除ではないことの説明**を常設する(以前の吹き出し(`008:T30`)の代わり)。
+/// 面と区切り線は [_RenameActionBar] と同じにして、フッターの位置と見た目を揃える。
+class _RemovalModeBar extends StatelessWidget {
+  const _RemovalModeBar({
+    required this.markedCount,
+    required this.onExit,
+    required this.onRemove,
+  });
+
+  final int markedCount;
+  final VoidCallback onExit;
+
+  /// 選ばれた行を外す。**0 件なら `null`**(REQ-018)。
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Material(
+      key: removalModeBarKey,
+      color: colors.surface,
+      shape: Border(top: BorderSide(color: colors.border)),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            // 固定した高さの中では下へ寄せ、buttonの位置を通常のリネームbuttonに揃える。
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                key: removalModeNoteKey,
+                removalModeNoteText,
+                style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // **app内browserの「← リネーム画面へ」(`008:T39`)と同じ形。**
+                  OutlinedButton.icon(
+                    key: removalModeBackKey,
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: colors.background,
+                      foregroundColor: colors.primary,
+                      side: BorderSide(color: colors.primary),
+                    ),
+                    onPressed: onExit,
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text('戻る'),
+                  ),
+                  const SizedBox(width: 8),
+                  // **シアンの塗り**(2026-09-28 の開発者の決定)。赤は削除を連想させる。
+                  Expanded(
+                    child: FilledButton(
+                      key: removalModeRemoveKey,
+                      onPressed: onRemove,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
+                      ),
+                      child: Text(
+                        '$markedCount件を外す',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 通常のフッターと選択モードのフッターを**同じ大きさに固定して**出し分ける(`008:T42`。
+/// 2026-09-28 の開発者の決定「フッターの大きさは固定」)。
+///
+/// **2つを重ね、高い方に揃える**(`IndexedStack` + `IntrinsicHeight`)。高さを測って
+/// 覚える必要が無く、画面幅(desktop では通常のフッターがリネームだけ)・文字の大きさで
+/// どちらが高くなっても、**モードの出入りでフッターの大きさが変わらない**。一覧の表示域も
+/// 変わらないので、長押しで入ったときに行が跳ばない(`008:T31`)。見えていない側は
+/// 描画も操作もされない(`IndexedStack` が offstage にする)。
+class _FixedFooter extends StatelessWidget {
+  const _FixedFooter({
+    required this.showRemovalMode,
+    required this.normal,
+    required this.removalMode,
+  });
+
+  final bool showRemovalMode;
+  final Widget normal;
+  final Widget removalMode;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+    child: IndexedStack(
+      key: fixedFooterKey,
+      index: showRemovalMode ? 1 : 0,
+      sizing: StackFit.expand,
+      children: [normal, removalMode],
+    ),
+  );
+}
 
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。
 ///
@@ -996,10 +1113,8 @@ class _HeaderBar extends StatelessWidget {
     required this.markedCount,
     required this.onEnterRemovalMode,
     required this.onExitRemovalMode,
-    required this.onRemoveMarked,
     required this.onSelectAll,
     required this.onClearAll,
-    required this.hintLink,
   });
 
   final FileListController controller;
@@ -1019,18 +1134,11 @@ class _HeaderBar extends StatelessWidget {
   /// モードをやめる。**一覧は変わらない**(代表例 6i)。
   final VoidCallback onExitRemovalMode;
 
-  /// 選ばれた行を外す。**0 件なら `null`**(REQ-018)。
-  final VoidCallback? onRemoveMarked;
-
   /// 外せる行を全て選ぶ(ケバブ)。外せる行が無ければ `null`。
   final VoidCallback? onSelectAll;
 
   /// 一覧を空にする(ケバブ。004 REQ-006)。一覧が空なら `null`。
   final VoidCallback? onClearAll;
-
-  /// 外すアイコンと補足の吹き出しを結ぶ(`008:T30`)。**吹き出しは `Overlay` にある**ので、
-  /// 位置は座標を計算するのではなくこの link がアイコンから直に決める。
-  final LayerLink hintLink;
 
   @override
   Widget build(BuildContext context) {
@@ -1128,29 +1236,7 @@ class _HeaderBar extends StatelessWidget {
                     ),
             ),
           ),
-          // **外す操作はアイコン1つ**(2026-09-19 の要望4)。`一覧を空にする` が
-          // 使っていたものと同じ icon にして、右寄せで置く。
-          if (selecting)
-            CompositedTransformTarget(
-              link: hintLink,
-              child: IconButton(
-                key: removalModeRemoveKey,
-                onPressed: onRemoveMarked,
-                icon: const Icon(Icons.playlist_remove, size: 20),
-                color: colors.danger,
-                disabledColor: colors.textDisabled,
-                tooltip: '選んだファイルをリネーム候補から外す',
-                visualDensity: VisualDensity.compact,
-                // **tap target を数で固定する**(`008:T30`)。吹き出しはこの幅から
-                // ツノの位置を出すので、実際の描画幅が数と一致している必要がある
-                // (widget test が実測で確かめる)。
-                constraints: const BoxConstraints.tightFor(
-                  width: headerIconExtent,
-                  height: headerIconExtent,
-                ),
-                padding: EdgeInsets.zero,
-              ),
-            ),
+          // **外す操作は帯に置かない**(`008:T42`)。モード中はフッターの「N件を外す」が持つ。
           // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
           // 一覧が空のときだけ出さない(どの項目も対象が無い)。
           if (total > 0)

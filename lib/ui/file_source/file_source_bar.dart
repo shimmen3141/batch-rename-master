@@ -66,8 +66,7 @@ class FileSourceBar extends StatefulWidget {
   /// 取り違えやすい。**帯そのもの(場所の表示)は隠さない** — いまどこを扱っているかは
   /// モード中こそ読みたい。
   ///
-  /// **隠しても帯の寸法は変えない**(`008:T30` の要望1)。空いた枠へ重ねる補足は
-  /// 一覧ヘッダ側が `Overlay` へ出す(`removal_hint.dart`)。
+  /// **隠しても帯の寸法は変えない**(`008:T30` の要望1)。
   final RemovalSelection? removalSelection;
 
   @override
@@ -399,10 +398,6 @@ class _FileSourceBarState extends State<FileSourceBar>
                       // `別フォルダへ` を押せず、読み上げもされず、既定の finder からも
                       // 見つからない。
                       //
-                      // **補足の吹き出しはここには無い**(`008:T30` の2回目の実機確認)。
-                      // 帯の中だとツノがアイコンから遠く、帯の寸法にも影響したので、
-                      // 一覧ヘッダが `Overlay` へ出して**帯に重ねる**
-                      // (`removal_hint.dart` の `RemovalHintAnchor`)。
                       child: IndexedStack(
                         alignment: Alignment.centerRight,
                         index: selecting ? 1 : 0,
