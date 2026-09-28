@@ -437,12 +437,16 @@ class _FileListViewState extends State<FileListView> {
                 if (!selecting &&
                     (widget.renameExecution != null ||
                         widget.onEditRule != null))
-                  _RenameActionBar(
-                    key: _renameActionBarKey,
-                    controller: widget.controller,
-                    execution: widget.renameExecution,
-                    onEditRule: widget.onEditRule,
-                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                  // **通知はこのフッターの少し上に出す**(`008:T25`)。重なると
+                  // リネームのbuttonなどが押しにくい。
+                  ToastFooter(
+                    child: _RenameActionBar(
+                      key: _renameActionBarKey,
+                      controller: widget.controller,
+                      execution: widget.renameExecution,
+                      onEditRule: widget.onEditRule,
+                      warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                    ),
                   ),
               ],
             ),
@@ -452,6 +456,9 @@ class _FileListViewState extends State<FileListView> {
     );
   }
 }
+
+/// フッター([_RenameActionBar])の面。上端の区切り線を test が見るための key。
+const Key renameActionBarSurfaceKey = Key('rename-action-bar-surface');
 
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。
 ///
@@ -712,7 +719,11 @@ class _RenameActionBar extends StatelessWidget {
     // 005 REQ-019: 実行できるのは**変更が生じるファイルが1件以上ある**ときだけ。
     final changedCount = controller.changedFileCount;
     return Material(
+      key: renameActionBarSurfaceKey,
       color: colors.surface,
+      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。
+      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。
+      shape: Border(top: BorderSide(color: colors.border)),
       child: SafeArea(
         top: false,
         child: Padding(

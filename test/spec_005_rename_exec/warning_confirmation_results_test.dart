@@ -10,6 +10,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/ui/common/app_toast.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -311,6 +312,24 @@ void main() {
     expect(find.byKey(const Key('rename-undo')), findsOneWidget);
     // **失敗を含まない結果は成功の見せ方**(`008:T25`)。
     expect(find.byKey(toastToneIconKey(ToastTone.success)), findsOneWidget);
+    // **フッター(ルール設定とリネームのbutton)に重ならず、その少し上に出る**
+    // (2026-09-28 のエミュレータ確認)。
+    final footer = tester.getRect(find.byKey(renameActionBarSurfaceKey));
+    final card = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(AppToastCard),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(card.bottom, lessThanOrEqualTo(footer.top));
+    // **フッターの上端に区切り線がある**(design 土台の border-top)。
+    final bar = tester.widget<Material>(find.byKey(renameActionBarSurfaceKey));
+    expect(
+      (bar.shape! as Border).top.color,
+      appDarkTheme().extension<AppColors>()!.border,
+    );
 
     await tester.tap(find.byKey(const Key('rename-undo')));
     await tester.pumpAndSettle();

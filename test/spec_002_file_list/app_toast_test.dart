@@ -115,7 +115,7 @@ void main() {
             ),
           )
           .map((box) => box.color);
-      expect(surfaces, contains(_colors.surfaceElevated));
+      expect(surfaces, contains(toastSurface));
       expect(
         tester.widget<SnackBar>(find.byKey(_toastKey)).backgroundColor,
         Colors.transparent,
@@ -237,6 +237,95 @@ void main() {
     await tester.tapAt(close.topRight + const Offset(-3, 3));
     await tester.pumpAndSettle();
     expect(find.byKey(_toastKey), findsNothing);
+  });
+
+  test('通知の面は一覧の行より明るく、暗い背景に埋もれない(2026-09-28)', () {
+    // 同じ色だと、暗い背景と行に埋もれて見づらかった(エミュレータ確認)。
+    expect(
+      toastSurface.computeLuminance(),
+      greaterThan(_colors.surfaceElevated.computeLuminance()),
+    );
+    expect(
+      toastSurface.computeLuminance(),
+      greaterThan(_colors.background.computeLuminance()),
+    );
+  });
+
+  testWidgets('フッターがあるとき、通知はフッターの少し上に出る(2026-09-28)', (tester) async {
+    // リネームのbuttonなどと重なって押しにくかった(エミュレータ確認)。
+    const footerKey = Key('footer');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: ElevatedButton(
+                      key: const Key('show'),
+                      onPressed: () => showAppToast(
+                        ScaffoldMessenger.of(context),
+                        key: _toastKey,
+                        tone: ToastTone.success,
+                        content: const Text('3 件を改名しました'),
+                        persist: true,
+                      ),
+                      child: const Text('show'),
+                    ),
+                  ),
+                ),
+                const ToastFooter(child: SizedBox(key: footerKey, height: 120)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('show')));
+    await tester.pumpAndSettle();
+
+    final footer = tester.getRect(find.byKey(footerKey));
+    final card = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(AppToastCard),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(card.bottom, lessThanOrEqualTo(footer.top), reason: 'フッターに重ならない');
+    expect(
+      footer.top - card.bottom,
+      closeTo(toastGapAboveFooter, 1),
+      reason: 'フッターの少し上',
+    );
+  });
+
+  testWidgets('フッターが無くなれば、通知は下端の余白へ戻る', (tester) async {
+    await _pump(
+      tester,
+      (m) => showAppToast(
+        m,
+        key: _toastKey,
+        tone: ToastTone.info,
+        content: const Text('案内'),
+        persist: true,
+      ),
+    );
+    expect(toastBottomInset.value, 0);
+    final screen = tester.getRect(find.byType(Scaffold));
+    final card = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(AppToastCard),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(screen.bottom - card.bottom, closeTo(18, 1));
   });
 
   testWidgets('狭い幅・大きい文字でも、はみ出さず操作が押せる', (tester) async {

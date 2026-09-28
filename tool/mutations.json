@@ -3008,6 +3008,34 @@
       "note": "[reviewer追加 M445-review-control][対照] 008:T25 閉じる円で「元に戻す」を実行する — 閉じる操作が取り消しを実行してはならない",
       "find": "        onClose: () =>\n            messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
       "replace": "        onClose: () { if (action != null) action.onPressed(); },"
+    },
+    {
+      "id": "M446",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 フッターの高さを無視して下端から出す — 通知がリネームのbuttonなどに重なり押しにくい(2026-09-28のエミュレータ確認)",
+      "find": "        toastBottomInset.value > 0\n            ? toastBottomInset.value + toastGapAboveFooter\n            : 18,",
+      "replace": "        18,"
+    },
+    {
+      "id": "M447",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 通知の面を一覧の行と同じ色に戻す — 暗い背景と行に埋もれて見づらい(2026-09-28のエミュレータ確認)",
+      "find": "                color: toastSurface,",
+      "replace": "                color: colors.surfaceElevated,"
+    },
+    {
+      "id": "M448",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T25 フッターの上端の区切り線を消す — 一覧との境目が読めない(design土台のborder-top。2026-09-28)",
+      "find": "      shape: Border(top: BorderSide(color: colors.border)),\n",
+      "replace": ""
+    },
+    {
+      "id": "M449",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 フッターが高さを知らせない — 通知がフッターに重なる",
+      "find": "    toastBottomInset.value = box.size.height;\n",
+      "replace": ""
     }
   ]
 }

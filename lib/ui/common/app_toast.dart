@@ -10,6 +10,60 @@ enum ToastTone { success, info, danger }
 /// 通知の右上の「閉じる」(`008:T25`)。すべての通知に出る。
 const Key toastCloseKey = Key('toast-close');
 
+/// 通知の下端をどれだけ持ち上げるか(`008:T25`)。**画面の下端にあるフッター
+/// (ルール設定とリネームのbutton)の高さ**で、[ToastFooter] が知らせる。
+///
+/// 通知がフッターに重なると、リネームのbuttonなどが押しにくい(2026-09-28 の
+/// エミュレータ確認)。**フッターの少し上に出す**ために使う。フッターが無い画面では 0。
+final ValueNotifier<double> toastBottomInset = ValueNotifier<double>(0);
+
+/// 通知とフッターのあいだの隙間。
+const double toastGapAboveFooter = 8;
+
+/// 通知の面。**一覧の行([AppColors.surfaceElevated])より一段明るくする** — 同じ色だと
+/// 暗い背景と行に埋もれて見づらかった(2026-09-28 のエミュレータ確認。design 土台の
+/// トーンに寄せる)。
+const Color toastSurface = Color(0xFF262C36);
+
+/// 通知の枠線(白16%)。
+const Color toastBorder = Color(0x29FFFFFF);
+
+/// 画面の下端のフッターを包み、その高さを [toastBottomInset] へ知らせる(`008:T25`)。
+///
+/// **高さを数で決め打ちしない。** フッターは文字の大きさ・ルールの有無・更新日時の
+/// 入切で高さが変わる。
+class ToastFooter extends StatefulWidget {
+  const ToastFooter({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<ToastFooter> createState() => _ToastFooterState();
+}
+
+class _ToastFooterState extends State<ToastFooter> {
+  final _key = GlobalKey();
+
+  void _report() {
+    if (!mounted) return;
+    final box = _key.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    toastBottomInset.value = box.size.height;
+  }
+
+  @override
+  void dispose() {
+    toastBottomInset.value = 0;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _report());
+    return KeyedSubtree(key: _key, child: widget.child);
+  }
+}
+
 /// 通知の本文側に置く操作(「元に戻す」など)。
 class ToastAction {
   const ToastAction({required this.label, required this.onPressed, this.key});
@@ -54,12 +108,15 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
       backgroundColor: Colors.transparent,
       elevation: 0,
       padding: EdgeInsets.zero,
-      // 左右14・下18(design 土台)。右と上は閉じる円のための余白を [AppToastCard] が持つ。
-      margin: const EdgeInsets.fromLTRB(
+      // 左右14(design 土台)。右と上は閉じる円のための余白を [AppToastCard] が持つ。
+      // **下はフッターの少し上**。フッターが無い画面では design 土台の18。
+      margin: EdgeInsets.fromLTRB(
         14,
         0,
         14 - AppToastCard.closeOverhang,
-        18,
+        toastBottomInset.value > 0
+            ? toastBottomInset.value + toastGapAboveFooter
+            : 18,
       ),
       duration: duration,
       persist: persist,
@@ -135,7 +192,7 @@ class AppToastCard extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: const Color(0x1AFFFFFF)),
+              border: Border.all(color: toastBorder),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x8C000000),
@@ -147,7 +204,7 @@ class AppToastCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(13),
               child: ColoredBox(
-                color: colors.surfaceElevated,
+                color: toastSurface,
                 // **左端の色帯は重ねて描く。** 角丸の枠線は四辺同じ色しか持てない。
                 child: Stack(
                   children: [
