@@ -251,60 +251,145 @@ void main() {
     );
   });
 
-  testWidgets('フッターがあるとき、通知はフッターの少し上に出る(2026-09-28)', (tester) async {
-    // リネームのbuttonなどと重なって押しにくかった(エミュレータ確認)。
-    const footerKey = Key('footer');
+  /// 置き場([ToastHost])のある画面。上に置き場の外のbar、置き場の中に一覧とフッター、
+  /// [wide] なら右にもう1枚のペインを置く。
+  Future<void> pumpHost(
+    WidgetTester tester, {
+    required ValueNotifier<double> footerHeight,
+    bool wide = false,
+  }) async {
+    await tester.binding.setSurfaceSize(Size(wide ? 1000 : 400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    Widget toastButton(Key key, String text) => Builder(
+      builder: (context) => TextButton(
+        key: key,
+        onPressed: () => showAppToast(
+          ScaffoldMessenger.of(context),
+          key: _toastKey,
+          tone: ToastTone.success,
+          content: Text(text),
+          persist: true,
+        ),
+        child: Text(text),
+      ),
+    );
     await tester.pumpWidget(
       MaterialApp(
         theme: appDarkTheme(),
         home: Scaffold(
-          body: Builder(
-            builder: (context) => Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: ElevatedButton(
-                      key: const Key('show'),
-                      onPressed: () => showAppToast(
-                        ScaffoldMessenger.of(context),
-                        key: _toastKey,
-                        tone: ToastTone.success,
-                        content: const Text('3 件を改名しました'),
-                        persist: true,
+          body: Column(
+            children: [
+              // 置き場の外(画面上部の読み込みbarに当たる)。
+              toastButton(const Key('outside'), '外から'),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: ToastHost(
+                        key: const Key('host'),
+                        body: Center(
+                          child: toastButton(const Key('inside'), '中から'),
+                        ),
+                        footer: ValueListenableBuilder<double>(
+                          valueListenable: footerHeight,
+                          builder: (context, height, _) => SizedBox(
+                            key: const Key('footer'),
+                            height: height,
+                          ),
+                        ),
                       ),
-                      child: const Text('show'),
                     ),
-                  ),
+                    if (wide)
+                      const SizedBox(key: Key('right-pane'), width: 360),
+                  ],
                 ),
-                const ToastFooter(child: SizedBox(key: footerKey, height: 120)),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('show')));
+  }
+
+  Rect cardRect(WidgetTester tester) => tester.getRect(
+    find
+        .descendant(
+          of: find.byType(AppToastCard),
+          matching: find.byType(DecoratedBox),
+        )
+        .first,
+  );
+
+  testWidgets('置き場の中の通知はフッターの少し上に出る(2026-09-28)', (tester) async {
+    // リネームのbuttonなどと重なって押しにくかった(エミュレータ確認)。
+    final height = ValueNotifier<double>(120);
+    await pumpHost(tester, footerHeight: height);
+    await tester.tap(find.byKey(const Key('inside')));
     await tester.pumpAndSettle();
 
-    final footer = tester.getRect(find.byKey(footerKey));
-    final card = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(AppToastCard),
-            matching: find.byType(DecoratedBox),
-          )
-          .first,
-    );
+    final footer = tester.getRect(find.byKey(const Key('footer')));
+    final card = cardRect(tester);
     expect(card.bottom, lessThanOrEqualTo(footer.top), reason: 'フッターに重ならない');
-    expect(
-      footer.top - card.bottom,
-      closeTo(toastGapAboveFooter, 1),
-      reason: 'フッターの少し上',
-    );
+    expect(footer.top - card.bottom, closeTo(toastGapAboveFooter, 1));
   });
 
-  testWidgets('フッターが無くなれば、通知は下端の余白へ戻る', (tester) async {
+  testWidgets('表示中にフッターの高さが変わっても、通知はフッターの上へ追随する', (tester) async {
+    // **独立review attempt 2 の P1**: 出した時点の高さで固定すると、文字倍率や
+    // フッターの中身が変わったときに重なる。
+    final height = ValueNotifier<double>(80);
+    await pumpHost(tester, footerHeight: height);
+    await tester.tap(find.byKey(const Key('inside')));
+    await tester.pumpAndSettle();
+
+    for (final next in [200.0, 60.0]) {
+      height.value = next;
+      await tester.pumpAndSettle();
+      final footer = tester.getRect(find.byKey(const Key('footer')));
+      final card = cardRect(tester);
+      expect(
+        card.bottom,
+        lessThanOrEqualTo(footer.top),
+        reason: 'height=$next',
+      );
+      expect(footer.top - card.bottom, closeTo(toastGapAboveFooter, 1));
+    }
+  });
+
+  testWidgets('2ペインでも、通知は置き場の幅に収まり右ペインを覆わない', (tester) async {
+    // **独立review attempt 2 の P1**: アプリ全体の messenger から出すと画面幅いっぱいに
+    // 広がり、左のフッターで持ち上げたカードが右ペインにも重なった。
+    final height = ValueNotifier<double>(100);
+    await pumpHost(tester, footerHeight: height, wide: true);
+    await tester.tap(find.byKey(const Key('inside')));
+    await tester.pumpAndSettle();
+
+    final host = tester.getRect(find.byKey(const Key('host')));
+    final right = tester.getRect(find.byKey(const Key('right-pane')));
+    final close = tester.getRect(find.byKey(toastCloseKey));
+    final card = cardRect(tester);
+    expect(card.right, lessThanOrEqualTo(host.right));
+    expect(close.right, lessThanOrEqualTo(host.right));
+    expect(card.overlaps(right), isFalse);
+  });
+
+  testWidgets('置き場の外から出した通知も、置き場のフッターの上に出る', (tester) async {
+    // 画面上部の読み込みbar(004 REQ-008/011/012 の通知)は置き場の外にある。
+    final height = ValueNotifier<double>(120);
+    await pumpHost(tester, footerHeight: height);
+    await tester.tap(find.byKey(const Key('outside')));
+    await tester.pumpAndSettle();
+
+    final footer = tester.getRect(find.byKey(const Key('footer')));
+    expect(cardRect(tester).bottom, lessThanOrEqualTo(footer.top));
+    // 閉じる円も置き場の通知に効く。
+    await tester.tap(find.byKey(toastCloseKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_toastKey), findsNothing);
+  });
+
+  testWidgets('置き場が無ければ、通知は下端から少し上に出る(design 土台の18)', (tester) async {
     await _pump(
       tester,
       (m) => showAppToast(
@@ -315,17 +400,8 @@ void main() {
         persist: true,
       ),
     );
-    expect(toastBottomInset.value, 0);
     final screen = tester.getRect(find.byType(Scaffold));
-    final card = tester.getRect(
-      find
-          .descendant(
-            of: find.byType(AppToastCard),
-            matching: find.byType(DecoratedBox),
-          )
-          .first,
-    );
-    expect(screen.bottom - card.bottom, closeTo(18, 1));
+    expect(screen.bottom - cardRect(tester).bottom, closeTo(18, 1));
   });
 
   testWidgets('狭い幅・大きい文字でも、はみ出さず操作が押せる', (tester) async {

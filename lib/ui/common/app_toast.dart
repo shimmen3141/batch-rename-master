@@ -10,13 +10,6 @@ enum ToastTone { success, info, danger }
 /// 通知の右上の「閉じる」(`008:T25`)。すべての通知に出る。
 const Key toastCloseKey = Key('toast-close');
 
-/// 通知の下端をどれだけ持ち上げるか(`008:T25`)。**画面の下端にあるフッター
-/// (ルール設定とリネームのbutton)の高さ**で、[ToastFooter] が知らせる。
-///
-/// 通知がフッターに重なると、リネームのbuttonなどが押しにくい(2026-09-28 の
-/// エミュレータ確認)。**フッターの少し上に出す**ために使う。フッターが無い画面では 0。
-final ValueNotifier<double> toastBottomInset = ValueNotifier<double>(0);
-
 /// 通知とフッターのあいだの隙間。
 const double toastGapAboveFooter = 8;
 
@@ -28,40 +21,61 @@ const Color toastSurface = Color(0xFF262C36);
 /// 通知の枠線(白16%)。
 const Color toastBorder = Color(0x29FFFFFF);
 
-/// 画面の下端のフッターを包み、その高さを [toastBottomInset] へ知らせる(`008:T25`)。
+/// **通知の置き場**(`008:T25`)。一覧とフッター(ルール設定とリネームのbutton)を含む
+/// 領域を包み、通知を**フッターの少し上・この領域の幅の中**に出す。
 ///
-/// **高さを数で決め打ちしない。** フッターは文字の大きさ・ルールの有無・更新日時の
-/// 入切で高さが変わる。
-class ToastFooter extends StatefulWidget {
-  const ToastFooter({super.key, required this.child});
+/// 内側に専用の [ScaffoldMessenger] と [Scaffold] を持ち、フッターをその
+/// `bottomNavigationBar` にする。**浮いた通知をフッターの上へ置くのは Scaffold 自身の
+/// 配置**なので、表示中にフッターの高さが変わっても毎 frame 追随する。通知はこの領域の
+/// 幅に収まり、desktop の2ペインでも右ペインを覆わない(独立review attempt 2 の P1 2件)。
+///
+/// **画面にある置き場は [showAppToast] が優先して使う。** 置き場の外(画面上部の
+/// 読み込みバーなど)から出した通知も、フッターに重ならないようここへ送る。
+class ToastHost extends StatefulWidget {
+  const ToastHost({super.key, required this.body, this.footer});
 
-  final Widget child;
+  final Widget body;
+
+  /// 通知をその上に出すフッター。`null`(除去の選択モードなど)なら通知は領域の下端近く。
+  final Widget? footer;
 
   @override
-  State<ToastFooter> createState() => _ToastFooterState();
+  State<ToastHost> createState() => _ToastHostState();
 }
 
-class _ToastFooterState extends State<ToastFooter> {
-  final _key = GlobalKey();
+/// 画面にある置き場。後から出来たものを優先する(通常は1つ)。
+final List<_ToastHostState> _hosts = [];
 
-  void _report() {
-    if (!mounted) return;
-    final box = _key.currentContext?.findRenderObject();
-    if (box is! RenderBox || !box.hasSize) return;
-    toastBottomInset.value = box.size.height;
+class _ToastHostState extends State<ToastHost> {
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  ScaffoldMessengerState? get _messenger => _messengerKey.currentState;
+
+  bool get _hasFooter => widget.footer != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _hosts.add(this);
   }
 
   @override
   void dispose() {
-    toastBottomInset.value = 0;
+    _hosts.remove(this);
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _report());
-    return KeyedSubtree(key: _key, child: widget.child);
-  }
+  Widget build(BuildContext context) => ScaffoldMessenger(
+    key: _messengerKey,
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      // 外側の Scaffold が入力欄の扱いを持つ。ここでは本文を縮めない。
+      resizeToAvoidBottomInset: false,
+      body: widget.body,
+      bottomNavigationBar: widget.footer,
+    ),
+  );
 }
 
 /// 通知の本文側に置く操作(「元に戻す」など)。
@@ -98,8 +112,16 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
   bool replaceCurrent = false,
   bool persist = false,
 }) {
-  if (replaceCurrent) messenger.hideCurrentSnackBar();
-  return messenger.showSnackBar(
+  // **画面に置き場があればそこへ出す**(フッターの少し上、領域の幅の中)。
+  final host = _hosts.isEmpty ? null : _hosts.last;
+  final target = host?._messenger ?? messenger;
+  final aboveFooter = host != null && host._hasFooter;
+  if (replaceCurrent) {
+    target.hideCurrentSnackBar();
+    // 呼び出し側の messenger に前の通知が残っていれば、それも下げる。
+    if (!identical(target, messenger)) messenger.hideCurrentSnackBar();
+  }
+  return target.showSnackBar(
     SnackBar(
       key: key,
       behavior: SnackBarBehavior.floating,
@@ -109,14 +131,13 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
       elevation: 0,
       padding: EdgeInsets.zero,
       // 左右14(design 土台)。右と上は閉じる円のための余白を [AppToastCard] が持つ。
-      // **下はフッターの少し上**。フッターが無い画面では design 土台の18。
+      // **下はフッターとの隙間**(フッターの上へ置くのは [ToastHost] の Scaffold)。
+      // フッターが無ければ design 土台の18。
       margin: EdgeInsets.fromLTRB(
         14,
         0,
         14 - AppToastCard.closeOverhang,
-        toastBottomInset.value > 0
-            ? toastBottomInset.value + toastGapAboveFooter
-            : 18,
+        aboveFooter ? toastGapAboveFooter : 18,
       ),
       duration: duration,
       persist: persist,
@@ -124,14 +145,12 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
         tone: tone,
         action: action,
         onClose: () =>
-            messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),
+            target.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),
         onAction: action == null
             ? null
             : () {
                 // 押したら通知を下げてから操作する(押せる操作を残さない)。
-                messenger.hideCurrentSnackBar(
-                  reason: SnackBarClosedReason.action,
-                );
+                target.hideCurrentSnackBar(reason: SnackBarClosedReason.action);
                 action.onPressed();
               },
         child: content,

@@ -2087,16 +2087,16 @@
     {
       "id": "M307",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onEnterRemovalMode: rows.isEmpty\n                      ? null\n                      : () => _selection.enter(),",
-      "replace": "                  onEnterRemovalMode: null,",
-      "note": "008:T28 長押しに依存しない入口を落とす — 長押しは押せることが画面から読めず支援技術からも辿りにくいので、REQ-018 (b) が要求している(代表例 6j)"
+      "find": "                    onEnterRemovalMode: rows.isEmpty\n                        ? null\n                        : () => _selection.enter(),",
+      "replace": "                    onEnterRemovalMode: null,",
+      "note": "008:T28 長押しに依存しない入口を落とす — 長押しは押せることが画面から読めず支援技術からも辿りにくいので、REQ-018 (b) が要求している(代表例 6j)。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M308",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onRemoveMarked: marked.isEmpty\n                      ? null\n                      : () => _removeMarked(context, marked),",
-      "replace": "                  onRemoveMarked: () => _removeMarked(context, marked),",
-      "note": "008:T28 0 件でも外すbuttonを押せるようにする — REQ-018 の「0 件選択では実行できない」が壊れ、押しても何も起きない操作になる"
+      "find": "                    onRemoveMarked: marked.isEmpty\n                        ? null\n                        : () => _removeMarked(context, marked),",
+      "replace": "                    onRemoveMarked: () => _removeMarked(context, marked),",
+      "note": "008:T28 0 件でも外すbuttonを押せるようにする — REQ-018 の「0 件選択では実行できない」が壊れ、押しても何も起きない操作になる。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M309",
@@ -2255,9 +2255,9 @@
     {
       "id": "M331",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                if (!selecting &&\n                    (widget.renameExecution != null ||\n                        widget.onEditRule != null))",
-      "replace": "                if (widget.renameExecution != null ||\n                    widget.onEditRule != null)",
-      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)"
+      "find": "              footer:\n                  !selecting &&\n                      (widget.renameExecution != null ||\n                          widget.onEditRule != null)",
+      "replace": "              footer:\n                  (widget.renameExecution != null ||\n                      widget.onEditRule != null)",
+      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)。**008:T25でフッターを通知の置き場の`footer:`へ移したので`find`を書き直した**(意味は同じ: モード中も帯を出す)"
     },
     {
       "id": "M332",
@@ -2283,9 +2283,9 @@
     {
       "id": "M335",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onSelectAll: removable.isEmpty\n                      ? null\n                      : () => _selection.selectAll(removable),",
-      "replace": "                  onSelectAll: null,",
-      "note": "008:T29 ケバブの `すべて選択` を効かなくする — 全件を外す候補にする近道が消える(2026-09-19 の要望5)"
+      "find": "                    onSelectAll: removable.isEmpty\n                        ? null\n                        : () => _selection.selectAll(removable),",
+      "replace": "                    onSelectAll: null,",
+      "note": "008:T29 ケバブの `すべて選択` を効かなくする — 全件を外す候補にする近道が消える(2026-09-19 の要望5)。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M336",
@@ -2669,9 +2669,9 @@
     {
       "id": "M397",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "bottom: selecting ? _selectionViewportBottomPadding : 0,",
-      "replace": "bottom: 0,",
-      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ"
+      "find": "                          bottom: selecting\n                              ? _selectionViewportBottomPadding\n                              : 0,",
+      "replace": "                          bottom: 0,",
+      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M398",
@@ -2956,8 +2956,8 @@
     {
       "id": "M438",
       "file": "lib/ui/common/app_toast.dart",
-      "note": "008:T25 閉じる円を押しても通知が消えない — 邪魔な通知を自分で消せない(2026-09-18の要望)",
-      "find": "        onClose: () =>\n            messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
+      "note": "008:T25 閉じる円を押しても通知が消えない — 邪魔な通知を自分で消せない(2026-09-18の要望)。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "        onClose: () =>\n            target.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
       "replace": "        onClose: () {},"
     },
     {
@@ -2998,22 +2998,22 @@
     {
       "id": "M444",
       "file": "lib/ui/common/app_toast.dart",
-      "note": "008:T25 「元に戻す」を押しても通知を下げない — 押せない操作が残り、二重に押せる",
-      "find": "                messenger.hideCurrentSnackBar(\n                  reason: SnackBarClosedReason.action,\n                );\n",
+      "note": "008:T25 「元に戻す」を押しても通知を下げない — 押せない操作が残り、二重に押せる。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "                target.hideCurrentSnackBar(reason: SnackBarClosedReason.action);\n",
       "replace": ""
     },
     {
       "id": "M445",
       "file": "lib/ui/common/app_toast.dart",
-      "note": "[reviewer追加 M445-review-control][対照] 008:T25 閉じる円で「元に戻す」を実行する — 閉じる操作が取り消しを実行してはならない",
-      "find": "        onClose: () =>\n            messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
+      "note": "[reviewer追加 M445-review-control][対照] 008:T25 閉じる円で「元に戻す」を実行する — 閉じる操作が取り消しを実行してはならない。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "        onClose: () =>\n            target.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
       "replace": "        onClose: () { if (action != null) action.onPressed(); },"
     },
     {
       "id": "M446",
       "file": "lib/ui/common/app_toast.dart",
-      "note": "008:T25 フッターの高さを無視して下端から出す — 通知がリネームのbuttonなどに重なり押しにくい(2026-09-28のエミュレータ確認)",
-      "find": "        toastBottomInset.value > 0\n            ? toastBottomInset.value + toastGapAboveFooter\n            : 18,",
+      "note": "008:T25 通知とフッターの隙間の指定を外す(フッターの有無に依らず下18) — フッターから離れすぎ、置き場の意図(少し上)が崩れる。**attempt 2 のFAIL後に置き場(ToastHost)へ作り直したので`find`を入れ替えた**",
+      "find": "        aboveFooter ? toastGapAboveFooter : 18,",
       "replace": "        18,"
     },
     {
@@ -3033,9 +3033,23 @@
     {
       "id": "M449",
       "file": "lib/ui/common/app_toast.dart",
-      "note": "008:T25 フッターが高さを知らせない — 通知がフッターに重なる",
-      "find": "    toastBottomInset.value = box.size.height;\n",
+      "note": "008:T25 置き場へ送らず呼び出し側のmessengerへ出す — 置き場の外(画面上部の読み込みbar)の通知がフッターに重なり、2ペインでは右ペインを覆う(独立review attempt 2 のP1)。**`find`を入れ替えた**",
+      "find": "  final target = host?._messenger ?? messenger;",
+      "replace": "  final target = messenger;"
+    },
+    {
+      "id": "M450",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 置き場を登録しない — 置き場の外から出した通知がフッターに重なる",
+      "find": "    _hosts.add(this);\n",
       "replace": ""
+    },
+    {
+      "id": "M451",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "[reviewer追加 M450-review-control][対照] 008:T25 フッターとの隙間を24pxにする — 実測の配置(フッターの少し上=8px)を見ていることを確かめる(独立review attempt 2 の対照「実測高に24px足す」を置き場の形へ移した)",
+      "find": "const double toastGapAboveFooter = 8;",
+      "replace": "const double toastGapAboveFooter = 24;"
     }
   ]
 }
