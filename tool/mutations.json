@@ -2935,9 +2935,16 @@
     {
       "id": "M459",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 説明から「ファイルは削除されません」を落とす — 外すのはrenameの一覧からで実ファイルには触れない(005/013の境界)。以前の吹き出しの`M353`に当たる",
-      "find": "const String removalModeNoteText = 'リネームリストから外します。ファイルは削除されません。';",
-      "replace": "const String removalModeNoteText = 'リネームリストから外します。';"
+      "note": "008:T42 説明から「ファイルは削除されません」を落とす — 外すのはrenameの一覧からで実ファイルには触れない(005/013の境界)。以前の吹き出しの`M353`に当たる。**2026-09-28の文言変更(「選択したファイルを…」)に合わせて`find`を追随させた**。**説明をカード(見出しと太字の2行)にしたので、後半の定数へ移した**",
+      "find": "const String removalModeNoteMain = 'ファイルは削除されません。';",
+      "replace": "const String removalModeNoteMain = '';"
+    },
+    {
+      "id": "M460",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)",
+      "find": "              Expanded(\n                child: noteAsCard",
+      "replace": "              Flexible(\n                fit: FlexFit.loose,\n                child: noteAsCard"
     }
   ]
 }

@@ -72,8 +72,11 @@ void main() {
       WidgetTester tester,
       FileListController c, {
       VoidCallback? onEditRule,
+      bool withShiftToggle = false,
     }) async {
-      final executor = FakeRenameExecutor(files: const {});
+      final executor = withShiftToggle
+          ? _ShiftingExecutor()
+          : FakeRenameExecutor(files: const {});
       final execution = RenameExecutionController(
         permission: const UnrestrictedStoragePermission(),
         files: c,
@@ -112,7 +115,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text(removalModeNoteText), findsOneWidget);
+      // 狭幅は命名ルールと同じ形のカード: 見出しと太字の2行(2026-09-28)。
+      expect(find.text(removalModeNoteLead), findsOneWidget);
+      expect(find.text(removalModeNoteMain), findsOneWidget);
+      expect(removalModeNoteText, '選択したファイルをリネームリストから外します。ファイルは削除されません。');
       // **帯には `×` と件数とケバブ**(2026-09-28 の決定)。外すアイコンは無い。
       expect(find.byKey(removalModeExitKey), findsOneWidget);
       expect(find.byIcon(Icons.playlist_remove), findsNothing);
@@ -189,6 +195,41 @@ void main() {
         await tester.tap(find.byKey(removalModeBackKey));
         await tester.pumpAndSettle();
         expect(tester.getRect(find.byKey(fixedFooterKey)), normal);
+      });
+    }
+
+    for (final (label, withShift) in [
+      ('命名ルール + リネーム', false),
+      ('命名ルール + 更新日時の切り替え + リネーム(Androidと同じ)', true),
+    ]) {
+      testWidgets('説明のカードがフッターの余った高さを埋め、空きを残さない: $label(2026-09-28)', (
+        tester,
+      ) async {
+        // エミュレータ確認で「フッターに不自然な余白ができる」と指摘された。
+        await tester.binding.setSurfaceSize(const Size(360, 700));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final c = FileListController(files: _abc(), rule: _seq2);
+        await pumpWithExecution(
+          tester,
+          c,
+          onEditRule: () {},
+          withShiftToggle: withShift,
+        );
+        if (withShift) {
+          expect(find.byKey(shiftModifiedAtKey), findsOneWidget);
+        }
+        final normal = tester.getRect(find.byKey(fixedFooterKey));
+        await enterRemovalMode(tester);
+
+        final bar = tester.getRect(find.byKey(removalModeBarKey));
+        final card = tester.getRect(find.byKey(removalModeNoteKey));
+        final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+        expect(bar, normal, reason: '大きさは固定のまま');
+        // 上: フッターの余白(12)+区切り線の太さだけ。**空きが無い。**
+        expect(card.top - bar.top, closeTo(12, 2));
+        // 下: カードとbuttonの間は通常のフッターと同じ10。
+        expect(buttons.top - card.bottom, closeTo(10, 1));
+        expect(bar.bottom - buttons.bottom, closeTo(12, 1));
       });
     }
 
@@ -1048,4 +1089,13 @@ void main() {
     expect(rowColor('a.txt'), colors.selectedSurface);
     expect(rowColor('b.txt'), isNot(colors.selectedSurface));
   });
+}
+
+/// 更新日時の切り替えを出す実行器(Androidと同じ3段のフッターを再現する。`008:T42`)。
+class _ShiftingExecutor extends FakeRenameExecutor implements ModifiedAtWriter {
+  _ShiftingExecutor() : super(files: const {});
+
+  @override
+  Future<RenameError?> setModifiedAt(String handle, DateTime value) async =>
+      null;
 }
