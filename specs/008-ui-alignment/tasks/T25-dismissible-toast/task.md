@@ -144,6 +144,11 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
 
 **2回目の結果は`aa78f2a`のbuildに対するもので、再利用しない。** 3回目の対象は`b14a261`。
 
+### 3回目(2026-09-28、Androidエミュレータ、debug、code `b14a261`) — **PASS**
+
+開発者の報告(会話):「確認できました」。0〜6(位置・色・枠線・区切り線、除去の通知が一定時間で消える、エラーが残り「設定」で設定画面を開く、閉じる操作、大きい文字)を確認した。
+**このmanual証拠は`lib/`が`b14a261`のbuildに対応する。** その後の差分は`test/`・`tool/mutations.json`・記録だけで、`lib/`・依存・build設定は変えていない。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
@@ -233,9 +238,9 @@ M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査す�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 4 PASS(2026-09-28)。指摘された安全網の穴はtestを足して閉じた(`test/`だけ。`lib/`は`b14a261`のまま)。manual 3回目を待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ、3回目)。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜6の結果(code `b14a261`)。その後、`3af48f9..HEAD`の差分review(testの追加と記録)。
-- Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
+- Last checkpoint: **manual 3回目PASS**(2026-09-28、code `b14a261`)。
+- Blocker category: なし。
+- Waiting for: 独立review attempt 5(差分`3af48f9..HEAD`: testの追加と記録)。
+- Requested action: なし。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
