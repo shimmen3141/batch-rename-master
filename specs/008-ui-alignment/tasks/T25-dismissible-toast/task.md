@@ -49,6 +49,10 @@
 | 自動で消えるまでの時間 | **変えない**(改名の取り消しは005 REQ-007の5秒、それ以外はFlutterの既定) | Agent(既定) |
 | 各通知の重大度 | 成功: 改名の結果(失敗を含まないとき)・除去・元に戻した結果(失敗を含まないとき)。エラー: 今の赤の通知(読み込みの失敗、複数folder、実在名を取得できない、権限が無い2種)と、失敗を含む改名・元に戻した結果。案内: 今の青の通知(未実装の種類)と「一覧が変わったため、取り消せませんでした」(何も失っていない) | Agent |
 
+| 通知の位置(2026-09-28、manual 1回目の指摘) | **フッター(ルール設定とリネームのbutton)の少し上**(8px)に出す。フッターが無い画面(除去の選択モードなど)ではdesign土台の下18px。フッターは自分の高さを`ToastFooter`で知らせる(高さは文字の大きさ・ルールの有無で変わるので数で決め打ちしない) | 開発者(位置) / Agent(作り方) |
+| 通知の面の色(同) | **一覧の行(`surfaceElevated`)より一段明るい`#262C36`**、枠線は白16%。同じ色だと暗い背景と行に埋もれて見づらかった | 開発者(明るく) / Agent(値) |
+| フッターの区切り線(同。**通知とは別だがこのtaskで入れる**) | フッターの上端にdesign土台と同じ区切り線(白8%、`colors.border`)を入れる。一覧との境目が読めなかった | 開発者 |
+
 **design土台との差分**: 土台のtoastは成功(✓)だけを示している。エラー・案内を同じ形へ広げ、閉じる×を足した(土台に無い)。
 
 ## 通知の出どころ(着手時の洗い出し、2026-09-28)
@@ -111,6 +115,20 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
 - **このtaskのmanual**: エミュレータでの見た目(円の重なり方、色帯、カードの浮き方)と閉じる操作の手触り([`manual-verification.md`](manual-verification.md))。
 - 「一覧が変わったため、取り消せませんでした」・実在名を取得できない・読み込みの失敗・複数folderの警告は、エミュレータで出しにくいのでmanualでは見ない(形は共通の入口で同じ。重大度の割り当てはwidget testとmutationで固定した)。
 
+## manual確認の結果
+
+### 1回目(2026-09-28、Androidエミュレータ、debug、code `a207dae`)
+
+開発者の報告(会話):「確認事項についてはすべて確認できましたが、UIデザインは改善したいです」。**0〜5はPASS**(閉じる操作・重大度・「元に戻す」・自動で消えるまでの時間・大きい文字)。デザインについての指摘:
+
+| 指摘 | 対応(`1005f11`) |
+|---|---|
+| 通知が画面下部に出て、リネームのbuttonなどと干渉して押しにくい。フッターの少し上へずらしたい | フッターの高さの上に8pxの隙間で出す。`M446`・`M449` |
+| 通知の色が背景と同化して見づらい。参考デザインのように明るいトーンにしたい | 面を`#262C36`、枠線を白16%へ。`M447` |
+| (通知とは別)フッターの境界に参考デザインのような明るい区切り線を入れたい | フッターの上端に白8%の線。`M448` |
+
+**1回目の結果は`a207dae`のbuildに対するもので、`1005f11`では再利用しない。** 2回目は0〜5に、位置・色・区切り線の確認を足して通して見る。
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
@@ -121,11 +139,27 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
   - reviewerの対照(閉じる円で「元に戻す」を実行する)を`M445`として取り込んだ。
   - **SELF-CHECK**(AGENTS.mdの差分review): P2を閉じる差分は`specs/`と`tool/mutations.json`(対照の追加)だけで、`lib/`・`test/`・依存・build設定は変えていない。再reviewは起動しない。
 
+### manual 1回目の指摘への対応(`1005f11`)の mutation
+
+`command`を`flutter test test/spec_002_file_list/app_toast_test.dart test/spec_005_rename_exec/warning_confirmation_results_test.dart`へ絞り、今回足した4件と、同じfileの閉じる操作を守る2件を回した:
+
+```text
+M438 | KILLED | lib/ui/common/app_toast.dart | 閉じる円を押しても通知が消えない | exit 1
+M439 | KILLED | lib/ui/common/app_toast.dart | 操作があっても右を空けない | exit 1
+M446 | KILLED | lib/ui/common/app_toast.dart | フッターの高さを無視して下端から出す | exit 1
+M447 | KILLED | lib/ui/common/app_toast.dart | 通知の面を一覧の行と同じ色に戻す | exit 1
+M448 | KILLED | lib/ui/file_list/file_list_view.dart | フッターの上端の区切り線を消す | exit 1
+M449 | KILLED | lib/ui/common/app_toast.dart | フッターが高さを知らせない | exit 1
+6 mutations: 6 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+full test 1010件PASS。触ったfileのmutationで`find`が一致しないのは、`dev`時点から一致しない既存13件だけである。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(P2 2件はSELF-CHECKで閉じた。2026-09-28)。エミュレータのmanualを待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ)。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜5の結果(code `a207dae`)。
+- Last checkpoint: manual 1回目のデザインの指摘(位置・色・フッターの区切り線)を`1005f11`で直した(2026-09-28)。
+- Blocker category: なし(差分review → manual 2回目)。
+- Waiting for: 独立review attempt 2(差分`f954f96..HEAD`)。その後manual 2回目(code `1005f11`)。
 - Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
