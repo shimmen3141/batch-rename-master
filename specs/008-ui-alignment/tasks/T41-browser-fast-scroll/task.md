@@ -46,11 +46,21 @@ app内browserで件数の多いfolder(200件)を**素早くscrollすると引っ
 
 **切り分けの手順(開発者へ依頼)**: エミュレータへ`adb shell input swipe`で**本物のtouchの素早いswipe**を送る(トラックパッドを通さない)。これで素早くscrollするならappは正常で、観測はエミュレータのトラックパッド入力に固有と結論する。
 
+## 結論(2026-09-28)
+
+**appの欠陥ではない。エミュレータのトラックパッド入力に固有の現象である。**
+
+- 開発者がエミュレータで`many`(200件)を開き、`adb shell input swipe`で**本物のtouchの素早いswipe**(画面高の80%→30%、100ms)を送ったところ、**「勢いよく流れた」**。
+- widget testでもtouchの素早いflingは正常(上の調査の記録)。
+- 観測(素早いと反応しない)はトラックパッドの2本指scroll — エミュレータではscroll量のイベントとして届く経路 — でだけ起きた。**利用者は実機を指で操作するので、製品の経路には現れない。**
+- **コードは変えない。** 同じ誤解を避けるため、共通の手順書`docs/development/emulator-verification.md`の「注意」へ、scrollの速さはreleaseと`adb shell input swipe`で見ること、エミュレータのマウスdrag・トラックパッドの扱いを足した。
+- `008:T13`から引き受けた残余risk(素早いscrollの引っかかり)と、`008:T07`のN-5(previewより前からのscrollの引っかかり)は、この結論で説明される。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手(2026-09-28)。widget testではtouchの素早いflingは正常、mouseのdragはscrollしない、wheelは正常。
-- Blocker category: なし(`008:T13`は2026-09-27にdone)。
+- Last checkpoint: 結論を出した(2026-09-28)。エミュレータのトラックパッド固有で、appの欠陥ではない。コード変更なし。
+- Blocker category: なし。
 - Evidence revision: 観測は`008:T13`の`025aa18`と`dev`@`795ae65`のrelease build。
-- Waiting for: `adb shell input swipe`での素早いswipeの結果(エミュレータ、`many`)。
-- Requested action: 人間がbrowserの`many`を開いた状態で、`adb shell input swipe`の素早いswipeを送り、scrollするかを知らせる。
-- Next Agent action: swipeで素早くscrollするなら、エミュレータのトラックパッド固有として記録しT41を閉じる(修正なし)。しないなら、appのscrollを直す案を設計する。
+- Waiting for: 独立review。
+- Requested action: なし。
+- Next Agent action: 独立review → PR → merge → done。

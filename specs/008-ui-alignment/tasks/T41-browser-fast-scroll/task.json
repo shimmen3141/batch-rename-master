@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T41",
   "title": "browserの一覧が素早いscrollに反応しない原因を調べる",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T13"
   ],
