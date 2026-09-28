@@ -8,6 +8,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/common/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -127,6 +128,8 @@ void main() {
     expect(controller.items.map((e) => e.name), ['a.txt', 'b.txt']);
     expect(controller.items.map((e) => e.sourceLocation), ['写真', 'ダウンロード']);
     expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+    // **警告はエラーの見せ方**(`008:T25`。以前の赤い全面背景を置き換えた)。
+    expect(find.byKey(toastToneIconKey(ToastTone.danger)), findsOneWidget);
   });
 
   testWidgets('Cancelled はリスト無変化・通知なし(REQ-008)', (tester) async {
@@ -275,6 +278,8 @@ void main() {
 
     expect(find.byKey(const Key('file-kind-unimplemented')), findsOneWidget);
     expect(find.textContaining('写真機能で対応予定'), findsOneWidget);
+    // **案内の見せ方**(`008:T25`。以前の青い全面背景を置き換えた)。
+    expect(find.byKey(toastToneIconKey(ToastTone.info)), findsOneWidget);
     // 読み込みは行われない(ソースも呼ばれない)。
     expect(controller.items, isEmpty);
     expect(source.fileCallCount, 0);

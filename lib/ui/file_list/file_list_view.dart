@@ -6,6 +6,7 @@ import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../file_source/source_path_text.dart';
+import '../common/app_toast.dart';
 import '../common/drag_selection_controller.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
@@ -279,171 +280,182 @@ class _FileListViewState extends State<FileListView> {
           },
           child: Container(
             color: colors.background,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _HeaderBar(
-                  controller: widget.controller,
-                  // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
-                  // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
-                  warnings: ruleIsEmpty ? const <Warning>[] : warnings,
-                  selecting: selecting,
-                  markedCount: marked.length,
-                  // **一覧が空でない間は常に入れる**(入口(b)。代表例 6j)。
-                  // 外せる行の有無で出し入れしない — ヘッダの構成が一覧の中身で
-                  // 変わるし、REQ-018 が課しているのは「一覧が空でない間」である。
-                  // ハンドルを持つ行が無ければ、入っても 0 件で外せないだけになる。
-                  onEnterRemovalMode: rows.isEmpty
-                      ? null
-                      : () => _selection.enter(),
-                  onSelectAll: removable.isEmpty
-                      ? null
-                      : () => _selection.selectAll(removable),
-                  onClearAll: rows.isEmpty ? null : () => _clearAll(context),
-                  onExitRemovalMode: _exitRemovalMode,
-                  // 0 件では外せない(REQ-018)。
-                  onRemoveMarked: marked.isEmpty
-                      ? null
-                      : () => _removeMarked(context, marked),
-                  hintLink: _hintLink,
-                ),
-                // 外すアイコンへ重ねる補足(`008:T30`)。**自分では何も描かず**、
-                // `Overlay` へ出して帯をまたぐ。モードをやめた瞬間に消える。
-                RemovalHintAnchor(link: _hintLink, visible: selecting),
-                _SortBar(controller: widget.controller, selecting: selecting),
-                _CreatedAtFallbackBanner(
-                  warning: widget.controller.createdAtSortWarning,
-                ),
-                // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
-                // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
-                if (ruleIsEmpty) const RuleNotConfiguredBanner(),
-                Expanded(
-                  child: Listener(
-                    behavior: HitTestBehavior.translucent,
-                    onPointerDown: _dragSelection.onPointerDown,
-                    onPointerMove: _dragSelection.onPointerMove,
-                    onPointerUp: _dragSelection.onPointerUp,
-                    onPointerCancel: _dragSelection.onPointerCancel,
-                    child: ReorderableListView.builder(
-                      key: _listViewportKey,
-                      scrollController: _listScrollController,
-                      // 選択開始で下部 action bar を隠しても、開始行の画面座標を
-                      // 保つため、消えた高さを list の末尾余白として残す。
-                      padding: EdgeInsets.only(
-                        bottom: selecting ? _selectionViewportBottomPadding : 0,
-                      ),
-                      // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
-                      // 行タップと衝突させない)。**既定の長押しドラッグを切って
-                      // あることが、選択モードの長押しの前提でもある。**
-                      buildDefaultDragHandles: false,
-                      itemCount: rows.length,
-                      // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
-                      onReorderItem: widget.controller.reorder,
-                      // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
-                      // いま掴めたのかどうかが分からないまま動かすことになっていた。
-                      //
-                      // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
-                      // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
-                      // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
-                      // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
-                      //
-                      // **影は既定と同じように上げる。** 面の色を足すだけにして、
-                      // 浮き上がりという手掛かりを減らさない。
-                      proxyDecorator: (child, index, animation) =>
-                          AnimatedBuilder(
-                            animation: animation,
-                            builder: (context, child) => Material(
-                              key: draggingRowKey,
-                              color: colors.surface,
-                              shadowColor: colors.background,
-                              elevation:
-                                  Curves.easeInOut.transform(animation.value) *
-                                  6,
+            child: ToastHost(
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _HeaderBar(
+                    controller: widget.controller,
+                    // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
+                    // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
+                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                    selecting: selecting,
+                    markedCount: marked.length,
+                    // **一覧が空でない間は常に入れる**(入口(b)。代表例 6j)。
+                    // 外せる行の有無で出し入れしない — ヘッダの構成が一覧の中身で
+                    // 変わるし、REQ-018 が課しているのは「一覧が空でない間」である。
+                    // ハンドルを持つ行が無ければ、入っても 0 件で外せないだけになる。
+                    onEnterRemovalMode: rows.isEmpty
+                        ? null
+                        : () => _selection.enter(),
+                    onSelectAll: removable.isEmpty
+                        ? null
+                        : () => _selection.selectAll(removable),
+                    onClearAll: rows.isEmpty ? null : () => _clearAll(context),
+                    onExitRemovalMode: _exitRemovalMode,
+                    // 0 件では外せない(REQ-018)。
+                    onRemoveMarked: marked.isEmpty
+                        ? null
+                        : () => _removeMarked(context, marked),
+                    hintLink: _hintLink,
+                  ),
+                  // 外すアイコンへ重ねる補足(`008:T30`)。**自分では何も描かず**、
+                  // `Overlay` へ出して帯をまたぐ。モードをやめた瞬間に消える。
+                  RemovalHintAnchor(link: _hintLink, visible: selecting),
+                  _SortBar(controller: widget.controller, selecting: selecting),
+                  _CreatedAtFallbackBanner(
+                    warning: widget.controller.createdAtSortWarning,
+                  ),
+                  // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
+                  // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
+                  if (ruleIsEmpty) const RuleNotConfiguredBanner(),
+                  Expanded(
+                    child: Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerDown: _dragSelection.onPointerDown,
+                      onPointerMove: _dragSelection.onPointerMove,
+                      onPointerUp: _dragSelection.onPointerUp,
+                      onPointerCancel: _dragSelection.onPointerCancel,
+                      child: ReorderableListView.builder(
+                        key: _listViewportKey,
+                        scrollController: _listScrollController,
+                        // 選択開始で下部 action bar を隠しても、開始行の画面座標を
+                        // 保つため、消えた高さを list の末尾余白として残す。
+                        padding: EdgeInsets.only(
+                          bottom: selecting
+                              ? _selectionViewportBottomPadding
+                              : 0,
+                        ),
+                        // ドラッグは行末尾のハンドルからのみ開始する(行の長押しや
+                        // 行タップと衝突させない)。**既定の長押しドラッグを切って
+                        // あることが、選択モードの長押しの前提でもある。**
+                        buildDefaultDragHandles: false,
+                        itemCount: rows.length,
+                        // onReorderItem は newIndex を削除後の挿入先へ調整済みで渡す。
+                        onReorderItem: widget.controller.reorder,
+                        // **掴めた行を面の色で示す**(2026-09-19 の要望。`008:T32`)。
+                        // いま掴めたのかどうかが分からないまま動かすことになっていた。
+                        //
+                        // **選択モードの選択行(`selectedSurface`)とは別の色にする** —
+                        // 別々の状態が同じ見た目になると、`008:T29` で分けた区別が戻る。
+                        // モード中はつまみを出さない(REQ-018)ので同時には起きないが、
+                        // 色が同じなら「掴んでいる」と「選んでいる」が読み分けられない。
+                        //
+                        // **影は既定と同じように上げる。** 面の色を足すだけにして、
+                        // 浮き上がりという手掛かりを減らさない。
+                        proxyDecorator: (child, index, animation) =>
+                            AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, child) => Material(
+                                key: draggingRowKey,
+                                color: colors.surface,
+                                shadowColor: colors.background,
+                                elevation:
+                                    Curves.easeInOut.transform(
+                                      animation.value,
+                                    ) *
+                                    6,
+                                child: child,
+                              ),
                               child: child,
                             ),
-                            child: child,
-                          ),
-                      itemBuilder: (context, index) {
-                        final row = rows[index];
-                        final handle = row.source.sourceHandle;
-                        return _FileRow(
-                          // ReorderableListView は各子に安定 Key を要求する。
-                          // FileEntry は同一性で扱う値なので ValueKey で追従する。
-                          key: ValueKey(row.source),
-                          index: index,
-                          row: row,
-                          // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
-                          // **モード中に出さない判定は行側が持つ** — 枠を
-                          // checkbox と取り合うので、同じ場所で決めないと
-                          // 「どちらも出ない」「両方出る」が作れてしまう。
-                          showDragHandle: widget.controller.manualOrderMatters,
-                          sortMode: widget.controller.sortMode,
-                          showLocation: showRowLocation,
-                          filePreview: widget.filePreview,
-                          // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
-                          warnings: rowWarningsOf(
-                            row.warnings,
-                            ruleIsEmpty: ruleIsEmpty,
-                          ),
-                          ruleIsEmpty: ruleIsEmpty,
-                          // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
-                          // 全件は件数表示から開く(2026-09-02 の要望2)。
-                          onShowWarningDetail: () => showWarningDetail(
-                            context,
-                            row.warnings,
-                            ruleIsEmpty: ruleIsEmpty,
-                            scopeFile: row.source,
-                            // 同名が一覧に並ぶときだけ場所を添える。**母集合は
-                            // 一覧のファイル**(警告を持つものだけだと、同名2件の
-                            // 片方だけが警告されたときに見分けられない)。
-                            amongFiles: widget.controller.rows.map(
-                              (r) => r.source,
+                        itemBuilder: (context, index) {
+                          final row = rows[index];
+                          final handle = row.source.sourceHandle;
+                          return _FileRow(
+                            // ReorderableListView は各子に安定 Key を要求する。
+                            // FileEntry は同一性で扱う値なので ValueKey で追従する。
+                            key: ValueKey(row.source),
+                            index: index,
+                            row: row,
+                            // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
+                            // **モード中に出さない判定は行側が持つ** — 枠を
+                            // checkbox と取り合うので、同じ場所で決めないと
+                            // 「どちらも出ない」「両方出る」が作れてしまう。
+                            showDragHandle:
+                                widget.controller.manualOrderMatters,
+                            sortMode: widget.controller.sortMode,
+                            showLocation: showRowLocation,
+                            filePreview: widget.filePreview,
+                            // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
+                            warnings: rowWarningsOf(
+                              row.warnings,
+                              ruleIsEmpty: ruleIsEmpty,
                             ),
-                          ),
-                          selecting: selecting,
-                          marked: handle != null && marked.contains(handle),
-                          rowGeometryKey: handle == null
-                              ? null
-                              : _dragSelection.rowGeometryKey(handle),
-                          // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
-                          // ハンドルで対象を指す)。持たない行は選べない —
-                          // 選べるのに外れない件数を出すほうが悪い。
-                          onToggleMark: handle == null
-                              ? null
-                              : () => _selection.toggle(handle),
-                          onLongPressStart: handle == null
-                              ? null
-                              : (position) =>
-                                    _startDragSelection(handle, position),
-                        );
-                      },
+                            ruleIsEmpty: ruleIsEmpty,
+                            // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
+                            // 全件は件数表示から開く(2026-09-02 の要望2)。
+                            onShowWarningDetail: () => showWarningDetail(
+                              context,
+                              row.warnings,
+                              ruleIsEmpty: ruleIsEmpty,
+                              scopeFile: row.source,
+                              // 同名が一覧に並ぶときだけ場所を添える。**母集合は
+                              // 一覧のファイル**(警告を持つものだけだと、同名2件の
+                              // 片方だけが警告されたときに見分けられない)。
+                              amongFiles: widget.controller.rows.map(
+                                (r) => r.source,
+                              ),
+                            ),
+                            selecting: selecting,
+                            marked: handle != null && marked.contains(handle),
+                            rowGeometryKey: handle == null
+                                ? null
+                                : _dragSelection.rowGeometryKey(handle),
+                            // **元場所ハンドルを持つ行だけ外せる**(004 REQ-006 は
+                            // ハンドルで対象を指す)。持たない行は選べない —
+                            // 選べるのに外れない件数を出すほうが悪い。
+                            onToggleMark: handle == null
+                                ? null
+                                : () => _selection.toggle(handle),
+                            onLongPressStart: handle == null
+                                ? null
+                                : (position) =>
+                                      _startDragSelection(handle, position),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-                // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
-                // まとめる(T09 で T04 の上部配置から移設)。
-                //
-                // 005 REQ-009 (2) の原因の提示は、**バーの手前へ積まない。**
-                // 独立した子として積むと、原因の数 × 文字倍率で伸びて一覧と
-                // 下部バーを押し出した(独立review attempt 3 のP1-1)。参考designの
-                // ルール設定buttonが持つ「命名ルール」見出しの右へ、**種別だけ**を
-                // 載せる。**広幅では下部バーに導線が無い**ため、
-                // `RuleBuilderWorkspace` が右ペイン側へ同じものを描く。
-                // **モード中は下部の帯を隠す**(2026-09-19 の要望7)。モードは外す
-                // 作業に専念させる。005 は提示の場所・文言・UI部品を自由とする点に
-                // 残しており、REQ-019 が課すのは「実行が始まらない・実ファイルを
-                // 1件も変えない」という振る舞いである。
-                if (!selecting &&
-                    (widget.renameExecution != null ||
-                        widget.onEditRule != null))
-                  _RenameActionBar(
-                    key: _renameActionBarKey,
-                    controller: widget.controller,
-                    execution: widget.renameExecution,
-                    onEditRule: widget.onEditRule,
-                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
-                  ),
-              ],
+                ],
+              ),
+              // **フッターは通知の置き場の`bottomNavigationBar`**(`008:T25`)。通知は
+              // その少し上・この領域の幅の中に出る(リネームのbuttonなどに重ならない)。
+              // 参考デザインどおり、ルール設定と実行はリストより下の固定バーへ
+              // まとめる(T09 で T04 の上部配置から移設)。
+              //
+              // 005 REQ-009 (2) の原因の提示は、**バーの手前へ積まない。**
+              // 独立した子として積むと、原因の数 × 文字倍率で伸びて一覧と
+              // 下部バーを押し出した(独立review attempt 3 のP1-1)。参考designの
+              // ルール設定buttonが持つ「命名ルール」見出しの右へ、**種別だけ**を
+              // 載せる。**広幅では下部バーに導線が無い**ため、
+              // `RuleBuilderWorkspace` が右ペイン側へ同じものを描く。
+              // **モード中は下部の帯を隠す**(2026-09-19 の要望7)。モードは外す
+              // 作業に専念させる。005 は提示の場所・文言・UI部品を自由とする点に
+              // 残しており、REQ-019 が課すのは「実行が始まらない・実ファイルを
+              // 1件も変えない」という振る舞いである。
+              footer:
+                  !selecting &&
+                      (widget.renameExecution != null ||
+                          widget.onEditRule != null)
+                  ? _RenameActionBar(
+                      key: _renameActionBarKey,
+                      controller: widget.controller,
+                      execution: widget.renameExecution,
+                      onEditRule: widget.onEditRule,
+                      warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                    )
+                  : null,
             ),
           ),
         );
@@ -451,6 +463,12 @@ class _FileListViewState extends State<FileListView> {
     );
   }
 }
+
+/// 権限のエラーの通知から設定画面を開く操作(`008:T25`)。
+const Key permissionSettingsActionKey = Key('permission-settings-action');
+
+/// フッター([_RenameActionBar])の面。上端の区切り線を test が見るための key。
+const Key renameActionBarSurfaceKey = Key('rename-action-bar-surface');
 
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。
 ///
@@ -490,12 +508,11 @@ class _RenameActionBar extends StatelessWidget {
       // REQ-027: 実在名を取得できなかったfolderがある。**実行を行わず理由を出す。**
       // 「取得できなかった」を「衝突が無い」と読まない。
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: const Key('rename-occupied-names-unavailable'),
-          content: Text(_unavailableMessage(prepared.reasons)),
-          backgroundColor: context.colors.danger,
-        ),
+      showAppToast(
+        ScaffoldMessenger.of(context),
+        key: const Key('rename-occupied-names-unavailable'),
+        tone: ToastTone.danger,
+        content: Text(_unavailableMessage(prepared.reasons)),
       );
       return;
     }
@@ -604,16 +621,25 @@ class _RenameActionBar extends StatelessWidget {
     // 権限が取り消されていた場合(013 REQ-004)。**黙って何も起きない**のは
     // 「壊れている」ように見えるので、理由を出す。実体には触れていない(INV-002)。
     if (execution.permissionDenied) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        showAppToast(
+          messenger,
           key: const Key('execute-permission-denied'),
+          tone: ToastTone.danger,
           content: const Text(
             '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
           ),
-          backgroundColor: context.colors.danger,
-        ),
-      );
+          // **設定画面へ直接移れる**(2026-09-28 の開発者の決定)。押したときだけ開く —
+          // 自動では開かない(013 REQ-003)。
+          action: ToastAction(
+            key: permissionSettingsActionKey,
+            label: '設定',
+            onPressed: () => execution.permission.openSettings(),
+          ),
+        );
+      }
       return;
     }
     if (outcome == null) return;
@@ -640,28 +666,30 @@ class _RenameActionBar extends StatelessWidget {
     if (shiftFailures > 0) {
       message.write('。改名は成功しましたが、$shiftFailures 件の更新日時は変更できませんでした');
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        // **固定 key を付けない。** `showSnackBar` は key が null のときだけ
-        // `UniqueKey` を fallback に入れ、連続する snackbar が構造的に一致した
-        // ときの ink splash / highlight の持ち越しを防いでいる。結果トーストは
-        // undo ボタンを含むので、固定 key を付けるとその持ち越しが起きうる。
-        // 到達の観測は本文(「N 件を改名しました」)で足りる。
-        content: _resultContent(message.toString(), renumbered),
-        // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
-        // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
-        duration: execution.undoWindow,
-        // action があると既定で消えなくなる(persist)。undo は 5 秒で期限切れ
-        // (REQ-007)なので、押せなくなった undo を残さないよう明示的に消す。
-        persist: false,
-        action: execution.canUndo
-            ? SnackBarAction(
-                key: const Key('rename-undo'),
-                label: '元に戻す',
-                onPressed: () => _undo(context),
-              )
-            : null,
-      ),
+    showAppToast(
+      ScaffoldMessenger.of(context),
+      // **固定 key を付けない。** `showSnackBar` は key が null のときだけ
+      // `UniqueKey` を fallback に入れ、連続する snackbar が構造的に一致した
+      // ときの ink splash / highlight の持ち越しを防いでいる。結果トーストは
+      // undo ボタンを含むので、固定 key を付けるとその持ち越しが起きうる。
+      // 到達の観測は本文(「N 件を改名しました」)で足りる。
+      //
+      // **失敗を含むならエラーの見せ方にする**(`008:T25`)。成功の✓で失敗を伝えない。
+      tone: failure == null ? ToastTone.success : ToastTone.danger,
+      content: _resultContent(message.toString(), renumbered),
+      // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
+      // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
+      // **undo は 5 秒で期限切れ**(REQ-007)なので、押せなくなった undo を残さない。
+      // **失敗を含んでも同じ** — エラーは既定で残るが、undo を持つ間はその期限で消す。
+      duration: execution.undoWindow,
+      persist: execution.canUndo ? false : null,
+      action: execution.canUndo
+          ? ToastAction(
+              key: const Key('rename-undo'),
+              label: '元に戻す',
+              onPressed: () => _undo(context),
+            )
+          : null,
     );
   }
 
@@ -672,16 +700,23 @@ class _RenameActionBar extends StatelessWidget {
     // undo も書き込みなので、権限が取り消されていれば断る(013 INV-002)。
     // **黙って何も起きない**のは「壊れている」ように見えるので理由を出す。
     if (execution.permissionDenied) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        showAppToast(
+          messenger,
           key: const Key('undo-permission-denied'),
+          tone: ToastTone.danger,
           content: const Text(
             '「すべてのファイルへのアクセス」が許可されていないため、元に戻せませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
           ),
-          backgroundColor: context.colors.danger,
-        ),
-      );
+          action: ToastAction(
+            key: permissionSettingsActionKey,
+            label: '設定',
+            onPressed: () => execution.permission.openSettings(),
+          ),
+        );
+      }
       return;
     }
     if (outcome == null) return;
@@ -690,10 +725,12 @@ class _RenameActionBar extends StatelessWidget {
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
     }
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message.toString())));
+    showAppToast(
+      ScaffoldMessenger.of(context),
+      tone: failure == null ? ToastTone.success : ToastTone.danger,
+      content: Text(message.toString()),
+      replaceCurrent: true,
+    );
   }
 
   @override
@@ -705,7 +742,11 @@ class _RenameActionBar extends StatelessWidget {
     // 005 REQ-019: 実行できるのは**変更が生じるファイルが1件以上ある**ときだけ。
     final changedCount = controller.changedFileCount;
     return Material(
+      key: renameActionBarSurfaceKey,
       color: colors.surface,
+      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。
+      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。
+      shape: Border(top: BorderSide(color: colors.border)),
       child: SafeArea(
         top: false,
         child: Padding(

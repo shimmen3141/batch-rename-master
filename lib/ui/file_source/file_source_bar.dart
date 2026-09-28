@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/file_source/file_loading.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/permission/storage_permission.dart';
+import '../common/app_toast.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/header_metrics.dart';
 import '../file_list/removal_selection.dart';
@@ -186,17 +187,17 @@ class _FileSourceBarState extends State<FileSourceBar>
 
   Future<void> _load(BuildContext context, FileKind kind) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final colors = context.colors;
 
     // 画像・動画は枠のみ(中身は写真機能)。未実装であることを伝える(REQ-011)。
     if (!kind.isImplemented) {
-      messenger?.showSnackBar(
-        SnackBar(
+      if (messenger != null) {
+        showAppToast(
+          messenger,
           key: const Key('file-kind-unimplemented'),
+          tone: ToastTone.info,
           content: Text('「${kind.label}」の読み込みは写真機能で対応予定です'),
-          backgroundColor: colors.info,
-        ),
-      );
+        );
+      }
       return;
     }
 
@@ -208,23 +209,21 @@ class _FileSourceBarState extends State<FileSourceBar>
     if (messenger == null) return;
     // Cancelled と成功は通知しない(REQ-008)。
     if (error != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          key: const Key('file-source-error'),
-          content: Text(FileSourceBar.messageOf(error)),
-          backgroundColor: colors.danger,
-        ),
+      showAppToast(
+        messenger,
+        key: const Key('file-source-error'),
+        tone: ToastTone.danger,
+        content: Text(FileSourceBar.messageOf(error)),
       );
       return;
     }
     // 複数の親フォルダに跨っていたら警告する(REQ-012)。読み込み自体は行う。
     if (FileSourceBar.distinctLocationCount(widget.controller) > 1) {
-      messenger.showSnackBar(
-        SnackBar(
-          key: const Key('multi-folder-warning'),
-          content: const Text('複数のフォルダのファイルが含まれています。リネームしても同じ場所には集まりません。'),
-          backgroundColor: colors.danger,
-        ),
+      showAppToast(
+        messenger,
+        key: const Key('multi-folder-warning'),
+        tone: ToastTone.danger,
+        content: const Text('複数のフォルダのファイルが含まれています。リネームしても同じ場所には集まりません。'),
       );
     }
   }

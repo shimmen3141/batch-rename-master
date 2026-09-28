@@ -274,9 +274,9 @@
     {
       "id": "M39",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          content: Text(_unavailableMessage(prepared.reasons)),",
-      "replace": "          content: const Text('実行しませんでした'),",
-      "note": "REQ-027の理由提示(どのfolderがなぜ)を除去"
+      "find": "        content: Text(_unavailableMessage(prepared.reasons)),",
+      "replace": "        content: const Text('実行しませんでした'),",
+      "note": "REQ-027の理由提示(どのfolderがなぜ)を除去。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M40",
@@ -1989,16 +1989,16 @@
     {
       "id": "M293",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "            controller.setFiles(before);\n",
+      "find": "        controller.setFiles(before);\n",
       "replace": "",
-      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る"
+      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M294",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "            controller.setFiles(before);",
-      "replace": "            controller.setFiles(before.reversed.toList());",
-      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)"
+      "find": "        controller.setFiles(before);",
+      "replace": "        controller.setFiles(before.reversed.toList());",
+      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M295",
@@ -2010,9 +2010,9 @@
     {
       "id": "M296",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "            controller.setOccupiedNames(occupied);\n",
+      "find": "        controller.setOccupiedNames(occupied);\n",
       "replace": "",
-      "note": "008:T04 取り消しで占有名を戻さない — setFiles が捨てるので、外して戻しただけで一覧の重複警告が弱くなる(005 REQ-026)"
+      "note": "008:T04 取り消しで占有名を戻さない — setFiles が捨てるので、外して戻しただけで一覧の重複警告が弱くなる(005 REQ-026)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M297",
@@ -2031,16 +2031,16 @@
     {
       "id": "M299",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "            if (controller.sortMode != afterSortMode ||\n                !identical(controller.occupiedNames, occupied) ||\n                !_sameItems(controller.items, after)) {",
-      "replace": "            if (false) {",
-      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)"
+      "find": "        if (controller.sortMode != afterSortMode ||\n            !identical(controller.occupiedNames, occupied) ||\n            !_sameItems(controller.items, after)) {",
+      "replace": "        if (false) {",
+      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M300",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "            if (controller.sortMode != afterSortMode ||\n                !identical",
-      "replace": "            if (!identical",
-      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)"
+      "find": "        if (controller.sortMode != afterSortMode ||\n            !identical",
+      "replace": "        if (!identical",
+      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M301",
@@ -2052,9 +2052,9 @@
     {
       "id": "M302",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "                !identical(controller.occupiedNames, occupied) ||\n",
+      "find": "            !identical(controller.occupiedNames, occupied) ||\n",
       "replace": "",
-      "note": "008:T04 占有名の取り直しを見ない — 005 の実行準備は items にも sortMode にも触れずに占有名だけを取り直すので、取り消しが**取り直したばかりの観測を古い控えで上書きする**(独立review attempt 2 の N-3)"
+      "note": "008:T04 占有名の取り直しを見ない — 005 の実行準備は items にも sortMode にも触れずに占有名だけを取り直すので、取り消しが**取り直したばかりの観測を古い控えで上書きする**(独立review attempt 2 の N-3)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
     },
     {
       "id": "M303",
@@ -2087,16 +2087,16 @@
     {
       "id": "M307",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onEnterRemovalMode: rows.isEmpty\n                      ? null\n                      : () => _selection.enter(),",
-      "replace": "                  onEnterRemovalMode: null,",
-      "note": "008:T28 長押しに依存しない入口を落とす — 長押しは押せることが画面から読めず支援技術からも辿りにくいので、REQ-018 (b) が要求している(代表例 6j)"
+      "find": "                    onEnterRemovalMode: rows.isEmpty\n                        ? null\n                        : () => _selection.enter(),",
+      "replace": "                    onEnterRemovalMode: null,",
+      "note": "008:T28 長押しに依存しない入口を落とす — 長押しは押せることが画面から読めず支援技術からも辿りにくいので、REQ-018 (b) が要求している(代表例 6j)。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M308",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onRemoveMarked: marked.isEmpty\n                      ? null\n                      : () => _removeMarked(context, marked),",
-      "replace": "                  onRemoveMarked: () => _removeMarked(context, marked),",
-      "note": "008:T28 0 件でも外すbuttonを押せるようにする — REQ-018 の「0 件選択では実行できない」が壊れ、押しても何も起きない操作になる"
+      "find": "                    onRemoveMarked: marked.isEmpty\n                        ? null\n                        : () => _removeMarked(context, marked),",
+      "replace": "                    onRemoveMarked: () => _removeMarked(context, marked),",
+      "note": "008:T28 0 件でも外すbuttonを押せるようにする — REQ-018 の「0 件選択では実行できない」が壊れ、押しても何も起きない操作になる。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M309",
@@ -2255,9 +2255,9 @@
     {
       "id": "M331",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                if (!selecting &&\n                    (widget.renameExecution != null ||\n                        widget.onEditRule != null))",
-      "replace": "                if (widget.renameExecution != null ||\n                    widget.onEditRule != null)",
-      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)"
+      "find": "              footer:\n                  !selecting &&\n                      (widget.renameExecution != null ||\n                          widget.onEditRule != null)",
+      "replace": "              footer:\n                  (widget.renameExecution != null ||\n                      widget.onEditRule != null)",
+      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)。**008:T25でフッターを通知の置き場の`footer:`へ移したので`find`を書き直した**(意味は同じ: モード中も帯を出す)"
     },
     {
       "id": "M332",
@@ -2283,9 +2283,9 @@
     {
       "id": "M335",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onSelectAll: removable.isEmpty\n                      ? null\n                      : () => _selection.selectAll(removable),",
-      "replace": "                  onSelectAll: null,",
-      "note": "008:T29 ケバブの `すべて選択` を効かなくする — 全件を外す候補にする近道が消える(2026-09-19 の要望5)"
+      "find": "                    onSelectAll: removable.isEmpty\n                        ? null\n                        : () => _selection.selectAll(removable),",
+      "replace": "                    onSelectAll: null,",
+      "note": "008:T29 ケバブの `すべて選択` を効かなくする — 全件を外す候補にする近道が消える(2026-09-19 の要望5)。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M336",
@@ -2669,9 +2669,9 @@
     {
       "id": "M397",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "bottom: selecting ? _selectionViewportBottomPadding : 0,",
-      "replace": "bottom: 0,",
-      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ"
+      "find": "                          bottom: selecting\n                              ? _selectionViewportBottomPadding\n                              : 0,",
+      "replace": "                          bottom: 0,",
+      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**"
     },
     {
       "id": "M398",
@@ -2952,6 +2952,139 @@
       "note": "[reviewer追加 R-CONTROL-1][対照] 013:T13 hostから渡るlink mode preferenceを使う。**等価mutantでSURVIVEDする** — testはdynamicを渡しており、Flutterも現在dynamicを渡す。dynamicを明示しているのは、hostの既定が変わっても静的にしないためである(防御の明示として残す。独立review attempt 1 が確認: 2026-09-26)",
       "find": "      linkModePreference: LinkModePreference.dynamic,",
       "replace": "      linkModePreference: input.config.code.linkModePreference,"
+    },
+    {
+      "id": "M438",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 閉じる円を押しても通知が消えない — 邪魔な通知を自分で消せない(2026-09-18の要望)。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "        onClose: () =>\n            target.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
+      "replace": "        onClose: () {},"
+    },
+    {
+      "id": "M439",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 操作があっても右を空けない — 閉じる円の当たり判定と「元に戻す」が重なり、押し間違いで取り消しを失う",
+      "find": "                        action == null ? 13 : actionClearance,",
+      "replace": "                        13,"
+    },
+    {
+      "id": "M440",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 エラーを成功の色で示す — 重大度が色で読めない(2026-09-28の決定)",
+      "find": "      ToastTone.danger => colors.danger,",
+      "replace": "      ToastTone.danger => colors.success,"
+    },
+    {
+      "id": "M441",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T25 失敗を含む改名の結果を成功の見せ方で出す — 成功の✓で失敗を伝える",
+      "find": "      tone: failure == null ? ToastTone.success : ToastTone.danger,\n      content: _resultContent(",
+      "replace": "      tone: ToastTone.success,\n      content: _resultContent("
+    },
+    {
+      "id": "M442",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "note": "008:T25 除去の通知を残し続ける — ほかの通知と同じ一定時間で消える決定(2026-09-28)に反する。**決定が「残す」から「消す」へ変わったので、mutationの向きを入れ替えた**",
+      "find": "    content: Text('$removed 件を一覧から外しました'),\n    replaceCurrent: true,\n",
+      "replace": "    content: Text('$removed 件を一覧から外しました'),\n    replaceCurrent: true,\n    persist: true,\n"
+    },
+    {
+      "id": "M443",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "note": "008:T25 複数folderの警告を案内の見せ方にする — 以前の赤(エラー)の重大度を変える(004 REQ-012)",
+      "find": "        key: const Key('multi-folder-warning'),\n        tone: ToastTone.danger,",
+      "replace": "        key: const Key('multi-folder-warning'),\n        tone: ToastTone.info,"
+    },
+    {
+      "id": "M444",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 「元に戻す」を押しても通知を下げない — 押せない操作が残り、二重に押せる。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "                target.hideCurrentSnackBar(reason: SnackBarClosedReason.action);\n",
+      "replace": ""
+    },
+    {
+      "id": "M445",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "[reviewer追加 M445-review-control][対照] 008:T25 閉じる円で「元に戻す」を実行する — 閉じる操作が取り消しを実行してはならない。**attempt 2 のFAIL後、通知の送り先を`target`(置き場)にしたので`find`を追随させた**",
+      "find": "        onClose: () =>\n            target.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
+      "replace": "        onClose: () { if (action != null) action.onPressed(); },"
+    },
+    {
+      "id": "M446",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 通知とフッターの隙間の指定を外す(フッターの有無に依らず下18) — フッターから離れすぎ、置き場の意図(少し上)が崩れる。**attempt 2 のFAIL後に置き場(ToastHost)へ作り直したので`find`を入れ替えた**",
+      "find": "        aboveFooter ? toastGapAboveFooter : 18,",
+      "replace": "        18,"
+    },
+    {
+      "id": "M447",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 通知の面を一覧の行と同じ色に戻す — 暗い背景と行に埋もれて見づらい(2026-09-28のエミュレータ確認)",
+      "find": "                color: toastSurface,",
+      "replace": "                color: colors.surfaceElevated,"
+    },
+    {
+      "id": "M448",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T25 フッターの上端の区切り線を消す — 一覧との境目が読めない(design土台のborder-top。2026-09-28)",
+      "find": "      shape: Border(top: BorderSide(color: colors.border)),\n",
+      "replace": ""
+    },
+    {
+      "id": "M449",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 置き場へ送らず呼び出し側のmessengerへ出す — 置き場の外(画面上部の読み込みbar)の通知がフッターに重なり、2ペインでは右ペインを覆う(独立review attempt 2 のP1)。**`find`を入れ替えた**",
+      "find": "  final target = host?._messenger ?? messenger;",
+      "replace": "  final target = messenger;"
+    },
+    {
+      "id": "M450",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 置き場を登録しない — 置き場の外から出した通知がフッターに重なる",
+      "find": "    _hosts.add(this);\n",
+      "replace": ""
+    },
+    {
+      "id": "M451",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "[reviewer追加 M450-review-control][対照] 008:T25 フッターとの隙間を24pxにする — 実測の配置(フッターの少し上=8px)を見ていることを確かめる(独立review attempt 2 の対照「実測高に24px足す」を置き場の形へ移した)",
+      "find": "const double toastGapAboveFooter = 8;",
+      "replace": "const double toastGapAboveFooter = 24;"
+    },
+    {
+      "id": "M452",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 エラーを既定で残さない — 読み落とすと何が起きたか分からない(2026-09-28の決定: エラーは閉じるまで残る)",
+      "find": "      persist: persist ?? tone == ToastTone.danger,",
+      "replace": "      persist: persist ?? false,"
+    },
+    {
+      "id": "M453",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "008:T25 枠線を面の背面へ戻す — 不透明な面に隠れて見えない(2026-09-28のエミュレータ確認)",
+      "find": "              position: DecorationPosition.foreground,",
+      "replace": "              position: DecorationPosition.background,"
+    },
+    {
+      "id": "M454",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T25 権限のエラーの「設定」が設定画面を開かない — 通知から許可の画面へ直接移れない(2026-09-28の決定)",
+      "find": "            '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'\n            '端末の設定で許可してから、もう一度お試しください。',\n          ),\n          // **設定画面へ直接移れる**(2026-09-28 の開発者の決定)。押したときだけ開く —\n          // 自動では開かない(013 REQ-003)。\n          action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () => execution.permission.openSettings(),",
+      "replace": "            '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'\n            '端末の設定で許可してから、もう一度お試しください。',\n          ),\n          // **設定画面へ直接移れる**(2026-09-28 の開発者の決定)。押したときだけ開く —\n          // 自動では開かない(013 REQ-003)。\n          action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () {},"
+    },
+    {
+      "id": "M455",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T25 「元に戻す」を持つ失敗結果を閉じるまで残す — 期限(5秒。005 REQ-007)が過ぎて押せなくなった「元に戻す」が残る",
+      "find": "      persist: execution.canUndo ? false : null,",
+      "replace": "      persist: null,"
+    },
+    {
+      "id": "M456",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "[reviewer追加 M-review-undo-settings-control][対照] 008:T25 元に戻すの権限のエラーの「設定」が設定画面を開かない — 独立review attempt 4 でSURVIVEDした(安全網の穴)ので、testを足して閉じた",
+      "find": "action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () => execution.permission.openSettings(),\n          ),\n        );\n      }\n      return;\n    }\n    if (outcome == null) return;\n    final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');",
+      "replace": "action: ToastAction(\n            key: permissionSettingsActionKey,\n            label: '設定',\n            onPressed: () {},\n          ),\n        );\n      }\n      return;\n    }\n    if (outcome == null) return;\n    final message = StringBuffer('${outcome.successes.length} 件を元に戻しました');"
     }
   ]
 }
