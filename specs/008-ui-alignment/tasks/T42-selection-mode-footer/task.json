@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T42",
+  "title": "除去の選択モードの操作をフッターへ移す",
+  "status": "pending",
+  "dependsOn": [
+    "T25"
+  ],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

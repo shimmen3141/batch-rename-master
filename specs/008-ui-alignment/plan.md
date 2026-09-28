@@ -194,3 +194,4 @@ T37のエミュレータ確認報告では範囲選択は概ね機能したが�
 | T39 | [task.md](tasks/T39-implement-browser-selection-navigation/task.md) |
 | T40 | [task.md](tasks/T40-breadcrumb-navigation/task.md) |
 | T41 | [task.md](tasks/T41-browser-fast-scroll/task.md) |
+| T42 | [task.md](tasks/T42-selection-mode-footer/task.md) |

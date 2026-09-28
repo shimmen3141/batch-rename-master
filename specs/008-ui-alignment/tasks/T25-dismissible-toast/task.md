@@ -241,9 +241,9 @@ M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査す�
 
 ## Current state / handoff
 
-- Last checkpoint: **manual 3回目PASS**(2026-09-28、code `b14a261`)。
+- Last checkpoint: **完了**(2026-09-28)。PR #193をAgentがmergeした(auto-merge条件1〜7: review連鎖 = attempt 1 PASS / 2 FAIL(置き場へ作り直して閉じた)/ 3 PASS / 4 PASS / 5 PASS + SELF-CHECK、CI SUCCESS、未解決threadなし、`dev`と競合なし、最新のcodeでfull test 1018件PASS、manual 3回目はcode `b14a261`でその後code差分なし)。統合後の`dev`@`29874f1`で`flutter analyze` PASS、`flutter test` 1018件PASS。
 - Blocker category: なし。
-- Waiting for: 独立review attempt 5(差分`3af48f9..HEAD`: testの追加と記録)。
+- Evidence revision: code `b14a261`、merge commit `29874f1`。
+- Waiting for: なし。
 - Requested action: なし。
-- Evidence revision: 起点は`dev`@`78352cf`。
-- Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
+- Next Agent action: なし。選択モードのフッター化は`008:T42`(2026-09-28に登録)。

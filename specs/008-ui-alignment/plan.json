@@ -46,6 +46,7 @@
     "tasks/T38-define-browser-selection-navigation",
     "tasks/T39-implement-browser-selection-navigation",
     "tasks/T40-breadcrumb-navigation",
-    "tasks/T41-browser-fast-scroll"
+    "tasks/T41-browser-fast-scroll",
+    "tasks/T42-selection-mode-footer"
   ]
 }

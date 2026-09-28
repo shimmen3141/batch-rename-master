@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T25",
   "title": "通知(toast)を自分で閉じられるようにする",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [],
   "covers": [
     "002:REQ-017",
