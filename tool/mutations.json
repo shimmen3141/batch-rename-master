@@ -2973,6 +2973,20 @@
       "note": "008:T42 モードのフッターを枠に重ねず並べる — 大きさを通常のフッターが決めなくなり、モードの方が高い構成で大きさが変わる・通常のフッターに空きが出る(独立review attempt 2 のP2)",
       "find": "      if (showRemovalMode) Positioned.fill(child: removalMode),",
       "replace": "      if (showRemovalMode) removalMode,"
+    },
+    {
+      "id": "M465",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 独立review attempt 3(reviewer設計R1)。モード中も隠した通常のフッターを押せる(`maintainInteractivity`)— 選択モードの最中にルール設定・リネームへ触れる",
+      "find": "        maintainState: true,\n        child: normal,",
+      "replace": "        maintainState: true,\n        maintainInteractivity: true,\n        child: normal,"
+    },
+    {
+      "id": "M466",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 独立review attempt 3(reviewer設計R2・対照)。モード中も隠した通常のフッターがsemanticsに残る(`maintainSemantics`)— **SURVIVEDが期待値**: semanticsの除外を直接見るtestは無い(P3・安全網の穴として受容。task.md)",
+      "find": "        maintainState: true,\n        child: normal,",
+      "replace": "        maintainState: true,\n        maintainSemantics: true,\n        child: normal,"
     }
   ]
 }

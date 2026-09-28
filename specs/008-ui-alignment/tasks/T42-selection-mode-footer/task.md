@@ -134,7 +134,11 @@ M460 | KILLED | lib/ui/file_list/file_list_view.dart | (findを今の形に合�
 - attempt 2: `89ba6b1..dd7e3be`(差分、manual 1回目の指摘への対応) — **PASS**(P2が2件)。
   - **P2(成果物の欠陥)**: 「高い方に揃える」は、モードのフッターの方が高くなる構成(広幅 = 切り替え+リネーム、ルールが空 = ルール設定が低いbutton)で**通常のフッターに空きを作る**。manual 1回目で直した「不自然な余白」を、通常のフッター側へ移しただけになる。→ `7801591`で直した(下)。
   - **P2(成果物の欠陥)**: 手順書が説明の文字の拡大の上限(1.5倍)を「仕様どおり」と書いていたが、specの要求ではなくAgentの判断である。→ 手順書を直した(Agentの判断と明記)。
-- attempt 3: 差分`dd7e3be..HEAD`(attempt 2 のP2への対応。`lib/`・`test/`・`tool/`に差分があるので記録だけの扱いにしない)を見る。
+- attempt 3: `dd7e3be..0acb2db`(差分、attempt 2 のP2への対応) — **PASS**(P3が1件)。**reviewerのmodelはClaude Sonnet**: `gpt-6-luna`が利用上限で途中停止したため、開発者の許可(2026-09-28「lunaが使えないなら、claudeのsonnetに続きをやらせてかまいません」)で切り替えた。既定(`gpt-6-luna`の開発者指定)との食い違いとして記録する。attempt 2 のP2 2件が閉じたこと、`Visibility`の既定(`maintainInteractivity`・`maintainSemantics`がfalse)で隠した通常のフッターが操作・semanticsの対象外になること(framework実装で確認)、説明を出さない構成が製品に無いこと、`expectNormalFooterHidden`への書き換えが保証を弱めていないこと、mutationの追随と追加、記録の真偽を確認された。format・analyze PASS、full test 1015件PASS、`workspace.py check specs` PASS。範囲付きmutation 8件(M331・M397・M460・M462〜M464・reviewer設計R1・R2)は7 KILLED・1 SURVIVED(R2、対照)。
+  - **P3(安全網の穴)**: モード中に通常のフッターがsemanticsから外れていることを直接見るtestが無い(R2 = `maintainSemantics: true`がSURVIVED)。**受容する**: 実装は既定値で正しく、通り抜ける失敗(TalkBackが隠れたbuttonを読む)はFAIL条件(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらない。引き受け先のtaskは無い(TalkBackはmanualの対象外)。
+  - reviewerのR1・R2を`M465`・`M466`として`tool/mutations.json`へ取り込んだ(`M466`は対照でSURVIVEDが期待値)。
+  - **SELF-CHECK**: 取り込みの差分は`tool/mutations.json`へreviewerの定義をそのまま足したものと記録だけで、`lib/`・`test/`に差分は無い。足した2件はreviewerが実行済み(上の結果)なので、再reviewは起動しない。
+  - 連鎖: `ea4741a..89b1c08` PASS → `89ba6b1..dd7e3be` PASS → `dd7e3be..0acb2db` PASS → 以降は記録とmutationの取り込み(SELF-CHECK)。
 
 ### attempt 2 の後(`7801591`)
 
@@ -163,7 +167,7 @@ M461 | KILLED | lib/ui/file_list/file_list_view.dart | (SURVIVEDを全件のcomm
 
 - Last checkpoint: 独立review attempt 2 のP2(通常のフッターの空き・手順書の文言)を直した(2026-09-28、code `7801591`)。
 - Blocker category: なし(差分review → manual 2回目)。
-- Waiting for: 独立review attempt 3(差分`dd7e3be..HEAD`)。その後manual 2回目(code `7801591`)。
+- Waiting for: manual 2回目(code `7801591`)。独立reviewは attempt 3 までPASS。
 - Requested action: 人間がworktree `.worktrees/008-T42-selection-mode-footer`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`ea4741a`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
