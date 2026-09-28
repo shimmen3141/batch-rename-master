@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../common/app_toast.dart';
 import 'file_list_controller.dart';
 
 /// 取り消しの通知(002 REQ-017)。
@@ -53,41 +54,42 @@ void removeUndoably(
   // **何も外れていないなら通知しない。** `removeFile` は一致が無ければ無変化で
   // (002 REQ-009)、そのとき「外しました」と出すのは嘘になる。
   if (messenger == null || removed <= 0) return;
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        key: removalUndoKey,
-        content: Text('$removed 件を一覧から外しました'),
-        action: SnackBarAction(
-          label: '元に戻す',
-          onPressed: () {
-            // **控えが古ければ戻さない。** 通知が出ている間に読み込み直しや
-            // 並び替えが起きると、控えは**除去の1手前**ではなく**別の一覧**に
-            // なっている。そのまま `setFiles` すると、読み込んだばかりの一覧を
-            // 古い控えで**無断で置き換える**(独立review attempt 1 の N-1)。
-            //
-            // 002 REQ-017 は「次の操作の後は取り消せなくてよい」としているが、
-            // **誤って戻すことまでは許していない。**
-            if (controller.sortMode != afterSortMode ||
-                !identical(controller.occupiedNames, occupied) ||
-                !_sameItems(controller.items, after)) {
-              messenger
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  const SnackBar(
-                    key: removalUndoStaleKey,
-                    content: Text('一覧が変わったため、取り消せませんでした'),
-                  ),
-                );
-              return;
-            }
-            controller.setFiles(before);
-            controller.setOccupiedNames(occupied);
-          },
-        ),
-      ),
-    );
+  showAppToast(
+    messenger,
+    key: removalUndoKey,
+    tone: ToastTone.success,
+    content: Text('$removed 件を一覧から外しました'),
+    replaceCurrent: true,
+    // **自動では消えない**(以前の`SnackBarAction`付きの既定を保つ。`008:T25`)。
+    // 邪魔なら右上の閉じる円で消せる。
+    persist: true,
+    action: ToastAction(
+      label: '元に戻す',
+      onPressed: () {
+        // **控えが古ければ戻さない。** 通知が出ている間に読み込み直しや
+        // 並び替えが起きると、控えは**除去の1手前**ではなく**別の一覧**に
+        // なっている。そのまま `setFiles` すると、読み込んだばかりの一覧を
+        // 古い控えで**無断で置き換える**(独立review attempt 1 の N-1)。
+        //
+        // 002 REQ-017 は「次の操作の後は取り消せなくてよい」としているが、
+        // **誤って戻すことまでは許していない。**
+        if (controller.sortMode != afterSortMode ||
+            !identical(controller.occupiedNames, occupied) ||
+            !_sameItems(controller.items, after)) {
+          showAppToast(
+            messenger,
+            key: removalUndoStaleKey,
+            tone: ToastTone.info,
+            content: const Text('一覧が変わったため、取り消せませんでした'),
+            replaceCurrent: true,
+          );
+          return;
+        }
+        controller.setFiles(before);
+        controller.setOccupiedNames(occupied);
+      },
+    ),
+  );
 }
 
 /// 2つの一覧が**同じ項目を同じ順で**持つか。

@@ -6,6 +6,7 @@ import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
 import '../file_source/source_path_text.dart';
+import '../common/app_toast.dart';
 import '../common/drag_selection_controller.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
@@ -490,12 +491,11 @@ class _RenameActionBar extends StatelessWidget {
       // REQ-027: 実在名を取得できなかったfolderがある。**実行を行わず理由を出す。**
       // 「取得できなかった」を「衝突が無い」と読まない。
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: const Key('rename-occupied-names-unavailable'),
-          content: Text(_unavailableMessage(prepared.reasons)),
-          backgroundColor: context.colors.danger,
-        ),
+      showAppToast(
+        ScaffoldMessenger.of(context),
+        key: const Key('rename-occupied-names-unavailable'),
+        tone: ToastTone.danger,
+        content: Text(_unavailableMessage(prepared.reasons)),
       );
       return;
     }
@@ -604,16 +604,18 @@ class _RenameActionBar extends StatelessWidget {
     // 権限が取り消されていた場合(013 REQ-004)。**黙って何も起きない**のは
     // 「壊れている」ように見えるので、理由を出す。実体には触れていない(INV-002)。
     if (execution.permissionDenied) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        showAppToast(
+          messenger,
           key: const Key('execute-permission-denied'),
+          tone: ToastTone.danger,
           content: const Text(
             '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
           ),
-          backgroundColor: context.colors.danger,
-        ),
-      );
+        );
+      }
       return;
     }
     if (outcome == null) return;
@@ -640,28 +642,29 @@ class _RenameActionBar extends StatelessWidget {
     if (shiftFailures > 0) {
       message.write('。改名は成功しましたが、$shiftFailures 件の更新日時は変更できませんでした');
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        // **固定 key を付けない。** `showSnackBar` は key が null のときだけ
-        // `UniqueKey` を fallback に入れ、連続する snackbar が構造的に一致した
-        // ときの ink splash / highlight の持ち越しを防いでいる。結果トーストは
-        // undo ボタンを含むので、固定 key を付けるとその持ち越しが起きうる。
-        // 到達の観測は本文(「N 件を改名しました」)で足りる。
-        content: _resultContent(message.toString(), renumbered),
-        // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
-        // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
-        duration: execution.undoWindow,
-        // action があると既定で消えなくなる(persist)。undo は 5 秒で期限切れ
-        // (REQ-007)なので、押せなくなった undo を残さないよう明示的に消す。
-        persist: false,
-        action: execution.canUndo
-            ? SnackBarAction(
-                key: const Key('rename-undo'),
-                label: '元に戻す',
-                onPressed: () => _undo(context),
-              )
-            : null,
-      ),
+    showAppToast(
+      ScaffoldMessenger.of(context),
+      // **固定 key を付けない。** `showSnackBar` は key が null のときだけ
+      // `UniqueKey` を fallback に入れ、連続する snackbar が構造的に一致した
+      // ときの ink splash / highlight の持ち越しを防いでいる。結果トーストは
+      // undo ボタンを含むので、固定 key を付けるとその持ち越しが起きうる。
+      // 到達の観測は本文(「N 件を改名しました」)で足りる。
+      //
+      // **失敗を含むならエラーの見せ方にする**(`008:T25`)。成功の✓で失敗を伝えない。
+      tone: failure == null ? ToastTone.success : ToastTone.danger,
+      content: _resultContent(message.toString(), renumbered),
+      // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
+      // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
+      // **undo は 5 秒で期限切れ**(REQ-007)なので、押せなくなった undo を残さない
+      // (`persist` は既定の `false`)。
+      duration: execution.undoWindow,
+      action: execution.canUndo
+          ? ToastAction(
+              key: const Key('rename-undo'),
+              label: '元に戻す',
+              onPressed: () => _undo(context),
+            )
+          : null,
     );
   }
 
@@ -672,16 +675,18 @@ class _RenameActionBar extends StatelessWidget {
     // undo も書き込みなので、権限が取り消されていれば断る(013 INV-002)。
     // **黙って何も起きない**のは「壊れている」ように見えるので理由を出す。
     if (execution.permissionDenied) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        showAppToast(
+          messenger,
           key: const Key('undo-permission-denied'),
+          tone: ToastTone.danger,
           content: const Text(
             '「すべてのファイルへのアクセス」が許可されていないため、元に戻せませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
           ),
-          backgroundColor: context.colors.danger,
-        ),
-      );
+        );
+      }
       return;
     }
     if (outcome == null) return;
@@ -690,10 +695,12 @@ class _RenameActionBar extends StatelessWidget {
     if (failure != null) {
       message.write('。失敗: ${failure.error.message ?? failure.error.kind.name}');
     }
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message.toString())));
+    showAppToast(
+      ScaffoldMessenger.of(context),
+      tone: failure == null ? ToastTone.success : ToastTone.danger,
+      content: Text(message.toString()),
+      replaceCurrent: true,
+    );
   }
 
   @override

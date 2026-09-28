@@ -14,6 +14,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/common/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -120,6 +121,27 @@ void main() {
 
     // **末尾へ付け足さない** — 元の位置(2番目)へ戻る(代表例6c)。
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+  });
+
+  testWidgets('除去の通知は自動では消えず、閉じる円で消せる(REQ-017・008:T25)', (tester) async {
+    final files = [_f('a.txt', handle: 'h:a'), _f('b.txt', handle: 'h:b')];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await removeOneFile(tester, 'h:b');
+    expect(find.byKey(removalUndoKey), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.success)), findsOneWidget);
+
+    // **以前の既定(actionのある通知は残る)を保つ。**
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.byKey(removalUndoKey), findsOneWidget);
+
+    // 閉じても**取り消しはしない**。
+    await tester.tap(find.byKey(toastCloseKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(removalUndoKey), findsNothing);
+    expect(c.items.map((f) => f.name), ['a.txt']);
   });
 
   testWidgets('読み込み直した後の取り消しは、新しい一覧を上書きしない(REQ-017)', (tester) async {

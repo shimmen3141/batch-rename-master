@@ -9,6 +9,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/common/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -308,11 +309,14 @@ void main() {
     await tester.tap(find.byKey(const Key('rename-action')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('rename-undo')), findsOneWidget);
+    // **失敗を含まない結果は成功の見せ方**(`008:T25`)。
+    expect(find.byKey(toastToneIconKey(ToastTone.success)), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('rename-undo')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1 件を元に戻しました'), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.success)), findsOneWidget);
     expect(files.items.single.name, 'a.txt');
     expect(files.items.single.sourceHandle, '/files/a.txt');
     expect(executor.calls, [
@@ -320,6 +324,33 @@ void main() {
       '/files/renamed.txt -> a.txt',
     ]);
     expect(find.byKey(const Key('rename-undo')), findsNothing);
+  });
+
+  testWidgets('失敗を含む結果はエラーの見せ方で出る(008:T25)', (tester) async {
+    // **成功の✓で失敗を伝えない。** 文言は変えず、重大度の見せ方だけを選ぶ。
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt'},
+      failWhen: (handle, newName) =>
+          const RenameError(RenameErrorKind.permissionDenied, '書き込めません'),
+    );
+    final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
+      files: files,
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('失敗: 書き込めません'), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.danger)), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.success)), findsNothing);
   });
 
   testWidgets('5秒後はundoを提示せず実体を変更しない(REQ-007)', (tester) async {
