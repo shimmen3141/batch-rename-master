@@ -66,9 +66,9 @@ app内browserで件数の多いfolder(200件)を**素早くscrollすると引っ
 
 ## Current state / handoff
 
-- Last checkpoint: 結論を出した(2026-09-28)。このエミュレータではトラックパッドでだけ起き、touch相当の入力では起きない。コード変更なし。
+- Last checkpoint: **完了**(2026-09-28)。PR #192をAgentがmergeした(auto-merge条件1〜7: review連鎖 = attempt 1 PASS + SELF-CHECK、CI SUCCESS、未解決threadなし、`dev`と競合なし、最新headでfull test 995件PASS、codeの変更なし)。merge commit `cbd5b3e`。
 - Blocker category: なし。
-- Evidence revision: 観測は`008:T13`の`025aa18`と`dev`@`795ae65`のrelease build。
-- Waiting for: 独立review。
+- Evidence revision: codeの変更なし。観測は`008:T13`の`025aa18`・`dev`@`795ae65`のrelease buildと、ADBのswipe。
+- Waiting for: なし。
 - Requested action: なし。
-- Next Agent action: 独立review → PR → merge → done。
+- Next Agent action: なし。残余risk(実機の指での素早いscrollは未確認)は、`008:T39`の決定(実機確認を受け入れ証拠から外した)により受容し、引き受け先のtaskは無い。
