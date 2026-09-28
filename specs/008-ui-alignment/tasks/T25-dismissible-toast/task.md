@@ -190,6 +190,9 @@ M455 | KILLED | lib/ui/file_list/file_list_view.dart | 「元に戻す」を持�
 - attempt 4: `ce1e1e0..3af48f9`(差分) — **PASS**。決定表と実装・仕様(002 REQ-017、005 REQ-007、013 REQ-003)の整合、エラー通知の残り方の一貫性、「設定」が通知を下げて設定画面を開くだけで実体に触れないこと、除去の通知のtestの書き換えが決定の変更に沿って正当であること、記録の一致、full test 1017件PASSを確認された。reviewerの範囲付きmutation 5件(M442・M452〜M455)はKILLED。
   - **P2(安全網の穴)**: 元に戻すときの権限のエラーの「設定」を通すtestが無く、reviewerの対照がSURVIVEDした。FAIL条件には当たらない。→ **受容せずに閉じた**: testを足し(`test/`だけの差分)、対照を`M456`として取り込み、KILLEDを確かめた。この差分はmanual 3回目の後の差分reviewで見る。
 
+- attempt 5: `3af48f9..3bf7ca4`(差分、final-evidenceを兼ねる) — **PASS、指摘なし**。追加testが元に戻すときの権限エラー(残る・「設定」で開く・自動では開かない・実体に触れない)を検査しM456を検出すること、manual 3回目の証拠が`lib/`=`b14a261`に対応しその後code差分が無いこと、review連鎖とFAIL累計1回の記録の一致、full test 1018件PASSを確認された。
+- **SELF-CHECK**: attempt 5以後の差分はこの記録だけ(`specs/`)。
+
 ### manual 1回目の指摘への対応(`1005f11`)の mutation
 
 `command`を`flutter test test/spec_002_file_list/app_toast_test.dart test/spec_005_rename_exec/warning_confirmation_results_test.dart`へ絞り、今回足した4件と、同じfileの閉じる操作を守る2件を回した:
