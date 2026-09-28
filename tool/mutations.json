@@ -2943,8 +2943,8 @@
       "id": "M460",
       "file": "lib/ui/file_list/file_list_view.dart",
       "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)。**最初の形(`Expanded`→`Flexible`)は、カードが`alignment`で自分から広がるため等価mutantでSURVIVEDした。伸ばす枠そのものを外す形に直した**",
-      "find": "              if (fill)\n                Expanded(\n                  child: noteAsCard",
-      "replace": "              if (fill)\n                SizedBox(\n                  child: noteAsCard"
+      "find": "              if (fill)\n                Expanded(\n                  child: _clampNoteScale(",
+      "replace": "              if (fill)\n                SizedBox(\n                  child: _clampNoteScale("
     },
     {
       "id": "M461",
