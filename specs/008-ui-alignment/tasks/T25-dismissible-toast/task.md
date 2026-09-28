@@ -145,6 +145,8 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
   - → **解き方を変えた**(同じ枠組みに条件を足しても2件とも解けない): 一覧とフッターの領域に通知の置き場(`ToastHost`、内側の`ScaffoldMessenger`/`Scaffold`)を持たせ、フッターを`bottomNavigationBar`にした(`aa78f2a`)。高さの受け渡し(`ToastFooter`/`toastBottomInset`)は廃止した。表示中の高さの変化・2ペイン・置き場の外からの通知をwidget testで固定した。
   - reviewerの対照(実測高に24px足す)を、置き場の形へ移して`M451`として取り込んだ。**最初はSURVIVEDした** — testが隙間の期待値を定数から取っていたため。決定の値(8px)を直接書くよう直してKILLED。
 
+- attempt 3: `bd38890..66ee22c`(差分) — **PASS、指摘なし**。attempt 2のP1 2件(表示中のフッター高の変化に追随しない、2ペインで右ペインを覆う)は**閉じた**と確認された(testが直接検査している)。内側Scaffoldによる一覧・フッター・除去の選択モード・`PopScope`の構成、`_hosts`の登録と解除、`replaceCurrent`・閉じる・「元に戻す」が選ばれた送り先に効くこと、app内browserのrouteから置き場へ送る製品経路が無いこと、`find`の追随が意味を変えていないこと(特に`M331`)、記録の一致、full test 1013件PASSを確認された。reviewerの範囲付きmutation 5件(M331・M446・M449〜M451)はKILLED。
+
 ### manual 1回目の指摘への対応(`1005f11`)の mutation
 
 `command`を`flutter test test/spec_002_file_list/app_toast_test.dart test/spec_005_rename_exec/warning_confirmation_results_test.dart`へ絞り、今回足した4件と、同じfileの閉じる操作を守る2件を回した:
@@ -193,9 +195,9 @@ M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査す�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 のFAIL(P1 2件)を、通知の置き場(`ToastHost`)へ作り直して閉じた(2026-09-28、`aa78f2a`)。**FAILは累計1回。**
-- Blocker category: なし(差分review → manual 2回目)。
-- Waiting for: 独立review attempt 3(差分`bd38890..HEAD`。attempt 2 の指摘が閉じたかを含む)。その後manual 2回目(code `aa78f2a`)。
+- Last checkpoint: 独立review attempt 3 PASS(2026-09-28)。エミュレータのmanual 2回目を待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、2回目)。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜6の結果(code `aa78f2a`)。
 - Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
