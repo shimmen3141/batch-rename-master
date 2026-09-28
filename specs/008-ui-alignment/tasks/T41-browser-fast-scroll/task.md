@@ -42,11 +42,15 @@ app内browserで件数の多いfolder(200件)を**素早くscrollすると引っ
 - **appはtouchの素早いflingに正しく反応する。** `T37`の`Listener`はpointerの位置を記録するだけで、scrollのdragを取り合っていない(`drag_selection_controller.dart`)。
 - したがってエミュレータの観測は**入力の種類に依る**と見ている。エミュレータがマウスをmouseとして渡すならdragではscrollせず、wheelでだけ動く。**開発者がどう操作したか(wheel / click-drag)を確かめる。**
 
+**開発者の操作(2026-09-28に確認)**: **トラックパッド**(2本指scroll)。エミュレータではこれがtouchのflingではなく**scroll量のイベント**(wheelと同じ種類)として届くので、widget testで正常だった**touchの素早いfling**とは別の経路である。
+
+**切り分けの手順(開発者へ依頼)**: エミュレータへ`adb shell input swipe`で**本物のtouchの素早いswipe**を送る(トラックパッドを通さない)。これで素早くscrollするならappは正常で、観測はエミュレータのトラックパッド入力に固有と結論する。
+
 ## Current state / handoff
 
 - Last checkpoint: 着手(2026-09-28)。widget testではtouchの素早いflingは正常、mouseのdragはscrollしない、wheelは正常。
 - Blocker category: なし(`008:T13`は2026-09-27にdone)。
 - Evidence revision: 観測は`008:T13`の`025aa18`と`dev`@`795ae65`のrelease build。
-- Waiting for: 開発者がエミュレータでどう操作してscrollしたか(wheel / click-drag)。
-- Requested action: なし。
-- Next Agent action: 操作方法に応じて、エミュレータ固有と結論するか、mouseのdragでも一覧をscrollできるようにするかを開発者へ選択肢として返す。
+- Waiting for: `adb shell input swipe`での素早いswipeの結果(エミュレータ、`many`)。
+- Requested action: 人間がbrowserの`many`を開いた状態で、`adb shell input swipe`の素早いswipeを送り、scrollするかを知らせる。
+- Next Agent action: swipeで素早くscrollするなら、エミュレータのトラックパッド固有として記録しT41を閉じる(修正なし)。しないなら、appのscrollを直す案を設計する。
