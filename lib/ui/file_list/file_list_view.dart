@@ -260,7 +260,8 @@ class _FileListViewState extends State<FileListView> {
           });
         }
         // 選択モードのフッター(`008:T42`)。
-        final removalModeBar = _RemovalModeBar(
+        _RemovalModeBar removalModeBar({required bool fill}) => _RemovalModeBar(
+          fill: fill,
           // 通常のフッターに命名ルールのカードがある(狭幅)ときだけ、同じ形の
           // 説明カードを置く。無い(広幅)なら説明は1行(`008:T42`)。
           noteAsCard: widget.onEditRule != null,
@@ -431,23 +432,26 @@ class _FileListViewState extends State<FileListView> {
               // 1件も変えない」という振る舞いである。
               // **モード中は「戻る」と「N件を外す」のフッター**(`008:T42`)。
               // **通常のフッターと同じ大きさに固定する**([_FixedFooter])。
-              footer: _FixedFooter(
-                showRemovalMode: selecting,
-                // 通常のフッターが無い画面(ルールも実行も無い)では、モード中だけ
-                // モードのフッターが出る(0 の高さのものと重ねる)。
-                normal:
-                    (widget.renameExecution != null ||
-                        widget.onEditRule != null)
-                    ? _RenameActionBar(
+              // **通常のフッターがあるときだけ大きさを揃える**([_FixedFooter])。
+              // 無い画面(ルールも実行も無い)には揃える相手が無いので、モード中だけ
+              // 自然な高さのモードのフッターを出す(揃える仕組みを通すと、大きい
+              // 文字で高さを大きく見積もりすぎて上の帯を押し出した)。
+              footer:
+                  (widget.renameExecution != null || widget.onEditRule != null)
+                  ? _FixedFooter(
+                      showRemovalMode: selecting,
+                      normal: _RenameActionBar(
                         key: _renameActionBarKey,
                         controller: widget.controller,
                         execution: widget.renameExecution,
                         onEditRule: widget.onEditRule,
                         warnings: ruleIsEmpty ? const <Warning>[] : warnings,
-                      )
-                    : const SizedBox.shrink(),
-                removalMode: removalModeBar,
-              ),
+                      ),
+                      removalMode: removalModeBar(fill: true),
+                    )
+                  : selecting
+                  ? removalModeBar(fill: false)
+                  : null,
             ),
           ),
         );
@@ -477,6 +481,9 @@ const String removalModeNoteLead = '選択したファイルをリネームリ�
 /// 説明の後半。カードでは太字の2行目になる。
 const String removalModeNoteMain = 'ファイルは削除されません。';
 
+/// 説明の文字の拡大の上限(`008:T42`)。
+const double removalModeNoteMaxTextScale = 1.5;
+
 /// 説明の全文(支援技術が読む)。
 const String removalModeNoteText = '$removalModeNoteLead$removalModeNoteMain';
 
@@ -493,6 +500,7 @@ const Key renameActionBarSurfaceKey = Key('rename-action-bar-surface');
 /// 面と区切り線は [_RenameActionBar] と同じにして、フッターの位置と見た目を揃える。
 class _RemovalModeBar extends StatelessWidget {
   const _RemovalModeBar({
+    required this.fill,
     required this.noteAsCard,
     required this.markedCount,
     required this.onExit,
@@ -501,6 +509,10 @@ class _RemovalModeBar extends StatelessWidget {
 
   /// 説明を命名ルールのカードと同じ形のカードにするか。`false` なら1行。
   final bool noteAsCard;
+
+  /// 通常のフッターと大きさを揃えているか([_FixedFooter] の中)。`true` なら説明が
+  /// 余った高さを埋める。`false` なら中身の自然な高さ。
+  final bool fill;
 
   final int markedCount;
   final VoidCallback onExit;
@@ -524,13 +536,26 @@ class _RemovalModeBar extends StatelessWidget {
           // 通常のフッターの段(命名ルール・更新日時の切り替え)の分だけ高さが余る。
           // それを空きにせず、説明の枠が伸びて埋め、中身は縦の中央に置く。
           child: Column(
+            mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: noteAsCard
-                    ? const _RemovalNoteCard()
-                    : const _RemovalNoteLine(),
-              ),
+              if (fill)
+                Expanded(
+                  child: _clampNoteScale(
+                    noteAsCard
+                        ? const _RemovalNoteCard()
+                        : const Align(
+                            alignment: Alignment.centerLeft,
+                            child: _RemovalNoteLine(),
+                          ),
+                  ),
+                )
+              else
+                _clampNoteScale(
+                  noteAsCard
+                      ? const _RemovalNoteCard()
+                      : const _RemovalNoteLine(),
+                ),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -571,6 +596,16 @@ class _RemovalModeBar extends StatelessWidget {
     );
   }
 }
+
+/// **説明の文字の拡大は[removalModeNoteMaxTextScale]倍まで**(`008:T42`)。説明は補足で、
+/// 最大の文字では何行にも折り返してフッターが画面の上側を押し出した。**文字は削らない**。
+/// 操作(戻る・外す)の文字は抑えない。
+Widget _clampNoteScale(Widget note) => Builder(
+  builder: (context) => MediaQuery.withClampedTextScaling(
+    maxScaleFactor: removalModeNoteMaxTextScale,
+    child: note,
+  ),
+);
 
 /// 選択モードの説明のカード(`008:T42`)。**命名ルールのカード([_RuleButton])と同じ形**
 /// (余白・角丸・左の四角いアイコン・小さな見出しと太字の2行)にして、通常のフッターと
@@ -648,21 +683,18 @@ class _RemovalNoteLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        key: removalModeNoteKey,
-        children: [
-          Icon(Icons.info_outline, size: 16, color: colors.info),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              removalModeNoteText,
-              style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
-            ),
+    return Row(
+      key: removalModeNoteKey,
+      children: [
+        Icon(Icons.info_outline, size: 16, color: colors.info),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            removalModeNoteText,
+            style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
