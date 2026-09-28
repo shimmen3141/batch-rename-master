@@ -96,5 +96,5 @@ bind mountで覆い、コンテナ側の書き込みはそちらへ入る。**�
 
 - **エージェントは実行結果を代われない。** 実機/エミュレータでの見え方・権限挙動・実ファイル変化の確認は人間が行い、必要ならスクリーンショットや `adb` 出力を共有する。
 - `.github/workflows` を含む push はサンドボックスから拒否される（仕様）。CI 変更が要るときは人間が push する。
-- **scrollの速さ・滑らかさはdebugでもトラックパッドでも判断しない。** `flutter run`の既定はdebug build(JIT)で遅い。速さを見るときは`flutter run --release`で起動する。またエミュレータでは、**トラックパッドの2本指scrollはtouchのflingではなくscroll量のイベントとして届き、素早く動かすと反応しないことがある**(`008:T41`で確認。アプリ側の不具合ではない)。指での素早いflingに相当する入力は`adb shell input swipe <x> <y1> <x> <y2> 100`で送る。
+- **scrollの速さ・滑らかさはdebugでもトラックパッドでも判断しない。** `flutter run`の既定はdebug build(JIT)で遅い。速さを見るときは`flutter run --release`で起動する。またエミュレータでは、**トラックパッドの2本指scrollを素早く動かすと、一覧が反応しないことがある**(`008:T41`で観測。同じ一覧でも、ADBから注入したtouch相当の素早いswipeでは勢いよく流れた)。指での素早いflingに近い入力を確かめるときは`adb shell input swipe <x> <y1> <x> <y2> 100`で送る。
 - **マウスのclick-dragは、エミュレータではmouseとして届く。** Flutterの既定ではmouseのdragでscrollしないので、一覧はdragでは動かない(wheelでは動く)。
