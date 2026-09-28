@@ -463,6 +463,9 @@ class _FileListViewState extends State<FileListView> {
 /// 選択モードのフッターの「戻る」(`008:T42`)。**モードをやめる**(帯の `×` と同じ)。
 const Key removalModeBackKey = Key('removal-mode-back');
 
+/// モード中に通常のフッターを隠す(場所は取ったまま)枠(`008:T42`)。
+const Key normalFooterVisibilityKey = Key('normal-footer-visibility');
+
 /// 通常のフッターと選択モードのフッターを重ねる枠(`008:T42`)。大きさを test が測る。
 const Key fixedFooterKey = Key('fixed-footer');
 
@@ -483,6 +486,12 @@ const String removalModeNoteMain = 'ファイルは削除されません。';
 
 /// 説明の文字の拡大の上限(`008:T42`)。
 const double removalModeNoteMaxTextScale = 1.5;
+
+/// 説明と操作の間(`008:T42`)。通常のフッターの段の間と同じ。
+const double removalModeNoteGap = 10;
+
+/// 説明を出す最小の高さ(`008:T42`)。これより低い枠しか残らなければ説明を出さない。
+const double removalModeNoteMinHeight = 16;
 
 /// 説明の全文(支援技術が読む)。
 const String removalModeNoteText = '$removalModeNoteLead$removalModeNoteMain';
@@ -541,22 +550,40 @@ class _RemovalModeBar extends StatelessWidget {
             children: [
               if (fill)
                 Expanded(
-                  child: _clampNoteScale(
-                    noteAsCard
-                        ? const _RemovalNoteCard()
-                        : const Align(
-                            alignment: Alignment.centerLeft,
-                            child: _RemovalNoteLine(),
+                  child: LayoutBuilder(
+                    // 通常のフッターがリネームだけ(更新日時の切り替えも無い)だと、
+                    // 説明の入る高さがほぼ残らない。読めない大きさへ縮めて置くより
+                    // 出さない(操作の「N件を外す」は残る)。製品の構成では切り替えが
+                    // あるので出る。
+                    builder: (context, constraints) =>
+                        constraints.maxHeight <
+                            removalModeNoteGap + removalModeNoteMinHeight
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: removalModeNoteGap,
+                            ),
+                            child: _clampNoteScale(
+                              noteAsCard
+                                  ? const _RemovalNoteCard()
+                                  : const Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: _FitNote(
+                                        child: _RemovalNoteLine(),
+                                      ),
+                                    ),
+                            ),
                           ),
                   ),
                 )
-              else
+              else ...[
                 _clampNoteScale(
                   noteAsCard
                       ? const _RemovalNoteCard()
                       : const _RemovalNoteLine(),
                 ),
-              const SizedBox(height: 10),
+                const SizedBox(height: removalModeNoteGap),
+              ],
               Row(
                 children: [
                   // **app内browserの「← リネーム画面へ」(`008:T39`)と同じ形。**
@@ -607,6 +634,25 @@ Widget _clampNoteScale(Widget note) => Builder(
   ),
 );
 
+/// 説明を幅いっぱいで組み、**高さが足りなければ全体を縮めて収める**(`008:T42`)。
+///
+/// 選択モードのフッターは通常のフッターの大きさに固定する([_FixedFooter])ので、説明に
+/// 使える高さは構成(広幅・ルールが空・文字の大きさ)で変わる。**文字を削らずに**収める。
+class _FitNote extends StatelessWidget {
+  const _FitNote({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: SizedBox(width: constraints.maxWidth, child: child),
+    ),
+  );
+}
+
 /// 選択モードの説明のカード(`008:T42`)。**命名ルールのカード([_RuleButton])と同じ形**
 /// (余白・角丸・左の四角いアイコン・小さな見出しと太字の2行)にして、通常のフッターと
 /// 部品の寸法を揃える。押せない(button ではない)ので面と枠は中立の色にする。
@@ -629,45 +675,47 @@ class _RemovalNoteCard extends StatelessWidget {
             border: Border.all(color: colors.border),
             borderRadius: BorderRadius.circular(ruleButtonRadius),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: ruleButtonIconBoxSize,
-                height: ruleButtonIconBoxSize,
-                decoration: BoxDecoration(
-                  color: colors.info.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
+          child: _FitNote(
+            child: Row(
+              children: [
+                Container(
+                  width: ruleButtonIconBoxSize,
+                  height: ruleButtonIconBoxSize,
+                  decoration: BoxDecoration(
+                    color: colors.info.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(Icons.info_outline, size: 17, color: colors.info),
                 ),
-                alignment: Alignment.center,
-                child: Icon(Icons.info_outline, size: 17, color: colors.info),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      removalModeNoteLead,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        removalModeNoteLead,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      removalModeNoteMain,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(height: 3),
+                      Text(
+                        removalModeNoteMain,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -702,11 +750,12 @@ class _RemovalNoteLine extends StatelessWidget {
 /// 通常のフッターと選択モードのフッターを**同じ大きさに固定して**出し分ける(`008:T42`。
 /// 2026-09-28 の開発者の決定「フッターの大きさは固定」)。
 ///
-/// **2つを重ね、高い方に揃える**(`IndexedStack` + `IntrinsicHeight`)。高さを測って
-/// 覚える必要が無く、画面幅(desktop では通常のフッターがリネームだけ)・文字の大きさで
-/// どちらが高くなっても、**モードの出入りでフッターの大きさが変わらない**。一覧の表示域も
-/// 変わらないので、長押しで入ったときに行が跳ばない(`008:T31`)。見えていない側は
-/// 描画も操作もされない(`IndexedStack` が offstage にする)。
+/// **大きさは通常のフッターが決め、モードのフッターはその枠に重ねる。** 通常のフッターは
+/// 一切変わらない(当初は `IndexedStack` で「高い方に揃える」にしたが、モードのフッターの
+/// 方が高くなる構成 — 広幅・ルールが空 — で**通常のフッターに空きが出た**。独立review
+/// attempt 2 の P2)。モードのフッターは説明が余った高さを埋め、足りなければ説明を縮めて
+/// 収める([_FitNote])。**モードの出入りでフッターの大きさが変わらない**ので、一覧の
+/// 表示域も変わらず、長押しで入ったときに行が跳ばない(`008:T31`)。
 class _FixedFooter extends StatelessWidget {
   const _FixedFooter({
     required this.showRemovalMode,
@@ -719,13 +768,22 @@ class _FixedFooter extends StatelessWidget {
   final Widget removalMode;
 
   @override
-  Widget build(BuildContext context) => IntrinsicHeight(
-    child: IndexedStack(
-      key: fixedFooterKey,
-      index: showRemovalMode ? 1 : 0,
-      sizing: StackFit.expand,
-      children: [normal, removalMode],
-    ),
+  Widget build(BuildContext context) => Stack(
+    key: fixedFooterKey,
+    children: [
+      // **大きさは常に通常のフッターが決める。** モード中は見えなくし、押せず、
+      // 支援技術からも外すが、**場所は取ったまま**にする。
+      Visibility(
+        key: normalFooterVisibilityKey,
+        visible: !showRemovalMode,
+        maintainSize: true,
+        maintainAnimation: true,
+        maintainState: true,
+        child: normal,
+      ),
+      // モードのフッターは、その大きさの枠いっぱいに重ねる。
+      if (showRemovalMode) Positioned.fill(child: removalMode),
+    ],
   );
 }
 

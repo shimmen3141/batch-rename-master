@@ -101,7 +101,12 @@ void main() {
 
     testWidgets('モード中のフッターに「戻る」「N件を外す」と説明が出て、帯に外すアイコンは無い', (tester) async {
       final c = FileListController(files: _abc(), rule: _seq2);
-      await _pump(tester, c, onEditRule: () {});
+      await pumpWithExecution(
+        tester,
+        c,
+        onEditRule: () {},
+        withShiftToggle: true,
+      );
       await enterRemovalMode(tester);
       await toggleRemovalMark(tester, 'h:a');
       await toggleRemovalMark(tester, 'h:b');
@@ -167,30 +172,66 @@ void main() {
       expect(find.byKey(removalModeBackKey), findsNothing);
     });
 
-    for (final (label, withRule) in [
-      ('スマホ幅(ルール設定+リネーム)', true),
-      ('desktop幅(リネームだけ)', false),
+    // 製品の構成では通常のフッターに更新日時の切り替えがある(Android・desktopの
+    // 実行手段は `ModifiedAtWriter`)。広幅では命名ルールがフッターに無い。
+    for (final (label, withRule, rule, withShift, expectNote) in [
+      ('スマホ幅(命名ルール+切り替え+リネーム)', true, _seq2, true, true),
+      ('広幅(切り替え+リネーム)', false, _seq2, true, true),
+      ('ルールが空(ルール設定button+切り替え+リネーム)', true, RenameRule.empty, true, true),
+      ('リネームだけ(製品には無い構成)', false, _seq2, false, false),
     ]) {
-      testWidgets('フッターの大きさはモードの出入りで変わらない: $label(2026-09-28)', (tester) async {
+      testWidgets('フッターの大きさは通常のフッターが決め、モードの出入りで変わらない: $label(2026-09-28)', (
+        tester,
+      ) async {
         await tester.binding.setSurfaceSize(const Size(360, 700));
         addTearDown(() => tester.binding.setSurfaceSize(null));
-        final c = FileListController(files: _abc(), rule: _seq2);
-        await pumpWithExecution(tester, c, onEditRule: withRule ? () {} : null);
+        final c = FileListController(files: _abc(), rule: rule);
+        await pumpWithExecution(
+          tester,
+          c,
+          onEditRule: withRule ? () {} : null,
+          withShiftToggle: withShift,
+        );
 
         final normal = tester.getRect(find.byKey(fixedFooterKey));
         final listBefore = tester.getRect(find.byType(ReorderableListView));
+        // **通常のフッターに空きが無い**(独立review attempt 2 の P2: 「高い方に
+        // 揃える」ではモードの方が高い構成で通常のフッターが伸びた)。上端の部品は
+        // フッターの余白(12)+区切り線だけ下、リネームは余白(12)だけ上。
+        final surface = tester.getRect(find.byKey(renameActionBarSurfaceKey));
+        expect(surface, normal);
+        final top = withRule
+            ? find.byKey(const Key('configure-rule'))
+            : withShift
+            ? find.byKey(shiftModifiedAtKey)
+            : find.byKey(const Key('rename-action'));
+        expect(tester.getRect(top).top - surface.top, closeTo(12, 2));
+        expect(
+          surface.bottom -
+              tester.getRect(find.byKey(const Key('rename-action'))).bottom,
+          closeTo(12, 1),
+        );
+
         await enterRemovalMode(tester);
         final removal = tester.getRect(find.byKey(fixedFooterKey));
         final listDuring = tester.getRect(find.byType(ReorderableListView));
+        final bar = tester.getRect(find.byKey(removalModeBarKey));
 
         expect(removal, normal, reason: 'フッターの大きさは固定');
+        expect(bar, normal, reason: 'モードのフッターは同じ枠いっぱい');
         expect(listDuring.bottom, listBefore.bottom, reason: '一覧の表示域も変わらない');
         // モードのフッターの中身が収まっている(はみ出さない)。
         expect(tester.takeException(), isNull);
-        expect(
-          tester.getRect(find.byKey(removalModeRemoveKey)).bottom,
-          lessThanOrEqualTo(removal.bottom),
-        );
+        final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+        expect(bar.bottom - buttons.bottom, closeTo(12, 1));
+        if (expectNote) {
+          final note = tester.getRect(find.byKey(removalModeNoteKey));
+          expect(note.top, greaterThanOrEqualTo(bar.top));
+          expect(note.bottom, lessThanOrEqualTo(buttons.top - 9));
+        } else {
+          // 説明の入る高さが残らない構成では、読めない大きさへ縮めず出さない。
+          expect(find.byKey(removalModeNoteKey), findsNothing);
+        }
 
         await tester.tap(find.byKey(removalModeBackKey));
         await tester.pumpAndSettle();
@@ -238,7 +279,7 @@ void main() {
       await _pump(tester, c, onEditRule: () {});
       expect(find.byKey(removalModeBackKey), findsNothing);
       await enterRemovalMode(tester);
-      expect(find.byKey(const Key('configure-rule')), findsNothing);
+      expectNormalFooterHidden(tester);
     });
   });
 
@@ -574,7 +615,7 @@ void main() {
     await gesture.up();
 
     expect(after, closeTo(before, 1));
-    expect(find.byKey(const Key('configure-rule')), findsNothing);
+    expectNormalFooterHidden(tester);
   });
 
   testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
@@ -991,7 +1032,7 @@ void main() {
 
     await enterRemovalMode(tester);
 
-    expect(find.byKey(const Key('configure-rule')), findsNothing);
+    expectNormalFooterHidden(tester);
 
     await tester.tap(find.byKey(removalModeExitKey));
     await tester.pumpAndSettle();
@@ -1098,4 +1139,13 @@ class _ShiftingExecutor extends FakeRenameExecutor implements ModifiedAtWriter {
   @override
   Future<RenameError?> setModifiedAt(String handle, DateTime value) async =>
       null;
+}
+
+/// モード中、通常のフッターは**場所を取ったまま**隠れ、押せない(`008:T42`)。
+void expectNormalFooterHidden(WidgetTester tester) {
+  expect(find.byKey(const Key('configure-rule')).hitTestable(), findsNothing);
+  expect(
+    tester.widget<Visibility>(find.byKey(normalFooterVisibilityKey)).visible,
+    isFalse,
+  );
 }

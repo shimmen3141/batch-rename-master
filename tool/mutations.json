@@ -2255,9 +2255,9 @@
     {
       "id": "M331",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      index: showRemovalMode ? 1 : 0,",
-      "replace": "      index: 0,",
-      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)。**008:T25でフッターを通知の置き場の`footer:`へ移したので`find`を書き直した**(意味は同じ: モード中も帯を出す)。**008:T42でモードのフッターと重ねて出し分ける形にしたので`find`を移した**(意味は同じ: モード中も通常の帯を出す)"
+      "find": "        visible: !showRemovalMode,",
+      "replace": "        visible: true,",
+      "note": "008:T29 モード中も下部の帯(ルール設定と実行)を出す — 外す作業の最中に実行の導線が並ぶ(2026-09-19 の要望7)。**008:T25でフッターを通知の置き場の`footer:`へ移したので`find`を書き直した**(意味は同じ: モード中も帯を出す)。**008:T42でモードのフッターと重ねて出し分ける形にしたので`find`を移した**(意味は同じ: モード中も通常の帯を出す)。**独立review attempt 2 のP2で「通常のフッターが大きさを決め、モード中は場所を取ったまま隠す」(`Visibility`)へ直したので`find`を移した**(意味は同じ: モード中も通常の帯を出す)"
     },
     {
       "id": "M332",
@@ -2501,9 +2501,9 @@
     {
       "id": "M397",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      index: showRemovalMode ? 1 : 0,\n      sizing: StackFit.expand,\n      children: [normal, removalMode],",
-      "replace": "      index: 0,\n      sizing: StackFit.expand,\n      children: [showRemovalMode ? removalMode : normal],",
-      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**。**008:T42でフッターの大きさを固定し(2つを重ねて高い方に揃える)、末尾余白の仕組みを外したので、この保証(選択開始で行が跳ばない)を守る箇所へ移した**: 見えている方だけを置くとモードの出入りでフッターの大きさが変わる"
+      "find": "        maintainSize: true,",
+      "replace": "        maintainSize: false,",
+      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**。**008:T42でフッターの大きさを固定し(2つを重ねて高い方に揃える)、末尾余白の仕組みを外したので、この保証(選択開始で行が跳ばない)を守る箇所へ移した**: 見えている方だけを置くとモードの出入りでフッターの大きさが変わる。**独立review attempt 2 のP2で「通常のフッターが大きさを決める」へ直したので、隠した通常のフッターが場所を取る箇所へ移した**: 場所を取らないとモードの出入りでフッターの大きさが変わる"
     },
     {
       "id": "M398",
@@ -2942,9 +2942,9 @@
     {
       "id": "M460",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)。**最初の形(`Expanded`→`Flexible`)は、カードが`alignment`で自分から広がるため等価mutantでSURVIVEDした。伸ばす枠そのものを外す形に直した**",
-      "find": "              if (fill)\n                Expanded(\n                  child: _clampNoteScale(",
-      "replace": "              if (fill)\n                SizedBox(\n                  child: _clampNoteScale("
+      "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)。**最初の形(`Expanded`→`Flexible`)は、カードが`alignment`で自分から広がるため等価mutantでSURVIVEDした。伸ばす枠そのものを外す形に直した**。**説明の入る高さが無い構成で説明を出さない判定(`LayoutBuilder`)を足したので`find`を追随させた**",
+      "find": "              if (fill)\n                Expanded(\n                  child: LayoutBuilder(",
+      "replace": "              if (fill)\n                SizedBox(\n                  child: LayoutBuilder("
     },
     {
       "id": "M461",
@@ -2952,6 +2952,27 @@
       "note": "008:T42 説明の文字の拡大を抑えない — 狭幅・最大の文字で説明が何行にも折り返し、フッターが画面の上側(読み込みの帯)を押し出す",
       "find": "    maxScaleFactor: removalModeNoteMaxTextScale,",
       "replace": "    maxScaleFactor: 10,"
+    },
+    {
+      "id": "M462",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 説明の入る高さが無くても説明を出す — 通常のフッターがリネームだけの構成で、説明が読めない大きさへ縮む(独立review attempt 2 のP2の直しで足した判定)",
+      "find": "                        constraints.maxHeight <\n                            removalModeNoteGap + removalModeNoteMinHeight\n",
+      "replace": "                        constraints.maxHeight < 0\n"
+    },
+    {
+      "id": "M463",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 説明を枠に収めない — ルールが空の構成(ルール設定が低いbutton)でモードのフッターの説明がはみ出す(独立review attempt 2 のP2の直し)",
+      "find": "  Widget build(BuildContext context) => LayoutBuilder(\n    builder: (context, constraints) => FittedBox(\n      fit: BoxFit.scaleDown,\n      alignment: Alignment.centerLeft,\n      child: SizedBox(width: constraints.maxWidth, child: child),\n    ),\n  );",
+      "replace": "  Widget build(BuildContext context) => child;"
+    },
+    {
+      "id": "M464",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 モードのフッターを枠に重ねず並べる — 大きさを通常のフッターが決めなくなり、モードの方が高い構成で大きさが変わる・通常のフッターに空きが出る(独立review attempt 2 のP2)",
+      "find": "      if (showRemovalMode) Positioned.fill(child: removalMode),",
+      "replace": "      if (showRemovalMode) removalMode,"
     }
   ]
 }
