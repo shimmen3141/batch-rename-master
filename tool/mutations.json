@@ -3001,6 +3001,13 @@
       "note": "008:T25 「元に戻す」を押しても通知を下げない — 押せない操作が残り、二重に押せる",
       "find": "                messenger.hideCurrentSnackBar(\n                  reason: SnackBarClosedReason.action,\n                );\n",
       "replace": ""
+    },
+    {
+      "id": "M445",
+      "file": "lib/ui/common/app_toast.dart",
+      "note": "[reviewer追加 M445-review-control][対照] 008:T25 閉じる円で「元に戻す」を実行する — 閉じる操作が取り消しを実行してはならない",
+      "find": "        onClose: () =>\n            messenger.hideCurrentSnackBar(reason: SnackBarClosedReason.dismiss),",
+      "replace": "        onClose: () { if (action != null) action.onPressed(); },"
     }
   ]
 }

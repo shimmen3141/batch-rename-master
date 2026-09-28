@@ -71,7 +71,7 @@
 実装は Claude Opus 5.5。起点は`dev`@`78352cf`、branch `asdd/008-ui-alignment/T25-dismissible-toast`、code `a207dae`。
 
 - `lib/ui/common/app_toast.dart`: 通知の唯一の入口`showAppToast`と`AppToastCard`。`SnackBar`(floating、透明、余白0)の中に暗いカード(`surfaceElevated`、角丸13、薄い枠線と影、左右14・下18)を描く。重大度は先頭のアイコン(✓ / i / !)と左端3pxの色帯。**閉じる円は、カードの外側に取った余白(14px)の中へ置き、カードの右上の角へ一部重ねる** — 親の範囲の外は押せないため、はみ出した部分も当たり判定に入れる。当たり判定は32px四方で、tooltip「通知を閉じる」。**操作(「元に戻す」)があるときはカードの右の余白を広げ、閉じる円の当たり判定と重ねない。** 操作を押すと通知を下げてから操作する。
-- 9か所の通知を寄せた(上の「通知の出どころ」)。keyと文言は変えていない。**除去の通知は`persist: true`** — 以前は`SnackBarAction`付きの`SnackBar`で、Flutterの既定により自動では消えなかった。それを保つ。改名の結果は以前どおり`undoWindow`(5秒)で消える。
+- **10件の通知**(`file_list_view.dart` 5件、`removal_undo.dart` 2件、`file_source_bar.dart` 3件。上の「通知の出どころ」)をすべて寄せた。keyと文言は変えていない。**除去の通知は`persist: true`** — 以前は`SnackBarAction`付きの`SnackBar`で、Flutterの既定により自動では消えなかった。それを保つ。改名の結果は以前どおり`undoWindow`(5秒)で消える。
 - 重大度の割り当ては上の決定表のとおり。改名・元に戻した結果は、失敗を含むときだけエラーにする。
 
 ### 自動検証
@@ -115,11 +115,17 @@ M302 | KILLED | lib/ui/file_list/removal_undo.dart | 占有名の取り直しを
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
 
+- attempt 1: `78352cf..f954f96`(全範囲、implementation) — **PASS**(P2が2件)。10件の通知の集約、文言・発火条件・自動で消えるまでの時間の維持(除去の通知の`persist`はFlutterの既定がactionの有無に従うことをSDKで確認)、重大度の割り当て、閉じる円と「元に戻す」の別の当たり判定、閉じる操作が取り消しを呼ばないこと、はみ出した円の押下、狭幅・大きい文字、design土台との差分の記録、testを弱めていないこと、full test 1007件PASSを確認された。reviewerの範囲付きmutation 5件(M438・M439・M442・M444と対照1件)はKILLED。
+  - **P2(成果物の欠陥)**: task.mdが通知を「9か所」と書いていたが、実際は10件。→ 件数と内訳を直した。
+  - **P2(成果物の欠陥)**: manualのfixture準備で、同名のフォルダが既にあった場合に、後片付けの「消してよい」が既存のフォルダを誤って消す余地を残していた。→ 既にあって止まった場合は後片付けで消さないことを明記した。
+  - reviewerの対照(閉じる円で「元に戻す」を実行する)を`M445`として取り込んだ。
+  - **SELF-CHECK**(AGENTS.mdの差分review): P2を閉じる差分は`specs/`と`tool/mutations.json`(対照の追加)だけで、`lib/`・`test/`・依存・build設定は変えていない。再reviewは起動しない。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装とmachine検証が済んだ(2026-09-28、code `a207dae`)。
-- Blocker category: none
-- Waiting for: 独立review attempt 1(全範囲)。その後エミュレータのmanual確認。
-- Requested action: なし
+- Last checkpoint: 独立review attempt 1 PASS(P2 2件はSELF-CHECKで閉じた。2026-09-28)。エミュレータのmanualを待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ)。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜5の結果(code `a207dae`)。
+- Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
