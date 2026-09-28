@@ -123,7 +123,9 @@ void main() {
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
   });
 
-  testWidgets('除去の通知は自動では消えず、閉じる円で消せる(REQ-017・008:T25)', (tester) async {
+  testWidgets('除去の通知はほかと同じ一定時間で消え、その前に閉じる円でも消せる(REQ-017・008:T25)', (
+    tester,
+  ) async {
     final files = [_f('a.txt', handle: 'h:a'), _f('b.txt', handle: 'h:b')];
     final c = FileListController(files: files, rule: _seq2);
     await _pump(tester, c);
@@ -132,16 +134,19 @@ void main() {
     expect(find.byKey(removalUndoKey), findsOneWidget);
     expect(find.byKey(toastToneIconKey(ToastTone.success)), findsOneWidget);
 
-    // **以前の既定(actionのある通知は残る)を保つ。**
-    await tester.pump(const Duration(seconds: 30));
-    await tester.pumpAndSettle();
-    expect(find.byKey(removalUndoKey), findsOneWidget);
-
     // 閉じても**取り消しはしない**。
     await tester.tap(find.byKey(toastCloseKey));
     await tester.pumpAndSettle();
     expect(find.byKey(removalUndoKey), findsNothing);
     expect(c.items.map((f) => f.name), ['a.txt']);
+
+    // **一定時間で消える**(2026-09-28 の開発者の決定。除去だけ残るのは不自然)。
+    // 002 REQ-017 は「提示が消えた後は取り消せなくてよい」としている。
+    await removeOneFile(tester, 'h:a');
+    expect(find.byKey(removalUndoKey), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.byKey(removalUndoKey), findsNothing);
   });
 
   testWidgets('読み込み直した後の取り消しは、新しい一覧を上書きしない(REQ-017)', (tester) async {

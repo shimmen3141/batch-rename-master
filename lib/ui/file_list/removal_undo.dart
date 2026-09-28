@@ -60,9 +60,9 @@ void removeUndoably(
     tone: ToastTone.success,
     content: Text('$removed 件を一覧から外しました'),
     replaceCurrent: true,
-    // **自動では消えない**(以前の`SnackBarAction`付きの既定を保つ。`008:T25`)。
-    // 邪魔なら右上の閉じる円で消せる。
-    persist: true,
+    // **ほかの通知と同じ一定時間で消える**(2026-09-28 の開発者の決定。`008:T25`)。
+    // 以前は`SnackBarAction`付きの既定で残り続けていたが、除去だけ残るのは不自然。
+    // 002 REQ-017 は「提示が消えた後は取り消せなくてよい」としている。
     action: ToastAction(
       label: '元に戻す',
       onPressed: () {

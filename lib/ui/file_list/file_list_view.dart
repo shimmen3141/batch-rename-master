@@ -464,6 +464,9 @@ class _FileListViewState extends State<FileListView> {
   }
 }
 
+/// 権限のエラーの通知から設定画面を開く操作(`008:T25`)。
+const Key permissionSettingsActionKey = Key('permission-settings-action');
+
 /// フッター([_RenameActionBar])の面。上端の区切り線を test が見るための key。
 const Key renameActionBarSurfaceKey = Key('rename-action-bar-surface');
 
@@ -628,6 +631,13 @@ class _RenameActionBar extends StatelessWidget {
             '「すべてのファイルへのアクセス」が許可されていないため、名前を変更できませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
           ),
+          // **設定画面へ直接移れる**(2026-09-28 の開発者の決定)。押したときだけ開く —
+          // 自動では開かない(013 REQ-003)。
+          action: ToastAction(
+            key: permissionSettingsActionKey,
+            label: '設定',
+            onPressed: () => execution.permission.openSettings(),
+          ),
         );
       }
       return;
@@ -669,9 +679,10 @@ class _RenameActionBar extends StatelessWidget {
       content: _resultContent(message.toString(), renumbered),
       // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
       // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
-      // **undo は 5 秒で期限切れ**(REQ-007)なので、押せなくなった undo を残さない
-      // (`persist` は既定の `false`)。
+      // **undo は 5 秒で期限切れ**(REQ-007)なので、押せなくなった undo を残さない。
+      // **失敗を含んでも同じ** — エラーは既定で残るが、undo を持つ間はその期限で消す。
       duration: execution.undoWindow,
+      persist: execution.canUndo ? false : null,
       action: execution.canUndo
           ? ToastAction(
               key: const Key('rename-undo'),
@@ -698,6 +709,11 @@ class _RenameActionBar extends StatelessWidget {
           content: const Text(
             '「すべてのファイルへのアクセス」が許可されていないため、元に戻せませんでした。'
             '端末の設定で許可してから、もう一度お試しください。',
+          ),
+          action: ToastAction(
+            key: permissionSettingsActionKey,
+            label: '設定',
+            onPressed: () => execution.permission.openSettings(),
           ),
         );
       }

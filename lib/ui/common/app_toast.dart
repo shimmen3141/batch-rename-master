@@ -100,8 +100,10 @@ class ToastAction {
 /// [replaceCurrent] が `true` なら、出ている通知を先に下げる(取り消しの結果など、
 /// 前の通知を置き換える場面)。
 ///
-/// [persist] が `true` なら自動では消えない(閉じる円か操作で消える)。**`SnackBar` に
-/// action を渡していた通知はFlutterの既定で残り続けていた**ので、それを保つために使う。
+/// **エラー([ToastTone.danger])は既定で閉じるまで残る**(2026-09-28 の開発者の決定)。
+/// 読み落とすと何が起きたか分からないためである。それ以外は [duration] で消える。
+/// [persist] を渡すとこの既定を上書きする — 期限のある操作(改名の「元に戻す」は5秒)を
+/// 持つ通知は、押せなくなった操作を残さないよう `false` にする。
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
   ScaffoldMessengerState messenger, {
   Key? key,
@@ -110,7 +112,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
   ToastAction? action,
   Duration duration = const Duration(milliseconds: 4000),
   bool replaceCurrent = false,
-  bool persist = false,
+  bool? persist,
 }) {
   // **画面に置き場があればそこへ出す**(フッターの少し上、領域の幅の中)。
   final host = _hosts.isEmpty ? null : _hosts.last;
@@ -140,7 +142,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
         aboveFooter ? toastGapAboveFooter : 18,
       ),
       duration: duration,
-      persist: persist,
+      persist: persist ?? tone == ToastTone.danger,
       content: AppToastCard(
         tone: tone,
         action: action,
@@ -211,7 +213,6 @@ class AppToastCard extends StatelessWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: toastBorder),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x8C000000),
@@ -220,83 +221,93 @@ class AppToastCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(13),
-              child: ColoredBox(
-                color: toastSurface,
-                // **左端の色帯は重ねて描く。** 角丸の枠線は四辺同じ色しか持てない。
-                child: Stack(
-                  children: [
-                    Padding(
-                      // **操作があるときは右を空ける**: 閉じる円の当たり判定(角から
-                      // [closeHitExtent] 四方)と「元に戻す」を重ねない — 押し間違いで
-                      // 取り消しを失わないため(`008:T25`)。
-                      padding: EdgeInsets.fromLTRB(
-                        15,
-                        13,
-                        action == null ? 13 : actionClearance,
-                        13,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            key: toastToneIconKey(tone),
-                            toneIcon,
-                            size: 18,
-                            color: toneColor,
-                          ),
-                          const SizedBox(width: 11),
-                          Expanded(
-                            child: DefaultTextStyle(
-                              style: TextStyle(
-                                color: colors.textPrimary,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                height: 1.4,
-                              ),
-                              child: child,
+            // **枠線は面の上に描く**(design 土台の `border:1px solid`)。背面に描くと
+            // 不透明な面に隠れて見えなかった(2026-09-28 のエミュレータ確認)。
+            child: DecoratedBox(
+              key: toastBorderKey,
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: toastBorder),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: ColoredBox(
+                  color: toastSurface,
+                  // **左端の色帯は重ねて描く。** 角丸の枠線は四辺同じ色しか持てない。
+                  child: Stack(
+                    children: [
+                      Padding(
+                        // **操作があるときは右を空ける**: 閉じる円の当たり判定(角から
+                        // [closeHitExtent] 四方)と「元に戻す」を重ねない — 押し間違いで
+                        // 取り消しを失わないため(`008:T25`)。
+                        padding: EdgeInsets.fromLTRB(
+                          15,
+                          13,
+                          action == null ? 13 : actionClearance,
+                          13,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              key: toastToneIconKey(tone),
+                              toneIcon,
+                              size: 18,
+                              color: toneColor,
                             ),
-                          ),
-                          if (action != null) ...[
                             const SizedBox(width: 11),
-                            TextButton(
-                              key: action.key,
-                              onPressed: onAction,
-                              style: TextButton.styleFrom(
-                                backgroundColor: colors.primary.withValues(
-                                  alpha: 0.12,
+                            Expanded(
+                              child: DefaultTextStyle(
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
                                 ),
-                                foregroundColor: colors.primary,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 7,
-                                ),
-                                minimumSize: const Size(0, 32),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                child: child,
                               ),
-                              child: Text(action.label),
                             ),
+                            if (action != null) ...[
+                              const SizedBox(width: 11),
+                              TextButton(
+                                key: action.key,
+                                onPressed: onAction,
+                                style: TextButton.styleFrom(
+                                  backgroundColor: colors.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  foregroundColor: colors.primary,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 7,
+                                  ),
+                                  minimumSize: const Size(0, 32),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                child: Text(action.label),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 3,
-                      child: ColoredBox(
-                        key: toastToneBandKey,
-                        color: toneColor,
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        child: ColoredBox(
+                          key: toastToneBandKey,
+                          color: toneColor,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -340,6 +351,9 @@ class AppToastCard extends StatelessWidget {
 
 /// 重大度のアイコン。test が重大度を見るための key。
 Key toastToneIconKey(ToastTone tone) => Key('toast-tone-${tone.name}');
+
+/// 通知の枠線(面の上に描く)。
+const Key toastBorderKey = Key('toast-border');
 
 /// 左端の色帯。
 const Key toastToneBandKey = Key('toast-tone-band');

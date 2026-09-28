@@ -372,6 +372,69 @@ void main() {
     expect(find.byKey(toastToneIconKey(ToastTone.success)), findsNothing);
   });
 
+  testWidgets('一部が失敗しても「元に戻す」を持つ間は、その期限で消える(008:T25)', (tester) async {
+    // エラーは既定で閉じるまで残るが、**押せなくなった「元に戻す」は残さない**(REQ-007)。
+    final files = FileListController(
+      files: [_file('a.txt'), _file('b.txt')],
+      rule: const RenameRule([OriginalNameToken(), LiteralToken('_x')]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.txt': 'a.txt', '/files/b.txt': 'b.txt'},
+      failWhen: (handle, newName) => newName == 'b_x.txt'
+          ? const RenameError(RenameErrorKind.permissionDenied, '書き込めません')
+          : null,
+    );
+    final execution = RenameExecutionController(
+      permission: const UnrestrictedStoragePermission(),
+      files: files,
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('失敗: 書き込めません'), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.danger)), findsOneWidget);
+    expect(find.byKey(const Key('rename-undo')), findsOneWidget);
+
+    await tester.pump(execution.undoWindow + const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('失敗: 書き込めません'), findsNothing);
+  });
+
+  testWidgets('権限のエラーは閉じるまで残り、「設定」で設定画面を開ける(008:T25)', (tester) async {
+    // 2026-09-28 の開発者の決定。**押したときだけ開く**(013 REQ-003: 自動では開かない)。
+    final permission = _DeniedPermission();
+    final files = FileListController(
+      files: [_file('a.txt')],
+      rule: const RenameRule([LiteralToken('renamed')]),
+    );
+    final executor = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+    final execution = RenameExecutionController(
+      permission: permission,
+      files: files,
+      executor: executor,
+      listNames: listNamesOf(executor, folder: '/files'),
+    );
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('execute-permission-denied')), findsOneWidget);
+    expect(find.byKey(toastToneIconKey(ToastTone.danger)), findsOneWidget);
+    expect(permission.opens, 0, reason: '自動では開かない');
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('execute-permission-denied')), findsOneWidget);
+
+    await tester.tap(find.byKey(permissionSettingsActionKey));
+    await tester.pumpAndSettle();
+    expect(permission.opens, 1);
+    expect(executor.calls, isEmpty, reason: '実体には触れていない(013 INV-002)');
+  });
+
   testWidgets('5秒後はundoを提示せず実体を変更しない(REQ-007)', (tester) async {
     final files = FileListController(
       files: [_file('a.txt')],
@@ -435,4 +498,18 @@ class _DelayedExecutor implements RenameExecutor {
 
   @override
   Future<RenameResult> rename(String handle, String newName) => result;
+}
+
+/// 常に拒否を返す権限 port。設定画面を開いた回数を数える(`008:T25`)。
+class _DeniedPermission implements StoragePermissionPort {
+  int opens = 0;
+
+  @override
+  Future<StoragePermissionState> check() async => StoragePermissionState.denied;
+
+  @override
+  Future<bool> openSettings() async {
+    opens++;
+    return true;
+  }
 }

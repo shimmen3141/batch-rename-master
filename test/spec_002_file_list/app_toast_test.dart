@@ -207,6 +207,60 @@ void main() {
     expect(find.byKey(const Key('persist')), findsOneWidget);
   });
 
+  testWidgets('エラーは既定で閉じるまで残り、ほかは一定時間で消える(2026-09-28)', (tester) async {
+    await _pump(
+      tester,
+      (m) => showAppToast(
+        m,
+        key: _toastKey,
+        tone: ToastTone.danger,
+        content: const Text('読み込めませんでした'),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 30));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_toastKey), findsOneWidget, reason: 'エラーは読み落とさせない');
+    await tester.tap(find.byKey(toastCloseKey));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_toastKey), findsNothing);
+
+    // **期限のある操作を持つエラーは、明示すればその期限で消える**(改名の「元に戻す」)。
+    final messenger = tester.state<ScaffoldMessengerState>(
+      find.byType(ScaffoldMessenger),
+    );
+    showAppToast(
+      messenger,
+      key: const Key('danger-with-undo'),
+      tone: ToastTone.danger,
+      content: const Text('1 件を改名しました。失敗: …'),
+      duration: const Duration(seconds: 5),
+      persist: false,
+      action: ToastAction(label: '元に戻す', onPressed: () {}),
+    );
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('danger-with-undo')), findsNothing);
+  });
+
+  testWidgets('枠線は面の上に描かれる(面に隠れない。design 土台の border)', (tester) async {
+    await _pump(
+      tester,
+      (m) => showAppToast(
+        m,
+        key: _toastKey,
+        tone: ToastTone.success,
+        content: const Text('本文'),
+      ),
+    );
+    final border = tester.widget<DecoratedBox>(find.byKey(toastBorderKey));
+    expect(border.position, DecorationPosition.foreground);
+    expect(
+      ((border.decoration as BoxDecoration).border! as Border).top.color,
+      toastBorder,
+    );
+  });
+
   testWidgets('閉じる円はカードの角へ一部重なり、全体が当たり判定に入る', (tester) async {
     await _pump(
       tester,
