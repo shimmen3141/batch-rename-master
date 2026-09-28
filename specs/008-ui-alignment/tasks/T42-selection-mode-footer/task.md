@@ -28,7 +28,11 @@
 | 論点 | 決定 | 決定者 |
 |---|---|---|
 | 配置 | **帯 = `×`(やめる)・`〇件選択中`・ケバブ**。**フッター = 「← 戻る」(やめる。`×`と同じ動き)と「N件を外す」**。外すアイコンは帯から消す。**やめる操作は上(`×`)と下(戻る)の2か所**になる | 開発者 |
-| 説明の吹き出し(`T30`) | **やめる**。代わりに**フッターのbuttonの上へ小さな説明を常設**する(「リネームリストから外します。ファイルは削除されません。」)。削除と取り違える不安をモード中ずっと打ち消す | 開発者 |
+| 説明の吹き出し(`T30`) | **やめる**。代わりに**フッターに説明を常設**する。削除と取り違える不安をモード中ずっと打ち消す | 開発者 |
+| 説明の文言(2026-09-28、manual 1回目) | 「**選択したファイルをリネームリストから外します。ファイルは削除されません。**」(当初は「リネームリストから外します。…」) | 開発者 |
+| フッターの余白(同。manual 1回目の指摘「不自然な余白」) | **案A: 部品を揃える**(3案から選んだ。ほかは「上下2段の全幅button」「大きさの固定をやめる」)。狭幅では説明を**命名ルールのカードと同じ形のカード**(左に四角いアイコン、見出しと太字の2行)にし、下段の「戻る」「N件を外す」をリネームbuttonと同じ高さにする。**通常のフッターの段(Androidでは更新日時の切り替えもある)の分だけ高さが余る分は、説明が伸びて埋める**(中身は縦の中央)。広幅(命名ルールのカードが無い)では説明は1行 | 開発者(案A) / Agent(余りを埋める作り) |
+| 説明の文字の拡大 | **1.5倍まで**。長くなった文言が狭幅・最大の文字で何行にも折り返し、フッターが画面の上側を押し出した。**文字は削らない**。操作(戻る・外す)の文字は抑えない | Agent |
+| 通常のフッターが無い画面 | 揃える相手が無いので大きさを揃えず、モード中だけ自然な高さのモードのフッターを出す(揃える仕組みを通すと、大きい文字で高さを大きく見積もりすぎた) | Agent |
 | 「N件を外す」の色 | **シアン(アクセント)の塗り**、0件では押せない(灰)。赤は削除を連想させるため | 開発者 |
 | 「戻る」の形 | app内browserの「← リネーム画面へ」(`008:T39`)と同じ、暗い背景にシアンの枠と文字 | Agent(既存の形に揃える) |
 | **フッターの大きさ**(2026-09-28、作業中に受領) | **通常のフッターと選択モードのフッターの大きさを固定する**(「フッターの大きさは固定してください」)。**2つを重ねて高い方に揃える**(`IndexedStack` + `IntrinsicHeight`)ので、画面幅(desktopでは通常のフッターがリネームだけ)や文字の大きさでどちらが高くなっても、モードの出入りで大きさが変わらない | 開発者(固定) / Agent(作り方) |
@@ -84,6 +88,42 @@ M448 | KILLED | lib/ui/file_list/file_list_view.dart | (全件のcommandで再�
 
 (NOTEは要約。`M448`のtestは`spec_005`にあり、絞った範囲の外だった。全件で確かめ直してKILLED。触ったfileで`find`が一致しないのは`dev`時点からの既存13件だけ。)
 
+## manual確認の結果
+
+### 1回目(2026-09-28、Androidエミュレータ、debug、code `8e4f130`)
+
+開発者の報告(会話):「確認事項は問題ありませんでしたが、フッターに不自然な余白ができてしまいます」。1〜5は問題なし。
+
+| 指摘 | 対応 |
+|---|---|
+| フッターに不自然な余白ができる | 原因: 大きさを通常のフッター(命名ルールのカード・Androidでは更新日時の切り替え・リネーム)に揃えるので、低いモードのフッターに高さが余っていた。**案A(開発者が選んだ)**: 説明を命名ルールと同じ形のカードにし、余った高さはカードが伸びて埋める(`9e836f4`・`450e0c9`)。`M460` |
+| 文言を「選択したファイルをリネームリストから外します。ファイルは削除されません。」へ | 変えた。`M459`を追随 |
+
+**1回目の結果は`8e4f130`のbuildに対するもので、再利用しない。** 2回目の対象は`450e0c9`。
+
+**手順の誤り(記録)**: `9e836f4`は、full testの1件(`load_affordance_test`の「狭い画面と大きい文字でも帯の高さが変わらない」)が落ちたままcommitした。commandがtestの結果でcommitを止めていなかった。`450e0c9`で直し(通常のフッターが無い画面では大きさを揃えない、説明の文字の拡大を1.5倍まで)、以後はtestの結果を見てからcommitする。`9e836f4`単体は検証済みのcheckpointではない。
+
+### manual 1回目の後の mutation
+
+`command`を`flutter test test/spec_002_file_list test/spec_005_rename_exec test/spec_004_file_source/load_affordance_test.dart`へ絞った生出力:
+
+```text
+M308 | KILLED | lib/ui/file_list/file_list_view.dart | 0件でも外すbuttonを押せる | exit 1
+M331 | KILLED | lib/ui/file_list/file_list_view.dart | モード中も通常の帯を出す | exit 1
+M397 | KILLED | lib/ui/file_list/file_list_view.dart | フッターの大きさを固定しない | exit 1
+M448 | KILLED | lib/ui/file_list/file_list_view.dart | フッターの上端の区切り線を消す | exit 1
+M457 | KILLED | lib/ui/file_list/file_list_view.dart | 「N件を外す」を赤にする | exit 1
+M458 | KILLED | lib/ui/file_list/file_list_view.dart | フッターの「戻る」が効かない | exit 1
+M459 | KILLED | lib/ui/file_list/file_list_view.dart | 説明から「削除されません」を落とす(find追随) | exit 1
+M460 | SKIPPED | lib/ui/file_list/file_list_view.dart | 説明が余った高さを埋めない | matched 0 time(s), expected 1
+M461 | KILLED | lib/ui/file_list/file_list_view.dart | 説明の文字の拡大を抑えない | exit 1
+9 mutations: 8 KILLED, 0 SURVIVED, 1 SKIPPED
+M460 | KILLED | lib/ui/file_list/file_list_view.dart | (findを今の形に合わせて単独で再実行) | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+(NOTEは要約。`M460`は最初の形(`Expanded`→`Flexible`)がカードの`alignment`のため等価mutantで一度SURVIVEDし、伸ばす枠を外す形に直した。その後、説明の置き場を文字の拡大の抑えで包んだので`find`がずれてSKIPPED → 合わせてKILLED。full test 1013件PASS。追加したtest: 説明のカードが余った高さを埋め空きを残さない(命名ルール+リネーム、命名ルール+更新日時の切り替え+リネーム))
+
 ## 独立review
 
 **reviewerのmodelは`gpt-6-luna`**(開発者指定。実装はClaude Opus 5.5)。
@@ -91,12 +131,13 @@ M448 | KILLED | lib/ui/file_list/file_list_view.dart | (全件のcommandで再�
 - attempt 1: `ea4741a..89b1c08`(全範囲、implementation) — **PASS**(P2が1件)。決定表・002 REQ-017/018との一致、`_FixedFooter`のoffstage側が操作・semantics・finderの対象外であること、`ToastHost`との関係、吹き出しの削除で残る保証を失っていないこと、testの書き換えが保証を弱めていないこと、mutationの整理の妥当性、manualの具体性、full test 1011件PASSを確認された。reviewerの範囲付きmutation 7件(M308・M331・M397・M448・M457〜M459)はKILLED。
   - **P2(安全網の穴)**: 「desktop幅」と名付けた高さ固定のtestは、画面を360px幅のまま通常のフッターの中身(リネームだけ)を変えて試しており、2ペインの配置そのものは通していない。**受容する**: 幅がフッターに効くのは中身(ルール設定の有無)だけで、それはtestが再現している。`_FixedFooter`は幅に依らず`IntrinsicHeight`で高い方に揃える。FAIL条件(データ損失等)に当たらない。引き受け先のtaskは無い(desktopはmanualの対象外 — エミュレータで確認する方針)。記録上の呼び方を「desktop幅の構成」に正確にした。
   - **SELF-CHECK**: この対応は記録(`specs/`)だけ。
+- attempt 2: 差分`89ba6b1..HEAD`(manual 1回目の指摘への対応)を見る。
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(2026-09-28)。エミュレータのmanualを待つ。
-- Blocker category: 人間のmanual確認(Androidエミュレータ)。
-- Waiting for: [`manual-verification.md`](manual-verification.md)の1〜5の結果(code `8e4f130`)。
+- Last checkpoint: manual 1回目の指摘(余白・文言)を直した(2026-09-28、code `450e0c9`)。
+- Blocker category: なし(差分review → manual 2回目)。
+- Waiting for: 独立review attempt 2(差分`89ba6b1..HEAD`)。その後manual 2回目(code `450e0c9`)。
 - Requested action: 人間がworktree `.worktrees/008-T42-selection-mode-footer`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`ea4741a`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
