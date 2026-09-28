@@ -182,6 +182,9 @@ M455 | KILLED | lib/ui/file_list/file_list_view.dart | 「元に戻す」を持�
 
 (NOTEは要約。full test 1017件PASS。追加したtest: エラーは既定で残り期限付きの操作を持つものは期限で消える、枠線が面の上にある、除去の通知が一定時間で消える、一部が失敗しても「元に戻す」を持つ間はその期限で消える、権限のエラーが残り「設定」で設定画面を開き自動では開かない。)
 
+- attempt 4: `ce1e1e0..3af48f9`(差分) — **PASS**。決定表と実装・仕様(002 REQ-017、005 REQ-007、013 REQ-003)の整合、エラー通知の残り方の一貫性、「設定」が通知を下げて設定画面を開くだけで実体に触れないこと、除去の通知のtestの書き換えが決定の変更に沿って正当であること、記録の一致、full test 1017件PASSを確認された。reviewerの範囲付きmutation 5件(M442・M452〜M455)はKILLED。
+  - **P2(安全網の穴)**: 元に戻すときの権限のエラーの「設定」を通すtestが無く、reviewerの対照がSURVIVEDした。FAIL条件には当たらない。→ **受容せずに閉じた**: testを足し(`test/`だけの差分)、対照を`M456`として取り込み、KILLEDを確かめた。この差分はmanual 3回目の後の差分reviewで見る。
+
 ### manual 1回目の指摘への対応(`1005f11`)の mutation
 
 `command`を`flutter test test/spec_002_file_list/app_toast_test.dart test/spec_005_rename_exec/warning_confirmation_results_test.dart`へ絞り、今回足した4件と、同じfileの閉じる操作を守る2件を回した:
@@ -230,9 +233,9 @@ M451 | KILLED | lib/ui/common/app_toast.dart | (testを決定の値で検査す�
 
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目の指摘(枠線・除去の通知の時間・エラーを残す・「設定」)を`b14a261`で直した(2026-09-28)。
-- Blocker category: なし(差分review → manual 3回目)。
-- Waiting for: 独立review attempt 4(差分`ce1e1e0..HEAD`)。その後manual 3回目(code `b14a261`)。
+- Last checkpoint: 独立review attempt 4 PASS(2026-09-28)。指摘された安全網の穴はtestを足して閉じた(`test/`だけ。`lib/`は`b14a261`のまま)。manual 3回目を待つ。
+- Blocker category: 人間のmanual確認(Androidエミュレータ、3回目)。
+- Waiting for: [`manual-verification.md`](manual-verification.md)の0〜6の結果(code `b14a261`)。その後、`3af48f9..HEAD`の差分review(testの追加と記録)。
 - Requested action: 人間がhostでworktree `.worktrees/008-T25-dismissible-toast`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`78352cf`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
