@@ -23,6 +23,7 @@ import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
 import 'ui/rename_exec/rename_execution_controller.dart';
+import 'ui/rename_exec/rename_settings_button.dart';
 import 'ui/theme/app_theme.dart';
 
 /// アプリ入口。
@@ -152,7 +153,11 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('一括リネーム')),
+      appBar: AppBar(
+        title: const Text('一括リネーム'),
+        // 歯車(`008:T43`)。有効な設定が無い端末(Android)では何も出さない。
+        actions: [RenameSettingsButton(execution: _renameExecution)],
+      ),
       body: Column(
         children: [
           FileSourceBar(

@@ -5,6 +5,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
+import 'package:batch_rename_master/ui/rename_exec/rename_settings_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,6 +26,26 @@ void main() {
     // 初期ルールは空なので、導線は未設定向けの表示になる(005 REQ-020)。
     expect(find.byKey(const Key('configure-rule')), findsOneWidget);
     expect(find.text('変更する名前を設定する'), findsOneWidget);
+  });
+
+  testWidgets('composition root がヘッダーへ歯車を置く(008:T43)', (tester) async {
+    // test は Linux(desktop)で動くので、更新日時ずらしが有効 = 歯車が出る。
+    // `main.dart` で置き忘れると設定そのものが画面から消える(フッターから移したため)。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.byKey(renameSettingsButtonKey),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(renameSettingsButtonKey));
+    await tester.pumpAndSettle();
+    expect(find.text(shiftModifiedAtLabel), findsOneWidget);
   });
 
   testWidgets('composition root が行へ preview の供給元を配る(008:T07)', (tester) async {

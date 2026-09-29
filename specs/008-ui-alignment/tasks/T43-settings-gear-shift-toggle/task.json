@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T43",
   "title": "更新日時ずらしをフッターから歯車の設定ボタンへ移す",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T42"
   ],

@@ -19,9 +19,6 @@ import 'rename_warning_view.dart';
 import 'row_preview_view.dart';
 import 'row_view.dart';
 
-/// 更新日時ずらしの設定(005 REQ-014。書ける端末でだけ出る)。
-const Key shiftModifiedAtKey = Key('shift-modified-at');
-
 /// 一覧の総件数(002 REQ-016)。**選択された件数ではない** — 一覧にある
 /// ファイルはすべて rename 対象である。
 const Key fileCountKey = Key('file-count');
@@ -490,9 +487,6 @@ const double removalModeNoteMaxTextScale = 1.5;
 /// 説明と操作の間(`008:T42`)。通常のフッターの段の間と同じ。
 const double removalModeNoteGap = 10;
 
-/// 説明を出す最小の高さ(`008:T42`)。これより低い枠しか残らなければ説明を出さない。
-const double removalModeNoteMinHeight = 16;
-
 /// 説明の全文(支援技術が読む)。
 const String removalModeNoteText = '$removalModeNoteLead$removalModeNoteMain';
 
@@ -516,7 +510,9 @@ class _RemovalModeBar extends StatelessWidget {
     required this.onRemove,
   });
 
-  /// 説明を命名ルールのカードと同じ形のカードにするか。`false` なら1行。
+  /// 説明を命名ルールのカードと同じ形のカードにするか。`false`(命名ルールがフッターに
+  /// 無い)なら、広幅では操作の左に2行([_RemovalNoteCompact])、通常のフッターが無い
+  /// 画面では操作の上に1行([_RemovalNoteLine])。
   final bool noteAsCard;
 
   /// 通常のフッターと大きさを揃えているか([_FixedFooter] の中)。`true` なら説明が
@@ -532,93 +528,85 @@ class _RemovalModeBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // **app内browserの「← リネーム画面へ」(`008:T39`)と同じ形。**
+    final back = OutlinedButton.icon(
+      key: removalModeBackKey,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: colors.background,
+        foregroundColor: colors.primary,
+        side: BorderSide(color: colors.primary),
+      ),
+      onPressed: onExit,
+      icon: const Icon(Icons.arrow_back, size: 18),
+      label: const Text('戻る'),
+    );
+    // **シアンの塗り**(2026-09-28 の開発者の決定)。赤は削除を連想させる。
+    final remove = FilledButton(
+      key: removalModeRemoveKey,
+      onPressed: onRemove,
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+      ),
+      child: Text('$markedCount件を外す', overflow: TextOverflow.ellipsis),
+    );
+    final Widget content;
+    if (fill && !noteAsCard) {
+      // **広幅は1段**(`008:T43`。2026-09-29 の開発者の決定)。通常のフッターが
+      // リネームだけなので、説明を操作の上に置く高さが無い。説明は操作の左に
+      // 小さな2行で置き、入らなければ縮める。
+      content = Row(
+        children: [
+          Expanded(
+            child: _clampNoteScale(
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: _FitNote(child: _RemovalNoteCompact()),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          back,
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 120),
+            child: remove,
+          ),
+        ],
+      );
+    } else {
+      // **説明が余った高さを吸収する**(2026-09-28 のエミュレータ確認「不自然な
+      // 余白」)。フッターの大きさは通常のフッターと揃える([_FixedFooter])。
+      // 説明のカードは命名ルールのカードと同じ形なので、ふつうはちょうど揃う。
+      // 揃わない分(ルールが空のbuttonなど)はカードが伸びるか縮んで埋める。
+      content = Column(
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (fill)
+            Expanded(child: _clampNoteScale(const _RemovalNoteCard()))
+          else
+            _clampNoteScale(
+              noteAsCard ? const _RemovalNoteCard() : const _RemovalNoteLine(),
+            ),
+          const SizedBox(height: removalModeNoteGap),
+          Row(
+            children: [
+              back,
+              const SizedBox(width: 8),
+              Expanded(child: remove),
+            ],
+          ),
+        ],
+      );
+    }
     return Material(
       key: removalModeBarKey,
       color: colors.bar,
       shape: Border(top: BorderSide(color: colors.border)),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          // **説明が余った高さを吸収する**(2026-09-28 のエミュレータ確認「不自然な
-          // 余白」)。フッターの大きさは通常のフッターと揃える([_FixedFooter])ので、
-          // 通常のフッターの段(命名ルール・更新日時の切り替え)の分だけ高さが余る。
-          // それを空きにせず、説明の枠が伸びて埋め、中身は縦の中央に置く。
-          child: Column(
-            mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (fill)
-                Expanded(
-                  child: LayoutBuilder(
-                    // 通常のフッターがリネームだけ(更新日時の切り替えも無い)だと、
-                    // 説明の入る高さがほぼ残らない。読めない大きさへ縮めて置くより
-                    // 出さない(操作の「N件を外す」は残る)。製品の構成では切り替えが
-                    // あるので出る。
-                    builder: (context, constraints) =>
-                        constraints.maxHeight <
-                            removalModeNoteGap + removalModeNoteMinHeight
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: removalModeNoteGap,
-                            ),
-                            child: _clampNoteScale(
-                              noteAsCard
-                                  ? const _RemovalNoteCard()
-                                  : const Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: _FitNote(
-                                        child: _RemovalNoteLine(),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                  ),
-                )
-              else ...[
-                _clampNoteScale(
-                  noteAsCard
-                      ? const _RemovalNoteCard()
-                      : const _RemovalNoteLine(),
-                ),
-                const SizedBox(height: removalModeNoteGap),
-              ],
-              Row(
-                children: [
-                  // **app内browserの「← リネーム画面へ」(`008:T39`)と同じ形。**
-                  OutlinedButton.icon(
-                    key: removalModeBackKey,
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: colors.background,
-                      foregroundColor: colors.primary,
-                      side: BorderSide(color: colors.primary),
-                    ),
-                    onPressed: onExit,
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('戻る'),
-                  ),
-                  const SizedBox(width: 8),
-                  // **シアンの塗り**(2026-09-28 の開発者の決定)。赤は削除を連想させる。
-                  Expanded(
-                    child: FilledButton(
-                      key: removalModeRemoveKey,
-                      onPressed: onRemove,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colors.primary,
-                        foregroundColor: colors.onPrimary,
-                      ),
-                      child: Text(
-                        '$markedCount件を外す',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        child: Padding(padding: const EdgeInsets.all(12), child: content),
       ),
     );
   }
@@ -723,8 +711,55 @@ class _RemovalNoteCard extends StatelessWidget {
   }
 }
 
-/// 選択モードの説明の1行(`008:T42`)。広幅(通常のフッターに命名ルールのカードが無い)で
-/// 使う。カードにすると通常のフッターより高くなり、今度は通常のフッターに空きが出るため。
+/// 広幅の選択モードの説明(`008:T43`)。操作の左に置く小さな2行。
+class _RemovalNoteCompact extends StatelessWidget {
+  const _RemovalNoteCompact();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Semantics(
+      container: true,
+      label: removalModeNoteText,
+      child: ExcludeSemantics(
+        child: Row(
+          key: removalModeNoteKey,
+          children: [
+            Icon(Icons.info_outline, size: 16, color: colors.info),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    removalModeNoteLead,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    removalModeNoteMain,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 選択モードの説明の1行(`008:T42`)。通常のフッターが無く、命名ルールも無い画面で
+/// 使う(大きさを揃える相手が無いので、自然な高さで操作の上に置く)。
 class _RemovalNoteLine extends StatelessWidget {
   const _RemovalNoteLine();
 
@@ -1080,11 +1115,7 @@ class _RenameActionBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
               ],
-              // 更新日時ずらし。設定できない端末では出さない(REQ-015)。
-              if (execution != null && execution.canShiftModifiedAt) ...[
-                _ShiftModifiedAtToggle(execution: execution),
-                const SizedBox(height: 6),
-              ],
+              // 更新日時ずらしはヘッダーの歯車へ移した(`008:T43`)。
               if (execution != null)
                 FilledButton.icon(
                   key: const Key('rename-action'),
@@ -1116,50 +1147,6 @@ class _RenameActionBar extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 更新日時ずらしの入切(005 REQ-014)。
-///
-/// 設定できる端末でだけ [_RenameActionBar] が描画する(REQ-015)。既定は OFF で、
-/// 入れると改名成功後に一覧の並び順で更新日時をずらす。
-class _ShiftModifiedAtToggle extends StatelessWidget {
-  const _ShiftModifiedAtToggle({required this.execution});
-
-  final RenameExecutionController execution;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return InkWell(
-      key: shiftModifiedAtKey,
-      onTap: () => execution.setShiftModifiedAt(!execution.shiftModifiedAt),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: Checkbox(
-                value: execution.shiftModifiedAt,
-                onChanged: (value) =>
-                    execution.setShiftModifiedAt(value ?? false),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '更新日時を一覧の並び順にずらす',
-                style: TextStyle(color: colors.textMuted, fontSize: 11.5),
-              ),
-            ),
-          ],
         ),
       ),
     );

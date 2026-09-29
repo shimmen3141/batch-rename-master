@@ -750,17 +750,35 @@ void main() {
     // 「安全な未対応」を外した。**Android 専用の executor は存在しない** —
     // 劣化は native が返す `fallbackRequired` が駆動する(ADR-003)。
     test('Android は desktop と同じ実装を通る(013 REQ-005 / REQ-006 が製品経路に載る)', () {
+      final executor = renameExecutorFor(isAndroid: true, isDesktop: false);
+      expect(executor, isA<RenameOnlyExecutor>());
       expect(
-        renameExecutorFor(isAndroid: true, isDesktop: false),
+        (executor as RenameOnlyExecutor).inner,
         isA<DesktopRenameExecutor>(),
       );
     });
 
+    test('Android では更新日時ずらしを出さない(005 REQ-015。008:T43 で見つけた食い違い)', () {
+      // `013:T04` の決定4「Androidで出さないままにする」。同じ実装を**そのまま**
+      // 渡すと更新日時も書ける型になり、設定が Android の画面に出ていた。
+      final executor = renameExecutorFor(isAndroid: true, isDesktop: false);
+      expect(executor, isNot(isA<ModifiedAtWriter>()));
+    });
+
     test('desktop は変わらない(013 は desktop の振る舞いを変えない)', () {
-      expect(
-        renameExecutorFor(isAndroid: false, isDesktop: true),
-        isA<DesktopRenameExecutor>(),
-      );
+      final executor = renameExecutorFor(isAndroid: false, isDesktop: true);
+      expect(executor, isA<DesktopRenameExecutor>());
+      // desktop では更新日時ずらしを出す(REQ-014)。
+      expect(executor, isA<ModifiedAtWriter>());
+    });
+
+    test('Android の包みは改名をそのまま中身へ渡す', () async {
+      final inner = FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'});
+      final result = await RenameOnlyExecutor(
+        inner,
+      ).rename('/files/a.txt', 'b.txt');
+      expect(result, isA<Renamed>());
+      expect(inner.names, ['b.txt']);
     });
 
     test('どちらでもない platform は未対応のまま', () {

@@ -722,9 +722,9 @@
     {
       "id": "M103",
       "file": "lib/data/rename_exec/platform_rename_executor.dart",
-      "note": "Androidを未対応の側へ戻す(013 REQ-005/006が製品経路から消える。005 revision 6の逆)",
-      "find": "  if (isAndroid || isDesktop) return DesktopRenameExecutor();",
-      "replace": "  if (isDesktop) return DesktopRenameExecutor();"
+      "note": "Androidを未対応の側へ戻す(013 REQ-005/006が製品経路から消える。005 revision 6の逆)。**008:T43で`find`を追随させた**(Androidを更新日時ずらしを見せない包みで渡すようにした)",
+      "find": "  if (isAndroid) return RenameOnlyExecutor(DesktopRenameExecutor());",
+      "replace": "  if (isAndroid) return const UnsupportedRenameExecutor();"
     },
     {
       "id": "M104",
@@ -2921,16 +2921,16 @@
     {
       "id": "M457",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 「N件を外す」を赤(危険色)にする — 削除を連想させる(2026-09-28の決定はシアンの塗り)",
-      "find": "                      style: FilledButton.styleFrom(\n                        backgroundColor: colors.primary,\n                        foregroundColor: colors.onPrimary,\n                      ),\n                      child: Text(\n                        '$markedCount件を外す',",
-      "replace": "                      style: FilledButton.styleFrom(\n                        backgroundColor: colors.danger,\n                        foregroundColor: colors.onPrimary,\n                      ),\n                      child: Text(\n                        '$markedCount件を外す',"
+      "note": "008:T42 「N件を外す」を赤(危険色)にする — 削除を連想させる(2026-09-28の決定はシアンの塗り)。**008:T43で`find`を追随させた**(広幅の1段のために操作を変数へ出した)",
+      "find": "    final remove = FilledButton(\n      key: removalModeRemoveKey,\n      onPressed: onRemove,\n      style: FilledButton.styleFrom(\n        backgroundColor: colors.primary,",
+      "replace": "    final remove = FilledButton(\n      key: removalModeRemoveKey,\n      onPressed: onRemove,\n      style: FilledButton.styleFrom(\n        backgroundColor: colors.danger,"
     },
     {
       "id": "M458",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 フッターの「戻る」が効かない — モードをやめる操作が下に無くなる(帯の × だけになる)",
-      "find": "                    onPressed: onExit,",
-      "replace": "                    onPressed: () {},"
+      "note": "008:T42 フッターの「戻る」が効かない — モードをやめる操作が下に無くなる(帯の × だけになる)。**008:T43で`find`を追随させた**",
+      "find": "      onPressed: onExit,",
+      "replace": "      onPressed: () {},"
     },
     {
       "id": "M459",
@@ -2942,9 +2942,9 @@
     {
       "id": "M460",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)。**最初の形(`Expanded`→`Flexible`)は、カードが`alignment`で自分から広がるため等価mutantでSURVIVEDした。伸ばす枠そのものを外す形に直した**。**説明の入る高さが無い構成で説明を出さない判定(`LayoutBuilder`)を足したので`find`を追随させた**",
-      "find": "              if (fill)\n                Expanded(\n                  child: LayoutBuilder(",
-      "replace": "              if (fill)\n                SizedBox(\n                  child: LayoutBuilder("
+      "note": "008:T42 説明が余った高さを埋めない — フッターの大きさを固定したまま、選択モードのフッターに不自然な空きが出る(2026-09-28のエミュレータ確認)。**最初の形(`Expanded`→`Flexible`)は、カードが`alignment`で自分から広がるため等価mutantでSURVIVEDした。伸ばす枠そのものを外す形に直した**。**説明の入る高さが無い構成で説明を出さない判定(`LayoutBuilder`)を足したので`find`を追随させた**。**008:T43で`find`を追随させた**(説明を出さない判定を外した)",
+      "find": "            Expanded(child: _clampNoteScale(const _RemovalNoteCard()))",
+      "replace": "            SizedBox(child: _clampNoteScale(const _RemovalNoteCard()))"
     },
     {
       "id": "M461",
@@ -2952,13 +2952,6 @@
       "note": "008:T42 説明の文字の拡大を抑えない — 狭幅・最大の文字で説明が何行にも折り返し、フッターが画面の上側(読み込みの帯)を押し出す",
       "find": "    maxScaleFactor: removalModeNoteMaxTextScale,",
       "replace": "    maxScaleFactor: 10,"
-    },
-    {
-      "id": "M462",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T42 説明の入る高さが無くても説明を出す — 通常のフッターがリネームだけの構成で、説明が読めない大きさへ縮む(独立review attempt 2 のP2の直しで足した判定)",
-      "find": "                        constraints.maxHeight <\n                            removalModeNoteGap + removalModeNoteMinHeight\n",
-      "replace": "                        constraints.maxHeight < 0\n"
     },
     {
       "id": "M463",
@@ -3029,6 +3022,48 @@
       "note": "008:T42 独立review attempt 4(reviewer設計の対照)。app内browserのフッターの色をヘッダーと揃えない(以前の暗い面)— **SURVIVEDが期待値になりうる**: browserのフッターの色を直接見るtestは無い(P3・安全網の穴として受容。manual 6.で確認。task.md)",
       "find": "    decoration: BoxDecoration(\n      color: colors.bar,",
       "replace": "    decoration: BoxDecoration(\n      color: colors.surface,"
+    },
+    {
+      "id": "M473",
+      "file": "lib/data/rename_exec/platform_rename_executor.dart",
+      "note": "008:T43 Androidでも更新日時ずらしを出す — 005 REQ-015・013:T04の決定4に反する(T43で見つけて直した食い違い)",
+      "find": "  if (isAndroid) return RenameOnlyExecutor(DesktopRenameExecutor());",
+      "replace": "  if (isAndroid) return DesktopRenameExecutor();"
+    },
+    {
+      "id": "M474",
+      "file": "lib/data/rename_exec/platform_rename_executor.dart",
+      "note": "008:T43 Androidの包みが改名を中身へ正しく渡さない — Androidで改名が壊れる",
+      "find": "      inner.rename(handle, newName);",
+      "replace": "      inner.rename(handle, handle);"
+    },
+    {
+      "id": "M475",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 有効な設定が無い端末でも歯車を出す — 押しても何も無い歯車(2026-09-29の開発者の決定)。REQ-015",
+      "find": "    if (!execution.canShiftModifiedAt) return const SizedBox.shrink();\n",
+      "replace": ""
+    },
+    {
+      "id": "M476",
+      "file": "lib/main.dart",
+      "note": "008:T43 composition rootがヘッダーへ歯車を置かない — フッターから移したので設定そのものが画面から消える",
+      "find": "        actions: [RenameSettingsButton(execution: _renameExecution)],",
+      "replace": "        actions: const [],"
+    },
+    {
+      "id": "M477",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 メニューで選ぶと常にONにする — 一度入れた更新日時ずらしを切れない",
+      "find": "            !execution.shiftModifiedAt,",
+      "replace": "            true,"
+    },
+    {
+      "id": "M478",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T43 広幅でも説明を操作の上に置く — 通常のフッターがリネームだけなので説明が入らない(2026-09-29の決定は操作の左に1段)",
+      "find": "    if (fill && !noteAsCard) {",
+      "replace": "    if (false) {"
     }
   ]
 }
