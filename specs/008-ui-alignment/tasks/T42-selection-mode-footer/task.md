@@ -151,6 +151,11 @@ M460 | KILLED | lib/ui/file_list/file_list_view.dart | (findを今の形に合�
   - reviewerのR1・R2を`M465`・`M466`として`tool/mutations.json`へ取り込んだ(`M466`は対照でSURVIVEDが期待値)。
   - **SELF-CHECK**: 取り込みの差分は`tool/mutations.json`へreviewerの定義をそのまま足したものと記録だけで、`lib/`・`test/`に差分は無い。足した2件はreviewerが実行済み(上の結果)なので、再reviewは起動しない。
   - 連鎖: `ea4741a..89b1c08` PASS → `89ba6b1..dd7e3be` PASS → `dd7e3be..0acb2db` PASS → 以降は記録とmutationの取り込み(SELF-CHECK)。
+- attempt 4: `0acb2db..a836246`(差分、manual 2回目の要望でヘッダーとフッターの色を固定) — **PASS**(P3が1件)。reviewerのmodelは`gpt-6-luna`(利用上限が解けたので既定へ戻した)。決定表と実装の一致(`AppColors.bar`・`appBarTheme`・3つのフッター)、`copyWith`/`lerp`の漏れが無いこと、appBarThemeが及ぶのはメイン画面とapp内browserの2つのAppBarで要望と整合すること、トースト(`#262C36`)と区切り線が新しい色の上で読めること、manual 2回目の対象`7801591`と3回目の対象`3e721fa`の区別、手順6.の具体性を確認された。full test 1016件PASS(`docker`がcontainer内に無く`flutter test`を直接実行)。範囲付きmutation 6件(M467〜M471・reviewer設計の対照)は5 KILLED・1 SURVIVED。
+  - 実装側で行ったmutation(色の追加時。`command`を`flutter test test/spec_002_file_list/removal_selection_mode_test.dart`へ絞った5件): `M467`〜`M471`すべてKILLED(`5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED`)。
+  - **P3(安全網の穴)**: app内browserのフッターの色を直接見るtestが無い(reviewerの対照 = `bar`→`surface`がSURVIVED)。`M472`として取り込み、**全件のcommandでもSURVIVED**を確かめた(`1 mutations: 0 KILLED, 1 SURVIVED, 0 SKIPPED`)。**受容する**: 見た目だけの回帰で、FAIL条件(データ損失・無断置換・偽の成功・権限逸脱・互換性破壊)に当たらない。manual 6.の4.で人間が確認する。引き受け先のtaskは無い。
+  - **SELF-CHECK**: この後の差分は`M472`の取り込み(`tool/mutations.json`へreviewerの定義を足しただけ)と記録だけで、`lib/`・`test/`に差分は無い。再reviewは起動しない。
+  - 連鎖: … → `dd7e3be..0acb2db` PASS → `0acb2db..a836246` PASS → 以降は記録とmutationの取り込み(SELF-CHECK)。
 
 ### attempt 2 の後(`7801591`)
 
@@ -179,7 +184,7 @@ M461 | KILLED | lib/ui/file_list/file_list_view.dart | (SURVIVEDを全件のcomm
 
 - Last checkpoint: manual 2回目の要望でヘッダーとフッターの色を`#2E2B38`に固定した(2026-09-29、code `3e721fa`)。
 - Blocker category: なし(差分review → manual 3回目)。
-- Waiting for: 独立review attempt 4(差分`0acb2db..HEAD`)とmanual 3回目(code `3e721fa`)。更新日時ずらしの移動をどのtaskで行うかの開発者の判断。
+- Waiting for: manual 3回目(code `3e721fa`)。独立reviewは attempt 4 までPASS。更新日時ずらしの移動をどのtaskで行うかの開発者の判断。
 - Requested action: 人間がworktree `.worktrees/008-T42-selection-mode-footer`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`ea4741a`。
 - Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
