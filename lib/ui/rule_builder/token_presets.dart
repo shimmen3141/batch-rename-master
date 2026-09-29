@@ -47,3 +47,56 @@ String _literalLabel(String value) {
   // 空白は Chip 上で見えないため可視記号に置き換える。
   return value.replaceAll(' ', '␣').replaceAll('　', '␣');
 }
+
+/// チップの上段に出す種類名(参考デザイン `docs/design/Bulk Renamer.html` の
+/// tokenChips。008:T45)。
+///
+/// 文字列トークンは入口を持たない(003 REQ-011)ので、値が区切りのプリセットなら
+/// 「区切り」、それ以外は「テキスト」と呼ぶ。日時は基準の名前にする。
+String tokenKindLabel(Token token) => switch (token) {
+  OriginalNameToken() => '元名',
+  LiteralToken(:final value) =>
+    separatorPresets.contains(value) ? '区切り' : 'テキスト',
+  SequenceToken() => '連番',
+  DateTimeToken(:final source) => switch (source) {
+    DateTimeSource.created => '作成日時',
+    DateTimeSource.modified => '更新日時',
+    DateTimeSource.current => '現在日時',
+  },
+};
+
+/// チップの下段に出す値: 一覧の1件目([sample])で描いた実際の値(参考デザイン。
+/// 008:T45)。
+///
+/// 元の名前はファイルごとに違うので `[元のファイル名]`。連番は1番目の値。日時は
+/// 1件目が無ければフォーマットそのもの、基準の日時が不明なら「不明」(001 INV-006。
+/// 別の日時で代えない)。空白は見えないので `␣` にする。
+String tokenChipValue(Token token, FileEntry? sample) {
+  final raw = switch (token) {
+    OriginalNameToken() => '[元のファイル名]',
+    LiteralToken(:final value) => value,
+    SequenceToken() => token.render(
+      RenameContext(
+        file: sample ?? _placeholderFile,
+        position: 1,
+        now: DateTime.now(),
+      ),
+    ),
+    DateTimeToken(:final format) =>
+      sample == null
+          ? format
+          : token.render(
+              RenameContext(file: sample, position: 1, now: DateTime.now()),
+            ),
+  };
+  if (raw.isEmpty) return token is DateTimeToken ? '不明' : '␣';
+  return raw.replaceAll(' ', '␣').replaceAll('　', '␣');
+}
+
+/// 連番の値を描くためだけの入れ物(連番はファイルを見ない。001 REQ-003)。
+final FileEntry _placeholderFile = FileEntry(
+  name: '',
+  createdAt: null,
+  modifiedAt: DateTime(2000),
+  size: 0,
+);

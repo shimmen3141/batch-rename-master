@@ -90,15 +90,41 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
   /// 現在のルールをファイルリストへ渡す(プレビュー更新)。
   void _syncRule() => widget.fileList.setRule(widget.rule.rule);
 
+  /// 狭幅のルール構築シート(参考デザインのボトムシート。008:T45)。
+  ///
+  /// 取っ手・見出し「命名ルール」・上端の角丸と、下部に1つ目のファイルの
+  /// プレビューを置く。**「閉じる」ボタンは置かない**(開発者の決定: 逆に混乱を
+  /// 招く)。閉じるのは外のタップ・下へのスワイプ・戻る操作。
   void _openRuleSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: context.colors.surface,
-      builder: (_) => RuleBuilderView(
-        controller: widget.rule,
-        itemCount: () => widget.fileList.selectedCount,
-        sampleFile: _firstFile,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.78,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            key: ruleSheetKey,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SheetHeader(),
+              RuleBuilderView(
+                controller: widget.rule,
+                itemCount: () => widget.fileList.selectedCount,
+                sampleFile: _firstFile,
+                sampleListenable: widget.fileList,
+              ),
+              _SheetPreview(fileList: widget.fileList),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -149,6 +175,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             controller: widget.rule,
             itemCount: () => widget.fileList.selectedCount,
             sampleFile: _firstFile,
+            sampleListenable: widget.fileList,
           ),
         ),
       ],
@@ -167,6 +194,128 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       filePreview: widget.filePreview,
       removalSelection: widget.removalSelection,
       onEditRule: _openRuleSheet,
+    );
+  }
+}
+
+/// ルール構築シートの key(008:T45)。
+const Key ruleSheetKey = Key('rule-sheet');
+
+/// シートのプレビューの key(008:T45)。
+const Key ruleSheetPreviewKey = Key('rule-sheet-preview');
+
+/// シートの見出し「命名ルール」(参考デザイン)。区切り線の上に置く。
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.09)),
+        ),
+      ),
+      child: Text(
+        '命名ルール',
+        style: TextStyle(
+          color: colors.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// シートの下部のプレビュー: 1つ目のファイルの元の名前 → 新しい名前(参考デザイン)。
+///
+/// シートを開いている間は一覧が隠れるので、ルールの結果をここで見せる。一覧が
+/// 空なら出さない。名前が変わらなければ元の名前を灰色で出し「（変更なし）」と書く。
+class _SheetPreview extends StatelessWidget {
+  const _SheetPreview({required this.fileList});
+
+  final FileListController fileList;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return ListenableBuilder(
+      listenable: fileList,
+      builder: (context, _) {
+        final rows = fileList.rows;
+        if (rows.isEmpty) return const SizedBox.shrink();
+        final row = rows.first;
+        final newName = row.newName;
+        final changed = newName != null && newName != row.currentName;
+        return Container(
+          key: ruleSheetPreviewKey,
+          margin: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          padding: const EdgeInsets.only(top: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'プレビュー（1つ目のファイル）',
+                style: TextStyle(color: colors.textMuted, fontSize: 10.5),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                row.currentName,
+                style: TextStyle(
+                  color: changed
+                      ? colors.danger.withValues(alpha: 0.85)
+                      : colors.textSecondary,
+                  decoration: changed ? TextDecoration.lineThrough : null,
+                  decorationColor: colors.danger.withValues(alpha: 0.85),
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (changed)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '→ ',
+                      style: TextStyle(
+                        color: colors.textDisabled,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        newName,
+                        style: TextStyle(
+                          color: colors.success,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  '（変更なし）',
+                  style: TextStyle(color: colors.textDisabled, fontSize: 10.5),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

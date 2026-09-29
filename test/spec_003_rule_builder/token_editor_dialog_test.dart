@@ -13,6 +13,7 @@ import 'package:batch_rename_master/ui/rule_builder/token_editors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'token_chip_support.dart';
 
 FileEntry _file(String name, {DateTime? created, DateTime? modified}) =>
     FileEntry(
@@ -42,8 +43,11 @@ Future<void> _pump(
   );
 }
 
+/// 追加ボタン(`＋ 連番`)か、説明が [label] のチップを押す(008:T45 でチップの
+/// 文字が種類名 + 値になった)。
 Future<void> _open(WidgetTester tester, String label) async {
-  await tester.tap(find.text(label));
+  final chip = tokenChip(label);
+  await tester.tap(chip.evaluate().isNotEmpty ? chip : find.text(label));
   await tester.pumpAndSettle();
 }
 
@@ -257,7 +261,7 @@ void main() {
           await tester.tap(find.byKey(const Key('configure-rule')));
           await tester.pumpAndSettle();
         }
-        await tester.tap(find.text('日時 YYYYMMDD').last);
+        await tester.tap(tokenChip('日時 YYYYMMDD').last);
         await tester.pumpAndSettle();
         final first = fl.rows.first.source.createdAt!;
         final expected =

@@ -14,6 +14,7 @@ import 'package:batch_rename_master/ui/rule_builder/token_presets.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'token_chip_support.dart';
 
 FileEntry _file(String name) => FileEntry(
   name: name,
@@ -90,7 +91,7 @@ void main() {
         tokens: const [SequenceToken(start: 89, digits: 2)],
       );
       await _pump(tester, c, 11);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       expect(_digitsShown(tester), 2);
 
@@ -112,7 +113,7 @@ void main() {
         tokens: const [SequenceToken(start: 89, digits: 2)],
       );
       await _pump(tester, c, 11);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       await tester.tap(_plus('開始番号'));
       await tester.pump();
@@ -133,7 +134,7 @@ void main() {
         tokens: const [SequenceToken(start: 1, digits: 2, increment: 9)],
       );
       await _pump(tester, c, 11);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       expect(_digitsShown(tester), 2);
       await tester.tap(_plus('増分'));
@@ -148,7 +149,7 @@ void main() {
         tokens: const [SequenceToken(start: 1, digits: 2)],
       );
       await _pump(tester, c, 150);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       expect(_digitsShown(tester), 3);
 
@@ -156,7 +157,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(_seq(c).digits, 2, reason: 'ルールを黙って書き換えない');
 
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       await _confirm(tester, '確定');
       expect(_seq(c).digits, 3);
@@ -167,7 +168,7 @@ void main() {
         tokens: const [SequenceToken(start: 99, digits: 2)],
       );
       await _pump(tester, c, 0);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       await tester.tap(_plus('開始番号'));
       await tester.pump();
@@ -192,7 +193,7 @@ void main() {
         tokens: const [SequenceToken(start: 1, digits: 2)],
       );
       await _pump(tester, c, 10);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       expect(
         tester.widget<SwitchListTile>(find.byKey(sequenceZeroPadKey)).value,
@@ -207,7 +208,7 @@ void main() {
       await _confirm(tester, '確定');
       expect(_seq(c).zeroPad, isFalse);
       expect(_seq(c).digits, 2, reason: '値は保持する');
-      expect(find.text('連番(ゼロ埋めなし)'), findsOneWidget);
+      expect(tokenChip('連番(ゼロ埋めなし)'), findsOneWidget);
     });
 
     testWidgets('ゼロ埋めへ戻すと保持した桁数が戻り、下限を下回れば引き上げる', (tester) async {
@@ -215,7 +216,7 @@ void main() {
         tokens: const [SequenceToken(start: 1, digits: 1, zeroPad: false)],
       );
       await _pump(tester, c, 150);
-      await tester.tap(find.text('連番(ゼロ埋めなし)'));
+      await tester.tap(tokenChip('連番(ゼロ埋めなし)'));
       await tester.pumpAndSettle();
       expect(_digitsShown(tester), isNull);
 
@@ -233,7 +234,7 @@ void main() {
         tokens: const [SequenceToken(start: 99, digits: 1, zeroPad: false)],
       );
       await _pump(tester, c, 1);
-      await tester.tap(find.text('連番(ゼロ埋めなし)'));
+      await tester.tap(tokenChip('連番(ゼロ埋めなし)'));
       await tester.pumpAndSettle();
       await tester.tap(_plus('開始番号'));
       await tester.pump();
@@ -284,7 +285,7 @@ void main() {
           await tester.tap(find.byKey(const Key('configure-rule')));
           await tester.pumpAndSettle();
         }
-        await tester.tap(find.text('連番(2桁)').last);
+        await tester.tap(tokenChip('連番(2桁)').last);
         await tester.pumpAndSettle();
         expect(_digitsShown(tester), 3, reason: '150件なので3桁以上');
       });
