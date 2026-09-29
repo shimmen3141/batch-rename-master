@@ -3022,6 +3022,13 @@
       "note": "008:T42 選択モードのフッターの色をヘッダーと揃えない(以前の暗い面)",
       "find": "      key: removalModeBarKey,\n      color: colors.bar,",
       "replace": "      key: removalModeBarKey,\n      color: colors.surface,"
+    },
+    {
+      "id": "M472",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "note": "008:T42 独立review attempt 4(reviewer設計の対照)。app内browserのフッターの色をヘッダーと揃えない(以前の暗い面)— **SURVIVEDが期待値になりうる**: browserのフッターの色を直接見るtestは無い(P3・安全網の穴として受容。manual 6.で確認。task.md)",
+      "find": "    decoration: BoxDecoration(\n      color: colors.bar,",
+      "replace": "    decoration: BoxDecoration(\n      color: colors.surface,"
     }
   ]
 }
