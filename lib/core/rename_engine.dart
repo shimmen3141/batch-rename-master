@@ -205,12 +205,13 @@ List<Warning> validate(
     }
   }
 
-  // 桁不足は連番トークンごとに、選択数に対する最大値で判定する。
+  // 桁不足は連番トークンごとに、選択数に対する最大値で判定する。**ゼロ埋めなしの
+  // 連番は判定しない**(REQ-008。014:T01)。
   final count = preview.length;
   if (count > 0) {
     for (var i = 0; i < rule.tokens.length; i++) {
       final token = rule.tokens[i];
-      if (token is SequenceToken) {
+      if (token is SequenceToken && token.zeroPad) {
         final maxValue = _maxSequenceValue(token, count);
         final requiredDigits = _decimalDigits(maxValue);
         if (requiredDigits > token.digits) {
@@ -317,7 +318,10 @@ List<ResolvedEntry> autoResolve(
 
 /// 桁不足を起こす連番トークンの桁数を、最大値が収まる桁数まで拡張する(REQ-011)。
 Token _expandDigits(Token token, int selectedCount) {
-  if (token is! SequenceToken || selectedCount == 0) return token;
+  // ゼロ埋めなしの連番の出力は変えない(REQ-011。014:T01)。
+  if (token is! SequenceToken || !token.zeroPad || selectedCount == 0) {
+    return token;
+  }
   final requiredDigits = _decimalDigits(
     _maxSequenceValue(token, selectedCount),
   );

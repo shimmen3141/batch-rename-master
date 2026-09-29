@@ -55,9 +55,10 @@ class LiteralToken extends Token {
 
 /// 連番トークン: 選択順位に応じた通し番号を出力する(REQ-003)。
 ///
-/// 値 = [start] + (position - 1) × [increment] を、[digits] 桁まで左を `0` で
-/// 埋めた10進文字列で出力する。値が [digits] 桁に収まらない場合は切り詰めず
-/// そのまま出力する(桁不足の検出・拡張は検証/自動解決 = T5/T6 の担当)。
+/// 値 = [start] + (position - 1) × [increment] を、[zeroPad] なら [digits] 桁まで
+/// 左を `0` で埋めた10進文字列で出力する。値が [digits] 桁に収まらない場合は
+/// 切り詰めずそのまま出力する(桁不足の検出・拡張は検証/自動解決 = T5/T6 の担当)。
+/// [zeroPad] でなければ値の10進文字列そのままで、[digits] を用いない(014:T01)。
 class SequenceToken extends Token {
   /// 開始番号(position=1 のときの値)。
   final int start;
@@ -68,14 +69,25 @@ class SequenceToken extends Token {
   /// position が1増えるごとの増分。
   final int increment;
 
-  const SequenceToken({this.start = 1, this.digits = 1, this.increment = 1});
+  /// ゼロ埋めの有無(014:T01)。指定しなければゼロ埋めあり(REQ-003)。偽のとき
+  /// [digits] は評価に使わないが、値は保持する(003 のエディタでゼロ埋めへ戻すと
+  /// 戻る)。
+  final bool zeroPad;
+
+  const SequenceToken({
+    this.start = 1,
+    this.digits = 1,
+    this.increment = 1,
+    this.zeroPad = true,
+  });
 
   /// 指定した選択順位 [position](1始まり)における通し番号の値。
   int valueAt(int position) => start + (position - 1) * increment;
 
   @override
-  String render(RenameContext ctx) =>
-      valueAt(ctx.position).toString().padLeft(digits, '0');
+  String render(RenameContext ctx) => zeroPad
+      ? valueAt(ctx.position).toString().padLeft(digits, '0')
+      : valueAt(ctx.position).toString();
 }
 
 /// 日時トークンの基準(REQ-004)。

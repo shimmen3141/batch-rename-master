@@ -58,8 +58,10 @@ FileEntry? warningTargetOf(Warning warning) => switch (warning) {
 /// 連番トークンが、選択順位 [position](1始まり)で**指定桁数を超えて描かれる**か
 /// (002 REQ-015 の導出)。
 ///
-/// [SequenceToken.render] は `valueAt(position).toString().padLeft(digits, '0')`
-/// で、**埋めるだけで切り詰めない**。したがって「超えて描かれる」は、値の10進表記が
+/// ゼロ埋めありの [SequenceToken.render] は
+/// `valueAt(position).toString().padLeft(digits, '0')` で、**埋めるだけで切り詰めない**。
+/// 001 が桁不足を返すのはゼロ埋めありの連番だけなので(REQ-008。014:T01)、
+/// ここへ来る [token] はゼロ埋めありである。したがって「超えて描かれる」は、値の10進表記が
 /// 桁数より長いことと同じである。
 ///
 /// [position] は 001 の `generatePreview` と同じ数え方 — **選択されている行だけを
