@@ -66,7 +66,7 @@ M491 | KILLED | lib/core/rename_engine.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(code `91a5386`)。
+- Last checkpoint: PR #196をmerge commitで`dev`へmerge(2026-09-29、`01f1884`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`4a2047c..4e28318` FAIL → `4e28318..98ee48d` PASS → 以後はreviewerの対照の取り込みと記録のSELF-CHECK) / CI `check` PASS・未解決threadなし / baseは`4a2047c`で最新・競合なし、full test 1027件PASS / manual確認はこのtaskに無い / 未解決P0/P1なし / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: code `91a5386`
-- Next Agent action: PR #196をreadyにし、CIとmerge条件を確かめてmergeする
+- Evidence revision: 起点`dev`@`4a2047c`、merge `01f1884`。
+- Next Agent action: なし(done)。続きは`014:T03`・`014:T04`(並行できる)。
