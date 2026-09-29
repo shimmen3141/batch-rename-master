@@ -3148,6 +3148,13 @@
       "note": "014:T02 行の桁不足の対象を、警告が指す連番ではなくルール内のどれかの連番の超過で導出する — ゼロ埋めなしの連番の超過まで対象になる(002 例19c)",
       "find": "          if (sequenceOverflowsAt(shortage.token, position)) {",
       "replace": "          if (_rule.tokens.whereType<SequenceToken>().any((t) => sequenceOverflowsAt(t, position))) {"
+    },
+    {
+      "id": "M491",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 独立review attempt 1(reviewer設計RV-T02-1)。桁拡張で作り直すときに増分を既定値へ落とす — 増分が1以外の連番の名前が実行時に変わる",
+      "find": "    increment: token.increment,\n  );\n}",
+      "replace": "    increment: 1,\n  );\n}"
     }
   ]
 }

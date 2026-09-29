@@ -81,6 +81,16 @@ void main() {
       expect(_names(autoResolve(rule, files, _now)), ['099_99', '100_100']);
     });
 
+    test('拡張しても開始番号と増分を保つ(桁2・開始90・増分5 -> 090, 095, 100)', () {
+      // 014:T02 独立review attempt 1 の指摘(拡張で作り直すときに増分が落ちても
+      // 通っていた)。
+      const rule = RenameRule([
+        SequenceToken(start: 90, digits: 2, increment: 5),
+      ]);
+      final files = [_file('a'), _file('b'), _file('c')];
+      expect(_names(autoResolve(rule, files, _now)), ['090', '095', '100']);
+    });
+
     test('桁に収まるなら拡張しない', () {
       const rule = RenameRule([SequenceToken(start: 1, digits: 2)]);
       final files = [_file('a'), _file('b'), _file('c')];
