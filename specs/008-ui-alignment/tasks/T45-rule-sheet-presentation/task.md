@@ -101,9 +101,28 @@ M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← test�
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
 
+- attempt 1: `8d65b0c..72a711b`(全範囲、implementation) — **PASS**(P2 1件・P3 2件)。reviewerのmodelは`gpt-6-luna`。確認された点: 開発者が選んだ範囲の実装と「離れた点」の一致、狭幅・広幅の一覧の監視、チップの値の場合分け、REQ-002〜005・008〜011の維持、並べ替えとタップ・×の共存、testの置き換えが緩和でないこと、色を`token_colors.dart`へ集約した判断、触ったfileのmutationの`find`。full test 1073件・format・analyze・`check specs`・`git diff --check` PASS。
+  - **P2(成果物の欠陥)**: 1件目が未選択だとプレビューが「（変更なし）」と出る(未選択は変更後名`null`。002 REQ-007)。→ `874adce`で**選択されている最初の行**(`firstSelectedRow`)をプレビュー・チップの値・エディタの表示例の共通の基準にした。testを足し、reviewerの対照`M532`を修正後のコードへ当てた形で取り込んだ(KILLED)。
+  - **P3**: `RuleBuilderView`のコメント(色は`AppColors`を再利用)が事実と違う → 直した。**P3(安全網の穴)**: 高さの上限とスクロールの確認手順が無い → 手順書4.3に足した(トークンを足してもシートの高さは変わらないこと、画面が低いときのスクロール)。FAIL条件に当たらない。
+  - あわせて`M517`の`find`を`firstSelectedRow`へ追随させた(KILLED)。
+  - 修正後の範囲付きmutation(`flutter test test/spec_003_rule_builder`)の生出力:
+
+```text
+M515 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M516 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M525 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M529 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M532 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - full `flutter test` 1074件PASS、analyze・format PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(code `b2ca70c`、testの手直しは後続のcommit)。手順書を完成させた。
+- Last checkpoint: attempt 1 の指摘を直した(code `874adce`)。
 - Blocker category: none
-- Evidence revision: code `b2ca70c`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`8d65b0c..HEAD`)の結果を記録する。PR #200(Draft)
+- Evidence revision: code `874adce`
+- Next Agent action: 独立review attempt 2(差分、`72a711b..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
