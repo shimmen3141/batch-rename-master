@@ -66,6 +66,12 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 13 mutations: 13 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+## manual 1回目の結果(2026-09-29、code `0c6f86e`)
+
+受領: 会話。開発者がAndroidエミュレータで手順書の1.〜4.を実行し「確認事項はすべて問題ありませんでした」。対象はHEAD(`lib/`は`0c6f86e`と同一。以後の差分は`tool/`と記録だけ)からのbuild。**PASS**。
+
+- あわせて受領(原文): 「なお、連番の設定シートのUIなど、かなり改善点がありますが、これは別タスクとして設定されていますよね？」 → 専用のtaskは無かった(`008:T14`はtokenのエディタの**形**(sheetかdialogか)だけを扱い、中身は`T05`/`T06`(done)へ送ると書いている。`008:T10`は画面全体の余白・typography)。**`008:T44`として登録した**。このtaskの受け入れ(003 REQ-013/014)とは別の、見た目と操作の改善である。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの入力範囲で、判定・contract・データ保護には触れないが、開発者の指定に従う。
@@ -75,9 +81,7 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(code `0c6f86e`)。manualの手順書をcurrent revisionの文言で完成させた。
-- Blocker category: manual evidence
-- Waiting for: 開発者のmanual 1回目(code `0c6f86e`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/014-T04-editor-padding-and-min-digits`で手順書の1.〜4.を実行し、結果を知らせる
+- Last checkpoint: manual 1回目 PASS(code `0c6f86e`)。
+- Blocker category: none
 - Evidence revision: code `0c6f86e`
-- Next Agent action: manual 1回目(Androidエミュレータ)の結果を記録する。PR #198(Draft)
+- Next Agent action: final-evidence review(`gpt-6-luna`、`f6cde93..HEAD`)を起動する。PR #198(Draft)
