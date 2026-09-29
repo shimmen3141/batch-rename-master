@@ -35,9 +35,24 @@
   - 証拠: review記録。
 - [ ] T02〜T04の`covers`へREQ IDを記入し、`workspace.py check specs`がPASS。
 
+## 作業記録
+
+着手は Claude Opus 5.5(2026-09-29)。branch `asdd/014-sequence-zero-padding/T01-define-behavior`、起点`dev`@`6711f9d`。
+
+読んだ正本: 001 `spec.md`・contract(revision 2、approved。REQ-003/008/011/012、OP-003/004)、003 `spec.md`(REQ-008/011/012、決定済み事項の入力範囲と初期値)、007 `spec.md`(REQ-001〜004、JSON schema `version: 1`)、実装の`_SequenceEditor`(`lib/ui/rule_builder/token_editors.dart`。桁数の欄は「桁数（ゼロ埋め）」、下限は固定の1)、連番の字面(`token_presets.dart`「連番(N桁)」、`rename_warning_view.dart`)。
+
+Agentが正本から決める案(承認時にまとめて示す):
+
+- 2: 件数は一覧の件数(`008:T03`以後、一覧 = rename対象)。下限 = `max(1, 開始 + (max(件数,1) − 1) × 増分 の10進桁数)`。0件なら開始番号の桁数。
+- 4: ゼロ埋めの項目は**任意**(無ければゼロ埋めあり)で、版は`1`のまま。版を上げると007 REQ-004(非対応版は`null`)で既存の保存が復元されずルールが消える。
+- 5: 追加の初期値はゼロ埋めあり・2桁のまま。下限は追加でも編集でも同じ(003 REQ-012「追加と編集で同じ規則」)。
+- 1: ゼロ埋めなしでも桁数の値は持ち続け、評価には使わない(ゼロ埋めへ戻すと元の値が戻る)。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手(`008:T21`から登録、2026-09-29)
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: 001・003・007の現行の正本を読み、上の1〜5のうちAgentで決められないものを開発者へ一問ずつ尋ねる
+- Last checkpoint: 正本を読み、1・2・4・5の案を立てた(2026-09-29)。
+- Blocker category: human decision
+- Waiting for: 開発者: 3(桁数が下限を下回るときのエディタの振る舞い)
+- Requested action: 会話で選ぶ
+- Evidence revision: 起点`dev`@`6711f9d`
+- Next Agent action: 3の回答を記録し、001・003・007のspec差分を書く

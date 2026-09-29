@@ -2,8 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "ゼロ埋めの有無と桁数の下限の振る舞いを定義して承認を得る",
-  "status": "pending",
-  "dependsOn": ["008:T21"],
+  "status": "in_progress",
+  "dependsOn": [
+    "008:T21"
+  ],
   "covers": [],
   "issue": null,
   "pullRequest": null,
