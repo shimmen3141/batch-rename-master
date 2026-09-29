@@ -44,9 +44,12 @@ M496 | KILLED | lib/core/rule_serialization.dart | exit 1
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。保存の互換に触れるので実装と同等以上のmodelを使う。
 
+- attempt 1: `a2456dc..27d2ed7`(全範囲、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。specどおり(常に書く / 無ければゼロ埋めあり / 真偽値でなければ`null` / 版は1)、旧い形のfixtureが名前(`IMG_03.jpg`)と書き直しまで確認していること、起動時の復元経路(`main` → `PersistentRuleController.restore` → `loadLastRule` → `deserializeRule`)に他の影響が無いことを確認された。full test 1032件・format・analyze・`check specs`・`git diff --check` PASS、範囲付きmutation`M493`〜`M496`全KILLED。
+  - 以後は記録だけ(SELF-CHECK)。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と自動検証(code `73ff418`)。
 - Blocker category: none
 - Evidence revision: code `73ff418`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`a2456dc..HEAD`)の結果を記録する。PR #197(Draft)
+- Next Agent action: PR #197をreadyにし、CIとmerge条件を確かめてmergeする
