@@ -120,6 +120,10 @@ M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対�
 1 mutations: 0 KILLED, 1 SURVIVED, 0 SKIPPED
 ```
 
+## manual 2回目の結果(2026-09-29、code `4dc6a5a`)
+
+受領: 会話。開発者が手順書の1.〜3.(Androidエミュレータ)と4.(Windows)を実行し「確認事項は問題ありませんでした」。対象はHEAD(`lib/`は`4dc6a5a`と同一。以後の差分は`tool/`と記録だけ)からのbuild。**PASS**。
+
 ## 独立review
 
 **既定のreviewerは`gpt-6-luna`**(開発者指定)。利用上限で使えないときはClaude Sonnet(2026-09-28 の開発者の許可)。
@@ -135,9 +139,9 @@ M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対�
 
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目(code `683e4ce`)の1.〜3. PASSを受領し、Windowsのメニューをトグルスイッチへ変えた(code `4dc6a5a`、自動検証PASS)。
-- Blocker category: manual evidence。
-- Waiting for: 開発者のmanual 2回目(code `4dc6a5a`。HEADからbuildすれば同じcode)。
-- Requested action: worktree `.worktrees/008-T43-settings-gear-shift-toggle`で手順書の1.〜3.(Androidエミュレータ)と4.(Windows)を実行し結果を知らせる。
-- Evidence revision: manual 1回目は`683e4ce`。変更後のmanualは未実施。
-- Next Agent action: manual 2回目の結果を記録し、PR #195をreadyにしてmerge条件を確かめる。
+- Last checkpoint: manual 2回目 PASS(code `4dc6a5a`、Android 1.〜3.・Windows 4.)。
+- Blocker category: なし(final-evidence review待ち)。
+- Waiting for: 独立review attempt 3(`47062ca..HEAD`、final-evidence、`gpt-6-luna`)。attempt 2がBLOCKEDだった区間をPASSで覆うため。
+- Requested action: なし(Agentが起動する)。
+- Evidence revision: manual 2回目は`4dc6a5a`。
+- Next Agent action: attempt 3の結果を記録し、PASSならPR #195をreadyにしてmerge条件を確かめる。
