@@ -3428,6 +3428,13 @@
       "note": "008:T45 チップの日時が不明なとき空白にする — 不明であることが読めない(001 INV-006 の見せ方)",
       "find": "  if (raw.isEmpty) return token is DateTimeToken ? '不明' : '␣';",
       "replace": "  if (raw.isEmpty) return '␣';"
+    },
+    {
+      "id": "M532",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 独立review attempt 1(reviewer設計の対照M532を、修正後のコードへ当てた形)。未選択の1件目をプレビュー・チップの値の基準にする — 未選択の行は変更後名を持たず(002 REQ-007)、「（変更なし）」やチップの値と食い違う",
+      "find": "    if (row.selected) return row;",
+      "replace": "    return row;"
     }
   ]
 }
