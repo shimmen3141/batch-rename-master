@@ -79,9 +79,12 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 - attempt 1: `f5e8518..f6cde93`(全範囲、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。確認された点: 下限の式と引き上げの契機・下げないこと・ゼロ埋めなしでは触らないこと、確定まで`tokens`を変えないこと、追加でも同じ下限、`main.dart` → `RuleBuilderWorkspace`の狭幅・広幅の両方で`selectedCount`が届くこと(`RuleBuilderView`を直接組むのはtestだけ)、`selectedCount`が003の「一覧の件数」と001の数え方に食い違わないこと、ゼロ埋めなしの表示、`lib/`に未追随の`digits`表示が無いこと、手順書の数値と文言。full test 1046件・format・analyze・`check specs`・`git diff --check` PASS。範囲付きmutation `M497`・`M500`・`M501`・`M504` KILLED。reviewerの対照`RV-T04-1`は、最初の案が等価(SURVIVED)で、差し替えた案がKILLED。両方を`M510`(KILLED)・`M511`(等価の対照。SURVIVEDが期待値)として取り込んだ。
   - 以後はmutation表への取り込みと記録だけ(SELF-CHECK)。
 
+- attempt 2: `f6cde93..8f21a23`(差分、final-evidence) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。`0c6f86e..8f21a23`に`lib/`・`hook/`・`src/`・依存・build設定の差分が無くmanual証拠のidentityを保つこと、manualの記録と手順書の被覆、`M510`・`M511`の定義と期待値、`008:T44`の登録と境界の記述を確認された。full test 1046件・format・analyze・`check specs`(102 tasks)・`git diff --check` PASS。
+  - 連鎖: `f5e8518..f6cde93` PASS → `f6cde93..8f21a23` PASS → 以後は記録だけ(SELF-CHECK)。
+
 ## Current state / handoff
 
 - Last checkpoint: manual 1回目 PASS(code `0c6f86e`)。
 - Blocker category: none
 - Evidence revision: code `0c6f86e`
-- Next Agent action: final-evidence review(`gpt-6-luna`、`f6cde93..HEAD`)を起動する。PR #198(Draft)
+- Next Agent action: PR #198をreadyにし、CIとmerge条件を確かめてmergeする
