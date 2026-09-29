@@ -108,6 +108,37 @@ M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← test�
 
 - 挙がった点のほかは問題なしと読む(「いくつか気になる部分があります」)。5点を直し、manualはやり直す。
 
+### 改善点の実装(2026-09-29、code `889b442`)
+
+- チップ: 種別名を左寄せ(上段の行)。削除は右上の円(直径22、`_DeleteCircle`)を`Stack`で重ね、円の上端と右端をチップの上辺・右辺に合わせた。×は12のまま、押せる範囲は円。円の縁と×は種類の色、中はチップの面(枠の暗い面に種類の色を薄く敷いた不透明な色。チップの面も同じ色に揃えた)。
+- 並べ替えの案内: 点線の枠の中(末尾)から、枠の上(見出しの下の線と枠の間、高さ44の置き場`tokenReorderHintKey`)へ。文言は「チップを押すと各設定が開けます。チップを長押ししてドラッグすると並び替えられます。」。チップが0個なら文を出さず空きだけ(枠の位置は変わらない)。
+- プレビュー: 矢印を`textPrimary`へ。下の余白を18から32へ。
+- **土台から離れた点の更新**: 案内は土台では枠の中(チップの後ろ)にあるが、開発者の指定で枠の外へ。削除は土台では種類名の横の小さな×だが、開発者の指定で右上の円へ。
+- test: 既存の「種類ごとの色」のtestは面の色の定義(不透明に揃えた)へ追随。新しいtest6件(案内の位置と文言、0個のとき空き、左寄せと円の位置、円の大きさ・色・円の端で消える、矢印の色と下の余白)。
+- mutation `M533`〜`M540`を足した。初回`M540`(種別名の中央寄せ)がSURVIVED: testのチップの値が短く、上段の行がチップの幅を決めていたので寄せ方で位置が変わらなかった。値が長いチップで確かめる形に直してKILLED。範囲付き(`flutter test test/spec_003_rule_builder`)で、変更した箇所を守る既存の`M527`〜`M530`も回した生出力(NOTEは省いた):
+
+```text
+M527 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M529 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M530 | KILLED | lib/ui/theme/token_colors.dart | exit 1
+M533 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M534 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M535 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M536 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M537 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M538 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M539 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M540 | SURVIVED | lib/ui/rule_builder/rule_builder_view.dart | exit 0   ← testを直した(上)
+12 mutations: 11 KILLED, 1 SURVIVED, 0 SKIPPED
+M534 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M540 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← testの手直し後
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 触ったfileを`file`に持つmutationの`find`は、すべてちょうど1回一致する。
+- 検証: `flutter test` 1079件PASS、`flutter analyze`・`dart format` PASS。手順書の2.・4.を改善後の画面へ書き直した。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -136,7 +167,7 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目(code `874adce`)で改善点5つを受領した。
+- Last checkpoint: manual 1回目の改善点を実装し自動検証した(code `889b442`)。
 - Blocker category: none
-- Evidence revision: code `874adce`
-- Next Agent action: 改善点5つを直し、testとmutationで確かめる。PR #200(Draft)
+- Evidence revision: code `889b442`
+- Next Agent action: 独立review attempt 3(差分、`dca9d7a..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
