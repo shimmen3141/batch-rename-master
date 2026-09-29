@@ -75,4 +75,4 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 - Last checkpoint: 実装と自動検証(code `0c6f86e`)。manualの手順書をcurrent revisionの文言で完成させた。
 - Blocker category: none
 - Evidence revision: code `0c6f86e`
-- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`f5e8518..HEAD`)を起動する
+- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`f5e8518..HEAD`)の結果を記録する。PR #198(Draft)
