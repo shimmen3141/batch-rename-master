@@ -37,7 +37,8 @@ const List<String> dateTimePresets = [
 String tokenLabel(Token token) => switch (token) {
   OriginalNameToken() => '元の名前',
   LiteralToken(:final value) => _literalLabel(value),
-  SequenceToken(:final digits) => '連番($digits桁)',
+  SequenceToken(:final digits, :final zeroPad) =>
+    zeroPad ? '連番($digits桁)' : '連番(ゼロ埋めなし)',
   DateTimeToken(:final format) => '日時 $format',
 };
 

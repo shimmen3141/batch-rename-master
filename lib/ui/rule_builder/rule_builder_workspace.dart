@@ -88,7 +88,10 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       context: context,
       isScrollControlled: true,
       backgroundColor: context.colors.surface,
-      builder: (_) => RuleBuilderView(controller: widget.rule),
+      builder: (_) => RuleBuilderView(
+        controller: widget.rule,
+        itemCount: () => widget.fileList.selectedCount,
+      ),
     );
   }
 
@@ -134,7 +137,10 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
           // **狭幅のルール設定buttonからも同時に外している**(008:T20)。片方に
           // だけ残すと、開発者が減らそうとした「警告が散らばっている」状態が
           // desktop 側に残る。
-          child: RuleBuilderView(controller: widget.rule),
+          child: RuleBuilderView(
+            controller: widget.rule,
+            itemCount: () => widget.fileList.selectedCount,
+          ),
         ),
       ],
     );

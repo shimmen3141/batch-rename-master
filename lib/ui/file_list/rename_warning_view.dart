@@ -284,7 +284,8 @@ FileEntry? warningFile(Warning warning) => switch (warning) {
 String describeToken(Token token) => switch (token) {
   OriginalNameToken() => '元の名前',
   LiteralToken(:final value) => '固定文字「$value」',
-  SequenceToken(:final digits) => '連番 $digits 桁',
+  SequenceToken(:final digits, :final zeroPad) =>
+    zeroPad ? '連番 $digits 桁' : '連番 ゼロ埋めなし',
   DateTimeToken(:final source, :final format) =>
     '${describeDateTimeSource(source)}「$format」',
 };
@@ -395,8 +396,8 @@ String describeRuleSummary(RenameRule rule) =>
 String describeTokenChip(Token token) => switch (token) {
   OriginalNameToken() => '[元の名前]',
   LiteralToken(:final value) => value.isEmpty ? '""' : value,
-  SequenceToken(:final start, :final digits) =>
-    '[${start.toString().padLeft(digits, '0')}…]',
+  SequenceToken(:final start, :final digits, :final zeroPad) =>
+    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',
   // **基準を落とさない。** designの日時トークンは1種類だが、003 は作成/更新/現在の
   // 3つを持つ。書式だけにすると `[YYYYMMDD]` がどの基準か読めなくなる。
   DateTimeToken(:final source, :final format) =>

@@ -7,6 +7,27 @@ import 'token_presets.dart';
 /// トークンのエディタ(シートの中身)の key。
 const Key tokenEditorKey = Key('token-editor');
 
+/// 連番のエディタのゼロ埋めの切り替え(003 REQ-013)。
+const Key sequenceZeroPadKey = Key('sequence-zero-pad');
+
+/// 連番のエディタの桁数の下限の説明(003 REQ-014)。
+const Key sequenceMinDigitsKey = Key('sequence-min-digits');
+
+/// ゼロ埋めありの連番の桁数の下限(003 REQ-014)。
+///
+/// 最大の番号 `start + (max(itemCount, 1) − 1) × increment` の10進桁数。一覧が
+/// 0件なら開始番号の桁数になる。001 の桁不足(REQ-008)と同じ数え方なので、下限
+/// 以上の桁数なら、その件数では桁不足が出ない。
+int sequenceMinDigits({
+  required int start,
+  required int increment,
+  required int itemCount,
+}) {
+  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;
+  final max = last > start ? last : start;
+  return max.abs().toString().length;
+}
+
 /// [token] を初期値にしたエディタを開き、確定された新しい [Token] を返す。
 ///
 /// 確定以外で閉じたとき(キャンセル・戻る操作・シート外のタップ・下方向の
@@ -14,10 +35,13 @@ const Key tokenEditorKey = Key('token-editor');
 /// null のとき列を変えない(003 REQ-008 / REQ-009 / REQ-011)。エディタは
 /// ボトムシートで表示する。追加と編集で同じエディタを使い、確定ボタンの文言だけを
 /// [confirmLabel] で変える。
+///
+/// [itemCount] は一覧の件数で、連番の桁数の下限に使う(003 REQ-014)。
 Future<Token?> showTokenEditor(
   BuildContext context,
   Token token, {
   String confirmLabel = '確定',
+  int itemCount = 0,
 }) {
   if (token is OriginalNameToken) return Future<Token?>.value(null);
   return showModalBottomSheet<Token>(
@@ -36,6 +60,7 @@ Future<Token?> showTokenEditor(
         SequenceToken() => _SequenceEditor(
           token: token,
           confirmLabel: confirmLabel,
+          itemCount: itemCount,
         ),
         DateTimeToken() => _DateTimeEditor(
           token: token,
@@ -189,12 +214,24 @@ String _separatorLabel(String preset) => switch (preset) {
   _ => preset,
 };
 
-/// 連番（[SequenceToken]）のエディタ。start ≥ 0・digits ≥ 1・increment ≥ 1。
+/// 連番（[SequenceToken]）のエディタ。start ≥ 0・increment ≥ 1。
+///
+/// ゼロ埋めの有無を切り替えられ(003 REQ-013)、ゼロ埋めなしのあいだは桁数を
+/// 出さない(値は保持する)。ゼロ埋めありでは桁数を下限([sequenceMinDigits])より
+/// 小さくできず、下回るときは**下限まで引き上げる** — 開いたとき(件数が後から
+/// 増えた場合)と、開始番号・増分を変えたとき、ゼロ埋めへ戻したとき。下限を
+/// 上回る値は自動で下げない(REQ-014)。引き上げはエディタの中だけで、確定する
+/// までルールは変わらない(REQ-008 / REQ-011)。
 class _SequenceEditor extends StatefulWidget {
-  const _SequenceEditor({required this.token, required this.confirmLabel});
+  const _SequenceEditor({
+    required this.token,
+    required this.confirmLabel,
+    required this.itemCount,
+  });
 
   final SequenceToken token;
   final String confirmLabel;
+  final int itemCount;
 
   @override
   State<_SequenceEditor> createState() => _SequenceEditorState();
@@ -204,34 +241,97 @@ class _SequenceEditorState extends State<_SequenceEditor> {
   late int _start = widget.token.start;
   late int _digits = widget.token.digits;
   late int _increment = widget.token.increment;
+  late bool _zeroPad = widget.token.zeroPad;
+
+  int get _minDigits => sequenceMinDigits(
+    start: _start,
+    increment: _increment,
+    itemCount: widget.itemCount,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _raiseDigits();
+  }
+
+  /// 桁数が下限を下回っていれば下限まで上げる。ゼロ埋めなしのあいだは触らない。
+  void _raiseDigits() {
+    if (_zeroPad && _digits < _minDigits) _digits = _minDigits;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return _EditorScaffold(
       confirmLabel: widget.confirmLabel,
       title: '連番',
       onConfirm: () => Navigator.pop(
         context,
-        SequenceToken(start: _start, digits: _digits, increment: _increment),
+        SequenceToken(
+          start: _start,
+          digits: _digits,
+          increment: _increment,
+          zeroPad: _zeroPad,
+        ),
       ),
       children: [
         _NumberStepper(
           label: '開始番号',
           value: _start,
           min: 0,
-          onChanged: (v) => setState(() => _start = v),
+          onChanged: (v) => setState(() {
+            _start = v;
+            _raiseDigits();
+          }),
         ),
-        _NumberStepper(
-          label: '桁数（ゼロ埋め）',
-          value: _digits,
-          min: 1,
-          onChanged: (v) => setState(() => _digits = v),
+        SwitchListTile(
+          key: sequenceZeroPadKey,
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'ゼロ埋め',
+            style: TextStyle(color: colors.textPrimary, fontSize: 13),
+          ),
+          subtitle: Text(
+            _zeroPad ? '例: 001, 002 …' : '例: 1, 2 … 10',
+            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+          ),
+          value: _zeroPad,
+          onChanged: (v) => setState(() {
+            _zeroPad = v;
+            _raiseDigits();
+          }),
+          activeThumbColor: Colors.white,
+          activeTrackColor: colors.success,
+          inactiveThumbColor: colors.textSecondary,
+          inactiveTrackColor: colors.textMuted,
+          trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
         ),
+        if (_zeroPad) ...[
+          _NumberStepper(
+            label: '桁数',
+            value: _digits,
+            min: _minDigits,
+            onChanged: (v) => setState(() => _digits = v),
+          ),
+          if (_minDigits > 1)
+            Text(
+              _increment == 1
+                  ? '${widget.itemCount}件・開始$_startなので$_minDigits桁以上'
+                  : '${widget.itemCount}件・開始$_start・増分$_incrementなので'
+                        '$_minDigits桁以上',
+              key: sequenceMinDigitsKey,
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
+            ),
+        ],
         _NumberStepper(
           label: '増分',
           value: _increment,
           min: 1,
-          onChanged: (v) => setState(() => _increment = v),
+          onChanged: (v) => setState(() {
+            _increment = v;
+            _raiseDigits();
+          }),
         ),
       ],
     );
