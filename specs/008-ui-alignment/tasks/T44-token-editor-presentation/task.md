@@ -103,6 +103,30 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - manual 1回目(code `cefa597`)は**手順書1.〜5.すべて問題なし**(3.3のキーボードとスクロールを含む)。
 - 改善点4つはすべて**トークンの設定のダイアログ**なので、このtaskで直す(`T45`へ送るものは無い)。「縫う力欄」は「入力欄」と読む。codeを変えるので、manualは直したbuildでやり直す。
 
+### 改善点の実装(2026-09-29、code `967a912`)
+
+- 連番: ゼロ埋めのスイッチを開始番号の上へ。説明を「リネームリスト一覧の上から順に番号を振ります。」。
+- 日時: 説明を「基準となる日時とフォーマットを選んでください。」(実装中に開発者が追加で指定。原文「日時の文言は、「基準となる日時とフォーマットを選んでください。」にしてください。」)。フォーマットのチップの最後に「**詳細に記述**」を足し、選んだときだけ入力欄を出す。入力欄は直前のフォーマットのまま(初期値)。プリセットを選び直すと入力欄は消える。プリセットに無いフォーマットの日時は「詳細に記述」を選んだ状態で開く。「詳細に記述」を選んでいる間はプリセットのチップを選ばれた扱いにしない。
+- 高さ: ダイアログの本文を`AnimatedSize`(220ms、easeInOut、上端揃え)で包み、ゼロ埋めの切り替えと入力欄の出し入れで滑らかに変える。
+- **土台から離れた点の更新**: 日時のフォーマットは土台と同じくチップが主で、自由入力は「詳細に記述」の中へ移った(003 の決定済み事項「プリセット＋自由入力」は満たす)。連番の説明・日時の説明は開発者の指定で、土台の文言ではない。
+- testの追随: 日時の入力欄を使う既存test(`token_add_confirm_test.dart`の3件)は「詳細に記述」を押してから入力する形に、ゼロ埋めを切り替えた後の2件(`sequence_zero_pad_editor_test.dart`)はアニメーションの終わりを待つ形にした(途中のフレームでは確定ボタンが切り取られていて押せない。確かめる内容は変えていない)。新しいtest: スイッチが開始番号の上、日時の説明、「詳細に記述」の出し入れと初期値と確定、プリセットに無いフォーマットで開く、高さが途中の値を通って変わる(連番・日時)。
+- 検証: `flutter test` 1062件PASS、`flutter analyze`・`dart format` PASS。
+- mutation `M519`〜`M523`を足した。`command`を`flutter test test/spec_003_rule_builder`へ絞り、変更した箇所を守る既存の`M252`・`M503`・`M505`も回した8件の生出力(NOTEは省いた):
+
+```text
+M252 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M503 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M505 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M519 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M520 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M521 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M522 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+8 mutations: 8 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 手順書の1.〜3.を改善後の画面に合わせて書き直した(ゼロ埋めの位置、説明文、高さの滑らかさ、「詳細に記述」の出し入れと初期値、プリセットに無いフォーマットで開く)。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -135,9 +159,7 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目(code `cefa597`): キーボード以外は問題なし。3.3(キーボードとスクロール)は未確認。
-- Blocker category: manual evidence
-- Waiting for: 開発者: (1) 画面キーボードを出して手順書3.3を確認した結果、(2) UIの改善点
-- Requested action: 会話で知らせる
-- Evidence revision: code `cefa597`
-- Next Agent action: 改善点を受け取ったら原文で記録し、このtaskと`T45`へ振り分けて直す(codeが変わるのでmanualはその後にやり直す)。改善点が無ければfinal-evidence reviewへ進む
+- Last checkpoint: 改善点を実装し自動検証した(code `967a912`)。manualはcodeが変わったのでやり直す。
+- Blocker category: none
+- Evidence revision: code `967a912`
+- Next Agent action: 独立review attempt 2(差分、`403519c..HEAD`、`gpt-6-luna`)を起動する。PR #199(Draft)
