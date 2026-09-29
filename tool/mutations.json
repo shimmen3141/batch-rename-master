@@ -3474,9 +3474,9 @@
     {
       "id": "M538",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "008:T45 プレビューの矢印を薄い色に戻す — 見えづらい(manual 1回目の開発者の要望)",
-      "find": "                        // 薄くて見えづらかった(manual 1回目の開発者の要望)。\n                        color: colors.textPrimary,",
-      "replace": "                        color: colors.textDisabled,"
+      "note": "008:T45 プレビューの矢印を薄い色に戻す — 見えづらい(manual 1回目の開発者の要望)。**manual 2回目の修正で字下げが変わったので find を追随**",
+      "find": "                              // 薄くて見えづらかった(manual 1回目の開発者の要望)。\n                              color: colors.textPrimary,",
+      "replace": "                              color: colors.textDisabled,"
     },
     {
       "id": "M539",
@@ -3488,9 +3488,37 @@
     {
       "id": "M540",
       "file": "lib/ui/rule_builder/rule_builder_view.dart",
-      "note": "008:T45 種別名を中央寄せにする — 左寄せ(manual 1回目の開発者の要望)",
-      "find": "                            child: Row(\n                              children: [",
-      "replace": "                            child: Row(\n                              mainAxisAlignment: MainAxisAlignment.center,\n                              children: ["
+      "note": "008:T45 種別名を中央寄せにする — 左寄せ(manual 1回目の開発者の要望)。**manual 2回目の修正で字下げが変わったので find を追随**",
+      "find": "                              child: Row(\n                                children: [",
+      "replace": "                              child: Row(\n                                mainAxisAlignment: MainAxisAlignment.center,\n                                children: ["
+    },
+    {
+      "id": "M541",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの2行目の高さを揃えない — 変更あり/なしの切り替えでシートがガタつく(manual 2回目の開発者の指摘)",
+      "find": "                key: ruleSheetPreviewResultKey,\n                height: 20,",
+      "replace": "                key: ruleSheetPreviewResultKey,"
+    },
+    {
+      "id": "M542",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 新しい名前を折り返す — 名前の長さでシートの高さが変わる(manual 2回目)",
+      "find": "                              newName,\n                              maxLines: 1,",
+      "replace": "                              newName,"
+    },
+    {
+      "id": "M543",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 元の名前を折り返す — 名前の長さでシートの高さが変わる(manual 2回目)",
+      "find": "                row.currentName,\n                maxLines: 1,",
+      "replace": "                row.currentName,"
+    },
+    {
+      "id": "M544",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円をはみ出させない — チップから少しはみ出す位置(manual 2回目の開発者の要望)",
+      "find": "const double tokenChipDeleteOverhang = 5;",
+      "replace": "const double tokenChipDeleteOverhang = 0;"
     }
   ]
 }
