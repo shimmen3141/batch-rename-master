@@ -49,4 +49,4 @@ M496 | KILLED | lib/core/rule_serialization.dart | exit 1
 - Last checkpoint: 実装と自動検証(code `73ff418`)。
 - Blocker category: none
 - Evidence revision: code `73ff418`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`a2456dc..HEAD`)の結果を記録する
+- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`a2456dc..HEAD`)の結果を記録する。PR #197(Draft)
