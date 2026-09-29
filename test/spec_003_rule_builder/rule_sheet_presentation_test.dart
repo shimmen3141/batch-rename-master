@@ -412,13 +412,17 @@ void main() {
     testWidgets('種別名は左寄せ、削除の円は右上でチップの上辺と右辺に重なる', (tester) async {
       await pumpView(
         tester,
-        RuleController(tokens: const [LiteralToken('旅行')]),
+        RuleController(tokens: const [LiteralToken('ABCDEFGHIJ')]),
       );
+      // 値が長いチップで見る(値の行がチップの幅を決め、上段に余りが出る)。
       final chip = find
-          .descendant(of: tokenChip('旅行'), matching: find.byType(Material))
+          .descendant(
+            of: tokenChip('ABCDEFGHIJ'),
+            matching: find.byType(Material),
+          )
           .first;
       final circle = find.descendant(
-        of: tokenChip('旅行'),
+        of: tokenChip('ABCDEFGHIJ'),
         matching: find.byKey(tokenChipDeleteKey),
       );
       final chipRect = tester.getRect(chip);
@@ -427,7 +431,10 @@ void main() {
       expect(circleRect.right, closeTo(chipRect.right, 0.5));
 
       final kind = tester.getRect(
-        find.descendant(of: tokenChip('旅行'), matching: find.text('テキスト')),
+        find.descendant(
+          of: tokenChip('ABCDEFGHIJ'),
+          matching: find.text('テキスト'),
+        ),
       );
       expect(kind.left, closeTo(chipRect.left + 8, 0.5), reason: '左寄せ');
       expect(kind.right, lessThan(circleRect.left), reason: '円と重ならない');
