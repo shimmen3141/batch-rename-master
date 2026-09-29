@@ -120,9 +120,14 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 
   - full `flutter test` 1074件PASS、analyze・format PASS。
 
+- attempt 2: `72a711b..dca9d7a`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。P2・P3が閉じたこと、`firstSelectedRow`が連番の1番目が振られるファイルと一致しプレビュー・チップの値・T44の表示例で一貫すること、「プレビュー（1つ目のファイル）」の文言と矛盾しないこと、`M517`・`M532`の妥当性、手順書4.3の真偽を確認された。full test 1074件・format・analyze・`check specs`・`git diff --check` PASS。`M517`・`M532` KILLED。
+  - 連鎖: `8d65b0c..72a711b` PASS → `72a711b..dca9d7a` PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 1 の指摘を直した(code `874adce`)。
-- Blocker category: none
+- Last checkpoint: 独立review attempt 2 PASS(code `874adce`)。
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 1回目(code `874adce`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
 - Evidence revision: code `874adce`
-- Next Agent action: 独立review attempt 2(差分、`72a711b..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
+- Next Agent action: manual 1回目の結果を記録する。PR #200(Draft)
