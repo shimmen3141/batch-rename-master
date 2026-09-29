@@ -305,7 +305,8 @@ class _SheetPreview extends StatelessWidget {
               // (manual 2回目の開発者の指摘)。
               SizedBox(
                 key: ruleSheetPreviewResultKey,
-                height: 20,
+                // 文字の拡大に合わせる(独立review attempt 4 の指摘)。
+                height: MediaQuery.textScalerOf(context).scale(20),
                 child: changed
                     ? Row(
                         crossAxisAlignment: CrossAxisAlignment.center,

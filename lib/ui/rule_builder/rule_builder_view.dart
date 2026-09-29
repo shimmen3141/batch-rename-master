@@ -62,6 +62,10 @@ class RuleBuilderView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // 案内の置き場と点線の枠の高さは固定する(中身で変わるとシートがガタつく。
+    // manual 2回目)。ただし端末の文字の拡大に合わせて決め、大きな文字でも切れない
+    // ようにする(独立review attempt 4 の指摘)。開いている間は拡大率が変わらない。
+    final scaler = MediaQuery.textScalerOf(context);
     return ListenableBuilder(
       // チップの値は一覧の1件目で描く(008:T45)ので、一覧の変化でも描き直す。
       listenable: Listenable.merge([controller, ?sampleListenable]),
@@ -78,7 +82,7 @@ class RuleBuilderView extends StatelessWidget {
               // 開発者の要望)。チップが無いときは同じ高さの空きだけ残す。
               SizedBox(
                 key: tokenReorderHintKey,
-                height: 44,
+                height: tokenReorderHintHeight(scaler),
                 child: tokens.isEmpty
                     ? null
                     : Padding(
@@ -103,7 +107,7 @@ class RuleBuilderView extends StatelessWidget {
                   child: Container(
                     key: tokenFrameKey,
                     color: colors.background,
-                    height: 76,
+                    height: tokenFrameHeight(scaler),
                     child: tokens.isEmpty
                         ? _EmptyHint(colors: colors)
                         : ReorderableListView.builder(
@@ -146,6 +150,26 @@ class RuleBuilderView extends StatelessWidget {
 
 /// トークンを並べる点線の枠の key(008:T45)。
 const Key tokenFrameKey = Key('token-frame');
+
+/// 並べ替えの案内の置き場の高さ。2行ぶんを文字の拡大に合わせて取る(008:T45)。
+double tokenReorderHintHeight(TextScaler scaler) =>
+    14 + scaler.scale(11 * 1.4 * 2);
+
+/// チップ上段(種別名と削除の円)の高さ。円より低くならない(008:T45)。
+double tokenChipKindRowHeight(TextScaler scaler) {
+  final text = scaler.scale(9 * 1.4);
+  return text > tokenChipDeleteSize ? text : tokenChipDeleteSize;
+}
+
+/// 点線の枠の高さ。チップ1段(はみ出しの余白・上段・値の行・下の余白)に枠の上下の
+/// 余白を足し、文字の拡大に合わせる(008:T45)。拡大しなければ 76。
+double tokenFrameHeight(TextScaler scaler) =>
+    10 +
+    tokenChipDeleteOverhang +
+    tokenChipKindRowHeight(scaler) +
+    scaler.scale(23) +
+    6 +
+    10;
 
 /// 並べ替えの案内の置き場の key(008:T45)。
 const Key tokenReorderHintKey = Key('token-reorder-hint');
@@ -278,7 +302,9 @@ class TokenChip extends StatelessWidget {
                           children: [
                             // 上段: 種別名を左寄せ。右は削除の円のぶん空ける。
                             SizedBox(
-                              height: tokenChipDeleteSize,
+                              height: tokenChipKindRowHeight(
+                                MediaQuery.textScalerOf(context),
+                              ),
                               child: Row(
                                 children: [
                                   Text(

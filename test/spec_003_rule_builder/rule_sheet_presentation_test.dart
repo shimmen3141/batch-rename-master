@@ -564,4 +564,80 @@ void main() {
       expect(sheet.bottom - last.bottom, greaterThanOrEqualTo(32));
     });
   });
+
+  // 独立review attempt 4 の指摘(P2): 高さを固定した箱は、端末の文字の拡大に
+  // 合わせる。大きな文字でも文字が箱に収まり、変更あり/なしで高さが変わらない。
+  group('文字を2倍に拡大したとき', () {
+    Future<void> pumpScaled(
+      WidgetTester tester,
+      FileListController fl,
+      RuleController rc,
+    ) async {
+      _narrow(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: RuleBuilderWorkspace(fileList: fl, rule: rc),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('configure-rule')));
+      await tester.pumpAndSettle();
+    }
+
+    bool inside(Rect inner, Rect outer) =>
+        inner.top >= outer.top - 0.5 && inner.bottom <= outer.bottom + 0.5;
+
+    testWidgets('案内・チップ・プレビューの文字が箱に収まり、高さは変わらない', (tester) async {
+      final fl = FileListController(files: [_file('a.txt')]);
+      final rc = RuleController(
+        tokens: const [SequenceToken(digits: 2), LiteralToken('X')],
+      );
+      await pumpScaled(tester, fl, rc);
+      expect(tester.takeException(), isNull, reason: 'はみ出し(overflow)が無い');
+
+      final hintBox = tester.getRect(find.byKey(tokenReorderHintKey));
+      expect(
+        inside(tester.getRect(find.text(tokenReorderHint)), hintBox),
+        isTrue,
+      );
+
+      final frame = tester.getRect(find.byKey(tokenFrameKey));
+      final value = find.descendant(
+        of: tokenChip('連番(2桁)'),
+        matching: find.text('01'),
+      );
+      expect(inside(tester.getRect(value), frame), isTrue);
+
+      final result = find.byKey(ruleSheetPreviewResultKey);
+      final resultBox = tester.getRect(result);
+      final newName = find.descendant(
+        of: result,
+        matching: find.text('01X.txt'),
+      );
+      expect(inside(tester.getRect(newName), resultBox), isTrue);
+      final sheet = tester.getSize(find.byKey(ruleSheetKey)).height;
+
+      // 変更なしへ切り替えても高さは変わらず、文字は箱に収まる。
+      rc
+        ..removeAt(1)
+        ..removeAt(0)
+        ..addToken(const OriginalNameToken());
+      await tester.pump();
+      await tester.pump();
+      final same = find.descendant(of: result, matching: find.text('（変更なし）'));
+      expect(same, findsOneWidget);
+      expect(inside(tester.getRect(same), tester.getRect(result)), isTrue);
+      expect(tester.getSize(find.byKey(ruleSheetKey)).height, sheet);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
