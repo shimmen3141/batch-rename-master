@@ -137,11 +137,14 @@ M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対�
   - **SELF-CHECK**: 所有Agentが同じHEAD `ad18fbb`で`flutter analyze`を流し直し、`No issues found! (ran in 119.0s)`。BLOCKEDの理由はこれで閉じる。reviewerのR3を`M485`として取り込んだ(差分は`tool/mutations.json`と記録だけ。再reviewは起動しない)。
   - キーボードでスイッチを操作するtestは無い(reviewerの観察。`SwitchListTile`の標準の操作に任せている)。FAIL条件に当たらない残余riskとして受容する。引き受け先のtaskは無い。
 
+- attempt 3: `47062ca..caf517e`(差分、final-evidence) — **PASS**(指摘なし。P0/P1 none)。**reviewerのmodelは`gpt-6-luna`**。attempt 2のBLOCKEDの区間を覆う。`flutter test` 1017件PASS、format PASS、`flutter analyze` PASS(113.9s)、`workspace.py check specs` PASS、`git diff --check` PASS。`4dc6a5a..caf517e`に`lib/`・`hook/`・`src/`・依存・build設定の差分が無く、manual 2回目の証拠identityを確認。範囲付きmutation 7件(`M477`・`M480`対照・`M481`〜`M485`)は6 KILLED・1 SURVIVED(`M480`、対照で期待値)。
+  - 連鎖: `c42f131..434dc1e` PASS → `434dc1e..47062ca` SELF-CHECK → `47062ca..caf517e` PASS(attempt 2のBLOCKEDを含めて覆う)→ 以後は記録だけ。
+
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目 PASS(code `4dc6a5a`、Android 1.〜3.・Windows 4.)。
-- Blocker category: なし(final-evidence review待ち)。
-- Waiting for: 独立review attempt 3(`47062ca..HEAD`、final-evidence、`gpt-6-luna`)。attempt 2がBLOCKEDだった区間をPASSで覆うため。
-- Requested action: なし(Agentが起動する)。
-- Evidence revision: manual 2回目は`4dc6a5a`。
-- Next Agent action: attempt 3の結果を記録し、PASSならPR #195をreadyにしてmerge条件を確かめる。
+- Last checkpoint: 独立review attempt 3 PASS(`47062ca..caf517e`、final-evidence、`gpt-6-luna`)。manual 2回目 PASS(code `4dc6a5a`)。
+- Blocker category: なし(merge待ち)。
+- Waiting for: PR #195のCI。
+- Requested action: なし。
+- Evidence revision: code `4dc6a5a`。
+- Next Agent action: PR #195をreadyにし、CI成功とmerge条件を確かめてmergeする。
