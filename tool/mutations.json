@@ -3495,8 +3495,8 @@
     {
       "id": "M541",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "008:T45 プレビューの2行目の高さを揃えない — 変更あり/なしの切り替えでシートがガタつく(manual 2回目の開発者の指摘)",
-      "find": "                key: ruleSheetPreviewResultKey,\n                height: 20,",
+      "note": "008:T45 プレビューの2行目の高さを揃えない — 変更あり/なしの切り替えでシートがガタつく(manual 2回目の開発者の指摘)。**文字の拡大に合わせた変更(独立review attempt 4)で find を追随**",
+      "find": "                key: ruleSheetPreviewResultKey,\n                // 文字の拡大に合わせる(独立review attempt 4 の指摘)。\n                height: MediaQuery.textScalerOf(context).scale(20),",
       "replace": "                key: ruleSheetPreviewResultKey,"
     },
     {

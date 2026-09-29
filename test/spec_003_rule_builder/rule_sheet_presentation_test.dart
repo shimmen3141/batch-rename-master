@@ -12,6 +12,7 @@ import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/ui/theme/token_colors.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -593,8 +594,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    bool inside(Rect inner, Rect outer) =>
-        inner.top >= outer.top - 0.5 && inner.bottom <= outer.bottom + 0.5;
+    // 文字が本来要る高さ(折り返しを含む)で、箱に収まるかを見る。描かれる大きさは
+    // 箱に切り詰められるので、描かれた位置だけでは切れていることが分からない。
+    bool fits(WidgetTester tester, Finder text, Rect box) {
+      final paragraph = tester.renderObject<RenderParagraph>(text);
+      final top = tester.getTopLeft(text).dy;
+      final needed = paragraph.getMinIntrinsicHeight(paragraph.size.width);
+      return top >= box.top - 0.5 && top + needed <= box.bottom + 0.5;
+    }
 
     testWidgets('案内・チップ・プレビューの文字が箱に収まり、高さは変わらない', (tester) async {
       final fl = FileListController(files: [_file('a.txt')]);
@@ -605,17 +612,14 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'はみ出し(overflow)が無い');
 
       final hintBox = tester.getRect(find.byKey(tokenReorderHintKey));
-      expect(
-        inside(tester.getRect(find.text(tokenReorderHint)), hintBox),
-        isTrue,
-      );
+      expect(fits(tester, find.text(tokenReorderHint), hintBox), isTrue);
 
       final frame = tester.getRect(find.byKey(tokenFrameKey));
       final value = find.descendant(
         of: tokenChip('連番(2桁)'),
         matching: find.text('01'),
       );
-      expect(inside(tester.getRect(value), frame), isTrue);
+      expect(fits(tester, value, frame), isTrue);
 
       final result = find.byKey(ruleSheetPreviewResultKey);
       final resultBox = tester.getRect(result);
@@ -623,7 +627,7 @@ void main() {
         of: result,
         matching: find.text('01X.txt'),
       );
-      expect(inside(tester.getRect(newName), resultBox), isTrue);
+      expect(fits(tester, newName, resultBox), isTrue);
       final sheet = tester.getSize(find.byKey(ruleSheetKey)).height;
 
       // 変更なしへ切り替えても高さは変わらず、文字は箱に収まる。
@@ -635,7 +639,7 @@ void main() {
       await tester.pump();
       final same = find.descendant(of: result, matching: find.text('（変更なし）'));
       expect(same, findsOneWidget);
-      expect(inside(tester.getRect(same), tester.getRect(result)), isTrue);
+      expect(fits(tester, same, tester.getRect(result)), isTrue);
       expect(tester.getSize(find.byKey(ruleSheetKey)).height, sheet);
       expect(tester.takeException(), isNull);
     });
