@@ -182,6 +182,39 @@ void main() {
       expect(c.rows[99].warnings.whereType<DigitShortageWarning>(), isNotEmpty);
     });
 
+    test('例19c: ゼロ埋めなしの連番が桁を超えても、桁不足の対象を広げない(014:T01)', () {
+      // 1番目: 桁2・ゼロ埋めあり(100 件目から超える)。3番目: 桁1・ゼロ埋めなし
+      // (10 件目から桁1を超えて描かれるが、001 は警告を返さない)。
+      final c = FileListController(
+        files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],
+        rule: const RenameRule([
+          SequenceToken(digits: 2),
+          LiteralToken('_'),
+          SequenceToken(digits: 1, zeroPad: false),
+        ]),
+      );
+
+      expect(
+        c.warnings.whereType<DigitShortageWarning>().map((w) => w.tokenIndex),
+        [0],
+      );
+      // 選択順位 10〜99 件目 = index 9〜98 は対象にならない。
+      for (var i = 9; i <= 98; i++) {
+        expect(
+          c.rows[i].warnings.whereType<DigitShortageWarning>(),
+          isEmpty,
+          reason: 'index $i: ゼロ埋めなしの連番の超過は対象を広げない',
+        );
+      }
+      // 100 件目以降はゼロ埋めありの連番の警告だけを持つ。
+      expect(
+        c.rows[99].warnings.whereType<DigitShortageWarning>().map(
+          (w) => w.tokenIndex,
+        ),
+        [0],
+      );
+    });
+
     test('例19b: 001 が桁不足を返さないなら、どの行データにも入らない', () {
       final c = FileListController(
         files: <FileEntry>[for (var i = 0; i < 150; i++) _f('f$i.txt')],

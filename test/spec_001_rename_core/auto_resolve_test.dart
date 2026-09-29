@@ -55,6 +55,42 @@ void main() {
       expect(_names(autoResolve(rule, files, _now)), ['099', '100']);
     });
 
+    test('例22: ゼロ埋めなしは桁を拡張しない(桁2・最大100 -> 99, 100)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 99, digits: 2, zeroPad: false),
+      ]);
+      final files = [_file('a'), _file('b')];
+      expect(_names(autoResolve(rule, files, _now)), ['99', '100']);
+    });
+
+    test('ゼロ埋めなしは桁に収まっていても埋めない(桁3 -> 1, 2)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 1, digits: 3, zeroPad: false),
+      ]);
+      final files = [_file('a'), _file('b')];
+      expect(_names(autoResolve(rule, files, _now)), ['1', '2']);
+    });
+
+    test('ゼロ埋めありの拡張でゼロ埋めの設定を保つ(混在)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 99, digits: 2),
+        LiteralToken('_'),
+        SequenceToken(start: 99, digits: 1, zeroPad: false),
+      ]);
+      final files = [_file('a'), _file('b')];
+      expect(_names(autoResolve(rule, files, _now)), ['099_99', '100_100']);
+    });
+
+    test('拡張しても開始番号と増分を保つ(桁2・開始90・増分5 -> 090, 095, 100)', () {
+      // 014:T02 独立review attempt 1 の指摘(拡張で作り直すときに増分が落ちても
+      // 通っていた)。
+      const rule = RenameRule([
+        SequenceToken(start: 90, digits: 2, increment: 5),
+      ]);
+      final files = [_file('a'), _file('b'), _file('c')];
+      expect(_names(autoResolve(rule, files, _now)), ['090', '095', '100']);
+    });
+
     test('桁に収まるなら拡張しない', () {
       const rule = RenameRule([SequenceToken(start: 1, digits: 2)]);
       final files = [_file('a'), _file('b'), _file('c')];

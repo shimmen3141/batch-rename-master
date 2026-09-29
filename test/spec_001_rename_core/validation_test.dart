@@ -73,6 +73,27 @@ void main() {
       expect(_of<DigitShortageWarning>(validate(rule, files, _now)), isEmpty);
     });
 
+    test('例21: ゼロ埋めなしは桁不足を出さない(桁2・100件)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 1, digits: 2, zeroPad: false),
+      ]);
+      final files = List.generate(100, (i) => _file('f$i')); // 最大100
+      expect(_of<DigitShortageWarning>(validate(rule, files, _now)), isEmpty);
+    });
+
+    test('ゼロ埋めありとなしが混在すると、ゼロ埋めありの連番だけを警告する', () {
+      const rule = RenameRule([
+        SequenceToken(start: 1, digits: 1, zeroPad: false),
+        LiteralToken('_'),
+        SequenceToken(start: 1, digits: 2),
+      ]);
+      final files = List.generate(100, (i) => _file('f$i'));
+      final shortages = _of<DigitShortageWarning>(
+        validate(rule, files, _now),
+      ).toList();
+      expect(shortages.map((w) => w.tokenIndex), [2]);
+    });
+
     test('選択0件なら桁不足判定はしない', () {
       const rule = RenameRule([SequenceToken(start: 1, digits: 1)]);
       final files = [_file('a', selected: false)];

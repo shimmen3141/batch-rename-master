@@ -14,6 +14,7 @@
 
 - `lib/ui/rule_builder/`(連番のエディタ、ルールの字面)、`lib/main.dart`の配線、連番を文字で見せる所(下部バーのルールの字面など)と、そのwidget test。
 - 001・007は変えない。
+- **連番を文字で見せる所の追随**(`014:T02`の独立review attempt 1の観察): `token_presets.dart`の「連番(N桁)」と`rename_warning_view.dart`の連番の説明は`digits`を無条件に出す。ゼロ埋めなしでは桁数を見せない形にする。
 
 ## 受け入れ条件
 

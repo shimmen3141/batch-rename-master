@@ -22,9 +22,51 @@
   - 証拠: `test/spec_002_file_list`のtest(行データの導出。今の実装は警告が指す連番ごとに導出するので、testで固定する)。
 - [ ] 独立reviewがPASS(strict)。
 
+## 作業記録
+
+実装は Claude Opus 5.5(2026-09-29)。branch `asdd/014-sequence-zero-padding/T02-core-unpadded-sequence`、起点`dev`@`4a2047c`、code `91a5386`。
+
+- 先にtestを書いた: 001 例19〜23(`token_evaluation_test`・`validation_test`・`auto_resolve_test`)、混在(ゼロ埋めありの連番だけが警告される / 拡張しても混在の設定を保つ)、002 例19c(`preview_rows_test`)。`zeroPad`の項目だけ足した状態(振る舞いは従来)で**7件がFAIL**(例20・23は従来の実装でも成り立つ組み合わせ)。
+- `lib/core/token.dart`: `SequenceToken.zeroPad`(既定`true`)。偽なら`valueAt(position).toString()`。
+- `lib/core/rename_engine.dart`: `validate`の桁不足はゼロ埋めありの連番だけ。`_expandDigits`はゼロ埋めなしをそのまま返す。
+- `lib/ui/file_list/row_view.dart`: `sequenceOverflowsAt`のコメントだけ(ここへ来るのはゼロ埋めありの連番)。行の導出(`file_list_controller.dart`)は変えていない — 警告が指す連番ごとに導出しており、例19cで固定した。
+- 検証: `flutter test` 1026件PASS、`flutter analyze`・`dart format` PASS。
+- **T03までの間の残余**: `rule_serialization.dart`はまだ`zeroPad`を保存しない(偽は保存・復元で真に戻る)。ゼロ埋めなしを作るUIは`T04`まで無いので、利用者の経路では起きない。`T03`が閉じる。
+
+### mutation
+
+`M486`〜`M490`を足した。`command`を`flutter test test/spec_001_rename_core test/spec_002_file_list/preview_rows_test.dart`へ絞った5件の生出力(NOTEは省いた):
+
+```text
+M486 | KILLED | lib/core/token.dart | exit 1
+M487 | KILLED | lib/core/rename_engine.dart | exit 1
+M488 | KILLED | lib/core/rename_engine.dart | exit 1
+M489 | KILLED | lib/core/token.dart | exit 1
+M490 | KILLED | lib/ui/file_list/file_list_controller.dart | exit 1
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+## 独立review
+
+既定のreviewerは`gpt-6-luna`(開発者指定)。001 contractの判定に触れるので実装と同等以上のmodelを使う。
+
+- attempt 1: `4a2047c..4e28318`(全範囲、implementation) — **FAIL**(成果物の欠陥なし。P0/P1 none)。reviewerのmodelは`gpt-6-luna`。**安全網の穴(P2、reviewerはFAIL条件を満たすと判定)**: `_expandDigits`が作り直すときに増分を保つことをtestが固定していない(対照`RV-T02-1`: `increment: 1`へ落としてもSURVIVED)。確認された点: contractどおりの実装、`_expandDigits`は`start`・`increment`を渡す、行の導出は警告の連番ごと、保存の欠落をT03へ送る扱いは妥当(ゼロ埋めなしを作る経路はT04まで無い)。UIのラベル(`token_presets.dart:40`・`rename_warning_view.dart:398`)は`digits`を無条件に出すので**T04で追随が要る**(T04の範囲)。full test 1026件・format・analyze・`check specs` PASS。
+  - 対応: `auto_resolve_test`へ「拡張しても開始番号と増分を保つ(桁2・開始90・増分5 → 090, 095, 100)」を足し、`RV-T02-1`を`M491`として取り込んだ。範囲付き(`flutter test test/spec_001_rename_core`)の生出力:
+
+```text
+M488 | KILLED | lib/core/rename_engine.dart | exit 1
+M491 | KILLED | lib/core/rename_engine.dart | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - full `flutter test` 1027件PASS。
+
+- attempt 2: `4e28318..98ee48d`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。前回の安全網の穴は閉じた(足したtestの数値、`M491`が`RV-T02-1`と同じ回帰を表しKILLED)。T04へ渡したUIラベルの追随の記述は事実と一致。full test 1027件・format・analyze・`check specs`・`git diff --check` PASS。reviewerの対照`RV-T02-2-control`(拡張時に開始番号を1ずらす。KILLED)を`M492`として取り込んだ。
+  - 連鎖: `4a2047c..4e28318` FAIL(安全網の穴) → `4e28318..98ee48d` PASS(指摘が閉じたことを確認) → 以後は`tool/mutations.json`へreviewerの定義を足した差分と記録だけ(SELF-CHECK。再reviewは起動しない)。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 実装と自動検証(code `91a5386`)。
 - Blocker category: none
-- Evidence revision: none
-- Next Agent action: T01の承認後、承認されたREQに対応する失敗するtestから書く
+- Evidence revision: code `91a5386`
+- Next Agent action: PR #196をreadyにし、CIとmerge条件を確かめてmergeする

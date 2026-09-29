@@ -3113,6 +3113,55 @@
       "note": "008:T43 独立review attempt 2(reviewer設計R3)。スイッチのonChangedを外す — 押しても切り替わらず、操作できるスイッチのsemanticsも失う",
       "find": "        onChanged: widget.execution.setShiftModifiedAt,",
       "replace": "        onChanged: null,"
+    },
+    {
+      "id": "M486",
+      "file": "lib/core/token.dart",
+      "note": "014:T02 ゼロ埋めなしでも桁数まで埋める — 001 REQ-003(revision 3)の例19に反する",
+      "find": "      : valueAt(ctx.position).toString();",
+      "replace": "      : valueAt(ctx.position).toString().padLeft(digits, '0');"
+    },
+    {
+      "id": "M487",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 ゼロ埋めなしの連番にも桁不足を出す — 001 REQ-008の例21に反し、選んだ形に警告が出る",
+      "find": "      if (token is SequenceToken && token.zeroPad) {",
+      "replace": "      if (token is SequenceToken) {"
+    },
+    {
+      "id": "M488",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 自動解決がゼロ埋めなしの連番も桁拡張する — 001 REQ-011の例22に反する(拡張で作り直すとゼロ埋めありになり、名前が変わる)",
+      "find": "  if (token is! SequenceToken || !token.zeroPad || selectedCount == 0) {",
+      "replace": "  if (token is! SequenceToken || selectedCount == 0) {"
+    },
+    {
+      "id": "M489",
+      "file": "lib/core/token.dart",
+      "note": "014:T02 ゼロ埋めの既定をなしにする — 指定しない連番(既存のルール・保存)の名前が変わる。001 REQ-003の例23",
+      "find": "    this.zeroPad = true,",
+      "replace": "    this.zeroPad = false,"
+    },
+    {
+      "id": "M490",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "note": "014:T02 行の桁不足の対象を、警告が指す連番ではなくルール内のどれかの連番の超過で導出する — ゼロ埋めなしの連番の超過まで対象になる(002 例19c)",
+      "find": "          if (sequenceOverflowsAt(shortage.token, position)) {",
+      "replace": "          if (_rule.tokens.whereType<SequenceToken>().any((t) => sequenceOverflowsAt(t, position))) {"
+    },
+    {
+      "id": "M491",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 独立review attempt 1(reviewer設計RV-T02-1)。桁拡張で作り直すときに増分を既定値へ落とす — 増分が1以外の連番の名前が実行時に変わる",
+      "find": "    increment: token.increment,\n  );\n}",
+      "replace": "    increment: 1,\n  );\n}"
+    },
+    {
+      "id": "M492",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 独立review attempt 2(reviewer設計RV-T02-2-control)。桁拡張で作り直すときに開始番号を1ずらす — 実行時の連番が1つずれる",
+      "find": "    start: token.start,\n    digits: requiredDigits,",
+      "replace": "    start: token.start + 1,\n    digits: requiredDigits,"
     }
   ]
 }

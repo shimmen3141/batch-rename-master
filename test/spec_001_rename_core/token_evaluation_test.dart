@@ -147,6 +147,27 @@ void main() {
       const rule = RenameRule([SequenceToken(start: 1, digits: 2)]);
       expect(buildName(rule, _file('a'), 100, _now), '100');
     });
+    // 014:T01 で足したゼロ埋めの有無(001 contract revision 3)。
+    test('例19: [連番 開始1 桁3 ゼロ埋めなし] a.png position5 -> 5.png(桁数を用いない)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 1, digits: 3, zeroPad: false),
+      ]);
+      expect(buildName(rule, _file('a.png'), 5, _now), '5.png');
+    });
+    test('例20: [連番 開始9 桁1 ゼロ埋めなし] position2 -> 10(桁が増える)', () {
+      const rule = RenameRule([
+        SequenceToken(start: 9, digits: 1, zeroPad: false),
+      ]);
+      expect(buildName(rule, _file('a.png'), 2, _now), '10.png');
+    });
+    test('例23: ゼロ埋めの有無を指定しなければゼロ埋めあり -> 005', () {
+      const token = SequenceToken(start: 1, digits: 3);
+      expect(token.zeroPad, isTrue);
+      expect(
+        buildName(const RenameRule([token]), _file('a.png'), 5, _now),
+        '005.png',
+      );
+    });
     test('valueAt: 開始1 増分1 は position に等しい', () {
       const token = SequenceToken(start: 1, increment: 1);
       expect(token.valueAt(1), 1);
