@@ -97,6 +97,17 @@ M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← test�
 - **CIで閉じる**: widget test(シート・プレビュー・チップ・並べ替え、003 REQ-002〜005)とmutation。
 - **このtaskのmanual(Androidエミュレータ)**: 見た目(参考デザインとの見比べ)と、タッチでの長押し・横スクロールの感触。引き受け先のtaskは無い。
 
+## manual 1回目の結果と改善点(2026-09-29、code `874adce`、受領: 会話。原文)
+
+> - 確認事項については、いくつか気になる部分があります。
+>     - プレビューの矢印が薄くて見えづらいので、濃くしてください。
+>     - チップの種別名と×マークについて、種別名は左寄せ、×マークは右寄せにしてください。
+>     - チップの×マークが小さくて押しにくいので、円の中に×マークがあるデザインでやや大きくし、円の上と右がチップの上辺と右辺に重なるぐらいの配置にしてください。×マークは今の大きさでよく、円の大きさ分の判定が増えるイメージです。色は各チップの色に合わせてください。円の外周と×マークがチップのアクセントカラー、背景がチップの背景色と同じです。
+>     - 「タップで設定/長押しで並び替え」の文言は見えづらいので、点線枠内には書かず、命名ルールの下の線と点線枠の間にスペースを設けてそこに書いてください。ただし、チップが1つ以上設定されている時だけ表示し、チップが0この場合はスペースだけ開けて空行にしてください。文言は、「チップを押すと各設定が開けます。チップを長押ししてドラッグすると並び替えられます。」にしてください。
+>     - プレビューが画面の下ぎりぎりなので、少しだけ下に余白を設けてください。
+
+- 挙がった点のほかは問題なしと読む(「いくつか気になる部分があります」)。5点を直し、manualはやり直す。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -125,9 +136,7 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 PASS(code `874adce`)。
-- Blocker category: manual evidence
-- Waiting for: 開発者のmanual 1回目(code `874adce`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
+- Last checkpoint: manual 1回目(code `874adce`)で改善点5つを受領した。
+- Blocker category: none
 - Evidence revision: code `874adce`
-- Next Agent action: manual 1回目の結果を記録する。PR #200(Draft)
+- Next Agent action: 改善点5つを直し、testとmutationで確かめる。PR #200(Draft)
