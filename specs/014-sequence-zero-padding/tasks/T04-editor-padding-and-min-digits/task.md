@@ -70,9 +70,14 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの入力範囲で、判定・contract・データ保護には触れないが、開発者の指定に従う。
 
+- attempt 1: `f5e8518..f6cde93`(全範囲、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。確認された点: 下限の式と引き上げの契機・下げないこと・ゼロ埋めなしでは触らないこと、確定まで`tokens`を変えないこと、追加でも同じ下限、`main.dart` → `RuleBuilderWorkspace`の狭幅・広幅の両方で`selectedCount`が届くこと(`RuleBuilderView`を直接組むのはtestだけ)、`selectedCount`が003の「一覧の件数」と001の数え方に食い違わないこと、ゼロ埋めなしの表示、`lib/`に未追随の`digits`表示が無いこと、手順書の数値と文言。full test 1046件・format・analyze・`check specs`・`git diff --check` PASS。範囲付きmutation `M497`・`M500`・`M501`・`M504` KILLED。reviewerの対照`RV-T04-1`は、最初の案が等価(SURVIVED)で、差し替えた案がKILLED。両方を`M510`(KILLED)・`M511`(等価の対照。SURVIVEDが期待値)として取り込んだ。
+  - 以後はmutation表への取り込みと記録だけ(SELF-CHECK)。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と自動検証(code `0c6f86e`)。manualの手順書をcurrent revisionの文言で完成させた。
-- Blocker category: none
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 1回目(code `0c6f86e`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/014-T04-editor-padding-and-min-digits`で手順書の1.〜4.を実行し、結果を知らせる
 - Evidence revision: code `0c6f86e`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`f5e8518..HEAD`)の結果を記録する。PR #198(Draft)
+- Next Agent action: manual 1回目(Androidエミュレータ)の結果を記録する。PR #198(Draft)

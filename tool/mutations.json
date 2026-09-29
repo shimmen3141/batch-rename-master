@@ -3203,6 +3203,8 @@
     {"id": "M506", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)", "find": "(itemCount < 1 ? 1 : itemCount)", "replace": "1"},
     {"id": "M507", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めなしのあいだも引き上げる — 使わない桁数を書き換える(003 REQ-014 はゼロ埋めありだけ)", "find": "    if (_zeroPad && _digits < _minDigits) _digits = _minDigits;", "replace": "    if (_digits < _minDigits) _digits = _minDigits;"},
     {"id": "M508", "file": "lib/ui/rule_builder/token_presets.dart", "note": "014:T04 ゼロ埋めなしでもルールの字面に桁数を出す", "find": "    zeroPad ? '連番($digits桁)' : '連番(ゼロ埋めなし)',", "replace": "    '連番($digits桁)',"},
-    {"id": "M509", "file": "lib/ui/file_list/rename_warning_view.dart", "note": "014:T04 ゼロ埋めなしでも下部バーのchipをゼロ埋めで見せる", "find": "    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',", "replace": "    '[${start.toString().padLeft(digits, '0')}…]',"}
+    {"id": "M509", "file": "lib/ui/file_list/rename_warning_view.dart", "note": "014:T04 ゼロ埋めなしでも下部バーのchipをゼロ埋めで見せる", "find": "    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',", "replace": "    '[${start.toString().padLeft(digits, '0')}…]',"},
+    {"id": "M510", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる", "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;", "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"},
+    {"id": "M511", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**", "find": "((itemCount < 1 ? 1 : itemCount) - 1)", "replace": "(itemCount - 1)"}
   ]
 }
