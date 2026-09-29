@@ -1,6 +1,6 @@
 # コア命名エンジン(rename-core) 振る舞い仕様
 
-- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認 / **2026-08-21 `013:T10` 由来の更新(所属 folder・占有名・folder 単位の最終名集合)を開発者が再承認**(契約の `revision` は `2`、`revision_history` の revision 2 の `approved_date` を参照) / **2026-09-29 `014:T01` 由来の更新(連番のゼロ埋めの有無)を作成し、再承認待ち**(契約の `revision` は `3`。revision 3 の `approved_date` が null の間、`status` の approved は revision 2 に対するもの)
+- Status: (契約に従う) — 正本は `contracts/behavior-contract.json` の `status`。承認の履歴: 2026-07-26 開発者承認 / 2026-08-04 004 由来の更新(FileEntry のハンドル・場所、作成日時の不明表現)を再承認 / **2026-08-21 `013:T10` 由来の更新(所属 folder・占有名・folder 単位の最終名集合)を開発者が再承認**(契約の `revision` は `2`、`revision_history` の revision 2 の `approved_date` を参照) / **2026-09-29 `014:T01` 由来の更新(連番のゼロ埋めの有無)を開発者が再承認**(契約の `revision` は `3`)
 - Level: Strict(**正本は `contracts/behavior-contract.json`**。本ファイルは説明・図解・代表例・反証ログを担い、正誤判定は契約が行う)
 
 ## 目的(説明的・正誤判定には使わない)
@@ -168,7 +168,7 @@ Step 3(仕様の反証)の実施記録。
 
 folder 単位へ揃えた理由: 占有名は承認済み契約で folder ごとと定まっている。最終名集合を横断のまま残すと、「読み込み済み・未選択の別 folder 同名では警告が出るのに、読み込んでいない別 folder 同名では出ない」という非対称と、**実際には衝突しないのに ` (n)` を付ける自動解決**が残る(OQ-006)。単一 folder からの選択では挙動は変わらない。実装は `013:T10`。
 
-### 014:T01 由来の更新(2026-09-29 作成・**再承認待ち**)
+### 014:T01 由来の更新(2026-09-29 作成・**同日 開発者再承認済み**)
 
 契約 revision 3。出所は `008:T21` の開発者決定(ゼロ埋めなしの連番を足す)。経緯と選択肢は [`008:T21`](../008-ui-alignment/tasks/T21-define-sequence-digits/task.md)、計画は [`014`](../014-sequence-zero-padding/plan.md)。
 

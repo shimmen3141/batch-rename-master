@@ -68,11 +68,16 @@ spec差分(2026-09-29):
 - attempt 2: `81b4dd5..1ace7a3`(差分、仕様差分) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。attempt 1のP1は閉じた(REQ-015の導出は連番ごと、実装も`DigitShortageWarning.token`ごと、代表例19cの数値が整合)。`workspace.py check specs` PASS、`git diff --check` PASS。
   - 連鎖: `6711f9d..81b4dd5` FAIL → `81b4dd5..1ace7a3` PASS(FAILの指摘が閉じたことを確認)。
 
+## 承認(2026-09-29)
+
+受領: 会話。開発者: 「保存に関して、版を上げたほうが自然で今後のために良いならそうしてください。現状アプリはリリースなどしておらず、ルールが保存されないことで発生する問題はほとんどありません。ただ、わざわざ版を上げるほどでもないならこのまま承認します。」
+
+- Agentの判断: **版は上げない**(任意フィールドで、無いときの意味が従来と同じなので互換を壊さない。版の変更は互換を壊す変更に取っておく)。したがって差分`6711f9d..54aabeb`(spec部分)を**そのまま承認**として記録した。理由は007 `spec.md`の更新の節にも残した。
+- 001 contract revision 3の`approved_date`を`2026-09-29`に、001・002・003・007のStatusを再承認済みにした。
+
 ## Current state / handoff
 
-- Last checkpoint: spec差分の独立review PASS(attempt 2、`1ace7a3`)。
-- Blocker category: human approval
-- Waiting for: 開発者: 001 contract revision 3・002・003・007のspec差分の承認
-- Requested action: 会話で承認するか、直す点を知らせる
-- Evidence revision: `1ace7a3`
-- Next Agent action: 承認を受けたら、001 contract revision 3の`approved_date`と各specのStatusを承認済みにし、T01をdoneにして`dev`へ統合する
+- Last checkpoint: spec差分の承認を受領し、正本へ反映した(2026-09-29)。
+- Blocker category: none
+- Evidence revision: 承認対象`54aabeb`(specの内容)。
+- Next Agent action: なし(done)。続きは`014:T02`。
