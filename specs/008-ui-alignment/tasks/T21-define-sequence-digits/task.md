@@ -45,10 +45,20 @@
 - 実装taskの登録と、その `covers` への REQ ID の記入。
 - `python3 <asdd-plugin>/scripts/workspace.py check specs` が PASS。
 
+## 調査(2026-09-29)
+
+着手は Claude Opus 5.5。branch `asdd/008-ui-alignment/T21-define-sequence-digits`、起点`dev`@`88b712e`。
+
+- **桁不足を警告する理由は、どの正本にも書かれていない。** 001の`spec.md`・`plan.md`・`decisions/ADR-001`・task(T05/T06)・`history/`を検索した。書かれているのは判定(「連番の計算値が`10^桁数`以上」、`lib/core/rename_engine.dart`の`validate`は選択件数での最大値の桁数 > `digits`)と自動拡張(REQ-011)だけ。
+- 出どころはPRD(`docs/proposals/001-PRD.md`。正本ではない): 連番は「開始番号、桁数(**ゼロ埋め**)」、警告は「連番の桁数が不足している箇所」、例は「2桁指定で100番目」。**ゼロ埋めで揃えた幅が崩れる**(`99`と`100`で幅が違い、名前順で並べると`100`が`11`より前に来る)ことを防ぐ警告と読める。
+- 観測の例(9件・1桁・開始10)は`10`〜`18`で**全件が同じ幅**。上の理由に当てはまらないのに、判定が「指定桁数を超えるか」なので警告になる。
+- 判定を動かすと、002 REQ-015(行の対象の導出: 「指定桁数を超えて描かれる item」)と005の代表例20c・20c′の文言も連動する。008 planの方針(判定・契約が動くときは別plan)により、判定を変える案なら001側の新しいplanへ移す。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録しただけ(2026-09-16)
-- Blocker category: なし
-- Waiting for: なし
-- Evidence revision: なし
-- Next Agent action: 001 の桁不足の理由を確かめ、案A〜Cと「変えない」を影響つきで開発者へ示す
+- Last checkpoint: 着手し、桁不足の理由と影響範囲を調べた(2026-09-29)。
+- Blocker category: human decision。
+- Waiting for: 開発者の選択(案C / A / B / 変えない)。
+- Requested action: 会話で方針を選ぶ。
+- Evidence revision: 起点`dev`@`88b712e`。
+- Next Agent action: 選ばれた案で spec 差分を作る(判定が動くなら001側の新planとして立てる)。
