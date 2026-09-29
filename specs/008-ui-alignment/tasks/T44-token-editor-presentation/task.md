@@ -27,9 +27,15 @@
 - widget test(003 REQ-008〜014を失っていないこと)、full test・analyze・format。
 - Androidエミュレータでの手動確認(`manual-verification.md`を着手後に作る)。
 
+## 作業記録
+
+着手は Claude Opus 5.5(2026-09-29)。branch `asdd/008-ui-alignment/T44-token-editor-presentation`、起点`dev`@`9806d96`。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録しただけ(2026-09-29)
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: `014:T04`のmerge後に着手するとき、改善点の具体を開発者へ尋ねる
+- Last checkpoint: 着手した(2026-09-29)。
+- Blocker category: human decision
+- Waiting for: 開発者: 改善点の具体(どのエディタの、どこを、どうしたいか)と、連番以外のエディタも対象か
+- Requested action: 会話で改善点を挙げる(スクリーンショットがあれば添える)
+- Evidence revision: 起点`dev`@`9806d96`
+- Next Agent action: 受け取った改善点をこのtask.mdへ原文で残し、003 specの自由とする点・`T14`との境界に照らして範囲と受け入れ証拠を具体化する
