@@ -103,7 +103,7 @@ class RuleBuilderView extends StatelessWidget {
                   child: Container(
                     key: tokenFrameKey,
                     color: colors.background,
-                    height: 70,
+                    height: 76,
                     child: tokens.isEmpty
                         ? _EmptyHint(colors: colors)
                         : ReorderableListView.builder(
@@ -111,7 +111,7 @@ class RuleBuilderView extends StatelessWidget {
                             buildDefaultDragHandles: false,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 9,
+                              vertical: 10,
                             ),
                             itemCount: tokens.length,
                             onReorderItem: controller.reorder,
@@ -252,60 +252,69 @@ class TokenChip extends StatelessWidget {
           button: true,
           child: Stack(
             children: [
-              Material(
-                color: face,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: hue.withValues(alpha: 0.35)),
+              // 削除の円がチップから少しはみ出すよう、チップの上と右に円のはみ出し
+              // ぶんの余白を持たせる(manual 2回目の開発者の要望)。余白は Stack の
+              // 内側なので、はみ出した部分も押せる。
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: tokenChipDeleteOverhang,
+                  right: tokenChipDeleteOverhang,
                 ),
-                child: InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-                    child: IntrinsicWidth(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 上段: 種別名を左寄せ。右は削除の円のぶん空ける。
-                          SizedBox(
-                            height: tokenChipDeleteSize,
-                            child: Row(
-                              children: [
-                                Text(
-                                  tokenKindLabel(token),
-                                  style: TextStyle(
-                                    color: hue.withValues(alpha: 0.85),
-                                    fontSize: 9,
+                child: Material(
+                  color: face,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: hue.withValues(alpha: 0.35)),
+                  ),
+                  child: InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                      child: IntrinsicWidth(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 上段: 種別名を左寄せ。右は削除の円のぶん空ける。
+                            SizedBox(
+                              height: tokenChipDeleteSize,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    tokenKindLabel(token),
+                                    style: TextStyle(
+                                      color: hue.withValues(alpha: 0.85),
+                                      fontSize: 9,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: tokenChipDeleteSize),
-                              ],
-                            ),
-                          ),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 132),
-                            child: Text(
-                              tokenChipValue(token, sample),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'monospace',
+                                  const SizedBox(width: tokenChipDeleteSize),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 132),
+                              child: Text(
+                                tokenChipValue(token, sample),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              // 削除は右上の円。円の上端と右端がチップの上辺と右辺に重なる。
+              // 削除は右上の円。チップの上辺と右辺に重なり、少しはみ出す。
               Positioned(
                 top: 0,
                 right: 0,
@@ -325,6 +334,9 @@ class TokenChip extends StatelessWidget {
 
 /// チップの削除の円の直径(008:T45)。×の大きさは変えず、押せる範囲を円のぶん広げる。
 const double tokenChipDeleteSize = 22;
+
+/// 削除の円がチップの上辺・右辺からはみ出す量(008:T45。manual 2回目の開発者の要望)。
+const double tokenChipDeleteOverhang = 5;
 
 /// チップの削除(円の中に×)。円の縁と×はチップの色、円の中はチップの面の色。
 class _DeleteCircle extends StatelessWidget {

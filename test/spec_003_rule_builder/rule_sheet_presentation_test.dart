@@ -409,7 +409,7 @@ void main() {
       expect(tester.getTopLeft(find.byKey(tokenFrameKey)).dy, frameTop);
     });
 
-    testWidgets('種別名は左寄せ、削除の円は右上でチップの上辺と右辺に重なる', (tester) async {
+    testWidgets('種別名は左寄せ、削除の円は右上でチップの上辺と右辺に重なり、少しはみ出す', (tester) async {
       await pumpView(
         tester,
         RuleController(tokens: const [LiteralToken('ABCDEFGHIJ')]),
@@ -427,8 +427,21 @@ void main() {
       );
       final chipRect = tester.getRect(chip);
       final circleRect = tester.getRect(circle);
-      expect(circleRect.top, closeTo(chipRect.top, 0.5));
-      expect(circleRect.right, closeTo(chipRect.right, 0.5));
+      // manual 2回目: チップから少しはみ出す。はみ出す量は上と右とも同じ。
+      expect(
+        circleRect.top,
+        closeTo(chipRect.top - tokenChipDeleteOverhang, 0.5),
+      );
+      expect(
+        circleRect.right,
+        closeTo(chipRect.right + tokenChipDeleteOverhang, 0.5),
+      );
+      expect(tokenChipDeleteOverhang, greaterThan(0));
+      expect(
+        tokenChipDeleteOverhang,
+        lessThan(tokenChipDeleteSize / 2),
+        reason: '円の大半はチップに重なる',
+      );
 
       final kind = tester.getRect(
         find.descendant(
@@ -461,11 +474,60 @@ void main() {
         ),
       );
 
-      // 円の端(×の外)を押しても消える。
+      // チップからはみ出した部分(円の右端寄り)を押しても消える。
       final rect = tester.getRect(circle);
-      await tester.tapAt(rect.topLeft + const Offset(4, 11));
+      await tester.tapAt(Offset(rect.right - 2, rect.center.dy));
       await tester.pump();
       expect(rc.tokens, isEmpty);
+    });
+
+    testWidgets('プレビューの高さは、変更あり・変更なし・長い名前で変わらない(manual 2回目)', (tester) async {
+      _narrow(tester);
+      final rc = RuleController(tokens: const [OriginalNameToken()]);
+      await _pumpWorkspace(
+        tester,
+        FileListController(files: [_file('a.txt')]),
+        rc,
+      );
+      await _openSheet(tester);
+      double height() => tester.getSize(find.byKey(ruleSheetPreviewKey)).height;
+      double sheet() => tester.getSize(find.byKey(ruleSheetKey)).height;
+      final unchanged = height();
+      final sheetUnchanged = sheet();
+      Finder inPreview(String text) => find.descendant(
+        of: find.byKey(ruleSheetPreviewKey),
+        matching: find.text(text),
+      );
+      expect(inPreview('（変更なし）'), findsOneWidget);
+
+      rc.replaceAt(0, const LiteralToken('X'));
+      await tester.pump();
+      await tester.pump();
+      expect(inPreview('X.txt'), findsOneWidget);
+      expect(height(), unchanged, reason: '変更ありでも同じ高さ');
+      expect(sheet(), sheetUnchanged);
+
+      rc.replaceAt(0, LiteralToken('長い名前' * 20));
+      await tester.pump();
+      await tester.pump();
+      expect(height(), unchanged, reason: '長い名前でも折り返さない');
+      expect(sheet(), sheetUnchanged);
+    });
+
+    testWidgets('並べ替えの案内の置き場と枠は、チップの有無で高さが変わらない', (tester) async {
+      _narrow(tester);
+      final rc = RuleController();
+      await _pumpWorkspace(
+        tester,
+        FileListController(files: [_file('a.txt')]),
+        rc,
+      );
+      await _openSheet(tester);
+      final empty = tester.getSize(find.byKey(ruleSheetKey)).height;
+      rc.addToken(const SequenceToken(digits: 2));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.getSize(find.byKey(ruleSheetKey)).height, empty);
     });
 
     testWidgets('プレビューの矢印は濃い文字色で、下に余白がある', (tester) async {

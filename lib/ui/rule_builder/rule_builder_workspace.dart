@@ -212,6 +212,9 @@ const Key ruleSheetKey = Key('rule-sheet');
 /// シートのプレビューの key(008:T45)。
 const Key ruleSheetPreviewKey = Key('rule-sheet-preview');
 
+/// プレビューの2行目(変更あり / 変更なし)の箱の key。高さを揃える(008:T45)。
+const Key ruleSheetPreviewResultKey = Key('rule-sheet-preview-result');
+
 /// シートの見出し「命名ルール」(参考デザイン)。区切り線の上に置く。
 class _SheetHeader extends StatelessWidget {
   const _SheetHeader();
@@ -280,8 +283,12 @@ class _SheetPreview extends StatelessWidget {
                 style: TextStyle(color: colors.textMuted, fontSize: 10.5),
               ),
               const SizedBox(height: 7),
+              // 名前は1行に収める。折り返すと、ルールを変えるたびに新しい名前の長さで
+              // シートの高さが変わってガタつく(manual 2回目の開発者の指摘)。
               Text(
                 row.currentName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: changed
                       ? colors.danger.withValues(alpha: 0.85)
@@ -293,38 +300,51 @@ class _SheetPreview extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              if (changed)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '→ ',
-                      style: TextStyle(
-                        // 薄くて見えづらかった(manual 1回目の開発者の要望)。
-                        color: colors.textPrimary,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        newName,
-                        style: TextStyle(
-                          color: colors.success,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'monospace',
+              // 2行目は変更あり(矢印と新しい名前)でも変更なしでも同じ高さの箱に
+              // 入れる。行の高さが違うと、切り替わるたびにシートがガタつく
+              // (manual 2回目の開発者の指摘)。
+              SizedBox(
+                key: ruleSheetPreviewResultKey,
+                height: 20,
+                child: changed
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '→ ',
+                            style: TextStyle(
+                              // 薄くて見えづらかった(manual 1回目の開発者の要望)。
+                              color: colors.textPrimary,
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              newName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.success,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '（変更なし）',
+                          style: TextStyle(
+                            color: colors.textDisabled,
+                            fontSize: 10.5,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                )
-              else
-                Text(
-                  '（変更なし）',
-                  style: TextStyle(color: colors.textDisabled, fontSize: 10.5),
-                ),
+              ),
             ],
           ),
         );
