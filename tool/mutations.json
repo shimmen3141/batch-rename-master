@@ -3337,6 +3337,41 @@
       "note": "008:T44 区切りの追加を自由テキストの見出しで開く — 入口ごとの見出し(参考デザイン)",
       "find": "          ? LiteralEntry.separator\n",
       "replace": "          ? LiteralEntry.freeText\n"
+    },
+    {
+      "id": "M519",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 高さの変化をアニメーションにしない — ゼロ埋めの切り替え・日時の入力欄の出し入れで高さが急に変わる(manual 1回目の開発者の要望)",
+      "find": "const Duration tokenEditorResizeDuration = Duration(milliseconds: 220);",
+      "replace": "const Duration tokenEditorResizeDuration = Duration.zero;"
+    },
+    {
+      "id": "M520",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 「詳細に記述」を選んでもプリセットのチップを選ばれた扱いにする — どちらを選んでいるのか読めない",
+      "find": "                selected: !_custom && _fmt.text == preset,",
+      "replace": "                selected: _fmt.text == preset,"
+    },
+    {
+      "id": "M521",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 日時の入力欄を常に出す — 「詳細に記述」を選んだときだけ出す(manual 1回目の開発者の要望)",
+      "find": "        if (_custom) ...[",
+      "replace": "        if (true) ...["
+    },
+    {
+      "id": "M522",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 プリセットに無いフォーマットでも「詳細に記述」を選ばずに開く — 今のフォーマットが入力欄にも選ばれたチップにも出ない",
+      "find": "  late bool _custom = !dateTimePresets.contains(widget.token.format);",
+      "replace": "  late bool _custom = false;"
+    },
+    {
+      "id": "M523",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 「詳細に記述」を選ぶと入力欄を空にする — 直前のフォーマットが初期値として入らない(manual 1回目の開発者の要望)",
+      "find": "              onSelected: () => setState(() => _custom = true),",
+      "replace": "              onSelected: () => setState(() {\n                _custom = true;\n                _fmt.text = '';\n              }),"
     }
   ]
 }
