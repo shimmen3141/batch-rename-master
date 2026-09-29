@@ -512,6 +512,14 @@ void main() {
       await tester.pump();
       expect(height(), unchanged, reason: '長い名前でも折り返さない');
       expect(sheet(), sheetUnchanged);
+
+      // 名前はどちらも1行に収め、はみ出す分は省く(箱の高さを固定しても、折り返すと
+      // 文字が箱の外へはみ出して描かれる)。
+      for (final name in ['a.txt', '${'長い名前' * 20}.txt']) {
+        final text = tester.widget<Text>(inPreview(name));
+        expect(text.maxLines, 1, reason: name);
+        expect(text.overflow, TextOverflow.ellipsis, reason: name);
+      }
     });
 
     testWidgets('並べ替えの案内の置き場と枠は、チップの有無で高さが変わらない', (tester) async {
