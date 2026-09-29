@@ -165,9 +165,14 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 - attempt 2: `72a711b..dca9d7a`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。P2・P3が閉じたこと、`firstSelectedRow`が連番の1番目が振られるファイルと一致しプレビュー・チップの値・T44の表示例で一貫すること、「プレビュー（1つ目のファイル）」の文言と矛盾しないこと、`M517`・`M532`の妥当性、手順書4.3の真偽を確認された。full test 1074件・format・analyze・`check specs`・`git diff --check` PASS。`M517`・`M532` KILLED。
   - 連鎖: `8d65b0c..72a711b` PASS → `72a711b..dca9d7a` PASS。
 
+- attempt 3: `dca9d7a..abb9ef3`(差分、implementation。`dev`の取り込みを含む。競合なし) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。改善点5つが原文どおり、削除の円の押せる範囲が直径22でタップ・長押し・横スクロールと衝突しないこと、面の色の変更、testの変更が緩和でないこと、`M533`〜`M540`、手順書と「離れた点」の更新を確認された。full test 1079件・format・analyze・`check specs`(104 tasks)・`git diff --check` PASS。範囲付きmutation 12件KILLED。
+  - 連鎖: `8d65b0c..72a711b` PASS → `72a711b..dca9d7a` PASS → `dca9d7a..abb9ef3` PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目の改善点を実装し自動検証した(code `889b442`)。
-- Blocker category: none
+- Last checkpoint: 独立review attempt 3 PASS(code `889b442`)。
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 2回目(code `889b442`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
 - Evidence revision: code `889b442`
-- Next Agent action: 独立review attempt 3(差分、`dca9d7a..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
+- Next Agent action: manual 2回目の結果を記録する。PR #200(Draft)
