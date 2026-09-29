@@ -157,9 +157,14 @@ M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
 - attempt 1: `9806d96..403519c`(全範囲、implementation) — **PASS**(P2 1件)。reviewerのmodelは`gpt-6-luna`。確認された点: 003 REQ-008〜014の維持(確定前に`tokens`を変えない、キャンセル・戻る・外のタップ、空は確定不可、ゼロ埋めと下限)、`drag`を外した判断は妥当で他のtestの変更は追随だけ、「離れた点」の記述が土台と実装に一致、表示例と1件目の経路、`M242`・`M256`・`M247`の追随と`M248`を外した理由、`M512`〜`M518`、書式だけのcommitが`json.load`で同一、findingの16件の真偽。full test 1055件・format・analyze・`check specs` PASS。範囲付きmutation 10件KILLED。
   - **P2(成果物の欠陥)**: 手順書に、キーボードを出した状態でダイアログをスクロールして入力・確定できるかを見る手順が無い。→ 手順書の3.(日時)に足した。**SELF-CHECK**: 記録だけの差分でP2を閉じるだけなので、再reviewは起動しない(AGENTS.md)。
 
+- attempt 2: `403519c..14a3065`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。改善点(1)〜(5)と手順書の一致、「詳細に記述」の振る舞いと003 REQ-012・決定済み事項、`AnimatedSize`とスクロール・確定の関係、testの追随がassertionの緩和でないこと、高さのtestが即時切替を検出すること、`M519`〜`M523`、触ったfileの既存mutationの`find`がちょうど1回一致することを確認された。full test 1062件・format・analyze・`check specs`・`git diff --check` PASS。範囲付きmutation 8件KILLED。
+  - 連鎖: `9806d96..403519c` PASS(P2はSELF-CHECKで手順書へ)→ `403519c..14a3065` PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: 改善点を実装し自動検証した(code `967a912`)。manualはcodeが変わったのでやり直す。
-- Blocker category: none
+- Last checkpoint: 改善点の独立review attempt 2 PASS(code `967a912`)。
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 2回目(code `967a912`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/008-T44-token-editor-presentation`で手順書の1.〜5.を実行し、結果を知らせる
 - Evidence revision: code `967a912`
-- Next Agent action: 独立review attempt 2(差分、`403519c..HEAD`、`gpt-6-luna`)を起動する。PR #199(Draft)
+- Next Agent action: manual 2回目の結果を記録する。PR #199(Draft)
