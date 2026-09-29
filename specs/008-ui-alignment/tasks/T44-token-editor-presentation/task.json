@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T44",
   "title": "トークンの設定(連番など)を参考デザインの中央のダイアログへ整える",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "014:T04"
   ],
@@ -13,6 +13,6 @@
     "003:REQ-012"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 199,
   "manualVerification": "manual-verification.md"
 }

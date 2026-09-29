@@ -115,4 +115,4 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - Last checkpoint: 実装と自動検証(code `cefa597`)。manualの手順書をcurrent revisionの文言で完成させた。
 - Blocker category: none
 - Evidence revision: code `cefa597`
-- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`9806d96..HEAD`)を起動する
+- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`9806d96..HEAD`)の結果を記録する。PR #199(Draft)
