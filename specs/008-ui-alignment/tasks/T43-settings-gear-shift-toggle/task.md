@@ -89,11 +89,20 @@ M461 | KILLED | exit 1
 
 (`M461`は全件のcommandで確かめ直した。殺すのは範囲外の`test/spec_004_file_source/load_affordance_test.dart`で、`008:T42`と同じ。)
 
+## 独立review
+
+**既定のreviewerは`gpt-6-luna`**(開発者指定)。利用上限で使えないときはClaude Sonnet(2026-09-28 の開発者の許可)。
+
+- attempt 1: `c42f131..434dc1e`(全範囲、implementation) — **PASS**(指摘なし)。**reviewerのmodelはClaude Sonnet**(`gpt-6-luna`が利用上限で起動直後に停止したため。既定との食い違いとして記録する)。決定表と実装の一致、Androidの包みが改名の振る舞い(013 REQ-005/006・fallback)を変えず、製品経路で型に依存するのは`canShiftModifiedAt`だけであること(grepで確認)、未対応platformでも歯車が出ないこと、`008:T42`の保証(大きさの固定・空きが無い・説明が出る)を失っていないこと、testの置き換えが保証を弱めていないこと、mutationの追随・`M462`の除去・`M473`〜`M478`の妥当性、task.mdとfindingの記述(`013:T04`の決定4・`013:T07`の切り替え)の真偽を確認された。format・analyze PASS、full test 1017件PASS、`workspace.py check specs` PASS。範囲付きmutation 12件(`M103`・`M457`・`M458`・`M460`・`M473`〜`M478`・reviewer設計R1・R2)は11 KILLED・1 SURVIVED(R2、対照)。
+  - 広幅のtestは一覧の最小幅(480 = breakpoint 840 − 右ペイン360)でFileListView単体を組んでおり、2ペインの入れ子そのものは通していない。`008:T42` attempt 1 で受容した種類と同じ残余risk(見た目だけ、FAIL条件に当たらない)。manual 3.(横向き)で確認する。
+  - reviewerのR1・R2を`M479`・`M480`として取り込んだ(`M480`は対照でSURVIVEDが期待値)。
+  - **SELF-CHECK**: この後の差分は`tool/mutations.json`へreviewerの定義をそのまま足したものと記録だけで、`lib/`・`test/`に差分は無い。再reviewは起動しない。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と自動検証(2026-09-29、code `683e4ce`)。
-- Blocker category: なし(独立review → manual)。
-- Waiting for: 独立review attempt 1(全範囲`c42f131..HEAD`)。その後manual 1回目(code `683e4ce`)。
-- Requested action: なし(review後にmanualを依頼する)。
+- Blocker category: なし(manual待ち)。
+- Waiting for: manual 1回目(code `683e4ce`)。独立reviewは attempt 1 PASS。
+- Requested action: 人間がworktree `.worktrees/008-T43-settings-gear-shift-toggle`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
 - Evidence revision: 起点は`dev`@`c42f131`。
 - Next Agent action: Draft PRを作る → 独立review → manual依頼 → 結果を記録 → merge判断。

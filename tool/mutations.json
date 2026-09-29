@@ -3064,6 +3064,20 @@
       "note": "008:T43 広幅でも説明を操作の上に置く — 通常のフッターがリネームだけなので説明が入らない(2026-09-29の決定は操作の左に1段)",
       "find": "    if (fill && !noteAsCard) {",
       "replace": "    if (false) {"
+    },
+    {
+      "id": "M479",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T43 独立review attempt 1(reviewer設計R1)。説明の形の条件を反転する — 狭幅が1段の小さな説明、広幅がカードになる",
+      "find": "          noteAsCard: widget.onEditRule != null,",
+      "replace": "          noteAsCard: widget.onEditRule == null,"
+    },
+    {
+      "id": "M480",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 独立review attempt 1(reviewer設計R2・対照)。歯車のtooltipを変える — 振る舞いに影響しない。**SURVIVEDが期待値**",
+      "find": "        tooltip: '設定',",
+      "replace": "        tooltip: 'せってい',"
     }
   ]
 }
