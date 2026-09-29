@@ -263,7 +263,9 @@ class _SheetPreview extends StatelessWidget {
         final changed = newName != row.currentName;
         return Container(
           key: ruleSheetPreviewKey,
-          margin: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          // 画面の下端に寄りすぎないよう、下に少し余白を足した(manual 1回目の
+          // 開発者の要望)。
+          margin: const EdgeInsets.fromLTRB(18, 4, 18, 32),
           padding: const EdgeInsets.only(top: 14),
           decoration: BoxDecoration(
             border: Border(
@@ -299,7 +301,8 @@ class _SheetPreview extends StatelessWidget {
                     Text(
                       '→ ',
                       style: TextStyle(
-                        color: colors.textDisabled,
+                        // 薄くて見えづらかった(manual 1回目の開発者の要望)。
+                        color: colors.textPrimary,
                         fontSize: 11,
                         fontFamily: 'monospace',
                       ),

@@ -8,6 +8,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_builder_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_builder_workspace.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/ui/theme/token_colors.dart';
 import 'package:flutter/gestures.dart';
@@ -277,7 +278,14 @@ void main() {
               )
               .first,
         );
-        expect(material.color, tokenHue(token).withValues(alpha: 0.10));
+        // 枠の暗い面に種類の色を薄く敷いた色(manual 1回目で削除の円の中と揃えた)。
+        expect(
+          material.color,
+          Color.alphaBlend(
+            tokenHue(token).withValues(alpha: 0.10),
+            AppColors.dark.background,
+          ),
+        );
         hues.add(tokenHue(token));
       }
       expect(hues, hasLength(5), reason: '5種がそれぞれ違う色');
@@ -302,7 +310,6 @@ void main() {
         ),
       );
       expect(list.scrollDirection, Axis.horizontal);
-      expect(find.text(tokenReorderHint), findsOneWidget);
     });
 
     testWidgets('チップを長押しして横へ動かすと並べ替わる(003 REQ-004)', (tester) async {
@@ -359,6 +366,125 @@ void main() {
         'AA',
         'BB',
       ]);
+    });
+  });
+
+  // manual 1回目で開発者が挙げた改善点(task.md「manual 1回目の結果と改善点」)。
+  group('manual 1回目の改善点', () {
+    Future<void> pumpView(WidgetTester tester, RuleController rc) =>
+        tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(body: RuleBuilderView(controller: rc)),
+          ),
+        );
+
+    testWidgets('並べ替えの案内は枠の外(上)に、指定の文言で出る', (tester) async {
+      await pumpView(tester, RuleController(tokens: const [LiteralToken('_')]));
+      expect(tokenReorderHint, 'チップを押すと各設定が開けます。チップを長押ししてドラッグすると並び替えられます。');
+      final hint = find.text(tokenReorderHint);
+      expect(hint, findsOneWidget);
+      expect(
+        find.descendant(of: find.byKey(tokenFrameKey), matching: hint),
+        findsNothing,
+        reason: '点線の枠の中には書かない',
+      );
+      expect(
+        tester.getBottomLeft(hint).dy,
+        lessThanOrEqualTo(tester.getTopLeft(find.byKey(tokenFrameKey)).dy),
+        reason: '枠の上',
+      );
+    });
+
+    testWidgets('チップが0個なら案内を出さず、同じ高さの空きだけ残す', (tester) async {
+      final rc = RuleController(tokens: const [LiteralToken('_')]);
+      await pumpView(tester, rc);
+      final withChip = tester.getSize(find.byKey(tokenReorderHintKey)).height;
+      final frameTop = tester.getTopLeft(find.byKey(tokenFrameKey)).dy;
+
+      rc.removeAt(0);
+      await tester.pump();
+      expect(find.text(tokenReorderHint), findsNothing);
+      expect(tester.getSize(find.byKey(tokenReorderHintKey)).height, withChip);
+      expect(tester.getTopLeft(find.byKey(tokenFrameKey)).dy, frameTop);
+    });
+
+    testWidgets('種別名は左寄せ、削除の円は右上でチップの上辺と右辺に重なる', (tester) async {
+      await pumpView(
+        tester,
+        RuleController(tokens: const [LiteralToken('旅行')]),
+      );
+      final chip = find
+          .descendant(of: tokenChip('旅行'), matching: find.byType(Material))
+          .first;
+      final circle = find.descendant(
+        of: tokenChip('旅行'),
+        matching: find.byKey(tokenChipDeleteKey),
+      );
+      final chipRect = tester.getRect(chip);
+      final circleRect = tester.getRect(circle);
+      expect(circleRect.top, closeTo(chipRect.top, 0.5));
+      expect(circleRect.right, closeTo(chipRect.right, 0.5));
+
+      final kind = tester.getRect(
+        find.descendant(of: tokenChip('旅行'), matching: find.text('テキスト')),
+      );
+      expect(kind.left, closeTo(chipRect.left + 8, 0.5), reason: '左寄せ');
+      expect(kind.right, lessThan(circleRect.left), reason: '円と重ならない');
+    });
+
+    testWidgets('削除の円: ×は今の大きさで、押せる範囲は円の大きさ。縁と×はチップの色、中は面の色', (tester) async {
+      const token = SequenceToken(digits: 2);
+      final rc = RuleController(tokens: const [token]);
+      await pumpView(tester, rc);
+      final circle = find.byKey(tokenChipDeleteKey);
+      expect(tester.getSize(circle), const Size(22, 22));
+      final icon = tester.widget<Icon>(
+        find.descendant(of: circle, matching: find.byIcon(Icons.close)),
+      );
+      expect(icon.size, 12);
+      expect(icon.color, tokenHue(token));
+      final material = tester.widget<Material>(circle);
+      expect((material.shape! as CircleBorder).side.color, tokenHue(token));
+      expect(
+        material.color,
+        Color.alphaBlend(
+          tokenHue(token).withValues(alpha: 0.10),
+          AppColors.dark.background,
+        ),
+      );
+
+      // 円の端(×の外)を押しても消える。
+      final rect = tester.getRect(circle);
+      await tester.tapAt(rect.topLeft + const Offset(4, 11));
+      await tester.pump();
+      expect(rc.tokens, isEmpty);
+    });
+
+    testWidgets('プレビューの矢印は濃い文字色で、下に余白がある', (tester) async {
+      _narrow(tester);
+      await _pumpWorkspace(
+        tester,
+        FileListController(files: [_file('a.txt')]),
+        RuleController(tokens: const [LiteralToken('X')]),
+      );
+      await _openSheet(tester);
+      final arrow = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(ruleSheetPreviewKey),
+          matching: find.text('→ '),
+        ),
+      );
+      expect(arrow.style!.color, AppColors.dark.textPrimary);
+      // プレビューの最後の行(新しい名前)の下端からシートの下端まで。
+      final last = tester.getRect(
+        find.descendant(
+          of: find.byKey(ruleSheetPreviewKey),
+          matching: find.text('X.txt'),
+        ),
+      );
+      final sheet = tester.getRect(find.byKey(ruleSheetKey));
+      expect(sheet.bottom - last.bottom, greaterThanOrEqualTo(32));
     });
   });
 }

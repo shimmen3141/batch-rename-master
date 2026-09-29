@@ -74,8 +74,28 @@ class RuleBuilderView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // 並べ替えの案内は枠の外、見出しの下の線と枠の間に置く(manual 1回目の
+              // 開発者の要望)。チップが無いときは同じ高さの空きだけ残す。
+              SizedBox(
+                key: tokenReorderHintKey,
+                height: 44,
+                child: tokens.isEmpty
+                    ? null
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                        child: Text(
+                          tokenReorderHint,
+                          maxLines: 2,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: CustomPaint(
                   painter: _DashedBorderPainter(
                     color: Colors.white.withValues(alpha: 0.16),
@@ -95,7 +115,6 @@ class RuleBuilderView extends StatelessWidget {
                             ),
                             itemCount: tokens.length,
                             onReorderItem: controller.reorder,
-                            footer: const _ReorderHint(),
                             itemBuilder: (context, index) {
                               // 操作は index ベース(controller も index 規約)。
                               // トークンは重複しうる const 値のため index を key にする。
@@ -128,8 +147,11 @@ class RuleBuilderView extends StatelessWidget {
 /// トークンを並べる点線の枠の key(008:T45)。
 const Key tokenFrameKey = Key('token-frame');
 
-/// 並べ替えの手掛かり(参考デザインの「タップで設定 / ドラッグで並び替え」)。
-const String tokenReorderHint = 'タップで設定 / 長押しで並び替え';
+/// 並べ替えの案内の置き場の key(008:T45)。
+const Key tokenReorderHintKey = Key('token-reorder-hint');
+
+/// 並べ替えの案内(manual 1回目の開発者の指定)。
+const String tokenReorderHint = 'チップを押すと各設定が開けます。チップを長押ししてドラッグすると並び替えられます。';
 
 class _EmptyHint extends StatelessWidget {
   const _EmptyHint({required this.colors});
@@ -144,22 +166,6 @@ class _EmptyHint extends StatelessWidget {
       child: Text(
         '↓ 下のボタンから要素を追加',
         style: TextStyle(color: colors.textDisabled, fontSize: 11),
-      ),
-    );
-  }
-}
-
-class _ReorderHint extends StatelessWidget {
-  const _ReorderHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Text(
-        tokenReorderHint,
-        style: TextStyle(color: context.colors.textDisabled, fontSize: 10.5),
       ),
     );
   }
@@ -229,7 +235,14 @@ class TokenChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final hue = tokenHue(token);
+    // チップの面の見え方(枠の暗い面に種類の色を薄く敷いた色)。削除の円の中も
+    // 同じ色にする(manual 1回目の開発者の要望)。
+    final face = Color.alphaBlend(
+      hue.withValues(alpha: 0.10),
+      colors.background,
+    );
     return ReorderableDelayedDragStartListener(
       index: index,
       child: Padding(
@@ -237,72 +250,118 @@ class TokenChip extends StatelessWidget {
         child: Semantics(
           label: description,
           button: true,
-          child: Material(
-            color: hue.withValues(alpha: 0.10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: hue.withValues(alpha: 0.35)),
-            ),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(10),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 5, 4, 6),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          tokenKindLabel(token),
-                          style: TextStyle(
-                            color: hue.withValues(alpha: 0.85),
-                            fontSize: 9,
+          child: Stack(
+            children: [
+              Material(
+                color: face,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: hue.withValues(alpha: 0.35)),
+                ),
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                    child: IntrinsicWidth(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 上段: 種別名を左寄せ。右は削除の円のぶん空ける。
+                          SizedBox(
+                            height: tokenChipDeleteSize,
+                            child: Row(
+                              children: [
+                                Text(
+                                  tokenKindLabel(token),
+                                  style: TextStyle(
+                                    color: hue.withValues(alpha: 0.85),
+                                    fontSize: 9,
+                                  ),
+                                ),
+                                const SizedBox(width: tokenChipDeleteSize),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: IconButton(
-                            onPressed: onDelete,
-                            icon: const Icon(Icons.close, size: 12),
-                            color: hue.withValues(alpha: 0.55),
-                            padding: EdgeInsets.zero,
-                            tooltip: '削除',
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 132),
+                            child: Text(
+                              tokenChipValue(token, sample),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 132),
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Text(
-                          tokenChipValue(token, sample),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              // 削除は右上の円。円の上端と右端がチップの上辺と右辺に重なる。
+              Positioned(
+                top: 0,
+                right: 0,
+                child: _DeleteCircle(
+                  accent: hue,
+                  face: face,
+                  onPressed: onDelete,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+/// チップの削除の円の直径(008:T45)。×の大きさは変えず、押せる範囲を円のぶん広げる。
+const double tokenChipDeleteSize = 22;
+
+/// チップの削除(円の中に×)。円の縁と×はチップの色、円の中はチップの面の色。
+class _DeleteCircle extends StatelessWidget {
+  const _DeleteCircle({
+    required this.accent,
+    required this.face,
+    required this.onPressed,
+  });
+
+  final Color accent;
+  final Color face;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: '削除',
+      child: Material(
+        key: tokenChipDeleteKey,
+        color: face,
+        shape: CircleBorder(side: BorderSide(color: accent)),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: tokenChipDeleteSize,
+            height: tokenChipDeleteSize,
+            child: Icon(Icons.close, size: 12, color: accent),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// チップの削除の円の key(008:T45)。
+const Key tokenChipDeleteKey = Key('token-chip-delete');
 
 /// 5 種のトークン追加ボタン列。
 class _AddBar extends StatelessWidget {
