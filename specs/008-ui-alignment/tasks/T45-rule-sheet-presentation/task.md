@@ -139,6 +139,40 @@ M540 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← test�
 - 触ったfileを`file`に持つmutationの`find`は、すべてちょうど1回一致する。
 - 検証: `flutter test` 1079件PASS、`flutter analyze`・`dart format` PASS。手順書の2.・4.を改善後の画面へ書き直した。
 
+## manual 2回目の結果と改善点(2026-09-29、code `889b442`、受領: 会話。原文)
+
+> 変更なしと変更ありの場合で、プレビューの高さが変わってボトムシートがガタついているようです。修正してください。ほかにも高さが変わる要因があるなら修正してください。また、チップの×マークはチップから少しはみ出るぐらいに少し移動させてください。それによって点線の枠やチップ同士の余白に余裕がなくなるのであれば、余白を少しだけ追加してもよいです。
+
+- 挙がった点のほかは問題なしと読む。codeを変えるのでmanualはやり直す。
+
+### 改善点の実装(2026-09-29、code `5a6c084`)
+
+- プレビュー: 2行目(変更ありの矢印と新しい名前 / 変更なしの文)を高さ20の箱(`ruleSheetPreviewResultKey`)に入れ、どちらでも同じ高さにした。**ほかに高さが変わる要因**として、名前の折り返し(ルールを変えるたびに新しい名前の長さが変わる)を見つけ、元の名前・新しい名前とも1行に収めて「…」で省くようにした。並べ替えの案内の置き場(44)と点線の枠(76)はもともと固定。
+- 削除の円: チップの上と右に`tokenChipDeleteOverhang`(5)の余白を持たせ、その角(`Stack`の内側)に円を置いた。円は5だけはみ出し、はみ出した部分も押せる(`Stack`の外へ`Positioned`で出すと押せなくなるため)。点線の枠を高さ76・上下の余白10へ広げた。チップ同士の間は6 + 5 = 11(円がはみ出す5を引いて6が残る)。
+- test: 円の位置のtestを「5はみ出す」へ、端のタップを「はみ出した部分」へ直した。新しいtest: プレビューの高さが変更あり・なし・長い名前で変わらない(シートの高さも)、名前が1行・省略、チップが0個 ↔ 1個でシートの高さが変わらない。
+- mutation: `M538`・`M540`の`find`を字下げの変更に追随。`M541`〜`M544`を足した。初回`M542`・`M543`(名前を折り返す)がSURVIVED: 新しい名前は高さ固定の箱の中なので折り返しても高さは変わらず(文字が箱の外へはみ出して描かれる)、高さのtestでは検出できない。名前が1行・省略であることを直接確かめる形を足してKILLED。範囲付き(`flutter test test/spec_003_rule_builder`)の生出力(NOTEは省いた):
+
+```text
+M529 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M534 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M535 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M536 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M537 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M538 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M540 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M541 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M542 | SURVIVED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 0   ← testを足した(上)
+M543 | SURVIVED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 0   ← 同上
+M544 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+11 mutations: 9 KILLED, 2 SURVIVED, 0 SKIPPED
+M542 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1   ← testの追加後
+M543 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 触ったfileを`file`に持つmutationの`find`は、すべてちょうど1回一致する。
+- 検証(code `5a6c084`): `flutter test` 1081件PASS、`flutter analyze`・`dart format` PASS。手順書の2.・4.を書き直した。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -170,9 +204,7 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 PASS(code `889b442`)。
-- Blocker category: manual evidence
-- Waiting for: 開発者のmanual 2回目(code `889b442`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
-- Evidence revision: code `889b442`
-- Next Agent action: manual 2回目の結果を記録する。PR #200(Draft)
+- Last checkpoint: manual 2回目の改善点を実装し自動検証した(code `5a6c084`)。
+- Blocker category: none
+- Evidence revision: code `5a6c084`
+- Next Agent action: 独立review attempt 4(差分、`abb9ef3..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
