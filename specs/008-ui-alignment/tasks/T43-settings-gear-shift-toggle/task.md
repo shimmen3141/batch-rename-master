@@ -129,11 +129,15 @@ M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対�
   - reviewerのR1・R2を`M479`・`M480`として取り込んだ(`M480`は対照でSURVIVEDが期待値)。
   - **SELF-CHECK**: この後の差分は`tool/mutations.json`へreviewerの定義をそのまま足したものと記録だけで、`lib/`・`test/`に差分は無い。再reviewは起動しない。
 
+- attempt 2: `47062ca..ad18fbb`(差分、implementation) — **BLOCKED**(指摘なし。P0/P1 none)。**reviewerのmodelは`gpt-6-luna`**。reviewer側の`flutter analyze`が完了せず結果を確認できなかったことだけが理由。確認された点: トグルでON/OFFが切り替わりONは緑・OFFはグレー、切り替えてもメニューが開いたまま状態を映す、`represents`が常に偽で選択項目にならず`SwitchListTile`が操作とsemanticsを持つ、Androidは引き続き`RenameOnlyExecutor`で歯車が出ない(REQ-015・例16)、手順書の対象codeがHEADと一致し変更前後のmanualを区別している。`flutter test` 1017件PASS、format PASS、`workspace.py check specs` PASS、`git diff --check` PASS。範囲付きmutation 5件(`M481`〜`M484`・reviewer設計R3)全KILLED。
+  - **SELF-CHECK**: 所有Agentが同じHEAD `ad18fbb`で`flutter analyze`を流し直し、`No issues found! (ran in 119.0s)`。BLOCKEDの理由はこれで閉じる。reviewerのR3を`M485`として取り込んだ(差分は`tool/mutations.json`と記録だけ。再reviewは起動しない)。
+  - キーボードでスイッチを操作するtestは無い(reviewerの観察。`SwitchListTile`の標準の操作に任せている)。FAIL条件に当たらない残余riskとして受容する。引き受け先のtaskは無い。
+
 ## Current state / handoff
 
 - Last checkpoint: manual 1回目(code `683e4ce`)の1.〜3. PASSを受領し、Windowsのメニューをトグルスイッチへ変えた(code `4dc6a5a`、自動検証PASS)。
-- Blocker category: なし(独立review待ち)。
-- Waiting for: 独立review attempt 2(差分`47062ca..HEAD`、`gpt-6-luna`)。
-- Requested action: なし(Agentが起動する)。
+- Blocker category: manual evidence。
+- Waiting for: 開発者のmanual 2回目(code `4dc6a5a`。HEADからbuildすれば同じcode)。
+- Requested action: worktree `.worktrees/008-T43-settings-gear-shift-toggle`で手順書の1.〜3.(Androidエミュレータ)と4.(Windows)を実行し結果を知らせる。
 - Evidence revision: manual 1回目は`683e4ce`。変更後のmanualは未実施。
-- Next Agent action: 独立review attempt 2 → manual 2回目(変更後のbuildで1.〜4.。4.のWindowsを必須にするか開発者に合わせる)を依頼する。
+- Next Agent action: manual 2回目の結果を記録し、PR #195をreadyにしてmerge条件を確かめる。

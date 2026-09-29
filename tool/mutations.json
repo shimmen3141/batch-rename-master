@@ -3106,6 +3106,13 @@
       "note": "008:T43 OFFのスイッチをグレーにしない(既定の色) — 開発者の要望(OFFはグレー)",
       "find": "        inactiveTrackColor: colors.textMuted,",
       "replace": "        inactiveTrackColor: null,"
+    },
+    {
+      "id": "M485",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 独立review attempt 2(reviewer設計R3)。スイッチのonChangedを外す — 押しても切り替わらず、操作できるスイッチのsemanticsも失う",
+      "find": "        onChanged: widget.execution.setShiftModifiedAt,",
+      "replace": "        onChanged: null,"
     }
   ]
 }
