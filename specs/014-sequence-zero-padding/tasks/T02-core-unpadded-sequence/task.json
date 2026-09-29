@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "コアでゼロ埋めなしの連番を評価し、桁不足と桁拡張をゼロ埋めの連番だけに限る",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T01"
   ],
@@ -13,6 +13,6 @@
     "002:REQ-015"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 196,
   "manualVerification": null
 }

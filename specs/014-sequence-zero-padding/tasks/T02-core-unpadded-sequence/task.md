@@ -55,4 +55,4 @@ M490 | KILLED | lib/ui/file_list/file_list_controller.dart | exit 1
 - Last checkpoint: 実装と自動検証(code `91a5386`)。
 - Blocker category: none
 - Evidence revision: code `91a5386`
-- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`4a2047c..HEAD`)を起動する
+- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`4a2047c..HEAD`)の結果を記録する。PR #196(Draft)
