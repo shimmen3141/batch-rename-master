@@ -127,6 +127,13 @@ M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
 
 - 手順書の1.〜3.を改善後の画面に合わせて書き直した(ゼロ埋めの位置、説明文、高さの滑らかさ、「詳細に記述」の出し入れと初期値、プリセットに無いフォーマットで開く)。
 
+## manual 2回目の結果(2026-09-29、code `967a912`)
+
+受領: 会話。開発者(原文): 「確認事項は全て確認できました。将来的にさらに改善する余地はありますが、ひとまず進めてください。」
+
+- 手順書の1.〜5.(改善後の画面。ゼロ埋めの位置、説明文、高さの滑らかさ、「詳細に記述」、キーボードとスクロール)を**すべて確認。PASS**。対象はHEAD(`lib/`は`967a912`と同一。以後の差分は記録だけ)からのbuild。
+- 「将来的にさらに改善する余地」は具体を受け取っていない。受け取ったらtaskとして登録する(このtaskの受け入れには含めない)。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -162,9 +169,7 @@ M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 改善点の独立review attempt 2 PASS(code `967a912`)。
-- Blocker category: manual evidence
-- Waiting for: 開発者のmanual 2回目(code `967a912`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/008-T44-token-editor-presentation`で手順書の1.〜5.を実行し、結果を知らせる
+- Last checkpoint: manual 2回目 PASS(code `967a912`)。
+- Blocker category: none
 - Evidence revision: code `967a912`
-- Next Agent action: manual 2回目の結果を記録する。PR #199(Draft)
+- Next Agent action: final-evidence review(`gpt-6-luna`、`14a3065..HEAD`)を起動する。PR #199(Draft)
