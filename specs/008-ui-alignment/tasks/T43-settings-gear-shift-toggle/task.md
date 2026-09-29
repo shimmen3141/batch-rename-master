@@ -142,9 +142,9 @@ M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 PASS(`47062ca..caf517e`、final-evidence、`gpt-6-luna`)。manual 2回目 PASS(code `4dc6a5a`)。
-- Blocker category: なし(merge待ち)。
-- Waiting for: PR #195のCI。
+- Last checkpoint: PR #195をmerge commitで`dev`へmerge(2026-09-29、`6411e65`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`c42f131..434dc1e` PASS → `434dc1e..47062ca` SELF-CHECK → `47062ca..caf517e` PASS(`gpt-6-luna`)→ 以後は記録だけ) / CI `check` PASS・未解決threadなし / baseは`c42f131`で最新・競合なし、full test 1017件PASS(code `4dc6a5a`、以後code差分なし) / manual 2回目が`4dc6a5a`に対応 / 未解決P0/P1なし(キーボード操作のtestが無い点は残余riskとして受容済み) / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
+- Blocker category: なし。
+- Waiting for: なし。
 - Requested action: なし。
-- Evidence revision: code `4dc6a5a`。
-- Next Agent action: PR #195をreadyにし、CI成功とmerge条件を確かめてmergeする。
+- Evidence revision: 起点は`dev`@`c42f131`、merge `6411e65`。
+- Next Agent action: なし(done)。
