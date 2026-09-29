@@ -16,7 +16,7 @@
 | 007 ルール永続化 | 直近のルールを保存し、process再起動後に復元できる | [`007-rule-persistence/`](007-rule-persistence/) |
 | 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyに加え、app内file browserの提示、modalの見せ方、警告の提示をtaskへ分解してある。**今後のUI調整の受け皿**であり、実機確認で出た指摘はこのplanへtaskとして足す。taskの一覧と状態は[`008-ui-alignment/plan.md`](008-ui-alignment/plan.md)と`plan.json`が正本 | [`008-ui-alignment/`](008-ui-alignment/) |
 | 013 Android安全rename | **Androidで実renameできるようになった**(contract revision 6、2026-08-24)。**実機で `renameat2(RENAME_NOREPLACE)` が効くことを確認済み**(2026-08-26、emulator API 37)。**SDカードも保存場所として並び、そこでも`renameat2`が効く**(`T12`、2026-08-26。下位はvfat)。実機確認は`T08`が持つ。`renameat2(RENAME_NOREPLACE)`による対応を採用と決め(ADR-002)、権限導線・app内file browser・契約更新・占有名・再採番・保存場所の列挙をT02〜T08 / T10〜T12へ分解した(`T09`は削除済み) | [`013-safe-android-rename/`](013-safe-android-rename/) |
-| 014 連番のゼロ埋めと桁数の下限 | **計画済み**(2026-09-29、`008:T21`の決定から)。ゼロ埋めなしの連番を足し、ゼロ埋めでは開始と件数から決まる桁未満を選べなくする。001の意味・003の入力範囲・007の保存形式が動く | [`014-sequence-zero-padding/`](014-sequence-zero-padding/) |
+| 014 連番のゼロ埋めと桁数の下限 | **完了**(2026-09-29、`008:T21`の決定から)。ゼロ埋めなしの連番を選べ、ゼロ埋めでは開始・増分・件数から決まる桁未満を選べない(下回れば自動で引き上げる)。既存の保存はゼロ埋めありとして復元する(保存の版は1のまま)。エディタの見た目の改善は`008:T44` | [`014-sequence-zero-padding/`](014-sequence-zero-padding/) |
 
 ## 主な依存
 
