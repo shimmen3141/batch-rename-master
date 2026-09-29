@@ -3327,9 +3327,9 @@
     {
       "id": "M517",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "008:T44 表示例に一覧の最後の1件を使う — 『1つ目のファイル』と食い違う",
-      "find": "rows.first.source",
-      "replace": "rows.last.source"
+      "note": "008:T44 表示例に一覧の最後の1件を使う — 『1つ目のファイル』と食い違う。**008:T45 で find を追随**(1件目を選択されている最初の行へ改めた firstSelectedRow)",
+      "find": "  for (final row in fileList.rows) {",
+      "replace": "  for (final row in fileList.rows.reversed) {"
     },
     {
       "id": "M518",
