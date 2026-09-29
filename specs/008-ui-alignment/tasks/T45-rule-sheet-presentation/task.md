@@ -105,5 +105,5 @@ M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← test�
 
 - Last checkpoint: 実装と自動検証(code `b2ca70c`、testの手直しは後続のcommit)。手順書を完成させた。
 - Blocker category: none
-- Evidence revision: HEAD(下のPR作成時に確定する)
-- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`8d65b0c..HEAD`)を起動する
+- Evidence revision: code `b2ca70c`
+- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`8d65b0c..HEAD`)の結果を記録する。PR #200(Draft)
