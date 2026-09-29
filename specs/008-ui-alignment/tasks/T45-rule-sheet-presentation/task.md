@@ -218,9 +218,14 @@ M547 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 
   - full `flutter test` 1082件PASS、analyze・format PASS(code `f6ad967`)。
 
+- attempt 5: `354c916..4b133af`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。attempt 4 のP2が閉じたこと(式を1.3倍・3倍でも照合)、シートを開いている間の高さの変化を新しく作っていないこと(OS側の拡大率を開いたまま変えた場合だけは変わりうる)、testが本来要る高さで見ていること、`M541`・`M545`〜`M547`を確認された。full test 1082件・format・analyze・`check specs` PASS。
+  - 連鎖: `8d65b0c..72a711b` → `72a711b..dca9d7a` → `dca9d7a..abb9ef3` → `abb9ef3..354c916` → `354c916..4b133af`、すべてPASS。
+
 ## Current state / handoff
 
-- Last checkpoint: attempt 4 のP2を直した(code `f6ad967`)。
-- Blocker category: none
+- Last checkpoint: 独立review attempt 5 PASS(code `f6ad967`)。
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 3回目(code `f6ad967`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
 - Evidence revision: code `f6ad967`
-- Next Agent action: 独立review attempt 5(差分、`354c916..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
+- Next Agent action: manual 3回目の結果を記録する。PR #200(Draft)

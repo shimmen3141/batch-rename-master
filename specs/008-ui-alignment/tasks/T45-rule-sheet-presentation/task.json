@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T45",
   "title": "ルール構築シート(ボトムシート)を参考デザインへ整える",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T44"
   ],
