@@ -685,7 +685,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   Widget _footer(AppColors colors) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
-      color: colors.surface,
+      color: colors.bar,
       border: Border(top: BorderSide(color: colors.border)),
     ),
     // **「確定」の残りを全部「リネーム画面へ」が使える**ようにする。`Spacer`と

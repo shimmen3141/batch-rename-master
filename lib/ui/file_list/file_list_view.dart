@@ -534,7 +534,7 @@ class _RemovalModeBar extends StatelessWidget {
     final colors = context.colors;
     return Material(
       key: removalModeBarKey,
-      color: colors.surface,
+      color: colors.bar,
       shape: Border(top: BorderSide(color: colors.border)),
       child: SafeArea(
         top: false,
@@ -1060,7 +1060,7 @@ class _RenameActionBar extends StatelessWidget {
     final changedCount = controller.changedFileCount;
     return Material(
       key: renameActionBarSurfaceKey,
-      color: colors.surface,
+      color: colors.bar,
       // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。
       // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。
       shape: Border(top: BorderSide(color: colors.border)),

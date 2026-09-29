@@ -16,6 +16,10 @@ class AppColors extends ThemeExtension<AppColors> {
   /// リスト行・カードなど一段持ち上がった面。
   final Color surfaceElevated;
 
+  /// 画面の上下の帯(ヘッダーとフッター)の面(`008:T42`)。**上下で同じ色**にし、
+  /// スクロールでも変わらない。
+  final Color bar;
+
   /// 面を仕切る細い境界線。
   final Color border;
 
@@ -62,6 +66,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.background,
     required this.surface,
     required this.surfaceElevated,
+    required this.bar,
     required this.border,
     required this.primary,
     required this.primaryHover,
@@ -82,6 +87,10 @@ class AppColors extends ThemeExtension<AppColors> {
     background: Color(0xFF0A0B0D),
     surface: Color(0xFF15181D),
     surfaceElevated: Color(0xFF191D23),
+    // 2026-09-29 の開発者の指定。以前はヘッダーだけが、一覧をスクロールすると Flutter
+    // 既定の効果(surface tint)でこの程度に明るく紫がかっていた。その見え方をスポイトした
+    // 色に、ヘッダー・フッターとも固定する。
+    bar: Color(0xFF2E2B38),
     border: Color(0x14FFFFFF),
     primary: Color(0xFF22D3EE),
     primaryHover: Color(0xFF67E8F9),
@@ -106,6 +115,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? background,
     Color? surface,
     Color? surfaceElevated,
+    Color? bar,
     Color? border,
     Color? primary,
     Color? primaryHover,
@@ -124,6 +134,7 @@ class AppColors extends ThemeExtension<AppColors> {
       background: background ?? this.background,
       surface: surface ?? this.surface,
       surfaceElevated: surfaceElevated ?? this.surfaceElevated,
+      bar: bar ?? this.bar,
       border: border ?? this.border,
       primary: primary ?? this.primary,
       primaryHover: primaryHover ?? this.primaryHover,
@@ -147,6 +158,7 @@ class AppColors extends ThemeExtension<AppColors> {
       background: Color.lerp(background, other.background, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
+      bar: Color.lerp(bar, other.bar, t)!,
       border: Color.lerp(border, other.border, t)!,
       primary: Color.lerp(primary, other.primary, t)!,
       primaryHover: Color.lerp(primaryHover, other.primaryHover, t)!,

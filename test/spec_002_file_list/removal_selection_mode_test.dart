@@ -274,6 +274,60 @@ void main() {
       });
     }
 
+    testWidgets('ヘッダーとフッターは同じ固定の色で、一覧をスクロールしても変わらない(2026-09-29)', (
+      tester,
+    ) async {
+      // 開発者の指定色。以前はヘッダーだけがスクロールで明るく紫がかった(surface tint)。
+      final colors = appDarkTheme().extension<AppColors>()!;
+      expect(colors.bar, const Color(0xFF2E2B38));
+      await tester.binding.setSurfaceSize(const Size(360, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: [for (var i = 0; i < 40; i++) _f('f$i.txt', handle: 'h:$i')],
+        rule: _seq2,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            appBar: AppBar(title: const Text('一括リネーム')),
+            body: FileListView(controller: c, onEditRule: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Material headerSurface() => tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      Color? footerColor() =>
+          tester.widget<Material>(find.byKey(renameActionBarSurfaceKey)).color;
+
+      expect(headerSurface().color, colors.bar);
+      expect(footerColor(), colors.bar);
+
+      await tester.drag(
+        find.byType(ReorderableListView),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
+      // スクロールしても**ヘッダーは明るくも紫がかりもしない**(面の色・影の段・tint)。
+      expect(headerSurface().color, colors.bar);
+      expect(headerSurface().elevation, 0);
+      expect(headerSurface().surfaceTintColor, Colors.transparent);
+
+      await enterRemovalMode(tester);
+      expect(
+        tester.widget<Material>(find.byKey(removalModeBarKey)).color,
+        colors.bar,
+      );
+    });
+
     testWidgets('見えていない側のフッターは押せない・見つからない', (tester) async {
       final c = FileListController(files: _abc(), rule: _seq2);
       await _pump(tester, c, onEditRule: () {});

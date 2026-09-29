@@ -16,6 +16,14 @@ ThemeData appDarkTheme() {
       onSurface: c.textPrimary,
       error: c.danger,
     ),
+    // **ヘッダーはフッターと同じ固定の色**(`008:T42`。2026-09-29 の開発者の決定)。
+    // 既定では一覧のスクロールでヘッダーだけが明るく紫がかり(surface tint)、
+    // フッターと色が食い違った。
+    appBarTheme: AppBarTheme(
+      backgroundColor: c.bar,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+    ),
     extensions: const <ThemeExtension<dynamic>>[c],
   );
 }
