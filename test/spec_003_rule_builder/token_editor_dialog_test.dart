@@ -47,6 +47,12 @@ Future<void> _open(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// ダイアログのカード(中身の高さ)。`Dialog`そのものは画面いっぱいの大きさを持つ。
+Finder get _card => find.descendant(
+  of: find.byKey(tokenEditorKey),
+  matching: find.byType(AnimatedSize),
+);
+
 String? _example(WidgetTester tester) {
   final f = find.byKey(tokenEditorExampleKey);
   if (f.evaluate().isEmpty) return null;
@@ -111,10 +117,16 @@ void main() {
       expect(chip.selected, isTrue);
     });
 
-    testWidgets('連番の説明は一覧の上から順に振られること', (tester) async {
+    testWidgets('日時の説明(開発者の指定)', (tester) async {
+      await _pump(tester, RuleController());
+      await _open(tester, '＋ 日時');
+      expect(find.text('基準となる日時とフォーマットを選んでください。'), findsOneWidget);
+    });
+
+    testWidgets('連番の説明(manual 1回目の開発者の指定)', (tester) async {
       await _pump(tester, RuleController());
       await _open(tester, '＋ 連番');
-      expect(find.text('一覧の上から順に振られます。'), findsOneWidget);
+      expect(find.text('リネームリスト一覧の上から順に番号を振ります。'), findsOneWidget);
     });
   });
 
@@ -252,6 +264,117 @@ void main() {
             '${first.year}${first.month.toString().padLeft(2, '0')}'
             '${first.day.toString().padLeft(2, '0')}';
         expect(_example(tester), expected);
+      });
+    }
+  });
+
+  // manual 1回目で開発者が挙げた改善点(task.md「3.3の結果とUIの改善点」)。
+  group('manual 1回目の改善点', () {
+    testWidgets('連番のゼロ埋めのスイッチは開始番号の上にある', (tester) async {
+      await _pump(tester, RuleController());
+      await _open(tester, '＋ 連番');
+      final zeroPad = tester.getTopLeft(find.byKey(sequenceZeroPadKey)).dy;
+      final start = tester.getTopLeft(find.text('開始番号')).dy;
+      expect(zeroPad, lessThan(start));
+    });
+
+    testWidgets('日時の入力欄は「詳細に記述」を選んだときだけ出て、直前のフォーマットが入っている', (tester) async {
+      final c = RuleController(
+        tokens: const [
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ],
+      );
+      await _pump(tester, c);
+      await _open(tester, '日時 YYYYMMDD');
+      expect(find.byKey(dateTimeFormatFieldKey), findsNothing);
+
+      // プリセットを選んでから「詳細に記述」 → そのプリセットが入っている。
+      await tester.tap(find.text('YYYY-MM-DD'));
+      await tester.pump();
+      await tester.tap(find.text(dateTimeCustomFormatLabel));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(dateTimeFormatFieldKey),
+      );
+      expect(field.controller!.text, 'YYYY-MM-DD');
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.widgetWithText(ChoiceChip, dateTimeCustomFormatLabel),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'YYYY-MM-DD'))
+            .selected,
+        isFalse,
+        reason: '詳細に記述を選んでいる間はプリセットを選ばれた扱いにしない',
+      );
+
+      // 書き足して確定すると、書いたフォーマットになる。
+      await tester.enterText(find.byKey(dateTimeFormatFieldKey), 'YYYY年MM月');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, '確定'));
+      await tester.pumpAndSettle();
+      expect((c.tokens.single as DateTimeToken).format, 'YYYY年MM月');
+    });
+
+    testWidgets('プリセットを選び直すと入力欄は消える', (tester) async {
+      await _pump(tester, RuleController());
+      await _open(tester, '＋ 日時');
+      await tester.tap(find.text(dateTimeCustomFormatLabel));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dateTimeFormatFieldKey), findsOneWidget);
+      await tester.tap(find.text('YYMMDD'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dateTimeFormatFieldKey), findsNothing);
+    });
+
+    testWidgets('プリセットに無いフォーマットの日時は「詳細に記述」を選んだ状態で開く', (tester) async {
+      final c = RuleController(
+        tokens: const [
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY年MM月DD日'),
+        ],
+      );
+      await _pump(tester, c);
+      await _open(tester, '日時 YYYY年MM月DD日');
+      final field = tester.widget<TextField>(
+        find.byKey(dateTimeFormatFieldKey),
+      );
+      expect(field.controller!.text, 'YYYY年MM月DD日');
+    });
+
+    for (final (name, open, toggle) in [
+      (
+        '連番のゼロ埋めを切り替えたとき',
+        '＋ 連番',
+        (WidgetTester t) => t.tap(find.byKey(sequenceZeroPadKey)),
+      ),
+      (
+        '日時の「詳細に記述」を選んだとき',
+        '＋ 日時',
+        (WidgetTester t) => t.tap(find.text(dateTimeCustomFormatLabel)),
+      ),
+    ]) {
+      testWidgets('$name、ダイアログの高さは途中の値を通って滑らかに変わる', (tester) async {
+        await _pump(tester, RuleController(), count: 3);
+        await _open(tester, open);
+        final before = tester.getSize(_card).height;
+
+        await toggle(tester);
+        await tester.pump(); // 切り替えたフレーム
+        await tester.pump(tokenEditorResizeDuration ~/ 2);
+        final middle = tester.getSize(_card).height;
+        await tester.pumpAndSettle();
+        final after = tester.getSize(_card).height;
+
+        expect(after, isNot(closeTo(before, 1)), reason: '高さは変わる');
+        final lo = before < after ? before : after;
+        final hi = before < after ? after : before;
+        expect(middle, greaterThan(lo + 1), reason: '急に変わらない');
+        expect(middle, lessThan(hi - 1), reason: '急に変わらない');
       });
     }
   });

@@ -200,7 +200,8 @@ void main() {
       );
 
       await tester.tap(find.byKey(sequenceZeroPadKey));
-      await tester.pump();
+      // 008:T44 で高さの変化をアニメーションにした。終わるまで待つ。
+      await tester.pumpAndSettle();
       expect(_digitsShown(tester), isNull, reason: '桁数の入力を求めない');
 
       await _confirm(tester, '確定');
@@ -219,7 +220,8 @@ void main() {
       expect(_digitsShown(tester), isNull);
 
       await tester.tap(find.byKey(sequenceZeroPadKey));
-      await tester.pump();
+      // 008:T44 で高さの変化をアニメーションにした。終わるまで待つ。
+      await tester.pumpAndSettle();
       expect(_digitsShown(tester), 3);
       await _confirm(tester, '確定');
       expect(_seq(c).zeroPad, isTrue);

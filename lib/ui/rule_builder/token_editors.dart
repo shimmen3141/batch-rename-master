@@ -16,6 +16,15 @@ const Key sequenceMinDigitsKey = Key('sequence-min-digits');
 /// エディタの表示例(参考デザインの「表示例」。008:T44)。
 const Key tokenEditorExampleKey = Key('token-editor-example');
 
+/// 日時のフォーマットを詳しく書く入力欄(「詳細に記述」を選んだときだけ出る。008:T44)。
+const Key dateTimeFormatFieldKey = Key('date-time-format-field');
+
+/// 日時のフォーマットの「詳細に記述」のチップの文言。
+const String dateTimeCustomFormatLabel = '詳細に記述';
+
+/// エディタの高さが変わるときのアニメーションの長さ(008:T44。開発者の要望)。
+const Duration tokenEditorResizeDuration = Duration(milliseconds: 220);
+
 /// ゼロ埋めありの連番の桁数の下限(003 REQ-014)。
 ///
 /// 最大の番号 `start + (max(itemCount, 1) − 1) × increment` の10進桁数。一覧が
@@ -125,125 +134,132 @@ class _EditorScaffold extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 11.5,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ...children,
-                    if (exampleLabel != null && example != null)
-                      Container(
-                        margin: const EdgeInsets.only(top: 14),
-                        padding: const EdgeInsets.only(top: 13),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.1),
-                            ),
-                          ),
+        // ゼロ埋めの切り替えや日時の入力欄の出し入れで高さが変わる。変わること
+        // 自体はよいが、急に変わらないよう滑らかにする(008:T44。開発者の要望)。
+        child: AnimatedSize(
+          duration: tokenEditorResizeDuration,
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              exampleLabel!,
-                              style: TextStyle(
-                                color: colors.textMuted,
-                                fontSize: 10,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 11.5,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...children,
+                      if (exampleLabel != null && example != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 14),
+                          padding: const EdgeInsets.only(top: 13),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
                               ),
                             ),
-                            const SizedBox(height: 7),
-                            Text(
-                              example!,
-                              key: tokenEditorExampleKey,
-                              style: TextStyle(
-                                color: colors.success,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'monospace',
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                exampleLabel!,
+                                style: TextStyle(
+                                  color: colors.textMuted,
+                                  fontSize: 10,
+                                ),
                               ),
+                              const SizedBox(height: 7),
+                              Text(
+                                example!,
+                                key: tokenEditorExampleKey,
+                                style: TextStyle(
+                                  color: colors.success,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  decoration: BoxDecoration(border: Border(top: divider)),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 10,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            backgroundColor: colors.surfaceElevated,
+                            foregroundColor: colors.textPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(11),
                             ),
-                          ],
+                          ),
+                          child: const Text('キャンセル'),
                         ),
                       ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 13,
+                        child: FilledButton(
+                          onPressed: onConfirm,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            foregroundColor: colors.onPrimary,
+                            disabledBackgroundColor: colors.surfaceElevated,
+                            disabledForegroundColor: colors.textDisabled,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                          ),
+                          child: Text(confirmLabel),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                decoration: BoxDecoration(border: Border(top: divider)),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 10,
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          backgroundColor: colors.surfaceElevated,
-                          foregroundColor: colors.textPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                        ),
-                        child: const Text('キャンセル'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 13,
-                      child: FilledButton(
-                        onPressed: onConfirm,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                          disabledBackgroundColor: colors.surfaceElevated,
-                          disabledForegroundColor: colors.textDisabled,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                        ),
-                        child: Text(confirmLabel),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -482,7 +498,7 @@ class _SequenceEditorState extends State<_SequenceEditor> {
     return _EditorScaffold(
       confirmLabel: widget.confirmLabel,
       title: '連番',
-      description: '一覧の上から順に振られます。',
+      description: 'リネームリスト一覧の上から順に番号を振ります。',
       exampleLabel: count > 1 ? '表示例（一覧の $count 件に上から順に振られます）' : '表示例',
       example: count > 1 ? '${_render(1)} ～ ${_render(count)}' : _render(1),
       onConfirm: () => Navigator.pop(
@@ -495,15 +511,6 @@ class _SequenceEditorState extends State<_SequenceEditor> {
         ),
       ),
       children: [
-        _NumberStepper(
-          label: '開始番号',
-          value: _start,
-          min: 0,
-          onChanged: (v) => setState(() {
-            _start = v;
-            _raiseDigits();
-          }),
-        ),
         SwitchListTile(
           key: sequenceZeroPadKey,
           contentPadding: EdgeInsets.zero,
@@ -530,6 +537,15 @@ class _SequenceEditorState extends State<_SequenceEditor> {
           inactiveThumbColor: colors.textSecondary,
           inactiveTrackColor: colors.textMuted,
           trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+        _NumberStepper(
+          label: '開始番号',
+          value: _start,
+          min: 0,
+          onChanged: (v) => setState(() {
+            _start = v;
+            _raiseDigits();
+          }),
         ),
         if (_zeroPad) ...[
           _NumberStepper(
@@ -644,6 +660,8 @@ class _NumberStepper extends StatelessWidget {
 }
 
 /// 日時（[DateTimeToken]）のエディタ。基準の選択＋フォーマット（プリセット＋自由入力）。
+///
+/// 自由入力の欄は「詳細に記述」のチップを選んだときだけ出す(008:T44。開発者の要望)。
 class _DateTimeEditor extends StatefulWidget {
   const _DateTimeEditor({
     required this.token,
@@ -664,6 +682,10 @@ class _DateTimeEditorState extends State<_DateTimeEditor> {
   late final TextEditingController _fmt = TextEditingController(
     text: widget.token.format,
   );
+
+  /// 「詳細に記述」を選んでいるか。プリセットに無いフォーマットで開いたときは
+  /// 選んだ状態で開く(入力欄にそのフォーマットが入っている)。
+  late bool _custom = !dateTimePresets.contains(widget.token.format);
 
   static const List<(DateTimeSource, String)> _sources = [
     (DateTimeSource.created, '作成日時'),
@@ -699,7 +721,7 @@ class _DateTimeEditorState extends State<_DateTimeEditor> {
     return _EditorScaffold(
       confirmLabel: widget.confirmLabel,
       title: '日時',
-      description: '基準となる日時とフォーマットを選びます。',
+      description: '基準となる日時とフォーマットを選んでください。',
       exampleLabel: example?.$1,
       example: example?.$2,
       onConfirm: empty
@@ -726,25 +748,36 @@ class _DateTimeEditorState extends State<_DateTimeEditor> {
             for (final preset in dateTimePresets)
               _OptionChip(
                 label: preset,
-                selected: _fmt.text == preset,
-                onSelected: () => setState(() => _fmt.text = preset),
+                selected: !_custom && _fmt.text == preset,
+                onSelected: () => setState(() {
+                  _custom = false;
+                  _fmt.text = preset;
+                }),
               ),
+            // 選ぶと入力欄が出る。入力欄には直前に選ばれていたフォーマットが
+            // そのまま入っている(開発者の要望)。
+            _OptionChip(
+              label: dateTimeCustomFormatLabel,
+              selected: _custom,
+              onSelected: () => setState(() => _custom = true),
+            ),
           ],
         ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _fmt,
-          onChanged: (_) => setState(() {}),
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontSize: 13,
-            fontFamily: 'monospace',
+        if (_custom) ...[
+          const SizedBox(height: 10),
+          TextField(
+            key: dateTimeFormatFieldKey,
+            controller: _fmt,
+            autofocus: true,
+            onChanged: (_) => setState(() {}),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 13,
+              fontFamily: 'monospace',
+            ),
+            decoration: _fieldDecoration(colors, hintText: 'YYYY年MM月DD日 など'),
           ),
-          decoration: _fieldDecoration(
-            colors,
-            hintText: '自由入力: YYYY年MM月DD日 など',
-          ),
-        ),
+        ],
       ],
     );
   }

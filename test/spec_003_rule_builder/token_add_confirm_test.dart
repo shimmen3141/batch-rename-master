@@ -182,10 +182,12 @@ void main() {
       await _pumpView(tester, controller);
       await _tapAdd(tester, '＋ 日時');
 
-      final field = tester.widget<TextField>(
-        find.descendant(of: _editor, matching: find.byType(TextField)),
+      // 008:T44: 入力欄は「詳細に記述」を選んだときだけ出る。既定のフォーマットは
+      // プリセットのチップが選ばれていることで読む。
+      final preset = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'YYYYMMDD'),
       );
-      expect(field.controller!.text, 'YYYYMMDD');
+      expect(preset.selected, isTrue);
       final created = tester.widget<ChoiceChip>(
         find.widgetWithText(ChoiceChip, '作成日時'),
       );
@@ -334,6 +336,8 @@ void main() {
       await _pumpView(tester, controller);
       await _tapAdd(tester, '＋ 日時');
 
+      await tester.tap(find.text('詳細に記述')); // 008:T44
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(of: _editor, matching: find.byType(TextField)),
         '',
@@ -364,6 +368,8 @@ void main() {
       await tester.tap(find.text('日時 YYYYMMDD'));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('詳細に記述')); // 008:T44
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(of: _editor, matching: find.byType(TextField)),
         '',
