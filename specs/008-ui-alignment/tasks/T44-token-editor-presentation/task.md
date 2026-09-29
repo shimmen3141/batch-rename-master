@@ -172,7 +172,7 @@ M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目 PASS(code `967a912`)。
+- Last checkpoint: PR #199をmerge commitで`dev`へmerge(2026-09-29、`0792b16`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`9806d96..403519c` PASS → `403519c..14a3065` PASS → `14a3065..87b6482` PASS → 以後は記録だけのSELF-CHECK) / CI `check` PASS・未解決threadなし / baseは`9806d96`で最新・競合なし、full test 1062件PASS / manual 2回目が`967a912`に対応し、以後code・依存・build設定の差分なし / 未解決P0/P1なし / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: code `967a912`
-- Next Agent action: PR #199をreadyにし、CIとmerge条件を確かめてmergeする
+- Evidence revision: code `967a912`、merge `0792b16`。
+- Next Agent action: なし(done)。ルール構築シートは`T45`。開発者が挙げる将来の改善は、受け取ったらtaskにする。
