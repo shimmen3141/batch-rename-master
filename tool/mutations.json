@@ -3155,6 +3155,13 @@
       "note": "014:T02 独立review attempt 1(reviewer設計RV-T02-1)。桁拡張で作り直すときに増分を既定値へ落とす — 増分が1以外の連番の名前が実行時に変わる",
       "find": "    increment: token.increment,\n  );\n}",
       "replace": "    increment: 1,\n  );\n}"
+    },
+    {
+      "id": "M492",
+      "file": "lib/core/rename_engine.dart",
+      "note": "014:T02 独立review attempt 2(reviewer設計RV-T02-2-control)。桁拡張で作り直すときに開始番号を1ずらす — 実行時の連番が1つずれる",
+      "find": "    start: token.start,\n    digits: requiredDigits,",
+      "replace": "    start: token.start + 1,\n    digits: requiredDigits,"
     }
   ]
 }

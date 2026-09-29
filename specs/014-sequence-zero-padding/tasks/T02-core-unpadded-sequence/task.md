@@ -61,9 +61,12 @@ M491 | KILLED | lib/core/rename_engine.dart | exit 1
 
   - full `flutter test` 1027件PASS。
 
+- attempt 2: `4e28318..98ee48d`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。前回の安全網の穴は閉じた(足したtestの数値、`M491`が`RV-T02-1`と同じ回帰を表しKILLED)。T04へ渡したUIラベルの追随の記述は事実と一致。full test 1027件・format・analyze・`check specs`・`git diff --check` PASS。reviewerの対照`RV-T02-2-control`(拡張時に開始番号を1ずらす。KILLED)を`M492`として取り込んだ。
+  - 連鎖: `4a2047c..4e28318` FAIL(安全網の穴) → `4e28318..98ee48d` PASS(指摘が閉じたことを確認) → 以後は`tool/mutations.json`へreviewerの定義を足した差分と記録だけ(SELF-CHECK。再reviewは起動しない)。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と自動検証(code `91a5386`)。
 - Blocker category: none
 - Evidence revision: code `91a5386`
-- Next Agent action: 独立review attempt 2(差分、`4e28318..HEAD`、`gpt-6-luna`)を起動する。PR #196(Draft)
+- Next Agent action: PR #196をreadyにし、CIとmerge条件を確かめてmergeする
