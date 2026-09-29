@@ -110,9 +110,14 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - 追加ボタンを押した時点でトークンを列へ入れ、キャンセルで戻す動き。003 REQ-008(確定するまで`tokens`を変えない)と両立しない(003 spec の反証ログ「弱すぎ(008:T05)」)。確定したときだけ入れる今の手順を保つ。
 - 連番の桁数の欄だけ(「桁数（ゼロ埋め）」)の形。`014:T04`で足したゼロ埋めのスイッチと下限(003 REQ-013/014)を保つ。
 
+- attempt 1: `9806d96..403519c`(全範囲、implementation) — **PASS**(P2 1件)。reviewerのmodelは`gpt-6-luna`。確認された点: 003 REQ-008〜014の維持(確定前に`tokens`を変えない、キャンセル・戻る・外のタップ、空は確定不可、ゼロ埋めと下限)、`drag`を外した判断は妥当で他のtestの変更は追随だけ、「離れた点」の記述が土台と実装に一致、表示例と1件目の経路、`M242`・`M256`・`M247`の追随と`M248`を外した理由、`M512`〜`M518`、書式だけのcommitが`json.load`で同一、findingの16件の真偽。full test 1055件・format・analyze・`check specs` PASS。範囲付きmutation 10件KILLED。
+  - **P2(成果物の欠陥)**: 手順書に、キーボードを出した状態でダイアログをスクロールして入力・確定できるかを見る手順が無い。→ 手順書の3.(日時)に足した。**SELF-CHECK**: 記録だけの差分でP2を閉じるだけなので、再reviewは起動しない(AGENTS.md)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(code `cefa597`)。manualの手順書をcurrent revisionの文言で完成させた。
-- Blocker category: none
+- Last checkpoint: 独立review attempt 1 PASS(P2は手順書へ反映)。
+- Blocker category: manual evidence
+- Waiting for: 開発者のmanual 1回目(code `cefa597`。HEADからbuildすれば同じcode)
+- Requested action: worktree `.worktrees/008-T44-token-editor-presentation`で手順書の1.〜5.を実行し、参考デザインと見比べた結果を知らせる
 - Evidence revision: code `cefa597`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`9806d96..HEAD`)の結果を記録する。PR #199(Draft)
+- Next Agent action: manual 1回目の結果を記録する。PR #199(Draft)
