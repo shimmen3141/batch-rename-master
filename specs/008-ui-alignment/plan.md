@@ -198,3 +198,4 @@ T37のエミュレータ確認報告では範囲選択は概ね機能したが�
 | T43 | [task.md](tasks/T43-settings-gear-shift-toggle/task.md) |
 | T44 | [task.md](tasks/T44-token-editor-presentation/task.md) |
 | T45 | [task.md](tasks/T45-rule-sheet-presentation/task.md) |
+| T46 | [task.md](tasks/T46-mutation-find-check/task.md) |

@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T46",
+  "title": "mutationのfindがコードと一致することをCIで検出し、古くなった16件を直す",
+  "status": "pending",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}
