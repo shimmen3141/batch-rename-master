@@ -188,9 +188,9 @@ M461 | KILLED | lib/ui/file_list/file_list_view.dart | (SURVIVEDを全件のcomm
 
 ## Current state / handoff
 
-- Last checkpoint: manual 3回目 PASS(2026-09-29、code `3e721fa`)。
-- Blocker category: なし(merge条件の確認 → merge)。
-- Waiting for: なし。独立reviewは attempt 4 までPASS、manual 3回目PASS。
+- Last checkpoint: PR #194をmerge commitで`dev`へmerge(2026-09-29、`eca7d3d`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`ea4741a..89b1c08`・`89ba6b1..dd7e3be`・`dd7e3be..0acb2db`・`0acb2db..a836246`がPASS、以降はmutationの取り込みと記録のSELF-CHECK) / CI `check` PASS・未解決threadなし / baseは`ea4741a`で最新・競合なし、full test 1016件PASS(code `3e721fa`、以後code差分なし) / manual 3回目が`3e721fa`に対応 / 未解決P0/P1なし(P3 2件は受容済み) / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
+- Blocker category: なし。
+- Waiting for: なし。
 - Requested action: なし。
-- Evidence revision: 起点は`dev`@`ea4741a`。
-- Next Agent action: PRをreadyにしてmerge条件1〜7を確かめ、merge → `dev`で記録してdoneにし、`T43`を登録する。
+- Evidence revision: 起点は`dev`@`ea4741a`、merge `eca7d3d`。
+- Next Agent action: なし(done)。更新日時ずらしの移動は`008:T43`。
