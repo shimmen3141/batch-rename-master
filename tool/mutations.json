@@ -3054,9 +3054,9 @@
     {
       "id": "M477",
       "file": "lib/ui/rename_exec/rename_settings_button.dart",
-      "note": "008:T43 メニューで選ぶと常にONにする — 一度入れた更新日時ずらしを切れない",
-      "find": "            !execution.shiftModifiedAt,",
-      "replace": "            true,"
+      "note": "008:T43 メニューで切り替えると常にONにする — 一度入れた更新日時ずらしを切れない",
+      "find": "        onChanged: widget.execution.setShiftModifiedAt,",
+      "replace": "        onChanged: (_) => widget.execution.setShiftModifiedAt(true),"
     },
     {
       "id": "M478",
@@ -3078,6 +3078,34 @@
       "note": "008:T43 独立review attempt 1(reviewer設計R2・対照)。歯車のtooltipを変える — 振る舞いに影響しない。**SURVIVEDが期待値**",
       "find": "        tooltip: '設定',",
       "replace": "        tooltip: 'せってい',"
+    },
+    {
+      "id": "M481",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 切り替えるとメニューを閉じる — manual 1回目の開発者の要望(切り替えても閉じない)に反する",
+      "find": "        onChanged: widget.execution.setShiftModifiedAt,",
+      "replace": "        onChanged: (v) {\n          widget.execution.setShiftModifiedAt(v);\n          Navigator.pop(context);\n        },"
+    },
+    {
+      "id": "M482",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 開いたメニューが状態の変化を映さない — 押してもスイッチが動かず、ONになったか分からない",
+      "find": "      listenable: widget.execution,",
+      "replace": "      listenable: const AlwaysStoppedAnimation<double>(0),"
+    },
+    {
+      "id": "M483",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 ONのスイッチを緑にしない — 開発者の要望(ONは緑)",
+      "find": "        activeTrackColor: colors.success,",
+      "replace": "        activeTrackColor: colors.primary,"
+    },
+    {
+      "id": "M484",
+      "file": "lib/ui/rename_exec/rename_settings_button.dart",
+      "note": "008:T43 OFFのスイッチをグレーにしない(既定の色) — 開発者の要望(OFFはグレー)",
+      "find": "        inactiveTrackColor: colors.textMuted,",
+      "replace": "        inactiveTrackColor: null,"
     }
   ]
 }

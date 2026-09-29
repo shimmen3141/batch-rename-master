@@ -17,6 +17,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_settings_button.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -332,32 +333,40 @@ void main() {
       await tester.tap(find.byKey(renameSettingsButtonKey));
       await tester.pumpAndSettle();
       expect(find.text(shiftModifiedAtLabel), findsOneWidget);
-      expect(
-        tester
-            .widget<CheckedPopupMenuItem<Object?>>(
-              find.byKey(shiftModifiedAtKey),
-            )
-            .checked,
-        isFalse,
+      // 項目はトグルスイッチ(manual 1回目の開発者の要望)。OFF はグレー。
+      const colors = AppColors.dark;
+      Switch toggle() => tester.widget<Switch>(
+        find.descendant(
+          of: find.byKey(shiftModifiedAtKey),
+          matching: find.byType(Switch),
+        ),
       );
+      expect(toggle().value, isFalse);
+      expect(toggle().inactiveTrackColor, colors.textMuted);
+      expect(toggle().activeTrackColor, colors.success);
 
       await tester.tap(find.byKey(shiftModifiedAtKey));
       await tester.pumpAndSettle();
       expect(execution.shiftModifiedAt, isTrue);
-      // 選ぶとメニューは閉じる。ON の印はヘッダーにもフッターにも出さない(開発者の決定)。
-      expect(find.text(shiftModifiedAtLabel), findsNothing);
+      // 切り替えても**メニューは閉じない**。スイッチが ON になっている。
+      // ON の印はヘッダーにもフッターにも出さない(開発者の決定)。
+      expect(find.text(shiftModifiedAtLabel), findsOneWidget);
+      expect(toggle().value, isTrue);
 
-      // 開き直すと入っている。もう一度選ぶと切れる。
+      // もう一度押すと切れる(メニューは開いたまま)。
+      await tester.tap(find.byKey(shiftModifiedAtKey));
+      await tester.pumpAndSettle();
+      expect(execution.shiftModifiedAt, isFalse);
+      expect(toggle().value, isFalse);
+
+      // 閉じて開き直しても状態を映す。
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+      expect(find.text(shiftModifiedAtLabel), findsNothing);
+      execution.setShiftModifiedAt(true);
       await tester.tap(find.byKey(renameSettingsButtonKey));
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<CheckedPopupMenuItem<Object?>>(
-              find.byKey(shiftModifiedAtKey),
-            )
-            .checked,
-        isTrue,
-      );
+      expect(toggle().value, isTrue);
       await tester.tap(find.byKey(shiftModifiedAtKey));
       await tester.pumpAndSettle();
       expect(execution.shiftModifiedAt, isFalse);
