@@ -5,16 +5,20 @@
 // モードをやめれば消える(REQ-016 の「一覧＝ rename 対象」は保たれる)。
 // `008:T27` で開発者が承認した。
 import 'package:batch_rename_master/core/rename_engine.dart';
+import 'package:batch_rename_master/data/permission/storage_permission.dart';
+import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
+import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../spec_005_rename_exec/occupied_support.dart';
 import 'removal_mode.dart';
 
 FileEntry _f(String name, {String? handle, String? sourceLocation}) =>
@@ -63,6 +67,276 @@ Future<TestGesture> _startLongPress(WidgetTester tester, Finder target) async {
 }
 
 void main() {
+  group('008:T42 選択モードの操作はフッター', () {
+    Future<RenameExecutionController> pumpWithExecution(
+      WidgetTester tester,
+      FileListController c, {
+      VoidCallback? onEditRule,
+      bool withShiftToggle = false,
+    }) async {
+      final executor = withShiftToggle
+          ? _ShiftingExecutor()
+          : FakeRenameExecutor(files: const {});
+      final execution = RenameExecutionController(
+        permission: const UnrestrictedStoragePermission(),
+        files: c,
+        executor: executor,
+        listNames: listNamesOf(executor, folder: '/files'),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: FileListView(
+              controller: c,
+              renameExecution: execution,
+              onEditRule: onEditRule,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return execution;
+    }
+
+    testWidgets('モード中のフッターに「戻る」「N件を外す」と説明が出て、帯に外すアイコンは無い', (tester) async {
+      final c = FileListController(files: _abc(), rule: _seq2);
+      await pumpWithExecution(
+        tester,
+        c,
+        onEditRule: () {},
+        withShiftToggle: true,
+      );
+      await enterRemovalMode(tester);
+      await toggleRemovalMark(tester, 'h:a');
+      await toggleRemovalMark(tester, 'h:b');
+
+      expect(find.byKey(removalModeBackKey), findsOneWidget);
+      expect(find.text('戻る'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(removalModeRemoveKey),
+          matching: find.text('2件を外す'),
+        ),
+        findsOneWidget,
+      );
+      // 狭幅は命名ルールと同じ形のカード: 見出しと太字の2行(2026-09-28)。
+      expect(find.text(removalModeNoteLead), findsOneWidget);
+      expect(find.text(removalModeNoteMain), findsOneWidget);
+      expect(removalModeNoteText, '選択したファイルをリネームリストから外します。ファイルは削除されません。');
+      // **帯には `×` と件数とケバブ**(2026-09-28 の決定)。外すアイコンは無い。
+      expect(find.byKey(removalModeExitKey), findsOneWidget);
+      expect(find.byIcon(Icons.playlist_remove), findsNothing);
+      // 外すbuttonはフッター(帯より下)にある。
+      expect(
+        tester.getRect(find.byKey(removalModeRemoveKey)).top,
+        greaterThan(tester.getRect(find.byKey(removalModeExitKey)).bottom),
+      );
+      // **シアン(アクセント)の塗り**。赤は削除を連想させる。
+      final colors = appDarkTheme().extension<AppColors>()!;
+      final button = tester.widget<FilledButton>(
+        find.byKey(removalModeRemoveKey),
+      );
+      expect(
+        button.style!.backgroundColor!.resolve(const <WidgetState>{}),
+        colors.primary,
+      );
+    });
+
+    testWidgets('「戻る」はモードをやめ、一覧は変わらない(帯の × と同じ。代表例 6i)', (tester) async {
+      final c = FileListController(files: _abc(), rule: _seq2);
+      await _pump(tester, c, onEditRule: () {});
+      await enterRemovalMode(tester);
+      await toggleRemovalMark(tester, 'h:a');
+
+      await tester.tap(find.byKey(removalModeBackKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(removalModeBackKey), findsNothing);
+      expect(find.byKey(removalModeCountKey), findsNothing);
+      expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+      expect(find.byKey(const Key('configure-rule')), findsOneWidget);
+    });
+
+    testWidgets('「N件を外す」で外れ、取り消しの通知が出てモードを抜ける', (tester) async {
+      final c = FileListController(files: _abc(), rule: _seq2);
+      await _pump(tester, c, onEditRule: () {});
+      await enterRemovalMode(tester);
+      await toggleRemovalMark(tester, 'h:b');
+
+      await tester.tap(find.byKey(removalModeRemoveKey));
+      await tester.pumpAndSettle();
+
+      expect(c.items.map((f) => f.name), ['a.txt', 'c.txt']);
+      expect(find.byKey(removalUndoKey), findsOneWidget);
+      expect(find.byKey(removalModeBackKey), findsNothing);
+    });
+
+    // 製品の構成では通常のフッターに更新日時の切り替えがある(Android・desktopの
+    // 実行手段は `ModifiedAtWriter`)。広幅では命名ルールがフッターに無い。
+    for (final (label, withRule, rule, withShift, expectNote) in [
+      ('スマホ幅(命名ルール+切り替え+リネーム)', true, _seq2, true, true),
+      ('広幅(切り替え+リネーム)', false, _seq2, true, true),
+      ('ルールが空(ルール設定button+切り替え+リネーム)', true, RenameRule.empty, true, true),
+      ('リネームだけ(製品には無い構成)', false, _seq2, false, false),
+    ]) {
+      testWidgets('フッターの大きさは通常のフッターが決め、モードの出入りで変わらない: $label(2026-09-28)', (
+        tester,
+      ) async {
+        await tester.binding.setSurfaceSize(const Size(360, 700));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final c = FileListController(files: _abc(), rule: rule);
+        await pumpWithExecution(
+          tester,
+          c,
+          onEditRule: withRule ? () {} : null,
+          withShiftToggle: withShift,
+        );
+
+        final normal = tester.getRect(find.byKey(fixedFooterKey));
+        final listBefore = tester.getRect(find.byType(ReorderableListView));
+        // **通常のフッターに空きが無い**(独立review attempt 2 の P2: 「高い方に
+        // 揃える」ではモードの方が高い構成で通常のフッターが伸びた)。上端の部品は
+        // フッターの余白(12)+区切り線だけ下、リネームは余白(12)だけ上。
+        final surface = tester.getRect(find.byKey(renameActionBarSurfaceKey));
+        expect(surface, normal);
+        final top = withRule
+            ? find.byKey(const Key('configure-rule'))
+            : withShift
+            ? find.byKey(shiftModifiedAtKey)
+            : find.byKey(const Key('rename-action'));
+        expect(tester.getRect(top).top - surface.top, closeTo(12, 2));
+        expect(
+          surface.bottom -
+              tester.getRect(find.byKey(const Key('rename-action'))).bottom,
+          closeTo(12, 1),
+        );
+
+        await enterRemovalMode(tester);
+        final removal = tester.getRect(find.byKey(fixedFooterKey));
+        final listDuring = tester.getRect(find.byType(ReorderableListView));
+        final bar = tester.getRect(find.byKey(removalModeBarKey));
+
+        expect(removal, normal, reason: 'フッターの大きさは固定');
+        expect(bar, normal, reason: 'モードのフッターは同じ枠いっぱい');
+        expect(listDuring.bottom, listBefore.bottom, reason: '一覧の表示域も変わらない');
+        // モードのフッターの中身が収まっている(はみ出さない)。
+        expect(tester.takeException(), isNull);
+        final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+        expect(bar.bottom - buttons.bottom, closeTo(12, 1));
+        if (expectNote) {
+          final note = tester.getRect(find.byKey(removalModeNoteKey));
+          expect(note.top, greaterThanOrEqualTo(bar.top));
+          expect(note.bottom, lessThanOrEqualTo(buttons.top - 9));
+        } else {
+          // 説明の入る高さが残らない構成では、読めない大きさへ縮めず出さない。
+          expect(find.byKey(removalModeNoteKey), findsNothing);
+        }
+
+        await tester.tap(find.byKey(removalModeBackKey));
+        await tester.pumpAndSettle();
+        expect(tester.getRect(find.byKey(fixedFooterKey)), normal);
+      });
+    }
+
+    for (final (label, withShift) in [
+      ('命名ルール + リネーム', false),
+      ('命名ルール + 更新日時の切り替え + リネーム(Androidと同じ)', true),
+    ]) {
+      testWidgets('説明のカードがフッターの余った高さを埋め、空きを残さない: $label(2026-09-28)', (
+        tester,
+      ) async {
+        // エミュレータ確認で「フッターに不自然な余白ができる」と指摘された。
+        await tester.binding.setSurfaceSize(const Size(360, 700));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final c = FileListController(files: _abc(), rule: _seq2);
+        await pumpWithExecution(
+          tester,
+          c,
+          onEditRule: () {},
+          withShiftToggle: withShift,
+        );
+        if (withShift) {
+          expect(find.byKey(shiftModifiedAtKey), findsOneWidget);
+        }
+        final normal = tester.getRect(find.byKey(fixedFooterKey));
+        await enterRemovalMode(tester);
+
+        final bar = tester.getRect(find.byKey(removalModeBarKey));
+        final card = tester.getRect(find.byKey(removalModeNoteKey));
+        final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+        expect(bar, normal, reason: '大きさは固定のまま');
+        // 上: フッターの余白(12)+区切り線の太さだけ。**空きが無い。**
+        expect(card.top - bar.top, closeTo(12, 2));
+        // 下: カードとbuttonの間は通常のフッターと同じ10。
+        expect(buttons.top - card.bottom, closeTo(10, 1));
+        expect(bar.bottom - buttons.bottom, closeTo(12, 1));
+      });
+    }
+
+    testWidgets('ヘッダーとフッターは同じ固定の色で、一覧をスクロールしても変わらない(2026-09-29)', (
+      tester,
+    ) async {
+      // 開発者の指定色。以前はヘッダーだけがスクロールで明るく紫がかった(surface tint)。
+      final colors = appDarkTheme().extension<AppColors>()!;
+      expect(colors.bar, const Color(0xFF2E2B38));
+      await tester.binding.setSurfaceSize(const Size(360, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: [for (var i = 0; i < 40; i++) _f('f$i.txt', handle: 'h:$i')],
+        rule: _seq2,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            appBar: AppBar(title: const Text('一括リネーム')),
+            body: FileListView(controller: c, onEditRule: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Material headerSurface() => tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      Color? footerColor() =>
+          tester.widget<Material>(find.byKey(renameActionBarSurfaceKey)).color;
+
+      expect(headerSurface().color, colors.bar);
+      expect(footerColor(), colors.bar);
+
+      await tester.drag(
+        find.byType(ReorderableListView),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
+      // スクロールしても**ヘッダーは明るくも紫がかりもしない**(面の色・影の段・tint)。
+      expect(headerSurface().color, colors.bar);
+      expect(headerSurface().elevation, 0);
+      expect(headerSurface().surfaceTintColor, Colors.transparent);
+
+      await enterRemovalMode(tester);
+      expect(
+        tester.widget<Material>(find.byKey(removalModeBarKey)).color,
+        colors.bar,
+      );
+    });
+
+    testWidgets('見えていない側のフッターは押せない・見つからない', (tester) async {
+      final c = FileListController(files: _abc(), rule: _seq2);
+      await _pump(tester, c, onEditRule: () {});
+      expect(find.byKey(removalModeBackKey), findsNothing);
+      await enterRemovalMode(tester);
+      expectNormalFooterHidden(tester);
+    });
+  });
+
   testWidgets('通常表示には1件ごとの除去操作が無い(REQ-016・代表例6e)', (tester) async {
     // `008:T27` の決定: × と並び替えのつまみが行の右端で隣り合って
     // 押し間違えうるので、**通常表示から除去操作そのものを外した**。
@@ -329,7 +603,9 @@ void main() {
   testWidgets(
     'headerへ入った長押しdragでも上へauto-scrollし、深いほど速い(2026-09-21 manual FAIL)',
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(320, 420));
+      // **モード中もフッター(戻る・外す)が出る**(`008:T42`)。その高さの分だけ画面を
+      // 高くし、以前(フッターが隠れていた)と同じ一覧の表示域で測る。
+      await tester.binding.setSurfaceSize(const Size(320, 520));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       Future<double> moveUpFromHeader(double beyondTop) async {
@@ -393,7 +669,7 @@ void main() {
     await gesture.up();
 
     expect(after, closeTo(before, 1));
-    expect(find.byKey(const Key('configure-rule')), findsNothing);
+    expectNormalFooterHidden(tester);
   });
 
   testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
@@ -597,8 +873,9 @@ void main() {
     await enterRemovalMode(tester);
 
     expect(removalModeCountText(tester), '0件選択中');
+    // 外す操作はフッターの「N件を外す」(`008:T42`)。
     expect(
-      tester.widget<IconButton>(find.byKey(removalModeRemoveKey)).onPressed,
+      tester.widget<FilledButton>(find.byKey(removalModeRemoveKey)).onPressed,
       isNull,
     );
     // 押しても一覧は変わらない。
@@ -765,7 +1042,7 @@ void main() {
     // **通常表示に「選択」を出さないのは REQ-016 である**(一覧＝rename対象)。
     // モード中の `〇件選択中` は `T29` で開発者が選んだ文言で、`T27` の決定節が
     // 勧めていた「外すことを名指しする見出し」を上書きしている。誤読を防ぐ役割は
-    // **外すアイコンの tooltip とケバブの文言**が引き受ける。
+    // **フッターの「N件を外す」と説明、ケバブの文言**が引き受ける(`008:T42`)。
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
     expect(find.textContaining('選択'), findsNothing);
@@ -775,11 +1052,17 @@ void main() {
     await toggleRemovalMark(tester, 'h:a');
 
     expect(removalModeCountText(tester), '1件選択中');
-    // 外す操作は**アイコン1つ**で、押せることは tooltip が言う(要望4)。
+    // 外す操作は**フッターの文字のbutton**で、件数と操作を名指しする(`008:T42`)。
+    // 削除ではないことは説明が常に言う。
     expect(
-      tester.widget<IconButton>(find.byKey(removalModeRemoveKey)).tooltip,
-      '選んだファイルをリネーム候補から外す',
+      find.descendant(
+        of: find.byKey(removalModeRemoveKey),
+        matching: find.text('1件を外す'),
+      ),
+      findsOneWidget,
     );
+    expect(find.text(removalModeNoteText), findsOneWidget);
+    expect(removalModeNoteText, contains('削除されません'));
     // ケバブの文言は結果を名指しする。
     await openListMenu(tester);
     expect(find.text('すべてをリネーム対象から外す'), findsOneWidget);
@@ -803,7 +1086,7 @@ void main() {
 
     await enterRemovalMode(tester);
 
-    expect(find.byKey(const Key('configure-rule')), findsNothing);
+    expectNormalFooterHidden(tester);
 
     await tester.tap(find.byKey(removalModeExitKey));
     await tester.pumpAndSettle();
@@ -901,4 +1184,22 @@ void main() {
     expect(rowColor('a.txt'), colors.selectedSurface);
     expect(rowColor('b.txt'), isNot(colors.selectedSurface));
   });
+}
+
+/// 更新日時の切り替えを出す実行器(Androidと同じ3段のフッターを再現する。`008:T42`)。
+class _ShiftingExecutor extends FakeRenameExecutor implements ModifiedAtWriter {
+  _ShiftingExecutor() : super(files: const {});
+
+  @override
+  Future<RenameError?> setModifiedAt(String handle, DateTime value) async =>
+      null;
+}
+
+/// モード中、通常のフッターは**場所を取ったまま**隠れ、押せない(`008:T42`)。
+void expectNormalFooterHidden(WidgetTester tester) {
+  expect(find.byKey(const Key('configure-rule')).hitTestable(), findsNothing);
+  expect(
+    tester.widget<Visibility>(find.byKey(normalFooterVisibilityKey)).visible,
+    isFalse,
+  );
 }
