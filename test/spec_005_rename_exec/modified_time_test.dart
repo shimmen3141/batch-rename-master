@@ -15,7 +15,9 @@ import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
+import 'package:batch_rename_master/ui/rename_exec/rename_settings_button.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -266,7 +268,24 @@ void main() {
       expect(execution.modifiedAtFailures, isEmpty);
     });
 
-    testWidgets('例16: 書けない実装では設定そのものを画面に出さない', (tester) async {
+    Future<void> pumpHeader(
+      WidgetTester tester,
+      FileListController files,
+      RenameExecutionController execution,
+    ) => tester.pumpWidget(
+      MaterialApp(
+        theme: appDarkTheme(),
+        home: Scaffold(
+          appBar: AppBar(
+            title: const Text('一括リネーム'),
+            actions: [RenameSettingsButton(execution: execution)],
+          ),
+          body: FileListView(controller: files, renameExecution: execution),
+        ),
+      ),
+    );
+
+    testWidgets('例16: 書けない実装では設定そのものを画面に出さない(歯車も出さない)', (tester) async {
       final files = FileListController(
         files: [_file('a.txt')],
         rule: const RenameRule([OriginalNameToken(), LiteralToken('_1')]),
@@ -275,19 +294,19 @@ void main() {
         files,
         FakeRenameExecutor(files: {'/files/a.txt': 'a.txt'}),
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: appDarkTheme(),
-          home: Scaffold(
-            body: FileListView(controller: files, renameExecution: execution),
-          ),
-        ),
-      );
+      await pumpHeader(tester, files, execution);
 
+      // 有効な設定が1つも無いので**歯車そのものを出さない**(`008:T43`。2026-09-29 の
+      // 開発者の決定)。
+      expect(find.byKey(renameSettingsButtonKey), findsNothing);
+      expect(find.byIcon(Icons.settings_outlined), findsNothing);
       expect(find.byKey(shiftModifiedAtKey), findsNothing);
+      expect(find.text(shiftModifiedAtLabel), findsNothing);
     });
 
-    testWidgets('書ける実装では設定が出て、切り替えると状態が変わる', (tester) async {
+    testWidgets('書ける実装ではヘッダーの歯車のメニューに設定が出て、切り替えると状態が変わる(008:T43)', (
+      tester,
+    ) async {
       final files = FileListController(
         files: [_file('a.txt')],
         rule: const RenameRule([OriginalNameToken(), LiteralToken('_1')]),
@@ -296,22 +315,61 @@ void main() {
         files,
         _WritableExecutor(files: {'/files/a.txt': 'a.txt'}),
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: appDarkTheme(),
-          home: Scaffold(
-            body: FileListView(controller: files, renameExecution: execution),
-          ),
+      await pumpHeader(tester, files, execution);
+
+      // **フッターには出さない**(歯車へ移した)。
+      expect(find.byKey(shiftModifiedAtKey), findsNothing);
+      expect(find.text(shiftModifiedAtLabel), findsNothing);
+      // 歯車はヘッダーにある。
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byKey(renameSettingsButtonKey),
+        ),
+        findsOneWidget,
+      );
+      expect(execution.shiftModifiedAt, isFalse);
+
+      await tester.tap(find.byKey(renameSettingsButtonKey));
+      await tester.pumpAndSettle();
+      expect(find.text(shiftModifiedAtLabel), findsOneWidget);
+      // 項目はトグルスイッチ(manual 1回目の開発者の要望)。OFF はグレー。
+      const colors = AppColors.dark;
+      Switch toggle() => tester.widget<Switch>(
+        find.descendant(
+          of: find.byKey(shiftModifiedAtKey),
+          matching: find.byType(Switch),
         ),
       );
-
-      expect(find.byKey(shiftModifiedAtKey), findsOneWidget);
-      expect(execution.shiftModifiedAt, isFalse);
+      expect(toggle().value, isFalse);
+      expect(toggle().inactiveTrackColor, colors.textMuted);
+      expect(toggle().activeTrackColor, colors.success);
 
       await tester.tap(find.byKey(shiftModifiedAtKey));
       await tester.pumpAndSettle();
-
       expect(execution.shiftModifiedAt, isTrue);
+      // 切り替えても**メニューは閉じない**。スイッチが ON になっている。
+      // ON の印はヘッダーにもフッターにも出さない(開発者の決定)。
+      expect(find.text(shiftModifiedAtLabel), findsOneWidget);
+      expect(toggle().value, isTrue);
+
+      // もう一度押すと切れる(メニューは開いたまま)。
+      await tester.tap(find.byKey(shiftModifiedAtKey));
+      await tester.pumpAndSettle();
+      expect(execution.shiftModifiedAt, isFalse);
+      expect(toggle().value, isFalse);
+
+      // 閉じて開き直しても状態を映す。
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+      expect(find.text(shiftModifiedAtLabel), findsNothing);
+      execution.setShiftModifiedAt(true);
+      await tester.tap(find.byKey(renameSettingsButtonKey));
+      await tester.pumpAndSettle();
+      expect(toggle().value, isTrue);
+      await tester.tap(find.byKey(shiftModifiedAtKey));
+      await tester.pumpAndSettle();
+      expect(execution.shiftModifiedAt, isFalse);
     });
   });
 }

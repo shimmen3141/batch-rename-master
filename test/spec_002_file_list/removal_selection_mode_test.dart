@@ -13,6 +13,7 @@ import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/removal_undo.dart';
 import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
+import 'package:batch_rename_master/ui/rename_exec/rename_settings_button.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -72,9 +73,9 @@ void main() {
       WidgetTester tester,
       FileListController c, {
       VoidCallback? onEditRule,
-      bool withShiftToggle = false,
+      bool writesModifiedAt = false,
     }) async {
-      final executor = withShiftToggle
+      final executor = writesModifiedAt
           ? _ShiftingExecutor()
           : FakeRenameExecutor(files: const {});
       final execution = RenameExecutionController(
@@ -105,7 +106,7 @@ void main() {
         tester,
         c,
         onEditRule: () {},
-        withShiftToggle: true,
+        writesModifiedAt: true,
       );
       await enterRemovalMode(tester);
       await toggleRemovalMark(tester, 'h:a');
@@ -172,38 +173,34 @@ void main() {
       expect(find.byKey(removalModeBackKey), findsNothing);
     });
 
-    // 製品の構成では通常のフッターに更新日時の切り替えがある(Android・desktopの
-    // 実行手段は `ModifiedAtWriter`)。広幅では命名ルールがフッターに無い。
-    for (final (label, withRule, rule, withShift, expectNote) in [
-      ('スマホ幅(命名ルール+切り替え+リネーム)', true, _seq2, true, true),
-      ('広幅(切り替え+リネーム)', false, _seq2, true, true),
-      ('ルールが空(ルール設定button+切り替え+リネーム)', true, RenameRule.empty, true, true),
-      ('リネームだけ(製品には無い構成)', false, _seq2, false, false),
+    // 更新日時ずらしはヘッダーの歯車へ移した(`008:T43`)ので、**どの構成でも通常の
+    // フッターは命名ルール(狭幅)とリネームだけ**。desktop の実行手段(更新日時を
+    // 書ける)でもフッターは変わらない。広幅(2ペイン)では命名ルールがフッターに無い。
+    for (final (label, withRule, rule, width) in [
+      ('狭幅(命名ルール+リネーム)', true, _seq2, 360.0),
+      ('広幅(リネームだけ。一覧の最小幅)', false, _seq2, 480.0),
+      ('ルールが空(ルール設定button+リネーム)', true, RenameRule.empty, 360.0),
     ]) {
-      testWidgets('フッターの大きさは通常のフッターが決め、モードの出入りで変わらない: $label(2026-09-28)', (
-        tester,
-      ) async {
-        await tester.binding.setSurfaceSize(const Size(360, 700));
+      testWidgets('フッターの大きさは通常のフッターが決め、モードの出入りで変わらない: $label', (tester) async {
+        await tester.binding.setSurfaceSize(Size(width, 700));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final c = FileListController(files: _abc(), rule: rule);
         await pumpWithExecution(
           tester,
           c,
           onEditRule: withRule ? () {} : null,
-          withShiftToggle: withShift,
+          writesModifiedAt: true,
         );
+        expect(find.byKey(shiftModifiedAtKey), findsNothing, reason: '歯車へ移した');
 
         final normal = tester.getRect(find.byKey(fixedFooterKey));
         final listBefore = tester.getRect(find.byType(ReorderableListView));
-        // **通常のフッターに空きが無い**(独立review attempt 2 の P2: 「高い方に
-        // 揃える」ではモードの方が高い構成で通常のフッターが伸びた)。上端の部品は
-        // フッターの余白(12)+区切り線だけ下、リネームは余白(12)だけ上。
+        // **通常のフッターに空きが無い**(`008:T42` 独立review attempt 2 の P2)。上端の
+        // 部品はフッターの余白(12)+区切り線だけ下、リネームは余白(12)だけ上。
         final surface = tester.getRect(find.byKey(renameActionBarSurfaceKey));
         expect(surface, normal);
         final top = withRule
             ? find.byKey(const Key('configure-rule'))
-            : withShift
-            ? find.byKey(shiftModifiedAtKey)
             : find.byKey(const Key('rename-action'));
         expect(tester.getRect(top).top - surface.top, closeTo(12, 2));
         expect(
@@ -223,14 +220,19 @@ void main() {
         // モードのフッターの中身が収まっている(はみ出さない)。
         expect(tester.takeException(), isNull);
         final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+        final back = tester.getRect(find.byKey(removalModeBackKey));
         expect(bar.bottom - buttons.bottom, closeTo(12, 1));
-        if (expectNote) {
-          final note = tester.getRect(find.byKey(removalModeNoteKey));
-          expect(note.top, greaterThanOrEqualTo(bar.top));
+        // **説明はどの構成でも出る**(`008:T43`: 広幅では出なくなるところだった)。
+        final note = tester.getRect(find.byKey(removalModeNoteKey));
+        expect(note.top, greaterThanOrEqualTo(bar.top));
+        expect(note.bottom, lessThanOrEqualTo(bar.bottom));
+        if (withRule) {
+          // 狭幅: 説明のカードは操作の上。
           expect(note.bottom, lessThanOrEqualTo(buttons.top - 9));
         } else {
-          // 説明の入る高さが残らない構成では、読めない大きさへ縮めず出さない。
-          expect(find.byKey(removalModeNoteKey), findsNothing);
+          // 広幅: 1段。説明は操作の左に並ぶ(2026-09-29 の開発者の決定)。
+          expect(note.right, lessThanOrEqualTo(back.left - 11));
+          expect(note.center.dy, closeTo(buttons.center.dy, 2));
         }
 
         await tester.tap(find.byKey(removalModeBackKey));
@@ -239,40 +241,32 @@ void main() {
       });
     }
 
-    for (final (label, withShift) in [
-      ('命名ルール + リネーム', false),
-      ('命名ルール + 更新日時の切り替え + リネーム(Androidと同じ)', true),
-    ]) {
-      testWidgets('説明のカードがフッターの余った高さを埋め、空きを残さない: $label(2026-09-28)', (
+    testWidgets('狭幅では説明のカードが命名ルールのカードとちょうど揃い、空きを残さない(008:T43)', (tester) async {
+      // エミュレータ確認で「フッターに不自然な余白ができる」と指摘された(`008:T42`)。
+      // フッターが命名ルールとリネームの2段になり、部品の寸法がそのまま揃う。
+      await tester.binding.setSurfaceSize(const Size(360, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(files: _abc(), rule: _seq2);
+      await pumpWithExecution(
         tester,
-      ) async {
-        // エミュレータ確認で「フッターに不自然な余白ができる」と指摘された。
-        await tester.binding.setSurfaceSize(const Size(360, 700));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final c = FileListController(files: _abc(), rule: _seq2);
-        await pumpWithExecution(
-          tester,
-          c,
-          onEditRule: () {},
-          withShiftToggle: withShift,
-        );
-        if (withShift) {
-          expect(find.byKey(shiftModifiedAtKey), findsOneWidget);
-        }
-        final normal = tester.getRect(find.byKey(fixedFooterKey));
-        await enterRemovalMode(tester);
+        c,
+        onEditRule: () {},
+        writesModifiedAt: true,
+      );
+      final normal = tester.getRect(find.byKey(fixedFooterKey));
+      final ruleCard = tester.getRect(find.byKey(const Key('configure-rule')));
+      final rename = tester.getRect(find.byKey(const Key('rename-action')));
+      await enterRemovalMode(tester);
 
-        final bar = tester.getRect(find.byKey(removalModeBarKey));
-        final card = tester.getRect(find.byKey(removalModeNoteKey));
-        final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
-        expect(bar, normal, reason: '大きさは固定のまま');
-        // 上: フッターの余白(12)+区切り線の太さだけ。**空きが無い。**
-        expect(card.top - bar.top, closeTo(12, 2));
-        // 下: カードとbuttonの間は通常のフッターと同じ10。
-        expect(buttons.top - card.bottom, closeTo(10, 1));
-        expect(bar.bottom - buttons.bottom, closeTo(12, 1));
-      });
-    }
+      final bar = tester.getRect(find.byKey(removalModeBarKey));
+      final card = tester.getRect(find.byKey(removalModeNoteKey));
+      final buttons = tester.getRect(find.byKey(removalModeRemoveKey));
+      expect(bar, normal, reason: '大きさは固定のまま');
+      expect(card.top, closeTo(ruleCard.top, 1));
+      expect(card.height, closeTo(ruleCard.height, 1));
+      expect(buttons.top, closeTo(rename.top, 1));
+      expect(buttons.height, closeTo(rename.height, 1));
+    });
 
     testWidgets('ヘッダーとフッターは同じ固定の色で、一覧をスクロールしても変わらない(2026-09-29)', (
       tester,
@@ -1186,7 +1180,7 @@ void main() {
   });
 }
 
-/// 更新日時の切り替えを出す実行器(Androidと同じ3段のフッターを再現する。`008:T42`)。
+/// 更新日時を書ける実行器(desktop と同じ。`008:T43`で歯車へ移したので、フッターは変わらない)。
 class _ShiftingExecutor extends FakeRenameExecutor implements ModifiedAtWriter {
   _ShiftingExecutor() : super(files: const {});
 
