@@ -167,9 +167,12 @@ M523 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
 - attempt 2: `403519c..14a3065`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。改善点(1)〜(5)と手順書の一致、「詳細に記述」の振る舞いと003 REQ-012・決定済み事項、`AnimatedSize`とスクロール・確定の関係、testの追随がassertionの緩和でないこと、高さのtestが即時切替を検出すること、`M519`〜`M523`、触ったfileの既存mutationの`find`がちょうど1回一致することを確認された。full test 1062件・format・analyze・`check specs`・`git diff --check` PASS。範囲付きmutation 8件KILLED。
   - 連鎖: `9806d96..403519c` PASS(P2はSELF-CHECKで手順書へ)→ `403519c..14a3065` PASS。
 
+- attempt 3: `14a3065..87b6482`(差分、final-evidence) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。`967a912..87b6482`に`lib/`・`hook/`・`src/`・依存・build設定の差分が無くmanual 2回目のidentityを保つこと、手順書の被覆、reviewの連鎖が`9806d96..HEAD`を切れ目なく覆うことを確認された。`check specs`・`git diff --check` PASS。
+  - 連鎖: `9806d96..403519c` PASS → `403519c..14a3065` PASS → `14a3065..87b6482` PASS → 以後は記録だけ(SELF-CHECK)。
+
 ## Current state / handoff
 
 - Last checkpoint: manual 2回目 PASS(code `967a912`)。
 - Blocker category: none
 - Evidence revision: code `967a912`
-- Next Agent action: final-evidence review(`gpt-6-luna`、`14a3065..HEAD`)を起動する。PR #199(Draft)
+- Next Agent action: PR #199をreadyにし、CIとmerge条件を確かめてmergeする
