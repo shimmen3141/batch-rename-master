@@ -48,12 +48,12 @@ int? _digitsShown(WidgetTester tester) {
 
 Finder _plus(String label) => find.descendant(
   of: find.widgetWithText(Row, label),
-  matching: find.widgetWithIcon(IconButton, Icons.add_circle_outline),
+  matching: find.widgetWithIcon(IconButton, Icons.add),
 );
 
 Finder _minus(String label) => find.descendant(
   of: find.widgetWithText(Row, label),
-  matching: find.widgetWithIcon(IconButton, Icons.remove_circle_outline),
+  matching: find.widgetWithIcon(IconButton, Icons.remove),
 );
 
 /// 桁数の欄の「減らす」。

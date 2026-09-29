@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'rule_controller.dart';
 import 'token_editors.dart';
@@ -18,6 +19,7 @@ class RuleBuilderView extends StatelessWidget {
     required this.controller,
     this.onEditToken,
     this.itemCount,
+    this.sampleFile,
   });
 
   final RuleController controller;
@@ -25,6 +27,9 @@ class RuleBuilderView extends StatelessWidget {
   /// 一覧の件数を返す。連番のエディタが桁数の下限に使う(003 REQ-014)。
   /// エディタを開くときに読むので、件数の変化に追随する。省略時は0件。
   final int Function()? itemCount;
+
+  /// 一覧の1件目を返す。日時のエディタが表示例に使う(008:T44)。無ければ null。
+  final FileEntry? Function()? sampleFile;
 
   /// Chip タップ時の編集をホスト側で差し替えたい場合に指定する。
   /// 省略時は既定の詳細エディタ([showTokenEditor])を開いて [RuleController]
@@ -43,6 +48,7 @@ class RuleBuilderView extends StatelessWidget {
       context,
       controller.tokens[index],
       itemCount: itemCount?.call() ?? 0,
+      sampleFile: sampleFile?.call(),
     );
     if (edited != null) controller.replaceAt(index, edited);
   }
@@ -86,7 +92,11 @@ class RuleBuilderView extends StatelessWidget {
                         },
                       ),
               ),
-              _AddBar(controller: controller, itemCount: itemCount),
+              _AddBar(
+                controller: controller,
+                itemCount: itemCount,
+                sampleFile: sampleFile,
+              ),
             ],
           ),
         );
@@ -186,10 +196,15 @@ class _TokenChip extends StatelessWidget {
 
 /// 5 種のトークン追加ボタン列。
 class _AddBar extends StatelessWidget {
-  const _AddBar({required this.controller, required this.itemCount});
+  const _AddBar({
+    required this.controller,
+    required this.itemCount,
+    required this.sampleFile,
+  });
 
   final RuleController controller;
   final int Function()? itemCount;
+  final FileEntry? Function()? sampleFile;
 
   /// [kind] を追加する。設定項目を持つ種別はエディタを開き、確定したときだけ
   /// 末尾へ入れる(003 REQ-008 / REQ-009)。元の名前はエディタを開かない(REQ-010)。
@@ -204,6 +219,10 @@ class _AddBar extends StatelessWidget {
       initial,
       confirmLabel: '追加',
       itemCount: itemCount?.call() ?? 0,
+      sampleFile: sampleFile?.call(),
+      literalEntry: kind == TokenKind.separator
+          ? LiteralEntry.separator
+          : LiteralEntry.freeText,
     );
     if (confirmed != null) controller.addToken(confirmed);
   }

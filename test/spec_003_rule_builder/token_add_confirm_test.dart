@@ -49,7 +49,12 @@ Future<void> _tapAdd(WidgetTester tester, String label) async {
 }
 
 /// 確定以外の閉じ方(REQ-009)。
-enum _Close { cancel, back, barrier, drag }
+///
+/// **008:T44 で下方向のスワイプ(`drag`)を外した。** エディタをボトムシートから
+/// 参考デザインの中央のダイアログへ変え、スワイプで閉じる操作そのものが無くなった
+/// ため(003 spec はエディタの形を自由とし、REQ-009 の閉じ方は「確定以外のすべて」)。
+/// ダイアログの外のタップ(`barrier`)は残る。
+enum _Close { cancel, back, barrier }
 
 Future<void> _close(WidgetTester tester, _Close how) async {
   switch (how) {
@@ -61,8 +66,6 @@ Future<void> _close(WidgetTester tester, _Close how) async {
       await tester.binding.handlePopRoute();
     case _Close.barrier:
       await tester.tapAt(const Offset(4, 4));
-    case _Close.drag:
-      await tester.fling(_editor, const Offset(0, 600), 2000);
   }
   await tester.pumpAndSettle();
 }
@@ -291,7 +294,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: _editor, matching: find.text('-（ハイフン）')),
+        find.descendant(of: _editor, matching: find.text('ハイフン -')),
         findsOneWidget,
       );
       expect(_editConfirm, findsOneWidget, reason: '編集として開いている');

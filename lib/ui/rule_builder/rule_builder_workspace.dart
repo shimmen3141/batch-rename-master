@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/rename_engine.dart';
 import '../../data/preview/file_preview.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/removal_selection.dart';
@@ -80,6 +81,12 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     super.dispose();
   }
 
+  /// 一覧の1件目(表示順)。トークンのエディタの表示例に使う(008:T44)。
+  FileEntry? _firstFile() {
+    final rows = widget.fileList.rows;
+    return rows.isEmpty ? null : rows.first.source;
+  }
+
   /// 現在のルールをファイルリストへ渡す(プレビュー更新)。
   void _syncRule() => widget.fileList.setRule(widget.rule.rule);
 
@@ -91,6 +98,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       builder: (_) => RuleBuilderView(
         controller: widget.rule,
         itemCount: () => widget.fileList.selectedCount,
+        sampleFile: _firstFile,
       ),
     );
   }
@@ -140,6 +148,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
           child: RuleBuilderView(
             controller: widget.rule,
             itemCount: () => widget.fileList.selectedCount,
+            sampleFile: _firstFile,
           ),
         ),
       ],
