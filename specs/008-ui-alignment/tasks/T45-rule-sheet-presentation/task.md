@@ -36,11 +36,74 @@
 
 `RuleBuilderView`は広幅の2ペインの右側でも使う。チップの文字(`tokenLabel`)を頼りにするtestが多い。
 
+## 範囲の決定(2026-09-29、開発者)
+
+取り込む要素を尋ねた(複数選択)。回答(原文): 「シートの枠と追加ボタン, シート内プレビュー, チップの色分けと中身, 　「閉じる」ボタンは逆に混乱を招きそうなので不要です。「折り返して並べる」については、点線の枠内で横にスクロールできるようにします。その枠内でドラッグによる並び替えができるようにしたいです。」
+
+- **取り込む**: シートの枠(取っ手・見出し「命名ルール」・上端の角丸)、枠線だけの追加ボタン、シート下部のプレビュー、チップの色分けと中身(種類名 + 一覧の1件目での値)、点線の枠。
+- **取り込まない**: 「閉じる」ボタン(開発者: 逆に混乱を招く)、折り返し(横スクロールのまま)、プリセット(将来候補`009`)。
+- **並べ替え**: 点線の枠の中でドラッグ(横スクロールのまま)。
+
+## 土台から離れた点と理由
+
+- **「閉じる」ボタン無し**(開発者の決定)。閉じ方は外のタップ・下へのスワイプ・戻る操作。
+- **折り返さず横スクロール**(開発者の決定)。
+- **並べ替えは長押ししてから動かす**: 土台はブラウザのドラッグ。タッチでは押してすぐの横移動を枠のスクロールに使うので、長押しで区別する(`ReorderableDelayedDragStartListener`)。手掛かりの文言も「タップで設定 / **長押し**で並び替え」。
+- **文字列の種類名**: 土台はトークンが区切り / テキストの種類を持つ。003 の`LiteralToken`は入口を持たない(REQ-011)ので、値が区切りのプリセットなら「区切り」(黄)、それ以外は「テキスト」(シアン)。
+- **日時の種類名**は土台と同じく基準の名前。1件目の日時が不明なら値は「不明」(001 INV-006)。1件目が無いときは値にフォーマットそのものを出す(土台は空)。
+- **色**: チップの色は土台の色相をそのまま使う(`lib/ui/theme/token_colors.dart`。意味の色ではなく種類を見分けるための色)。シートの面は`AppColors.surface`(土台は`#101216`で近い)。
+- **広幅**: `RuleBuilderView`を2ペインでも使うので、チップと点線の枠は広幅も同じ見た目になる。見出しとプレビューはシートだけ(広幅は左に一覧が見えている)。
+
+## 作業記録
+
+着手は Claude Opus 5.5(2026-09-29)。branch `asdd/008-ui-alignment/T45-rule-sheet-presentation`、起点`dev`@`8d65b0c`。code `b2ca70c`、testの手直しを含むcode(`lib/`)は`b2ca70c`のまま。
+
+- `lib/ui/rule_builder/rule_builder_view.dart`: 点線の枠(`_DashedBorderPainter`、`tokenFrameKey`)の中に横スクロールの`ReorderableListView`、末尾に手掛かり。公開の`TokenChip`(種類ごとの色、種類名 + 値、×、長押しで並べ替え。`description` = `tokenLabel`を読み上げとtestに使う)。`sampleListenable`(一覧の変化で描き直す)。追加ボタンを枠線だけに。
+- `lib/ui/rule_builder/token_presets.dart`: `tokenKindLabel`・`tokenChipValue`。`lib/ui/theme/token_colors.dart`: `tokenHue`。
+- `lib/ui/rule_builder/rule_builder_workspace.dart`: シートに取っ手・角丸・見出し(`_SheetHeader`)・プレビュー(`_SheetPreview`、`ruleSheetPreviewKey`)。高さは画面の78%まで(超えたらシートの中がスクロール)。広幅にも`sampleListenable`。
+- **testの変更**: 既存testはチップの説明(`連番(2桁)`など)を画面の文字として探していたので、`TokenChip.description`で探す`tokenChip()`(`test/spec_003_rule_builder/token_chip_support.dart`)へ置き換えた(27箇所。確かめる内容は同じ)。「各トークン種別のラベルを表示する」は、種類名と値を確かめる形に書き足した(種類名「テキスト」と値「テキスト」が同じ字面になるため)。
+- 新しいtest: `test/spec_003_rule_builder/rule_sheet_presentation_test.dart`(11件。見出し・取っ手・「閉じる」が無い、プレビュー(取り消し線・追随・変更なし・空)、チップの種類名と値、一覧の変化で描き直す、不明、種類ごとの色、横スクロールと手掛かり、長押しで並べ替わる、押してすぐでは並べ替わらない)。
+- mutationの初回で`M528`(すぐ始まる並べ替え)がSURVIVEDだった。「押してすぐ」のtestが一度に大きく動かしており、並べ替えが位置を拾わないので壊しても落ちなかった。長押しのtestと同じ動かし方(少しずつ)に直し、KILLEDを確かめた。
+- 検証: `flutter test` 1073件PASS、`flutter analyze`・`dart format` PASS。
+
+### mutation
+
+`M500`・`M515`の`find`を追随させた(シートに見出しとプレビューを足して字下げが変わった)。`M524`〜`M531`を足した。`command`を`flutter test test/spec_003_rule_builder`へ絞り、変更した箇所を守る既存の`M242`・`M256`・`M501`・`M516`も回した14件の生出力(NOTEは省いた):
+
+```text
+M242 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M256 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M500 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M501 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M515 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M516 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M524 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M525 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M526 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M527 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M528 | SURVIVED | lib/ui/rule_builder/rule_builder_view.dart | exit 0   ← testを直した(上)
+M529 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M530 | KILLED | lib/ui/theme/token_colors.dart | exit 1
+M531 | KILLED | lib/ui/rule_builder/token_presets.dart | exit 1
+14 mutations: 13 KILLED, 1 SURVIVED, 0 SKIPPED
+M528 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1   ← testの手直し後
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+触った4ファイル(`rule_builder_view.dart`・`rule_builder_workspace.dart`・`token_presets.dart`・`token_colors.dart`)を`file`に持つmutationの`find`は、すべてちょうど1回一致する(追随後)。
+
+## machine検証範囲と引き受け先
+
+- **CIで閉じる**: widget test(シート・プレビュー・チップ・並べ替え、003 REQ-002〜005)とmutation。
+- **このtaskのmanual(Androidエミュレータ)**: 見た目(参考デザインとの見比べ)と、タッチでの長押し・横スクロールの感触。引き受け先のtaskは無い。
+
+## 独立review
+
+既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
+
 ## Current state / handoff
 
-- Last checkpoint: 土台と今の実装の違いを洗い出した(2026-09-29)。
-- Blocker category: human decision
-- Waiting for: 開発者: 土台のどの要素を取り込むか
-- Requested action: 会話で選ぶ
-- Evidence revision: 起点`dev`@`8d65b0c`
-- Next Agent action: 選ばれた要素を適用範囲としてこのtask.mdへ書き、失敗するwidget testから実装する
+- Last checkpoint: 実装と自動検証(code `b2ca70c`、testの手直しは後続のcommit)。手順書を完成させた。
+- Blocker category: none
+- Evidence revision: HEAD(下のPR作成時に確定する)
+- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`8d65b0c..HEAD`)を起動する
