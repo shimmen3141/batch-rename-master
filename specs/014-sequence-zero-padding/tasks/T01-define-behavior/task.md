@@ -65,9 +65,14 @@ spec差分(2026-09-29):
   - 対応: REQ-015は「その連番トークン」= 警告が指す連番ごとの導出で、実装(`file_list_controller.dart:278-285`)も`shortage.token`ごとに`sequenceOverflowsAt`を見る。ゼロ埋めなしの連番は警告を持たないので現状は対象が広がらないが、文言の読み違いを閉じるため、002に代表例19c(混在)を足し、testを`T02`の受け入れ条件と`covers`(`002:REQ-015`)へ入れた。REQは変えていない。
 - T02〜T04の`covers`を記入した。`workspace.py check specs` PASS、contractのJSON読み込みOK、`git diff --check` OK。
 
+- attempt 2: `81b4dd5..1ace7a3`(差分、仕様差分) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。attempt 1のP1は閉じた(REQ-015の導出は連番ごと、実装も`DigitShortageWarning.token`ごと、代表例19cの数値が整合)。`workspace.py check specs` PASS、`git diff --check` PASS。
+  - 連鎖: `6711f9d..81b4dd5` FAIL → `81b4dd5..1ace7a3` PASS(FAILの指摘が閉じたことを確認)。
+
 ## Current state / handoff
 
-- Last checkpoint: spec差分を書いた(2026-09-29)。
-- Blocker category: none
-- Evidence revision: 起点`dev`@`6711f9d`
-- Next Agent action: 独立review(`gpt-6-luna`)→ PASSなら開発者へ承認を依頼する
+- Last checkpoint: spec差分の独立review PASS(attempt 2、`1ace7a3`)。
+- Blocker category: human approval
+- Waiting for: 開発者: 001 contract revision 3・002・003・007のspec差分の承認
+- Requested action: 会話で承認するか、直す点を知らせる
+- Evidence revision: `1ace7a3`
+- Next Agent action: 承認を受けたら、001 contract revision 3の`approved_date`と各specのStatusを承認済みにし、T01をdoneにして`dev`へ統合する
