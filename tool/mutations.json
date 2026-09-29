@@ -3519,6 +3519,27 @@
       "note": "008:T45 削除の円をはみ出させない — チップから少しはみ出す位置(manual 2回目の開発者の要望)",
       "find": "const double tokenChipDeleteOverhang = 5;",
       "replace": "const double tokenChipDeleteOverhang = 0;"
+    },
+    {
+      "id": "M545",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの2行目の高さを文字の拡大に合わせない — 大きな文字で切れる(独立review attempt 4)",
+      "find": "height: MediaQuery.textScalerOf(context).scale(20),",
+      "replace": "height: 20,"
+    },
+    {
+      "id": "M546",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 並べ替えの案内の置き場の高さを文字の拡大に合わせない — 大きな文字で切れる(独立review attempt 4)",
+      "find": "    14 + scaler.scale(11 * 1.4 * 2);",
+      "replace": "    44;"
+    },
+    {
+      "id": "M547",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 点線の枠の高さを文字の拡大に合わせない — 大きな文字でチップの値が枠からはみ出す(独立review attempt 4)",
+      "find": "    scaler.scale(23) +",
+      "replace": "    23 +"
     }
   ]
 }
