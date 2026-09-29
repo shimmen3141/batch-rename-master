@@ -27,9 +27,65 @@
 - widget test(003 REQ-008〜014を失っていないこと)、full test・analyze・format。
 - Androidエミュレータでの手動確認(`manual-verification.md`を着手後に作る)。
 
+## 土台(`docs/design/Bulk Renamer.html`)の適用範囲と離れた点
+
+適用範囲: トークンの設定のダイアログ(`dialog.kind == 'token'`)。
+
+取り込んだもの: 中央のダイアログ(暗い背景・角丸18・枠線のカード、最大幅420)、見出しと説明、枠のついた四角い −/＋ とシアンの値、選択肢のチップ(選ばれるとシアンの枠と文字)、区切り線の下の緑の表示例、区切り線の下に横に並ぶキャンセル / 確定(確定が広い)、文字列の入力欄(暗い面にシアンの枠、`"作成資料" や "旅行_" など`)、各種別の説明文。
+
+離れた点と理由:
+
+- **確定ボタンの文言**: 土台は「完了」。追加は「追加」、編集は「確定」のまま(003 の自由とする点は文言を自由にしているが、「追加と編集が区別できること」を求める。`008:T06`で決めた文言とtestを保つ)。
+- **連番の説明**: 土台は「チェック済みファイルの上から順に振られます。」。`008:T03`で行のチェックが無くなったので「一覧の上から順に振られます。」。
+- **連番の欄**: 土台は開始番号と「桁数（ゼロ埋め）」だけ。`014:T04`のゼロ埋めのスイッチ・桁数の下限・増分(003 REQ-013/014)を保つ。表示例は土台と同じ「最初 ～ 最後」だが、増分とゼロ埋めの有無を反映する。
+- **区切りの記号**: 土台は `_` `-` 空白 `.` `・`。003 の決定済み事項(開発者指示)の4種(ハイフン / アンダーバー / 半角空白 / 全角空白)のまま。見せ方だけ土台に合わせて「名前 記号」にした。
+- **文字列のエディタ**: 土台は自由テキストが入力欄だけ、区切りが記号だけ。003 REQ-011 により**既存の文字列の編集は両方を持つ**ので、どの入口でも入力欄と記号の両方を出し、見出しと説明だけ入口で変える(自由テキスト / 区切り文字 / 編集は「自由テキスト / 区切り文字」)。
+- **日時のフォーマット**: 土台はプリセットのチップだけ。003 の決定済み事項(プリセット＋自由入力)により、チップの下に自由入力の欄を置く。
+- **日時の表示例**: 土台と同じく一覧の1件目で描く。作成日時が不明なら「（日時が不明）」(001 INV-006。別の日時で代えない)。現在日時は「表示例（現在日時）」。
+- **元のファイル名のダイアログ**(大文字・小文字): 土台にはあるが、003 は元名に設定項目を持たない(REQ-010。大小変換は将来)ので出さない。
+
 ## 作業記録
 
-着手は Claude Opus 5.5(2026-09-29)。branch `asdd/008-ui-alignment/T44-token-editor-presentation`、起点`dev`@`9806d96`。
+着手は Claude Opus 5.5(2026-09-29)。branch `asdd/008-ui-alignment/T44-token-editor-presentation`、起点`dev`@`9806d96`。code `cefa597`。
+
+- `lib/ui/rule_builder/token_editors.dart`: `showTokenEditor`を`showModalBottomSheet`から`showDialog`へ(外のタップで閉じる)。`_EditorScaffold`を土台のカードに作り直し、見出し・説明・表示例を足した。`LiteralEntry`(入口)と`sampleFile`(一覧の1件目)を受け取る。判定のロジック(`sequenceMinDigits`、引き上げ、確定するまで`tokens`を変えない)は変えていない。
+- `lib/ui/rule_builder/rule_builder_view.dart`: `RuleBuilderView.sampleFile`(getter)。追加は入口(`＋ 区切り`なら`LiteralEntry.separator`)を渡す。
+- `lib/ui/rule_builder/rule_builder_workspace.dart`: 狭幅のシートと広幅の2ペインの両方へ`sampleFile: _firstFile`(`fileList.rows.first.source`、表示順の1件目)。
+- **testの変更**: `token_add_confirm_test.dart`の REQ-009 の閉じ方から**`drag`(下方向のスワイプ)を外した**。ダイアログにはスワイプで閉じる操作そのものが無いため(003 spec はエディタの形を自由とし、REQ-009 は「確定以外のすべての閉じ方」)。キャンセル・戻る・外のタップは残る。ほかは見出し(「自由テキスト / 区切り文字」)・記号の文言(「アンダーバー _」)・ステッパーのicon(`Icons.remove`/`add`)の追随だけで、assertionは緩めていない。
+- 新しいtest: `test/spec_003_rule_builder/token_editor_dialog_test.dart`(15件。ダイアログであること、入口ごとの見出し、編集は入力欄と記号の両方、連番・日時の表示例と追随、不明な日時、一覧が空、狭幅・広幅から1件目が届くこと)。
+- 検証: `flutter test` 1055件PASS、`flutter analyze`・`dart format` PASS。
+
+### mutation
+
+- **`M242`・`M256`は`014:T04`で`find`が古くなっていた**(`showTokenEditor`の呼び出しに引数を足したとき追随が漏れ、一致しない = 何も守っていなかった)。追随させた。`M247`はボトムシートの`isDismissible`からダイアログの`barrierDismissible`へ追随させた。`M248`(下方向のスワイプで閉じられなくする対照)は、ダイアログに操作が無いので外した。
+- `M512`〜`M518`を足した(表示例・1件目の経路・入口の見出し)。
+- 表の書式を揃えるだけのcommit(`json.load`の結果が同一であることを確かめた)を分けてある。
+- 触った3ファイルを`file`に持つ35件の`find`が、すべてちょうど1回一致することを確かめた。**表全体では他のtaskの16件が一致しない**([finding](../../../../development-findings/2026-09-29-stale-mutation-finds-go-unnoticed.md))。このtaskの範囲の外で、扱いは開発者へ尋ねる。
+
+`command`を`flutter test test/spec_003_rule_builder`へ絞った10件の生出力(NOTEは省いた):
+
+```text
+M242 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M247 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M256 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M512 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M513 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M514 | KILLED | lib/ui/rule_builder/token_editors.dart | exit 1
+M515 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M516 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+10 mutations: 10 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+## machine検証範囲と引き受け先
+
+- **CIで閉じる**: widget test(形・見出し・表示例・経路、確定手順REQ-008〜014)とmutation。
+- **このtaskのmanual(Androidエミュレータ)**: 見た目(参考デザインとの見比べ)と操作。引き受け先のtaskは無い。
+
+## 独立review
+
+既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
 
 ## 範囲の決定(2026-09-29)
 
@@ -56,7 +112,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 範囲を決めた(②トークンの設定のダイアログ。①は`T45`)(2026-09-29)。
+- Last checkpoint: 実装と自動検証(code `cefa597`)。manualの手順書をcurrent revisionの文言で完成させた。
 - Blocker category: none
-- Evidence revision: 起点`dev`@`9806d96`
-- Next Agent action: 参考デザインのトークンのダイアログ(`dialog.kind == 'token'`)の構成・文言・色を読み取り、このtask.mdへ適用範囲と離れる点を書いてから、失敗するwidget testを書く
+- Evidence revision: code `cefa597`
+- Next Agent action: Draft PRを作り、独立review attempt 1(`gpt-6-luna`、`9806d96..HEAD`)を起動する
