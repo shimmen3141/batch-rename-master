@@ -298,7 +298,14 @@ void main() {
       );
       final first = tester.getCenter(tokenChip('AA'));
       final second = tester.getCenter(tokenChip('BB'));
-      await tester.dragFrom(first, Offset(second.dx - first.dx + 40, 0));
+      // 長押しの時間を待たずに、長押しのtestと同じ動かし方(少しずつ)で動かす。
+      final gesture = await tester.startGesture(first);
+      final distance = second.dx - first.dx + 40;
+      for (var i = 0; i < 10; i++) {
+        await gesture.moveBy(Offset(distance / 10, 0));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
       await tester.pumpAndSettle();
       expect(rc.tokens.map((t) => (t as LiteralToken).value).toList(), [
         'AA',
