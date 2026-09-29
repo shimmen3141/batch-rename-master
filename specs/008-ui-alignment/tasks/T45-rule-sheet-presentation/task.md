@@ -202,9 +202,25 @@ M517 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
 - attempt 3: `dca9d7a..abb9ef3`(差分、implementation。`dev`の取り込みを含む。競合なし) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。改善点5つが原文どおり、削除の円の押せる範囲が直径22でタップ・長押し・横スクロールと衝突しないこと、面の色の変更、testの変更が緩和でないこと、`M533`〜`M540`、手順書と「離れた点」の更新を確認された。full test 1079件・format・analyze・`check specs`(104 tasks)・`git diff --check` PASS。範囲付きmutation 12件KILLED。
   - 連鎖: `8d65b0c..72a711b` PASS → `72a711b..dca9d7a` PASS → `dca9d7a..abb9ef3` PASS。
 
+- attempt 4: `abb9ef3..354c916`(差分、implementation) — **PASS**(P2 1件)。reviewerのmodelは`gpt-6-luna`。高さを固定した箱と1行の名前、円のはみ出しと押せる範囲・隣や枠と重ならないこと、操作の衝突が無いこと、testの変更が緩和でないこと、手順書、mutationの`find`を確認された。full test 1081件・format・analyze・`check specs`・`git diff --check` PASS。範囲付きmutation 6件KILLED。
+  - **P2(成果物の欠陥)**: 固定の高さ(プレビューの2行目20・案内44・点線の枠76)は、端末の文字を大きくすると文字が切れうる。→ `f6ad967`で**高さを文字の拡大率に合わせて決める**ようにした(`tokenReorderHintHeight`・`tokenFrameHeight`・`tokenChipKindRowHeight`・プレビューは`scale(20)`)。開いている間は拡大率が変わらないのでガタつかず、拡大しなければ高さは今までと同じ(枠76、案内44.8)。
+  - test: 文字を2倍にして、案内・チップの値・プレビューの文字が**本来要る高さ(折り返しを含む)で**箱に収まり、変更あり↔なしでシートの高さが変わらず、はみ出し(overflow)が無いこと。
+  - mutation `M545`〜`M547`を足し、`M541`の`find`を追随させた。初回`M545`・`M546`がSURVIVED: 描かれる大きさは箱に切り詰められるので、描かれた位置だけを見るtestでは切れていることが分からなかった。本来要る高さ(`getMinIntrinsicHeight`)で見る形に直してKILLED。生出力(`flutter test test/spec_003_rule_builder`、NOTEは省いた):
+
+```text
+M534 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M541 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M545 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart | exit 1
+M546 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+M547 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - full `flutter test` 1082件PASS、analyze・format PASS(code `f6ad967`)。
+
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目の改善点を実装し自動検証した(code `5a6c084`)。
+- Last checkpoint: attempt 4 のP2を直した(code `f6ad967`)。
 - Blocker category: none
-- Evidence revision: code `5a6c084`
-- Next Agent action: 独立review attempt 4(差分、`abb9ef3..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
+- Evidence revision: code `f6ad967`
+- Next Agent action: 独立review attempt 5(差分、`354c916..HEAD`、`gpt-6-luna`)を起動する。PR #200(Draft)
