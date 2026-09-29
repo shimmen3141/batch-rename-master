@@ -3190,6 +3190,21 @@
       "note": "014:T03 読んだzero_paddingを捨てて常にゼロ埋めありで復元する — 保存はされるのに復元でなくなる(007 例8)",
       "find": "        zeroPad: zeroPad,\n      );",
       "replace": "        zeroPad: true,\n      );"
-    }
+    },
+    {"id": "M497", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 開いたときに下限まで引き上げない — 件数が後から増えた連番を開いても桁不足のまま(003 例15)", "find": "    super.initState();\n    _raiseDigits();", "replace": "    super.initState();"},
+    {"id": "M498", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 開始番号を変えても引き上げない — 開始90でも2桁のまま確定できる(003 例13)", "find": "            _start = v;\n            _raiseDigits();", "replace": "            _start = v;"},
+    {"id": "M499", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 桁数の下限を1に固定する — 下限未満へ下げられる(003 REQ-014)", "find": "            min: _minDigits,", "replace": "            min: 1,"},
+    {"id": "M500", "file": "lib/ui/rule_builder/rule_builder_workspace.dart", "note": "014:T04 狭幅のシートへ件数を渡さない — 下限が常に0件のものになる(composition の経路)", "find": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n        itemCount: () => widget.fileList.selectedCount,\n", "replace": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n"},
+    {"id": "M501", "file": "lib/ui/rule_builder/rule_builder_workspace.dart", "note": "014:T04 広幅の2ペインへ件数を渡さない — 下限が常に0件のものになる(composition の経路)", "find": "          child: RuleBuilderView(\n            controller: widget.rule,\n            itemCount: () => widget.fileList.selectedCount,\n", "replace": "          child: RuleBuilderView(\n            controller: widget.rule,\n"},
+    {"id": "M502", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 確定したトークンがゼロ埋めの有無を持たない — 切り替えても常にゼロ埋めあり(003 例16)", "find": "          zeroPad: _zeroPad,\n", "replace": ""},
+    {"id": "M503", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めなしでも桁数の欄を出す — 使われない桁数の入力を求める(003 REQ-013)", "find": "        if (_zeroPad) ...[", "replace": "        if (true) ...["},
+    {"id": "M504", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 増分を変えても引き上げない(003 REQ-014)", "find": "            _increment = v;\n            _raiseDigits();", "replace": "            _increment = v;"},
+    {"id": "M505", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めへ戻したときに引き上げない(003 REQ-013 / REQ-014)", "find": "            _zeroPad = v;\n            _raiseDigits();", "replace": "            _zeroPad = v;"},
+    {"id": "M506", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)", "find": "(itemCount < 1 ? 1 : itemCount)", "replace": "1"},
+    {"id": "M507", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めなしのあいだも引き上げる — 使わない桁数を書き換える(003 REQ-014 はゼロ埋めありだけ)", "find": "    if (_zeroPad && _digits < _minDigits) _digits = _minDigits;", "replace": "    if (_digits < _minDigits) _digits = _minDigits;"},
+    {"id": "M508", "file": "lib/ui/rule_builder/token_presets.dart", "note": "014:T04 ゼロ埋めなしでもルールの字面に桁数を出す", "find": "    zeroPad ? '連番($digits桁)' : '連番(ゼロ埋めなし)',", "replace": "    '連番($digits桁)',"},
+    {"id": "M509", "file": "lib/ui/file_list/rename_warning_view.dart", "note": "014:T04 ゼロ埋めなしでも下部バーのchipをゼロ埋めで見せる", "find": "    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',", "replace": "    '[${start.toString().padLeft(digits, '0')}…]',"},
+    {"id": "M510", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる", "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;", "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"},
+    {"id": "M511", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**", "find": "((itemCount < 1 ? 1 : itemCount) - 1)", "replace": "(itemCount - 1)"}
   ]
 }

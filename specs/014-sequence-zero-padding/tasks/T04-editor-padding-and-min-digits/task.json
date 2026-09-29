@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T04",
   "title": "連番のエディタでゼロ埋めを切り替え、ゼロ埋めでは下限未満の桁数を選べなくする",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T02"
   ],
@@ -12,6 +12,6 @@
     "003:REQ-014"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 198,
   "manualVerification": "manual-verification.md"
 }

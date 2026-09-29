@@ -17,9 +17,14 @@ class RuleBuilderView extends StatelessWidget {
     super.key,
     required this.controller,
     this.onEditToken,
+    this.itemCount,
   });
 
   final RuleController controller;
+
+  /// 一覧の件数を返す。連番のエディタが桁数の下限に使う(003 REQ-014)。
+  /// エディタを開くときに読むので、件数の変化に追随する。省略時は0件。
+  final int Function()? itemCount;
 
   /// Chip タップ時の編集をホスト側で差し替えたい場合に指定する。
   /// 省略時は既定の詳細エディタ([showTokenEditor])を開いて [RuleController]
@@ -34,7 +39,11 @@ class RuleBuilderView extends StatelessWidget {
       override(index);
       return;
     }
-    final edited = await showTokenEditor(context, controller.tokens[index]);
+    final edited = await showTokenEditor(
+      context,
+      controller.tokens[index],
+      itemCount: itemCount?.call() ?? 0,
+    );
     if (edited != null) controller.replaceAt(index, edited);
   }
 
@@ -77,7 +86,7 @@ class RuleBuilderView extends StatelessWidget {
                         },
                       ),
               ),
-              _AddBar(controller: controller),
+              _AddBar(controller: controller, itemCount: itemCount),
             ],
           ),
         );
@@ -177,9 +186,10 @@ class _TokenChip extends StatelessWidget {
 
 /// 5 種のトークン追加ボタン列。
 class _AddBar extends StatelessWidget {
-  const _AddBar({required this.controller});
+  const _AddBar({required this.controller, required this.itemCount});
 
   final RuleController controller;
+  final int Function()? itemCount;
 
   /// [kind] を追加する。設定項目を持つ種別はエディタを開き、確定したときだけ
   /// 末尾へ入れる(003 REQ-008 / REQ-009)。元の名前はエディタを開かない(REQ-010)。
@@ -193,6 +203,7 @@ class _AddBar extends StatelessWidget {
       context,
       initial,
       confirmLabel: '追加',
+      itemCount: itemCount?.call() ?? 0,
     );
     if (confirmed != null) controller.addToken(confirmed);
   }
