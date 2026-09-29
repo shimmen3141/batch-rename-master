@@ -3435,6 +3435,62 @@
       "note": "008:T45 独立review attempt 1(reviewer設計の対照M532を、修正後のコードへ当てた形)。未選択の1件目をプレビュー・チップの値の基準にする — 未選択の行は変更後名を持たず(002 REQ-007)、「（変更なし）」やチップの値と食い違う",
       "find": "    if (row.selected) return row;",
       "replace": "    return row;"
+    },
+    {
+      "id": "M533",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 チップが0個でも並べ替えの案内を出す — 並べ替えるものが無いのに案内が出る(manual 1回目の開発者の要望)",
+      "find": "                child: tokens.isEmpty\n                    ? null\n",
+      "replace": "                child: false\n                    ? null\n"
+    },
+    {
+      "id": "M534",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円をチップの内側へ寄せる — 円の上端と右端がチップの上辺・右辺に重ならない(manual 1回目の開発者の要望)",
+      "find": "                top: 0,\n                right: 0,",
+      "replace": "                top: 4,\n                right: 4,"
+    },
+    {
+      "id": "M535",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円を小さくする — 押せる範囲が広がらない(manual 1回目の開発者の要望: 押しにくかった)",
+      "find": "const double tokenChipDeleteSize = 22;",
+      "replace": "const double tokenChipDeleteSize = 16;"
+    },
+    {
+      "id": "M536",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円に縁を描かない — 円の外周はチップの色(manual 1回目の開発者の要望)",
+      "find": "shape: CircleBorder(side: BorderSide(color: accent)),",
+      "replace": "shape: const CircleBorder(),"
+    },
+    {
+      "id": "M537",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の×を白にする — ×はチップの色(manual 1回目の開発者の要望)",
+      "find": "Icon(Icons.close, size: 12, color: accent)",
+      "replace": "Icon(Icons.close, size: 12, color: Colors.white)"
+    },
+    {
+      "id": "M538",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの矢印を薄い色に戻す — 見えづらい(manual 1回目の開発者の要望)",
+      "find": "                        // 薄くて見えづらかった(manual 1回目の開発者の要望)。\n                        color: colors.textPrimary,",
+      "replace": "                        color: colors.textDisabled,"
+    },
+    {
+      "id": "M539",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの下の余白を戻す — 画面の下端ぎりぎり(manual 1回目の開発者の要望)",
+      "find": "fromLTRB(18, 4, 18, 32)",
+      "replace": "fromLTRB(18, 4, 18, 18)"
+    },
+    {
+      "id": "M540",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 種別名を中央寄せにする — 左寄せ(manual 1回目の開発者の要望)",
+      "find": "                            child: Row(\n                              children: [",
+      "replace": "                            child: Row(\n                              mainAxisAlignment: MainAxisAlignment.center,\n                              children: ["
     }
   ]
 }
