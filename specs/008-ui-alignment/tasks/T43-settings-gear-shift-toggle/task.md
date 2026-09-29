@@ -33,7 +33,7 @@
 | 論点 | 決定 | 決定者 |
 |---|---|---|
 | 歯車の置き場 | **ヘッダー(「一括リネーム」の帯)の右端**。狭幅・広幅とも同じ(ほかの案: フッターのリネームボタンの横) | 開発者 |
-| 押したときの形 | **メニュー(ポップアップ)**。項目はチェック付きで、選ぶと入切する(ほかの案: 下から出るシート / 設定画面) | 開発者 |
+| 押したときの形 | **メニュー(ポップアップ)**。項目は~~チェック付きで、選ぶと入切する~~ → **トグルスイッチ(ONは緑、OFFはグレー)で、切り替えてもメニューを閉じない**(manual 1回目の要望。下記)。ほかの案: 下から出るシート / 設定画面 | 開発者 |
 | ONの見せ方 | **何も出さない**(メニューのチェックだけ)。ほかの案: 歯車に印 / 印+フッターに1行 | 開発者 |
 | 有効な設定が無い端末 | **歯車そのものを出さない**(開発者の要望)。今の項目は更新日時ずらしだけなので、Androidでは歯車が出ない | 開発者 |
 | **Androidで設定が出ていた食い違い** | **直す**。005 REQ-015・代表例16・`013:T04`の決定4は「Androidでは出さない」だが、`013:T07`以後Androidにも出ていた([finding](../../../../development-findings/2026-09-29-android-shows-desktop-only-setting.md))。仕様を変えるのではなく仕様へ戻す | Agent(仕様どおりへ戻す。開発者へ報告済み) |
@@ -89,6 +89,37 @@ M461 | KILLED | exit 1
 
 (`M461`は全件のcommandで確かめ直した。殺すのは範囲外の`test/spec_004_file_source/load_affordance_test.dart`で、`008:T42`と同じ。)
 
+## manual 1回目の結果と要望(2026-09-29、code `683e4ce`)
+
+受領: 会話。エミュレータ(Android)で手順書の1.〜3.を確認し「確認事項についてはすべて問題なかった」。4.(任意、Windows)も見たうえで、次の要望(原文):
+
+> windowsの設定メニューのUIは改善したい。現状チェックボックスになっているが、チェックがない状態だと何をするUIなのか全くわからない。トグルスイッチにし、オンの時は緑、オフの時はグレーになるようにしてください。また、切り替えてもメニューが閉じるようにはしないでください。
+
+→ `lib/`を変えるので、1.〜3.の結果は`683e4ce`に対するものとして記録し、変更後のbuildで再確認する(下の手順書)。
+
+## 要望への対応(2026-09-29)
+
+実装は Claude Opus 5.5。code `4dc6a5a`(mutationの追随 `b750afb`)。
+
+- `lib/ui/rename_exec/rename_settings_button.dart`: `CheckedPopupMenuItem`をやめ、選べない項目(`PopupMenuEntry`の`represents`が常に偽)に`SwitchListTile`を置く。`PopupMenuItem`は押すとメニューを閉じるため使わない。ONのtrackは`success`(緑 `#4ADE80`)・thumbは白、OFFのtrackは`textMuted`・thumbは`textSecondary`(グレー)、枠線なし。開いたままの状態変化は`ListenableBuilder`で映す。
+- `modified_time_test.dart`: メニューにスイッチが出てOFF・色が決定どおり、切り替えても**メニューが閉じず**スイッチがONになる、もう一度でOFF、閉じて開き直しても状態を映す。
+- 検証: `flutter test` 1017件PASS、`flutter analyze`・`dart format` PASS。
+- mutation: `M477`の`find`を追随、`M480`(対照)の字下げを追随、`M481`(切り替えで閉じる)・`M482`(開いたメニューが状態を映さない)・`M483`(ONが緑でない)・`M484`(OFFが既定の色)を足した。`command`を`flutter test test/spec_005_rename_exec/modified_time_test.dart test/widget_test.dart`へ絞った生出力(NOTEは省いた):
+
+```text
+M475 | KILLED | exit 1
+M476 | KILLED | exit 1
+M477 | KILLED | exit 1
+M480 | SKIPPED | matched 0 time(s), expected 1   ← 字下げの追随漏れ。b750afbで直した
+M481 | KILLED | exit 1
+M482 | KILLED | exit 1
+M483 | KILLED | exit 1
+M484 | KILLED | exit 1
+8 mutations: 7 KILLED, 0 SURVIVED, 1 SKIPPED
+M480 | SURVIVED | exit 0: the tests passed with the mutation applied   ← 対照。期待値
+1 mutations: 0 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
 ## 独立review
 
 **既定のreviewerは`gpt-6-luna`**(開発者指定)。利用上限で使えないときはClaude Sonnet(2026-09-28 の開発者の許可)。
@@ -100,9 +131,9 @@ M461 | KILLED | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(2026-09-29、code `683e4ce`)。
-- Blocker category: なし(manual待ち)。
-- Waiting for: manual 1回目(code `683e4ce`)。独立reviewは attempt 1 PASS。
-- Requested action: 人間がworktree `.worktrees/008-T43-settings-gear-shift-toggle`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
-- Evidence revision: 起点は`dev`@`c42f131`。
-- Next Agent action: Draft PRを作る → 独立review → manual依頼 → 結果を記録 → merge判断。
+- Last checkpoint: manual 1回目(code `683e4ce`)の1.〜3. PASSを受領し、Windowsのメニューをトグルスイッチへ変えた(code `4dc6a5a`、自動検証PASS)。
+- Blocker category: なし(独立review待ち)。
+- Waiting for: 独立review attempt 2(差分`47062ca..HEAD`、`gpt-6-luna`)。
+- Requested action: なし(Agentが起動する)。
+- Evidence revision: manual 1回目は`683e4ce`。変更後のmanualは未実施。
+- Next Agent action: 独立review attempt 2 → manual 2回目(変更後のbuildで1.〜4.。4.のWindowsを必須にするか開発者に合わせる)を依頼する。
