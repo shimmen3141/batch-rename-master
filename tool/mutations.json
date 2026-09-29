@@ -1632,9 +1632,9 @@
     {
       "id": "M242",
       "file": "lib/ui/rule_builder/rule_builder_view.dart",
-      "find": "    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n    );\n    if (confirmed != null) controller.addToken(confirmed);",
-      "replace": "    controller.addToken(initial);\n    final last = controller.tokens.length - 1;\n    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n    );\n    if (confirmed != null) {\n      controller.replaceAt(last, confirmed);\n    } else {\n      controller.removeAt(last);\n    }",
-      "note": "008:T06 参考designの形(押した瞬間に既定値で入れ、キャンセルで取り除く)— 終状態は同じだが途中で通知が起き、007 の保存と 002 のプレビューが既定値を観測する(003 REQ-008)"
+      "find": "    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n",
+      "replace": "    controller.addToken(initial);\n    final confirmed = await showTokenEditor(\n      context,\n      initial,\n      confirmLabel: '追加',\n",
+      "note": "008:T06 参考designの形(押した瞬間に既定値で入れる)— 途中で通知が起き、007 の保存と 002 のプレビューが既定値を観測する(003 REQ-008)。**008:T44 で find を追随**(014:T04 で呼び出しに引数を足したとき追随が漏れ、SKIPになっていた。変異は『確定前に入れる』に絞った)"
     },
     {
       "id": "M243",
@@ -1667,16 +1667,9 @@
     {
       "id": "M247",
       "file": "lib/ui/rule_builder/token_editors.dart",
-      "find": "    isScrollControlled: true,\n    backgroundColor: context.colors.surface,",
-      "replace": "    isScrollControlled: true,\n    isDismissible: false,\n    backgroundColor: context.colors.surface,",
-      "note": "008:T06 シート外のtapで閉じられなくする — REQ-009 の閉じ方の検査が空振りしないことの対照"
-    },
-    {
-      "id": "M248",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "find": "    isScrollControlled: true,\n    backgroundColor: context.colors.surface,",
-      "replace": "    isScrollControlled: true,\n    enableDrag: false,\n    backgroundColor: context.colors.surface,",
-      "note": "008:T06 下方向のswipeで閉じられなくする — REQ-009 の閉じ方の検査が空振りしないことの対照"
+      "find": "    barrierDismissible: true,",
+      "replace": "    barrierDismissible: false,",
+      "note": "008:T06 エディタの外のtapで閉じられなくする — REQ-009 の閉じ方の検査が空振りしないことの対照。**008:T44 でダイアログへ変えたので find を追随**(以前はボトムシートの isDismissible)"
     },
     {
       "id": "M249",
@@ -1730,9 +1723,9 @@
     {
       "id": "M256",
       "file": "lib/ui/rule_builder/rule_builder_view.dart",
-      "find": "    final edited = await showTokenEditor(context, controller.tokens[index]);",
-      "replace": "    final edited = await showTokenEditor(context, controller.tokens[index], confirmLabel: '追加');",
-      "note": "008:T06 編集の確定ボタンを「追加」にする(呼び出し側)— 追加と編集の区別。独立review attempt 1 が追加"
+      "find": "      controller.tokens[index],\n      itemCount: itemCount?.call() ?? 0,\n",
+      "replace": "      controller.tokens[index],\n      confirmLabel: '追加',\n      itemCount: itemCount?.call() ?? 0,\n",
+      "note": "008:T06 編集の確定ボタンを「追加」にする(呼び出し側)— 追加と編集の区別。独立review attempt 1 が追加。**008:T44 で find を追随**(014:T04 で追随が漏れ、SKIPになっていた)"
     },
     {
       "id": "M257",
@@ -3191,20 +3184,194 @@
       "find": "        zeroPad: zeroPad,\n      );",
       "replace": "        zeroPad: true,\n      );"
     },
-    {"id": "M497", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 開いたときに下限まで引き上げない — 件数が後から増えた連番を開いても桁不足のまま(003 例15)", "find": "    super.initState();\n    _raiseDigits();", "replace": "    super.initState();"},
-    {"id": "M498", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 開始番号を変えても引き上げない — 開始90でも2桁のまま確定できる(003 例13)", "find": "            _start = v;\n            _raiseDigits();", "replace": "            _start = v;"},
-    {"id": "M499", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 桁数の下限を1に固定する — 下限未満へ下げられる(003 REQ-014)", "find": "            min: _minDigits,", "replace": "            min: 1,"},
-    {"id": "M500", "file": "lib/ui/rule_builder/rule_builder_workspace.dart", "note": "014:T04 狭幅のシートへ件数を渡さない — 下限が常に0件のものになる(composition の経路)", "find": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n        itemCount: () => widget.fileList.selectedCount,\n", "replace": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n"},
-    {"id": "M501", "file": "lib/ui/rule_builder/rule_builder_workspace.dart", "note": "014:T04 広幅の2ペインへ件数を渡さない — 下限が常に0件のものになる(composition の経路)", "find": "          child: RuleBuilderView(\n            controller: widget.rule,\n            itemCount: () => widget.fileList.selectedCount,\n", "replace": "          child: RuleBuilderView(\n            controller: widget.rule,\n"},
-    {"id": "M502", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 確定したトークンがゼロ埋めの有無を持たない — 切り替えても常にゼロ埋めあり(003 例16)", "find": "          zeroPad: _zeroPad,\n", "replace": ""},
-    {"id": "M503", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めなしでも桁数の欄を出す — 使われない桁数の入力を求める(003 REQ-013)", "find": "        if (_zeroPad) ...[", "replace": "        if (true) ...["},
-    {"id": "M504", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 増分を変えても引き上げない(003 REQ-014)", "find": "            _increment = v;\n            _raiseDigits();", "replace": "            _increment = v;"},
-    {"id": "M505", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めへ戻したときに引き上げない(003 REQ-013 / REQ-014)", "find": "            _zeroPad = v;\n            _raiseDigits();", "replace": "            _zeroPad = v;"},
-    {"id": "M506", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)", "find": "(itemCount < 1 ? 1 : itemCount)", "replace": "1"},
-    {"id": "M507", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 ゼロ埋めなしのあいだも引き上げる — 使わない桁数を書き換える(003 REQ-014 はゼロ埋めありだけ)", "find": "    if (_zeroPad && _digits < _minDigits) _digits = _minDigits;", "replace": "    if (_digits < _minDigits) _digits = _minDigits;"},
-    {"id": "M508", "file": "lib/ui/rule_builder/token_presets.dart", "note": "014:T04 ゼロ埋めなしでもルールの字面に桁数を出す", "find": "    zeroPad ? '連番($digits桁)' : '連番(ゼロ埋めなし)',", "replace": "    '連番($digits桁)',"},
-    {"id": "M509", "file": "lib/ui/file_list/rename_warning_view.dart", "note": "014:T04 ゼロ埋めなしでも下部バーのchipをゼロ埋めで見せる", "find": "    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',", "replace": "    '[${start.toString().padLeft(digits, '0')}…]',"},
-    {"id": "M510", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる", "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;", "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"},
-    {"id": "M511", "file": "lib/ui/rule_builder/token_editors.dart", "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**", "find": "((itemCount < 1 ? 1 : itemCount) - 1)", "replace": "(itemCount - 1)"}
+    {
+      "id": "M497",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 開いたときに下限まで引き上げない — 件数が後から増えた連番を開いても桁不足のまま(003 例15)",
+      "find": "    super.initState();\n    _raiseDigits();",
+      "replace": "    super.initState();"
+    },
+    {
+      "id": "M498",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 開始番号を変えても引き上げない — 開始90でも2桁のまま確定できる(003 例13)",
+      "find": "            _start = v;\n            _raiseDigits();",
+      "replace": "            _start = v;"
+    },
+    {
+      "id": "M499",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 桁数の下限を1に固定する — 下限未満へ下げられる(003 REQ-014)",
+      "find": "            min: _minDigits,",
+      "replace": "            min: 1,"
+    },
+    {
+      "id": "M500",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "014:T04 狭幅のシートへ件数を渡さない — 下限が常に0件のものになる(composition の経路)",
+      "find": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n        itemCount: () => widget.fileList.selectedCount,\n",
+      "replace": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n"
+    },
+    {
+      "id": "M501",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "014:T04 広幅の2ペインへ件数を渡さない — 下限が常に0件のものになる(composition の経路)",
+      "find": "          child: RuleBuilderView(\n            controller: widget.rule,\n            itemCount: () => widget.fileList.selectedCount,\n",
+      "replace": "          child: RuleBuilderView(\n            controller: widget.rule,\n"
+    },
+    {
+      "id": "M502",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 確定したトークンがゼロ埋めの有無を持たない — 切り替えても常にゼロ埋めあり(003 例16)",
+      "find": "          zeroPad: _zeroPad,\n",
+      "replace": ""
+    },
+    {
+      "id": "M503",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 ゼロ埋めなしでも桁数の欄を出す — 使われない桁数の入力を求める(003 REQ-013)",
+      "find": "        if (_zeroPad) ...[",
+      "replace": "        if (true) ...["
+    },
+    {
+      "id": "M504",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 増分を変えても引き上げない(003 REQ-014)",
+      "find": "            _increment = v;\n            _raiseDigits();",
+      "replace": "            _increment = v;"
+    },
+    {
+      "id": "M505",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 ゼロ埋めへ戻したときに引き上げない(003 REQ-013 / REQ-014)",
+      "find": "            _zeroPad = v;\n            _raiseDigits();",
+      "replace": "            _zeroPad = v;"
+    },
+    {
+      "id": "M506",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)",
+      "find": "(itemCount < 1 ? 1 : itemCount)",
+      "replace": "1"
+    },
+    {
+      "id": "M507",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 ゼロ埋めなしのあいだも引き上げる — 使わない桁数を書き換える(003 REQ-014 はゼロ埋めありだけ)",
+      "find": "    if (_zeroPad && _digits < _minDigits) _digits = _minDigits;",
+      "replace": "    if (_digits < _minDigits) _digits = _minDigits;"
+    },
+    {
+      "id": "M508",
+      "file": "lib/ui/rule_builder/token_presets.dart",
+      "note": "014:T04 ゼロ埋めなしでもルールの字面に桁数を出す",
+      "find": "    zeroPad ? '連番($digits桁)' : '連番(ゼロ埋めなし)',",
+      "replace": "    '連番($digits桁)',"
+    },
+    {
+      "id": "M509",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "note": "014:T04 ゼロ埋めなしでも下部バーのchipをゼロ埋めで見せる",
+      "find": "    '[${zeroPad ? start.toString().padLeft(digits, '0') : '$start'}…]',",
+      "replace": "    '[${start.toString().padLeft(digits, '0')}…]',"
+    },
+    {
+      "id": "M510",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる",
+      "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;",
+      "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"
+    },
+    {
+      "id": "M511",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**",
+      "find": "((itemCount < 1 ? 1 : itemCount) - 1)",
+      "replace": "(itemCount - 1)"
+    },
+    {
+      "id": "M512",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 連番の表示例が件数を使わない(常に最初の1つ)— 一覧に振られる範囲が読めない",
+      "find": "example: count > 1 ? '${_render(1)} ～ ${_render(count)}' : _render(1),",
+      "replace": "example: _render(1),"
+    },
+    {
+      "id": "M513",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 日時の表示例が選んだ基準を使わない(常に作成日時)— 基準を変えても例が変わらない",
+      "find": "    final rendered = DateTimeToken(\n      source: _source,\n",
+      "replace": "    final rendered = DateTimeToken(\n      source: DateTimeSource.created,\n"
+    },
+    {
+      "id": "M514",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 日時が不明なときの表示例を空にする — 何も出ず、不明であることが読めない(001 INV-006 の見せ方)",
+      "find": "    return (label, rendered.isEmpty ? '（日時が不明）' : rendered);",
+      "replace": "    return (label, rendered);"
+    },
+    {
+      "id": "M515",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T44 狭幅のシートへ一覧の1件目を渡さない — 日時の表示例が出ない(composition の経路)",
+      "find": "\n        sampleFile: _firstFile,\n",
+      "replace": "\n"
+    },
+    {
+      "id": "M516",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T44 広幅の2ペインへ一覧の1件目を渡さない — 日時の表示例が出ない(composition の経路)",
+      "find": "\n            sampleFile: _firstFile,\n",
+      "replace": "\n"
+    },
+    {
+      "id": "M517",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T44 表示例に一覧の最後の1件を使う — 『1つ目のファイル』と食い違う",
+      "find": "rows.first.source",
+      "replace": "rows.last.source"
+    },
+    {
+      "id": "M518",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T44 区切りの追加を自由テキストの見出しで開く — 入口ごとの見出し(参考デザイン)",
+      "find": "          ? LiteralEntry.separator\n",
+      "replace": "          ? LiteralEntry.freeText\n"
+    },
+    {
+      "id": "M519",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 高さの変化をアニメーションにしない — ゼロ埋めの切り替え・日時の入力欄の出し入れで高さが急に変わる(manual 1回目の開発者の要望)",
+      "find": "const Duration tokenEditorResizeDuration = Duration(milliseconds: 220);",
+      "replace": "const Duration tokenEditorResizeDuration = Duration.zero;"
+    },
+    {
+      "id": "M520",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 「詳細に記述」を選んでもプリセットのチップを選ばれた扱いにする — どちらを選んでいるのか読めない",
+      "find": "                selected: !_custom && _fmt.text == preset,",
+      "replace": "                selected: _fmt.text == preset,"
+    },
+    {
+      "id": "M521",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 日時の入力欄を常に出す — 「詳細に記述」を選んだときだけ出す(manual 1回目の開発者の要望)",
+      "find": "        if (_custom) ...[",
+      "replace": "        if (true) ...["
+    },
+    {
+      "id": "M522",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 プリセットに無いフォーマットでも「詳細に記述」を選ばずに開く — 今のフォーマットが入力欄にも選ばれたチップにも出ない",
+      "find": "  late bool _custom = !dateTimePresets.contains(widget.token.format);",
+      "replace": "  late bool _custom = false;"
+    },
+    {
+      "id": "M523",
+      "file": "lib/ui/rule_builder/token_editors.dart",
+      "note": "008:T44 「詳細に記述」を選ぶと入力欄を空にする — 直前のフォーマットが初期値として入らない(manual 1回目の開発者の要望)",
+      "find": "              onSelected: () => setState(() => _custom = true),",
+      "replace": "              onSelected: () => setState(() {\n                _custom = true;\n                _fmt.text = '';\n              }),"
+    }
   ]
 }

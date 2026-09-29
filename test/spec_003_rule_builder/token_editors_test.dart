@@ -26,7 +26,7 @@ void main() {
 
     await tester.tap(find.text('旧'));
     await tester.pumpAndSettle();
-    expect(find.text('テキスト / 区切り'), findsOneWidget);
+    expect(find.text('自由テキスト / 区切り文字'), findsOneWidget);
 
     // 空にすると確定は無効。
     await tester.enterText(find.byType(TextField), '');
@@ -51,7 +51,7 @@ void main() {
     await tester.tap(find.text('x'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('_（アンダーバー）'));
+    await tester.tap(find.text('アンダーバー _'));
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '確定'));
     await tester.pumpAndSettle();
@@ -87,7 +87,7 @@ void main() {
 
     // 開始番号(先頭ステッパー)の - は無効(start=0)。
     final minus = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.remove_circle_outline).first,
+      find.widgetWithIcon(IconButton, Icons.remove).first,
     );
     expect(minus.onPressed, isNull);
   });

@@ -49,6 +49,7 @@
     "tasks/T41-browser-fast-scroll",
     "tasks/T42-selection-mode-footer",
     "tasks/T43-settings-gear-shift-toggle",
-    "tasks/T44-token-editor-presentation"
+    "tasks/T44-token-editor-presentation",
+    "tasks/T45-rule-sheet-presentation"
   ]
 }

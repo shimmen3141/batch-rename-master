@@ -1,13 +1,18 @@
 {
   "schema": "asdd.task/v1",
   "id": "T44",
-  "title": "トークンのエディタ(連番の設定シートなど)の見た目と操作を整える",
-  "status": "pending",
+  "title": "トークンの設定(連番など)を参考デザインの中央のダイアログへ整える",
+  "status": "in_review",
   "dependsOn": [
     "014:T04"
   ],
-  "covers": [],
+  "covers": [
+    "003:REQ-008",
+    "003:REQ-009",
+    "003:REQ-011",
+    "003:REQ-012"
+  ],
   "issue": null,
-  "pullRequest": null,
-  "manualVerification": null
+  "pullRequest": 199,
+  "manualVerification": "manual-verification.md"
 }

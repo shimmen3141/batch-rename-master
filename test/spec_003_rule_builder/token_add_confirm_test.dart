@@ -49,7 +49,12 @@ Future<void> _tapAdd(WidgetTester tester, String label) async {
 }
 
 /// 確定以外の閉じ方(REQ-009)。
-enum _Close { cancel, back, barrier, drag }
+///
+/// **008:T44 で下方向のスワイプ(`drag`)を外した。** エディタをボトムシートから
+/// 参考デザインの中央のダイアログへ変え、スワイプで閉じる操作そのものが無くなった
+/// ため(003 spec はエディタの形を自由とし、REQ-009 の閉じ方は「確定以外のすべて」)。
+/// ダイアログの外のタップ(`barrier`)は残る。
+enum _Close { cancel, back, barrier }
 
 Future<void> _close(WidgetTester tester, _Close how) async {
   switch (how) {
@@ -61,8 +66,6 @@ Future<void> _close(WidgetTester tester, _Close how) async {
       await tester.binding.handlePopRoute();
     case _Close.barrier:
       await tester.tapAt(const Offset(4, 4));
-    case _Close.drag:
-      await tester.fling(_editor, const Offset(0, 600), 2000);
   }
   await tester.pumpAndSettle();
 }
@@ -179,10 +182,12 @@ void main() {
       await _pumpView(tester, controller);
       await _tapAdd(tester, '＋ 日時');
 
-      final field = tester.widget<TextField>(
-        find.descendant(of: _editor, matching: find.byType(TextField)),
+      // 008:T44: 入力欄は「詳細に記述」を選んだときだけ出る。既定のフォーマットは
+      // プリセットのチップが選ばれていることで読む。
+      final preset = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'YYYYMMDD'),
       );
-      expect(field.controller!.text, 'YYYYMMDD');
+      expect(preset.selected, isTrue);
       final created = tester.widget<ChoiceChip>(
         find.widgetWithText(ChoiceChip, '作成日時'),
       );
@@ -291,7 +296,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: _editor, matching: find.text('-（ハイフン）')),
+        find.descendant(of: _editor, matching: find.text('ハイフン -')),
         findsOneWidget,
       );
       expect(_editConfirm, findsOneWidget, reason: '編集として開いている');
@@ -331,6 +336,8 @@ void main() {
       await _pumpView(tester, controller);
       await _tapAdd(tester, '＋ 日時');
 
+      await tester.tap(find.text('詳細に記述')); // 008:T44
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(of: _editor, matching: find.byType(TextField)),
         '',
@@ -361,6 +368,8 @@ void main() {
       await tester.tap(find.text('日時 YYYYMMDD'));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('詳細に記述')); // 008:T44
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.descendant(of: _editor, matching: find.byType(TextField)),
         '',
