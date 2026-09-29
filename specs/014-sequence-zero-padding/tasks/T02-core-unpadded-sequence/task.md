@@ -50,9 +50,20 @@ M490 | KILLED | lib/ui/file_list/file_list_controller.dart | exit 1
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。001 contractの判定に触れるので実装と同等以上のmodelを使う。
 
+- attempt 1: `4a2047c..4e28318`(全範囲、implementation) — **FAIL**(成果物の欠陥なし。P0/P1 none)。reviewerのmodelは`gpt-6-luna`。**安全網の穴(P2、reviewerはFAIL条件を満たすと判定)**: `_expandDigits`が作り直すときに増分を保つことをtestが固定していない(対照`RV-T02-1`: `increment: 1`へ落としてもSURVIVED)。確認された点: contractどおりの実装、`_expandDigits`は`start`・`increment`を渡す、行の導出は警告の連番ごと、保存の欠落をT03へ送る扱いは妥当(ゼロ埋めなしを作る経路はT04まで無い)。UIのラベル(`token_presets.dart:40`・`rename_warning_view.dart:398`)は`digits`を無条件に出すので**T04で追随が要る**(T04の範囲)。full test 1026件・format・analyze・`check specs` PASS。
+  - 対応: `auto_resolve_test`へ「拡張しても開始番号と増分を保つ(桁2・開始90・増分5 → 090, 095, 100)」を足し、`RV-T02-1`を`M491`として取り込んだ。範囲付き(`flutter test test/spec_001_rename_core`)の生出力:
+
+```text
+M488 | KILLED | lib/core/rename_engine.dart | exit 1
+M491 | KILLED | lib/core/rename_engine.dart | exit 1
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - full `flutter test` 1027件PASS。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装と自動検証(code `91a5386`)。
 - Blocker category: none
 - Evidence revision: code `91a5386`
-- Next Agent action: 独立review attempt 1(`gpt-6-luna`、`4a2047c..HEAD`)の結果を記録する。PR #196(Draft)
+- Next Agent action: 独立review attempt 2(差分、`4e28318..HEAD`、`gpt-6-luna`)を起動する。PR #196(Draft)
