@@ -48,12 +48,19 @@ RenameRule? deserializeRule(String json) {
 Map<String, Object?> _tokenToJson(Token token) => switch (token) {
   OriginalNameToken() => {'type': 'original_name'},
   LiteralToken(:final value) => {'type': 'text', 'value': value},
-  SequenceToken(:final start, :final digits, :final increment) => {
-    'type': 'sequence_number',
-    'start': start,
-    'digits': digits,
-    'increment': increment,
-  },
+  SequenceToken(
+    :final start,
+    :final digits,
+    :final increment,
+    :final zeroPad,
+  ) =>
+    {
+      'type': 'sequence_number',
+      'start': start,
+      'digits': digits,
+      'increment': increment,
+      'zero_padding': zeroPad,
+    },
   DateTimeToken(:final source, :final format) => {
     'type': 'datetime',
     'source': _sourceToJson(source),
@@ -74,7 +81,19 @@ Token? _tokenFromJson(Object? raw) {
       final digits = raw['digits'];
       final increment = raw['increment'];
       if (start is! int || digits is! int || increment is! int) return null;
-      return SequenceToken(start: start, digits: digits, increment: increment);
+      // `zero_padding` は 014 で足した**任意**フィールド。無ければゼロ埋めあり
+      // (014 より前の保存。版は 1 のまま — 版を上げると既存の保存が消える)。
+      // あるのに真偽値でなければ不正(REQ-004)。
+      final zeroPad = raw.containsKey('zero_padding')
+          ? raw['zero_padding']
+          : true;
+      if (zeroPad is! bool) return null;
+      return SequenceToken(
+        start: start,
+        digits: digits,
+        increment: increment,
+        zeroPad: zeroPad,
+      );
     case 'datetime':
       final source = _sourceFromJson(raw['source']);
       final format = raw['format'];

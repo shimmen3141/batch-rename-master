@@ -3,9 +3,8 @@
 //       REQ-004(不正JSON/未知type/欠損/非対応バージョン → null)。
 import 'dart:convert';
 
-import 'package:batch_rename_master/core/rename_rule.dart';
+import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/core/rule_serialization.dart';
-import 'package:batch_rename_master/core/token.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// round-trip の等価判定(Token は == 未実装のため種別+パラメータで照合)。
@@ -21,6 +20,7 @@ void _expectSameToken(Token actual, Token expected) {
       expect(a.start, expected.start);
       expect(a.digits, expected.digits);
       expect(a.increment, expected.increment);
+      expect(a.zeroPad, expected.zeroPad);
     case DateTimeToken():
       final a = actual as DateTimeToken;
       expect(a.source, expected.source);
@@ -62,6 +62,14 @@ void main() {
       );
     });
 
+    test('例8: ゼロ埋めなしの連番(014:T03)', () {
+      _expectRoundTrip(
+        const RenameRule([
+          SequenceToken(start: 1, digits: 2, increment: 1, zeroPad: false),
+        ]),
+      );
+    });
+
     test('空ルール', () {
       _expectRoundTrip(RenameRule.empty);
     });
@@ -93,6 +101,7 @@ void main() {
         'start': 1,
         'digits': 2,
         'increment': 1,
+        'zero_padding': true,
       });
       expect(tokens[3], {
         'type': 'datetime',
@@ -148,12 +157,64 @@ void main() {
       );
     });
 
+    test('例10: 連番の zero_padding が真偽値でない(014:T03)', () {
+      for (final bad in ['"no"', '0', 'null']) {
+        expect(
+          deserializeRule(
+            '{"version":1,"tokens":[{"type":"sequence_number","start":1,'
+            '"digits":2,"increment":1,"zero_padding":$bad}]}',
+          ),
+          isNull,
+          reason: 'zero_padding = $bad',
+        );
+      }
+    });
+
     test('正当な JSON は復元できる(異常系の対比)', () {
       final rule = deserializeRule(
         '{"version":1,"tokens":[{"type":"original_name"}]}',
       );
       expect(rule, isNotNull);
       expect(rule!.tokens.single, isA<OriginalNameToken>());
+    });
+  });
+
+  // 014:T03。**版は 1 のまま**、`zero_padding` を任意フィールドとして足した
+  // (007 spec の「014:T01 由来の更新」)。014 より前に保存されたルールが消えず、
+  // 今と同じ名前をつけるまま復元されることをここで固定する。
+  group('REQ-004: zero_padding の無い既存の保存(014 より前の形)', () {
+    const legacy =
+        '{"version":1,"tokens":[{"type":"original_name"},{"type":"text","value":"_"},'
+        '{"type":"sequence_number","start":1,"digits":2,"increment":1}]}';
+
+    test('例9: 復元でき、連番はゼロ埋めあり', () {
+      final rule = deserializeRule(legacy);
+      expect(rule, isNotNull);
+      final seq = rule!.tokens[2] as SequenceToken;
+      expect(seq.start, 1);
+      expect(seq.digits, 2);
+      expect(seq.increment, 1);
+      expect(seq.zeroPad, isTrue);
+    });
+
+    test('例9: 今と同じ名前をつける(IMG.jpg の3番目 -> IMG_03.jpg)', () {
+      final rule = deserializeRule(legacy)!;
+      final file = FileEntry(
+        name: 'IMG.jpg',
+        createdAt: DateTime(2026, 1, 1),
+        modifiedAt: DateTime(2026, 1, 1),
+        size: 0,
+      );
+      expect(buildName(rule, file, 3, DateTime(2026)), 'IMG_03.jpg');
+    });
+
+    test('書き直すと zero_padding を含む', () {
+      final map =
+          jsonDecode(serializeRule(deserializeRule(legacy)!))
+              as Map<String, Object?>;
+      final seq = (map['tokens'] as List)[2] as Map<String, Object?>;
+      expect(seq['zero_padding'], true);
+      expect(map['version'], 1);
     });
   });
 }
