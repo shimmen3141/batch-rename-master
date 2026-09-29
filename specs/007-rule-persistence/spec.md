@@ -1,6 +1,6 @@
 # ルール永続化(rule-persistence) 振る舞い仕様
 
-- Status: approved
+- Status: approved <!-- 2026-09-29 に 014 T01 由来の更新(連番のゼロ埋めの有無を保存する。REQ-002・REQ-004・代表例8〜10・JSON スキーマ)を作成し、再承認待ち -->
 - Level: Light（正しさの正本は本ファイル）
 
 ## 目的（説明的・正誤判定には使わない）
@@ -40,9 +40,9 @@
 | ID | 優先度 | 要件（外部から観測可能な文で） | 検証 |
 |---|---|---|---|
 | REQ-001 | must | 全 Token 種別（元名/リテラル/連番/日時）と `RenameRule` について、`deserializeRule(serializeRule(rule))` は元の `rule` と等価（トークン種別と全パラメータが一致）。 | VER-001 |
-| REQ-002 | must | シリアライズ結果は各トークンを安定した `type` タグ + そのパラメータで表す（元名=パラメータなし / リテラル=value / 連番=start,digits,increment / 日時=source,format）。 | VER-001 |
+| REQ-002 | must | シリアライズ結果は各トークンを安定した `type` タグ + そのパラメータで表す（元名=パラメータなし / リテラル=value / 連番=start,digits,increment,**zero_padding** / 日時=source,format）。 | VER-001 |
 | REQ-003 | must | シリアライズ結果はスキーマのバージョンを含む。 | VER-001 |
-| REQ-004 | must | `deserializeRule` は、不正な JSON・未知の `type`・必須フィールド欠損・非対応バージョンに対して `null` を返す（例外を投げない）。 | VER-001 |
+| REQ-004 | must | `deserializeRule` は、不正な JSON・未知の `type`・必須フィールド欠損・非対応バージョンに対して `null` を返す（例外を投げない）。**連番の `zero_padding` は必須フィールドではない** — 無い連番はゼロ埋めありとして復元する(014 より前の保存。001 REQ-003 の「指定しない連番トークンはゼロ埋めあり」と同じ結果)。`zero_padding` が真偽値でないときは不正として `null`。 | VER-001 |
 | REQ-005 | must | `RuleStore`: `write(s)` の後の `read()` は最後に書いた `s` を返す。一度も書いていなければ `read()` は `null`。 | VER-002 |
 | REQ-006 | must | `loadLastRule`: 保存が無い・壊れている場合は空 `RenameRule` を返し、正当な保存があればそれを復元する。 | VER-002 |
 | REQ-007 | must | `saveCurrentRule` は `serializeRule(rule)` を `write` する。空ルールも保存対象（復元して空で始まる）。 | VER-002 |
@@ -61,6 +61,9 @@
 | 5 | 空ストアで loadLastRule | 空 RenameRule |
 | 6 | saveCurrentRule(store, r) 後 loadLastRule(store) | r と等価 |
 | 7 | 空ルールを save→load | 空 RenameRule（例外なし） |
+| 8 | rule=[連番(start1,digits2,**ゼロ埋めなし**)] を round-trip | ゼロ埋めなしのまま復元（REQ-001） |
+| 9 | `{"version":1,"tokens":[{"type":"sequence_number","start":1,"digits":2,"increment":1}]}`(014 より前の保存。`zero_padding` なし) | 連番(start1,digits2,ゼロ埋めあり)。今と同じ名前をつける（REQ-004） |
+| 10 | 連番の `zero_padding` が `"no"`(真偽値でない) | null（REQ-004） |
 
 ## 自由とする点（実装に委ねる）
 
@@ -100,9 +103,17 @@
 - JSON スキーマ: トップレベル `{"version": 1, "tokens": [...]}`。各トークンは `type` タグ + パラメータ。**type タグ名は一目で分かる語に確定（開発者指示）**:
   - 元名: `{"type":"original_name"}`
   - 自由テキスト/区切り（同一実体 `LiteralToken`）: `{"type":"text","value":"_"}`
-  - 連番: `{"type":"sequence_number","start":1,"digits":2,"increment":1}`
+  - 連番: `{"type":"sequence_number","start":1,"digits":2,"increment":1,"zero_padding":true}`(**`zero_padding` は 014 で追加した任意フィールド**。書くときは常に書き、読むときは無ければ `true`)
   - 日時: `{"type":"datetime","source":"created","format":"YYYYMMDD"}`（source は `created`/`modified`/`current`）
 - 保存の粒度: 変更のたび保存（単純・確実）。デバウンスは将来の最適化。
 - 読み込み失敗時: 空ルールで開始（確定・低リスク）。
 - 空ルールの保存: 保存する（空も有効状態として復元）。
 - 非対応バージョン: `null`（空フォールバック）。移行は将来。
+
+## 014:T01 由来の更新(2026-09-29 作成・再承認待ち)
+
+出所は `008:T21` の開発者決定(連番にゼロ埋めなしを足す)。計画は [`014`](../014-sequence-zero-padding/plan.md)。
+
+- 連番に任意フィールド `zero_padding`(真偽値)を足す(REQ-002)。**版は `1` のまま。**
+- **版を上げない理由**: REQ-004 は非対応の版を `null`(空ルールで開始)とするので、版を上げると**既存の利用者の保存がすべて復元されずルールが消える**(移行の仕組みは 011 で、まだ無い)。フィールドを任意にすれば、014 より前の保存は `zero_padding` が無いだけで、ゼロ埋めありとして今と同じルールに復元される(代表例9)。
+- 受容する残余: この更新より**古いアプリ**が `zero_padding: false` を含む保存を読むと、未知のフィールドとして無視し、ゼロ埋めありで復元する(名前の見た目が変わるが、ルールは消えない)。アプリを古い版へ戻す操作は想定していない。

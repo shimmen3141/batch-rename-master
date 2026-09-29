@@ -3,8 +3,14 @@
   "id": "T02",
   "title": "コアでゼロ埋めなしの連番を評価し、桁不足と桁拡張をゼロ埋めの連番だけに限る",
   "status": "pending",
-  "dependsOn": ["T01"],
-  "covers": [],
+  "dependsOn": [
+    "T01"
+  ],
+  "covers": [
+    "001:REQ-003",
+    "001:REQ-008",
+    "001:REQ-011"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": null

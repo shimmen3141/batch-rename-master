@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "feature_id": "FEAT-001",
   "title": "コア命名エンジン(rename-core)",
-  "revision": "2",
+  "revision": "3",
   "revision_history": [
     {
       "revision": "1",
@@ -13,6 +13,11 @@
       "revision": "2",
       "approved_date": "2026-08-21",
       "meaning": "013:T10由来。用語folderと占有名を追加し、最終名集合をfolderごとの多重集合へ改める。REQ-007/REQ-010/REQ-012/INV-003をfolder単位へ、REQ-015(占有名を最終名集合へ含める)を追加、INV-005へsourceFolderの扱いを追記、OP-003/OP-004へoccupiedNamesを追加。005 contractのopen_questions OQ-006の決着(2026-08-20 開発者決定)を反映したもの。2026-08-21に開発者が再承認した。**このcontractでは、revision_historyの最新revisionのapproved_dateがnullである間は再承認待ちであり、statusのapprovedは直前のrevisionに対するものとして読む。**"
+    },
+    {
+      "revision": "3",
+      "approved_date": null,
+      "meaning": "014:T01由来。連番トークンにゼロ埋めの有無を足す(008:T21の開発者決定)。REQ-003へゼロ埋めなしの出力(計算値の10進文字列そのまま)と、指定されていない連番トークンはゼロ埋めありとして振る舞うことを、REQ-008・REQ-011へゼロ埋めなしでは桁不足を警告せず桁を拡張しないことを追記した。ゼロ埋めありの振る舞いは変えていない。"
     }
   ],
   "status": "approved",
@@ -97,7 +102,7 @@
       "id": "REQ-003",
       "kind": "functional",
       "priority": "must",
-      "statement": "連番トークンは、選択順位 position に対して 開始番号 + (position - 1) × 増分 を計算し、指定桁数まで左を 0 で埋めた10進文字列を出力する。",
+      "statement": "連番トークンは、選択順位 position に対して 開始番号 + (position - 1) × 増分 を計算する。ゼロ埋めありの連番トークンは、その計算値を指定桁数まで左を 0 で埋めた10進文字列を出力する。ゼロ埋めなしの連番トークンは、その計算値の10進文字列をそのまま出力し、指定桁数を用いない。ゼロ埋めの有無は連番トークンの設定であり、指定されていない連番トークンはゼロ埋めありとして振る舞う。",
       "observable": true,
       "verification": ["VER-001"]
     },
@@ -137,7 +142,7 @@
       "id": "REQ-008",
       "kind": "functional",
       "priority": "must",
-      "statement": "ドライラン検証は、連番トークンの計算値が指定桁数に収まらない(計算値が 10 の指定桁数乗以上になる)場合、その連番トークンを桁不足として警告する。",
+      "statement": "ドライラン検証は、ゼロ埋めありの連番トークンの計算値が指定桁数に収まらない(計算値が 10 の指定桁数乗以上になる)場合、その連番トークンを桁不足として警告する。ゼロ埋めなしの連番トークンは桁不足として警告しない。",
       "observable": true,
       "verification": ["VER-003"]
     },
@@ -161,7 +166,7 @@
       "id": "REQ-011",
       "kind": "functional",
       "priority": "must",
-      "statement": "自動解決は、連番トークンに桁不足が生じる場合、その連番トークンの桁数を、割り当てられる最大の計算値が収まる桁数まで拡張する。",
+      "statement": "自動解決は、ゼロ埋めありの連番トークンに桁不足が生じる場合、その連番トークンの桁数を、割り当てられる最大の計算値が収まる桁数まで拡張する。ゼロ埋めなしの連番トークンの出力は変えない。",
       "observable": true,
       "verification": ["VER-004"]
     },

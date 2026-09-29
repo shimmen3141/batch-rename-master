@@ -3,8 +3,14 @@
   "id": "T03",
   "title": "ゼロ埋めの有無を保存・復元し、項目の無い既存の保存をゼロ埋めありとして読む",
   "status": "pending",
-  "dependsOn": ["T02"],
-  "covers": [],
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "007:REQ-001",
+    "007:REQ-002",
+    "007:REQ-004"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": null

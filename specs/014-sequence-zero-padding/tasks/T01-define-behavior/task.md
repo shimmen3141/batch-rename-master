@@ -48,11 +48,19 @@ Agentが正本から決める案(承認時にまとめて示す):
 - 5: 追加の初期値はゼロ埋めあり・2桁のまま。下限は追加でも編集でも同じ(003 REQ-012「追加と編集で同じ規則」)。
 - 1: ゼロ埋めなしでも桁数の値は持ち続け、評価には使わない(ゼロ埋めへ戻すと元の値が戻る)。
 
+3の回答(2026-09-29、開発者): **自動で下限まで上げる**(開いたとき・開始や増分を変えたとき)。ほかの案: 今の値のまま確定できなくする。補足としてAgentが定めた: 下限を上回る桁数は自動で下げない。
+
+spec差分(2026-09-29):
+
+- 001 contract revision 3(`approved_date: null` = 再承認待ち): REQ-003(ゼロ埋めの有無。指定しなければゼロ埋めあり)、REQ-008・REQ-011(ゼロ埋めなしは桁不足を出さず桁を広げない)。`spec.md`に場合分け・P5・代表例19〜23・異常系・更新の節。
+- 003 `spec.md`: REQ-013(ゼロ埋めの切り替え)・REQ-014(桁数の下限と自動の引き上げ。エディタが件数を受け取る)、REQ-012の参照、代表例13〜17、自由とする点、VER-002の対象、決定済み事項の初期値と入力範囲、更新の節。
+- 007 `spec.md`: REQ-002(`zero_padding`)、REQ-004(`zero_padding`は任意。無ければゼロ埋めあり、真偽値でなければ`null`)、代表例8〜10、JSONスキーマ、更新の節(版を上げない理由と、古いアプリで読んだときの残余)。
+- 002・005は変えない: 002 REQ-015(a)と005 代表例20cは「001が桁不足を返しているときだけ」働くので、ゼロ埋めなしでは対象が生じない。
+- T02〜T04の`covers`を記入した。`workspace.py check specs` PASS、contractのJSON読み込みOK、`git diff --check` OK。
+
 ## Current state / handoff
 
-- Last checkpoint: 正本を読み、1・2・4・5の案を立てた(2026-09-29)。
-- Blocker category: human decision
-- Waiting for: 開発者: 3(桁数が下限を下回るときのエディタの振る舞い)
-- Requested action: 会話で選ぶ
+- Last checkpoint: spec差分を書いた(2026-09-29)。
+- Blocker category: none
 - Evidence revision: 起点`dev`@`6711f9d`
-- Next Agent action: 3の回答を記録し、001・003・007のspec差分を書く
+- Next Agent action: 独立review(`gpt-6-luna`)→ PASSなら開発者へ承認を依頼する

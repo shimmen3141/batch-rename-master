@@ -3,8 +3,14 @@
   "id": "T04",
   "title": "連番のエディタでゼロ埋めを切り替え、ゼロ埋めでは下限未満の桁数を選べなくする",
   "status": "pending",
-  "dependsOn": ["T02"],
-  "covers": [],
+  "dependsOn": [
+    "T02"
+  ],
+  "covers": [
+    "003:REQ-012",
+    "003:REQ-013",
+    "003:REQ-014"
+  ],
   "issue": null,
   "pullRequest": null,
   "manualVerification": "manual-verification.md"
