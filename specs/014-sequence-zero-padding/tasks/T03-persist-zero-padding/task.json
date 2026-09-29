@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "ゼロ埋めの有無を保存・復元し、項目の無い既存の保存をゼロ埋めありとして読む",
+  "status": "pending",
+  "dependsOn": ["T02"],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": null
+}

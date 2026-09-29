@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T21",
   "title": "連番の桁数と桁不足の扱いを定義する",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,

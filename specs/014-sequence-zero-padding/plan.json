@@ -1,0 +1,18 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "014",
+  "title": "連番のゼロ埋めの有無と桁数の下限",
+  "risk": "strict",
+  "issue": null,
+  "dependsOn": [
+    "001",
+    "003",
+    "007"
+  ],
+  "tasks": [
+    "tasks/T01-define-behavior",
+    "tasks/T02-core-unpadded-sequence",
+    "tasks/T03-persist-zero-padding",
+    "tasks/T04-editor-padding-and-min-digits"
+  ]
+}
