@@ -5,6 +5,7 @@ import '../../data/preview/file_preview.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/removal_selection.dart';
 import '../file_list/file_list_view.dart';
+import '../file_list/row_view.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
@@ -81,11 +82,9 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     super.dispose();
   }
 
-  /// 一覧の1件目(表示順)。トークンのエディタの表示例に使う(008:T44)。
-  FileEntry? _firstFile() {
-    final rows = widget.fileList.rows;
-    return rows.isEmpty ? null : rows.first.source;
-  }
+  /// 選択されている最初のファイル(表示順)= 連番の1番目が振られるファイル。
+  /// トークンのエディタの表示例(008:T44)とチップの値(008:T45)に使う。
+  FileEntry? _firstFile() => firstSelectedRow(widget.fileList)?.source;
 
   /// 現在のルールをファイルリストへ渡す(プレビュー更新)。
   void _syncRule() => widget.fileList.setRule(widget.rule.rule);
@@ -198,6 +197,15 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
   }
 }
 
+/// 選択されている最初の行(表示順)。無ければ null。連番の1番目が振られる行で、
+/// ルール構築のプレビュー・チップの値・エディタの表示例が揃って指す(008:T45)。
+RowView? firstSelectedRow(FileListController fileList) {
+  for (final row in fileList.rows) {
+    if (row.selected) return row;
+  }
+  return null;
+}
+
 /// ルール構築シートの key(008:T45)。
 const Key ruleSheetKey = Key('rule-sheet');
 
@@ -246,11 +254,13 @@ class _SheetPreview extends StatelessWidget {
     return ListenableBuilder(
       listenable: fileList,
       builder: (context, _) {
-        final rows = fileList.rows;
-        if (rows.isEmpty) return const SizedBox.shrink();
-        final row = rows.first;
-        final newName = row.newName;
-        final changed = newName != null && newName != row.currentName;
+        // チップの値と同じファイル(選択されている最初のファイル)を見せる。
+        // 未選択の行は変更後名を持たない(002 REQ-007)ので、1件目が未選択でも
+        // 「変更なし」と取り違えない(008:T45 独立review attempt 1 の指摘)。
+        final row = firstSelectedRow(fileList);
+        if (row == null) return const SizedBox.shrink();
+        final newName = row.newName!;
+        final changed = newName != row.currentName;
         return Container(
           key: ruleSheetPreviewKey,
           margin: const EdgeInsets.fromLTRB(18, 4, 18, 18),

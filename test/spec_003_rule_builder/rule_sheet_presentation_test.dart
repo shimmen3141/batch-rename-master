@@ -126,6 +126,54 @@ void main() {
       expect(old.style!.decoration, isNot(TextDecoration.lineThrough));
     });
 
+    testWidgets('1件目が未選択なら、プレビューもチップの値も選択されている最初のファイルを指す', (tester) async {
+      // 008:T45 独立review attempt 1 の指摘。未選択の行は変更後名を持たない
+      // (002 REQ-007)ので、1件目をそのまま使うと「（変更なし）」と取り違える。
+      _narrow(tester);
+      final fl = FileListController(
+        files: [
+          _file('a.jpg', created: DateTime(2026, 1, 2)),
+          _file('b.jpg', created: DateTime(2026, 3, 4)),
+        ],
+      );
+      final rc = RuleController(
+        tokens: const [
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
+        ],
+      );
+      await _pumpWorkspace(tester, fl, rc);
+      fl.toggleSelection(fl.rows.first.source);
+      await tester.pump();
+      final firstSelected = fl.rows.firstWhere((r) => r.selected);
+      expect(firstSelected.currentName, isNot(fl.rows.first.currentName));
+
+      await _openSheet(tester);
+      final preview = find.byKey(ruleSheetPreviewKey);
+      expect(
+        find.descendant(of: preview, matching: find.text('（変更なし）')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: preview,
+          matching: find.text(firstSelected.currentName),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: preview,
+          matching: find.text(firstSelected.newName!),
+        ),
+        findsOneWidget,
+      );
+      final created = firstSelected.source.createdAt!;
+      final expected =
+          '${created.year}${created.month.toString().padLeft(2, '0')}'
+          '${created.day.toString().padLeft(2, '0')}';
+      expect(_inChip('日時 YYYYMMDD', expected), findsOneWidget);
+    });
+
     testWidgets('プレビュー: 一覧が空なら出さない', (tester) async {
       _narrow(tester);
       await _pumpWorkspace(

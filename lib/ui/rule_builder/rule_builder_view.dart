@@ -12,8 +12,8 @@ import 'token_presets.dart';
 /// [RuleController] を購読して描画するだけの薄いウィジェット。トークンを Chip
 /// として横並び表示し、5 種の追加ボタン・各 Chip の削除・ドラッグ並び替えを
 /// controller のメソッドへ委譲する。追加と Chip タップはエディタを開き、**確定した
-/// ときだけ** controller を変える(003 REQ-008〜REQ-011)。色は 002 の [AppColors] を
-/// 再利用する。
+/// ときだけ** controller を変える(003 REQ-008〜REQ-011)。面と文字の色は 002 の
+/// [AppColors] を再利用し、チップの種類ごとの色は `tokenHue`(008:T45)を使う。
 class RuleBuilderView extends StatelessWidget {
   const RuleBuilderView({
     super.key,
