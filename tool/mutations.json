@@ -2987,6 +2987,41 @@
       "note": "008:T42 独立review attempt 3(reviewer設計R2・対照)。モード中も隠した通常のフッターがsemanticsに残る(`maintainSemantics`)— **SURVIVEDが期待値**: semanticsの除外を直接見るtestは無い(P3・安全網の穴として受容。task.md)",
       "find": "        maintainState: true,\n        child: normal,",
       "replace": "        maintainState: true,\n        maintainSemantics: true,\n        child: normal,"
+    },
+    {
+      "id": "M467",
+      "file": "lib/ui/theme/app_theme.dart",
+      "note": "008:T42 ヘッダーの色をフッターと揃えない(Flutter既定のsurfaceへ戻す)— 上下で色が食い違う(2026-09-29の決定)",
+      "find": "      backgroundColor: c.bar,\n",
+      "replace": ""
+    },
+    {
+      "id": "M468",
+      "file": "lib/ui/theme/app_theme.dart",
+      "note": "008:T42 ヘッダーにsurface tintを戻す — 一覧のスクロールでヘッダーだけ紫がかる",
+      "find": "      surfaceTintColor: Colors.transparent,\n",
+      "replace": ""
+    },
+    {
+      "id": "M469",
+      "file": "lib/ui/theme/app_theme.dart",
+      "note": "008:T42 スクロール時のヘッダーの持ち上がりを戻す — 一覧のスクロールでヘッダーだけ明るくなる",
+      "find": "      scrolledUnderElevation: 0,\n",
+      "replace": ""
+    },
+    {
+      "id": "M470",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 通常のフッターの色をヘッダーと揃えない(以前の暗い面)",
+      "find": "      key: renameActionBarSurfaceKey,\n      color: colors.bar,",
+      "replace": "      key: renameActionBarSurfaceKey,\n      color: colors.surface,"
+    },
+    {
+      "id": "M471",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "note": "008:T42 選択モードのフッターの色をヘッダーと揃えない(以前の暗い面)",
+      "find": "      key: removalModeBarKey,\n      color: colors.bar,",
+      "replace": "      key: removalModeBarKey,\n      color: colors.surface,"
     }
   ]
 }
