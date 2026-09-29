@@ -49,7 +49,7 @@ M496 | KILLED | lib/core/rule_serialization.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(code `73ff418`)。
+- Last checkpoint: PR #197をmerge commitで`dev`へmerge(2026-09-29、`491c52e`)。merge条件1〜7を確認した: Draftでない・一意 / 独立review `a2456dc..27d2ed7` PASS → 以後は記録だけ(SELF-CHECK) / CI `check` PASS・未解決threadなし / baseは`a2456dc`で最新・競合なし、full test 1032件PASS / manual確認はこのtaskに無い / 未解決P0/P1なし / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: code `73ff418`
-- Next Agent action: PR #197をreadyにし、CIとmerge条件を確かめてmergeする
+- Evidence revision: 起点`dev`@`a2456dc`、merge `491c52e`。
+- Next Agent action: なし(done)。続きは`014:T04`。
