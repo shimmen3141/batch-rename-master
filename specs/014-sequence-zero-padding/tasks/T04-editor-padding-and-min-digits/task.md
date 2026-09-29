@@ -84,7 +84,7 @@ M509 | KILLED | lib/ui/file_list/rename_warning_view.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: manual 1回目 PASS(code `0c6f86e`)。
+- Last checkpoint: PR #198をmerge commitで`dev`へmerge(2026-09-29、`deeb85a`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`f5e8518..f6cde93` PASS → `f6cde93..8f21a23` PASS → 以後は記録だけのSELF-CHECK) / CI `check` PASS・未解決threadなし / `dev`を取り込み済みで最新・競合なし、full test 1046件PASS / manual 1回目が`0c6f86e`に対応し、以後code・依存・build設定の差分なし / 未解決P0/P1なし / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: code `0c6f86e`
-- Next Agent action: PR #198をreadyにし、CIとmerge条件を確かめてmergeする
+- Evidence revision: code `0c6f86e`、merge `deeb85a`。
+- Next Agent action: なし(done)。エディタの見た目と操作は`008:T44`。
