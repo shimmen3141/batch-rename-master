@@ -3076,8 +3076,8 @@
       "id": "M480",
       "file": "lib/ui/rename_exec/rename_settings_button.dart",
       "note": "008:T43 独立review attempt 1(reviewer設計R2・対照)。歯車のtooltipを変える — 振る舞いに影響しない。**SURVIVEDが期待値**",
-      "find": "        tooltip: '設定',",
-      "replace": "        tooltip: 'せってい',"
+      "find": "      tooltip: '設定',",
+      "replace": "      tooltip: 'せってい',"
     },
     {
       "id": "M481",
