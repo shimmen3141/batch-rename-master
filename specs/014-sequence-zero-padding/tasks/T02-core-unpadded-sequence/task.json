@@ -9,7 +9,8 @@
   "covers": [
     "001:REQ-003",
     "001:REQ-008",
-    "001:REQ-011"
+    "001:REQ-011",
+    "002:REQ-015"
   ],
   "issue": null,
   "pullRequest": null,

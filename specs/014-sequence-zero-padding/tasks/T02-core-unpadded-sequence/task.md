@@ -18,6 +18,8 @@
 
 - [ ] ゼロ埋めなしの連番が数字そのままを出し、桁不足を返さず、自動解決で桁を広げない。ゼロ埋めの連番は今と同じ。
   - 証拠: `flutter test test/spec_001_rename_core`、full `flutter test`、`flutter analyze`、`dart format`、`tool/mutations.json`への追加とその生出力。
+- [ ] ゼロ埋めありとなしの連番が混在するルールで、行の桁不足の対象がゼロ埋めありの連番の超過分だけになる(002 代表例19c)。
+  - 証拠: `test/spec_002_file_list`のtest(行データの導出。今の実装は警告が指す連番ごとに導出するので、testで固定する)。
 - [ ] 独立reviewがPASS(strict)。
 
 ## Current state / handoff
