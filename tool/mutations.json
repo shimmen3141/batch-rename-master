@@ -3162,6 +3162,34 @@
       "note": "014:T02 独立review attempt 2(reviewer設計RV-T02-2-control)。桁拡張で作り直すときに開始番号を1ずらす — 実行時の連番が1つずれる",
       "find": "    start: token.start,\n    digits: requiredDigits,",
       "replace": "    start: token.start + 1,\n    digits: requiredDigits,"
+    },
+    {
+      "id": "M493",
+      "file": "lib/core/rule_serialization.dart",
+      "note": "014:T03 zero_paddingを保存しない — ゼロ埋めなしのルールが再起動でゼロ埋めありに戻る(007 例8)",
+      "find": "      'zero_padding': zeroPad,\n",
+      "replace": ""
+    },
+    {
+      "id": "M494",
+      "file": "lib/core/rule_serialization.dart",
+      "note": "014:T03 zero_paddingの無い既存の保存をゼロ埋めなしとして読む — 014より前のルールの名前が変わる(007 例9)",
+      "find": "          : true;",
+      "replace": "          : false;"
+    },
+    {
+      "id": "M495",
+      "file": "lib/core/rule_serialization.dart",
+      "note": "014:T03 真偽値でないzero_paddingを不正にせずゼロ埋めありで読む — 壊れた保存を黙って受け入れる(007 例10・REQ-004)",
+      "find": "      if (zeroPad is! bool) return null;",
+      "replace": "      if (zeroPad is! bool) {\n        return SequenceToken(start: start, digits: digits, increment: increment);\n      }"
+    },
+    {
+      "id": "M496",
+      "file": "lib/core/rule_serialization.dart",
+      "note": "014:T03 読んだzero_paddingを捨てて常にゼロ埋めありで復元する — 保存はされるのに復元でなくなる(007 例8)",
+      "find": "        zeroPad: zeroPad,\n      );",
+      "replace": "        zeroPad: true,\n      );"
     }
   ]
 }
