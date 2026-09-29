@@ -109,9 +109,15 @@ M448 | KILLED | lib/ui/file_list/file_list_view.dart | (全件のcommandで再�
 | 要望 | 対応 |
 |---|---|
 | フッターの色をヘッダー(「一括リネーム」)と同じぐらい明るく | 上の決定表のとおり`#2E2B38`に固定(`3e721fa`)。`M467`〜`M471` |
-| 「更新日時を一覧の並び順にずらす」を設定ボタン内のオプションへ移したい | **このtaskでは行わない(Agentの推奨。開発者の判断待ち)**。移すとフッターの高さが変わる。狭幅(命名ルール+リネーム)は今の作りのままで部品がちょうど揃う(testの「命名ルール + リネーム」構成)。広幅(desktop)は通常のフッターがリネームだけになり、今の作りでは選択モードの説明が出なくなる(入る高さが無い構成の判定)ので、移すtaskで広幅の説明の置き方も決める必要がある |
+| 「更新日時を一覧の並び順にずらす」を設定ボタン内のオプションへ移したい | **このtaskでは行わない(Agentの推奨。3回目の報告時に開発者が別taskと決めた)**。移すとフッターの高さが変わる。狭幅(命名ルール+リネーム)は今の作りのままで部品がちょうど揃う(testの「命名ルール + リネーム」構成)。広幅(desktop)は通常のフッターがリネームだけになり、今の作りでは選択モードの説明が出なくなる(入る高さが無い構成の判定)ので、移すtaskで広幅の説明の置き方も決める必要がある |
 
 **2回目の結果は`7801591`のbuildに対するもので、色を変えた`3e721fa`へは再利用しない。** 3回目の対象は`3e721fa`。
+
+### 3回目(2026-09-29、Androidエミュレータ、debug、code `3e721fa`)
+
+開発者の報告(会話):「エミュレータ確認は完了しました」。1〜6(6. = ヘッダーとフッターの色)に指摘なし。**PASS**。`3e721fa`以後、`lib/`・`hook/`・`src/`・依存・build設定に差分は無い(以後は`tool/mutations.json`と記録だけ)。
+
+更新日時ずらしの移動は**別taskにする**(2026-09-29 の開発者の決定)。置き場は既存の命名ルールのボタンではなく、**ヘッダーなどに足す新しい歯車のボタン**の中のオプション。`008:T43`として登録する(T42のmerge後)。
 
 **手順の誤り(記録)**: `9e836f4`は、full testの1件(`load_affordance_test`の「狭い画面と大きい文字でも帯の高さが変わらない」)が落ちたままcommitした。commandがtestの結果でcommitを止めていなかった。`450e0c9`で直し(通常のフッターが無い画面では大きさを揃えない、説明の文字の拡大を1.5倍まで)、以後はtestの結果を見てからcommitする。`9e836f4`単体は検証済みのcheckpointではない。
 
@@ -182,9 +188,9 @@ M461 | KILLED | lib/ui/file_list/file_list_view.dart | (SURVIVEDを全件のcomm
 
 ## Current state / handoff
 
-- Last checkpoint: manual 2回目の要望でヘッダーとフッターの色を`#2E2B38`に固定した(2026-09-29、code `3e721fa`)。
-- Blocker category: なし(差分review → manual 3回目)。
-- Waiting for: manual 3回目(code `3e721fa`)。独立reviewは attempt 4 までPASS。更新日時ずらしの移動をどのtaskで行うかの開発者の判断。
-- Requested action: 人間がworktree `.worktrees/008-T42-selection-mode-footer`から`flutter pub get` → `flutter run`し、手順書を実行して結果を知らせる。
+- Last checkpoint: manual 3回目 PASS(2026-09-29、code `3e721fa`)。
+- Blocker category: なし(merge条件の確認 → merge)。
+- Waiting for: なし。独立reviewは attempt 4 までPASS、manual 3回目PASS。
+- Requested action: なし。
 - Evidence revision: 起点は`dev`@`ea4741a`。
-- Next Agent action: review → manual依頼 → 結果を記録 → merge判断。
+- Next Agent action: PRをreadyにしてmerge条件1〜7を確かめ、merge → `dev`で記録してdoneにし、`T43`を登録する。
