@@ -83,6 +83,14 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - **CIで閉じる**: widget test(形・見出し・表示例・経路、確定手順REQ-008〜014)とmutation。
 - **このtaskのmanual(Androidエミュレータ)**: 見た目(参考デザインとの見比べ)と操作。引き受け先のtaskは無い。
 
+## manual 1回目(2026-09-29、code `cefa597`)
+
+受領: 会話。開発者(原文): 「確認事項は概ね問題なかったが、キーボードが下からせりあがってくるようになっていなかったので、設定で確認します。また、UIの改善点もいくつかあるので、後で指摘します。」
+
+- 手順書の1.・2.・3.(キーボード以外)・4.・5.は問題なし(「概ね問題なかった」)。
+- **3.3(キーボードを出してスクロール)は未確認**。画面のキーボードが出なかった。エミュレータでhostのキーボードが物理キーボードとして扱われ、画面キーボードが出ない設定だった可能性が高い(アプリの不具合かは未確定)。開発者が設定を変えて確かめる。Agentは設定の変え方を伝えた(端末の「物理キーボード → 画面キーボードの使用」、またはAVDの `hw.keyboard`)。
+- **UIの改善点**: 開発者があとで挙げる。受け取ったら、このtaskで扱うもの(トークンの設定のダイアログ)と`T45`(ルール構築シート)へ振り分ける。
+
 ## 独立review
 
 既定のreviewerは`gpt-6-luna`(開発者指定)。UIの提示で、判定・contract・データ保護には触れない。
@@ -115,9 +123,9 @@ M518 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(P2は手順書へ反映)。
+- Last checkpoint: manual 1回目(code `cefa597`): キーボード以外は問題なし。3.3(キーボードとスクロール)は未確認。
 - Blocker category: manual evidence
-- Waiting for: 開発者のmanual 1回目(code `cefa597`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/008-T44-token-editor-presentation`で手順書の1.〜5.を実行し、参考デザインと見比べた結果を知らせる
+- Waiting for: 開発者: (1) 画面キーボードを出して手順書3.3を確認した結果、(2) UIの改善点
+- Requested action: 会話で知らせる
 - Evidence revision: code `cefa597`
-- Next Agent action: manual 1回目の結果を記録する。PR #199(Draft)
+- Next Agent action: 改善点を受け取ったら原文で記録し、このtaskと`T45`へ振り分けて直す(codeが変わるのでmanualはその後にやり直す)。改善点が無ければfinal-evidence reviewへ進む
