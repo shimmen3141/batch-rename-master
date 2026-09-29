@@ -21,7 +21,7 @@ manual確認をやり直させることになる。**着手した最初の質問
 | 4 | `lib/ui/rule_builder/rule_builder_workspace.dart` の `_openRuleSheet` の `showModalBottomSheet` | **ルール構築画面まるごと**(mobileの下部バー「ルール設定」から開く。中身は`RuleBuilderView`) | **このtask。** **狭幅(`breakpoint` = 840dp 未満。実機確認に使った phone を含む)ではルールの編集が必ずこのsheet越しなので、U5がこれを指す可能性が高い**(実機確認の手順3で開発者が実際に操作している)。**sheetの中にあるtoken追加・編集のmodalだけが`T05`/`T06`** |
 
 **3(token編集)が対象だった場合は、このtaskで直さず`T05`/`T06`へ送る**(同じ画面を
-2つのtaskが別々に変えない)。**4は入れ物であって token の modal ではない**ので、
+2つのtaskが別々に変えない)。**2026-09-29 追記: `T05`/`T06`はdoneで、token のエディタの中身は`T44`が持つ。形(sheetかdialogか)はこのtaskのまま。****4は入れ物であって token の modal ではない**ので、
 このtaskが持つ — ただし`T06`が中身を作り直すので、**入れ物の高さ・scroll・閉じ方を
 変えるときは`T06`の結果と突き合わせる**。
 
