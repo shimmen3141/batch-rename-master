@@ -71,6 +71,9 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 - **attempt 1**: `5bfcc7a..52e63fa`(全範囲) — **PASS**(P2 1件)。確認された点: 開発者の指定(外形の共通化・未設定の白い＋と文言・2段チップ・×なし・「+N」・リネームbuttonの角丸)、005 REQ-019/020、要望9(一つの押下対象)、幅の見積もりと狭幅・文字 2.0、testの改訂(緩和なし)。`flutter test` 1117 PASS・analyze・format PASS。reviewerが回したmutation 9件 KILLED。
   - **P2(成果物の欠陥)**: M192 の説明に、字面の時代の「等価mutantで SURVIVED が正しい」が残り、作り直した今の M192(KILLED)と食い違う → 説明を書き直した。`tool/` の差分なので SELF-CHECK にせず、差分reviewを attempt 2 とする。`lib/` は変わらないので、実機確認は並行して依頼した。
+- **attempt 2**: `52e63fa..d6b0b6f`(差分review) — **BLOCKED**(指摘なし)。reviewerは`gpt-6-luna`。前回のP2が閉じたこと、差分が触った4 fileに前回までとの食い違いが無いことを確認した。BLOCKED の理由は**検証を `docker compose` 経由で流そうとし、この環境に `docker` が無かった**ことだけである(attempt 1 は同じ環境で直接実行できていた)。`git diff --check` は PASS。
+  - **SELF-CHECK**(2026-09-29 の前例に倣う): 所有Agentが同じ HEAD `d6b0b6f` で `flutter test` → `+1117: All tests passed!`、`python3 tool/check_mutation_finds.py` → `PASS: 535 mutation(s)`。reviewer が確認できなかったのはこの2つの実行だけで、判断に関わる指摘は無い。
+- 連鎖: `5bfcc7a..52e63fa` PASS → `52e63fa..d6b0b6f`(reviewer は指摘なし、検証の実行は SELF-CHECK で補った)。
 
 ## Current state / handoff
 
