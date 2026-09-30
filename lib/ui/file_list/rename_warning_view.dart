@@ -614,7 +614,10 @@ class WarningCountView extends StatelessWidget {
                   if (has)
                     Container(
                       key: warningDetailLinkKey,
-                      padding: const EdgeInsets.only(bottom: 2),
+                      // 文字の枠の下端に接して引く。2 離したら「離れすぎ」だった
+                      // (2026-09-30 の開発者の指定。文字の枠が字形より下まであるので、
+                      // 接していても字形からは少し離れて見える)。
+                      padding: EdgeInsets.zero,
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: colors.danger, width: 1.5),

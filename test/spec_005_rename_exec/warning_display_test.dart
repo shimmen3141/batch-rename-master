@@ -834,11 +834,11 @@ void main() {
         find.descendant(of: link, matching: find.text('詳細')),
       );
       expect(text.style!.fontWeight, FontWeight.w700);
-      // 下線は文字の下に引いた線(太く、文字から少し離す)。
+      // 下線は文字の下に引いた太い線(文字の枠の下端に接する)。
       final box = tester.widget<Container>(link);
       final border = (box.decoration! as BoxDecoration).border! as Border;
       expect(border.bottom.width, greaterThan(1));
-      expect(box.padding, const EdgeInsets.only(bottom: 2));
+      expect(box.padding, EdgeInsets.zero);
       // 件数の文言との間を空ける。
       expect(
         tester.getRect(link).left - tester.getRect(label).right,
