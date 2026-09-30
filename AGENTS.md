@@ -104,7 +104,7 @@ CIで実行できない領域(実機、別OS、別arch、外部service)を含む
 
 **model名で書かない。** 使える名前はAgentごとに違い、世代でも変わる。上げ下げの判断は「実装に使ったものとの相対」で行い、**実際に使った名前はtaskの記録へ書く**(後から読む人が再現できるようにするため)。開発者が名前を指定したときはそれに従い、**指定と既定が食い違うなら記録へ残す**。
 
-reviewerはmutationの表を全件流し直さない。所有task側が回した生出力がtaskへ残っているので、**疑わしいものと、reviewer自身が設計した対照だけ**を回す。回すときは変更に対応するtestへ範囲を絞ってよい。`mutation_check.py`は表の`command`しか実行せずCLIで上書きできないので、**絞るときは表を作業用のpathへcopyし、`command`を範囲付きのtest(例: `["flutter", "test", "test/spec_005_rename_exec", "test/spec_002_file_list"]`)へ差し替え、回す`mutations`だけを残して`--root .`で実行する**(手で当てて手で数えないこと自体は緩めない)。**`SURVIVED`が出たものだけ全件で確かめ直す** — `KILLED`は範囲を狭めても結論が変わらないためである。`tool/mutations.json`の`command`は全件のまま置く(表は一つのcommandしか持てず、001のコア判定やdataのmutationも同じ表にある)。
+reviewerはmutationの表を全件流し直さない。所有task側が回した生出力がtaskへ残っているので、**疑わしいものと、reviewer自身が設計した対照だけ**を回す。回すときは変更に対応するtestへ範囲を絞ってよい。`mutation_check.py`は表の`command`しか実行せずCLIで上書きできないので、**絞るときは表を作業用のpathへcopyし、`command`を範囲付きのtest(例: `["flutter", "test", "test/spec_005_rename_exec", "test/spec_002_file_list"]`)へ差し替え、回す`mutations`だけを残して`--root .`で実行する**(手で当てて手で数えないこと自体は緩めない)。**`SURVIVED`が出たものだけ全件で確かめ直す** — `KILLED`は範囲を狭めても結論が変わらないためである。`tool/mutations.json`の`command`は**振る舞いのtestを全件**のまま置き、特定のspecのtestへ絞らない(表は一つのcommandしか持てず、001のコア判定やdataのmutationも同じ表にある)。ただし**`tooling`タグのrepository検査は外す**(`flutter test --exclude-tags tooling`)。mutationを当てるとその`find`がファイルから消え、`find`の一致の検査(`tool/check_mutation_finds.py`)が落ちるので、含めるとどのmutationも必ず`KILLED`になるためである。範囲を絞るときも`test/tooling`を含めない。CIの`flutter test`は`tooling`も含めて走る。
 
 所有task側も同じ絞り方で回してよい。回すのは**今回の変更で足した・`find`を追随させたmutationと、変更した箇所を守る既存のもの**に限り、変更に触れない既存のmutationは前回の結果が変わらないので流し直さない。範囲付きのcommandと回した件数を生出力と一緒にtaskへ残し、**`SURVIVED`だけ全件で確かめ直す**。1件ごとに全件のtestを流すと数十件で20分前後かかり、`KILLED`の結論は範囲を狭めても変わらないためである。
 
