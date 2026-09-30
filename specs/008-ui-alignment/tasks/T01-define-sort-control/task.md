@@ -44,12 +44,11 @@
 ## 作業記録
 
 - 2026-08-12 / plan作成時に定義。実装(`T02`)はこのtaskの承認を待つ。
+- 2026-09-30 / 着手は Claude Opus 5.5。branch `asdd/008-ui-alignment/T01-define-sort-control`、起点`dev`@`2cb2f94`。
 
 ## Current state / handoff
 
-- Last checkpoint: plan作成時に定義しただけ。未着手
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: 現行002 specと参考designを読み、「決めること」への案を作って人間へ一度に示す。承認後に`T02`へ進む
+- Last checkpoint: 着手した(2026-09-30)
+- Blocker category: none
+- Evidence revision: `dev@2cb2f94`
+- Next Agent action: 「決めること」への案を作って人間へ一度に示す
