@@ -17,6 +17,7 @@ void main() {
   const checks = {
     '規範の書き写し': 'tool/check_normative_terms.py',
     'OS判定の境界': 'tool/check_platform_boundary.py',
+    'mutationのfindの一致': 'tool/check_mutation_finds.py',
   };
 
   checks.forEach((name, script) {
