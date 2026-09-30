@@ -1347,9 +1347,9 @@
     {
       "id": "M199",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
-      "find": "  if (total(widths.length) <= maxWidth) return widths.length;",
-      "replace": "  return widths.length;",
-      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)。**`008:T20` が button を作り直したので find を追随させた**  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
+      "find": "  if (_fitsAll(total(n), maxWidth)) return (full: n, fadeWidth: null);",
+      "replace": "  return (full: n, fadeWidth: null);",
+      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)。**`008:T20` が button を作り直したので find を追随させた**  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**  **2026-09-30 に「+N」をやめ、入りきらないときは最後に見えるチップをフェードするだけにした(開発者の決定)ので作り直した** — 入りきらなくても全部並べる(buttonからはみ出す)"
     },
     {
       "id": "M204",
@@ -1613,9 +1613,9 @@
     {
       "id": "M241",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
-      "find": "            if (hidden > 0) ...[",
-      "replace": "            if (false) ...[",
-      "note": "008:T20 ルール要約の行数制限と省略記号を両方外す — M192 は ellipsis が maxLines=null でも最初のあふれ行で切るため等価mutant(TextPainter.ellipsis の doc)。独立review attempt 1 が追加  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
+      "find": "              if (fadeWidth != null) ...[",
+      "replace": "              if (false) ...[",
+      "note": "008:T20 ルールの要約で、入りきらない分を黙って落とす(続きがあることが分からない)。  **2026-09-30 に「+N」をやめ、入りきらないときは最後に見えるチップをフェードするだけにした(開発者の決定)ので作り直した** — フェードのチップを出さない"
     },
     {
       "id": "M242",
@@ -3761,13 +3761,6 @@
       "note": "008:T47 チップの値を中央に置かない — 種類名のほうが長いチップ(区切り・1文字のテキスト)で値が左へ寄る(2026-09-30 の開発者の指定)"
     },
     {
-      "id": "M583",
-      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
-      "find": "const TextStyle _overflowStyle = TextStyle(\n  color: Colors.white,",
-      "replace": "const TextStyle _overflowStyle = TextStyle(\n  color: Colors.grey,",
-      "note": "008:T47 「+N」を白にしない(2026-09-30 の開発者の指定)"
-    },
-    {
       "id": "M584",
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double ruleButtonHeadingGap = 9;",
@@ -3789,18 +3782,18 @@
       "note": "008:T47 元の名前のチップの値を以前の字面へ戻す(2026-09-30 の開発者の指定。設定画面・下部バーの両方)"
     },
     {
-      "id": "M587",
-      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
-      "find": "String ruleChipOverflowLabel(int hidden) => ' + $hidden';",
-      "replace": "String ruleChipOverflowLabel(int hidden) => '+$hidden';",
-      "note": "008:T47 「+N」の + の前後に空白を入れない(2026-09-30 の開発者の指定。実機確認2回目)"
-    },
-    {
       "id": "M588",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "          height: _chipHeight(context, base, scaler),",
       "replace": "          height: null,",
       "note": "008:T47 チップの列の高さを固定しない — チップが1つも入らず「+N」だけになると button が低くなり、一覧の高さが変わる(`row_presentation_test` が実機確認2回目の修正中に捕まえた)"
+    },
+    {
+      "id": "M589",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "      return (full: k, fadeWidth: rest < widths[k] ? rest : widths[k]);",
+      "replace": "      return (full: k, fadeWidth: widths[k]);",
+      "note": "008:T47 フェードのチップを残りの幅で切らない — 最後のチップが丸ごと描かれてbuttonからはみ出す(2026-09-30 の開発者の決定「最後のチップをフェードさせるだけ」)"
     }
   ]
 }

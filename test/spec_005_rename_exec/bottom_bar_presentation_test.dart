@@ -255,7 +255,7 @@ void main() {
       );
     });
 
-    testWidgets('ルールが長くてもbuttonが伸びない(1段 + 「+N」)', (tester) async {
+    testWidgets('ルールが長くてもbuttonが伸びない(1段 + 最後のチップのフェード)', (tester) async {
       // **ルールの長さは占有を変える第三の変数である**(`008:T16` の独立review
       // attempt 4 が挙げた)。長いルールで折り返すと、button が伸びて一覧を削る。
       //
@@ -287,11 +287,11 @@ void main() {
         ]),
       );
 
-      // **前提**: この幅では実際にあふれている(入りきらないチップが「+N」に
-      // まとまっている)。あふれていなければ、高さが同じでも何も押さえたことに
-      // ならない(空振り)。`008:T47` でチップにした。
+      // **前提**: この幅では実際にあふれている(最後に見えるチップがフェードして
+      // いる)。あふれていなければ、高さが同じでも何も押さえたことにならない
+      // (空振り)。`008:T47` でチップにした。
       expect(
-        find.byKey(ruleChipOverflowKey),
+        find.byKey(ruleChipFadeKey),
         findsOneWidget,
         reason: 'ルールが短すぎて、あふれる経路を通っていない',
       );
@@ -384,30 +384,87 @@ void main() {
       expect(tester.widget<Text>(valueFinder).textAlign, TextAlign.center);
     });
 
-    testWidgets('「+N」は白で、+ の前後に空白がある(008:T47 実機確認)', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(360, 800));
+    testWidgets('入りきらないときは最後に見えるチップをフェードし、数は出さない(008:T47)', (tester) async {
+      // 2026-09-30 の開発者の決定。以前は右端の「+N」にまとめていたが、ちょうど
+      // 収まっていたところへ1つ足すと「+1」が入らず「+2」へ飛んだ。幅を少しずつ
+      // 変え、チップを1つずつ足して、どの幅・数でも次が成り立つことを見る:
+      // 全部入るならフェードは無い。入らなければ**フェードがちょうど1つ**で、
+      // その前は前から順に全体が見え、数(「+」)は出ない。
+      var sawCut = false;
+      var sawFadeRightAfterFit = false;
+      for (var width = 320.0; width <= 440; width += 8) {
+        await tester.binding.setSurfaceSize(Size(width, 800));
+        var previousFit = false;
+        for (var n = 1; n <= 7; n++) {
+          final rule = RenameRule([
+            for (var i = 0; i < n; i++) LiteralToken('abcdef$i'),
+          ]);
+          await tester.pumpWidget(
+            MaterialApp(
+              key: ValueKey('$width-$n'),
+              theme: appDarkTheme(),
+              home: MediaQuery(
+                data: MediaQueryData(size: Size(width, 800)),
+                child: Scaffold(
+                  body: FileListView(
+                    controller: FileListController(
+                      files: [_f('a.txt')],
+                      rule: rule,
+                    ),
+                    onEditRule: () {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull, reason: 'width=$width n=$n');
+          final strip = find.byKey(ruleSummaryKey);
+          final chips = find
+              .descendant(of: strip, matching: find.byType(RuleSummaryChip))
+              .evaluate()
+              .length;
+          final fades = find
+              .descendant(of: strip, matching: find.byKey(ruleChipFadeKey))
+              .evaluate()
+              .length;
+          // 数は出さない。
+          expect(
+            find.descendant(of: strip, matching: find.textContaining('+')),
+            findsNothing,
+            reason: 'width=$width n=$n',
+          );
+          if (fades == 0) {
+            // 全部入る。
+            expect(chips, n, reason: 'width=$width n=$n');
+            previousFit = true;
+          } else {
+            sawCut = true;
+            expect(fades, 1, reason: 'width=$width n=$n');
+            expect(chips, lessThanOrEqualTo(n), reason: 'width=$width n=$n');
+            // フェードしているのは、見えている最後のチップ(`abcdef{chips-1}`)。
+            expect(
+              find.descendant(
+                of: find.byKey(ruleChipFadeKey),
+                matching: find.text('abcdef${chips - 1}'),
+              ),
+              findsOneWidget,
+              reason: 'width=$width n=$n',
+            );
+            if (previousFit) sawFadeRightAfterFit = true;
+            previousFit = false;
+          }
+        }
+      }
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final c = FileListController(
-        files: [_f('a.txt')],
-        rule: const RenameRule([
-          OriginalNameToken(),
-          LiteralToken('_'),
-          SequenceToken(start: 1, digits: 3),
-          DateTimeToken(source: DateTimeSource.modified, format: 'YYYYMMDD'),
-          LiteralToken('-end'),
-        ]),
-      );
-      await _pumpNarrow(tester, c);
-
-      final overflow = tester.widget<Text>(find.byKey(ruleChipOverflowKey));
-      expect(overflow.style!.color, Colors.white);
-      // `+` の前後に空白(チップとの間と、数との間。実機確認2回目)。
-      expect(overflow.data, matches(RegExp(r'^ \+ \d+$')));
+      // 前提: 入りきらなくなる経路を通っている。ちょうど収まっていたところへ
+      // 1つ足したときにフェードが出ている(開発者が挙げた場面)。
+      expect(sawCut, isTrue);
+      expect(sawFadeRightAfterFit, isTrue);
     });
 
-    testWidgets('チップの列の高さは、チップが1つも入らず「+N」だけでも変わらない(008:T47)', (tester) async {
-      // 「+N」の文字はチップより低い。列が中身の高さのままだと、チップが入らない
-      // 狭幅・文字の拡大で button が低くなり、一覧の高さが変わる。
+    testWidgets('チップの列の高さは、1つ目のチップからフェードしても変わらない(008:T47)', (tester) async {
+      // 列が中身の高さのままだと、狭幅・文字の拡大で button の高さが変わり、一覧の
+      // 高さが変わる(以前の「+N」だけの形で実際に起きた)。
       Future<double> stripHeight(RenameRule rule, double scale) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -445,14 +502,14 @@ void main() {
           tester.getSize(find.byType(RuleSummaryChip)).height,
           reason: 'scale=$scale',
         );
-        final onlyOverflow = await stripHeight(
+        final onlyFade = await stripHeight(
           RenameRule([
             for (var i = 0; i < 6; i++) LiteralToken('とても長い固定文字とても長い固定文字$i'),
           ]),
           scale,
         );
-        expect(find.byKey(ruleChipOverflowKey), findsOneWidget);
-        expect(onlyOverflow, withChip, reason: 'scale=$scale');
+        expect(find.byKey(ruleChipFadeKey), findsOneWidget);
+        expect(onlyFade, withChip, reason: 'scale=$scale');
       }
     });
 

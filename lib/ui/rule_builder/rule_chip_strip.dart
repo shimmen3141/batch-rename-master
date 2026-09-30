@@ -12,8 +12,11 @@ import 'token_presets.dart';
 /// (2026-09-30 の開発者の決定)。削除の×は持たず、そのぶん幅を詰める。
 /// 押せない(button 全体が一つの押下対象。2026-09-02 の要望9)。
 ///
-/// **入りきらないチップは右端の「+N」にまとめる。** 折り返すと button が伸びて
-/// 一覧を削る(`008:T16` の独立review attempt 4 が挙げた「ルールの長さ」の変数)。
+/// **入りきらないときは折り返さない**(折り返すと button が伸びて一覧を削る。`008:T16` の
+/// 独立review attempt 4 が挙げた「ルールの長さ」の変数)。入る分を並べ、**次のチップを
+/// 残りの幅で途切れさせてフェードする。それより後ろは出さず、数も出さない**
+/// (2026-09-30 の開発者の決定)。以前は右端の「+N」にまとめていたが、ちょうど収まって
+/// いたところへ1つ足すと「+1」が入らず「+2」へ飛び、違和感があった。
 class RuleChipStrip extends StatelessWidget {
   const RuleChipStrip({super.key, required this.rule, required this.sample});
 
@@ -33,17 +36,13 @@ class RuleChipStrip extends StatelessWidget {
           for (final token in tokens)
             _chipWidth(context, base, scaler, token, sample),
         ];
-        final shown = _fitCount(
-          context,
-          base,
-          scaler,
-          widths,
-          constraints.maxWidth,
-        );
-        final hidden = tokens.length - shown;
-        // **高さはチップ1つ分に固定する。** 狭幅・文字の拡大でチップが1つも入らず
-        // 「+N」だけになると、列が文字の高さまで縮んで button が低くなり、一覧の
-        // 高さが変わった(`row_presentation_test`「増える高さは 1 行ぶんで止まる」)。
+        final layout = _layoutChips(widths, constraints.maxWidth);
+        final shown = layout.full;
+        final fadeWidth = layout.fadeWidth;
+        // **高さはチップ1つ分に固定する。** 以前の「+N」の形では、チップが1つも入らず
+        // 「+N」だけになると列が文字の高さまで縮み、button が低くなって一覧の高さが
+        // 変わった(`row_presentation_test`「増える高さは 1 行ぶんで止まる」)。フェードの
+        // チップは `OverflowBox` で描くので、列の高さを決めておく必要もある。
         return SizedBox(
           height: _chipHeight(context, base, scaler),
           child: Row(
@@ -52,12 +51,12 @@ class RuleChipStrip extends StatelessWidget {
                 if (i > 0) const SizedBox(width: ruleChipGap),
                 RuleSummaryChip(token: tokens[i], sample: sample),
               ],
-              if (hidden > 0) ...[
+              if (fadeWidth != null) ...[
                 if (shown > 0) const SizedBox(width: ruleChipGap),
-                Text(
-                  ruleChipOverflowLabel(hidden),
-                  key: ruleChipOverflowKey,
-                  style: _overflowStyle,
+                _FadedChip(
+                  key: ruleChipFadeKey,
+                  width: fadeWidth,
+                  child: RuleSummaryChip(token: tokens[shown], sample: sample),
                 ),
               ],
             ],
@@ -67,13 +66,6 @@ class RuleChipStrip extends StatelessWidget {
     );
   }
 }
-
-/// 入りきらなかったチップの数(`+N`)。
-const Key ruleChipOverflowKey = Key('rule-chip-overflow');
-
-/// 入りきらなかったチップの数の文言。**`+` の前後に空白を入れる**(チップとの間と、
-/// 数との間。2026-09-30 の開発者の指定。`008:T47` の実機確認2回目)。
-String ruleChipOverflowLabel(int hidden) => ' + $hidden';
 
 /// チップどうしの間。
 const double ruleChipGap = 4;
@@ -93,13 +85,6 @@ const TextStyle _valueStyle = TextStyle(
   fontSize: 15,
   fontWeight: FontWeight.w700,
   fontFamily: 'monospace',
-);
-
-// **白にする**(2026-09-30 の開発者の指定。`008:T47` の実機確認)。
-const TextStyle _overflowStyle = TextStyle(
-  color: Colors.white,
-  fontSize: 13,
-  fontWeight: FontWeight.w700,
 );
 
 /// 1つのチップ。設定画面の [TokenChip] から削除の×と、そのための幅を除いた形。
@@ -217,14 +202,48 @@ double _chipHeight(BuildContext context, TextStyle base, TextScaler scaler) {
       lineHeight(_valueStyle);
 }
 
-/// [maxWidth] に入るチップの数。全部は入らないときは、`+N` の幅を残して数える。
-int _fitCount(
-  BuildContext context,
-  TextStyle base,
-  TextScaler scaler,
-  List<double> widths,
-  double maxWidth,
-) {
+/// 途切れさせてフェードしたチップ(`008:T47`)。チップは本来の幅で描き、[width] で
+/// 切って、右へ向かって透明にする。
+class _FadedChip extends StatelessWidget {
+  const _FadedChip({super.key, required this.width, required this.child});
+
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: SizedBox(
+        width: width,
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Colors.white, Colors.transparent],
+            stops: [0.35, 1],
+          ).createShader(bounds),
+          child: OverflowBox(
+            alignment: Alignment.centerLeft,
+            minWidth: 0,
+            maxWidth: double.infinity,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// フェードしたチップ。
+const Key ruleChipFadeKey = Key('rule-chip-fade');
+
+/// フェードのチップを置く最小の幅。これより狭いと途切れたチップだと読めないので、
+/// 1つ手前のチップをフェードにする。
+const double ruleChipFadeMinWidth = 24;
+
+/// 並べ方: 全体を出すチップの数と、その次に出すフェードのチップの幅(無ければ null)。
+typedef _ChipLayout = ({int full, double? fadeWidth});
+
+_ChipLayout _layoutChips(List<double> widths, double maxWidth) {
   double total(int count) {
     var sum = 0.0;
     for (var i = 0; i < count; i++) {
@@ -233,18 +252,19 @@ int _fitCount(
     return sum;
   }
 
-  if (total(widths.length) <= maxWidth) return widths.length;
-  for (var count = widths.length - 1; count >= 0; count--) {
-    final overflow =
-        _textWidth(
-          context,
-          base,
-          scaler,
-          ruleChipOverflowLabel(widths.length - count),
-          _overflowStyle,
-        ) +
-        (count > 0 ? ruleChipGap : 0);
-    if (total(count) + overflow <= maxWidth) return count;
+  final n = widths.length;
+  if (_fitsAll(total(n), maxWidth)) return (full: n, fadeWidth: null);
+  // 入る分を並べ、次のチップ(k 番目)を残りの幅で途切れさせる。残りが下限に
+  // 満たなければ1つ手前をフェードにする。手前のチップが丸ごと入る幅でもフェードに
+  // する — **続きがあることは常にフェードで示す**(数は出さない)。
+  for (var k = n - 1; k > 0; k--) {
+    final rest = maxWidth - total(k) - ruleChipGap;
+    if (rest >= ruleChipFadeMinWidth) {
+      return (full: k, fadeWidth: rest < widths[k] ? rest : widths[k]);
+    }
   }
-  return 0;
+  final first = widths.first;
+  return (full: 0, fadeWidth: maxWidth < first ? maxWidth : first);
 }
+
+bool _fitsAll(double total, double maxWidth) => total <= maxWidth;
