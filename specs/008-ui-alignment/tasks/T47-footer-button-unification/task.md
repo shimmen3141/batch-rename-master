@@ -56,12 +56,20 @@ product-map の将来候補「ルールをchipのUIで見せる」(`T20`の実�
 - 作り直した: M192(チップの列を折り返させる)・M199(「+N」にまとめず全部並べる)・M241(入りきらない分を黙って落とす)— 字面の行数制限を守っていたものを、同じ保証(ルールが長くてもbuttonが伸びない・隠れたトークンがあると分かる)のチップの形へ。M197(未設定と設定済みの中身を入れ替える)は `find` を追随させた。
 - 足した: M577〜M581(リネームbuttonの角丸、未設定の＋・文言を白にしない、チップの上段を落とす、チップの枠を種類の色にしない)。
 - `check_mutation_finds.py` → `PASS: 535`。
+- 範囲付きで回した(9件): `flutter test test/spec_005_rename_exec test/spec_002_file_list test/spec_003_rule_builder test/widget_test.dart`、対象 `55739ec`。
+
+```text
+M192 SURVIVED / M197 M199 M241 M577 M578 M579 M580 M581 KILLED
+9 mutations: 8 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+- **M192(チップの列を `Row` から `Wrap` へ)は等価mutantだった。** 入る数を先に測って決めるので、`Wrap` でも折り返しが起きない。保証が実際に崩れるのは幅の見積もりが実際より小さいときなので、**見積もりからチップの余白を落とす形へ作り直し**、回し直した: `1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED`。
 
 ## Current state / handoff
 
-- Last checkpoint: 起票し、チップの見せ方を開発者が決めた(2026-09-30)
+- Last checkpoint: 実装 `55739ec`(flutter test 1117 PASS・analyze・format・mutation 9件 KILLED(M192 は作り直し後))
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `dev@5bfcc7a`
-- Next Agent action: 実装し、widget test を足す
+- Evidence revision: `55739ec`
+- Next Agent action: 独立review(attempt 1、全範囲)を起動し、PASS後に実機確認を依頼する
