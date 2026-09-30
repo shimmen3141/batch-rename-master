@@ -98,6 +98,23 @@ M192 M199 M583 M584 M585 M587 M588 すべて KILLED
 7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 「+N」の飛びと、フェードの採用(2026-09-30、実機確認3回目の途中)
+
+- 開発者の観測(原文): 「チップがギリギリ表示される状態で新しくチップを追加したとき、『 + 1』が入りきらずに一気に『 + 2』まで飛んでしまい、違和感があります。かといって、余裕があるのに『 + 1』で置き換えたくはありません。」
+- Agentが3案を出した: A(最後のチップを省略して細くし「+1」の場所を作る)、B(数を出さず、最後のチップを途切れさせてフェードする)、C(いまのまま)。推奨はA。
+- **開発者の決定**(原文): 「案AとBを組み合わせます。『 + N』が入りきらない場合は最後のチップをフェードさせつつ『 + N』を表示します。フェードさせるチップはNに含めません。これにより、チップを追加していくと『フェード』→『フェード + N』という順番で表示が変わるはずです。『フェード + N』が入りきらずにいきなり『 + 2』に飛ぶことは許容します。」
+- **同日、実装の途中で開発者が決定を変えた**(原文): 「すみません、やっぱり+Nはやめて最後のチップをフェードさせるだけにします。」→ **案B** を採る。
+- 実装の方針: 全部入るならチップだけ。入らなければ、入る分を並べ、次のチップを残りの幅で途切れさせてフェードする。**それより後ろのチップは出さず、数も出さない。** フェードのチップを置ける幅が下限(24)に満たなければ、1つ手前のチップをフェードにする(続きがあることは常にフェードで示す)。
+- 実装(`b63f121`): `RuleChipStrip` の並べ方を `_layoutChips` にした(全体を出す数 + フェードのチップの幅)。フェードのチップは本来の幅で描いて `ClipRect` + `SizedBox(width)` で切り、`ShaderMask`(左 35% から右端へ透明)で薄くする(`_FadedChip`、key `ruleChipFadeKey`)。「+N」の表示・文言(`ruleChipOverflowKey` / `ruleChipOverflowLabel`)・白の字体を取り除いた。列の高さはチップ1つ分に固定したまま(フェードのチップは `OverflowBox` で描くので、高さを決めておく必要もある)。**途中で一度「フェード + N」を実装したが、commit する前に開発者の決定が変わったので残していない。**
+- testの改訂: 「ルールが長くてもbuttonが伸びない」の前提を「+N が出ている」→「フェードが出ている」へ。「+N は白で + の前後に空白」を外した。足した: 幅 320〜440(8刻み)× トークン 1〜7 で、全部入るならフェード無し・入らなければフェードがちょうど1つで見えている最後のチップ・「+」が出ない、ちょうど収まっていたところへ1つ足したときにフェードが出る場面がある。高さの test は「1つ目のチップからフェードしても変わらない」へ。
+- mutation: **外した: M583(「+N」を白にしない)・M587(+ の前後の空白)・M590(フェードを N に数える)** — 「+N」そのものが無くなり守る対象が無い。作り直した: M199(入りきらなくても全部並べる)・M241(フェードのチップを出さない)・M589(フェードのチップを残りの幅で切らない)。`check_mutation_finds.py` → `PASS: 541`。範囲付きで回した(5件): `flutter test test/spec_005_rename_exec test/spec_002_file_list`、対象 `b63f121`。
+
+```text
+M192 M199 M241 M588 M589 すべて KILLED
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`b63f121`): `flutter test` +1121 PASS、`flutter analyze` No issues、`dart format` 0 changed。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
@@ -114,9 +131,20 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 4 PASS(`c3e7fbd..054b1a5`)。実機確認3回目を依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認3回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)
-- Requested action: 対象build `c5f94ad`(`lib/`が同一)で0〜2を確かめ、結果を会話で伝える
-- Evidence revision: `054b1a5`(`lib/`は`c5f94ad`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
+- Last checkpoint: 「+N」をやめてフェードだけにした実装 `b63f121`(flutter test 1121 PASS・analyze・format・mutation 5件 KILLED)。記録と4回目の手順を書いた(2026-09-30)
+- Blocker category: なし(差分reviewの結果待ち)
+- Waiting for: 差分review attempt 5(`7909c79..HEAD`)の結果
+- Requested action: なし
+- Evidence revision: `b63f121`(`lib/`)
+- Next Agent action: 差分review attempt 5 → 実機確認4回目の依頼 → OK なら done にして PR #204 を merge(手順は次のとおり)
+  1. 差分review attempt 5 を `gpt-6-luna` で行う(下の「引き継ぎメモ」)。PASS ならこの節と「独立review」へ記録する。
+  2. 開発者へ実機確認4回目を依頼する(`manual-verification.md` の「4回目で見ること」。対象build は `lib/` が `b63f121` と同一)。
+  3. 結果が OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける。指摘があれば直して、差分review → 実機確認を繰り返す。
+
+### 引き継ぎメモ(別セッション向け)
+
+- worktree: `/workspace/.worktrees/008-T47-footer-button-unification`、branch `asdd/008-ui-alignment/T47-footer-button-unification`、PR #204(Draft)。起点 `dev`@`5bfcc7a`。
+- **独立review は開発者の指定で `gpt-6-luna`**: `codex-container exec -m gpt-6-luna -C <worktree> -o <out.md> - < <prompt.md>`。prompt は `/home/dev/.agents/skills/asdd/skills/review-task/SKILL.md` を指し、**差分review の range と前回までの連鎖**(この task.md の「独立review」節)を書く。**「検証は docker を使わず worktree で直接実行する」と必ず書く** — この環境は既に container の中で `docker` が無く、書かないと reviewer が BLOCKED を返す(attempt 2 で起きた)。
+- mutation は範囲付きで回す(AGENTS.md)。`mutation_check.py` は**追跡済みの file しか扱えない**ので、新しい file を足したら先に commit する。
+- 実機確認は開発者が host 側の Android エミュレータで行う。依頼の文面は**日本語**で、file は **`/workspace/...` の絶対 path をそのまま**書く(markdown のリンクに隠さない)。
+- 決定の経緯: チップは設定画面と同じ2段(×なし)、未設定は＋と「命名ルールを設定する」を白、リネームbuttonの角丸を合わせる、語は「元の名前 / ファイル名」、余白は上下 6・見出しとチップの間 9、入りきらないときは最後に見えるチップのフェードだけ(「+N」は採らなかった)。すべて上の各節と 008 plan の「人間の決定」にある。
