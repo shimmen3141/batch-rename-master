@@ -1,7 +1,9 @@
 {
   "command": [
     "flutter",
-    "test"
+    "test",
+    "--exclude-tags",
+    "tooling"
   ],
   "timeout": 900,
   "mutations": [

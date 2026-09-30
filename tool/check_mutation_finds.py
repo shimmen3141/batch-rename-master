@@ -13,6 +13,10 @@
 この検査は読み込みと数え上げだけなので速く、`test/tooling/repo_checks_test.dart`
 経由で CI の `flutter test` が毎回走らせる。`find` を含む行を変えた変更は、その場で落ちる。
 
+**mutation の表の `command` は `--exclude-tags tooling` でこの検査を外す。** mutation を当てると
+その `find` がファイルから消えるので、この検査を含めて回すと**どの mutation も必ず KILLED になる**
+(`008:T46` で観測)。範囲を絞って回すときも `test/tooling` を含めないこと。
+
 ## この検査で捕まらないもの(PASS を「表のmutationはすべて有効」と読まないこと)
 
 - **一致することだけを見る。** 置き換えた結果を test が検出するか(KILLED か)は見ない。
