@@ -1,6 +1,6 @@
 # 手動確認: フッターのボタン(Androidエミュレータ)
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が依頼時に`task.md`へ書くcommitと同一のもの**である。branch `asdd/008-ui-alignment/T47-footer-button-unification` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `55739ec` と同一のもの**である。branch `asdd/008-ui-alignment/T47-footer-button-unification` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
 
 見るのは**下部の2つのボタンの見た目**だけである。押したときの動き(ルール設定が開く、リネームが始まる)は変えていない。
 

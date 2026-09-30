@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T47",
   "title": "フッターのボタンの形を揃え、ルールをチップで見せる",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,

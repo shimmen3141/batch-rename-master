@@ -1307,7 +1307,7 @@
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "  return (kind > value ? kind : value) +\n      2 * _chipHorizontalPadding +",
       "replace": "  return (kind > value ? kind : value) +\n      0 +",
-      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**  **`Row` → `Wrap` の形は等価mutantで SURVIVED した**(入る数を先に測って決めるので、`Wrap` でも折り返しが起きない。2026-09-30、`008:T47`)。**保証が実際に崩れるのは幅の見積もりが実際より小さいとき**なので、見積もりからチップの余白を落とす形へ作り直した(入りきらないチップを並べて、はみ出す)"
+      "note": "008:T16 設定中のルールの要約がbuttonを伸ばさない(ルールの長さという第三の変数。独立review attempt 4 が挙げた)を守る。**2026-09-30 に `008:T47` で要約を字面からチップ(`RuleChipStrip`)へ替え、作り直した**: チップの幅の見積もりから余白を落とす — 見積もりが実際より小さいと入りきらないチップまで並べ、buttonからはみ出す(「ルールが長くてもbuttonが伸びない」の test が捕まえる。KILLED を期待する)。経緯: 字面の時代は `maxLines` を外す形で、`overflow: TextOverflow.ellipsis` が最初のあふれ行で切るため等価mutantだった(`008:T20` で M241 を足した)。チップへ替えた直後の `Row` → `Wrap` の形も、入る数を先に測るので折り返しが起きず等価mutantだった"
     },
     {
       "id": "M194",

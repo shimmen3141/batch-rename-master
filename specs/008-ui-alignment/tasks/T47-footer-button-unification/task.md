@@ -65,11 +65,18 @@ M192 SURVIVED / M197 M199 M241 M577 M578 M579 M580 M581 KILLED
 
 - **M192(チップの列を `Row` から `Wrap` へ)は等価mutantだった。** 入る数を先に測って決めるので、`Wrap` でも折り返しが起きない。保証が実際に崩れるのは幅の見積もりが実際より小さいときなので、**見積もりからチップの余白を落とす形へ作り直し**、回し直した: `1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED`。
 
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
+
+- **attempt 1**: `5bfcc7a..52e63fa`(全範囲) — **PASS**(P2 1件)。確認された点: 開発者の指定(外形の共通化・未設定の白い＋と文言・2段チップ・×なし・「+N」・リネームbuttonの角丸)、005 REQ-019/020、要望9(一つの押下対象)、幅の見積もりと狭幅・文字 2.0、testの改訂(緩和なし)。`flutter test` 1117 PASS・analyze・format PASS。reviewerが回したmutation 9件 KILLED。
+  - **P2(成果物の欠陥)**: M192 の説明に、字面の時代の「等価mutantで SURVIVED が正しい」が残り、作り直した今の M192(KILLED)と食い違う → 説明を書き直した。`tool/` の差分なので SELF-CHECK にせず、差分reviewを attempt 2 とする。`lib/` は変わらないので、実機確認は並行して依頼した。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装 `55739ec`(flutter test 1117 PASS・analyze・format・mutation 9件 KILLED(M192 は作り直し後))
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `55739ec`
-- Next Agent action: 独立review(attempt 1、全範囲)を起動し、PASS後に実機確認を依頼する
+- Last checkpoint: 独立review attempt 1 PASS(P2 は M192 の説明を直した)。差分review attempt 2 を起動し、実機確認を並行して依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)と、差分review attempt 2
+- Requested action: 対象build `55739ec`(`lib/`が同一)で0〜4を確かめ、結果を会話で伝える
+- Evidence revision: `55739ec`(`lib/`)
+- Next Agent action: 差分reviewの結果と実機確認の結果を記録し、両方PASSならPRをreadyにしてmergeする
