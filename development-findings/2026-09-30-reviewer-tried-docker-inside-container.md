@@ -21,6 +21,10 @@ reviewer は「指摘なし・前回のP2は閉じた」と確認したうえで
 - AGENTS.md の「非対話の検証」の節に、**「既に `AI_SANDBOX=1` の container の中なら、検証は直接実行する(`docker` は無い)」**を書き足す。`AGENTS.md` の変更は auto-merge の対象外なので、人間の確認で入れる。
 - それまでの運用: reviewer への prompt に「検証は docker を使わず worktree で直接実行する」を必ず書く(`008:T47` の attempt 3 以降で実施し、BLOCKED は起きていない)。
 
+## 追記(同日、attempt 5)
+
+docker の件を prompt に書いた後も、attempt 5 は **`flutter analyze` を60秒で打ち切って BLOCKED** を返した(この環境では約100秒かかる。所有Agentが同じ HEAD で流して `No issues found! (ran in 102.8s)`)。attempt 3・4 では mutation と full test を同じ worktree で並行して流し、偽の失敗を一度出した(reviewer 自身が気づいて流し直した)。**検証の実行の仕方が reviewer の判断に任されていて、判断に関わらない理由で BLOCKED が続く**。AGENTS.md の書き足しの候補に「analyze の所要時間」と「mutation と full test を並行させない」も加える。
+
 ## 対応
 
 - `008:T47` の task.md の「引き継ぎメモ」に運用を書いた。AGENTS.md の書き足しは未実施(人間の判断待ち)。

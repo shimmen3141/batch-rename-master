@@ -148,7 +148,7 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 ### 引き継ぎメモ(別セッション向け)
 
 - worktree: `/workspace/.worktrees/008-T47-footer-button-unification`、branch `asdd/008-ui-alignment/T47-footer-button-unification`、PR #204(Draft)。起点 `dev`@`5bfcc7a`。
-- **独立review は開発者の指定で `gpt-6-luna`**: `codex-container exec -m gpt-6-luna -C <worktree> -o <out.md> - < <prompt.md>`。prompt は `/home/dev/.agents/skills/asdd/skills/review-task/SKILL.md` を指し、**差分review の range と前回までの連鎖**(この task.md の「独立review」節)を書く。**「検証は docker を使わず worktree で直接実行する」と必ず書く** — この環境は既に container の中で `docker` が無く、書かないと reviewer が BLOCKED を返す(attempt 2 で起きた)。
+- **独立review は開発者の指定で `gpt-6-luna`**: `codex-container exec -m gpt-6-luna -C <worktree> -o <out.md> - < <prompt.md>`。prompt は `/home/dev/.agents/skills/asdd/skills/review-task/SKILL.md` を指し、**差分review の range と前回までの連鎖**(この task.md の「独立review」節)を書く。**「検証は docker を使わず worktree で直接実行する」と必ず書く** — この環境は既に container の中で `docker` が無く、書かないと reviewer が BLOCKED を返す(attempt 2 で起きた)。 **あわせて「`flutter analyze` はこの環境で約100秒かかるので終わるまで待つ」「mutation と full test を同時に走らせない」も書く**(attempt 5 は analyze を60秒で打ち切って BLOCKED、attempt 3・4 は並行実行で偽の失敗を一度出した)。
 - mutation は範囲付きで回す(AGENTS.md)。`mutation_check.py` は**追跡済みの file しか扱えない**ので、新しい file を足したら先に commit する。
 - 実機確認は開発者が host 側の Android エミュレータで行う。依頼の文面は**日本語**で、file は **`/workspace/...` の絶対 path をそのまま**書く(markdown のリンクに隠さない)。
 - 残余risk(受容。引き受け先 `008:T10`): **フェードの下限(24)に満たないとき1つ手前をフェードにする分岐と、下限そのものを直接検査する test が無い**(attempt 5 の P2・安全網の穴)。表示の穴で、AGENTS.md の FAIL 条件(データ損失・偽の成功など)に当たらない。分岐は M199・M241・M588・M589 と「フェードがちょうど1つ・見えている最後のチップ」の test が間接に守る。`T10` は同じ下部バーの余白・階層を最後に整える task なので、下限の値を見直すときに test を足す。
