@@ -795,6 +795,26 @@ void main() {
     expect(find.text('2 件を一覧から外しました'), findsOneWidget);
   });
 
+  testWidgets('外した直後の最初の frame でモードを抜けている(REQ-018)', (tester) async {
+    // 外した候補が一覧から消えると、frame の後の片付け(`retain`)でも選択が0件に
+    // なってモードを抜ける。**それに頼ると1 frame だけ「0件選択中」のモードが
+    // 見える。** `pumpAndSettle` では片付けの後しか見えないので、1回だけ進める
+    // (`008:T46`。M314 が等価mutantになっていた)。
+    final c = FileListController(files: _abc(), rule: _seq2);
+    await _pump(tester, c);
+    await tester.longPress(find.text('b.txt'));
+    await tester.pump();
+    await toggleRemovalMark(tester, 'h:c');
+    expect(removalModeCountText(tester), '2件選択中');
+
+    await tester.tap(find.byKey(removalModeRemoveKey));
+    await tester.pump();
+
+    expect(c.items.map((f) => f.name), ['a.txt']);
+    expect(find.byKey(removalModeCountKey), findsNothing);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('まとめて外した分は1回の取り消しで全件戻る(REQ-017・代表例6h)', (tester) async {
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
