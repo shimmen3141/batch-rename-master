@@ -285,9 +285,6 @@ class _FileListViewState extends State<FileListView> {
                 children: [
                   _HeaderBar(
                     controller: widget.controller,
-                    // 一覧全体の件数(005 REQ-009 (3) の入口)。**常時 1 行に収まり、
-                    // 一覧を覆わない** — 集約帯を廃止した狙いがこれである。
-                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
                     selecting: selecting,
                     markedCount: marked.length,
                     // **一覧が空でない間は常に入れる**(入口(b)。代表例 6j)。
@@ -303,11 +300,11 @@ class _FileListViewState extends State<FileListView> {
                     onClearAll: rows.isEmpty ? null : () => _clearAll(context),
                     onExitRemovalMode: _exitRemovalMode,
                   ),
-                  // モード中も出す(並び順の選択は提示してよい。REQ-018)。
-                  _SortBar(controller: widget.controller),
-                  // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
-                  // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
-                  if (ruleIsEmpty) const RuleNotConfiguredBanner(),
+                  _MessageBanner(
+                    controller: widget.controller,
+                    // 一覧全体の件数(005 REQ-009 (3) の入口)。ルールが空なら出さない。
+                    warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                  ),
                   Expanded(
                     child: Listener(
                       behavior: HitTestBehavior.translucent,
@@ -1288,7 +1285,6 @@ class _RuleButton extends StatelessWidget {
 class _HeaderBar extends StatelessWidget {
   const _HeaderBar({
     required this.controller,
-    required this.warnings,
     required this.selecting,
     required this.markedCount,
     required this.onEnterRemovalMode,
@@ -1298,9 +1294,6 @@ class _HeaderBar extends StatelessWidget {
   });
 
   final FileListController controller;
-
-  /// 一覧全体の警告(005 REQ-009 (3) の入口。ルールが空なら空で渡る)。
-  final List<Warning> warnings;
 
   /// 除去のための選択モードか(002 REQ-018)。
   final bool selecting;
@@ -1392,30 +1385,14 @@ class _HeaderBar extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        // 一覧全体の件数。押すと全件の詳細が開く(005 REQ-009 (3))。
-                        // **ルールが空のときは出さない** — 001 は空名と重複を
-                        // 返しているので「問題なし」は誤りになる。
-                        //
-                        // 警告0件でも、実際に変更するfileがあるときだけ準備完了を
-                        // 出す。変更0件では実行buttonが理由を示すので、成功を主張する
-                        // 件数見出しは重ねない(008:T33)。
-                        if (!controller.isRuleEmpty &&
-                            (warnings.isNotEmpty ||
-                                controller.changedFileCount > 0))
-                          WarningCountView(
-                            warnings: warnings,
-                            // 全件の入口。**特定のファイルに絞られない**(REQ-009 (4))。
-                            onTap: () => showWarningDetail(
-                              context,
-                              controller.warnings,
-                              ruleIsEmpty: controller.isRuleEmpty,
-                              amongFiles: controller.rows.map((r) => r.source),
-                            ),
-                          ),
                       ],
                     ),
             ),
           ),
+          // **並び順はケバブの左**(2026-09-30 の開発者の指定。`008:T02` の実機確認)。
+          // 以前は並び順だけの帯が一覧の上にあった。モード中も出す(並び順の選択は
+          // 提示してよい。REQ-018)。文字の拡大では折り返す(`Flexible`)。
+          if (total > 0) Flexible(child: _SortControl(controller: controller)),
           // **外す操作は帯に置かない**(`008:T42`)。モード中はフッターの「N件を外す」が持つ。
           // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
           // 一覧が空のときだけ出さない(どの項目も対象が無い)。
@@ -1508,8 +1485,8 @@ String sortDirectionLabel(FileSortMode mode, SortDirection direction) {
   };
 }
 
-class _SortBar extends StatelessWidget {
-  const _SortBar({required this.controller});
+class _SortControl extends StatelessWidget {
+  const _SortControl({required this.controller});
 
   final FileListController controller;
 
@@ -1518,72 +1495,171 @@ class _SortBar extends StatelessWidget {
     final colors = context.colors;
     final mode = controller.sortMode;
     final direction = controller.sortDirection;
-    final current = mode == FileSortMode.custom
-        ? sortKeyLabel(mode)
-        : '${sortKeyLabel(mode)} ${sortDirectionLabel(mode, direction)}';
-    final warning = controller.createdAtSortWarning;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.border)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      // **警告は表示の右の空きへ出し、入りきらなければ次の行へ回す**
-      // (`008:T01` の決定。開発者の案 2026-08-29)。`Wrap` は子が今の行に
-      // 収まらなければ次の行へ送るので、狭幅や文字の拡大でも切れない。
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 2,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          PopupMenuButton<(FileSortMode, SortDirection)>(
-            key: sortControlKey,
-            tooltip: '並び順を変える',
-            position: PopupMenuPosition.under,
-            onSelected: (choice) =>
-                controller.setSortMode(choice.$1, direction: choice.$2),
-            itemBuilder: (context) => [
-              for (final key in _sortKeys)
-                for (final dir in SortDirection.values)
-                  PopupMenuItem(
-                    key: sortOptionKeyOf(key, dir),
-                    value: (key, dir),
-                    child: _SortOption(
-                      keyLabel: sortKeyLabel(key),
-                      directionLabel: sortDirectionLabel(key, dir),
-                      selected: mode == key && direction == dir,
-                    ),
+    final current = sortLabelOf(mode, direction);
+    return PopupMenuButton<(FileSortMode, SortDirection)>(
+      key: sortControlKey,
+      tooltip: '並び順を変える',
+      position: PopupMenuPosition.under,
+      onSelected: (choice) =>
+          controller.setSortMode(choice.$1, direction: choice.$2),
+      itemBuilder: (context) => [
+        for (final key in _sortKeys)
+          for (final dir in SortDirection.values)
+            PopupMenuItem(
+              key: sortOptionKeyOf(key, dir),
+              value: (key, dir),
+              child: _SortOption(
+                keyLabel: sortKeyLabel(key),
+                directionLabel: sortDirectionLabel(key, dir),
+                selected: mode == key && direction == dir,
+              ),
+            ),
+      ],
+      child: Semantics(
+        label: '並び順: $current',
+        excludeSemantics: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.swap_vert, size: 16, color: colors.primary),
+              const SizedBox(width: 4),
+              // **「並び順:」を付けない**(帯へ移して幅を詰めた。意味は ⇅ と
+              // tooltip・読み上げが持つ)。
+              Flexible(
+                child: Text(
+                  current,
+                  maxLines: 2,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 18,
+                color: colors.textSecondary,
+              ),
             ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 並び順の表示文言(`名前 A→Z`、手で並べた状態なら `カスタム`)。
+String sortLabelOf(FileSortMode mode, SortDirection direction) =>
+    mode == FileSortMode.custom
+    ? sortKeyLabel(mode)
+    : '${sortKeyLabel(mode)} ${sortDirectionLabel(mode, direction)}';
+
+/// 状態に関するメッセージのバナー(`_MessageBanner`)。
+const Key messageBannerKey = Key('message-banner');
+
+/// 上の帯の下に出す、**状態に関するメッセージのバナー**(2026-09-30 の開発者の指定)。
+///
+/// 上の帯には件数・並び順・ケバブだけを置き、「正常にリネームできます」「N 件の問題」
+/// (005 REQ-009 (3))・命名ルールが未設定(005 REQ-020)・作成日時の代替(002 REQ-011)の
+/// ような**状態**はここへまとめる。行ごとに意味の色を敷いて上の帯と区別する。
+/// メッセージの増減で一覧が急に動かないよう、**高さの変化をアニメーションする**。
+class _MessageBanner extends StatelessWidget {
+  const _MessageBanner({required this.controller, required this.warnings});
+
+  final FileListController controller;
+
+  /// 一覧全体の警告(ルールが空なら空で渡る)。
+  final List<Warning> warnings;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final ruleIsEmpty = controller.isRuleEmpty;
+    final fallback = controller.createdAtSortWarning;
+    final hasWarnings = warnings.isNotEmpty;
+    // 警告0件でも、実際に変更するfileがあるときだけ準備完了を出す。変更0件では
+    // 実行buttonが理由を示すので、成功を主張する件数は重ねない(008:T33)。
+    //
+    // **選択モード中も出す。** 隠すとモードへ入った瞬間に一覧が1行ぶん上へずれる。
+    final showCount =
+        !ruleIsEmpty && (hasWarnings || controller.changedFileCount > 0);
+    return AnimatedSize(
+      key: messageBannerKey,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
+          if (ruleIsEmpty) const RuleNotConfiguredBanner(),
+          if (showCount)
+            _MessageRow(
+              tone: hasWarnings ? colors.danger : colors.success,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                // 押すと全件の詳細が開く(005 REQ-009 (3))。
+                // **特定のファイルに絞られない**(REQ-009 (4))。
+                child: WarningCountView(
+                  warnings: warnings,
+                  onTap: () => showWarningDetail(
+                    context,
+                    controller.warnings,
+                    ruleIsEmpty: controller.isRuleEmpty,
+                    amongFiles: controller.rows.map((r) => r.source),
+                  ),
+                ),
+              ),
+            ),
+          if (fallback != null)
+            _MessageRow(
+              key: const Key('created-at-fallback-warning'),
+              tone: colors.danger,
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.swap_vert, size: 16, color: colors.primary),
-                  const SizedBox(width: 4),
-                  Flexible(
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 14,
+                    color: colors.danger,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      '並び順: $current',
+                      '作成日時不明の ${fallback.unknownCount} 件は'
+                      '更新日時で代替しています',
                       style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        color: colors.danger,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    size: 18,
-                    color: colors.textSecondary,
                   ),
                 ],
               ),
             ),
-          ),
-          if (warning != null) _CreatedAtFallbackNote(warning: warning),
         ],
       ),
+    );
+  }
+}
+
+/// バナーの1行。[tone] を薄く敷き、上の帯と区別する。
+class _MessageRow extends StatelessWidget {
+  const _MessageRow({super.key, required this.tone, required this.child});
+
+  final Color tone;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: tone.withValues(alpha: 0.12),
+      child: child,
     );
   }
 }
@@ -1626,34 +1702,6 @@ class _SortOption extends StatelessWidget {
         // **押下は項目が受ける**(印だけを押し損ねても選べる)。
         IgnorePointer(
           child: SelectionCheckbox(value: selected, onChanged: (_) {}),
-        ),
-      ],
-    );
-  }
-}
-
-/// 作成日時順で「不明な件数を更新日時で代替した」ことを知らせる短い注記(REQ-011)。
-///
-/// 以前は一覧の上の帯だった。**件数と、更新日時で代替したことは短くしても残す。**
-class _CreatedAtFallbackNote extends StatelessWidget {
-  const _CreatedAtFallbackNote({required this.warning});
-
-  final CreatedAtFallbackWarning warning;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Row(
-      key: const Key('created-at-fallback-warning'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.warning_amber_rounded, size: 14, color: colors.danger),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            '作成日時不明の ${warning.unknownCount} 件は更新日時で代替',
-            style: TextStyle(color: colors.danger, fontSize: 11.5),
-          ),
         ),
       ],
     );

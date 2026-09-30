@@ -1347,9 +1347,9 @@
     {
       "id": "M198",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        if (!controller.isRuleEmpty &&\n                            (warnings.isNotEmpty ||\n                                controller.changedFileCount > 0))\n                          WarningCountView(",
-      "replace": "                        if (true)\n                          WarningCountView(",
-      "note": "008:T16/T33 ルールが空または警告0件・変更0件でもヘッダに件数を出す — 001は空名と重複を返し、変更0件は成功を主張できない(005 REQ-020 / 008:T33)"
+      "find": "    final showCount =\n        !ruleIsEmpty && (hasWarnings || controller.changedFileCount > 0);",
+      "replace": "    final showCount = true;",
+      "note": "008:T16/T33 ルールが空または警告0件・変更0件でもヘッダに件数を出す — 001は空名と重複を返し、変更0件は成功を主張できない(005 REQ-020 / 008:T33)  **008:T02 で件数を上の帯から状態のメッセージのバナー(`_MessageBanner`)へ移した(2026-09-30 の開発者の指定)ので、`find` を追随させた**"
     },
     {
       "id": "M199",
@@ -1732,9 +1732,9 @@
     {
       "id": "M258",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                            onTap: () => showWarningDetail(\n                              context,\n                              controller.warnings,\n                              ruleIsEmpty: controller.isRuleEmpty,",
-      "replace": "                            onTap: () => showWarningDetail(\n                              context,\n                              controller.rows.first.warnings,\n                              ruleIsEmpty: controller.isRuleEmpty,\n                              scopeFile: controller.rows.first.source,",
-      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)。**`find` を attempt 1 の修正へ追随させた**"
+      "find": "                  onTap: () => showWarningDetail(\n                    context,\n                    controller.warnings,\n                    ruleIsEmpty: controller.isRuleEmpty,",
+      "replace": "                  onTap: () => showWarningDetail(\n                    context,\n                    controller.rows.first.warnings,\n                    ruleIsEmpty: controller.isRuleEmpty,\n                    scopeFile: controller.rows.first.source,",
+      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)。**`find` を attempt 1 の修正へ追随させた**  **008:T02 で件数を上の帯から状態のメッセージのバナー(`_MessageBanner`)へ移した(2026-09-30 の開発者の指定)ので、`find` を追随させた**"
     },
     {
       "id": "M259",
@@ -2432,9 +2432,9 @@
     {
       "id": "M390",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "(warnings.isNotEmpty ||\n                                controller.changedFileCount > 0)",
-      "replace": "(warnings.isNotEmpty ||\n                                true)",
-      "note": "008:T33 変更0件でも警告0件の準備完了を出す — 実行できない状態を成功と読ませる"
+      "find": "(hasWarnings || controller.changedFileCount > 0)",
+      "replace": "(hasWarnings || true)",
+      "note": "008:T33 変更0件でも警告0件の準備完了を出す — 実行できない状態を成功と読ませる  **008:T02 で件数を上の帯から状態のメッセージのバナー(`_MessageBanner`)へ移した(2026-09-30 の開発者の指定)ので、`find` を追随させた**"
     },
     {
       "id": "M391",
@@ -3609,23 +3609,16 @@
     {
       "id": "M559",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      selected: mode == key && direction == dir,",
-      "replace": "                      selected: mode == key,",
-      "note": "008:T02 メニューの印をキーだけで付ける — 昇順・降順の両方に印が付き、今の並び順を1か所で読めない(002 REQ-020)"
+      "find": "                selected: mode == key && direction == dir,",
+      "replace": "                selected: mode == key,",
+      "note": "008:T02 メニューの印をキーだけで付ける — 昇順・降順の両方に印が付き、今の並び順を1か所で読めない(002 REQ-020)  **並び順を上の帯(ケバブの左)へ移し、字下げが変わったので `find` を追随させた**"
     },
     {
       "id": "M560",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "            itemBuilder: (context) => [\n              for (final key in _sortKeys)\n                for (final dir in SortDirection.values)",
-      "replace": "            itemBuilder: (context) => [\n              for (final key in _sortKeys)\n                for (final dir in const [SortDirection.ascending])",
-      "note": "008:T02 メニューから降順を落とす — 002 REQ-020「すべてのキーと向きを選べる」が壊れる"
-    },
-    {
-      "id": "M561",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      child: Wrap(\n        spacing: 8,",
-      "replace": "      child: Wrap(\n        direction: Axis.vertical,\n        spacing: 8,",
-      "note": "008:T02 作成日時の警告を並び順の表示の下へ出す — `008:T01` の配置の決定(表示の右の空き)が崩れる"
+      "find": "      itemBuilder: (context) => [\n        for (final key in _sortKeys)\n          for (final dir in SortDirection.values)",
+      "replace": "      itemBuilder: (context) => [\n        for (final key in _sortKeys)\n          for (final dir in const [SortDirection.ascending])",
+      "note": "008:T02 メニューから降順を落とす — 002 REQ-020「すべてのキーと向きを選べる」が壊れる  **並び順を上の帯(ケバブの左)へ移し、字下げが変わったので `find` を追随させた**"
     },
     {
       "id": "M562",
@@ -3633,6 +3626,13 @@
       "find": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          SizedBox(",
       "replace": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          if (selecting)\n          SizedBox(",
       "note": "008:T02 通常表示でつまみを出さない — 002 REQ-019(代表例16)が壊れ、連番の有無に関わらず並べ替えられない"
+    },
+    {
+      "id": "M563",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      key: messageBannerKey,\n      duration: const Duration(milliseconds: 200),",
+      "replace": "      key: messageBannerKey,\n      duration: Duration.zero,",
+      "note": "008:T02 メッセージのバナーの高さを一度に変える — メッセージの増減で一覧が急に動く(2026-09-30 の開発者の指定「高さが滑らかに変わるように」)"
     }
   ]
 }

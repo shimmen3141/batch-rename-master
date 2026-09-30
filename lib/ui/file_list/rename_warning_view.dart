@@ -150,7 +150,8 @@ class RuleNotConfiguredBanner extends StatelessWidget {
     final colors = context.colors;
     return Container(
       key: ruleNotConfiguredKey,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // 一覧の上のメッセージのバナーの1行として出る(`008:T02`)。行の余白を揃える。
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       color: colors.primary.withValues(alpha: 0.10),
       child: Row(
         children: [

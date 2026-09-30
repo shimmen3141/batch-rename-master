@@ -31,11 +31,9 @@ Future<void> _pump(WidgetTester tester, FileListController c) async {
 List<String> _names(FileListController c) =>
     c.items.map((e) => e.name).toList();
 
-/// 並び順の表示の文言。
-Finder _sortLabel(String text) => find.descendant(
-  of: find.byKey(sortControlKey),
-  matching: find.text('並び順: $text'),
-);
+/// 並び順の表示の文言(帯へ移してから「並び順:」は付けない。読み上げが持つ)。
+Finder _sortLabel(String text) =>
+    find.descendant(of: find.byKey(sortControlKey), matching: find.text(text));
 
 Future<void> _openSortMenu(WidgetTester tester) async {
   await tester.tap(find.byKey(sortControlKey));
@@ -99,6 +97,34 @@ void main() {
   });
 
   group('REQ-020: 並び順を1か所で示し、すべてのキーと向きを選べる', () {
+    testWidgets('並び順はケバブの左にあり、並び順だけの帯は無い(2026-09-30 の開発者の指定)', (tester) async {
+      final c = FileListController(
+        files: [_f('a.txt'), _f('b.txt')],
+        rule: _withSequence,
+      );
+      await _pump(tester, c);
+
+      final sort = tester.getRect(find.byKey(sortControlKey));
+      final menu = tester.getRect(find.byKey(listMenuKey));
+      final count = tester.getRect(find.byKey(fileCountKey));
+      // 件数・並び順・ケバブが同じ帯の1行に並ぶ。
+      expect(sort.right, lessThanOrEqualTo(menu.left));
+      expect(sort.center.dy, closeTo(menu.center.dy, 1));
+      expect(count.center.dy, closeTo(menu.center.dy, 1));
+      // 状態のメッセージ(準備完了)は帯ではなく、その下のバナーにある。
+      expect(
+        find.descendant(
+          of: find.byKey(messageBannerKey),
+          matching: find.text('正常にリネームできます'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.getRect(find.text('正常にリネームできます')).top,
+        greaterThanOrEqualTo(menu.bottom),
+      );
+    });
+
     testWidgets('メニューに8項目があり、カスタムは無い', (tester) async {
       await _pump(tester, FileListController(files: [_f('a.txt')]));
       await _openSortMenu(tester);

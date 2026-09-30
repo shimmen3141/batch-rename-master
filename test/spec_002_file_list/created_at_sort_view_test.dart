@@ -104,19 +104,43 @@ void main() {
       expect(_warningBanner, findsNothing);
     });
 
-    testWidgets('警告は並び順の表示の右に出る(`008:T01` の配置)', (tester) async {
+    testWidgets('警告は上の帯の下のメッセージのバナーに出る(2026-09-30 の開発者の指定)', (tester) async {
       final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
       c.setSortMode(FileSortMode.createdAt);
       await _pump(tester, c);
 
-      final control = tester.getRect(find.byKey(sortControlKey));
-      final warning = tester.getRect(_warningBanner);
-      // 同じ行で、表示の右。
-      expect(warning.left, greaterThanOrEqualTo(control.right));
-      expect(warning.center.dy, closeTo(control.center.dy, control.height / 2));
+      final banner = find.byKey(messageBannerKey);
+      expect(
+        find.descendant(of: banner, matching: _warningBanner),
+        findsOneWidget,
+      );
+      // 上の帯(並び順とケバブ)より下。
+      expect(
+        tester.getRect(_warningBanner).top,
+        greaterThanOrEqualTo(tester.getRect(find.byKey(sortControlKey)).bottom),
+      );
     });
 
-    testWidgets('入りきらないときは次の行へ回り、切れない(狭幅・文字 2.0)', (tester) async {
+    testWidgets('メッセージが増減すると、バナーの高さが滑らかに変わる', (tester) async {
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      await _pump(tester, c);
+      final banner = find.byKey(messageBannerKey);
+      final before = tester.getSize(banner).height;
+
+      c.setSortMode(FileSortMode.createdAt);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      final middle = tester.getSize(banner).height;
+      await tester.pumpAndSettle();
+      final after = tester.getSize(banner).height;
+
+      // 途中の高さを経る(一度に跳ばない)。
+      expect(after, greaterThan(before));
+      expect(middle, greaterThan(before));
+      expect(middle, lessThan(after));
+    });
+
+    testWidgets('狭幅・文字 2.0 でも警告の全文が切れない', (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
@@ -138,11 +162,9 @@ void main() {
       );
       expect(tester.takeException(), isNull);
 
-      final control = tester.getRect(find.byKey(sortControlKey));
       final warning = tester.getRect(_warningBanner);
-      expect(warning.top, greaterThanOrEqualTo(control.bottom));
       expect(warning.right, lessThanOrEqualTo(320));
-      // 件数と代替した旨は短くしても失わない。
+      // 件数と代替した旨を失わない。
       expect(find.textContaining('1 件'), findsOneWidget);
       expect(find.textContaining('更新日時で代替'), findsOneWidget);
     });

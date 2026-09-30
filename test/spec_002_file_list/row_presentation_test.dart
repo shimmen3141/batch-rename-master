@@ -437,9 +437,11 @@ void main() {
       expect(many.height, few.height, reason: '警告の件数が一覧の高さを削っている');
     });
 
-    testWidgets('警告が 1 件も無いときと比べても一覧の取り分が変わらない', (tester) async {
-      // 件数表示は 0 件でも「問題なし」を出す(005 REQ-010: それは警告ではない)。
-      // **常時 1 行**なので、警告の有無で一覧が伸び縮みしない。
+    testWidgets('警告が 1 件も無いときと比べても、一覧が削られるのはバナーの1行だけ', (tester) async {
+      // 2026-09-30 の開発者の指定(`008:T02`)で、件数は上の帯から**状態のメッセージの
+      // バナー**へ移った。メッセージが無ければバナーも無く、あれば1行ぶん一覧が縮む
+      // (高さの変化はアニメーションする)。**件数に依存しない**ことは上の test が見る。
+      // ここでは、警告があっても一覧を削るのが**バナーの高さちょうど**であることを見る。
       const size = Size(360, 640);
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -460,9 +462,15 @@ void main() {
         ),
       );
       final clean = tester.getRect(find.byType(ReorderableListView));
+      // 変更が生じないのでメッセージは無い(008:T33)。
+      expect(tester.getSize(find.byKey(messageBannerKey)).height, 0);
 
-      final warned = await pumpList(tester, size, 30);
-      expect(warned.height, clean.height);
+      await pumpList(tester, size, 30);
+      await tester.pumpAndSettle();
+      final warned = tester.getRect(find.byType(ReorderableListView));
+      final banner = tester.getSize(find.byKey(messageBannerKey)).height;
+      expect(banner, greaterThan(0));
+      expect(warned.height, clean.height - banner);
     });
 
     testWidgets('狭幅でも文字を大きくしても、ヘッダの数字が消えない', (tester) async {
