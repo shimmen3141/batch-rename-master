@@ -146,6 +146,13 @@ M188 / M219 / M569 / M570 / M572〜M576 すべて KILLED
 9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 下線の位置(2026-09-30、4回目の依頼の後)
+
+- 開発者の質問と指定: 「詳細の下線は何ピクセル下に位置していますか。少し離れすぎているのでわずかに上にあげたいです。**この変更は非常に軽微なので、レビューは不要です。**私がそれだけ確認してOKだったら完了としてよいです」。
+- 答え: 文字の枠の下端から 2px 下に引いていた(文字の枠自体が字形より下まであるので、見た目はさらに離れる)。→ 離すのをやめ、枠の下端に接して引いた(2px 上がる)。`d8f42b8`。`flutter test` 1114 PASS・analyze・format・`check_mutation_finds.py` PASS(530)。
+- **この区間(`7e0b65f..d8f42b8`)は独立reviewを行わない**(開発者の明示の指示)。AGENTS.md は `lib/` の差分に差分reviewを求めるが、開発者の判断を優先した(記録)。reviewの連鎖は `158b2be..7e0b65f` まで PASS で、その後はこの1行の変更(線と文字の間の余白 2 → 0)だけである。
+- 実機確認は、この下線の位置だけを開発者が見る。OK なら T02 を完了とする。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」、判定・データ保護に触れるtaskは「同等以上」だが、開発者の指定を優先した(記録)。
@@ -186,9 +193,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 5 PASS(`04526e7..30f6cab`)。実機確認4回目を依頼した(2026-09-30)
+- Last checkpoint: 下線を 2px 上げた `d8f42b8`(開発者の指示でreviewなし)。開発者の確認待ち(2026-09-30)
 - Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認4回目(`/workspace/.worktrees/008-T02-implement-sort-control/specs/008-ui-alignment/tasks/T02-implement-sort-control/manual-verification.md`)
-- Requested action: 対象build `bba23bd`(`lib/`が同一)で0〜2を確かめ、結果を会話で伝える
-- Evidence revision: `30f6cab`(`lib/`は`bba23bd`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
+- Waiting for: 開発者による「詳細」の下線の位置の確認(対象build `d8f42b8`)
+- Requested action: 下線の位置だけを見て、OK か伝える
+- Evidence revision: `d8f42b8`
+- Next Agent action: OK なら結果を記録し、PRをreadyにしてmergeし、T02 を done にする
