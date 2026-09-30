@@ -229,9 +229,14 @@ M547 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - 対象: 手順書の1.〜5.(ガタつき: 変更あり↔なし・長い名前・チップ0↔1個でシートの高さが変わらない。×の円のはみ出しと押せる範囲。シートの枠・並べ替え・プレビュー・広幅)。すべてPASS。
 - `f6ad967`以後の差分はtest(`test/`)・`tool/mutations.json`・`specs/`だけで、`lib/`・依存・build設定は変わっていないため、この証拠はHEADにも有効。
 
+## final-evidence review
+
+- attempt 6: `4b133af..c6c4ba0`(差分、final-evidence) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。`f6ad967..c6c4ba0`に`lib/`・依存・build設定の差分が無くmanual 3回目のidentityを保つこと、手順書の被覆と結果の読み取り、reviewの連鎖が`8d65b0c..HEAD`を切れ目なく覆うこと、`dev`と競合しないことを確認された。`check specs`(104 tasks)・`git diff --check` PASS。
+  - 連鎖: attempt 1〜5 → `4b133af..c6c4ba0`、すべてPASS。
+
 ## Current state / handoff
 
-- Last checkpoint: manual 3回目 PASS(code `f6ad967`)。
+- Last checkpoint: final-evidence review attempt 6 PASS、manual 3回目 PASS(code `f6ad967`)。
 - Blocker category: none
 - Evidence revision: code `f6ad967`
-- Next Agent action: final-evidence reviewを依頼する。PASSならPR #200をreadyにしてmergeする
+- Next Agent action: PR #200をreadyにしてmergeし、`dev`でmergeを記録する
