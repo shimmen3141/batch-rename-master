@@ -109,6 +109,15 @@ M300 | KILLED | lib/ui/file_list/removal_undo.dart | ... | exit 1
 1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」、判定・データ保護に触れるtaskは「同等以上」だが、開発者の指定を優先した(記録)。
+
+- **attempt 1**: `158b2be..3b2bd0d`(全範囲) — **PASS**(P3 2件)。確認された点: REQ-001/002/003/008/011/013/017/018/019/020 と代表例1b〜1e・16・17・22〜27、取り消しが控えの古さ(項目の同一性と順序・キー・向き・占有名)を見て無断で置き換えないこと、既存testの改訂がassertionを緩めていないこと、M310の除去とM548〜M562の追加。reviewerが回したmutation(M300・M550・M551・M553・M556・M557)は `6 KILLED, 0 SURVIVED, 0 SKIPPED`、`check_mutation_finds.py` 518件 PASS。`flutter test` 1107 PASS・`flutter analyze`・format PASS。
+  - P3(成果物の欠陥): `working_set_test.dart` のコメントが 004 REQ-007 を「再承認待ち」としていた → 「同日に再承認済み」へ直した。
+  - P3(成果物の欠陥): 004 spec の末尾に余分な空行(`git diff --check`) → 削った。
+  - test のコメントの変更は `test/` の差分なので、「記録だけの差分」の SELF-CHECK には当たらない。差分reviewを attempt 2 とする。
+
 ## Current state / handoff
 
 - Last checkpoint: 実装 `ed7a0bf`、M300 の test 追加。004 spec の訂正を開発者が再承認(2026-09-30)
