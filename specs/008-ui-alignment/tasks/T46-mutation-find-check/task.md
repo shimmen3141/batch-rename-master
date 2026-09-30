@@ -110,7 +110,7 @@ M342 | SURVIVED | lib/ui/file_list/file_list_view.dart | exit 0: the tests passe
 ```
 
 - `M342`: noteにある期待どおり(等価mutant。防御の重複)。
-- `M314`: 同じ構造の等価mutantになっていた。`008:T29`で足した片付けがあるためである。外した候補が一覧から消えると、次のframeの後で`retain`が選択を0件にし、モードを抜ける。この片付けは`M345`が守る。差は1 frameのちらつきだけで、安全網の穴のFAIL条件(2)(データ損失など)に当たらない。**M342と同じ防御の重複として残し**、noteへ記録した(残余riskとして受容。引き受け先のtaskは無い — 保証そのものは`retain`とそれを守る`M345`が持つ)。
+- `M314`: 同じ構造の等価mutantになっていた。`008:T29`で足した片付けがあるためである。外した候補が一覧から消えると、次のframeの後で`retain`が選択を0件にし、モードを抜ける。この片付けは`M345`が守る。差は1 frameのちらつきだけで、安全網の穴のFAIL条件(2)(データ損失など)に当たらない。**M342と同じ防御の重複として残し**、noteへ記録した(残余riskとして受容。引き受け先のtaskは無い — 保証そのものは`retain`とそれを守る`M345`が持つ)。**→ この受容は取りやめた。** 独立review attempt 1 のP2を受けてtestを足し、`M314`はKILLEDになった(下の「独立review」)。
 - 検証: `python3 tool/check_mutation_finds.py` PASS(504件)、`flutter test` 1083件PASS、`flutter analyze`・`dart format` PASS。
 
 ## 独立review
