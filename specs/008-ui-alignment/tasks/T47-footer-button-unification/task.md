@@ -26,7 +26,7 @@ product-map の将来候補「ルールをchipのUIで見せる」(`T20`の実�
 
 ## 受け入れ証拠
 
-- widget test: 未設定と設定済みでルール設定ボタンの外形(角丸・枠・面)が同じ。未設定では＋と「命名ルールを設定する」が白で、✎・「編集」・「命名ルール」の見出しが無い。設定済みではトークンごとに2段のチップ(種類名・値)が並び、×が無い。入りきらないときは「+N」。リネームボタンの角丸がルール設定ボタンと同じ。ボタン全体が一つの押下対象であること(2026-09-02 の要望9)を保つ。狭幅・文字 2.0 ではみ出さない。
+- widget test: 未設定と設定済みでルール設定ボタンの外形(角丸・枠・面)が同じ。未設定では＋と「命名ルールを設定する」が白で、✎・「編集」・「命名ルール」の見出しが無い。設定済みではトークンごとに2段のチップ(種類名・値)が並び、×が無い。入りきらないときは最後に見えるチップが途切れてフェードし、数は出さない(2026-09-30 の決定。当初は「+N」だった)。リネームボタンの角丸がルール設定ボタンと同じ。ボタン全体が一つの押下対象であること(2026-09-02 の要望9)を保つ。狭幅・文字 2.0 ではみ出さない。
 - 既存の005の下部バーのtestが継続PASS(または新しい見た目に合わせた改訂で、assertionを緩めない)。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - `manual-verification.md` で Android エミュレータの見た目を確認する。
@@ -128,18 +128,22 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - 連鎖: 上に続けて (記録 `d6b0b6f..6185920`) → `6185920..b7d292b` PASS。
 - **attempt 4**: `c3e7fbd..054b1a5`(差分review。実機確認2回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。`_chipHeight` が文字 1.0 / 2.0 で実際のチップの高さと一致し「+N」だけでも保たれること、「+N」の幅の見積もりが表示と同じ文字列・字体であること、testの改訂に緩和なし、M584・M585・M587・M588 が妥当。`flutter test` 1121 PASS・analyze・format・`check_mutation_finds.py` 542・`git diff --check` PASS。
 - 連鎖: 上に続けて (記録 `b7d292b..c3e7fbd`) → `c3e7fbd..054b1a5` PASS。
+- **attempt 5**: `7909c79..d8f00b0`(差分review。「+N」をやめてフェードだけ) — **BLOCKED**(P0/P1 なし)。reviewerは`gpt-6-luna`。確認された点: `_layoutChips`(全部入ればフェード無し、入らなければフェードちょうど1つ・その前は全体)、`_FadedChip` の構成と列の高さの固定、「+N」の除去に漏れが無い、`flutter test` +1121 PASS、format 0 changed、`check_mutation_finds.py` 541 PASS、reviewer が回した M199・M241・M588・M589 KILLED。BLOCKED の理由は **`flutter analyze` が reviewer の待ち時間(60秒)内に終わらなかった**ことだけである(この環境では約100秒かかる)。
+  - **SELF-CHECK**: 所有Agentが同じ HEAD `d8f00b0` で `flutter analyze` → `No issues found! (ran in 102.8s)`。
+  - P2(成果物の欠陥): 受け入れ証拠が「+N」のままだった → 最新の決定へ直した(記録だけの差分。SELF-CHECK で閉じる)。
+  - P2(安全網の穴): フェードの下限の分岐を直接検査する test が無い → 残余riskとして受容した(引き受け先 `008:T10`。「引き継ぎメモ」)。
+- 連鎖: 上に続けて (記録 `054b1a5..7909c79`) → `7909c79..d8f00b0`(指摘は上のとおり閉じた。analyze の実行は SELF-CHECK)。
 
 ## Current state / handoff
 
-- Last checkpoint: 「+N」をやめてフェードだけにした実装 `b63f121`(flutter test 1121 PASS・analyze・format・mutation 5件 KILLED)。記録と4回目の手順を書いた(2026-09-30)
-- Blocker category: なし(差分reviewの結果待ち)
-- Waiting for: 差分review attempt 5(`7909c79..HEAD`)の結果
-- Requested action: なし
+- Last checkpoint: 差分review attempt 5(`7909c79..d8f00b0`)は P0/P1 なし。analyze の実行を SELF-CHECK で補い、P2 2件を閉じた・受容した(2026-09-30)。review 側の確認は揃った
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認4回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「4回目で見ること」)
+- Requested action: 対象build(`lib/` が `b63f121` と同一。worktree の HEAD から build すればよい)で 0〜3 を確かめ、結果を会話で伝える
 - Evidence revision: `b63f121`(`lib/`)
-- Next Agent action: 差分review attempt 5 → 実機確認4回目の依頼 → OK なら done にして PR #204 を merge(手順は次のとおり)
-  1. 差分review attempt 5 を `gpt-6-luna` で行う(下の「引き継ぎメモ」)。PASS ならこの節と「独立review」へ記録する。
-  2. 開発者へ実機確認4回目を依頼する(`manual-verification.md` の「4回目で見ること」。対象build は `lib/` が `b63f121` と同一)。
-  3. 結果が OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける。指摘があれば直して、差分review → 実機確認を繰り返す。
+- Next Agent action: 実機確認4回目の結果を受け取り記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
+  1. 結果を「実機確認 4回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。
+  2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
 
 ### 引き継ぎメモ(別セッション向け)
 
@@ -147,4 +151,5 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - **独立review は開発者の指定で `gpt-6-luna`**: `codex-container exec -m gpt-6-luna -C <worktree> -o <out.md> - < <prompt.md>`。prompt は `/home/dev/.agents/skills/asdd/skills/review-task/SKILL.md` を指し、**差分review の range と前回までの連鎖**(この task.md の「独立review」節)を書く。**「検証は docker を使わず worktree で直接実行する」と必ず書く** — この環境は既に container の中で `docker` が無く、書かないと reviewer が BLOCKED を返す(attempt 2 で起きた)。
 - mutation は範囲付きで回す(AGENTS.md)。`mutation_check.py` は**追跡済みの file しか扱えない**ので、新しい file を足したら先に commit する。
 - 実機確認は開発者が host 側の Android エミュレータで行う。依頼の文面は**日本語**で、file は **`/workspace/...` の絶対 path をそのまま**書く(markdown のリンクに隠さない)。
+- 残余risk(受容。引き受け先 `008:T10`): **フェードの下限(24)に満たないとき1つ手前をフェードにする分岐と、下限そのものを直接検査する test が無い**(attempt 5 の P2・安全網の穴)。表示の穴で、AGENTS.md の FAIL 条件(データ損失・偽の成功など)に当たらない。分岐は M199・M241・M588・M589 と「フェードがちょうど1つ・見えている最後のチップ」の test が間接に守る。`T10` は同じ下部バーの余白・階層を最後に整える task なので、下限の値を見直すときに test を足す。
 - 決定の経緯: チップは設定画面と同じ2段(×なし)、未設定は＋と「命名ルールを設定する」を白、リネームbuttonの角丸を合わせる、語は「元の名前 / ファイル名」、余白は上下 6・見出しとチップの間 9、入りきらないときは最後に見えるチップのフェードだけ(「+N」は採らなかった)。すべて上の各節と 008 plan の「人間の決定」にある。
