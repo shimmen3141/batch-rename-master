@@ -1,7 +1,9 @@
 {
   "command": [
     "flutter",
-    "test"
+    "test",
+    "--exclude-tags",
+    "tooling"
   ],
   "timeout": 900,
   "mutations": [
@@ -811,13 +813,6 @@
       "replace": "        if (p.basename(entity.path).startsWith('.')) continue;\n        entries.add(\n          BrowserEntry("
     },
     {
-      "id": "M116",
-      "file": "lib/data/file_source/android_storage_browser.dart",
-      "note": "[対照] 近道の実在確認を外す(実在しない近道が並ぶ。004 REQ-015。attempt 1 のRV04)",
-      "find": "      if (await Directory(path).exists()) {\n        found.add(BrowserEntry(name: name, path: path, isDirectory: true));\n      }",
-      "replace": "      found.add(BrowserEntry(name: name, path: path, isDirectory: true));"
-    },
-    {
       "id": "M117",
       "file": "lib/ui/file_source/storage_browser_view.dart",
       "note": "rootでも「上へ」を出す(004 代表例26d「上位へ戻る操作は無いか無効」。attempt 1 のP2-2)。**`find`を008:T39のheader左の組み替えへ追随させた**",
@@ -1240,9 +1235,9 @@
     {
       "id": "M178",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        warnings: rowWarningsOf(\n                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                        ),",
-      "replace": "                        warnings: controller.sortMode == FileSortMode.createdAt\n                            ? rowWarningsOf(\n                                row.warnings,\n                                ruleIsEmpty: ruleIsEmpty,\n                              )\n                            : const <Warning>[],",
-      "note": "008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2)"
+      "find": "                            warnings: rowWarningsOf(\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                            ),",
+      "replace": "                            warnings: controller.sortMode == FileSortMode.createdAt\n                              ? rowWarningsOf(\n                                  row.warnings,\n                                  ruleIsEmpty: ruleIsEmpty,\n                                )\n                              : const <Warning>[],",
+      "note": "008:T16 行の警告を sortMode でゲートする — 002 REQ-013 が縛るのは日時表示の強調だけで、ルール文脈の警告は対象外(N-15-2)。**008:T46で`find`を追随させた**(008:T31で一覧を`Listener`で包み、字下げが変わった)"
     },
     {
       "id": "M179",
@@ -1730,9 +1725,9 @@
     {
       "id": "M257",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                          context,\n                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
-      "replace": "                          context,\n                          warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
-      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**"
+      "find": "                              context,\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "replace": "                              context,\n                              warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**。**008:T46で`find`を追随させた**(字下げの変更)"
     },
     {
       "id": "M258",
@@ -1779,9 +1774,9 @@
     {
       "id": "M264",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                          row.warnings,\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
-      "replace": "                          rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                          ruleIsEmpty: ruleIsEmpty,\n                          scopeFile: row.source,",
-      "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5"
+      "find": "                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "replace": "                              rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5。**008:T46で`find`を追随させた**(字下げの変更)"
     },
     {
       "id": "M265",
@@ -2017,9 +2012,9 @@
     {
       "id": "M298",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _selection.exit();",
-      "replace": "    widget.controller.clearFiles();\n    _selection.exit();",
-      "note": "008:T04 一覧を空にする操作を取り消せなくする — 代表例6d(一覧を空にした直後も戻せる)が壊れる"
+      "find": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _exitRemovalMode();",
+      "replace": "    widget.controller.clearFiles();\n    _exitRemovalMode();",
+      "note": "008:T04 一覧を空にする操作を取り消せなくする — 代表例6d(一覧を空にした直後も戻せる)が壊れる。**008:T46で`find`を追随させた**(008:T31でモードを抜ける処理が`_exitRemovalMode`になった)"
     },
     {
       "id": "M299",
@@ -2066,16 +2061,16 @@
     {
       "id": "M305",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        onLongPressEnter: handle == null\n                            ? null\n                            : () => _selection.enter(handle: handle),\n",
-      "replace": "",
-      "note": "008:T28 行の長押しでモードへ入れなくする — 002 REQ-018 の入口(a)が消え、常設の入口だけになる(代表例 6f)"
+      "find": "      _selection.enter();\n    }\n    _dragSelection.start(",
+      "replace": "    }\n    _dragSelection.start(",
+      "note": "008:T28 行の長押しでモードへ入れなくする — 002 REQ-018 の入口(a)が消え、常設の入口だけになる(代表例 6f)。**008:T46で`find`を追随させた**(008:T31で行の長押しが範囲選択の開始`_startDragSelection`になり、`onLongPressEnter`が無くなった。長押しでモードへ入る箇所へ移した)"
     },
     {
       "id": "M306",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                            : () => _selection.enter(handle: handle),",
-      "replace": "                            : () => _selection.enter(),",
-      "note": "008:T28 長押しした行を選ばずにモードへ入る — REQ-018 の「長押しで入ったときはその行が選択された状態で始まる」が壊れ、長押しの後もう一度その行を押す必要が出る(代表例 6f)"
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "    _session = session;\n    session.visit(item, select: select, deselect: deselect);\n    _updateAutoScroll(position);",
+      "replace": "    _session = session;\n    _updateAutoScroll(position);",
+      "note": "008:T28 長押しした行を選ばずにモードへ入る — REQ-018 の「長押しで入ったときはその行が選択された状態で始まる」が壊れ、長押しの後もう一度その行を押す必要が出る(代表例 6f)。**008:T46で`find`を追随させた**(008:T31で長押しした行を選ぶのが範囲選択の開始`DragSelectionController.start`になった。この箇所は004 REQ-020のapp内browserと共有する)"
     },
     {
       "id": "M307",
@@ -2129,9 +2124,9 @@
     {
       "id": "M314",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "    });\n    _selection.exit();\n  }\n\n  /// 一覧を空にする",
-      "replace": "    });\n  }\n\n  /// 一覧を空にする",
-      "note": "008:T28 外した後もモードに留まる — REQ-018 の「外し終えたらモードを抜ける」が壊れ、外した直後の一覧が選択モードのまま残る"
+      "find": "    });\n    _exitRemovalMode();\n  }\n\n  /// 一覧を空にする",
+      "replace": "    });\n    _dragSelection.finish();\n  }\n\n  /// 一覧を空にする",
+      "note": "008:T28 外した後もモードに留まる — REQ-018 の「外し終えたらモードを抜ける」が壊れ、外した直後の一覧が選択モードのまま残る。**008:T46で`find`を追随させた**(008:T31でモードを抜ける処理が`_exitRemovalMode`になった。範囲選択の片付けは残し、モードを抜けることだけを落とす)。`008:T29`の片付け(`retain`)が次のframeの後でもモードを抜けるので、`pumpAndSettle`だけのtestでは差が1frameで見えず等価mutantになっていた(`008:T46`が全件で確認)。**外した直後の最初のframeを見るtestを足して閉じた**(独立review attempt 1 のP2)"
     },
     {
       "id": "M315",
@@ -2150,9 +2145,9 @@
     {
       "id": "M317",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        onToggleMark: handle == null\n                            ? null\n                            : () => _selection.toggle(handle),",
-      "replace": "                        onToggleMark: () => _selection.toggle(handle ?? ''),",
-      "note": "008:T28 ハンドルを持たない行も選べるようにする — 004 REQ-006 はハンドルで対象を指すので、**選べるのに外れない件数**が出る"
+      "find": "                            onToggleMark: handle == null\n                                ? null\n                                : () => _selection.toggle(handle),",
+      "replace": "                            onToggleMark: () => _selection.toggle(handle ?? ''),",
+      "note": "008:T28 ハンドルを持たない行も選べるようにする — 004 REQ-006 はハンドルで対象を指すので、**選べるのに外れない件数**が出る。**008:T46で`find`を追随させた**(字下げの変更)"
     },
     {
       "id": "M318",
@@ -2199,9 +2194,9 @@
     {
       "id": "M324",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              onLongPress: selecting ? null : widget.onLongPressEnter,",
-      "replace": "              onLongPress: widget.onLongPressEnter,",
-      "note": "008:T28 モード中の長押しで選択が1件へ巻き戻る — 利用者の操作なしに選んだ分が失われる(独立review attempt 1 の N-2)"
+      "find": "    if (!_selection.selecting) {\n      // 選択モードへ入ると",
+      "replace": "    if (true) {\n      // 選択モードへ入ると",
+      "note": "008:T28 モード中の長押しで選択が1件へ巻き戻る — 利用者の操作なしに選んだ分が失われる(独立review attempt 1 の N-2)。**008:T46で`find`を追随させた**(008:T31でモード中の長押しも範囲選択の開始になった。`enter`が選択を捨てるので、モード中でも入り直すと選択が長押しした1件へ巻き戻る)"
     },
     {
       "id": "M325",
@@ -2325,9 +2320,9 @@
     {
       "id": "M342",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _selection.exit();",
-      "replace": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);",
-      "note": "008:T29 一覧を空にした後もモードの状態を残す — M326 が無ければ「一覧を空にする → 元に戻す」で誰も押していないのにモードが復活する経路。**等価mutantでSURVIVEDする**(M326 が片付けるので差は1frame)。防御の重複として残す(独立review attempt 1 が全件で確認: 2026-09-19)"
+      "find": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _exitRemovalMode();",
+      "replace": "    removeUndoably(context, widget.controller, widget.controller.clearFiles);\n    _dragSelection.finish();",
+      "note": "008:T29 一覧を空にした後もモードの状態を残す — M326 が無ければ「一覧を空にする → 元に戻す」で誰も押していないのにモードが復活する経路。**等価mutantでSURVIVEDする**(M326 が片付けるので差は1frame)。防御の重複として残す(独立review attempt 1 が全件で確認: 2026-09-19)。**008:T46で`find`を追随させた**(008:T31でモードを抜ける処理が`_exitRemovalMode`になった。範囲選択の片付けは残し、モードを抜けることだけを落とす)"
     },
     {
       "id": "M343",
@@ -2381,23 +2376,23 @@
     {
       "id": "M355",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                            color: colors.surface,\n                            shadowColor: colors.background,",
-      "replace": "                            color: colors.selectedSurface,\n                            shadowColor: colors.background,",
-      "note": "008:T32 掴んだ行を選択モードの選択行と同じ色にする — 「掴んでいる」と「選んでいる」が読み分けられなくなる(`008:T29` で分けた区別)"
+      "find": "                                color: colors.surface,\n                                shadowColor: colors.background,",
+      "replace": "                                color: colors.selectedSurface,\n                                shadowColor: colors.background,",
+      "note": "008:T32 掴んだ行を選択モードの選択行と同じ色にする — 「掴んでいる」と「選んでいる」が読み分けられなくなる(`008:T29` で分けた区別)。**008:T46で`find`を追随させた**(字下げの変更)"
     },
     {
       "id": "M357",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: colors.surface,",
-      "replace": "                          builder: (context, child) => Material(\n                            key: draggingRowKey,\n                            color: null,",
-      "note": "008:T32 掴んだ行の面を染めない — 掴めたかどうかが分からないまま動かすことになる(2026-09-19 の要望)"
+      "find": "                              builder: (context, child) => Material(\n                                key: draggingRowKey,\n                                color: colors.surface,",
+      "replace": "                              builder: (context, child) => Material(\n                                key: draggingRowKey,\n                                color: null,",
+      "note": "008:T32 掴んだ行の面を染めない — 掴めたかどうかが分からないまま動かすことになる(2026-09-19 の要望)。**008:T46で`find`を追随させた**(字下げの変更)"
     },
     {
       "id": "M358",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                            elevation:\n                                Curves.easeInOut.transform(animation.value) * 6,",
-      "replace": "                            elevation: 0,",
-      "note": "008:T32 浮き上がりを消す — 面の色を足すだけにするはずが、既定の手掛かりを1つ減らす"
+      "find": "                                elevation:\n                                    Curves.easeInOut.transform(\n                                      animation.value,\n                                    ) *\n                                    6,",
+      "replace": "                                elevation: 0,",
+      "note": "008:T32 浮き上がりを消す — 面の色を足すだけにするはずが、既定の手掛かりを1つ減らす。**008:T46で`find`を追随させた**(字下げの変更で整形が変わった)"
     },
     {
       "id": "M359",
@@ -2851,9 +2846,9 @@
     {
       "id": "M448",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T25 フッターの上端の区切り線を消す — 一覧との境目が読めない(design土台のborder-top。2026-09-28)。**008:T42で選択モードのフッターにも同じ行ができたので、通常のフッターの行に絞った**",
-      "find": "      key: renameActionBarSurfaceKey,\n      color: colors.surface,\n      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。\n      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。\n      shape: Border(top: BorderSide(color: colors.border)),\n",
-      "replace": "      key: renameActionBarSurfaceKey,\n      color: colors.surface,\n      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。\n      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。\n"
+      "note": "008:T25 フッターの上端の区切り線を消す — 一覧との境目が読めない(design土台のborder-top。2026-09-28)。**008:T42で選択モードのフッターにも同じ行ができたので、通常のフッターの行に絞った**。**008:T46で`find`を追随させた**(008:T42で面の色が`colors.bar`になった)",
+      "find": "      color: colors.bar,\n      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。\n      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。\n      shape: Border(top: BorderSide(color: colors.border)),\n",
+      "replace": "      color: colors.bar,\n      // **上端に区切り線**(design 土台の `border-top: 1px solid rgba(255,255,255,.08)`)。\n      // 一覧との境目が読めなかった(2026-09-28 のエミュレータ確認。`008:T25`)。\n"
     },
     {
       "id": "M449",
