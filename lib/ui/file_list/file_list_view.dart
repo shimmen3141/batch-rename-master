@@ -10,6 +10,7 @@ import '../common/app_toast.dart';
 import '../common/drag_selection_controller.dart';
 import '../common/selection_checkbox.dart';
 import '../rename_exec/rename_execution_controller.dart';
+import '../rule_builder/rule_chip_strip.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_sort.dart';
@@ -1101,7 +1102,10 @@ class _RenameActionBar extends StatelessWidget {
                 _RuleButton(
                   empty: empty,
                   onPressed: onEditRule!,
-                  summary: describeRuleSummary(controller.rule),
+                  rule: controller.rule,
+                  sample: controller.items.isEmpty
+                      ? null
+                      : controller.items.first,
                 ),
                 const SizedBox(height: 10),
               ],
@@ -1116,6 +1120,10 @@ class _RenameActionBar extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: colors.primary,
                     foregroundColor: colors.onPrimary,
+                    // **角丸をルール設定buttonに合わせる**(2026-09-30 の開発者の指定。`008:T47`)。
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(ruleButtonRadius),
+                    ),
                   ),
                   icon: running
                       ? const SizedBox(
@@ -1159,31 +1167,25 @@ class _RuleButton extends StatelessWidget {
   const _RuleButton({
     required this.empty,
     required this.onPressed,
-    required this.summary,
+    required this.rule,
+    required this.sample,
   });
 
   final bool empty;
   final VoidCallback onPressed;
 
-  /// 設定中のルールの1行要約(design の2行目)。トークンを並べた形
-  /// ([describeRuleSummary])。
-  final String summary;
+  /// 設定中のルール。チップで並べる([RuleChipStrip]。`008:T47`)。
+  final RenameRule rule;
+
+  /// チップの値を描く一覧の1件目。無ければ null。
+  final FileEntry? sample;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    if (empty) {
-      return FilledButton.icon(
-        key: const Key('configure-rule'),
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: colors.primary,
-          foregroundColor: colors.onPrimary,
-        ),
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text('変更する名前を設定する'),
-      );
-    }
+    // **未設定・設定済みで外形(面・枠・角丸)を揃える**(2026-09-30 の開発者の指定。
+    // `008:T47`)。以前の未設定は塗りの `FilledButton` で、形が違った。
+    //
     // **button 全体が一つの押下対象である**(2026-09-02 の要望9。原文は
     // 「参考designだと全体がボタンと認識しやすいが、現状だと右の編集ボタンを
     // 押す必要があると錯覚する」)。`編集` は**押下対象ではなく飾り**で、
@@ -1197,6 +1199,7 @@ class _RuleButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(ruleButtonRadius),
         child: Container(
+          key: ruleButtonFrameKey,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
             border: Border.all(
@@ -1204,79 +1207,100 @@ class _RuleButton extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(ruleButtonRadius),
           ),
-          child: Row(
-            children: [
-              // 参考designの塗りつぶした四角の中の `✎`。
-              Container(
-                width: ruleButtonIconBoxSize,
-                height: ruleButtonIconBoxSize,
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Icon(Icons.edit, size: 17, color: colors.onPrimary),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '命名ルール',
-                      style: TextStyle(
-                        color: colors.primary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      summary,
-                      key: ruleSummaryKey,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // **飾りである。** ここだけを押しても外側の [InkWell] が受ける。
-              Container(
-                key: ruleEditChipKey,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(
-                    alpha: ruleEditChipFillOpacity,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '編集',
-                  style: TextStyle(
-                    color: colors.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: empty ? _emptyContent() : _ruleContent(colors),
         ),
       ),
     );
   }
+
+  /// 未設定: ＋と文言だけを白で出す(✎・見出し・`編集` は出さない。2026-09-30 の
+  /// 開発者の指定)。文言は「変更する名前を設定する」から変えた。
+  Widget _emptyContent() => const Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(Icons.add, size: 18, color: Colors.white),
+      SizedBox(width: 6),
+      Flexible(
+        child: Text(
+          '命名ルールを設定する',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  Widget _ruleContent(AppColors colors) => Row(
+    children: [
+      // 参考designの塗りつぶした四角の中の `✎`。
+      Container(
+        width: ruleButtonIconBoxSize,
+        height: ruleButtonIconBoxSize,
+        decoration: BoxDecoration(
+          color: colors.primary,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Icon(Icons.edit, size: 17, color: colors.onPrimary),
+      ),
+      const SizedBox(width: 11),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '命名ルール',
+              style: TextStyle(
+                color: colors.primary,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // **設定画面と同じ2段のチップで並べる**(2026-09-30 の開発者の決定。
+            // `008:T47`)。以前は `[元の名前][01…]` の字面だった。読み上げは
+            // 字面の要約([describeRuleSummary])が持つ。
+            Semantics(
+              label: describeRuleSummary(rule),
+              excludeSemantics: true,
+              child: RuleChipStrip(
+                key: ruleSummaryKey,
+                rule: rule,
+                sample: sample,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 8),
+      // **飾りである。** ここだけを押しても外側の [InkWell] が受ける。
+      Container(
+        key: ruleEditChipKey,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: ruleEditChipFillOpacity),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '編集',
+          style: TextStyle(
+            color: colors.primary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ],
+  );
 }
+
+/// ルール設定buttonの外形(面の上の枠)。未設定・設定済みで同じ(`008:T47`)。
+const Key ruleButtonFrameKey = Key('rule-button-frame');
 
 /// 一覧の件数と警告の入口、または**除去のための選択モード**の操作を出すヘッダ。
 ///

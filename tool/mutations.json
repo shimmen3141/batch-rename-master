@@ -1304,10 +1304,10 @@
     },
     {
       "id": "M192",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    Text(\n                      summary,\n                      key: ruleSummaryKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
-      "replace": "                    Text(\n                      summary,\n                      key: ruleSummaryKey,\n                      overflow: TextOverflow.ellipsis,",
-      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す"
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "        return Row(\n          children: [\n            for (var i = 0; i < shown; i++) ...[",
+      "replace": "        return Wrap(\n          children: [\n            for (var i = 0; i < shown; i++) ...[",
+      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
     },
     {
       "id": "M194",
@@ -1333,9 +1333,9 @@
     {
       "id": "M197",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "    final colors = context.colors;\n    if (empty) {\n      return FilledButton.icon(",
-      "replace": "    final colors = context.colors;\n    if (!empty) {\n      return FilledButton.icon(",
-      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)"
+      "find": "          child: empty ? _emptyContent() : _ruleContent(colors),",
+      "replace": "          child: !empty ? _emptyContent() : _ruleContent(colors),",
+      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)  **008:T47 で未設定・設定済みの外形を揃え、中身だけを入れ替える形にしたので `find` を追随させた**"
     },
     {
       "id": "M198",
@@ -1346,10 +1346,10 @@
     },
     {
       "id": "M199",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      key: ruleSummaryKey,\n                      maxLines: 1,",
-      "replace": "                      key: ruleSummaryKey,\n                      maxLines: 2,",
-      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)。**`008:T20` が button を作り直したので find を追随させた**"
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "  if (total(widths.length) <= maxWidth) return widths.length;",
+      "replace": "  return widths.length;",
+      "note": "008:T16 ルール要約を2行まで許す — ルールの長さという第三の変数でbuttonが伸びる。M192(折り返し無制限)より弱い対照として残す(独立review attempt 4 が追加)。**`008:T20` が button を作り直したので find を追随させた**  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
     },
     {
       "id": "M204",
@@ -1612,10 +1612,10 @@
     },
     {
       "id": "M241",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      key: ruleSummaryKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
-      "replace": "                      key: ruleSummaryKey,",
-      "note": "008:T20 ルール要約の行数制限と省略記号を両方外す — M192 は ellipsis が maxLines=null でも最初のあふれ行で切るため等価mutant(TextPainter.ellipsis の doc)。独立review attempt 1 が追加"
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "            if (hidden > 0) ...[",
+      "replace": "            if (false) ...[",
+      "note": "008:T20 ルール要約の行数制限と省略記号を両方外す — M192 は ellipsis が maxLines=null でも最初のあふれ行で切るため等価mutant(TextPainter.ellipsis の doc)。独立review attempt 1 が追加  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
     },
     {
       "id": "M242",
@@ -3717,6 +3717,41 @@
       "find": "              child: Wrap(\n                spacing: 14,",
       "replace": "              child: Wrap(\n                spacing: 2,",
       "note": "008:T02 件数の文言と「詳細」の間を詰める — 狭い(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M577",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                    shape: RoundedRectangleBorder(\n                      borderRadius: BorderRadius.circular(ruleButtonRadius),\n                    ),",
+      "replace": "                    shape: const StadiumBorder(),",
+      "note": "008:T47 リネームbuttonの角丸をルール設定buttonに合わせない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M578",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      Icon(Icons.add, size: 18, color: Colors.white),",
+      "replace": "      Icon(Icons.add, size: 18, color: Color(0xFF22D3EE)),",
+      "note": "008:T47 未設定の＋を白にしない(2026-09-30 の開発者の指定「これも文言と同じく白」)"
+    },
+    {
+      "id": "M579",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          '命名ルールを設定する',\n          style: TextStyle(\n            color: Colors.white,",
+      "replace": "          '命名ルールを設定する',\n          style: TextStyle(\n            color: Color(0xFF22D3EE),",
+      "note": "008:T47 未設定の文言を白にしない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M580",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "          Text(tokenKindLabel(token), maxLines: 1, style: _kindStyle(hue)),\n",
+      "replace": "",
+      "note": "008:T47 チップの上段(種類名)を落とす — 設定画面と同じ2段にする決定(2026-09-30)が崩れる"
+    },
+    {
+      "id": "M581",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "        border: Border.all(color: hue.withValues(alpha: 0.35)),",
+      "replace": "        border: Border.all(color: colors.border),",
+      "note": "008:T47 チップの枠を種類の色にしない — 設定画面のチップと色が揃わない"
     }
   ]
 }

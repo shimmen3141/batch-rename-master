@@ -385,7 +385,9 @@ String rowWarningLabel(Warning warning) => switch (warning) {
 /// のような説明的な表示になってしまっている」)。**説明は [describeToken] が持ち、
 /// ここは使わない。**
 ///
-/// ルールが空なら空文字を返す(空のときは button ごと入れ替わるので使われない)。
+/// ルールが空なら空文字を返す(空のときは button の中身が入れ替わるので使われない)。
+///
+/// `008:T47` から button はチップ(`RuleChipStrip`)で並べ、この字面は**読み上げ**に使う。
 String describeRuleSummary(RenameRule rule) =>
     rule.tokens.map(describeTokenChip).join();
 

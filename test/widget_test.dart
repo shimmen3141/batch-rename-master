@@ -25,7 +25,7 @@ void main() {
     // 既定サイズ(800x600)はモバイル幅なのでルール設定の導線が出る。
     // 初期ルールは空なので、導線は未設定向けの表示になる(005 REQ-020)。
     expect(find.byKey(const Key('configure-rule')), findsOneWidget);
-    expect(find.text('変更する名前を設定する'), findsOneWidget);
+    expect(find.text('命名ルールを設定する'), findsOneWidget);
   });
 
   testWidgets('composition root がヘッダーへ歯車を置く(008:T43)', (tester) async {
