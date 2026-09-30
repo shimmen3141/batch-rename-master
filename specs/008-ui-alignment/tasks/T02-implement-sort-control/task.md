@@ -128,6 +128,24 @@ M188 / M258 / M334 / M338 / M564〜M571 すべて KILLED
 12 mutations: 12 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 実機確認 3回目(2026-09-30、対象 `4932a39`)と、それを受けた変更
+
+- 開発者の指定(原文の要約): 「N件の問題」と作成日時の行で**警告マークの位置と、マークと文の間の余白がずれている**ので作成日時の行に合わせる。「N件の問題」と「詳細」の間を広げ、「詳細」の下線を太くして少し下にずらす(簡単でなければそのままでよい)。「N件の問題」は「**リネーム: N件の問題**」、作成日時の行は「**並び順: 作成日時不明のN件は更新日時で代替しています**」にする。1〜3のそれ以外(余白、「並び順:」、行のどこを押しても開く等)への指摘は無かった。008 plan の「人間の決定」へ記録した。
+- **ずれの原因**: 件数の行だけ、押せる範囲(`InkWell`)の内側に横 4px の余白があり、印が 13(作成日時の行は 14)、印と文の間が 4(同 8)だった。
+- 実装(`bba23bd`):
+  - 印の大きさと、印と文の間を共通の値にした(`bannerIconSize` = 14、`bannerIconGap` = 8)。件数の行の横の余白を外した。
+  - 「リネーム: 」をバナーの件数の文言にだけ付けた(詳細を開いたときの見出しは「N 件の問題」のまま)。作成日時の行に「並び順: 」を付けた。
+  - 「詳細」の前を 14 に広げた。下線は文字の装飾をやめ、**文字の下に引いた線**(太さ 1.5、文字から 2 離す)にした。
+  - 「詳細」は件数の文言と `Wrap` で並べ、入らないときは次の行へ回す。同じ行へ詰めたままだと、幅 320・文字 2.0・1000 件で「リネーム: 1000 件の問題」が切れた(`row_presentation_test`「ヘッダの数字が消えない」が落ちた。008:T16 の N-9)。
+- testを足した・直した: 2つの行の印の左端・大きさ・印と文の間が一致すること、「並び順: 」「リネーム: 」の文言、「詳細」の線の太さ・離れ・前の余白。`warning_detail_scope_test` の件数の文言を「リネーム: 82 件の問題」へ。
+- mutation: M219・M570 を作り直した(件数の文言の切り詰め / 線を消す)。M572〜M576 を足した(印の大きさ、印と文の間、「リネーム:」、「並び順:」、「詳細」の前の余白)。`check_mutation_finds.py` → `PASS: 530`。
+- 範囲付きで回した(作り直した・足した・関わる9件): `flutter test test/spec_002_file_list test/spec_005_rename_exec`、対象 `bba23bd`。
+
+```text
+M188 / M219 / M569 / M570 / M572〜M576 すべて KILLED
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」、判定・データ保護に触れるtaskは「同等以上」だが、開発者の指定を優先した(記録)。
@@ -166,9 +184,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 4 PASS(`ef1ae09..098a4c1`)。実機確認3回目を依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認3回目(`/workspace/.worktrees/008-T02-implement-sort-control/specs/008-ui-alignment/tasks/T02-implement-sort-control/manual-verification.md`)
-- Requested action: 対象build `4932a39`(`lib/`が同一)で0〜3を確かめ、結果を会話で伝える
-- Evidence revision: `098a4c1`(`lib/`は`4932a39`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
+- Last checkpoint: 実機確認3回目の指定を実装 `bba23bd`(flutter test 1114 PASS・analyze・format・mutation 9件 KILLED)
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `bba23bd`
+- Next Agent action: 差分review(attempt 5、`04526e7..HEAD`)を起動し、PASS後に実機確認4回目を依頼する
