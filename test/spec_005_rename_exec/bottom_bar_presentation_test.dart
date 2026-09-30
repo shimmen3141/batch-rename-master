@@ -384,7 +384,7 @@ void main() {
       expect(tester.widget<Text>(valueFinder).textAlign, TextAlign.center);
     });
 
-    testWidgets('「+N」は白(008:T47 実機確認)', (tester) async {
+    testWidgets('「+N」は白で、+ の前後に空白がある(008:T47 実機確認)', (tester) async {
       await tester.binding.setSurfaceSize(const Size(360, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final c = FileListController(
@@ -401,6 +401,59 @@ void main() {
 
       final overflow = tester.widget<Text>(find.byKey(ruleChipOverflowKey));
       expect(overflow.style!.color, Colors.white);
+      // `+` の前後に空白(チップとの間と、数との間。実機確認2回目)。
+      expect(overflow.data, matches(RegExp(r'^ \+ \d+$')));
+    });
+
+    testWidgets('チップの列の高さは、チップが1つも入らず「+N」だけでも変わらない(008:T47)', (tester) async {
+      // 「+N」の文字はチップより低い。列が中身の高さのままだと、チップが入らない
+      // 狭幅・文字の拡大で button が低くなり、一覧の高さが変わる。
+      Future<double> stripHeight(RenameRule rule, double scale) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            key: ValueKey('${rule.tokens.length}-$scale'),
+            theme: appDarkTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: const Size(360, 800),
+                textScaler: TextScaler.linear(scale),
+              ),
+              child: Scaffold(
+                body: FileListView(
+                  controller: FileListController(
+                    files: [_f('a.txt')],
+                    rule: rule,
+                  ),
+                  onEditRule: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        return tester.getSize(find.byKey(ruleSummaryKey)).height;
+      }
+
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      for (final scale in [1.0, 2.0]) {
+        const one = RenameRule([SequenceToken(start: 100, digits: 1)]);
+        final withChip = await stripHeight(one, scale);
+        // チップ自体の高さと一致する(高さの計算がずれていない)。
+        expect(
+          withChip,
+          tester.getSize(find.byType(RuleSummaryChip)).height,
+          reason: 'scale=$scale',
+        );
+        final onlyOverflow = await stripHeight(
+          RenameRule([
+            for (var i = 0; i < 6; i++) LiteralToken('とても長い固定文字とても長い固定文字$i'),
+          ]),
+          scale,
+        );
+        expect(find.byKey(ruleChipOverflowKey), findsOneWidget);
+        expect(onlyOverflow, withChip, reason: 'scale=$scale');
+      }
     });
 
     testWidgets('「命名ルール」とチップの間を空け、上下の余白を詰める(008:T47 実機確認)', (tester) async {

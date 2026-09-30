@@ -3770,16 +3770,16 @@
     {
       "id": "M584",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "const double ruleButtonHeadingGap = 7;",
+      "find": "const double ruleButtonHeadingGap = 9;",
       "replace": "const double ruleButtonHeadingGap = 4;",
-      "note": "008:T47 「命名ルール」とチップの間を以前(4)へ戻す — 間が狭い(2026-09-30 の開発者の指定)"
+      "note": "008:T47 「命名ルール」とチップの間を以前(4)へ戻す — 間が狭い(2026-09-30 の開発者の指定)  **実機確認2回目で 7 → 9 にしたので `find` を追随させた**"
     },
     {
       "id": "M585",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "const double ruleButtonVerticalPadding = 8;",
+      "find": "const double ruleButtonVerticalPadding = 6;",
       "replace": "const double ruleButtonVerticalPadding = 11;",
-      "note": "008:T47 ルール設定buttonの上下の余白を以前(11)へ戻す(2026-09-30 の開発者の指定)"
+      "note": "008:T47 ルール設定buttonの上下の余白を以前(11)へ戻す(2026-09-30 の開発者の指定)  **実機確認2回目で 8 → 6 にしたので `find` を追随させた**"
     },
     {
       "id": "M586",
@@ -3787,6 +3787,20 @@
       "find": "    OriginalNameToken() => 'ファイル名',",
       "replace": "    OriginalNameToken() => '[元のファイル名]',",
       "note": "008:T47 元の名前のチップの値を以前の字面へ戻す(2026-09-30 の開発者の指定。設定画面・下部バーの両方)"
+    },
+    {
+      "id": "M587",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "String ruleChipOverflowLabel(int hidden) => ' + $hidden';",
+      "replace": "String ruleChipOverflowLabel(int hidden) => '+$hidden';",
+      "note": "008:T47 「+N」の + の前後に空白を入れない(2026-09-30 の開発者の指定。実機確認2回目)"
+    },
+    {
+      "id": "M588",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "          height: _chipHeight(context, base, scaler),",
+      "replace": "          height: null,",
+      "note": "008:T47 チップの列の高さを固定しない — チップが1つも入らず「+N」だけになると button が低くなり、一覧の高さが変わる(`row_presentation_test` が実機確認2回目の修正中に捕まえた)"
     }
   ]
 }

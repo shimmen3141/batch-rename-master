@@ -41,17 +41,27 @@ class RuleChipStrip extends StatelessWidget {
           constraints.maxWidth,
         );
         final hidden = tokens.length - shown;
-        return Row(
-          children: [
-            for (var i = 0; i < shown; i++) ...[
-              if (i > 0) const SizedBox(width: ruleChipGap),
-              RuleSummaryChip(token: tokens[i], sample: sample),
+        // **高さはチップ1つ分に固定する。** 狭幅・文字の拡大でチップが1つも入らず
+        // 「+N」だけになると、列が文字の高さまで縮んで button が低くなり、一覧の
+        // 高さが変わった(`row_presentation_test`「増える高さは 1 行ぶんで止まる」)。
+        return SizedBox(
+          height: _chipHeight(context, base, scaler),
+          child: Row(
+            children: [
+              for (var i = 0; i < shown; i++) ...[
+                if (i > 0) const SizedBox(width: ruleChipGap),
+                RuleSummaryChip(token: tokens[i], sample: sample),
+              ],
+              if (hidden > 0) ...[
+                if (shown > 0) const SizedBox(width: ruleChipGap),
+                Text(
+                  ruleChipOverflowLabel(hidden),
+                  key: ruleChipOverflowKey,
+                  style: _overflowStyle,
+                ),
+              ],
             ],
-            if (hidden > 0) ...[
-              if (shown > 0) const SizedBox(width: ruleChipGap),
-              Text('+$hidden', key: ruleChipOverflowKey, style: _overflowStyle),
-            ],
-          ],
+          ),
         );
       },
     );
@@ -60,6 +70,10 @@ class RuleChipStrip extends StatelessWidget {
 
 /// 入りきらなかったチップの数(`+N`)。
 const Key ruleChipOverflowKey = Key('rule-chip-overflow');
+
+/// 入りきらなかったチップの数の文言。**`+` の前後に空白を入れる**(チップとの間と、
+/// 数との間。2026-09-30 の開発者の指定。`008:T47` の実機確認2回目)。
+String ruleChipOverflowLabel(int hidden) => ' + $hidden';
 
 /// チップどうしの間。
 const double ruleChipGap = 4;
@@ -182,6 +196,27 @@ double _chipWidth(
       2 * _chipBorder;
 }
 
+/// チップ1つの高さ(上下の内側の余白 2 + 3、枠 1 + 1、種類名と値の1行ずつ)。
+double _chipHeight(BuildContext context, TextStyle base, TextScaler scaler) {
+  double lineHeight(TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: 'あ', style: base.merge(style)),
+      textDirection: Directionality.of(context),
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final height = painter.height;
+    painter.dispose();
+    return height;
+  }
+
+  return 2 +
+      3 +
+      2 * _chipBorder +
+      lineHeight(_kindStyle(Colors.white)) +
+      lineHeight(_valueStyle);
+}
+
 /// [maxWidth] に入るチップの数。全部は入らないときは、`+N` の幅を残して数える。
 int _fitCount(
   BuildContext context,
@@ -205,8 +240,8 @@ int _fitCount(
           context,
           base,
           scaler,
-          '+${widths.length - count}',
-          const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ruleChipOverflowLabel(widths.length - count),
+          _overflowStyle,
         ) +
         (count > 0 ? ruleChipGap : 0);
     if (total(count) + overflow <= maxWidth) return count;
