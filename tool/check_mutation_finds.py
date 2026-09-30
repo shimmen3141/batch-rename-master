@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""`tool/mutations.json` の各 mutation の `find` が、対象 file にちょうど1回一致するかを検査する。
+"""`tool/mutations.json` の各 mutation の `find` が、対象 file に期待した回数だけ一致するかを検査する。
+
+期待する回数は `occurrences`(省略時1)で、ASDD plugin の `mutation_check.py` と同じ判定
+(byte 列での一致回数)にする。plugin は CI に無いので、ここへ同じ判定を置く。
 
 `mutation_check.py` は一致しない mutation を `SKIPPED` と出すが、**回さなければ出ない。**
 表は1件ごとに full test を流すと20分前後かかるので、所有 task も reviewer も範囲を
@@ -42,21 +45,22 @@ def main() -> int:
         if not path.is_file():
             failures.append(f"{m['id']} file が無い {m['file']}")
             continue
-        count = path.read_text(encoding="utf-8").count(m["find"])
-        if count != 1:
-            failures.append(f"{m['id']} {count} {m['file']}")
+        expected = m.get("occurrences", 1)
+        count = path.read_bytes().count(m["find"].encode("utf-8"))
+        if count != expected:
+            failures.append(f"{m['id']} {count}(期待 {expected}) {m['file']}")
 
     if failures:
         for f in failures:
             print(f"FAIL: {f}")
         print(
             f"{len(failures)} of {len(mutations)} mutation(s) の find が"
-            " ちょうど1回一致しない(数字は一致した回数)。"
+            " 期待した回数だけ一致しない(数字は一致した回数)。"
             " note の意図を読んで find/replace を今のコードへ追随させるか、"
             "守る対象が無くなったなら理由を記録して外す。"
         )
         return 1
-    print(f"PASS: {len(mutations)} mutation(s), すべての find がちょうど1回一致する。")
+    print(f"PASS: {len(mutations)} mutation(s), すべての find が期待した回数だけ一致する。")
     return 0
 
 
