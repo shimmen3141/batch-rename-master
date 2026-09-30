@@ -18,12 +18,13 @@ class FileListController extends ChangeNotifier {
   /// [files] を入力順で保持し、既定で全選択する(002 決定済み事項)。
   /// [rule] はプレビューに用いる注入ルール(既定は空 = 元名のみ相当)。
   /// [clock] は日時トークンの「現在日時」に用いる時計(既定は [DateTime.now])。
-  /// 初期 [sortMode] は入力順を表す [FileSortMode.custom](002 決定済み事項)。
+  /// 初期の並び順は**名前の昇順**で、[files] をその順に並べる(REQ-001。
+  /// 2026-09-30 `008:T01`。以前は入力順を [FileSortMode.custom] として始めていた)。
   FileListController({
     required List<FileEntry> files,
     RenameRule rule = RenameRule.empty,
     DateTime Function() clock = DateTime.now,
-  }) : _items = List<FileEntry>.of(files),
+  }) : _items = stableSorted(files, comparatorFor(FileSortMode.name)),
        _selected = Set<FileEntry>.identity()..addAll(files) {
     _rule = rule;
     _clock = clock;
@@ -32,7 +33,8 @@ class FileListController extends ChangeNotifier {
   List<FileEntry> _items;
   final Set<FileEntry> _selected;
   DateTime Function() _clock = DateTime.now;
-  FileSortMode _sortMode = FileSortMode.custom;
+  FileSortMode _sortMode = FileSortMode.name;
+  SortDirection _sortDirection = SortDirection.ascending;
   RenameRule _rule = RenameRule.empty;
 
   /// 現在の表示順のファイル列(読み取り専用ビュー)。
@@ -40,6 +42,10 @@ class FileListController extends ChangeNotifier {
 
   /// 現在のソート種別。
   FileSortMode get sortMode => _sortMode;
+
+  /// 現在の並び順の向き(REQ-002)。[sortMode] が [FileSortMode.custom] のときは
+  /// 手で並べる前に選んでいた向きが残るが、意味を持たない。
+  SortDirection get sortDirection => _sortDirection;
 
   /// プレビューに用いる現在のルール。
   RenameRule get rule => _rule;
@@ -89,16 +95,6 @@ class FileListController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 手動並び替え(`reorder`)と [FileSortMode.custom] を提示してよいか(REQ-014)。
-  ///
-  /// 並び順が生成後名に影響するのは**連番トークンがあるときだけ**で、無いときは
-  /// 並べ替えても出力が変わらない。動かしても何も起きない操作を見せないため、
-  /// 現在の [rule] に連番トークンが含まれるかで判定する(ルールの変更に追随する)。
-  /// ソート(名前順・作成日時順・更新日時順・サイズ順)は閲覧・確認の用途で
-  /// 常に提示してよいので、この判定の対象外。
-  bool get manualOrderMatters =>
-      _rule.tokens.any((token) => token is SequenceToken);
-
   /// 作成日時が不明な item の件数(REQ-011)。
   ///
   /// 判定はファイル種別ではなく**取得可否**([FileEntry.createdAt] が `null` か)
@@ -109,24 +105,36 @@ class FileListController extends ChangeNotifier {
   /// 作成日時ソート時に供給する警告。該当しなければ `null`(REQ-011)。
   ///
   /// 現在のソートが [FileSortMode.createdAt] で、作成日時が不明な item が
-  /// 1 件以上あるときだけ供給する(0 件・他のソートでは `null`)。
+  /// 1 件以上あるときだけ供給する(0 件・他のソートでは `null`)。**向きは問わない**。
   CreatedAtFallbackWarning? get createdAtSortWarning {
     if (_sortMode != FileSortMode.createdAt) return null;
     final count = unknownCreatedAtCount;
     return count == 0 ? null : CreatedAtFallbackWarning(count);
   }
 
-  /// ソート種別を [mode] に更新する(REQ-002 / REQ-003)。
+  /// 並び順を [mode] と [direction] に更新し、`items` をその順に並べる(REQ-002)。
   ///
   /// [FileSortMode.name] / [FileSortMode.createdAt] / [FileSortMode.modifiedAt]
-  /// / [FileSortMode.size] は対応キーで昇順・安定ソートする。作成日時ソートで
-  /// 作成日時が不明な item は、その item の更新日時をキーに代替する
-  /// ([createdAtSortKey]。REQ-002)。[FileSortMode.custom] は現在順を保持する。
-  void setSortMode(FileSortMode mode) {
-    _sortMode = mode;
-    if (mode != FileSortMode.custom) {
-      _items = stableSorted(_items, comparatorFor(mode));
+  /// / [FileSortMode.size] は対応キーで [direction] の向きに安定ソートする。
+  /// [direction] の既定は昇順(キーを選ぶときの既定)。作成日時ソートで作成日時が
+  /// 不明な item は、その item の更新日時をキーに代替する([createdAtSortKey])。
+  ///
+  /// **[FileSortMode.custom] は渡せない**([ArgumentError])。`custom` は手で並べた
+  /// 結果を示す状態で、選ぶものではない(REQ-003)。手で並べた順はキーを選ぶと失われる。
+  void setSortMode(
+    FileSortMode mode, {
+    SortDirection direction = SortDirection.ascending,
+  }) {
+    if (mode == FileSortMode.custom) {
+      throw ArgumentError.value(
+        mode,
+        'mode',
+        'custom は reorder の結果としてだけ現れる(002 REQ-003)',
+      );
     }
+    _sortMode = mode;
+    _sortDirection = direction;
+    _items = stableSorted(_items, comparatorFor(mode, direction));
     notifyListeners();
   }
 
@@ -153,14 +161,42 @@ class FileListController extends ChangeNotifier {
 
   /// 現在のリストと選択を捨てて [entries] で**置き換える**(REQ-008 / 004 REQ-004・005)。
   ///
-  /// 供給された順を表示順とし、**全件を選択状態**にする。**蓄積しない**
-  /// (前回の読み込み結果は残らない)。空リストで置き換えるとリストは空になる。
+  /// **全件を選択状態**にする。**蓄積しない**(前回の読み込み結果は残らない)。
+  /// 空リストで置き換えるとリストは空になる。
   /// [entries] に**同一ハンドルが複数含まれていた場合は1件にまとめる**
   /// (ハンドルは同一ファイルの識別子であるため。004 REQ-002/004)。
   ///
   /// ハンドルを持たない要素([FileEntry.sourceHandle] が `null`)は同一性を
   /// 判定できないため、まとめずにそのまま並べる。
+  ///
+  /// **置き換えた列へ現在の並び順を当てはめる**。[sortMode] が
+  /// [FileSortMode.custom] なら名前の昇順へ戻す — 手で並べた順は前のファイル群の
+  /// もので、新しいファイル群には意味を持たない(REQ-008。2026-09-30 `008:T01`。
+  /// 以前は入力順のまま並べ、表示している並び順と `items` が食い違った)。
   void setFiles(List<FileEntry> entries) {
+    if (_sortMode == FileSortMode.custom) {
+      _sortMode = FileSortMode.name;
+      _sortDirection = SortDirection.ascending;
+    }
+    _replace(entries, applySort: true);
+  }
+
+  /// 除去の取り消しで、控えた一覧と並び順を**そのまま**戻す(REQ-017)。
+  ///
+  /// [setFiles] と同じく置き換えて全件を選択するが、**並び順を当てはめない** —
+  /// 手で並べた一覧を取り消して名前順へ並び直すと、取り消しにならない(代表例 25)。
+  /// 占有名は [setFiles] と同じく捨てるので、呼ぶ側が控えを戻す。
+  void restoreFiles(
+    List<FileEntry> entries, {
+    required FileSortMode sortMode,
+    required SortDirection sortDirection,
+  }) {
+    _sortMode = sortMode;
+    _sortDirection = sortDirection;
+    _replace(entries, applySort: false);
+  }
+
+  void _replace(List<FileEntry> entries, {required bool applySort}) {
     // 前の読み込みで取った占有名は、置き換え後の folder とは無関係になる。
     // 残すと**別の folder の名前で警告が出る**ので捨てる(REQ-026)。
     _occupiedNames = const {};
@@ -171,16 +207,20 @@ class FileListController extends ChangeNotifier {
       if (handle != null && !seen.add(handle)) continue;
       next.add(entry);
     }
-    _items = next;
+    _items = applySort
+        ? stableSorted(next, comparatorFor(_sortMode, _sortDirection))
+        : next;
     _selected
       ..clear()
-      ..addAll(next);
+      ..addAll(_items);
     notifyListeners();
   }
 
   /// 実ファイル操作後に [replacements] の項目だけを差し替える。
   ///
-  /// 表示順、ソート種別、選択状態は保つ。改名で [FileEntry.sourceHandle] が変わる
+  /// 表示順、ソート種別、選択状態は保つ。**並べ直さない** — 行が動くと何が変わったかを
+  /// 追えなくなる(REQ-020。並び順の提示は最後に並べた基準のまま)。
+  /// 改名で [FileEntry.sourceHandle] が変わる
   /// ため、古い項目を不変値のまま残さず、新しいハンドルを持つ項目へ置き換える
   /// (005 REQ-001 / REQ-018)。キーはオブジェクト同一性で照合する。
   void replaceItems(Map<FileEntry, FileEntry> replacements) {

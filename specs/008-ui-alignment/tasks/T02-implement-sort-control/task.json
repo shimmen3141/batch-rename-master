@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "並び順controlを実装する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T01"
   ],
@@ -19,6 +19,6 @@
     "002:REQ-020"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 203,
   "manualVerification": "manual-verification.md"
 }

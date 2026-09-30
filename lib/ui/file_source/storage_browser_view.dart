@@ -7,6 +7,7 @@ import '../../core/file_entry.dart';
 import '../../data/file_source/storage_browser.dart';
 import '../../data/preview/file_preview.dart';
 import '../common/drag_selection_controller.dart';
+import '../common/selection_checkbox.dart';
 import '../file_list/row_preview_view.dart';
 import '../theme/app_colors.dart';
 
@@ -654,15 +655,9 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
           preview: widget.preview,
         ),
         title: Text(entry.name, style: TextStyle(color: colors.textPrimary)),
-        trailing: Checkbox(
+        trailing: SelectionCheckbox(
           value: selected,
           onChanged: (_) => _toggle(entry),
-          shape: const CircleBorder(),
-          side: BorderSide(color: colors.textMuted, width: 1.5),
-          activeColor: colors.selectionMark,
-          checkColor: colors.onPrimary,
-          visualDensity: VisualDensity.compact,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onTap: () => _toggle(entry),
       ),

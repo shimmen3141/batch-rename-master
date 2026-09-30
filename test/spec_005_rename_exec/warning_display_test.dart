@@ -808,6 +808,70 @@ void main() {
       expect(icon.color, AppColors.dark.success);
     });
 
+    testWidgets('N 件の問題は「リネーム:」を付け、警告マークと太字・下線の「詳細」で示し、行のどこを押しても開く', (
+      tester,
+    ) async {
+      // 2026-09-30 の開発者の指定(`008:T02` の実機確認2回目)。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+
+      // 警告マークに揃える(以前は i に見える error_outline だった)。
+      expect(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+        findsOneWidget,
+      );
+      final label = find.textContaining('リネーム: ');
+      expect(label, findsOneWidget);
+      expect(tester.widget<Text>(label).data, endsWith('件の問題'));
+      final link = find.byKey(warningDetailLinkKey);
+      final text = tester.widget<Text>(
+        find.descendant(of: link, matching: find.text('詳細')),
+      );
+      expect(text.style!.fontWeight, FontWeight.w700);
+      // 下線は文字の下に引いた太い線(文字の枠の下端に接する)。
+      final box = tester.widget<Container>(link);
+      final border = (box.decoration! as BoxDecoration).border! as Border;
+      expect(border.bottom.width, greaterThan(1));
+      expect(box.padding, EdgeInsets.zero);
+      // 件数の文言との間を空ける。
+      expect(
+        tester.getRect(link).left - tester.getRect(label).right,
+        greaterThanOrEqualTo(12),
+      );
+
+      // 「詳細」でも件数の文言でもない、行の右端を押す。
+      final row = tester.getRect(find.byKey(warningCountRowKey));
+      expect(
+        tester.getRect(find.byKey(warningDetailLinkKey)).right,
+        lessThan(row.right - 20),
+      );
+      await tester.tapAt(Offset(row.right - 8, row.center.dy));
+      await tester.pumpAndSettle();
+      expect(_detail(), findsOneWidget);
+    });
+
+    testWidgets('警告0件の見出しには「詳細」を出さない', (tester) async {
+      final c = FileListController(
+        files: [_f('alpha.txt')],
+        rule: const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
+      );
+      await _pump(tester, c);
+
+      expect(find.text('正常にリネームできます'), findsOneWidget);
+      expect(find.byKey(warningDetailLinkKey), findsNothing);
+      // 行のどこを押しても開かない。
+      final row = tester.getRect(find.byKey(warningCountRowKey));
+      await tester.tapAt(Offset(row.right - 8, row.center.dy));
+      await tester.pumpAndSettle();
+      expect(_detail(), findsNothing);
+    });
+
     testWidgets('変更がある警告0件の見出しを押しても、詳細は開かない', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt')],

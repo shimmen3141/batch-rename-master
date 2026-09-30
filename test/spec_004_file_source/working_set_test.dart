@@ -137,7 +137,9 @@ void main() {
     expect(notified, 0);
   });
 
-  test('選択結果の順が表示順になり、初期ソートは custom(REQ-007)', () {
+  // 2026-09-30 `008:T02`: 002 REQ-001 / REQ-008(`008:T01`)に合わせて改訂(004 REQ-007 も同日に再承認済み)。
+  // 以前は「選択結果の順が表示順になり、初期ソートは custom」だった。
+  test('読み込んだ一覧は名前の昇順で並ぶ(REQ-007 / 002 REQ-008)', () {
     final c = FileListController(files: const []);
 
     c.setFiles([
@@ -145,7 +147,7 @@ void main() {
       _entry('a.txt', handle: 'h:a'),
     ]);
 
-    expect(c.sortMode, FileSortMode.custom);
-    expect(_names(c), ['z.txt', 'a.txt']);
+    expect(c.sortMode, FileSortMode.name);
+    expect(_names(c), ['a.txt', 'z.txt']);
   });
 }

@@ -70,22 +70,31 @@ void main() {
     expect(find.text('02.txt'), findsOneWidget);
   });
 
-  testWidgets('ソートチップのタップで sortMode と表示順が変わる(REQ-002)', (tester) async {
+  testWidgets('並び順のメニューで選ぶと sortMode と表示順が変わる(REQ-002)', (tester) async {
     final c = FileListController(
       files: [_f('b.txt'), _f('a.txt')],
       rule: _seq2,
     );
     await _pump(tester, c);
-    expect(c.sortMode, FileSortMode.custom);
-
-    await tester.tap(find.text('元の名前順'));
-    await tester.pump();
-
     expect(c.sortMode, FileSortMode.name);
-    // 名前順で a.txt が b.txt より上に並ぶ。
+    // 初期は名前の昇順(REQ-001)。
+    expect(
+      tester.getTopLeft(find.text('a.txt')).dy,
+      lessThan(tester.getTopLeft(find.text('b.txt')).dy),
+    );
+
+    await tester.tap(find.byKey(sortControlKey));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(sortOptionKeyOf(FileSortMode.name, SortDirection.descending)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(c.sortDirection, SortDirection.descending);
+    // 名前の降順で b.txt が a.txt より上に並ぶ。
     final yA = tester.getTopLeft(find.text('a.txt')).dy;
     final yB = tester.getTopLeft(find.text('b.txt')).dy;
-    expect(yA, lessThan(yB));
+    expect(yB, lessThan(yA));
   });
 
   testWidgets('総件数を表示し、「n/n 件を選択」は出さない(REQ-016)', (tester) async {
@@ -121,6 +130,56 @@ void main() {
 
     // **末尾へ付け足さない** — 元の位置(2番目)へ戻る(代表例6c)。
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
+  });
+
+  testWidgets('手で並べた一覧で外して取り消すと、並びも「カスタム」も戻る(REQ-017・代表例25)', (tester) async {
+    final c = FileListController(
+      files: [
+        _f('a.txt', handle: 'h:a'),
+        _f('b.txt', handle: 'h:b'),
+        _f('c.txt', handle: 'h:c'),
+      ],
+      rule: _seq2,
+    );
+    c.reorder(2, 0); // [c, a, b]・custom
+    await _pump(tester, c);
+
+    await removeOneFile(tester, 'h:b');
+    expect(c.items.map((f) => f.name), ['c.txt', 'a.txt']);
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    // **名前の昇順へ並び直さない**(読み込みの当てはめをしない)。
+    expect(c.items.map((f) => f.name), ['c.txt', 'a.txt', 'b.txt']);
+    expect(c.sortMode, FileSortMode.custom);
+    expect(
+      find.descendant(
+        of: find.byKey(sortControlKey),
+        matching: find.text('並び順: カスタム'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('降順の一覧で外して取り消すと、向きも戻る(REQ-017)', (tester) async {
+    final c = FileListController(
+      files: [
+        _f('a.txt', handle: 'h:a'),
+        _f('b.txt', handle: 'h:b'),
+        _f('c.txt', handle: 'h:c'),
+      ],
+      rule: _seq2,
+    );
+    c.setSortMode(FileSortMode.name, direction: SortDirection.descending);
+    await _pump(tester, c);
+
+    await removeOneFile(tester, 'h:b');
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.items.map((f) => f.name), ['c.txt', 'b.txt', 'a.txt']);
+    expect(c.sortDirection, SortDirection.descending);
   });
 
   testWidgets('除去の通知はほかと同じ一定時間で消え、その前に閉じる円でも消せる(REQ-017・008:T25)', (
@@ -187,7 +246,9 @@ void main() {
     await _pump(tester, c);
 
     await removeOneFile(tester, 'h:c'); // c を外す
-    c.setSortMode(FileSortMode.name);
+    // **向きだけを変える。** キーは名前のまま(初期も名前順)なので、向きを
+    // 見ていないと「動いていない」と読める。
+    c.setSortMode(FileSortMode.name, direction: SortDirection.descending);
     await tester.pumpAndSettle();
     final sorted = c.items.map((f) => f.name).toList();
 
@@ -196,6 +257,33 @@ void main() {
 
     expect(c.items.map((f) => f.name), sorted);
     expect(c.sortMode, FileSortMode.name);
+    expect(c.sortDirection, SortDirection.descending);
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
+  testWidgets('キーだけを変えた後の取り消しも、並びを戻さない(REQ-017)', (tester) async {
+    // 上の test と対になる。**順序も向きも変わらず、キーだけが変わる**場合
+    // (サイズがすべて同じなので、サイズ順にしても名前順のまま並ぶ)。キーを
+    // 見ていないと「動いていない」と読め、戻すと表示「サイズ」と中身が食い違う。
+    final files = [
+      _f('a.txt', handle: 'h:a'),
+      _f('b.txt', handle: 'h:b'),
+      _f('c.txt', handle: 'h:c'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await removeOneFile(tester, 'h:c'); // c を外す → [a, b]
+    c.setSortMode(FileSortMode.size);
+    await tester.pumpAndSettle();
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt']);
+    expect(c.sortDirection, SortDirection.ascending);
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt']);
+    expect(c.sortMode, FileSortMode.size);
     expect(find.byKey(removalUndoStaleKey), findsOneWidget);
   });
 

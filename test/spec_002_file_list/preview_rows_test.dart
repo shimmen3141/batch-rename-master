@@ -31,6 +31,8 @@ void main() {
     test('rows は items と同じ順・件数で、currentName は name に等しい', () {
       final files = [_f('b.txt'), _f('a.txt'), _f('c.txt')];
       final c = FileListController(files: files, rule: _seq2);
+      // 初期は名前順(002 REQ-001)なので、手で [b,a,c] へ並べてから見る。
+      c.reorder(1, 0);
       expect(c.rows.map((r) => r.currentName).toList(), [
         'b.txt',
         'a.txt',

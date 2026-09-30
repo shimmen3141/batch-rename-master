@@ -143,11 +143,17 @@ void main() {
         FileSortMode.name,
         FileSortMode.modifiedAt,
         FileSortMode.size,
-        FileSortMode.custom,
       ]) {
-        c.setSortMode(mode);
-        expect(c.createdAtSortWarning, isNull, reason: '$mode');
+        for (final direction in SortDirection.values) {
+          c.setSortMode(mode, direction: direction);
+          expect(c.createdAtSortWarning, isNull, reason: '$mode $direction');
+        }
       }
+      // custom は選べない(REQ-003)。手で並べた結果として見る。
+      c.setSortMode(FileSortMode.createdAt);
+      c.reorder(0, 0);
+      expect(c.sortMode, FileSortMode.custom);
+      expect(c.createdAtSortWarning, isNull, reason: 'custom');
     });
 
     test('判定は取得可否で行う(拡張子・種別に依存しない)', () {

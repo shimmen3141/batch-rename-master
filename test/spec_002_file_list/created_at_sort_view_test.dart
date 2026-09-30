@@ -4,6 +4,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
+import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ void main() {
       final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
       await _pump(tester, c);
 
-      // 既定(custom)では出ない。
+      // 既定(名前順)では出ない。
       expect(_warningBanner, findsNothing);
 
       c.setSortMode(FileSortMode.createdAt);
@@ -70,14 +71,137 @@ void main() {
       expect(_warningBanner, findsNothing);
     });
 
-    testWidgets('「更新日時順」チップで modifiedAt ソートへ切り替わる', (tester) async {
+    testWidgets('メニューの「更新日時 古い順」で modifiedAt ソートへ切り替わる', (tester) async {
       final c = FileListController(files: [_known('a.txt')]);
       await _pump(tester, c);
 
-      await tester.tap(find.text('更新日時順'));
-      await tester.pump();
+      await tester.tap(find.byKey(sortControlKey));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          sortOptionKeyOf(FileSortMode.modifiedAt, SortDirection.ascending),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(c.sortMode, FileSortMode.modifiedAt);
+    });
+
+    testWidgets('作成日時の降順でも出し、手で並べると消える(例26)', (tester) async {
+      final c = FileListController(
+        files: [_known('a.txt'), _unknown('b.png'), _known('c.txt')],
+      );
+      await _pump(tester, c);
+
+      c.setSortMode(
+        FileSortMode.createdAt,
+        direction: SortDirection.descending,
+      );
+      await tester.pump();
+      expect(_warningBanner, findsOneWidget);
+
+      c.reorder(0, 1);
+      await tester.pump();
+      expect(_warningBanner, findsNothing);
+    });
+
+    testWidgets('「並び順:」を付け、「リネーム:」の行と印の位置・印と文の間を揃える(2026-09-30 の開発者の指定)', (
+      tester,
+    ) async {
+      final c = FileListController(
+        // 拡張子を揃える。全件が同じ名前になるので「リネーム: N 件の問題」も出る。
+        files: [_known('a.txt'), _unknown('b.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      c.setSortMode(FileSortMode.createdAt);
+      await _pump(tester, c);
+
+      expect(find.text('並び順: 作成日時不明の 1 件は更新日時で代替しています'), findsOneWidget);
+      final fallbackIcon = tester.getRect(
+        find.descendant(
+          of: _warningBanner,
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+      );
+      final countIcon = tester.getRect(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+      );
+      expect(countIcon.left, fallbackIcon.left);
+      expect(countIcon.size, fallbackIcon.size);
+      final fallbackText = tester.getRect(find.textContaining('並び順: 作成日時不明'));
+      final countText = tester.getRect(find.textContaining('リネーム: '));
+      expect(
+        countText.left - countIcon.right,
+        fallbackText.left - fallbackIcon.right,
+      );
+    });
+
+    testWidgets('警告は上の帯の下のメッセージのバナーに出る(2026-09-30 の開発者の指定)', (tester) async {
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      c.setSortMode(FileSortMode.createdAt);
+      await _pump(tester, c);
+
+      final banner = find.byKey(messageBannerKey);
+      expect(
+        find.descendant(of: banner, matching: _warningBanner),
+        findsOneWidget,
+      );
+      // 上の帯(並び順とケバブ)より下。
+      expect(
+        tester.getRect(_warningBanner).top,
+        greaterThanOrEqualTo(tester.getRect(find.byKey(sortControlKey)).bottom),
+      );
+    });
+
+    testWidgets('メッセージが増減すると、バナーの高さが滑らかに変わる', (tester) async {
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      await _pump(tester, c);
+      final banner = find.byKey(messageBannerKey);
+      final before = tester.getSize(banner).height;
+
+      c.setSortMode(FileSortMode.createdAt);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      final middle = tester.getSize(banner).height;
+      await tester.pumpAndSettle();
+      final after = tester.getSize(banner).height;
+
+      // 途中の高さを経る(一度に跳ばない)。
+      expect(after, greaterThan(before));
+      expect(middle, greaterThan(before));
+      expect(middle, lessThan(after));
+    });
+
+    testWidgets('狭幅・文字 2.0 でも警告の全文が切れない', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      c.setSortMode(
+        FileSortMode.createdAt,
+        direction: SortDirection.descending,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 640),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(body: FileListView(controller: c)),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      final warning = tester.getRect(_warningBanner);
+      expect(warning.right, lessThanOrEqualTo(320));
+      // 件数と代替した旨を失わない。
+      expect(find.textContaining('1 件'), findsOneWidget);
+      expect(find.textContaining('更新日時で代替'), findsOneWidget);
     });
   });
 

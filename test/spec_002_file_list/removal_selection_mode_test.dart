@@ -7,6 +7,7 @@
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
+import 'package:batch_rename_master/ui/common/selection_checkbox.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
@@ -352,11 +353,15 @@ void main() {
 
     // **選ばれているのは長押しした行だけ。**
     expect(
-      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:b'))).value,
+      tester
+          .widget<SelectionCheckbox>(find.byKey(removalMarkKeyOf('h:b')))
+          .value,
       isTrue,
     );
     expect(
-      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).value,
+      tester
+          .widget<SelectionCheckbox>(find.byKey(removalMarkKeyOf('h:a')))
+          .value,
       isFalse,
     );
     expect(removalModeCountText(tester), '1件選択中');
@@ -666,20 +671,17 @@ void main() {
     expectNormalFooterHidden(tester);
   });
 
-  testWidgets('モード中は並び替えの操作を出さない(REQ-018)', (tester) async {
+  testWidgets('モード中は並び替えの操作を出さない(REQ-018・代表例17)', (tester) async {
     // 押し間違いを消すのが目的なので、モード中につまみを残すと目的が半分戻る。
-    // `カスタム順` chip も REQ-014 が言う「手動並び替えの提示」なので出さない。
     final c = FileListController(files: _abc(), rule: _seq2);
     await _pump(tester, c);
     expect(find.byIcon(Icons.drag_handle), findsWidgets);
-    expect(find.text('カスタム順'), findsOneWidget);
 
     await enterRemovalMode(tester);
 
     expect(find.byIcon(Icons.drag_handle), findsNothing);
-    expect(find.text('カスタム順'), findsNothing);
-    // **ソート自体は常に出す**(REQ-014。閲覧・確認の用途がある)。
-    expect(find.text('元の名前順'), findsOneWidget);
+    // **並び順の選択は出してよい**(REQ-018 / REQ-020)。
+    expect(find.byKey(sortControlKey), findsOneWidget);
   });
 
   testWidgets('モード中の長押しでは並び替えが始まらない(REQ-018)', (tester) async {
@@ -699,7 +701,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(c.items.map((f) => f.name), ['a.txt', 'b.txt', 'c.txt']);
-    expect(c.sortMode, FileSortMode.custom);
+    // 並べ替わっていれば `custom` になる。初期の名前順のまま(REQ-001)。
+    expect(c.sortMode, FileSortMode.name);
   });
 
   testWidgets('つまみを長押ししてからドラッグしても並び替えができる(REQ-003/REQ-014)', (tester) async {
@@ -768,11 +771,15 @@ void main() {
     // 起きてはいけないのは、**選んだ2件が捨てられてこの1件だけになる**ことである。
     expect(removalModeCountText(tester), '3件選択中');
     expect(
-      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).value,
+      tester
+          .widget<SelectionCheckbox>(find.byKey(removalMarkKeyOf('h:a')))
+          .value,
       isTrue,
     );
     expect(
-      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:c'))).value,
+      tester
+          .widget<SelectionCheckbox>(find.byKey(removalMarkKeyOf('h:c')))
+          .value,
       isTrue,
     );
   });
@@ -1013,10 +1020,17 @@ void main() {
     await _pump(tester, c);
     await enterRemovalMode(tester);
 
-    expect(
-      tester.widget<Checkbox>(find.byKey(removalMarkKeyOf('h:a'))).shape,
-      isA<CircleBorder>(),
+    // 読み込み画面・並び順のメニューと同じ部品(`SelectionCheckbox`。`008:T02`)。
+    final mark = tester.widget<Checkbox>(
+      find.descendant(
+        of: find.byKey(removalMarkKeyOf('h:a')),
+        matching: find.byType(Checkbox),
+      ),
     );
+    final colors = appDarkTheme().extension<AppColors>()!;
+    expect(mark.shape, isA<CircleBorder>());
+    expect(mark.activeColor, colors.selectionMark);
+    expect(mark.checkColor, colors.onPrimary);
   });
 
   testWidgets('モード中に読み込み直すと、消えた行は数に入らない(REQ-018)', (tester) async {
