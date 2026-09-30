@@ -236,7 +236,7 @@ M547 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 
 ## Current state / handoff
 
-- Last checkpoint: final-evidence review attempt 6 PASS、manual 3回目 PASS(code `f6ad967`)。
+- Last checkpoint: PR #200をmerge commitで`dev`へmerge(2026-09-30、`37e6b2e`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(attempt 1〜5 `8d65b0c..4b133af` PASS → attempt 6 `4b133af..c6c4ba0` final-evidence PASS → 以後は記録だけのSELF-CHECK) / CI `check` PASS・未解決threadなし / baseの`dev`(`1eb7ac4`)はbranchの祖先で競合なし、full test 1082件PASS(`4b133af`、以後code・testの差分なし) / manual 3回目が`f6ad967`に対応し、以後`lib/`・依存・build設定の差分なし / 未解決P0/P1なし / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: code `f6ad967`
-- Next Agent action: PR #200をreadyにしてmergeし、`dev`でmergeを記録する
+- Evidence revision: code `f6ad967`、merge `37e6b2e`。
+- Next Agent action: なし(done)。
