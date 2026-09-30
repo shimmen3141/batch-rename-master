@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "並び順controlを実装する",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T01"
   ],
