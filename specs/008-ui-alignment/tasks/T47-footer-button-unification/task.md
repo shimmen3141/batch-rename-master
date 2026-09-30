@@ -82,6 +82,22 @@ M192 M199 M580 M581 M582 M583 M584 M585 M586 すべて KILLED
 9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 実機確認 2回目(2026-09-30、対象 `06f163b`)と、それを受けた変更
+
+- 開発者の結果(原文): 「『命名ルール』の上の余白をもう少しだけわずかに狭めつつ、チップとの余白をその分ひろげてください。チップの下の余白も同じだけわずかに削ってよいです。ボタン内の左右の余白は削らないでください。」「『+N』について、+の前後に空白をいれてください。チップとの間とNとの間に空白が入るイメージです。」「上記以外は問題ありません。」
+- 実装(`c5f94ad`):
+  - 上下の内側の余白 8 → 6、「命名ルール」とチップの間 7 → 9。左右(12)は変えていない。
+  - 「+N」を「 + N」にした(`ruleChipOverflowLabel`)。入る数を決める幅の見積もりも同じ文字列で測る。
+  - **チップの列の高さをチップ1つ分に固定した。** 「+N」の幅が広がったことで、幅 360・文字 2.0 でチップが1つも入らず「+N」だけになるルールが現れ、列が文字の高さまで縮んで button が低くなり、一覧の高さが変わった(`row_presentation_test`「種別が 1 つ増えても、増える高さは 1 行ぶんで止まる」が `lost = -5` で落ちた)。**空白を足す前からの弱点**(チップが1つも入らないと高さが変わる)で、今回の変更で表に出た。
+- testを足した: 「+N」の文言が `^ \+ \d+$`、チップの列の高さがチップの高さと一致し「+N」だけでも変わらない(文字 1.0 / 2.0)。
+- mutation: M584・M585 の `find` を新しい値へ追随させた。M587(+ の前後の空白を外す)・M588(列の高さを固定しない)を足した。`check_mutation_finds.py` → `PASS: 542`。
+- 範囲付きで回した(7件): `flutter test test/spec_005_rename_exec test/spec_002_file_list test/spec_003_rule_builder test/widget_test.dart`、対象 `c5f94ad`。
+
+```text
+M192 M199 M583 M584 M585 M587 M588 すべて KILLED
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
@@ -96,9 +112,9 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 3 PASS(`6185920..b7d292b`)。実機確認2回目を依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認2回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)
-- Requested action: 対象build `06f163b`(`lib/`が同一)で0〜2を確かめ、結果を会話で伝える
-- Evidence revision: `b7d292b`(`lib/`は`06f163b`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
+- Last checkpoint: 実機確認2回目の指定を実装 `c5f94ad`(flutter test 1121 PASS・analyze・format・mutation 7件 KILLED)
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `c5f94ad`
+- Next Agent action: 差分review(attempt 4、`c3e7fbd..HEAD`)を起動し、PASS後に実機確認3回目を依頼する
