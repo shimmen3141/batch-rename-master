@@ -40,12 +40,15 @@
 ## 作業記録
 
 - 2026-08-12 / plan作成時に定義。
+- 2026-09-30 / 着手は Claude Opus 5.5。branch `asdd/008-ui-alignment/T02-implement-sort-control`、起点`dev`@`158b2be`。
+
+### 開発者の決定(2026-09-30)
+
+- **昇順・降順の選び方**: 3案(8項目のメニュー / keyのメニュー＋隣の向きボタン / 4行＋行内の向きボタン)を尋ね、**8項目のメニュー**(推奨案)を採った。keyと向きの組8つを1つのメニューへ並べ、どの状態へも1回で行け、選べるものが全部見える。向きは利用者の言葉で示す(名前 A→Z / Z→A、日時 古い順 / 新しい順、サイズ 小さい順 / 大きい順)。表示は「⇅ 並び順: 名前 A→Z」、手で並べると「⇅ 並び順: カスタム」。メニューに「カスタム」は出さない(002 REQ-003)。
 
 ## Current state / handoff
 
-- Last checkpoint: plan作成時に定義しただけ。未着手
-- Blocker category: dependency
-- Waiting for: `T01`の仕様更新と人間の再承認
-- Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: `T01`承認後にclaimし、test-firstで実装する。manual手順は実装後にcurrent revisionと照合して具体化する
+- Last checkpoint: 着手し、昇降の選び方を開発者が決めた(2026-09-30)
+- Blocker category: なし
+- Waiting for: なし
+- Next Agent action: test-firstで状態層(初期・読み込み直し・昇降・取り消しの戻し)を実装し、次に並び順controlを置き換える
