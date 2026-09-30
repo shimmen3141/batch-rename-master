@@ -19,7 +19,7 @@ reviewer は「指摘なし・前回のP2は閉じた」と確認したうえで
 ## 改善の候補
 
 - AGENTS.md の「非対話の検証」の節に、**「既に `AI_SANDBOX=1` の container の中なら、検証は直接実行する(`docker` は無い)」**を書き足す。`AGENTS.md` の変更は auto-merge の対象外なので、人間の確認で入れる。
-- それまでの運用: reviewer への prompt に「検証は docker を使わず worktree で直接実行する」を必ず書く(`008:T47` の attempt 3 以降で実施し、BLOCKED は起きていない)。
+- それまでの運用: reviewer への prompt に「検証は docker を使わず worktree で直接実行する」を必ず書く(`008:T47` の attempt 3 以降で実施し、docker による BLOCKED は起きていない。attempt 5 は別の理由で BLOCKED — 下の追記)。
 
 ## 追記(同日、attempt 5)
 
