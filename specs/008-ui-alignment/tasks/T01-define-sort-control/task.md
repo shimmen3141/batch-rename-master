@@ -82,11 +82,15 @@
 - attempt 1: `2cb2f94..721b552`(全範囲、仕様差分) — **PASS**(P2 1件)。reviewerのmodelは`gpt-6-luna`。確認された点: 「決めること」への答え、REQ-011/013 の向き・`custom` の扱い、REQ-001/008 の一致と REQ-020 の実行後の例外、REQ-017 と REQ-008、例1c・26 の計算、001・004・005 との境界、004 OQ-2 の追記、VER表。`check specs`・`git diff --check` PASS。
   - **P2(成果物の欠陥)**: REQ-011 の警告の配置を、plan は `T01` が決めるとし、spec は `T02` へ委ねていて、決定が規範として確定していない。→ **SELF-CHECK**(記録だけの差分で P2 を閉じる): 配置を `T01` の決定としてこの task.md と `T02` の入力へ書き、spec の「008 T01 由来の更新」をそれを指す文へ直した。提示の場所を仕様にしないのは 008 plan 2026-08-29「案B」による。
 
+### 再承認(2026-09-30)
+
+- 開発者が 002 spec の「008 T01 由来の更新」を**承認**した(回答「承認します」)。Agentが推奨として決めた3点(`custom` から戻す操作を出さない・除去の取り消しで並び順も戻す・実行後に並べ直さない)も含む。spec の Status 行と節見出しを approved にした。
+- `T02` の `covers` へ `002:REQ-001/002/003/008/011/013/017/018/019/020`、`T09` の `covers` へ `002:REQ-019` を書いた。008 plan の `covers` の注記へも追記した。
+- merge の条件2は、attempt 1(`2cb2f94..721b552` PASS)と、その後の記録だけの差分(`721b552..head`。P2 を閉じた SELF-CHECK と、承認・`covers` の記録)で満たす。
+
 ## Current state / handoff
 
-- Last checkpoint: 002 spec の案を書き、独立review attempt 1 PASS(P2 は SELF-CHECK で閉じた)。2026-09-30
-- Blocker category: human decision
-- Waiting for: 開発者による 002 spec の再承認
-- Requested action: 002 spec の「008 T01 由来の更新」と、変わった REQ(001/002/003/008/011/013/014廃止/017/018/019/020)・代表例(1b〜1e、16、17、22〜27)を読み、承認するか直す点を伝える
-- Evidence revision: spec の案 `721b552` + 記録
-- Next Agent action: 承認を受けたら spec のステータスを approved にし、`T02` の `covers` へ `002:REQ-001/002/003/008/011/013/017/018/019/020`、`T09` の `covers` へ `002:REQ-019` を書いて done にする
+- Last checkpoint: 002 spec を開発者が再承認し(2026-09-30)、`T02`/`T09` の `covers` を埋めた。status done
+- Blocker category: なし
+- Waiting for: なし
+- Next Agent action: PR #202 を ready にして merge し、`dev` 上で確認する。次は `T02`(並び順controlの実装)
