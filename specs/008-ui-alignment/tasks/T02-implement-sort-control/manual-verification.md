@@ -1,6 +1,6 @@
 # 手動確認: 並び順のメニューと、読み込み直しの並び順(Androidエミュレータ)
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が依頼時に`task.md`へ書くcommitと同一のもの**である。branch `asdd/008-ui-alignment/T02-implement-sort-control` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `6b6c64c` と同一のもの**である(`ed7a0bf`から`lib/`は変わっていない)。branch `asdd/008-ui-alignment/T02-implement-sort-control` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
 
 **Androidエミュレータで確認する**(`008:T39`で開発者が決めた方針)。見るのは**見た目・押しやすさ・並び順**で、速さは見ないので debug build でよい。
 

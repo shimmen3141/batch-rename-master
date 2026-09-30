@@ -117,12 +117,14 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
   - P3(成果物の欠陥): `working_set_test.dart` のコメントが 004 REQ-007 を「再承認待ち」としていた → 「同日に再承認済み」へ直した。
   - P3(成果物の欠陥): 004 spec の末尾に余分な空行(`git diff --check`) → 削った。
   - test のコメントの変更は `test/` の差分なので、「記録だけの差分」の SELF-CHECK には当たらない。差分reviewを attempt 2 とする。
+- **attempt 2**: `3b2bd0d..6b6c64c`(差分review) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。前回のP3 2件が閉じたこと、差分が触った3 fileに前回までとの食い違いが無いことを確認。`flutter test` 1107 PASS、`git diff --check 158b2be..6b6c64c` PASS。
+- 連鎖: `158b2be..3b2bd0d` PASS → `3b2bd0d..6b6c64c` PASS。以後の差分は記録だけ。
 
 ## Current state / handoff
 
-- Last checkpoint: 実装 `ed7a0bf`、M300 の test 追加。004 spec の訂正を開発者が再承認(2026-09-30)
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `86ea96a`
-- Next Agent action: 独立reviewを起動する。PASS後に manual 確認を依頼する
+- Last checkpoint: 独立review attempt 1・2 PASS(`158b2be..6b6c64c`)。manual確認を依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認([manual-verification.md](manual-verification.md))
+- Requested action: 対象buildで1〜5を確かめ、結果を会話で伝える
+- Evidence revision: `6b6c64c`(`lib/`・`hook/`・`src/`・依存は`ed7a0bf`と同一)
+- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする。指摘があれば直してmanualを取り直す
