@@ -129,9 +129,13 @@ M342 | SURVIVED | lib/ui/file_list/file_list_view.dart | exit 0: the tests passe
 
   - 検証: full `flutter test` 1084件PASS、analyze・format・`check_mutation_finds` PASS。
 
+- attempt 2: `0e6afbf..19156e8`(差分、implementation) — **PASS**(P2 1件、前回から持ち越し)。reviewerのmodelは`gpt-6-luna`。追加したtestが最初のframeを見ていること、`M314` KILLED・`M342` SURVIVED(`M342`は全件のcommandでもSURVIVED。対照として期待どおり)、前回のP2(M314)が閉じたことを確認された。full test 1084件・analyze・format・`check specs`・`check_mutation_finds`・`git diff --check` PASS。
+  - 持ち越しのP2(commandの`--exclude-tags tooling`)は「直さない理由が技術的に妥当」とされた。AGENTS.mdの文言の整理は人間へ報告する。
+  - 連鎖: `b771831..0e6afbf` PASS → `0e6afbf..19156e8` PASS → 以後は記録だけ(SELF-CHECK)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(P2 2件)。1件は直さない理由を記録し、1件はtestを足して閉じた。full test 1084件PASS(2026-09-30)
+- Last checkpoint: 独立review attempt 2 PASS(2026-09-30)。manualは無い
 - Blocker category: none
-- Evidence revision: `767eb00`以降(test・表のnote・記録)
-- Next Agent action: `0e6afbf..HEAD`の差分reviewを依頼する(testを足したため)
+- Evidence revision: `19156e8`
+- Next Agent action: PR #201をreadyにしてmergeし、`dev`でmergeを記録する
