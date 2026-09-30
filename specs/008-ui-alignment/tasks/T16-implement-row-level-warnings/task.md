@@ -656,4 +656,4 @@ PR #161、Android emulator。手順書は[`manual-verification.md`](manual-verif
 | **件数と詳細の数え方((file × 日時トークン)ごとに1件)を固定するassertionが無い**(R-A SURVIVED。attempt 7 が挙げた) | `008:T19` |
 | `textScaler` 3.0 でのヘッダの語尾の切り詰め(数字は残る) | `008:T10`(N-8b′) |
 | `textScaler` 3.0 で2行buttonが320dpの41%を占め、一覧が25pxになる。画面高≤400dpではoverflowも出る | `008:T10`(N-8b″) |
-| 広幅で`preview`が1フレームに2回評価される | `008:T09` |
+| 広幅で`preview`が1フレームに2回評価される | ~~`008:T09`~~ → **引き受け先なし・受容のまま**。`T09`(表示モード)を2026-09-30に削除した。docに明記済みで、reviewが受容可能と判断していた |
