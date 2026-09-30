@@ -24,9 +24,13 @@
 - 直した各mutationの範囲付きmutation_checkの生出力。full `flutter test`・analyze・format。
 - 独立review。
 
+## 作業記録
+
+着手は Claude Opus 5.5(2026-09-30)。branch `asdd/008-ui-alignment/T46-mutation-find-check`、起点`dev`@`b771831`。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録しただけ(2026-09-29)
+- Last checkpoint: 着手した(2026-09-30)
 - Blocker category: none
 - Evidence revision: none
 - Next Agent action: 検査のtestを先に足し、16件で落ちることを確かめる
