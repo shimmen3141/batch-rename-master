@@ -3208,9 +3208,9 @@
     {
       "id": "M500",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "014:T04 狭幅のシートへ件数を渡さない — 下限が常に0件のものになる(composition の経路)",
-      "find": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n        itemCount: () => widget.fileList.selectedCount,\n",
-      "replace": "      builder: (_) => RuleBuilderView(\n        controller: widget.rule,\n"
+      "note": "014:T04 狭幅のシートへ件数を渡さない — 下限が常に0件のものになる(composition の経路)。**008:T45 で find を追随**(シートに見出しとプレビューを足して字下げが変わった)",
+      "find": "              RuleBuilderView(\n                controller: widget.rule,\n                itemCount: () => widget.fileList.selectedCount,\n",
+      "replace": "              RuleBuilderView(\n                controller: widget.rule,\n"
     },
     {
       "id": "M501",
@@ -3313,8 +3313,8 @@
     {
       "id": "M515",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "008:T44 狭幅のシートへ一覧の1件目を渡さない — 日時の表示例が出ない(composition の経路)",
-      "find": "\n        sampleFile: _firstFile,\n",
+      "note": "008:T44 狭幅のシートへ一覧の1件目を渡さない — 日時の表示例が出ない(composition の経路)。**008:T45 で find を追随**",
+      "find": "\n                sampleFile: _firstFile,\n",
       "replace": "\n"
     },
     {
@@ -3327,9 +3327,9 @@
     {
       "id": "M517",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "note": "008:T44 表示例に一覧の最後の1件を使う — 『1つ目のファイル』と食い違う",
-      "find": "rows.first.source",
-      "replace": "rows.last.source"
+      "note": "008:T44 表示例に一覧の最後の1件を使う — 『1つ目のファイル』と食い違う。**008:T45 で find を追随**(1件目を選択されている最初の行へ改めた firstSelectedRow)",
+      "find": "  for (final row in fileList.rows) {",
+      "replace": "  for (final row in fileList.rows.reversed) {"
     },
     {
       "id": "M518",
@@ -3372,6 +3372,174 @@
       "note": "008:T44 「詳細に記述」を選ぶと入力欄を空にする — 直前のフォーマットが初期値として入らない(manual 1回目の開発者の要望)",
       "find": "              onSelected: () => setState(() => _custom = true),",
       "replace": "              onSelected: () => setState(() {\n                _custom = true;\n                _fmt.text = '';\n              }),"
+    },
+    {
+      "id": "M524",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 広幅の2ペインで一覧の変化を監視しない — 一覧を読み直してもチップの値が古いまま",
+      "find": "\n            sampleListenable: widget.fileList,\n",
+      "replace": "\n"
+    },
+    {
+      "id": "M525",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 シートのプレビューを出さない — シートで一覧が隠れている間、ルールの結果が見えない(開発者の決定)",
+      "find": "              _SheetPreview(fileList: widget.fileList),\n",
+      "replace": ""
+    },
+    {
+      "id": "M526",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 シートの取っ手を出さない(参考デザイン)",
+      "find": "      showDragHandle: true,",
+      "replace": "      showDragHandle: false,"
+    },
+    {
+      "id": "M527",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 チップの値を従来の説明に戻す — 一覧の1件目での値が見えない(参考デザイン)",
+      "find": "                          tokenChipValue(token, sample),",
+      "replace": "                          tokenLabel(token),"
+    },
+    {
+      "id": "M528",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 押してすぐのドラッグで並べ替える — 横スクロールの枠をスクロールできなくなる",
+      "find": "    return ReorderableDelayedDragStartListener(",
+      "replace": "    return ReorderableDragStartListener("
+    },
+    {
+      "id": "M529",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの元の名前に取り消し線を引かない — 変わることが読めない(参考デザイン)",
+      "find": "decoration: changed ? TextDecoration.lineThrough : null,",
+      "replace": "decoration: null,"
+    },
+    {
+      "id": "M530",
+      "file": "lib/ui/theme/token_colors.dart",
+      "note": "008:T45 連番を元名と同じ色にする — 種類を色で見分けられない(参考デザイン)",
+      "find": "  SequenceToken() => const Color(0xFF4ADE80),",
+      "replace": "  SequenceToken() => const Color(0xFF94A3B8),"
+    },
+    {
+      "id": "M531",
+      "file": "lib/ui/rule_builder/token_presets.dart",
+      "note": "008:T45 チップの日時が不明なとき空白にする — 不明であることが読めない(001 INV-006 の見せ方)",
+      "find": "  if (raw.isEmpty) return token is DateTimeToken ? '不明' : '␣';",
+      "replace": "  if (raw.isEmpty) return '␣';"
+    },
+    {
+      "id": "M532",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 独立review attempt 1(reviewer設計の対照M532を、修正後のコードへ当てた形)。未選択の1件目をプレビュー・チップの値の基準にする — 未選択の行は変更後名を持たず(002 REQ-007)、「（変更なし）」やチップの値と食い違う",
+      "find": "    if (row.selected) return row;",
+      "replace": "    return row;"
+    },
+    {
+      "id": "M533",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 チップが0個でも並べ替えの案内を出す — 並べ替えるものが無いのに案内が出る(manual 1回目の開発者の要望)",
+      "find": "                child: tokens.isEmpty\n                    ? null\n",
+      "replace": "                child: false\n                    ? null\n"
+    },
+    {
+      "id": "M534",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円をチップの内側へ寄せる — 円の上端と右端がチップの上辺・右辺に重ならない(manual 1回目の開発者の要望)",
+      "find": "                top: 0,\n                right: 0,",
+      "replace": "                top: 4,\n                right: 4,"
+    },
+    {
+      "id": "M535",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円を小さくする — 押せる範囲が広がらない(manual 1回目の開発者の要望: 押しにくかった)",
+      "find": "const double tokenChipDeleteSize = 22;",
+      "replace": "const double tokenChipDeleteSize = 16;"
+    },
+    {
+      "id": "M536",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円に縁を描かない — 円の外周はチップの色(manual 1回目の開発者の要望)",
+      "find": "shape: CircleBorder(side: BorderSide(color: accent)),",
+      "replace": "shape: const CircleBorder(),"
+    },
+    {
+      "id": "M537",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の×を白にする — ×はチップの色(manual 1回目の開発者の要望)",
+      "find": "Icon(Icons.close, size: 12, color: accent)",
+      "replace": "Icon(Icons.close, size: 12, color: Colors.white)"
+    },
+    {
+      "id": "M538",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの矢印を薄い色に戻す — 見えづらい(manual 1回目の開発者の要望)。**manual 2回目の修正で字下げが変わったので find を追随**",
+      "find": "                              // 薄くて見えづらかった(manual 1回目の開発者の要望)。\n                              color: colors.textPrimary,",
+      "replace": "                              color: colors.textDisabled,"
+    },
+    {
+      "id": "M539",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの下の余白を戻す — 画面の下端ぎりぎり(manual 1回目の開発者の要望)",
+      "find": "fromLTRB(18, 4, 18, 32)",
+      "replace": "fromLTRB(18, 4, 18, 18)"
+    },
+    {
+      "id": "M540",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 種別名を中央寄せにする — 左寄せ(manual 1回目の開発者の要望)。**manual 2回目の修正で字下げが変わったので find を追随**",
+      "find": "                              child: Row(\n                                children: [",
+      "replace": "                              child: Row(\n                                mainAxisAlignment: MainAxisAlignment.center,\n                                children: ["
+    },
+    {
+      "id": "M541",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの2行目の高さを揃えない — 変更あり/なしの切り替えでシートがガタつく(manual 2回目の開発者の指摘)。**文字の拡大に合わせた変更(独立review attempt 4)で find を追随**",
+      "find": "                key: ruleSheetPreviewResultKey,\n                // 文字の拡大に合わせる(独立review attempt 4 の指摘)。\n                height: MediaQuery.textScalerOf(context).scale(20),",
+      "replace": "                key: ruleSheetPreviewResultKey,"
+    },
+    {
+      "id": "M542",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 新しい名前を折り返す — 名前の長さでシートの高さが変わる(manual 2回目)",
+      "find": "                              newName,\n                              maxLines: 1,",
+      "replace": "                              newName,"
+    },
+    {
+      "id": "M543",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 元の名前を折り返す — 名前の長さでシートの高さが変わる(manual 2回目)",
+      "find": "                row.currentName,\n                maxLines: 1,",
+      "replace": "                row.currentName,"
+    },
+    {
+      "id": "M544",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 削除の円をはみ出させない — チップから少しはみ出す位置(manual 2回目の開発者の要望)",
+      "find": "const double tokenChipDeleteOverhang = 5;",
+      "replace": "const double tokenChipDeleteOverhang = 0;"
+    },
+    {
+      "id": "M545",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "note": "008:T45 プレビューの2行目の高さを文字の拡大に合わせない — 大きな文字で切れる(独立review attempt 4)",
+      "find": "height: MediaQuery.textScalerOf(context).scale(20),",
+      "replace": "height: 20,"
+    },
+    {
+      "id": "M546",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 並べ替えの案内の置き場の高さを文字の拡大に合わせない — 大きな文字で切れる(独立review attempt 4)",
+      "find": "    14 + scaler.scale(11 * 1.4 * 2);",
+      "replace": "    44;"
+    },
+    {
+      "id": "M547",
+      "file": "lib/ui/rule_builder/rule_builder_view.dart",
+      "note": "008:T45 点線の枠の高さを文字の拡大に合わせない — 大きな文字でチップの値が枠からはみ出す(独立review attempt 4)",
+      "find": "    scaler.scale(23) +",
+      "replace": "    23 +"
     }
   ]
 }

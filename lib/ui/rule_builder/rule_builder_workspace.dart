@@ -5,6 +5,7 @@ import '../../data/preview/file_preview.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/removal_selection.dart';
 import '../file_list/file_list_view.dart';
+import '../file_list/row_view.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
@@ -81,24 +82,48 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     super.dispose();
   }
 
-  /// 一覧の1件目(表示順)。トークンのエディタの表示例に使う(008:T44)。
-  FileEntry? _firstFile() {
-    final rows = widget.fileList.rows;
-    return rows.isEmpty ? null : rows.first.source;
-  }
+  /// 選択されている最初のファイル(表示順)= 連番の1番目が振られるファイル。
+  /// トークンのエディタの表示例(008:T44)とチップの値(008:T45)に使う。
+  FileEntry? _firstFile() => firstSelectedRow(widget.fileList)?.source;
 
   /// 現在のルールをファイルリストへ渡す(プレビュー更新)。
   void _syncRule() => widget.fileList.setRule(widget.rule.rule);
 
+  /// 狭幅のルール構築シート(参考デザインのボトムシート。008:T45)。
+  ///
+  /// 取っ手・見出し「命名ルール」・上端の角丸と、下部に1つ目のファイルの
+  /// プレビューを置く。**「閉じる」ボタンは置かない**(開発者の決定: 逆に混乱を
+  /// 招く)。閉じるのは外のタップ・下へのスワイプ・戻る操作。
   void _openRuleSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       backgroundColor: context.colors.surface,
-      builder: (_) => RuleBuilderView(
-        controller: widget.rule,
-        itemCount: () => widget.fileList.selectedCount,
-        sampleFile: _firstFile,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.78,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            key: ruleSheetKey,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SheetHeader(),
+              RuleBuilderView(
+                controller: widget.rule,
+                itemCount: () => widget.fileList.selectedCount,
+                sampleFile: _firstFile,
+                sampleListenable: widget.fileList,
+              ),
+              _SheetPreview(fileList: widget.fileList),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -149,6 +174,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             controller: widget.rule,
             itemCount: () => widget.fileList.selectedCount,
             sampleFile: _firstFile,
+            sampleListenable: widget.fileList,
           ),
         ),
       ],
@@ -167,6 +193,163 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       filePreview: widget.filePreview,
       removalSelection: widget.removalSelection,
       onEditRule: _openRuleSheet,
+    );
+  }
+}
+
+/// 選択されている最初の行(表示順)。無ければ null。連番の1番目が振られる行で、
+/// ルール構築のプレビュー・チップの値・エディタの表示例が揃って指す(008:T45)。
+RowView? firstSelectedRow(FileListController fileList) {
+  for (final row in fileList.rows) {
+    if (row.selected) return row;
+  }
+  return null;
+}
+
+/// ルール構築シートの key(008:T45)。
+const Key ruleSheetKey = Key('rule-sheet');
+
+/// シートのプレビューの key(008:T45)。
+const Key ruleSheetPreviewKey = Key('rule-sheet-preview');
+
+/// プレビューの2行目(変更あり / 変更なし)の箱の key。高さを揃える(008:T45)。
+const Key ruleSheetPreviewResultKey = Key('rule-sheet-preview-result');
+
+/// シートの見出し「命名ルール」(参考デザイン)。区切り線の上に置く。
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.09)),
+        ),
+      ),
+      child: Text(
+        '命名ルール',
+        style: TextStyle(
+          color: colors.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// シートの下部のプレビュー: 1つ目のファイルの元の名前 → 新しい名前(参考デザイン)。
+///
+/// シートを開いている間は一覧が隠れるので、ルールの結果をここで見せる。一覧が
+/// 空なら出さない。名前が変わらなければ元の名前を灰色で出し「（変更なし）」と書く。
+class _SheetPreview extends StatelessWidget {
+  const _SheetPreview({required this.fileList});
+
+  final FileListController fileList;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return ListenableBuilder(
+      listenable: fileList,
+      builder: (context, _) {
+        // チップの値と同じファイル(選択されている最初のファイル)を見せる。
+        // 未選択の行は変更後名を持たない(002 REQ-007)ので、1件目が未選択でも
+        // 「変更なし」と取り違えない(008:T45 独立review attempt 1 の指摘)。
+        final row = firstSelectedRow(fileList);
+        if (row == null) return const SizedBox.shrink();
+        final newName = row.newName!;
+        final changed = newName != row.currentName;
+        return Container(
+          key: ruleSheetPreviewKey,
+          // 画面の下端に寄りすぎないよう、下に少し余白を足した(manual 1回目の
+          // 開発者の要望)。
+          margin: const EdgeInsets.fromLTRB(18, 4, 18, 32),
+          padding: const EdgeInsets.only(top: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'プレビュー（1つ目のファイル）',
+                style: TextStyle(color: colors.textMuted, fontSize: 10.5),
+              ),
+              const SizedBox(height: 7),
+              // 名前は1行に収める。折り返すと、ルールを変えるたびに新しい名前の長さで
+              // シートの高さが変わってガタつく(manual 2回目の開発者の指摘)。
+              Text(
+                row.currentName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: changed
+                      ? colors.danger.withValues(alpha: 0.85)
+                      : colors.textSecondary,
+                  decoration: changed ? TextDecoration.lineThrough : null,
+                  decorationColor: colors.danger.withValues(alpha: 0.85),
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(height: 4),
+              // 2行目は変更あり(矢印と新しい名前)でも変更なしでも同じ高さの箱に
+              // 入れる。行の高さが違うと、切り替わるたびにシートがガタつく
+              // (manual 2回目の開発者の指摘)。
+              SizedBox(
+                key: ruleSheetPreviewResultKey,
+                // 文字の拡大に合わせる(独立review attempt 4 の指摘)。
+                height: MediaQuery.textScalerOf(context).scale(20),
+                child: changed
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '→ ',
+                            style: TextStyle(
+                              // 薄くて見えづらかった(manual 1回目の開発者の要望)。
+                              color: colors.textPrimary,
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              newName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.success,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '（変更なし）',
+                          style: TextStyle(
+                            color: colors.textDisabled,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

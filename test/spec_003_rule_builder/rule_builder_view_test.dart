@@ -7,6 +7,7 @@ import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'token_chip_support.dart';
 
 Future<void> _pump(WidgetTester tester, RuleController c) async {
   await tester.pumpWidget(
@@ -40,7 +41,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(c.tokens, hasLength(1));
     expect(c.tokens.single, isA<SequenceToken>());
-    expect(find.text('連番(2桁)'), findsOneWidget);
+    expect(tokenChip('連番(2桁)'), findsOneWidget);
 
     await tester.tap(find.text('＋ 区切り'));
     await tester.pumpAndSettle();
@@ -55,8 +56,8 @@ void main() {
       tokens: const [OriginalNameToken(), SequenceToken(start: 1, digits: 2)],
     );
     await _pump(tester, c);
-    expect(find.text('元の名前'), findsOneWidget);
-    expect(find.text('連番(2桁)'), findsOneWidget);
+    expect(tokenChip('元の名前'), findsOneWidget);
+    expect(tokenChip('連番(2桁)'), findsOneWidget);
 
     // 先頭 Chip(元の名前)の削除ボタンを押す。
     await tester.tap(find.byTooltip('削除').first);
@@ -64,7 +65,7 @@ void main() {
 
     expect(c.tokens, hasLength(1));
     expect(c.tokens.single, isA<SequenceToken>());
-    expect(find.text('元の名前'), findsNothing);
+    expect(tokenChip('元の名前'), findsNothing);
   });
 
   testWidgets('onReorderItem で並び替わる(REQ-004)', (tester) async {
@@ -93,8 +94,18 @@ void main() {
       ],
     );
     await _pump(tester, c);
-    expect(find.text('元の名前'), findsOneWidget);
-    expect(find.text('テキスト'), findsOneWidget);
-    expect(find.text('日時 YYYYMMDD'), findsOneWidget);
+    expect(tokenChip('元の名前'), findsOneWidget);
+    expect(tokenChip('テキスト'), findsOneWidget);
+    expect(tokenChip('日時 YYYYMMDD'), findsOneWidget);
+
+    // 008:T45: チップの見た目は参考デザインの「種類名 + 値」。一覧の1件目が無いので、
+    // 日時はフォーマットそのものを値として出す。
+    Finder inChip(String description, String text) =>
+        find.descendant(of: tokenChip(description), matching: find.text(text));
+    expect(inChip('元の名前', '元名'), findsOneWidget);
+    expect(inChip('元の名前', '[元のファイル名]'), findsOneWidget);
+    expect(inChip('テキスト', 'テキスト'), findsNWidgets(2)); // 種類名と値
+    expect(inChip('日時 YYYYMMDD', '作成日時'), findsOneWidget);
+    expect(inChip('日時 YYYYMMDD', 'YYYYMMDD'), findsOneWidget);
   });
 }

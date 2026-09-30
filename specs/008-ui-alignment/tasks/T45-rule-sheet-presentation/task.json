@@ -2,12 +2,17 @@
   "schema": "asdd.task/v1",
   "id": "T45",
   "title": "ルール構築シート(ボトムシート)を参考デザインへ整える",
-  "status": "pending",
+  "status": "in_review",
   "dependsOn": [
     "T44"
   ],
-  "covers": [],
+  "covers": [
+    "003:REQ-002",
+    "003:REQ-003",
+    "003:REQ-004",
+    "003:REQ-005"
+  ],
   "issue": null,
-  "pullRequest": null,
-  "manualVerification": null
+  "pullRequest": 200,
+  "manualVerification": "manual-verification.md"
 }

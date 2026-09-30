@@ -16,6 +16,7 @@ import 'package:batch_rename_master/ui/rule_builder/token_editors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'token_chip_support.dart';
 
 /// 変更通知を数える [RuleController]。
 ({RuleController controller, int Function() notified}) _counted([
@@ -246,7 +247,7 @@ void main() {
           SequenceToken(start: 1, digits: 2),
         ]);
         await _pumpView(tester, controller);
-        await tester.tap(find.text('連番(2桁)'));
+        await tester.tap(tokenChip('連番(2桁)'));
         await tester.pumpAndSettle();
         expect(_editor, findsOneWidget);
 
@@ -266,7 +267,7 @@ void main() {
         SequenceToken(start: 1, digits: 2),
       ]);
       await _pumpView(tester, controller);
-      await tester.tap(find.text('連番(2桁)'));
+      await tester.tap(tokenChip('連番(2桁)'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('増やす').at(1));
       await tester.pump();
@@ -365,7 +366,7 @@ void main() {
         DateTimeToken(source: DateTimeSource.created, format: 'YYYYMMDD'),
       ]);
       await _pumpView(tester, controller);
-      await tester.tap(find.text('日時 YYYYMMDD'));
+      await tester.tap(tokenChip('日時 YYYYMMDD'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('詳細に記述')); // 008:T44

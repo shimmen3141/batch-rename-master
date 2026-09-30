@@ -6,6 +6,7 @@ import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'token_chip_support.dart';
 
 Future<void> _pump(WidgetTester tester, RuleController c) async {
   await tester.pumpWidget(
@@ -64,7 +65,7 @@ void main() {
       tokens: const [SequenceToken(start: 1, digits: 2)],
     );
     await _pump(tester, c);
-    await tester.tap(find.text('連番(2桁)'));
+    await tester.tap(tokenChip('連番(2桁)'));
     await tester.pumpAndSettle();
 
     // 桁数(2番目のステッパー)の + を1回。
@@ -74,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect((c.tokens.single as SequenceToken).digits, 3);
-    expect(find.text('連番(3桁)'), findsOneWidget);
+    expect(tokenChip('連番(3桁)'), findsOneWidget);
   });
 
   testWidgets('連番: start は 0 未満に減らせない', (tester) async {
@@ -82,7 +83,7 @@ void main() {
       tokens: const [SequenceToken(start: 0, digits: 2)],
     );
     await _pump(tester, c);
-    await tester.tap(find.text('連番(2桁)'));
+    await tester.tap(tokenChip('連番(2桁)'));
     await tester.pumpAndSettle();
 
     // 開始番号(先頭ステッパー)の - は無効(start=0)。
@@ -99,7 +100,7 @@ void main() {
       ],
     );
     await _pump(tester, c);
-    await tester.tap(find.text('日時 YYYYMMDD'));
+    await tester.tap(tokenChip('日時 YYYYMMDD'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('更新日時'));
@@ -112,13 +113,13 @@ void main() {
     final t = c.tokens.single as DateTimeToken;
     expect(t.source, DateTimeSource.modified);
     expect(t.format, 'YYYY-MM-DD');
-    expect(find.text('日時 YYYY-MM-DD'), findsOneWidget);
+    expect(tokenChip('日時 YYYY-MM-DD'), findsOneWidget);
   });
 
   testWidgets('元の名前: 設定項目がなくエディタは開かない', (tester) async {
     final c = RuleController(tokens: const [OriginalNameToken()]);
     await _pump(tester, c);
-    await tester.tap(find.text('元の名前'));
+    await tester.tap(tokenChip('元の名前'));
     await tester.pumpAndSettle();
 
     expect(find.text('確定'), findsNothing);
