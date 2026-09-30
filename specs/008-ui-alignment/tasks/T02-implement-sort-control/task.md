@@ -79,7 +79,7 @@
 - `warning_confirmation_results_test`: 「→」の数で結果行を数えていたので、表示「名前 A→Z」を拾わないよう「 → 」(空白付き)で数える。
 - `working_set_test`(**004**): 「選択結果の順が表示順・初期ソートは custom」→「名前の昇順」。**004 REQ-007 はこの変更と食い違っている**(下)。
 
-### 004 spec との食い違い(再承認待ち)
+### 004 spec との食い違い(2026-09-30 再承認済み)
 
 **004 REQ-007(must・承認済み)は「表示順は選択結果の順で、初期ソートは `custom`」と定めていて、`T01` が変えた 002 REQ-001 / REQ-008 と食い違う。** `T01` は 004 の OQ-2 には追記したが REQ-007 と D-3 を直し漏らした。`working_set_test` が落ちて見つかった([finding](../../../../development-findings/2026-09-30-spec-update-missed-counterpart-requirement-in-other-plan.md))。
 
@@ -102,7 +102,12 @@
 ERROR: M300 SURVIVED
 ```
 
-- **M300(並び順のキーを見ない)が SURVIVED。** 取り消しが古い控えを断る test を「向きだけ変える」形へ書き換えたので、**キーだけが変わる場合**を検査する test が無くなっていた。→ 「キーだけを変えた後の取り消しも、並びを戻さない」(サイズが同じなのでサイズ順にしても順序・向きが変わらない)を `file_list_view_test` へ足した。
+- **M300(並び順のキーを見ない)が SURVIVED。** 取り消しが古い控えを断る test を「向きだけ変える」形へ書き換えたので、**キーだけが変わる場合**を検査する test が無くなっていた。→ 「キーだけを変えた後の取り消しも、並びを戻さない」(サイズが同じなのでサイズ順にしても順序・向きが変わらない)を `file_list_view_test` へ足した(`86ea96a`)。M300 だけを回し直した: `flutter test test/spec_002_file_list`、対象 `86ea96a`。
+
+```text
+M300 | KILLED | lib/ui/file_list/removal_undo.dart | ... | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
 
 ## Current state / handoff
 
@@ -110,5 +115,5 @@ ERROR: M300 SURVIVED
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `ed7a0bf`
-- Next Agent action: mutation の結果を記録し、独立reviewを起動する。PASS後に manual 確認を依頼する
+- Evidence revision: `86ea96a`
+- Next Agent action: 独立reviewを起動する。PASS後に manual 確認を依頼する
