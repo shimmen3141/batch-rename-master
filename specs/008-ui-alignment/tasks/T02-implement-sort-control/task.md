@@ -7,6 +7,7 @@
 ## 入力と依存
 
 - `T01`で承認された002 spec。
+- **REQ-011の警告の配置**(`T01`が決めた。仕様にはしない — 008 plan 2026-08-29「案B」): 並び順の表示の**右の空き**に短く出し、入りきらないとき(狭幅・文字の拡大)は次の行へ回す。今の`_CreatedAtFallbackBanner`(一覧の上の帯)から移す。文言の全文(何件を更新日時で代替したか)は失わない。
 - `docs/design/Bulk Renamer.html`の並び順control。**適用する画面範囲は一覧上部の並び順controlに限る**(下部の実行バーは005:T09の成果なので動かさない)。
 - 現行実装: `lib/ui/file_list/file_list_view.dart`のsort chip、`lib/ui/file_list/file_list_controller.dart`の`manualOrderMatters`。
 

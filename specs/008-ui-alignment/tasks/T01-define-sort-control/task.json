@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "並び順controlの振る舞いを定義する",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
