@@ -118,7 +118,9 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
   - P3(成果物の欠陥): 004 spec の末尾に余分な空行(`git diff --check`) → 削った。
   - test のコメントの変更は `test/` の差分なので、「記録だけの差分」の SELF-CHECK には当たらない。差分reviewを attempt 2 とする。
 - **attempt 2**: `3b2bd0d..6b6c64c`(差分review) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。前回のP3 2件が閉じたこと、差分が触った3 fileに前回までとの食い違いが無いことを確認。`flutter test` 1107 PASS、`git diff --check 158b2be..6b6c64c` PASS。
-- 連鎖: `158b2be..3b2bd0d` PASS → `3b2bd0d..6b6c64c` PASS。以後の差分は記録だけ。
+- 連鎖: `158b2be..3b2bd0d` PASS → `3b2bd0d..6b6c64c` PASS。`6b6c64c..085f11b` は記録だけ。
+- **attempt 3**: `085f11b..83d4775`(差分review。実機確認1回目の配置の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。開発者の指定、005 REQ-009 (3)・REQ-020、008:T33、002 REQ-011/018/020 が壊れていないこと、testの改訂、M561の除去とM563の追加を確認。`flutter test` 1109 PASS・analyze・format・`git diff --check` PASS。reviewerが回したmutation 6件 KILLED。
+- 連鎖: `158b2be..3b2bd0d` → `3b2bd0d..6b6c64c` → (記録) → `085f11b..83d4775`、いずれも PASS。
 
 ### 実機確認 1回目(2026-09-30、対象 `6b6c64c`)と、それを受けた変更
 
@@ -143,9 +145,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認1回目の指定(並び順をケバブの左へ、状態のメッセージをバナーへ)を実装 `b3a9f06`。flutter test 1109 PASS・analyze・format・mutation 6件 KILLED
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `b3a9f06`
-- Next Agent action: 差分review(attempt 3、`085f11b..HEAD`)を起動し、PASS後に実機確認2回目を依頼する
+- Last checkpoint: 差分review attempt 3 PASS(`085f11b..83d4775`)。実機確認2回目を依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認2回目([manual-verification.md](manual-verification.md))
+- Requested action: 対象build `b3a9f06`(`lib/`が同一)で0〜3を確かめ、結果を会話で伝える
+- Evidence revision: `83d4775`(`lib/`は`b3a9f06`と同一)
+- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
