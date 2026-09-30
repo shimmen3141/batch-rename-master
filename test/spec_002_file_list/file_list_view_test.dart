@@ -261,6 +261,32 @@ void main() {
     expect(find.byKey(removalUndoStaleKey), findsOneWidget);
   });
 
+  testWidgets('キーだけを変えた後の取り消しも、並びを戻さない(REQ-017)', (tester) async {
+    // 上の test と対になる。**順序も向きも変わらず、キーだけが変わる**場合
+    // (サイズがすべて同じなので、サイズ順にしても名前順のまま並ぶ)。キーを
+    // 見ていないと「動いていない」と読め、戻すと表示「サイズ」と中身が食い違う。
+    final files = [
+      _f('a.txt', handle: 'h:a'),
+      _f('b.txt', handle: 'h:b'),
+      _f('c.txt', handle: 'h:c'),
+    ];
+    final c = FileListController(files: files, rule: _seq2);
+    await _pump(tester, c);
+
+    await removeOneFile(tester, 'h:c'); // c を外す → [a, b]
+    c.setSortMode(FileSortMode.size);
+    await tester.pumpAndSettle();
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt']);
+    expect(c.sortDirection, SortDirection.ascending);
+
+    await tester.tap(find.text('元に戻す'));
+    await tester.pumpAndSettle();
+
+    expect(c.items.map((f) => f.name), ['a.txt', 'b.txt']);
+    expect(c.sortMode, FileSortMode.size);
+    expect(find.byKey(removalUndoStaleKey), findsOneWidget);
+  });
+
   testWidgets('同じ名前で読み込み直しても、取り消しは新しい項目を上書きしない(REQ-017)', (tester) async {
     // **名前で見分けてはいけない。** 同じフォルダを読み込み直すと名前は同じでも
     // **別の項目**(ハンドルも状態も新しい)になる。005 の改名も項目を差し替える

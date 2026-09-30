@@ -46,9 +46,69 @@
 
 - **昇順・降順の選び方**: 3案(8項目のメニュー / keyのメニュー＋隣の向きボタン / 4行＋行内の向きボタン)を尋ね、**8項目のメニュー**(推奨案)を採った。keyと向きの組8つを1つのメニューへ並べ、どの状態へも1回で行け、選べるものが全部見える。向きは利用者の言葉で示す(名前 A→Z / Z→A、日時 古い順 / 新しい順、サイズ 小さい順 / 大きい順)。表示は「⇅ 並び順: 名前 A→Z」、手で並べると「⇅ 並び順: カスタム」。メニューに「カスタム」は出さない(002 REQ-003)。
 
+- **選択の印**(2026-09-30、実装中の指定): メニューで選んでいる項目の印は、**ファイルを選ぶときと同じ丸いチェックボックス**にし、選ばれたら円をシアンで、チェックを背景色で塗る。→ 一覧の選択モード(`removal_selection`)と読み込み画面(`storage_browser_view`)の印は既に同じ設定(円・`selectionMark`・`onPrimary`)だったので、**共通の部品`SelectionCheckbox`(`lib/ui/common/selection_checkbox.dart`)へ寄せ、3か所で使う**ようにした。チェックの色は既存の印と同じ`onPrimary`(#05252B。背景色 #0A0B0D に近い暗い色)で、3か所の見た目を揃えることを優先した。
+
+### 実装(`ed7a0bf`)
+
+| 002 spec | 実装 | test |
+|---|---|---|
+| REQ-001 初期は名前の昇順 | `FileListController` の初期化で名前の昇順に並べる | `sort_order_test` 例1d、`controller_test` REQ-001 |
+| REQ-002 昇順・降順、降順も安定 | `SortDirection`、`comparatorFor(mode, direction)` が比較を反転(列を反転しない) | 例1b・1c |
+| REQ-003 custom は選べない | `setSortMode(custom)` は `ArgumentError`。メニューにカスタムを出さない | `sort_order_test`、`manual_order_test` |
+| REQ-008 読み込み直しで当てはめ | `setFiles` が並び順を当て、`custom` なら名前の昇順へ | 例22〜24 |
+| REQ-011/013 向きを問わず | 判定は `sortMode == createdAt` のまま(向きを見ない) | 例26、`created_at_sort_view_test` |
+| REQ-017 取り消しは並び順も戻す | 状態層に `restoreFiles(entries, sortMode:, sortDirection:)` を足し、`removal_undo` は並び順も控えて戻す。控えが古いかの判定に向きも加えた | 例25(状態層・widget)、降順の取り消し |
+| REQ-018 モード中はつまみを出さない | 変えていない(並び順のcontrolはモード中も出す) | `removal_selection_mode_test` 代表例17 |
+| REQ-019 つまみはルールに関わらず | `manualOrderMatters` と `showDragHandle` を廃止 | 例16(連番なしで並べて「カスタム」) |
+| REQ-020 1か所で読めて全部選べる | `_SortBar` を `⇅ 並び順: 名前 A→Z ▾` と8項目の `PopupMenuButton` へ。文字2.0で最後の項目まで届く | `manual_order_test` REQ-020・N-8a |
+| REQ-020 実行後は並べ直さない | `replaceItems` は変えていない(並べ直さない) | 例27 |
+
+- **REQ-011 の警告の配置**(`T01` の決定): 一覧の上の帯(`_CreatedAtFallbackBanner`)をやめ、並び順の表示と同じ `Wrap` に短い注記「⚠ 作成日時不明の N 件は更新日時で代替」を置いた。入りきらなければ次の行へ回る。件数と代替したことは残した。test は「表示の右に出る」「320幅・文字2.0で次の行へ回り、はみ出さない」。
+- **参考デザインから離れた点**: 土台は横並びの chip(元の名前順・作成日時順・サイズ順・カスタム順)で昇降を持たない。ドロップダウン・昇降・カスタムを選べないことは開発者の決定 (e)(2026-08-05)と `T01` の 002 spec による。キーの表示名を「元の名前順」から「名前」へ変えた(向きの語「A→Z」と並べるため)。
+
+### 既存testの改訂(承認済みの仕様の変更に追随したもの)
+
+以前の振る舞いを検査していたtestを、新しい 002 spec に合わせて書き換えた。**assertionを緩めたものは無い** — 期待値を新しい仕様の値へ変えたか、前提(初期の並び)を明示した。
+
+- `controller_test`: 初期が入力順・`custom` → 名前の昇順・`name`。`custom` の指定 → `ArgumentError`。
+- `manual_order_test`: REQ-014(連番が無いと出さない)を REQ-019・REQ-020 の検査へ書き換えた。
+- `created_at_sort_test`: 警告しないソートの列挙から `custom` の指定を外し、手で並べた `custom` で検査。昇降の両方を回す。
+- `created_at_sort_view_test` / `file_list_view_test`: chip のタップをメニューの選択へ。取り消しが古い控えを断る test は、**向きだけ変える**形にした(向きの判定を検査するため)。
+- `preview_rows_test` / `warning_detail_scope_test`: 入力順が表示順になる前提だったので、`reorder` / 名前の降順で同じ並びを作った。
+- `removal_selection_mode_test`: 印を `SelectionCheckbox` で探す。「カスタム順」chip の検査を「並び順のcontrolは出る」へ。モード中に並べ替わらないことの検査は `sortMode` が初期の `name` のままであることで見る。
+- `warning_confirmation_results_test`: 「→」の数で結果行を数えていたので、表示「名前 A→Z」を拾わないよう「 → 」(空白付き)で数える。
+- `working_set_test`(**004**): 「選択結果の順が表示順・初期ソートは custom」→「名前の昇順」。**004 REQ-007 はこの変更と食い違っている**(下)。
+
+### 004 spec との食い違い(再承認待ち)
+
+**004 REQ-007(must・承認済み)は「表示順は選択結果の順で、初期ソートは `custom`」と定めていて、`T01` が変えた 002 REQ-001 / REQ-008 と食い違う。** `T01` は 004 の OQ-2 には追記したが REQ-007 と D-3 を直し漏らした。`working_set_test` が落ちて見つかった([finding](../../../../development-findings/2026-09-30-spec-update-missed-counterpart-requirement-in-other-plan.md))。
+
+- 開発者が承認した 002 の意図(読み込み直後は名前の昇順)に合わせて実装を進め、**004 spec の訂正案**(REQ-007・D-3・自由とする点。「008:T02 由来の更新」)を書いた。
+- **2026-09-30 に開発者が 004 spec の訂正を再承認した**(回答「004 specの訂正は承認します」)。004 spec の Status と節見出しを承認済みにした。
+- **チェックの色**: 既存の印と同じ `onPrimary`(暗いシアン)のままでよい、と開発者が確認した(2026-09-30)。
+
+### mutation
+
+`tool/mutations.json` を追随させた。`python3 tool/check_mutation_finds.py` → `PASS: 518 mutation(s)`。
+
+- `find` を追随させた: M291・M293・M294・M299・M300・M309・M325・M328・M343・M368・M414(つまみの枠が常に出る、取り消しが `restoreFiles` で戻す、向きの判定、選択の印の共通部品化)。
+- **外した: M310**(モード中も「カスタム順」chip を出す)— chip そのものが無くなり、REQ-003 でカスタムは選べない。守る対象が無い。モード中の並び順の提示は REQ-018 が許している。
+- 足した: M548〜M562(初期の並び、読み込み直しの当てはめ、custom の戻し、降順の無視・列の反転(対照)、custom の指定、降順の警告、取り消しの並び順と向き、実行後の並べ直し、印、降順の欠落、警告の配置、連番なしのつまみ)。
+
+**範囲付きで回した**(26件 = `find` を追随させた11件 + 足した15件。AGENTS.md の絞り方。表を作業用へcopyし `command` を差し替えた): `flutter test test/spec_002_file_list test/spec_004_file_source test/spec_005_rename_exec`、対象 `ed7a0bf`。
+
+```text
+26 mutations: 25 KILLED, 1 SURVIVED, 0 SKIPPED
+ERROR: M300 SURVIVED
+```
+
+- **M300(並び順のキーを見ない)が SURVIVED。** 取り消しが古い控えを断る test を「向きだけ変える」形へ書き換えたので、**キーだけが変わる場合**を検査する test が無くなっていた。→ 「キーだけを変えた後の取り消しも、並びを戻さない」(サイズが同じなのでサイズ順にしても順序・向きが変わらない)を `file_list_view_test` へ足した。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手し、昇降の選び方を開発者が決めた(2026-09-30)
+- Last checkpoint: 実装 `ed7a0bf`、M300 の test 追加。004 spec の訂正を開発者が再承認(2026-09-30)
 - Blocker category: なし
 - Waiting for: なし
-- Next Agent action: test-firstで状態層(初期・読み込み直し・昇降・取り消しの戻し)を実装し、次に並び順controlを置き換える
+- Requested action: なし
+- Evidence revision: `ed7a0bf`
+- Next Agent action: mutation の結果を記録し、独立reviewを起動する。PASS後に manual 確認を依頼する

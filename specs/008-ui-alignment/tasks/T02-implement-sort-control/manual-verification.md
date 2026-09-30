@@ -1,29 +1,114 @@
-# 手動確認: 並び順control
+# 手動確認: 並び順のメニューと、読み込み直しの並び順(Androidエミュレータ)
 
-## この文書の状態
+**対象buildは、`lib/`・`hook/`・`src/`の内容が依頼時に`task.md`へ書くcommitと同一のもの**である。branch `asdd/008-ui-alignment/T02-implement-sort-control` のHEADからbuildすればこれを満たす。**code・dependency・build設定が変わったら、この結果は再利用しない。**
 
-**このtaskはまだ実装されていません。人間へ依頼できる手順はまだありません。**
+**Androidエミュレータで確認する**(`008:T39`で開発者が決めた方針)。見るのは**見た目・押しやすさ・並び順**で、速さは見ないので debug build でよい。
 
-画面文言もbuttonの位置も決まっていないため、いま手順を書くと実際の画面と食い違うものが残ります。実行できるchecklistは実装時に書きます。
+widget testで確かめ済みのこと(8項目がある・印が1つだけ付く・選ぶと並ぶ・文字2.0で最後の項目へ届く・取り消しで並びが戻る)は、**実機での見え方と押しやすさ**だけを見る。
 
-以下は**実装するAgent向けのmemo**です。
+## 使う端末と準備
 
-## 実装時にchecklistへ落とす観点
+- 起動と`flutter run`は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)のとおり。**host側でworktree `.worktrees/008-T02-implement-sort-control` へ`cd`してから`flutter pub get` → `flutter run`**する(branchの移動は不要。エミュレータが1台なら`-d`は要らない)。
+- `adb devices`にエミュレータが**1台だけ**出ていることを確かめる。
 
-- `task.md`の受け入れ証拠のうち、**自動testで観測できないもの**だけを手順にする。widget testで足りるものを人間へ回さない。
-- 実機で触らないと分からないこと(tap範囲、SafeArea、swipeの誤爆、狭幅での可読性、操作の分かりやすさ)に絞る。
-- AndroidとWindows desktopで挙動が違う項目は、両方の節を分けて書く。
+### 準備するファイル
 
-## 手順を書くときの規律
+確認専用のフォルダ`Download/asdd-008-t02-a`と`Download/asdd-008-t02-b`だけを使い、**どちらかが既にあれば何も置かずに止まる**。
 
-このprojectで実際に踏んだ失敗を繰り返さないこと。
+```powershell
+$adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+$existing = "$(& $adbPath shell "if [ -e /sdcard/Download/asdd-008-t02-a ] || [ -e /sdcard/Download/asdd-008-t02-b ]; then echo exists; fi")".Trim()
+if ($existing -eq 'exists') {
+  Write-Host '端末に Download/asdd-008-t02-a か -b が既にあります。何も置かずに止めました。' -ForegroundColor Red
+} else {
+  & $adbPath shell "mkdir -p /sdcard/Download/asdd-008-t02-a /sdcard/Download/asdd-008-t02-b"
+  & $adbPath shell "echo a > /sdcard/Download/asdd-008-t02-a/a.txt"
+  & $adbPath shell "echo bbbbbbbbbb > /sdcard/Download/asdd-008-t02-a/b.txt"
+  & $adbPath shell "echo ccccc > /sdcard/Download/asdd-008-t02-a/c.txt"
+  & $adbPath shell "echo z > /sdcard/Download/asdd-008-t02-b/z.txt"
+  & $adbPath shell "echo y > /sdcard/Download/asdd-008-t02-b/y.txt"
+  & $adbPath shell "echo x > /sdcard/Download/asdd-008-t02-b/x.txt"
+  & $adbPath shell "ls -l /sdcard/Download/asdd-008-t02-a /sdcard/Download/asdd-008-t02-b"
+}
+```
 
-- **PowerShellの変数を使わない。** pathは毎回literalで書く。手順を上から実行するとappを起動したterminalが埋まり、確認は別terminalになるため、前のblockの変数は残らない。
-- **各stepの先頭でfixtureを作り直す。** 改名を重ねると名前が伸びるなど、step間の状態依存で後半が成立しなくなる。
-- **依頼前にdry-runする。** 記載する画面文言・path・commandを`git grep`でcurrent revisionと突き合わせる。設定画面のアプリ名は`AndroidManifest.xml`の`android:label`、Recentsは`MaterialApp.title`、アプリ内見出しはAppBarで、3つとも別物。
-- **返信templateやstatus欄を作らない。** 結果は会話で自由形式で受け取り、Agentが`task.md`へ要約する。
-- **独立reviewを先に通してから依頼する。** reviewの指摘でcodeが変わるとmanual証拠が失効する。
+**期待**: `-a`に`a.txt`(2 B)`b.txt`(11 B)`c.txt`(6 B)、`-b`に`x.txt` `y.txt` `z.txt`が出る。
 
-## 事前準備(実装時に具体化する)
+**上のcommandが「既にあります。何も置かずに止めました」と出した場合は、ここで止まる。** そのフォルダはこの手順が作ったものではないかもしれないので、**中身を確かめ、何のフォルダか分かるまで先へ進まず、後片付けでも消さない**(知らせてほしい)。
 
-起動手順は[`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)に従う。
+**後片付け**: **このcommandが作った場合だけ**、確認が終わったら端末のファイルアプリで`Download/asdd-008-t02-a`と`Download/asdd-008-t02-b`を消してよい。
+
+## 0. いま動いているのが、このtaskのbuildか確かめる
+
+ファイルを読み込むと、一覧の上に**横並びのchip(「元の名前順」など)ではなく**、`⇅ 並び順: 名前 A→Z ▾`の1つの表示が出ていれば、このtaskのbuildである。
+
+## 1. 並び順のメニュー
+
+1. 「ファイルを選ぶ」→「すべて」→ `Download` → `asdd-008-t02-a` で3件を選び、「確定」する。
+
+**こうなってほしい**
+
+- 一覧は **a.txt → b.txt → c.txt**(名前の昇順)。表示は`⇅ 並び順: 名前 A→Z`。
+- 表示を押すと、**8項目のメニュー**が開く: 名前 A→Z / Z→A、作成日時 古い順 / 新しい順、更新日時 古い順 / 新しい順、サイズ 小さい順 / 大きい順。
+- **今の「名前 A→Z」の行の右にだけ、シアンの円に暗いチェック**が付き、ほかの行は**枠だけの円**。
+  **この円とチェックが、読み込み画面でファイルを選んだときの印、一覧の「外すファイルを選ぶ」の印と同じに見える。**
+- 各行が指で押しやすい高さで、**円だけでなく行のどこを押しても選べる**。
+
+2. 「サイズ 大きい順」を選ぶ。
+
+- メニューが閉じ、一覧が **b.txt → c.txt → a.txt**(11 B → 6 B → 2 B)。表示は`並び順: サイズ 大きい順`。
+- もう一度開くと、**印が「サイズ 大きい順」へ移っている**。
+
+3. 「作成日時 古い順」を選ぶ。
+
+- 作成日時が取れないファイルがあれば(Androidでは全件取れないことが多い)、**表示の右に**「⚠ 作成日時不明の N 件は更新日時で代替」が**赤で**出る。**出なかった場合は、そのことを知らせてほしい**(警告の置き場所を実機で見られないため)。**表示と同じ行**に収まるか、**入りきらなければ次の行へ回り、文字が切れない**。
+- 「作成日時 新しい順」でも同じ警告が出る。「名前 A→Z」へ戻すと消える。
+
+## 2. 手で並べる(連番の無いルールでも)
+
+1. 命名ルールを**連番の入らない**もの(例: 先頭に文字列`x_`と元の名前)にする。
+2. 一覧の行の右端に**並び替えのつまみ(≡)が出ている**ことを確かめ、c.txt のつまみを掴んで**先頭へ**動かす。
+
+**こうなってほしい**
+
+- 並べ替えられる(以前は連番が無いとつまみが出なかった)。表示が`並び順: カスタム`に変わる。
+- メニューを開くと、**どの行にも印が付いていない**。メニューに「カスタム」の行は**無い**。
+
+## 3. 除去の取り消しで並びが戻る
+
+1. 2の状態(c.txt が先頭のカスタム)で、右上の**︙ →「外すファイルを選ぶ」** → b.txt を選び → 上の段の**外すアイコン**を押す。
+2. 出た通知の「**元に戻す**」を押す(通知は数秒で消えるので、その前に)。
+
+**こうなってほしい**
+
+- b.txt が**元の位置**へ戻り、並びは**手で並べたまま**(c.txt が先頭)。表示は`並び順: カスタム`のまま。**名前順に並び直さない。**
+
+## 4. 読み込み直しで並び順が当たる(T01で見つけた不具合の確認)
+
+1. メニューで「**名前 Z→A**」を選ぶ。
+2. 「**別フォルダへ**」→「すべて」→ `Download` → `asdd-008-t02-b` で3件を選び、「確定」する。
+
+**こうなってほしい**
+
+- 一覧は **z.txt → y.txt → x.txt**(名前の降順)。表示は`並び順: 名前 Z→A`のまま。**表示と中身が食い違わない。**
+
+3. 手でどれか1件を動かして`カスタム`にしてから、もう一度「別フォルダへ」→ `asdd-008-t02-b` の3件を「確定」する。
+
+- 一覧は **x.txt → y.txt → z.txt**、表示は`並び順: 名前 A→Z`(カスタムは名前の昇順へ戻る)。
+
+## 5. 文字サイズ最大
+
+1. 端末の**設定 → ユーザー補助(または画面)→ フォントサイズを最大**にしてアプリへ戻る。
+2. 表示を押してメニューを開く。
+
+**こうなってほしい**
+
+- 並び順の表示が**画面外へはみ出さず**、全文が読める(折り返してよい)。
+- メニューは**スクロールでき**、**「サイズ 大きい順」まで届いて選べる**。下に続きがあることが分かる(項目が途中で切れて見えるなど)。
+- 作成日時順の警告も、切れずに次の行へ回る。
+
+確認後、フォントサイズを元へ戻す。
+
+## 結果の伝え方
+
+会話で自由に伝えてほしい(番号ごとに「期待どおり」「ここが違う」で足りる)。Agentが`task.md`へ記録する。
