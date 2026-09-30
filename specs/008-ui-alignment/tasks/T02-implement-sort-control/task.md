@@ -140,6 +140,8 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - 連鎖: `158b2be..3b2bd0d` PASS → `3b2bd0d..6b6c64c` PASS。`6b6c64c..085f11b` は記録だけ。
 - **attempt 3**: `085f11b..83d4775`(差分review。実機確認1回目の配置の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。開発者の指定、005 REQ-009 (3)・REQ-020、008:T33、002 REQ-011/018/020 が壊れていないこと、testの改訂、M561の除去とM563の追加を確認。`flutter test` 1109 PASS・analyze・format・`git diff --check` PASS。reviewerが回したmutation 6件 KILLED。
 - 連鎖: `158b2be..3b2bd0d` → `3b2bd0d..6b6c64c` → (記録) → `085f11b..83d4775`、いずれも PASS。
+- **attempt 4**: `ef1ae09..098a4c1`(差分review。実機確認2回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。開発者の指定、008:T16 N-9、005 REQ-009 (3)(4)、008:T33、002 REQ-018/020、testの改訂(`.first` は件数の文言へ限定しただけ)、M186の除去とM564〜M571を確認。`flutter test` 1113 PASS・analyze・format・`git diff --check` PASS。reviewerが回したmutation 12件 KILLED。
+- 連鎖: `158b2be..3b2bd0d` → `3b2bd0d..6b6c64c` → (記録) → `085f11b..83d4775` → (記録 `83d4775..ef1ae09`) → `ef1ae09..098a4c1`、いずれも PASS。
 
 ### 実機確認 1回目(2026-09-30、対象 `6b6c64c`)と、それを受けた変更
 
@@ -164,9 +166,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認2回目の指定を実装 `4932a39`(flutter test 1113 PASS・analyze・format・mutation 12件 KILLED)
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `4932a39`
-- Next Agent action: 差分review(attempt 4、`ef1ae09..HEAD`)を起動し、PASS後に実機確認3回目を依頼する
+- Last checkpoint: 差分review attempt 4 PASS(`ef1ae09..098a4c1`)。実機確認3回目を依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認3回目(`/workspace/.worktrees/008-T02-implement-sort-control/specs/008-ui-alignment/tasks/T02-implement-sort-control/manual-verification.md`)
+- Requested action: 対象build `4932a39`(`lib/`が同一)で0〜3を確かめ、結果を会話で伝える
+- Evidence revision: `098a4c1`(`lib/`は`4932a39`と同一)
+- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
