@@ -91,12 +91,14 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - **attempt 2**: `52e63fa..d6b0b6f`(差分review) — **BLOCKED**(指摘なし)。reviewerは`gpt-6-luna`。前回のP2が閉じたこと、差分が触った4 fileに前回までとの食い違いが無いことを確認した。BLOCKED の理由は**検証を `docker compose` 経由で流そうとし、この環境に `docker` が無かった**ことだけである(attempt 1 は同じ環境で直接実行できていた)。`git diff --check` は PASS。
   - **SELF-CHECK**(2026-09-29 の前例に倣う): 所有Agentが同じ HEAD `d6b0b6f` で `flutter test` → `+1117: All tests passed!`、`python3 tool/check_mutation_finds.py` → `PASS: 535 mutation(s)`。reviewer が確認できなかったのはこの2つの実行だけで、判断に関わる指摘は無い。
 - 連鎖: `5bfcc7a..52e63fa` PASS → `52e63fa..d6b0b6f`(reviewer は指摘なし、検証の実行は SELF-CHECK で補った)。
+- **attempt 3**: `6185920..b7d292b`(差分review。実機確認1回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。語の変更が設定画面と下部バーで一貫、中央寄せ後も幅の見積もりと描画が一致、testの改訂に緩和なし、M582〜M586 が妥当。`flutter test` 1120 PASS・analyze・format・`check_mutation_finds.py` 540・`git diff --check` PASS。reviewerが回したmutation 5件 KILLED。
+- 連鎖: 上に続けて (記録 `d6b0b6f..6185920`) → `6185920..b7d292b` PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認1回目の指定を実装 `06f163b`(flutter test 1120 PASS・analyze・format・mutation 9件 KILLED)
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `06f163b`
-- Next Agent action: 差分review(attempt 3、`6185920..HEAD`)を起動し、PASS後に実機確認2回目を依頼する
+- Last checkpoint: 差分review attempt 3 PASS(`6185920..b7d292b`)。実機確認2回目を依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認2回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)
+- Requested action: 対象build `06f163b`(`lib/`が同一)で0〜2を確かめ、結果を会話で伝える
+- Evidence revision: `b7d292b`(`lib/`は`06f163b`と同一)
+- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
