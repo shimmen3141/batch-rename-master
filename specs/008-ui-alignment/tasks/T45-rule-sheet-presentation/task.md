@@ -221,11 +221,17 @@ M547 | KILLED | lib/ui/rule_builder/rule_builder_view.dart | exit 1
 - attempt 5: `354c916..4b133af`(差分、implementation) — **PASS**(指摘なし)。reviewerのmodelは`gpt-6-luna`。attempt 4 のP2が閉じたこと(式を1.3倍・3倍でも照合)、シートを開いている間の高さの変化を新しく作っていないこと(OS側の拡大率を開いたまま変えた場合だけは変わりうる)、testが本来要る高さで見ていること、`M541`・`M545`〜`M547`を確認された。full test 1082件・format・analyze・`check specs` PASS。
   - 連鎖: `8d65b0c..72a711b` → `72a711b..dca9d7a` → `dca9d7a..abb9ef3` → `abb9ef3..354c916` → `354c916..4b133af`、すべてPASS。
 
+## manual 3回目の結果(2026-09-30、code `f6ad967`、受領: 会話。原文)
+
+> - 確認事項について、すべて問題ありませんでした。
+
+- 環境: host側のAndroidエミュレータ、worktree `.worktrees/008-T45-rule-sheet-presentation`、fixture `Download/asdd-008-t25`の3件、縦向きから開始。
+- 対象: 手順書の1.〜5.(ガタつき: 変更あり↔なし・長い名前・チップ0↔1個でシートの高さが変わらない。×の円のはみ出しと押せる範囲。シートの枠・並べ替え・プレビュー・広幅)。すべてPASS。
+- `f6ad967`以後の差分はtest(`test/`)・`tool/mutations.json`・`specs/`だけで、`lib/`・依存・build設定は変わっていないため、この証拠はHEADにも有効。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 5 PASS(code `f6ad967`)。
-- Blocker category: manual evidence
-- Waiting for: 開発者のmanual 3回目(code `f6ad967`。HEADからbuildすれば同じcode)
-- Requested action: worktree `.worktrees/008-T45-rule-sheet-presentation`で手順書の1.〜5.を実行し、結果を知らせる
+- Last checkpoint: manual 3回目 PASS(code `f6ad967`)。
+- Blocker category: none
 - Evidence revision: code `f6ad967`
-- Next Agent action: manual 3回目の結果を記録する。PR #200(Draft)
+- Next Agent action: final-evidence reviewを依頼する。PASSならPR #200をreadyにしてmergeする
