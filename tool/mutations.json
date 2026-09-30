@@ -1282,13 +1282,6 @@
       "note": "008:T16 行の警告を別インスタンスで引き当てる — validateは選択を写した複製を見るのでidentityがずれる(独立reviewが追加)"
     },
     {
-      "id": "M186",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  : Wrap(\n                      spacing: 12,\n                      runSpacing: 4,\n                      crossAxisAlignment: WrapCrossAlignment.center,",
-      "replace": "                  : Row(\n                      spacing: 12,",
-      "note": "008:T16 ヘッダを Wrap から Row へ戻す — 幅が足りないとき次の行へ落とせず、はみ出すか切り詰めるしかなくなる(独立reviewが見つけたP1の型)"
-    },
-    {
       "id": "M187",
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "  if (empty != null) return <Warning>[empty];",
@@ -1298,9 +1291,9 @@
     {
       "id": "M188",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        Text(\n                          key: fileCountKey,\n                          '$total 件',\n                          maxLines: 2,\n",
-      "replace": "                        SizedBox(\n                          width: 24,\n                          child: Text(\n                          key: fileCountKey,\n                          '$total 件',\n                          maxLines: 1,\n                          overflow: TextOverflow.ellipsis,\n",
-      "note": "008:T16 ヘッダの件数の幅を固定して切り詰める — `1000 件` が `1…` と読め、総数を誤読できる(独立reviewが見つけたP1)。**008:T04 で貼り直した** — 「n/n 件を選択」を総件数へ置き換えたことで元の形(`maxLines` を1にして省略する)は**等価mutantになり全件でSURVIVEDした**(短い文字列は省略が起きない)。保証は変えず、切り詰めが実際に起きる形へ替えた"
+      "find": "                    : Text(\n                        key: fileCountKey,\n                        '$total 件',\n                        maxLines: 2,\n",
+      "replace": "                    : SizedBox(\n                        width: 24,\n                        child: Text(\n                        key: fileCountKey,\n                        '$total 件',\n                        maxLines: 1,\n                        overflow: TextOverflow.ellipsis,\n",
+      "note": "008:T16 ヘッダの件数の幅を固定して切り詰める — `1000 件` が `1…` と読め、総数を誤読できる(独立reviewが見つけたP1)。**008:T04 で貼り直した** — 「n/n 件を選択」を総件数へ置き換えたことで元の形(`maxLines` を1にして省略する)は**等価mutantになり全件でSURVIVEDした**(短い文字列は省略が起きない)。保証は変えず、切り詰めが実際に起きる形へ替えた  **008:T02 で上の帯を LayoutBuilder で包み(並び順と件数の幅の配分)、字下げが変わったので `find` を追随させた**"
     },
     {
       "id": "M191",
@@ -1732,9 +1725,9 @@
     {
       "id": "M258",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  onTap: () => showWarningDetail(\n                    context,\n                    controller.warnings,\n                    ruleIsEmpty: controller.isRuleEmpty,",
-      "replace": "                  onTap: () => showWarningDetail(\n                    context,\n                    controller.rows.first.warnings,\n                    ruleIsEmpty: controller.isRuleEmpty,\n                    scopeFile: controller.rows.first.source,",
-      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)。**`find` を attempt 1 の修正へ追随させた**  **008:T02 で件数を上の帯から状態のメッセージのバナー(`_MessageBanner`)へ移した(2026-09-30 の開発者の指定)ので、`find` を追随させた**"
+      "find": "    void openDetail() => showWarningDetail(\n      context,\n      controller.warnings,\n      ruleIsEmpty: controller.isRuleEmpty,",
+      "replace": "    void openDetail() => showWarningDetail(\n      context,\n      controller.rows.first.warnings,\n      ruleIsEmpty: controller.isRuleEmpty,\n      scopeFile: controller.rows.first.source,",
+      "note": "008:T19 全件の入口を1ファイルへ絞る — 005 REQ-009 (4)「全件の入口が1ファイルに絞られる実装を排除する」(逆方向の対照)。**`find` を attempt 1 の修正へ追随させた**  **008:T02 で件数を上の帯から状態のメッセージのバナー(`_MessageBanner`)へ移した(2026-09-30 の開発者の指定)ので、`find` を追随させた**  **008:T02 で押せる範囲をバナーの行全体へ広げ、開く処理を `openDetail` へまとめたので `find` を追随させた**"
     },
     {
       "id": "M259",
@@ -2257,9 +2250,9 @@
     {
       "id": "M334",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                if (!selecting)\n                  PopupMenuItem<VoidCallback?>(\n                    key: removalModeEnterKey,",
-      "replace": "                if (false)\n                  PopupMenuItem<VoidCallback?>(\n                    key: removalModeEnterKey,",
-      "note": "008:T29 ケバブから `外すファイルを選ぶ` を落とす — 長押しに依存しない入口(002 REQ-018 (b))が消え、マウスと支援技術から辿れなくなる(代表例 6j)"
+      "find": "                  if (!selecting)\n                    PopupMenuItem<VoidCallback?>(\n                      key: removalModeEnterKey,",
+      "replace": "                  if (false)\n                    PopupMenuItem<VoidCallback?>(\n                      key: removalModeEnterKey,",
+      "note": "008:T29 ケバブから `外すファイルを選ぶ` を落とす — 長押しに依存しない入口(002 REQ-018 (b))が消え、マウスと支援技術から辿れなくなる(代表例 6j)  **008:T02 で上の帯を LayoutBuilder で包み(並び順と件数の幅の配分)、字下げが変わったので `find` を追随させた**"
     },
     {
       "id": "M335",
@@ -2285,9 +2278,9 @@
     {
       "id": "M338",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          if (total > 0)\n            PopupMenuButton<VoidCallback?>(",
-      "replace": "          if (total > 0 && !selecting)\n            PopupMenuButton<VoidCallback?>(",
-      "note": "008:T29 ケバブをモード中に出さない — 「ケバブは両モードで同じ位置」(2026-09-19 の補足)が壊れ、モード中に すべて選択 / すべてをリネーム対象から外す へ到達できなくなる。独立review attempt 1 が設計した対照"
+      "find": "            if (total > 0)\n              PopupMenuButton<VoidCallback?>(",
+      "replace": "            if (total > 0 && !selecting)\n              PopupMenuButton<VoidCallback?>(",
+      "note": "008:T29 ケバブをモード中に出さない — 「ケバブは両モードで同じ位置」(2026-09-19 の補足)が壊れ、モード中に すべて選択 / すべてをリネーム対象から外す へ到達できなくなる。独立review attempt 1 が設計した対照  **008:T02 で上の帯を LayoutBuilder で包み(並び順と件数の幅の配分)、字下げが変わったので `find` を追随させた**"
     },
     {
       "id": "M339",
@@ -3633,6 +3626,62 @@
       "find": "      key: messageBannerKey,\n      duration: const Duration(milliseconds: 200),",
       "replace": "      key: messageBannerKey,\n      duration: Duration.zero,",
       "note": "008:T02 メッセージのバナーの高さを一度に変える — メッセージの増減で一覧が急に動く(2026-09-30 の開発者の指定「高さが滑らかに変わるように」)"
+    },
+    {
+      "id": "M564",
+      "file": "lib/ui/file_list/header_metrics.dart",
+      "find": "const double headerBarRightPadding = 2;",
+      "replace": "const double headerBarRightPadding = 8;",
+      "note": "008:T02 ケバブの右の余白を詰めない — 左と同じ padding では tap target(48)とアイコン(20)の差だけ右に余白が目立つ(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M565",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            if (total > 0)\n              Expanded(\n                child: Align(\n                  alignment: Alignment.centerRight,\n                  child: _SortControl(controller: controller),\n                ),\n              ),",
+      "replace": "            if (total > 0)\n              Flexible(child: _SortControl(controller: controller)),",
+      "note": "008:T02 並び順を `Flexible` で包む — 行の幅の半分を取り置いて使わず、余りがケバブの右に空く(実機確認2回目で開発者が指摘した形そのもの)"
+    },
+    {
+      "id": "M566",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      fits ? withPrefix : current,",
+      "replace": "                      current,",
+      "note": "008:T02 「並び順:」を付けない — 入る幅でも付けない(2026-09-30 の開発者の指定「入るなら入れなおしてください」)"
+    },
+    {
+      "id": "M567",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      fits ? withPrefix : current,",
+      "replace": "                      withPrefix,",
+      "note": "008:T02 「並び順:」を常に付ける — 入らない幅・文字の拡大でも付けて、帯が縦に伸びる(対照)"
+    },
+    {
+      "id": "M568",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                maxWidth: constraints.maxWidth * headerTextMaxWidthFraction,",
+      "replace": "                maxWidth: 30,",
+      "note": "008:T02 件数の欄を並び順に削らせる — 狭幅・文字の拡大で `1000 件` が切れて誤読できる(008:T16 の N-9。`008:T02` で幅の配分を変えたときに実際に起きた)"
+    },
+    {
+      "id": "M569",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              has ? Icons.warning_amber_rounded : Icons.check_circle_outline,",
+      "replace": "              has ? Icons.error_outline : Icons.check_circle_outline,",
+      "note": "008:T02 「N 件の問題」の印を警告マークに揃えない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M570",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  decoration: TextDecoration.underline,\n",
+      "replace": "",
+      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M571",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              onTap: hasWarnings ? openDetail : null,",
+      "replace": "              onTap: null,",
+      "note": "008:T02 バナーの行を押しても開かない — 「詳細」の文字以外を押しても開く(2026-09-30 の開発者の指定)"
     }
   ]
 }

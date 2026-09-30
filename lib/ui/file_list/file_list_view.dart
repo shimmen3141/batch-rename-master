@@ -1318,122 +1318,136 @@ class _HeaderBar extends StatelessWidget {
     final colors = context.colors;
     final total = controller.items.length;
     return Container(
-      // 左右の padding は**吹き出しのツノの位置にも効く**ので共有する(`008:T30`)。
-      padding: const EdgeInsets.symmetric(
-        horizontal: headerBarHorizontalPadding,
-        vertical: 4,
+      // **右は詰める**(2026-09-30 の開発者の指定。`008:T02` の実機確認2回目)。ケバブの
+      // tap target(48)は中のアイコン(20)より広いので、左と同じ padding では
+      // アイコンの右に余白が目立つ。右を詰めて、アイコンの右端と左端の件数の余白を揃える。
+      padding: const EdgeInsets.fromLTRB(
+        headerBarHorizontalPadding,
+        4,
+        headerBarRightPadding,
+        4,
       ),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
-      child: Row(
-        children: [
-          if (selecting)
-            IconButton(
-              key: removalModeExitKey,
-              onPressed: onExitRemovalMode,
-              icon: const Icon(Icons.close, size: 18),
-              color: colors.textSecondary,
-              tooltip: '選ぶのをやめる',
-              visualDensity: VisualDensity.compact,
-              // **tap target を数で固定する**(`008:T30`)。帯の吹き出しは
-              // この幅からツノの位置を出すので、実際の描画幅が数と一致している
-              // 必要がある(widget test が実測で確かめる)。
-              constraints: const BoxConstraints.tightFor(
-                width: headerIconExtent,
-                height: headerIconExtent,
-              ),
-              padding: EdgeInsets.zero,
-            ),
-          // **文字は左、操作は右**(2026-09-19 の要望4)。
-          //
-          // 文字側だけ `Expanded` にして折り返させる。`Row` にそのまま並べると
-          // 幅が足りないとき「はみ出す」か「切り詰める」しかなく、切り詰めは
-          // overflow を出さないまま `1000 件` を `1…` と読ませる(008:T16 の P1)。
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: selecting
-                  // **「2件選択中」と簡潔に出す**(2026-09-19 の決定)。`T27` の
-                  // 決定節は「外すことを名指しする見出し」を勧めていたが、
-                  // 開発者がこちらを選んだ。誤読を防ぐ役割は、外すアイコンの
-                  // tooltip とケバブの文言が引き受ける。REQ-018 は文言を縛らない。
-                  ? Text(
-                      key: removalModeCountKey,
-                      '$markedCount件選択中',
-                      maxLines: 2,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    )
-                  : Wrap(
-                      spacing: 12,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        // **選択の切り替えは出さない**(002 REQ-016)。
-                        // **総件数は残す**(いま何件を扱っているかは実行前に知りたい)。
-                        Text(
-                          key: fileCountKey,
-                          '$total 件',
-                          maxLines: 2,
-                          style: TextStyle(
-                            color: colors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-          // **並び順はケバブの左**(2026-09-30 の開発者の指定。`008:T02` の実機確認)。
-          // 以前は並び順だけの帯が一覧の上にあった。モード中も出す(並び順の選択は
-          // 提示してよい。REQ-018)。文字の拡大では折り返す(`Flexible`)。
-          if (total > 0) Flexible(child: _SortControl(controller: controller)),
-          // **外す操作は帯に置かない**(`008:T42`)。モード中はフッターの「N件を外す」が持つ。
-          // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
-          // 一覧が空のときだけ出さない(どの項目も対象が無い)。
-          if (total > 0)
-            PopupMenuButton<VoidCallback?>(
-              key: listMenuKey,
-              icon: Icon(
-                Icons.more_vert,
-                size: 20,
+      // 左の文字の幅の上限を帯の幅から決める(下の `ConstrainedBox`)。
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          children: [
+            if (selecting)
+              IconButton(
+                key: removalModeExitKey,
+                onPressed: onExitRemovalMode,
+                icon: const Icon(Icons.close, size: 18),
                 color: colors.textSecondary,
+                tooltip: '選ぶのをやめる',
+                visualDensity: VisualDensity.compact,
+                // **tap target を数で固定する**(`008:T30`)。帯の吹き出しは
+                // この幅からツノの位置を出すので、実際の描画幅が数と一致している
+                // 必要がある(widget test が実測で確かめる)。
+                constraints: const BoxConstraints.tightFor(
+                  width: headerIconExtent,
+                  height: headerIconExtent,
+                ),
+                padding: EdgeInsets.zero,
               ),
-              tooltip: 'その他の操作',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 180),
-              onSelected: (action) => action?.call(),
-              itemBuilder: (context) => [
-                // **通常表示のときだけ出す。** モード中は既に入っている。
-                if (!selecting)
-                  PopupMenuItem<VoidCallback?>(
-                    key: removalModeEnterKey,
-                    value: onEnterRemovalMode,
-                    enabled: onEnterRemovalMode != null,
-                    child: const Text('外すファイルを選ぶ'),
-                  ),
-                PopupMenuItem<VoidCallback?>(
-                  key: menuSelectAllKey,
-                  value: onSelectAll,
-                  enabled: onSelectAll != null,
-                  child: const Text('すべて選択'),
-                ),
-                PopupMenuItem<VoidCallback?>(
-                  key: menuClearAllKey,
-                  value: onClearAll,
-                  enabled: onClearAll != null,
-                  // **`一覧を空にする` の言い換えである**(`008:T29` で読み込み帯から
-                  // 移した)。結果を名指しするので、選択モードの「選ぶ」と混ざらない。
-                  child: const Text('すべてをリネーム対象から外す'),
-                ),
-              ],
+            // **文字は左、操作は右**(2026-09-19 の要望4)。
+            //
+            // 文字側は**自分の幅を使い、上限を超えるときだけ折り返す**。切り詰めは
+            // overflow を出さないまま `1000 件` を `1…` と読ませる(008:T16 の P1)。
+            // **並び順に削られない** — 並び順に幅の割合を先に与えると、狭幅・文字の
+            // 拡大で件数が切れた(`008:T02`、幅 320・文字 1.3・200 件)。
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * headerTextMaxWidthFraction,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: selecting
+                    // **「2件選択中」と簡潔に出す**(2026-09-19 の決定)。`T27` の
+                    // 決定節は「外すことを名指しする見出し」を勧めていたが、
+                    // 開発者がこちらを選んだ。誤読を防ぐ役割は、外すアイコンの
+                    // tooltip とケバブの文言が引き受ける。REQ-018 は文言を縛らない。
+                    ? Text(
+                        key: removalModeCountKey,
+                        '$markedCount件選択中',
+                        maxLines: 2,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    // **選択の切り替えは出さない**(002 REQ-016)。
+                    // **総件数は残す**(いま何件を扱っているかは実行前に知りたい)。
+                    : Text(
+                        key: fileCountKey,
+                        '$total 件',
+                        maxLines: 2,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ),
             ),
-        ],
+            // **並び順はケバブの左**(2026-09-30 の開発者の指定。`008:T02` の実機確認)。
+            // 以前は並び順だけの帯が一覧の上にあった。モード中も出す(並び順の選択は
+            // 提示してよい。REQ-018)。
+            //
+            // **残りの幅を使い、ケバブへ寄せる。** 以前は `Flexible` で包んでいて、行の幅の
+            // 半分を取り置いて使わず、余りがケバブの右に空いた(2026-09-30 の実機確認
+            // 2回目)。入りきらないときは切らずに折り返す。
+            if (total > 0)
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _SortControl(controller: controller),
+                ),
+              ),
+            // **外す操作は帯に置かない**(`008:T42`)。モード中はフッターの「N件を外す」が持つ。
+            // **ケバブは両方のモードで同じ位置に出る**(2026-09-19 の補足)。
+            // 一覧が空のときだけ出さない(どの項目も対象が無い)。
+            if (total > 0)
+              PopupMenuButton<VoidCallback?>(
+                key: listMenuKey,
+                icon: Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: colors.textSecondary,
+                ),
+                tooltip: 'その他の操作',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 180),
+                onSelected: (action) => action?.call(),
+                itemBuilder: (context) => [
+                  // **通常表示のときだけ出す。** モード中は既に入っている。
+                  if (!selecting)
+                    PopupMenuItem<VoidCallback?>(
+                      key: removalModeEnterKey,
+                      value: onEnterRemovalMode,
+                      enabled: onEnterRemovalMode != null,
+                      child: const Text('外すファイルを選ぶ'),
+                    ),
+                  PopupMenuItem<VoidCallback?>(
+                    key: menuSelectAllKey,
+                    value: onSelectAll,
+                    enabled: onSelectAll != null,
+                    child: const Text('すべて選択'),
+                  ),
+                  PopupMenuItem<VoidCallback?>(
+                    key: menuClearAllKey,
+                    value: onClearAll,
+                    enabled: onClearAll != null,
+                    // **`一覧を空にする` の言い換えである**(`008:T29` で読み込み帯から
+                    // 移した)。結果を名指しするので、選択モードの「選ぶ」と混ざらない。
+                    child: const Text('すべてをリネーム対象から外す'),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1518,37 +1532,70 @@ class _SortControl extends StatelessWidget {
       child: Semantics(
         label: '並び順: $current',
         excludeSemantics: true,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.swap_vert, size: 16, color: colors.primary),
-              const SizedBox(width: 4),
-              // **「並び順:」を付けない**(帯へ移して幅を詰めた。意味は ⇅ と
-              // tooltip・読み上げが持つ)。
-              Flexible(
-                child: Text(
-                  current,
-                  maxLines: 2,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final style = TextStyle(
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            );
+            // **「並び順:」は1行に入るときだけ付ける**(2026-09-30 の開発者の指定
+            // 「入るなら入れなおしてください」)。帯へ移したときに外したが、ケバブの
+            // 右の余白を詰めると幅 360・文字 1.0 で入った。狭幅や文字の拡大で
+            // 入らないときは付けず、帯が縦に伸びすぎないようにする。
+            final withPrefix = '並び順: $current';
+            final fits =
+                _textWidth(context, withPrefix, style) +
+                    _sortControlChromeWidth <=
+                constraints.maxWidth;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.swap_vert, size: 16, color: colors.primary),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      fits ? withPrefix : current,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                    ),
                   ),
-                ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: colors.textSecondary,
+                  ),
+                ],
               ),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: colors.textSecondary,
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
+}
+
+/// 並び順の表示の、文字以外の幅(左右の余白 4+4、⇅ 16、間 4、▾ 18)。
+const double _sortControlChromeWidth = 4 + 16 + 4 + 18 + 4;
+
+/// [text] を1行で描いたときの幅(端末の文字倍率を含む)。
+double _textWidth(BuildContext context, String text, TextStyle style) {
+  final painter = TextPainter(
+    // `Text` と同じく既定の文字の設定(書体など)へ重ねて測る。
+    text: TextSpan(
+      text: text,
+      style: DefaultTextStyle.of(context).style.merge(style),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width;
 }
 
 /// 並び順の表示文言(`名前 A→Z`、手で並べた状態なら `カスタム`)。
@@ -1586,6 +1633,13 @@ class _MessageBanner extends StatelessWidget {
     // **選択モード中も出す。** 隠すとモードへ入った瞬間に一覧が1行ぶん上へずれる。
     final showCount =
         !ruleIsEmpty && (hasWarnings || controller.changedFileCount > 0);
+    // 押すと全件の詳細が開く(005 REQ-009 (3))。**特定のファイルに絞られない**(REQ-009 (4))。
+    void openDetail() => showWarningDetail(
+      context,
+      controller.warnings,
+      ruleIsEmpty: controller.isRuleEmpty,
+      amongFiles: controller.rows.map((r) => r.source),
+    );
     return AnimatedSize(
       key: messageBannerKey,
       duration: const Duration(milliseconds: 200),
@@ -1599,20 +1653,14 @@ class _MessageBanner extends StatelessWidget {
           if (ruleIsEmpty) const RuleNotConfiguredBanner(),
           if (showCount)
             _MessageRow(
+              key: warningCountRowKey,
               tone: hasWarnings ? colors.danger : colors.success,
+              // **行のどこを押しても開く**(2026-09-30 の開発者の指定)。「詳細」の文字は
+              // 押せることを示す印で、押せる範囲はそれより広い。0 件なら開くものが無い。
+              onTap: hasWarnings ? openDetail : null,
               child: Align(
                 alignment: Alignment.centerLeft,
-                // 押すと全件の詳細が開く(005 REQ-009 (3))。
-                // **特定のファイルに絞られない**(REQ-009 (4))。
-                child: WarningCountView(
-                  warnings: warnings,
-                  onTap: () => showWarningDetail(
-                    context,
-                    controller.warnings,
-                    ruleIsEmpty: controller.isRuleEmpty,
-                    amongFiles: controller.rows.map((r) => r.source),
-                  ),
-                ),
+                child: WarningCountView(warnings: warnings, onTap: openDetail),
               ),
             ),
           if (fallback != null)
@@ -1647,19 +1695,33 @@ class _MessageBanner extends StatelessWidget {
   }
 }
 
-/// バナーの1行。[tone] を薄く敷き、上の帯と区別する。
+/// 件数(準備完了・N 件の問題)のバナーの行。
+const Key warningCountRowKey = Key('warning-count-row');
+
+/// バナーの1行。[tone] を薄く敷き、上の帯と区別する。[onTap] があれば行全体で押せる。
 class _MessageRow extends StatelessWidget {
-  const _MessageRow({super.key, required this.tone, required this.child});
+  const _MessageRow({
+    super.key,
+    required this.tone,
+    required this.child,
+    this.onTap,
+  });
 
   final Color tone;
   final Widget child;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Material(
       color: tone.withValues(alpha: 0.12),
-      child: child,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: child,
+        ),
+      ),
     );
   }
 }

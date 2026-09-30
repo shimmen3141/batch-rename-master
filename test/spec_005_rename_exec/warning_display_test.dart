@@ -808,6 +808,54 @@ void main() {
       expect(icon.color, AppColors.dark.success);
     });
 
+    testWidgets('N 件の問題は警告マークと太字・下線の「詳細」で示し、行のどこを押しても開く', (tester) async {
+      // 2026-09-30 の開発者の指定(`008:T02` の実機確認2回目)。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+
+      // 警告マークに揃える(以前は i に見える error_outline だった)。
+      expect(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+        findsOneWidget,
+      );
+      final link = tester.widget<Text>(find.byKey(warningDetailLinkKey));
+      expect(link.data, '詳細');
+      expect(link.style!.fontWeight, FontWeight.w700);
+      expect(link.style!.decoration, TextDecoration.underline);
+
+      // 「詳細」でも件数の文言でもない、行の右端を押す。
+      final row = tester.getRect(find.byKey(warningCountRowKey));
+      expect(
+        tester.getRect(find.byKey(warningDetailLinkKey)).right,
+        lessThan(row.right - 20),
+      );
+      await tester.tapAt(Offset(row.right - 8, row.center.dy));
+      await tester.pumpAndSettle();
+      expect(_detail(), findsOneWidget);
+    });
+
+    testWidgets('警告0件の見出しには「詳細」を出さない', (tester) async {
+      final c = FileListController(
+        files: [_f('alpha.txt')],
+        rule: const RenameRule([OriginalNameToken(), LiteralToken('-x')]),
+      );
+      await _pump(tester, c);
+
+      expect(find.text('正常にリネームできます'), findsOneWidget);
+      expect(find.byKey(warningDetailLinkKey), findsNothing);
+      // 行のどこを押しても開かない。
+      final row = tester.getRect(find.byKey(warningCountRowKey));
+      await tester.tapAt(Offset(row.right - 8, row.center.dy));
+      await tester.pumpAndSettle();
+      expect(_detail(), findsNothing);
+    });
+
     testWidgets('変更がある警告0件の見出しを押しても、詳細は開かない', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt')],

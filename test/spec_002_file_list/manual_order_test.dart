@@ -31,9 +31,11 @@ Future<void> _pump(WidgetTester tester, FileListController c) async {
 List<String> _names(FileListController c) =>
     c.items.map((e) => e.name).toList();
 
-/// 並び順の表示の文言(帯へ移してから「並び順:」は付けない。読み上げが持つ)。
-Finder _sortLabel(String text) =>
-    find.descendant(of: find.byKey(sortControlKey), matching: find.text(text));
+/// 並び順の表示の文言。
+Finder _sortLabel(String text) => find.descendant(
+  of: find.byKey(sortControlKey),
+  matching: find.text('並び順: $text'),
+);
 
 Future<void> _openSortMenu(WidgetTester tester) async {
   await tester.tap(find.byKey(sortControlKey));
@@ -272,7 +274,72 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.sortMode, FileSortMode.size);
       expect(c.sortDirection, SortDirection.descending);
-      expect(_sortLabel('サイズ 大きい順'), findsOneWidget);
+      // 狭幅・文字 2.0 では「並び順:」を付けない(1行に入らないため)。
+      expect(
+        find.descendant(
+          of: find.byKey(sortControlKey),
+          matching: find.text('サイズ 大きい順'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('「並び順:」は1行に入るときだけ付ける(2026-09-30 の開発者の指定)', (tester) async {
+      Future<String?> labelAt(double width, double scale) async {
+        await tester.binding.setSurfaceSize(Size(width, 640));
+        final c = FileListController(files: [_f('a.txt')]);
+        await tester.pumpWidget(
+          MaterialApp(
+            key: ValueKey('$width-$scale'),
+            theme: appDarkTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: Size(width, 640),
+                textScaler: TextScaler.linear(scale),
+              ),
+              child: Scaffold(body: FileListView(controller: c)),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        final text = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(sortControlKey),
+            matching: find.byType(Text),
+          ),
+        );
+        return text.data;
+      }
+
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      expect(await labelAt(411, 1), '並び順: 名前 A→Z');
+      expect(await labelAt(320, 2), '名前 A→Z');
+    });
+
+    testWidgets('ケバブの右に余白を残さない(左の件数と同じ余白。2026-09-30 の開発者の指定)', (tester) async {
+      for (final width in [320.0, 360.0, 411.0]) {
+        await tester.binding.setSurfaceSize(Size(width, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await _pump(
+          tester,
+          FileListController(files: [_f('a.txt'), _f('b.txt')]),
+        );
+        final icon = tester.getRect(
+          find.descendant(
+            of: find.byKey(listMenuKey),
+            matching: find.byIcon(Icons.more_vert),
+          ),
+        );
+        final count = tester.getRect(find.byKey(fileCountKey));
+        expect(width - icon.right, closeTo(count.left, 1), reason: '幅 $width');
+        // 並び順はケバブに接している(間に空きを取り置かない)。
+        expect(
+          tester.getRect(find.byKey(listMenuKey)).left -
+              tester.getRect(find.byKey(sortControlKey)).right,
+          closeTo(0, 1),
+          reason: '幅 $width',
+        );
+      }
     });
   });
 }

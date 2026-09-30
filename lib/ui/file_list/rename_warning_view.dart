@@ -570,7 +570,9 @@ class WarningCountView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              has ? Icons.error_outline : Icons.check_circle_outline,
+              // **警告マークに揃える**(2026-09-30 の開発者の指定)。同じバナーの
+              // 作成日時の代替と同じ形にする。
+              has ? Icons.warning_amber_rounded : Icons.check_circle_outline,
               size: 13,
               color: has ? colors.danger : colors.success,
             ),
@@ -590,12 +592,31 @@ class WarningCountView extends StatelessWidget {
                 ),
               ),
             ),
+            // **押せることを示す**(2026-09-30 の開発者の指定)。太字・下線の「詳細」。
+            // 押せるのはこの文字だけではない — バナーの行のどこを押しても開く。
+            if (has) ...[
+              const SizedBox(width: 8),
+              Text(
+                key: warningDetailLinkKey,
+                '詳細',
+                style: TextStyle(
+                  color: colors.danger,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                  decorationColor: colors.danger,
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
+/// 件数表示の「詳細」(押せることを示す文字)。
+const Key warningDetailLinkKey = Key('warning-detail-link');
 
 /// 詳細modalの節1つ(005 REQ-009 (2) / (3))。
 ///

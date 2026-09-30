@@ -519,10 +519,13 @@ void main() {
             expect(
               tester
                   .renderObject<RenderParagraph>(
-                    find.descendant(
-                      of: find.byKey(warningCountKey),
-                      matching: find.byType(Text),
-                    ),
+                    find
+                        .descendant(
+                          of: find.byKey(warningCountKey),
+                          matching: find.byType(Text),
+                        )
+                        // 件数の文言(後ろに「詳細」が続く)。
+                        .first,
                   )
                   .didExceedMaxLines,
               isFalse,

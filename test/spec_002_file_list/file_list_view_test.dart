@@ -156,7 +156,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(sortControlKey),
-        matching: find.text('カスタム'),
+        matching: find.text('並び順: カスタム'),
       ),
       findsOneWidget,
     );
