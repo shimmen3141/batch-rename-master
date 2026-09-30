@@ -320,7 +320,7 @@ void main() {
         find.descendant(of: strip, matching: find.byType(RuleSummaryChip)),
         findsNWidgets(2),
       );
-      for (final (kind, value) in [('元名', '[元のファイル名]'), ('連番', '01')]) {
+      for (final (kind, value) in [('元の名前', 'ファイル名'), ('連番', '01')]) {
         final kindText = find.descendant(of: strip, matching: find.text(kind));
         final valueText = find.descendant(
           of: strip,
@@ -360,6 +360,69 @@ void main() {
         find.ancestor(of: strip, matching: find.byType(Semantics)).first,
       );
       expect(semantics.properties.label, '[元の名前][01…]');
+    });
+
+    testWidgets('種類名のほうが長いチップでも、値はチップの中央にある(008:T47 実機確認)', (tester) async {
+      // 区切り `_` は種類名「区切り」のほうが値より長い。
+      final c = FileListController(
+        files: [_f('a.txt')],
+        rule: const RenameRule([OriginalNameToken(), LiteralToken('_')]),
+      );
+      await _pumpNarrow(tester, c);
+
+      final chip = find.byType(RuleSummaryChip).at(1);
+      final chipRect = tester.getRect(chip);
+      final kind = tester.getRect(
+        find.descendant(of: chip, matching: find.text('区切り')),
+      );
+      final valueFinder = find.descendant(of: chip, matching: find.text('_'));
+      final value = tester.getRect(valueFinder);
+      // 値の枠はチップの幅いっぱい(種類名の幅)まで広がり、文字はその中央に置く。
+      // 左寄せなら枠は値の文字の幅だけになり、中央から外れる。
+      expect(value.width, closeTo(kind.width, 1));
+      expect(value.center.dx, closeTo(chipRect.center.dx, 1));
+      expect(tester.widget<Text>(valueFinder).textAlign, TextAlign.center);
+    });
+
+    testWidgets('「+N」は白(008:T47 実機確認)', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(
+        files: [_f('a.txt')],
+        rule: const RenameRule([
+          OriginalNameToken(),
+          LiteralToken('_'),
+          SequenceToken(start: 1, digits: 3),
+          DateTimeToken(source: DateTimeSource.modified, format: 'YYYYMMDD'),
+          LiteralToken('-end'),
+        ]),
+      );
+      await _pumpNarrow(tester, c);
+
+      final overflow = tester.widget<Text>(find.byKey(ruleChipOverflowKey));
+      expect(overflow.style!.color, Colors.white);
+    });
+
+    testWidgets('「命名ルール」とチップの間を空け、上下の余白を詰める(008:T47 実機確認)', (tester) async {
+      final c = FileListController(
+        files: [_f('a.txt')],
+        rule: const RenameRule([OriginalNameToken()]),
+      );
+      await _pumpNarrow(tester, c);
+
+      final frame = tester.getRect(find.byKey(ruleButtonFrameKey));
+      final heading = tester.getRect(find.text('命名ルール'));
+      final strip = tester.getRect(find.byKey(ruleSummaryKey));
+      // 見出しとチップの間は、上の余白(枠 1 + 内側の余白)より広くはないが 7 ある。
+      expect(strip.top - heading.bottom, ruleButtonHeadingGap);
+      expect(heading.top - frame.top, 1 + ruleButtonVerticalPadding);
+      expect(ruleButtonHeadingGap, greaterThan(4), reason: '以前の間(4)より広い');
+      expect(ruleButtonVerticalPadding, lessThan(11), reason: '以前の上下(11)より詰める');
+      // 左右は変えない(12)。
+      expect(
+        tester.getRect(find.byType(RuleSummaryChip)).left,
+        greaterThan(frame.left + 12),
+      );
     });
 
     testWidgets('未設定と設定済みでbuttonの外形が同じ。未設定は＋と文言だけを白で出す(008:T47)', (

@@ -33,6 +33,11 @@ const double ruleButtonBorderOpacity = 0.42;
 const double ruleButtonIconBoxSize = 32;
 const double ruleEditChipFillOpacity = 0.16;
 
+/// ルール設定buttonの上下の内側の余白と、「命名ルール」とチップの間(`008:T47`)。
+/// 2026-09-30 の開発者の指定で、上下を 11 → 8 に詰め、間を 4 → 7 に広げた。
+const double ruleButtonVerticalPadding = 8;
+const double ruleButtonHeadingGap = 7;
+
 /// 詳細dialog内の節の並び(原因ごとに1節。005 REQ-009 (2) / (3))。
 ///
 /// `008:T19` で「原因の説明」節と「全件」節に分けていた形から組み直した

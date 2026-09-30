@@ -1200,7 +1200,12 @@ class _RuleButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(ruleButtonRadius),
         child: Container(
           key: ruleButtonFrameKey,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          // **上下は詰め、左右は変えない**(2026-09-30 の開発者の指定。`008:T47` の
+          // 実機確認)。詰めたぶんを「命名ルール」とチップの間へ回した。
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: ruleButtonVerticalPadding,
+          ),
           decoration: BoxDecoration(
             border: Border.all(
               color: colors.primary.withValues(alpha: ruleButtonBorderOpacity),
@@ -1261,7 +1266,7 @@ class _RuleButton extends StatelessWidget {
                 letterSpacing: 1.2,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: ruleButtonHeadingGap),
             // **設定画面と同じ2段のチップで並べる**(2026-09-30 の開発者の決定。
             // `008:T47`)。以前は `[元の名前][01…]` の字面だった。読み上げは
             // 字面の要約([describeRuleSummary])が持つ。

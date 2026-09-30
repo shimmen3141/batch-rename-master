@@ -3752,6 +3752,41 @@
       "find": "        border: Border.all(color: hue.withValues(alpha: 0.35)),",
       "replace": "        border: Border.all(color: colors.border),",
       "note": "008:T47 チップの枠を種類の色にしない — 設定画面のチップと色が揃わない"
+    },
+    {
+      "id": "M582",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "                textAlign: TextAlign.center,\n",
+      "replace": "",
+      "note": "008:T47 チップの値を中央に置かない — 種類名のほうが長いチップ(区切り・1文字のテキスト)で値が左へ寄る(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M583",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "const TextStyle _overflowStyle = TextStyle(\n  color: Colors.white,",
+      "replace": "const TextStyle _overflowStyle = TextStyle(\n  color: Colors.grey,",
+      "note": "008:T47 「+N」を白にしない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M584",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double ruleButtonHeadingGap = 7;",
+      "replace": "const double ruleButtonHeadingGap = 4;",
+      "note": "008:T47 「命名ルール」とチップの間を以前(4)へ戻す — 間が狭い(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M585",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double ruleButtonVerticalPadding = 8;",
+      "replace": "const double ruleButtonVerticalPadding = 11;",
+      "note": "008:T47 ルール設定buttonの上下の余白を以前(11)へ戻す(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M586",
+      "file": "lib/ui/rule_builder/token_presets.dart",
+      "find": "    OriginalNameToken() => 'ファイル名',",
+      "replace": "    OriginalNameToken() => '[元のファイル名]',",
+      "note": "008:T47 元の名前のチップの値を以前の字面へ戻す(2026-09-30 の開発者の指定。設定画面・下部バーの両方)"
     }
   ]
 }

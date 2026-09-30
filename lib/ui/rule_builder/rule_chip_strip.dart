@@ -24,7 +24,6 @@ class RuleChipStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final scaler = MediaQuery.textScalerOf(context);
     final base = DefaultTextStyle.of(context).style;
     final tokens = rule.tokens;
@@ -50,11 +49,7 @@ class RuleChipStrip extends StatelessWidget {
             ],
             if (hidden > 0) ...[
               if (shown > 0) const SizedBox(width: ruleChipGap),
-              Text(
-                '+$hidden',
-                key: ruleChipOverflowKey,
-                style: _overflowStyle(colors),
-              ),
+              Text('+$hidden', key: ruleChipOverflowKey, style: _overflowStyle),
             ],
           ],
         );
@@ -86,8 +81,9 @@ const TextStyle _valueStyle = TextStyle(
   fontFamily: 'monospace',
 );
 
-TextStyle _overflowStyle(AppColors colors) => TextStyle(
-  color: colors.textSecondary,
+// **白にする**(2026-09-30 の開発者の指定。`008:T47` の実機確認)。
+const TextStyle _overflowStyle = TextStyle(
+  color: Colors.white,
   fontSize: 13,
   fontWeight: FontWeight.w700,
 );
@@ -116,21 +112,27 @@ class RuleSummaryChip extends StatelessWidget {
         border: Border.all(color: hue.withValues(alpha: 0.35)),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(tokenKindLabel(token), maxLines: 1, style: _kindStyle(hue)),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _valueMaxWidth),
-            child: Text(
-              tokenChipValue(token, sample),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _valueStyle,
+      // チップの幅は種類名と値の広いほう。**値は中央に置く**(種類名のほうが長い
+      // 区切り・1文字のテキストで、値が左へ寄っていた。2026-09-30 の開発者の指定)。
+      // 設定画面のチップ(`TokenChip`)と同じ配置 — 種類名は左、値は中央。
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tokenKindLabel(token), maxLines: 1, style: _kindStyle(hue)),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _valueMaxWidth),
+              child: Text(
+                tokenChipValue(token, sample),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: _valueStyle,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
