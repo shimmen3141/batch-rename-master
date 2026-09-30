@@ -120,11 +120,32 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - **attempt 2**: `3b2bd0d..6b6c64c`(差分review) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。前回のP3 2件が閉じたこと、差分が触った3 fileに前回までとの食い違いが無いことを確認。`flutter test` 1107 PASS、`git diff --check 158b2be..6b6c64c` PASS。
 - 連鎖: `158b2be..3b2bd0d` PASS → `3b2bd0d..6b6c64c` PASS。以後の差分は記録だけ。
 
+### 実機確認 1回目(2026-09-30、対象 `6b6c64c`)と、それを受けた変更
+
+- 開発者の結果: **動作はすべて問題なかった**(1〜5)。そのうえで配置の指定を受けた: 「並び順の場所はケバブの左に配置したい。並び順だけがある帯は削除してください」。
+- 作成日時の警告の置き場所を尋ねた(3案: 必要なときだけ帯 / 並び順の表示に⚠ / 件数の横)。回答は**「必要なときだけ帯」**に次の補足: 上の帯には件数・並び順・ケバブの3つを置き、「正常にリネームできます」「3件の問題」「作成日時不明の3件は更新日時で代替しています」のような状態のメッセージは、帯の下にメッセージバナーとしてまとめる。バナーは上の帯と区別できるよう色を付ける。メッセージの追加・削除で高さが急に変わらないよう、アニメーションで滑らかに変える。008 plan の「人間の決定」へ記録した。
+- **`T01` の配置の決定(警告は並び順の表示の右)はこれで置き換わった。** 002 spec は置き場所を縛っていない(REQ-020)ので spec は変えない。
+- 実装(`b3a9f06`):
+  - 並び順だけの帯(`_SortBar`)を消し、`_SortControl` を上の帯(`_HeaderBar`)のケバブの左へ置いた。文字の拡大では折り返す(`Flexible`、2行まで)。帯で幅を詰めるため**表示から「並び順:」を外した**(`⇅ 名前 A→Z ▾`。意味は ⇅ と tooltip「並び順を変える」、読み上げ「並び順: 名前 A→Z」が持つ)。
+  - 上の帯から件数表示(`WarningCountView`)を外し、帯の下の `_MessageBanner` へまとめた: ルール未設定(`RuleNotConfiguredBanner`、情報色)・準備完了/N件の問題(肯定色/危険色、押すと全件の詳細)・作成日時の代替(危険色、全文「作成日時不明の N 件は更新日時で代替しています」)。行ごとに意味の色を薄く敷く。`AnimatedSize`(200ms)で高さを変える。
+  - **選択モード中も件数のメッセージを出す**ようにした。以前はヘッダの中でモード中に隠していたが、バナーに移ると、隠した瞬間に一覧が1行ぶん上へずれる(`removal_selection_mode_test`「行の読み始めが動かない」が落ちて分かった)。
+- testの改訂:
+  - `row_presentation_test`「警告が1件も無いときと比べても一覧の取り分が変わらない」→「一覧が削られるのはバナーの1行だけ」。**件数に依存しない**こと(警告2件と30件で同じ)は別のtestがそのまま見る。メッセージが無いときにバナーが0になるのは開発者の指定(増減をアニメーションする)による。
+  - `manual_order_test`: 表示の文言から「並び順:」を外した。「並び順はケバブの左にあり、件数と同じ1行。準備完了はその下のバナー」を足した。
+  - `created_at_sort_view_test`: 「表示の右に出る」→「帯の下のバナーに出る」、「高さが途中の値を経て変わる」を足した。
+- mutation: M198・M258・M390・M559・M560 の `find` を追随させた。**M561(警告を並び順の表示の下へ出す)を外した** — 守っていた配置の決定そのものが置き換わった。**M563(バナーの高さを一度に変える)を足した。** `check_mutation_finds.py` → `PASS: 518`。
+- 範囲付きで回した(追随・追加した6件): `flutter test test/spec_002_file_list test/spec_005_rename_exec`、対象 `b3a9f06`。
+
+```text
+M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLED
+6 mutations: 6 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1・2 PASS(`158b2be..6b6c64c`)。manual確認を依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認([manual-verification.md](manual-verification.md))
-- Requested action: 対象buildで1〜5を確かめ、結果を会話で伝える
-- Evidence revision: `6b6c64c`(`lib/`・`hook/`・`src/`・依存は`ed7a0bf`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする。指摘があれば直してmanualを取り直す
+- Last checkpoint: 実機確認1回目の指定(並び順をケバブの左へ、状態のメッセージをバナーへ)を実装 `b3a9f06`。flutter test 1109 PASS・analyze・format・mutation 6件 KILLED
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `b3a9f06`
+- Next Agent action: 差分review(attempt 3、`085f11b..HEAD`)を起動し、PASS後に実機確認2回目を依頼する
