@@ -109,6 +109,25 @@ M300 | KILLED | lib/ui/file_list/removal_undo.dart | ... | exit 1
 1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 実機確認 2回目(2026-09-30、対象 `b3a9f06`)と、それを受けた変更
+
+- 開発者の指定: 「ケバブの右に余白ができてしまっているので、詰めてください。また、これによって『並び順:』の文字が入らなくなったのであれば、詰めた後に『並び順:』が入るか試してください。入るなら入れなおしてください。『3件の問題』の先頭にあるiマークも警告マークにそろえてください。さらに、『3件の問題　詳細』のように太字・下線をつけた『詳細』の文字を追加し、押せることをわかりやすくしてください。(『詳細』の文字以外を押してもモーダルは開く)」。008 plan の「人間の決定」へ記録した。
+- **余白の原因**: 並び順を `Flexible` で包んでいたので、行の幅の半分を取り置いて使わず、余りがケバブの右に空いていた(幅 411・文字 1.0 で 62px。widget test で実測)。加えて、ケバブの tap target(48)が中のアイコン(20)より広く、左と同じ padding(8)ではアイコンの右に 22px 残っていた。
+- 実装(`4932a39`):
+  - 帯の右の padding を 2 にし(`headerBarRightPadding`)、ケバブのアイコンの右端を左の件数と同じ 16px にした。tap target は 48 のまま。
+  - 並び順は `Expanded` + 右寄せで残りの幅を使い、ケバブに接する。
+  - **件数の欄は自分の幅を使う(上限は帯の40%)。** 初めは並び順に帯の65%を上限として与えたが、幅 320・文字 1.3・200 件で**件数が切れた**(`row_presentation_test`「ヘッダの数字が消えない」が落ちた。008:T16 の N-9 の保証)。そこで件数を先に確保し、並び順は残りを使う形へ変えた。
+  - **「並び順:」は1行に入るときだけ付ける**(文字の幅を測って決める)。付けたまま行数を縛らずに折り返すと、幅 320・文字 3.0 で帯が縦に伸びて一覧がはみ出した(`load_affordance_test` が落ちた)。widget test の書体(1文字が正方形)で測ると、幅 411・文字 1.0 では「並び順: 作成日時 新しい順」まで入り、幅 360 では「並び順: 名前 Z→A」は入るが作成日時の長い表示は入らない。**実機の書体は test より幅が狭いので、実際にはもっと入る。**入らないときは「名前 A→Z」だけで最大2行、それでも入らなければ省略記号。
+  - 「N 件の問題」の印を `error_outline`(i に見える)から `warning_amber_rounded` へ。後ろに太字・下線の「詳細」(`warningDetailLinkKey`)。バナーの行(`warningCountRowKey`)全体を押せるようにした(警告0件の行は押しても開かない)。
+- testを足した: 「並び順:」は入るときだけ(幅 411・文字 1.0 で付く、幅 320・文字 2.0 で付かない)、ケバブの右の余白が左と同じで並び順がケバブに接する(幅 320/360/411)、警告マークと太字・下線の「詳細」・行の右端を押して開く、警告0件では「詳細」が無く押しても開かない。N-8a の test は幅 320・文字 2.0 なので「並び順:」の無い表示を見る形へ直した。
+- mutation: M188・M258・M334・M338 の `find` を追随させた。**M186(件数の欄の `Wrap` を `Row` へ戻す)を外した** — 件数の欄は `Wrap` をやめて1つの `Text` にした(子が1つになった)。切り詰めない保証は M188 と新しい M568 が守る。M564〜M571 を足した(右の余白、`Flexible` へ戻す、「並び順:」を付けない/常に付ける、件数の欄を削らせる、印、下線、行を押しても開かない)。`check_mutation_finds.py` → `PASS: 525`。
+- 範囲付きで回した(追随・追加した12件): `flutter test test/spec_002_file_list test/spec_004_file_source test/spec_005_rename_exec`、対象 `4932a39`。
+
+```text
+M188 / M258 / M334 / M338 / M564〜M571 すべて KILLED
+12 mutations: 12 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」、判定・データ保護に触れるtaskは「同等以上」だが、開発者の指定を優先した(記録)。
@@ -145,9 +164,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 3 PASS(`085f11b..83d4775`)。実機確認2回目を依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認2回目([manual-verification.md](manual-verification.md))
-- Requested action: 対象build `b3a9f06`(`lib/`が同一)で0〜3を確かめ、結果を会話で伝える
-- Evidence revision: `83d4775`(`lib/`は`b3a9f06`と同一)
-- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
+- Last checkpoint: 実機確認2回目の指定を実装 `4932a39`(flutter test 1113 PASS・analyze・format・mutation 12件 KILLED)
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `4932a39`
+- Next Agent action: 差分review(attempt 4、`ef1ae09..HEAD`)を起動し、PASS後に実機確認3回目を依頼する
