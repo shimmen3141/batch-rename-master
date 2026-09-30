@@ -152,6 +152,7 @@ M188 / M219 / M569 / M570 / M572〜M576 すべて KILLED
 - 答え: 文字の枠の下端から 2px 下に引いていた(文字の枠自体が字形より下まであるので、見た目はさらに離れる)。→ 離すのをやめ、枠の下端に接して引いた(2px 上がる)。`d8f42b8`。`flutter test` 1114 PASS・analyze・format・`check_mutation_finds.py` PASS(530)。
 - **この区間(`7e0b65f..d8f42b8`)は独立reviewを行わない**(開発者の明示の指示)。AGENTS.md は `lib/` の差分に差分reviewを求めるが、開発者の判断を優先した(記録)。reviewの連鎖は `158b2be..7e0b65f` まで PASS で、その後はこの1行の変更(線と文字の間の余白 2 → 0)だけである。
 - 実機確認は、この下線の位置だけを開発者が見る。OK なら T02 を完了とする。
+- **2026-09-30 開発者の確認: 「確認しました。問題ありませんでした。」**(対象 build `d8f42b8`)。実機確認1〜4回目の結果と合わせ、受け入れ証拠(manual)を満たした。
 
 ### 独立review
 
@@ -193,9 +194,9 @@ M198 KILLED / M258 KILLED / M390 KILLED / M559 KILLED / M560 KILLED / M563 KILLE
 
 ## Current state / handoff
 
-- Last checkpoint: 下線を 2px 上げた `d8f42b8`(開発者の指示でreviewなし)。開発者の確認待ち(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者による「詳細」の下線の位置の確認(対象build `d8f42b8`)
-- Requested action: 下線の位置だけを見て、OK か伝える
+- Last checkpoint: 開発者が下線の位置を確認しOK(2026-09-30)。受け入れ証拠をすべて満たし done
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
 - Evidence revision: `d8f42b8`
-- Next Agent action: OK なら結果を記録し、PRをreadyにしてmergeし、T02 を done にする
+- Next Agent action: PR #203 を merge し、`dev` 上で確認する
