@@ -135,7 +135,7 @@ M342 | SURVIVED | lib/ui/file_list/file_list_view.dart | exit 0: the tests passe
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 PASS(2026-09-30)。manualは無い
+- Last checkpoint: PR #201をmerge commitで`dev`へmerge(2026-09-30、`6e6feb6`)。merge条件1〜7を確認した: Draftでない・一意 / 独立reviewの連鎖(`b771831..0e6afbf` PASS → `0e6afbf..19156e8` PASS → 以後は記録だけのSELF-CHECK) / CI `check` PASS・未解決threadなし / baseの`dev`(`b771831`)はbranchの祖先で競合なし、full test 1084件PASS(`19156e8`。以後は記録だけ) / manualは無い / 未解決P0/P1なし(P2 1件は直さない理由を記録) / `.github/workflows`・AGENTS.md・sandbox境界の変更なし。
 - Blocker category: none
-- Evidence revision: `19156e8`
-- Next Agent action: PR #201をreadyにしてmergeし、`dev`でmergeを記録する
+- Evidence revision: `19156e8`、merge `6e6feb6`。
+- Next Agent action: なし(done)。
