@@ -65,6 +65,23 @@ M192 SURVIVED / M197 M199 M241 M577 M578 M579 M580 M581 KILLED
 
 - **M192(チップの列を `Row` から `Wrap` へ)は等価mutantだった。** 入る数を先に測って決めるので、`Wrap` でも折り返しが起きない。保証が実際に崩れるのは幅の見積もりが実際より小さいときなので、**見積もりからチップの余白を落とす形へ作り直し**、回し直した: `1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED`。
 
+### 実機確認 1回目(2026-09-30、対象 `55739ec`)と、それを受けた変更
+
+- 開発者の結果(原文): 「種別名のほうが中身より長い場合(区切りや1文字のテキストなど)、中身がチップ内で左寄せになってしまっています。中身は中央寄せにしてください。」「『[元のファイル名]』を『ファイル名』にしてください。種別名を『元名』から『元の名前』に変えてください。設定内のチップの方も変えたいです(このタスク内でやった方が良いならまとめて変えてください)。」「『+N』を白にしてください。」「『命名ルール』の上には余白があるがチップとの余白が小さいので、チップとの余白を少し設けつつ上の余白を少しだけ削ってください。チップの下の余白も同じだけわずかに削ってよいです。ボタン内の左右の余白は削らないでください。」それ以外(形の統一、未設定の見せ方、角丸、文字サイズ最大)への指摘は無かった。
+- 実装(`06f163b`):
+  - チップの値を中央寄せにした(`IntrinsicWidth` + 横いっぱいに広げて `TextAlign.center`。種類名は左のまま。設定画面の `TokenChip` と同じ配置)。
+  - `tokenKindLabel` の元の名前を「元名」→「**元の名前**」、`tokenChipValue` を「[元のファイル名]」→「**ファイル名**」。**設定画面のチップと下部バーは同じ関数を使うので、このtaskでまとめて変えた。**
+  - 「+N」を白にした。
+  - ルール設定buttonの上下の内側の余白を 11 → 8、「命名ルール」とチップの間を 4 → 7 にした(`ruleButtonVerticalPadding` / `ruleButtonHeadingGap`)。左右(12)は変えていない。未設定も同じ外形なので上下は同じだけ詰まる。
+- testを直した・足した: 設定画面の test(`rule_builder_view_test`)と下部バーの test の語を新しい語へ。値が中央寄せ(種類名のほうが長い区切り `_` のチップ)、「+N」が白、見出しとチップの間・上の余白の値。
+- mutation: M582〜M586 を足した(値の中央寄せを外す、「+N」を白にしない、間を 4 へ・上下を 11 へ戻す、値を以前の字面へ戻す)。`check_mutation_finds.py` → `PASS: 540`。
+- 範囲付きで回した(9件): `flutter test test/spec_005_rename_exec test/spec_003_rule_builder test/widget_test.dart`、対象 `06f163b`。
+
+```text
+M192 M199 M580 M581 M582 M583 M584 M585 M586 すべて KILLED
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
@@ -77,9 +94,9 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(P2 は M192 の説明を直した)。差分review attempt 2 を起動し、実機確認を並行して依頼した(2026-09-30)
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)と、差分review attempt 2
-- Requested action: 対象build `55739ec`(`lib/`が同一)で0〜4を確かめ、結果を会話で伝える
-- Evidence revision: `55739ec`(`lib/`)
-- Next Agent action: 差分reviewの結果と実機確認の結果を記録し、両方PASSならPRをreadyにしてmergeする
+- Last checkpoint: 実機確認1回目の指定を実装 `06f163b`(flutter test 1120 PASS・analyze・format・mutation 9件 KILLED)
+- Blocker category: なし
+- Waiting for: なし
+- Requested action: なし
+- Evidence revision: `06f163b`
+- Next Agent action: 差分review(attempt 3、`6185920..HEAD`)を起動し、PASS後に実機確認2回目を依頼する
