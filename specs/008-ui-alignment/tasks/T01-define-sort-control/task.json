@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "並び順controlの振る舞いを定義する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 202,
   "manualVerification": null
 }
