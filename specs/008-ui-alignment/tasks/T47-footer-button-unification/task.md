@@ -109,12 +109,14 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - 連鎖: `5bfcc7a..52e63fa` PASS → `52e63fa..d6b0b6f`(reviewer は指摘なし、検証の実行は SELF-CHECK で補った)。
 - **attempt 3**: `6185920..b7d292b`(差分review。実機確認1回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。語の変更が設定画面と下部バーで一貫、中央寄せ後も幅の見積もりと描画が一致、testの改訂に緩和なし、M582〜M586 が妥当。`flutter test` 1120 PASS・analyze・format・`check_mutation_finds.py` 540・`git diff --check` PASS。reviewerが回したmutation 5件 KILLED。
 - 連鎖: 上に続けて (記録 `d6b0b6f..6185920`) → `6185920..b7d292b` PASS。
+- **attempt 4**: `c3e7fbd..054b1a5`(差分review。実機確認2回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。`_chipHeight` が文字 1.0 / 2.0 で実際のチップの高さと一致し「+N」だけでも保たれること、「+N」の幅の見積もりが表示と同じ文字列・字体であること、testの改訂に緩和なし、M584・M585・M587・M588 が妥当。`flutter test` 1121 PASS・analyze・format・`check_mutation_finds.py` 542・`git diff --check` PASS。
+- 連鎖: 上に続けて (記録 `b7d292b..c3e7fbd`) → `c3e7fbd..054b1a5` PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認2回目の指定を実装 `c5f94ad`(flutter test 1121 PASS・analyze・format・mutation 7件 KILLED)
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: `c5f94ad`
-- Next Agent action: 差分review(attempt 4、`c3e7fbd..HEAD`)を起動し、PASS後に実機確認3回目を依頼する
+- Last checkpoint: 差分review attempt 4 PASS(`c3e7fbd..054b1a5`)。実機確認3回目を依頼した(2026-09-30)
+- Blocker category: human verification
+- Waiting for: 開発者によるAndroidエミュレータでの確認3回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md`)
+- Requested action: 対象build `c5f94ad`(`lib/`が同一)で0〜2を確かめ、結果を会話で伝える
+- Evidence revision: `054b1a5`(`lib/`は`c5f94ad`と同一)
+- Next Agent action: 結果を記録し、PASSならPRをreadyにしてmergeする
