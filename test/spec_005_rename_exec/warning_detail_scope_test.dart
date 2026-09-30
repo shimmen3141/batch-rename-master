@@ -171,7 +171,8 @@ void main() {
       expect(c.warnings, hasLength(82));
       expect(presentWarnings(c.warnings), hasLength(82));
       expect(warningCountLabel(c.warnings), '82 件の問題');
-      expect(find.text('82 件の問題'), findsOneWidget);
+      // バナーでは何についての状態かを先頭に付ける(2026-09-30 の開発者の指定)。
+      expect(find.text('リネーム: 82 件の問題'), findsOneWidget);
     });
 
     testWidgets('空名と基準日時不明が同時に該当するファイルは1件に畳む', (tester) async {

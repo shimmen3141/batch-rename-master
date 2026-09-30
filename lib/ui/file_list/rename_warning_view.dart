@@ -564,8 +564,10 @@ class WarningCountView extends StatelessWidget {
       key: warningCountKey,
       // 0 件のときは開くものが無い。
       onTap: has ? onTap : null,
+      // **横の余白を足さない**。同じバナーの作成日時の代替の行と、印の位置・印と文の
+      // 間を揃える(2026-09-30 の開発者の指定。[bannerIconSize] / [bannerIconGap])。
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -573,41 +575,63 @@ class WarningCountView extends StatelessWidget {
               // **警告マークに揃える**(2026-09-30 の開発者の指定)。同じバナーの
               // 作成日時の代替と同じ形にする。
               has ? Icons.warning_amber_rounded : Icons.check_circle_outline,
-              size: 13,
+              size: bannerIconSize,
               color: has ? colors.danger : colors.success,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: bannerIconGap),
+            // **「詳細」は入らなければ次の行へ回す**(`Wrap`)。同じ行へ詰めると、
+            // 狭幅・文字の拡大で件数の文言が切れた(幅 320・文字 2.0・1000 件。
+            // 008:T16 の N-9 — 件数が読めなくなる)。
             Flexible(
-              child: Text(
-                warningCountLabel(warnings),
-                // **切らずに次の行へ落とす**(008:T16 の (i) と同じ理由)。
-                // 切り詰めは overflow を出さないまま `⚠ 1000 件の問題` を
-                // `⚠ 1…` と読ませる。`008:T29` でヘッダ右端にケバブが入り、
-                // 文字側の幅が狭まったのでここでも効くようになった。
-                maxLines: 2,
-                style: TextStyle(
-                  color: has ? colors.danger : colors.success,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Wrap(
+                spacing: 14,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    // **何についての状態かを先頭で示す**(2026-09-30 の開発者の指定)。
+                    // バナーには並び順の状態(「並び順: …」)も並ぶ。詳細を開いたときの
+                    // 見出しは件数だけのまま([warningCountLabel])。
+                    has
+                        ? 'リネーム: ${warningCountLabel(warnings)}'
+                        : warningCountLabel(warnings),
+                    // **切らずに次の行へ落とす**(008:T16 の (i) と同じ理由)。
+                    // 切り詰めは overflow を出さないまま `⚠ 1000 件の問題` を
+                    // `⚠ 1…` と読ませる。
+                    maxLines: 2,
+                    style: TextStyle(
+                      color: has ? colors.danger : colors.success,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  // **押せることを示す**(2026-09-30 の開発者の指定)。太字・下線の「詳細」。
+                  // 押せるのはこの文字だけではない — バナーの行のどこを押しても開く。
+                  //
+                  // **下線は文字の装飾ではなく、文字の下に引いた線**(同日の指定「太く
+                  // しつつ少しだけ下にずらす」)。文字の装飾の下線は文字に接して細く、
+                  // 見えづらかった。
+                  if (has)
+                    Container(
+                      key: warningDetailLinkKey,
+                      padding: const EdgeInsets.only(bottom: 2),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: colors.danger, width: 1.5),
+                        ),
+                      ),
+                      child: Text(
+                        '詳細',
+                        style: TextStyle(
+                          color: colors.danger,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            // **押せることを示す**(2026-09-30 の開発者の指定)。太字・下線の「詳細」。
-            // 押せるのはこの文字だけではない — バナーの行のどこを押しても開く。
-            if (has) ...[
-              const SizedBox(width: 8),
-              Text(
-                key: warningDetailLinkKey,
-                '詳細',
-                style: TextStyle(
-                  color: colors.danger,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: colors.danger,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -615,8 +639,14 @@ class WarningCountView extends StatelessWidget {
   }
 }
 
-/// 件数表示の「詳細」(押せることを示す文字)。
+/// 件数表示の「詳細」(押せることを示す文字と、その下の線)。
 const Key warningDetailLinkKey = Key('warning-detail-link');
+
+/// 状態のメッセージのバナーの印の大きさ。行ごとに揃える(`008:T02`)。
+const double bannerIconSize = 14;
+
+/// 状態のメッセージのバナーの、印と文の間。行ごとに揃える(`008:T02`)。
+const double bannerIconGap = 8;
 
 /// 詳細modalの節1つ(005 REQ-009 (2) / (3))。
 ///

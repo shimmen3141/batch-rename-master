@@ -808,7 +808,9 @@ void main() {
       expect(icon.color, AppColors.dark.success);
     });
 
-    testWidgets('N 件の問題は警告マークと太字・下線の「詳細」で示し、行のどこを押しても開く', (tester) async {
+    testWidgets('N 件の問題は「リネーム:」を付け、警告マークと太字・下線の「詳細」で示し、行のどこを押しても開く', (
+      tester,
+    ) async {
       // 2026-09-30 の開発者の指定(`008:T02` の実機確認2回目)。
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
@@ -824,10 +826,24 @@ void main() {
         ),
         findsOneWidget,
       );
-      final link = tester.widget<Text>(find.byKey(warningDetailLinkKey));
-      expect(link.data, '詳細');
-      expect(link.style!.fontWeight, FontWeight.w700);
-      expect(link.style!.decoration, TextDecoration.underline);
+      final label = find.textContaining('リネーム: ');
+      expect(label, findsOneWidget);
+      expect(tester.widget<Text>(label).data, endsWith('件の問題'));
+      final link = find.byKey(warningDetailLinkKey);
+      final text = tester.widget<Text>(
+        find.descendant(of: link, matching: find.text('詳細')),
+      );
+      expect(text.style!.fontWeight, FontWeight.w700);
+      // 下線は文字の下に引いた線(太く、文字から少し離す)。
+      final box = tester.widget<Container>(link);
+      final border = (box.decoration! as BoxDecoration).border! as Border;
+      expect(border.bottom.width, greaterThan(1));
+      expect(box.padding, const EdgeInsets.only(bottom: 2));
+      // 件数の文言との間を空ける。
+      expect(
+        tester.getRect(link).left - tester.getRect(label).right,
+        greaterThanOrEqualTo(12),
+      );
 
       // 「詳細」でも件数の文言でもない、行の右端を押す。
       final row = tester.getRect(find.byKey(warningCountRowKey));

@@ -1459,9 +1459,9 @@
     {
       "id": "M219",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                // `⚠ 1…` と読ませる。`008:T29` でヘッダ右端にケバブが入り、\n                // 文字側の幅が狭まったのでここでも効くようになった。\n                maxLines: 2,",
-      "replace": "                maxLines: 1,\n                overflow: TextOverflow.ellipsis,",
-      "note": "008:T18 併発した種別を1行へ押し込む — 狭幅で種別が切り詰められる(005 REQ-009 (1))。対照として置く(独立review attempt 1 の R4)"
+      "find": "                    // `⚠ 1…` と読ませる。\n                    maxLines: 2,",
+      "replace": "                    // `⚠ 1…` と読ませる。\n                    maxLines: 1,\n                    overflow: TextOverflow.ellipsis,",
+      "note": "008:T18 併発した種別を1行へ押し込む — 狭幅で種別が切り詰められる(005 REQ-009 (1))。対照として置く(独立review attempt 1 の R4)  **008:T02 で件数の文言を「詳細」と `Wrap` で並べる形へ変え、コメントも変わったので `find` を追随させた**(守るのは件数の文言の切り詰め。008:T16 の N-9)"
     },
     {
       "id": "M220",
@@ -3672,9 +3672,9 @@
     {
       "id": "M570",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                  decoration: TextDecoration.underline,\n",
-      "replace": "",
-      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)"
+      "find": "                          bottom: BorderSide(color: colors.danger, width: 1.5),",
+      "replace": "                          bottom: BorderSide.none,",
+      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)  **下線を文字の下に引いた線へ替えた(2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」)ので、線を消す形へ作り直した**"
     },
     {
       "id": "M571",
@@ -3682,6 +3682,41 @@
       "find": "              onTap: hasWarnings ? openDetail : null,",
       "replace": "              onTap: null,",
       "note": "008:T02 バナーの行を押しても開かない — 「詳細」の文字以外を押しても開く(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M572",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              has ? Icons.warning_amber_rounded : Icons.check_circle_outline,\n              size: bannerIconSize,",
+      "replace": "              has ? Icons.warning_amber_rounded : Icons.check_circle_outline,\n              size: 13,",
+      "note": "008:T02 件数の行の印の大きさを作成日時の行と揃えない(2026-09-30 の開発者の指定「警告マークの位置がずれている」)"
+    },
+    {
+      "id": "M573",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  const SizedBox(width: bannerIconGap),\n                  Expanded(",
+      "replace": "                  const SizedBox(width: 4),\n                  Expanded(",
+      "note": "008:T02 作成日時の行の印と文の間を件数の行と揃えない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M574",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                    has\n                        ? 'リネーム: ${warningCountLabel(warnings)}'",
+      "replace": "                    has\n                        ? warningCountLabel(warnings)",
+      "note": "008:T02 「リネーム:」を付けない — 何についての状態か読めない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M575",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      '並び順: 作成日時不明の ${fallback.unknownCount} 件は'",
+      "replace": "                      '作成日時不明の ${fallback.unknownCount} 件は'",
+      "note": "008:T02 「並び順:」を付けない — 何についての状態か読めない(2026-09-30 の開発者の指定)"
+    },
+    {
+      "id": "M576",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              child: Wrap(\n                spacing: 14,",
+      "replace": "              child: Wrap(\n                spacing: 2,",
+      "note": "008:T02 件数の文言と「詳細」の間を詰める — 狭い(2026-09-30 の開発者の指定)"
     }
   ]
 }

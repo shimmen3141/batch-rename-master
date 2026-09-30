@@ -4,6 +4,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
+import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -102,6 +103,40 @@ void main() {
       c.reorder(0, 1);
       await tester.pump();
       expect(_warningBanner, findsNothing);
+    });
+
+    testWidgets('「並び順:」を付け、「リネーム:」の行と印の位置・印と文の間を揃える(2026-09-30 の開発者の指定)', (
+      tester,
+    ) async {
+      final c = FileListController(
+        // 拡張子を揃える。全件が同じ名前になるので「リネーム: N 件の問題」も出る。
+        files: [_known('a.txt'), _unknown('b.txt')],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      c.setSortMode(FileSortMode.createdAt);
+      await _pump(tester, c);
+
+      expect(find.text('並び順: 作成日時不明の 1 件は更新日時で代替しています'), findsOneWidget);
+      final fallbackIcon = tester.getRect(
+        find.descendant(
+          of: _warningBanner,
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+      );
+      final countIcon = tester.getRect(
+        find.descendant(
+          of: find.byKey(warningCountKey),
+          matching: find.byIcon(Icons.warning_amber_rounded),
+        ),
+      );
+      expect(countIcon.left, fallbackIcon.left);
+      expect(countIcon.size, fallbackIcon.size);
+      final fallbackText = tester.getRect(find.textContaining('並び順: 作成日時不明'));
+      final countText = tester.getRect(find.textContaining('リネーム: '));
+      expect(
+        countText.left - countIcon.right,
+        fallbackText.left - fallbackIcon.right,
+      );
     });
 
     testWidgets('警告は上の帯の下のメッセージのバナーに出る(2026-09-30 の開発者の指定)', (tester) async {

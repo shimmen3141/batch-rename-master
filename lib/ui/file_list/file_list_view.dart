@@ -1671,13 +1671,14 @@ class _MessageBanner extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    size: 14,
+                    size: bannerIconSize,
                     color: colors.danger,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: bannerIconGap),
                   Expanded(
                     child: Text(
-                      '作成日時不明の ${fallback.unknownCount} 件は'
+                      // **何についての状態かを先頭で示す**(2026-09-30 の開発者の指定)。
+                      '並び順: 作成日時不明の ${fallback.unknownCount} 件は'
                       '更新日時で代替しています',
                       style: TextStyle(
                         color: colors.danger,
