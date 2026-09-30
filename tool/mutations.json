@@ -1305,9 +1305,9 @@
     {
       "id": "M192",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
-      "find": "        return Row(\n          children: [\n            for (var i = 0; i < shown; i++) ...[",
-      "replace": "        return Wrap(\n          children: [\n            for (var i = 0; i < shown; i++) ...[",
-      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**"
+      "find": "  return (kind > value ? kind : value) +\n      2 * _chipHorizontalPadding +",
+      "replace": "  return (kind > value ? kind : value) +\n      0 +",
+      "note": "008:T16 設定中のルールの要約を折り返させる — ルールが長いとbuttonが伸びて一覧を削る(参考designは1行・省略記号)。**`008:T20` が button を作り直したので find を追随させた。** **等価mutantで SURVIVED が正しい** — `overflow: TextOverflow.ellipsis` は `maxLines` が null でも最初にあふれる行で切る(Flutter `TextPainter.ellipsis` の doc)ので、画面が変わらない。`008:T20` 独立review attempt 1 の F1。本物の検出は M241 が持つ。対照として残す  **008:T47 でルールの要約を字面からチップ(`RuleChipStrip`)へ替えたので、同じ保証(ルールが長くてもbuttonが伸びない)をチップの形で作り直した**  **`Row` → `Wrap` の形は等価mutantで SURVIVED した**(入る数を先に測って決めるので、`Wrap` でも折り返しが起きない。2026-09-30、`008:T47`)。**保証が実際に崩れるのは幅の見積もりが実際より小さいとき**なので、見積もりからチップの余白を落とす形へ作り直した(入りきらないチップを並べて、はみ出す)"
     },
     {
       "id": "M194",

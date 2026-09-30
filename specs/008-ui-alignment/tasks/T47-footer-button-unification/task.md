@@ -36,6 +36,27 @@ product-map の将来候補「ルールをchipのUIで見せる」(`T20`の実�
 
 - 2026-09-30 / 起票・着手は Claude Opus 5.5。branch `asdd/008-ui-alignment/T47-footer-button-unification`、起点 `dev`@`5bfcc7a`。
 
+
+### 実装(`55739ec`)
+
+- `_RuleButton`(`lib/ui/file_list/file_list_view.dart`): 外形(面の色・枠・角丸 `ruleButtonRadius`)を未設定・設定済みで共通にし、中身だけを入れ替える。未設定は＋と「命名ルールを設定する」を白で中央に出す。以前の未設定は `FilledButton.icon`(シアンの塗り)だった。
+- `RuleChipStrip` / `RuleSummaryChip`(新規 `lib/ui/rule_builder/rule_chip_strip.dart`): 設定画面の `TokenChip` と同じ色(`tokenHue`)・語(`tokenKindLabel` / `tokenChipValue`)・面の2段のチップ。×と、そのために取っていた幅(`tokenChipDeleteSize`)は持たない。値の幅の上限は設定画面と同じ 132。文字の幅を測り、入りきらない分を右端の「+N」にまとめる(折り返さない — button が伸びて一覧を削らないように)。値は一覧の1件目で描く。`TokenChip` 自体は変えていない。
+- 読み上げは字面の要約(`describeRuleSummary`、`[元の名前][01…]`)を `Semantics` で持たせた。
+- リネームbutton: `FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: ruleButtonRadius))`。
+- 参考デザインから離れた点: 土台のルール設定buttonは字面の要約(`[元の名前][01]`)で、未設定の形は持たない。チップ・未設定の形は開発者の決定(2026-09-30)による。
+
+### testの改訂と追加
+
+- `bottom_bar_presentation_test`: 「ルールが長くてもbuttonが伸びない」は、あふれの前提を `RenderParagraph.didExceedMaxLines` から「+N が出ている」へ替えた(高さの一致の検査はそのまま)。「buttonに出るのもトークンの形」は「設定画面と同じ2段のチップ(種類名が上・値が下・種類の色・×なし・読み上げは字面)」へ書き換えた。足した: 未設定と設定済みで外形が同じ・未設定は＋と文言が白で✎・見出し・`編集`・塗りのbuttonが無い、リネームbuttonの角丸、幅 320/360・文字 2.0 ではみ出さない。
+- `empty_rule_test` / `widget_test`: 文言を「命名ルールを設定する」へ。設定済みの要約は字面ではなくチップの中の値で見る。
+- **assertionを緩めたものは無い。**
+
+### mutation
+
+- 作り直した: M192(チップの列を折り返させる)・M199(「+N」にまとめず全部並べる)・M241(入りきらない分を黙って落とす)— 字面の行数制限を守っていたものを、同じ保証(ルールが長くてもbuttonが伸びない・隠れたトークンがあると分かる)のチップの形へ。M197(未設定と設定済みの中身を入れ替える)は `find` を追随させた。
+- 足した: M577〜M581(リネームbuttonの角丸、未設定の＋・文言を白にしない、チップの上段を落とす、チップの枠を種類の色にしない)。
+- `check_mutation_finds.py` → `PASS: 535`。
+
 ## Current state / handoff
 
 - Last checkpoint: 起票し、チップの見せ方を開発者が決めた(2026-09-30)
