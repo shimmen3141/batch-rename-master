@@ -113,9 +113,25 @@ M342 | SURVIVED | lib/ui/file_list/file_list_view.dart | exit 0: the tests passe
 - `M314`: 同じ構造の等価mutantになっていた。`008:T29`で足した片付けがあるためである。外した候補が一覧から消えると、次のframeの後で`retain`が選択を0件にし、モードを抜ける。この片付けは`M345`が守る。差は1 frameのちらつきだけで、安全網の穴のFAIL条件(2)(データ損失など)に当たらない。**M342と同じ防御の重複として残し**、noteへ記録した(残余riskとして受容。引き受け先のtaskは無い — 保証そのものは`retain`とそれを守る`M345`が持つ)。
 - 検証: `python3 tool/check_mutation_finds.py` PASS(504件)、`flutter test` 1083件PASS、`flutter analyze`・`dart format` PASS。
 
+## 独立review
+
+既定のreviewerは`gpt-6-luna`(開発者指定)。
+
+- attempt 1: `b771831..0e6afbf`(全範囲、implementation) — **PASS**(P2 2件)。reviewerのmodelは`gpt-6-luna`。確認された点: 判定がplugin(`occurrences`・byte列)と一致しCIで走ること、`M392`を古くないとした判断、`M116`を外した根拠、追随14件のfind/replaceが各noteの意図を表すこと、`M314`/`M342`のSURVIVEDの理由。`check_mutation_finds` PASS(504件)、full test 1083件・analyze・format・`check specs`・`git diff --check` PASS。範囲付きmutation(`M314`・`M342`)は2件SURVIVED。
+  - **P2(成果物の欠陥)**: 表の`command`の`--exclude-tags tooling`は、AGENTS.mdの「`command`は全件のまま置く」と文言が合わない。→ **直さない。** その規約の理由は「表は一つのcommandしか持てず、001のコア判定やdataのmutationも同じ表にある」、つまり**振る舞いのtestを特定のspecへ絞らない**ことにある。外したのは`@Tags(['tooling'])`のrepositoryの検査だけで、振る舞いのtestはすべて残る。一方、toolingを含めると、mutationを当てた時点で`find`の一致の検査が落ち、**どのmutationも必ずKILLEDになる**。これは全件で回す意味を失わせる。AGENTS.mdの文言の整理は人間の判断(このtaskはAGENTS.mdを変えない)。
+  - **P2(M314)**: reviewerは「外した後に一時的に選択モードが残る」と読んだが、それはmutationを当てたときだけで、製品のコードは`_removeMarked`ですぐ抜ける。ただし、すぐ抜けることをtestが見ていないのは事実だった。→ `bf5af25`で、外した直後の最初のframeを見るtest(`removal_selection_mode_test.dart`「外した直後の最初の frame でモードを抜けている」)を足した。`M314`はKILLEDになり、noteを「閉じた」へ直した。`M342`はnoteどおりの等価mutantのまま(一覧が空になるので、同じframeで描画も畳まれる)。生出力(`flutter test test/spec_002_file_list/removal_selection_mode_test.dart`):
+
+```text
+M314 | KILLED | lib/ui/file_list/file_list_view.dart | exit 1
+M342 | SURVIVED | lib/ui/file_list/file_list_view.dart | exit 0: the tests passed with the mutation applied
+2 mutations: 1 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+  - 検証: full `flutter test` 1084件PASS、analyze・format・`check_mutation_finds` PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: 検査を足し、15件を直した。full test 1083件PASS(2026-09-30)
+- Last checkpoint: 独立review attempt 1 PASS(P2 2件)。1件は直さない理由を記録し、1件はtestを足して閉じた。full test 1084件PASS(2026-09-30)
 - Blocker category: none
-- Evidence revision: `1742e6c`以降(記録のcommit)
-- Next Agent action: 独立reviewを依頼する
+- Evidence revision: `bf5af25`以降(test・表のnote・記録)
+- Next Agent action: `0e6afbf..HEAD`の差分reviewを依頼する(testを足したため)
