@@ -1,5 +1,5 @@
 // VER-001: FileListController の状態・操作の検証(FEAT-002 / Light)。
-// 対象: REQ-001(初期化・入力順・既定選択), REQ-002(ソート昇順・安定),
+// 対象: REQ-001(初期化・名前の昇順・既定選択), REQ-002(ソート昇順・安定),
 //       REQ-003(reorder → custom 自動切替), REQ-004(選択トグル/全選択/全解除),
 //       REQ-005(setRule)。プレビュー行データ(REQ-006/REQ-007)は T3。
 import 'package:batch_rename_master/core/rename_engine.dart';
@@ -19,16 +19,18 @@ List<String> _names(FileListController c) =>
 
 void main() {
   group('REQ-001: 初期化', () {
-    test('items は入力の並び順を保持し、現在名は FileEntry.name に等しい', () {
+    // 2026-09-30 `008:T01`: 以前は入力順を `custom` として始めていた。
+    test('items は入力を名前の昇順に並べ、現在名は FileEntry.name に等しい', () {
       final files = [_f('b.txt'), _f('a.txt'), _f('c.txt')];
       final c = FileListController(files: files);
-      expect(_names(c), ['b.txt', 'a.txt', 'c.txt']);
+      expect(_names(c), ['a.txt', 'b.txt', 'c.txt']);
     });
 
-    test('既定は全選択、初期 sortMode は custom(入力順)', () {
+    test('既定は全選択、初期 sortMode は name(昇順)', () {
       final files = [_f('a'), _f('b'), _f('c')];
       final c = FileListController(files: files);
-      expect(c.sortMode, FileSortMode.custom);
+      expect(c.sortMode, FileSortMode.name);
+      expect(c.sortDirection, SortDirection.ascending);
       expect(c.selectedCount, 3);
       expect(files.every(c.selectedOf), isTrue);
     });
@@ -37,7 +39,7 @@ void main() {
       final c = FileListController(files: const []);
       expect(_names(c), isEmpty);
       expect(c.selectedCount, 0);
-      expect(c.sortMode, FileSortMode.custom);
+      expect(c.sortMode, FileSortMode.name);
     });
 
     test('items は読み取り専用ビュー(外部から破壊できない)', () {
@@ -93,9 +95,10 @@ void main() {
       expect(_names(c), ['x', 'y', 'z']);
     });
 
-    test('custom 指定は現在順を保持する', () {
+    test('custom は指定できない(手で並べた結果を示す状態。REQ-003)', () {
       final c = FileListController(files: [_f('b'), _f('a')]);
-      c.setSortMode(FileSortMode.custom);
+      c.reorder(1, 0);
+      expect(() => c.setSortMode(FileSortMode.custom), throwsArgumentError);
       expect(_names(c), ['b', 'a']);
       expect(c.sortMode, FileSortMode.custom);
     });

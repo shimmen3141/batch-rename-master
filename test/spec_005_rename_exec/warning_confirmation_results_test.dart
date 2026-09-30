@@ -221,7 +221,8 @@ void main() {
     // 4件すべてが「旧 → 新」の行として出ている(3件で打ち切らない)。
     // scroll外の行も数える。**先頭3件で打ち切らない**ことがこのtestの主眼で、
     // 画面内に何件見えるかではない。
-    expect(find.textContaining('→', skipOffstage: false), findsNWidgets(4));
+    // 空白を挟んだ矢印で数える(並び順の表示「名前 A→Z」を拾わない)。
+    expect(find.textContaining(' → ', skipOffstage: false), findsNWidgets(4));
     execution.dispose();
   });
 

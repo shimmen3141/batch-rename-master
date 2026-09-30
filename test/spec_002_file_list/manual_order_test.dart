@@ -1,15 +1,17 @@
-// VER-001/002(004 T9): 手動並び替えとカスタム順の提示条件(002 REQ-014)。
-// 並び順が生成後名に影響するのは連番トークンがあるときだけなので、
-// 無いときはドラッグハンドルと「カスタム順」の選択肢を出さない。
+// VER-002(008:T02): 手動並び替えはルールに関わらず提示する(002 REQ-019)と、
+// 並び順を1か所で示すcontrol(REQ-020)。REQ-014(連番があるときだけ提示)は
+// 2026-09-30 `008:T01` で廃止した。
 import 'package:batch_rename_master/core/rename_engine.dart';
+import 'package:batch_rename_master/ui/common/selection_checkbox.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-FileEntry _f(String name) =>
-    FileEntry(name: name, modifiedAt: DateTime(2026, 1, 1), size: 0);
+FileEntry _f(String name, {int size = 0}) =>
+    FileEntry(name: name, modifiedAt: DateTime(2026, 1, 1), size: size);
 
 const _withSequence = RenameRule([
   LiteralToken('IMG_'),
@@ -26,90 +28,225 @@ Future<void> _pump(WidgetTester tester, FileListController c) async {
   );
 }
 
+List<String> _names(FileListController c) =>
+    c.items.map((e) => e.name).toList();
+
+/// 並び順の表示の文言。
+Finder _sortLabel(String text) => find.descendant(
+  of: find.byKey(sortControlKey),
+  matching: find.text('並び順: $text'),
+);
+
+Future<void> _openSortMenu(WidgetTester tester) async {
+  await tester.tap(find.byKey(sortControlKey));
+  await tester.pumpAndSettle();
+}
+
+/// メニュー項目の選択の印が付いているか。
+bool _checked(WidgetTester tester, FileSortMode mode, SortDirection dir) =>
+    tester
+        .widget<SelectionCheckbox>(
+          find.descendant(
+            of: find.byKey(sortOptionKeyOf(mode, dir)),
+            matching: find.byType(SelectionCheckbox),
+          ),
+        )
+        .value;
+
 void main() {
-  group('REQ-014: manualOrderMatters(状態層)', () {
-    test('例16: 連番が無いルールでは false', () {
+  group('REQ-019: 手動並び替えはルールに関わらず提示する', () {
+    testWidgets('例16: 連番が無いルールでもつまみが出て、並べると「カスタム」になる', (tester) async {
       final c = FileListController(
-        files: [_f('a.txt')],
+        files: [_f('a.txt'), _f('b.txt'), _f('c.txt')],
         rule: _withoutSequence,
       );
-      expect(c.manualOrderMatters, isFalse);
+      await _pump(tester, c);
+
+      expect(find.byIcon(Icons.drag_handle), findsNWidgets(3));
+      expect(_sortLabel('名前 A→Z'), findsOneWidget);
+
+      // 先頭の a のつまみを掴んで下へ動かす(REQ-003)。
+      final handle = find.byIcon(Icons.drag_handle).first;
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      await tester.pump(const Duration(milliseconds: 250));
+      await gesture.moveBy(const Offset(0, 60));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 60));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(_names(c).first, isNot('a.txt'));
+      expect(c.sortMode, FileSortMode.custom);
+      expect(_sortLabel('カスタム'), findsOneWidget);
     });
 
-    test('連番があるルールでは true', () {
-      final c = FileListController(files: [_f('a.txt')], rule: _withSequence);
-      expect(c.manualOrderMatters, isTrue);
-    });
-
-    test('例17: ルールの変更に追随する', () {
-      final c = FileListController(
-        files: [_f('a.txt')],
-        rule: _withoutSequence,
-      );
-      expect(c.manualOrderMatters, isFalse);
-
-      c.setRule(_withSequence);
-      expect(c.manualOrderMatters, isTrue);
-
-      c.setRule(_withoutSequence);
-      expect(c.manualOrderMatters, isFalse);
-    });
-
-    test('空ルールでは false', () {
-      final c = FileListController(files: [_f('a.txt')]);
-      expect(c.manualOrderMatters, isFalse);
-    });
-  });
-
-  group('REQ-014: 提示(ウィジェット)', () {
-    testWidgets('例16: 連番が無いとドラッグハンドルとカスタム順を出さない', (tester) async {
-      await _pump(
-        tester,
-        FileListController(files: [_f('a.txt')], rule: _withoutSequence),
-      );
-
-      expect(find.byIcon(Icons.drag_handle), findsNothing);
-      expect(find.text('カスタム順'), findsNothing);
-    });
-
-    testWidgets('連番があると両方出る', (tester) async {
+    testWidgets('連番があるルールでもつまみが出る', (tester) async {
       await _pump(
         tester,
         FileListController(files: [_f('a.txt')], rule: _withSequence),
       );
-
       expect(find.byIcon(Icons.drag_handle), findsOneWidget);
-      expect(find.text('カスタム順'), findsOneWidget);
     });
 
-    testWidgets('例17: ルールに連番を足すと現れ、外すと消える', (tester) async {
-      final c = FileListController(
-        files: [_f('a.txt')],
-        rule: _withoutSequence,
-      );
+    testWidgets('ルールから連番を外してもつまみは消えない', (tester) async {
+      final c = FileListController(files: [_f('a.txt')], rule: _withSequence);
       await _pump(tester, c);
-      expect(find.byIcon(Icons.drag_handle), findsNothing);
-
-      c.setRule(_withSequence);
-      await tester.pump();
-      expect(find.byIcon(Icons.drag_handle), findsOneWidget);
-      expect(find.text('カスタム順'), findsOneWidget);
-
       c.setRule(_withoutSequence);
       await tester.pump();
-      expect(find.byIcon(Icons.drag_handle), findsNothing);
-      expect(find.text('カスタム順'), findsNothing);
+      expect(find.byIcon(Icons.drag_handle), findsOneWidget);
+    });
+  });
+
+  group('REQ-020: 並び順を1か所で示し、すべてのキーと向きを選べる', () {
+    testWidgets('メニューに8項目があり、カスタムは無い', (tester) async {
+      await _pump(tester, FileListController(files: [_f('a.txt')]));
+      await _openSortMenu(tester);
+
+      for (final (mode, dir, label) in [
+        (FileSortMode.name, SortDirection.ascending, 'A→Z'),
+        (FileSortMode.name, SortDirection.descending, 'Z→A'),
+        (FileSortMode.createdAt, SortDirection.ascending, '古い順'),
+        (FileSortMode.createdAt, SortDirection.descending, '新しい順'),
+        (FileSortMode.modifiedAt, SortDirection.ascending, '古い順'),
+        (FileSortMode.modifiedAt, SortDirection.descending, '新しい順'),
+        (FileSortMode.size, SortDirection.ascending, '小さい順'),
+        (FileSortMode.size, SortDirection.descending, '大きい順'),
+      ]) {
+        final option = find.byKey(sortOptionKeyOf(mode, dir));
+        expect(option, findsOneWidget, reason: '$mode $dir');
+        expect(
+          find.descendant(of: option, matching: find.textContaining(label)),
+          findsOneWidget,
+          reason: '$mode $dir',
+        );
+      }
+      expect(
+        find.byType(PopupMenuItem<(FileSortMode, SortDirection)>),
+        findsNWidgets(8),
+      );
+      expect(find.textContaining('カスタム'), findsNothing);
     });
 
-    testWidgets('ソート(名前順・日時順・サイズ順)は連番の有無に関わらず常に出る', (tester) async {
-      await _pump(
-        tester,
-        FileListController(files: [_f('a.txt')], rule: _withoutSequence),
-      );
+    testWidgets('選んでいる項目にだけ選択の印が付く', (tester) async {
+      await _pump(tester, FileListController(files: [_f('a.txt')]));
+      await _openSortMenu(tester);
 
-      for (final label in ['元の名前順', '作成日時順', '更新日時順', 'サイズ順']) {
-        expect(find.text(label), findsOneWidget, reason: label);
+      expect(
+        _checked(tester, FileSortMode.name, SortDirection.ascending),
+        isTrue,
+      );
+      for (final mode in [
+        FileSortMode.name,
+        FileSortMode.createdAt,
+        FileSortMode.modifiedAt,
+        FileSortMode.size,
+      ]) {
+        for (final dir in SortDirection.values) {
+          if (mode == FileSortMode.name && dir == SortDirection.ascending) {
+            continue;
+          }
+          expect(_checked(tester, mode, dir), isFalse, reason: '$mode $dir');
+        }
       }
+    });
+
+    testWidgets('項目を選ぶと状態と表示に反映される(キーと向き)', (tester) async {
+      final c = FileListController(
+        files: [_f('a', size: 1), _f('b', size: 3), _f('c', size: 2)],
+      );
+      await _pump(tester, c);
+
+      await _openSortMenu(tester);
+      await tester.tap(
+        find.byKey(
+          sortOptionKeyOf(FileSortMode.size, SortDirection.descending),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(c.sortMode, FileSortMode.size);
+      expect(c.sortDirection, SortDirection.descending);
+      expect(_names(c), ['b', 'c', 'a']);
+      expect(_sortLabel('サイズ 大きい順'), findsOneWidget);
+
+      await _openSortMenu(tester);
+      expect(
+        _checked(tester, FileSortMode.size, SortDirection.descending),
+        isTrue,
+      );
+      await tester.tap(
+        find.byKey(
+          sortOptionKeyOf(FileSortMode.name, SortDirection.descending),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(c.sortMode, FileSortMode.name);
+      expect(c.sortDirection, SortDirection.descending);
+      expect(_names(c), ['c', 'b', 'a']);
+      expect(_sortLabel('名前 Z→A'), findsOneWidget);
+    });
+
+    testWidgets('カスタムのときはどの項目にも印が付かない', (tester) async {
+      final c = FileListController(files: [_f('a'), _f('b')]);
+      c.reorder(1, 0);
+      await _pump(tester, c);
+      expect(_sortLabel('カスタム'), findsOneWidget);
+
+      await _openSortMenu(tester);
+      for (final mode in [
+        FileSortMode.name,
+        FileSortMode.createdAt,
+        FileSortMode.modifiedAt,
+        FileSortMode.size,
+      ]) {
+        for (final dir in SortDirection.values) {
+          expect(_checked(tester, mode, dir), isFalse, reason: '$mode $dir');
+        }
+      }
+    });
+
+    testWidgets('N-8a: 文字を最大(2.0)にしても、すべての項目へ到達できる', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(files: [_f('a.txt')]);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          // メニューの route にも効くよう、Navigator の外側で文字を拡大する。
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+          home: Scaffold(body: FileListView(controller: c)),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      await _openSortMenu(tester);
+      expect(tester.takeException(), isNull);
+      // 最後の項目までスクロールして選べる(はみ出して隠れない)。
+      final last = find.byKey(
+        sortOptionKeyOf(FileSortMode.size, SortDirection.descending),
+      );
+      await tester.scrollUntilVisible(
+        last,
+        50,
+        scrollable: find
+            .ancestor(
+              of: find.byKey(
+                sortOptionKeyOf(FileSortMode.name, SortDirection.ascending),
+              ),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      expect(c.sortMode, FileSortMode.size);
+      expect(c.sortDirection, SortDirection.descending);
+      expect(_sortLabel('サイズ 大きい順'), findsOneWidget);
     });
   });
 }

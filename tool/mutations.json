@@ -1963,9 +1963,9 @@
     {
       "id": "M291",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,",
-      "replace": "          Checkbox(value: row.selected, onChanged: (_) {}),\n          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,",
-      "note": "008:T04 通常表示の行へ checkbox を戻す — 002 REQ-016(通常表示の行UIは選択の切り替えを提示しない)が壊れる。**008:T29 で checkbox が行の右端へ移ったので、`find` をその外側へ貼り直した**"
+      "find": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          SizedBox(\n            width: 32,",
+      "replace": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          Checkbox(value: row.selected, onChanged: (_) {}),\n          SizedBox(\n            width: 32,",
+      "note": "008:T04 通常表示の行へ checkbox を戻す — 002 REQ-016(通常表示の行UIは選択の切り替えを提示しない)が壊れる。**008:T29 で checkbox が行の右端へ移ったので、`find` をその外側へ貼り直した**  **008:T02 でつまみの枠が常に出るようになり(REQ-019)、`find` を追随させた**"
     },
     {
       "id": "M292",
@@ -1977,16 +1977,16 @@
     {
       "id": "M293",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "        controller.setFiles(before);\n",
+      "find": "        controller.restoreFiles(\n          before,\n          sortMode: beforeSortMode,\n          sortDirection: beforeSortDirection,\n        );\n",
       "replace": "",
-      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
+      "note": "008:T04 取り消しが一覧を戻さない — 002 REQ-017 の中身が空になり、通知だけが出る。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**  **008:T02 で取り消しが並び順も控えて `restoreFiles` で戻すようになり(002 REQ-017・代表例25)、`find` を追随させた**"
     },
     {
       "id": "M294",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "        controller.setFiles(before);",
-      "replace": "        controller.setFiles(before.reversed.toList());",
-      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
+      "find": "        controller.restoreFiles(\n          before,",
+      "replace": "        controller.restoreFiles(\n          before.reversed.toList(),",
+      "note": "008:T04 取り消しで並びが変わる — 代表例6c の「元の位置へ戻る」が壊れる(末尾へ付け足す形と同じ誤り)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**  **008:T02 で取り消しが並び順も控えて `restoreFiles` で戻すようになり(002 REQ-017・代表例25)、`find` を追随させた**"
     },
     {
       "id": "M295",
@@ -2019,16 +2019,16 @@
     {
       "id": "M299",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "        if (controller.sortMode != afterSortMode ||\n            !identical(controller.occupiedNames, occupied) ||\n            !_sameItems(controller.items, after)) {",
+      "find": "        if (controller.sortMode != afterSortMode ||\n            controller.sortDirection != afterSortDirection ||\n            !identical(controller.occupiedNames, occupied) ||\n            !_sameItems(controller.items, after)) {",
       "replace": "        if (false) {",
-      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
+      "note": "008:T04 控えが古くなっていても戻す — 取り消しの通知が出ている間に読み込み直すと、**読み込んだばかりの一覧が古い控えで無断置換される**(独立review attempt 1 の N-1。データを見失う)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**  **008:T02 で向き(`sortDirection`)も見るようになり、`find` を追随させた**"
     },
     {
       "id": "M300",
       "file": "lib/ui/file_list/removal_undo.dart",
-      "find": "        if (controller.sortMode != afterSortMode ||\n            !identical",
-      "replace": "        if (!identical",
-      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**"
+      "find": "        if (controller.sortMode != afterSortMode ||\n            controller.sortDirection != afterSortDirection ||\n            !identical",
+      "replace": "        if (controller.sortDirection != afterSortDirection ||\n            !identical",
+      "note": "008:T04 並び順の種別を見ない — 並べ替えても順序が変わらなかったときに取り消しが通り、`sortMode` と表示順が食い違う一覧ができる(独立review attempt 1 の N-2)。**008:T25で通知を`showAppToast`へ寄せ、字下げが変わったので`find`を追随させた**  **008:T02 で向き(`sortDirection`)も見るようになり、`find` を追随させた**"
     },
     {
       "id": "M301",
@@ -2089,16 +2089,9 @@
     {
       "id": "M309",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                child: selecting\n                    ? (widget.onToggleMark == null",
-      "replace": "                child: selecting && !widget.showDragHandle\n                    ? (widget.onToggleMark == null",
-      "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る。**008:T29 で checkbox とつまみが同じ枠を取り合うようになったので、判定を行側の1か所へ寄せて `find` を貼り直した**"
-    },
-    {
-      "id": "M310",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              if (controller.manualOrderMatters && !selecting) _customMode,",
-      "replace": "              if (controller.manualOrderMatters) _customMode,",
-      "note": "008:T28 モード中も `カスタム順` chip を出す — chip は REQ-014 が言う手動並び替えの提示そのもので、REQ-018 がモード中の提示を禁じている"
+      "find": "              child: selecting\n                  ? (widget.onToggleMark == null",
+      "replace": "              child: false\n                  ? (widget.onToggleMark == null",
+      "note": "008:T28 モード中もつまみを出す — REQ-018 の「モード中は手動並び替えの操作を提示しない」が壊れ、`T27` で消したはずの押し間違い(つまみと除去の隣接)が戻る。**008:T29 で checkbox とつまみが同じ枠を取り合うようになったので、判定を行側の1か所へ寄せて `find` を貼り直した**  **008:T02 で `showDragHandle` が無くなった(REQ-019)ので、「モード中もつまみを出す」を `selecting` の判定を外す形で作り直した**"
     },
     {
       "id": "M311",
@@ -2201,9 +2194,9 @@
     {
       "id": "M325",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        child: ReorderableDragStartListener(\n                          index: widget.index,",
-      "replace": "                        child: GestureDetector(\n                          behavior: HitTestBehavior.opaque,\n                          onLongPress: selecting ? null : widget.onLongPressEnter,\n                          child: ReorderableDragStartListener(\n                          index: widget.index,",
-      "note": "008:T28 つまみの上の長押しも行の長押しへ渡す — 0.5秒以上保持してからドラッグすると、長押しが gesture arena を勝って選択モードが開き、`showDragHandle` が false になって**つまみが消え、掴んだままの指では並び替えを始められない**(REQ-003/REQ-014)。独立review attempt 1 の P1-1(実測: 450ms=並び替わる / 520ms=モード)"
+      "find": "                      child: ReorderableDragStartListener(\n                        index: widget.index,",
+      "replace": "                      child: GestureDetector(\n                        behavior: HitTestBehavior.opaque,\n                        onLongPress: selecting ? null : widget.onLongPressEnter,\n                        child: ReorderableDragStartListener(\n                        index: widget.index,",
+      "note": "008:T28 つまみの上の長押しも行の長押しへ渡す — 0.5秒以上保持してからドラッグすると、長押しが gesture arena を勝って選択モードが開き、`showDragHandle` が false になって**つまみが消え、掴んだままの指では並び替えを始められない**(REQ-003/REQ-014)。独立review attempt 1 の P1-1(実測: 450ms=並び替わる / 520ms=モード)  **008:T02 でつまみの枠が常に出るようになり(REQ-019)、`find` を追随させた**"
     },
     {
       "id": "M326",
@@ -2222,9 +2215,9 @@
     {
       "id": "M328",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              width: 32,\n              child: Center(",
-      "replace": "          if (selecting || widget.showDragHandle)\n            SizedBox(\n              child: Center(",
-      "note": "008:T29 checkbox とつまみの枠の幅を固定しない — つまみ ↔ checkbox の入れ替わりで行の中身が横へ動く(2026-09-19 の要望1の「かくつき」)"
+      "find": "          SizedBox(\n            width: 32,\n            child: Center(\n",
+      "replace": "          SizedBox(\n            child: Center(\n",
+      "note": "008:T29 checkbox とつまみの枠の幅を固定しない — つまみ ↔ checkbox の入れ替わりで行の中身が横へ動く(2026-09-19 の要望1の「かくつき」)  **008:T02 でつまみの枠が常に出るようになり(REQ-019)、`find` を追随させた**"
     },
     {
       "id": "M329",
@@ -2326,10 +2319,10 @@
     },
     {
       "id": "M343",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                              shape: const CircleBorder(),",
+      "file": "lib/ui/common/selection_checkbox.dart",
+      "find": "      shape: const CircleBorder(),\n",
       "replace": "",
-      "note": "008:T29 checkbox を四角へ戻す — 2026-09-19 の要望2(checkboxも円)。独立review attempt 1 の指摘で**testを足して閉じた**(attempt 1 の時点では SURVIVED だった)"
+      "note": "008:T29 checkbox を四角へ戻す — 2026-09-19 の要望2(checkboxも円)。独立review attempt 1 の指摘で**testを足して閉じた**(attempt 1 の時点では SURVIVED だった)  **008:T02 で選択の印を共通の `SelectionCheckbox` へ寄せたので、そこへ貼り直した**"
     },
     {
       "id": "M344",
@@ -2418,9 +2411,9 @@
     {
       "id": "M368",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    : Listener(\n                        onPointerDown: (_) => _setGrabbed(true),",
-      "replace": "                    : Listener(\n                        onPointerDown: (_) {},",
-      "note": "008:T32 触れた瞬間を見ない — 約18px 動かすまで色も振動も出ず、掴めたことが分からない(2026-09-19 の2回目の実機確認)。`proxyDecorator` だけでは足りないことの対照"
+      "find": "                  : Listener(\n                      onPointerDown: (_) => _setGrabbed(true),",
+      "replace": "                  : Listener(\n                      onPointerDown: (_) {},",
+      "note": "008:T32 触れた瞬間を見ない — 約18px 動かすまで色も振動も出ず、掴めたことが分からない(2026-09-19 の2回目の実機確認)。`proxyDecorator` だけでは足りないことの対照  **008:T02 でつまみの枠が常に出るようになり(REQ-019)、`find` を追随させた**"
     },
     {
       "id": "M369",
@@ -2608,9 +2601,9 @@
     {
       "id": "M414",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "008:T39 file行のcheckboxを円にしない — メイン一覧(008:T29)へ揃える決定(008:T38の6)",
-      "find": "          shape: const CircleBorder(),\n",
-      "replace": ""
+      "note": "008:T39 file行のcheckboxを円にしない — メイン一覧(008:T29)へ揃える決定(008:T38の6)  **008:T02 で選択の印を共通の `SelectionCheckbox` へ寄せたので、「共通部品を使わない(既定の四角い Checkbox へ戻る)」形へ作り直した**",
+      "find": "        trailing: SelectionCheckbox(",
+      "replace": "        trailing: Checkbox("
     },
     {
       "id": "M415",
@@ -3535,6 +3528,111 @@
       "note": "008:T45 点線の枠の高さを文字の拡大に合わせない — 大きな文字でチップの値が枠からはみ出す(独立review attempt 4)",
       "find": "    scaler.scale(23) +",
       "replace": "    23 +"
+    },
+    {
+      "id": "M548",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "  }) : _items = stableSorted(files, comparatorFor(FileSortMode.name)),",
+      "replace": "  }) : _items = List<FileEntry>.of(files),",
+      "note": "008:T02 初期化で名前の昇順に並べない — 002 REQ-001(代表例1d)が壊れ、表示「名前 A→Z」と items が食い違う"
+    },
+    {
+      "id": "M549",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "  FileSortMode _sortMode = FileSortMode.name;",
+      "replace": "  FileSortMode _sortMode = FileSortMode.custom;",
+      "note": "008:T02 初期の sortMode を custom に戻す — 002 REQ-001 の「sortMode=name」が壊れる(`008:T01` 以前の状態)"
+    },
+    {
+      "id": "M550",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    _replace(entries, applySort: true);",
+      "replace": "    _replace(entries, applySort: false);",
+      "note": "008:T02 読み込み直しで並び順を当てはめない — `008:T01` が観測した不具合(表示は名前順・中身は読み込み順。代表例22/23)が戻る"
+    },
+    {
+      "id": "M551",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    if (_sortMode == FileSortMode.custom) {\n      _sortMode = FileSortMode.name;",
+      "replace": "    if (false) {\n      _sortMode = FileSortMode.name;",
+      "note": "008:T02 custom のまま読み込み直す — 002 REQ-008(代表例24)が壊れ、前のファイル群の手並べが新しい一覧に効いているように見える"
+    },
+    {
+      "id": "M552",
+      "file": "lib/ui/file_list/file_sort.dart",
+      "find": "    SortDirection.descending => (a, b) => ascending(b, a),",
+      "replace": "    SortDirection.descending => ascending,",
+      "note": "008:T02 降順を無視する — 002 REQ-002(代表例1b)が壊れ、「Z→A」を選んでも昇順のまま"
+    },
+    {
+      "id": "M553",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    _items = stableSorted(_items, comparatorFor(mode, direction));",
+      "replace": "    _items = direction == SortDirection.ascending\n        ? stableSorted(_items, comparatorFor(mode))\n        : stableSorted(_items, comparatorFor(mode)).reversed.toList();",
+      "note": "008:T02 降順を列の反転で作る — 同値の item の相対順が逆になる(002 REQ-002・代表例1c)。対照"
+    },
+    {
+      "id": "M554",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    if (mode == FileSortMode.custom) {\n      throw ArgumentError.value(",
+      "replace": "    if (false) {\n      throw ArgumentError.value(",
+      "note": "008:T02 custom を選べてしまう — 002 REQ-003(custom は選ぶものではない)が壊れる"
+    },
+    {
+      "id": "M555",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    if (_sortMode != FileSortMode.createdAt) return null;",
+      "replace": "    if (_sortMode != FileSortMode.createdAt ||\n        _sortDirection == SortDirection.descending) {\n      return null;\n    }",
+      "note": "008:T02 作成日時の降順で警告を落とす — 002 REQ-011(代表例26)が壊れ、新しい順で代替を知らせない"
+    },
+    {
+      "id": "M556",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "          sortMode: beforeSortMode,",
+      "replace": "          sortMode: FileSortMode.name,",
+      "note": "008:T02 取り消しで並び順を戻さない — 002 REQ-017(代表例25)。手で並べた一覧を取り消すと表示が「名前」になり、中身と食い違う"
+    },
+    {
+      "id": "M557",
+      "file": "lib/ui/file_list/removal_undo.dart",
+      "find": "          sortDirection: beforeSortDirection,",
+      "replace": "          sortDirection: SortDirection.ascending,",
+      "note": "008:T02 取り消しで向きを戻さない — 002 REQ-017。降順の一覧を取り消すと表示が昇順になり、中身と食い違う"
+    },
+    {
+      "id": "M558",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    if (!changed) return;\n    _items = next;",
+      "replace": "    if (!changed) return;\n    _items = stableSorted(next, comparatorFor(_sortMode, _sortDirection));",
+      "note": "008:T02 実行後の差し替えで並べ直す — 002 REQ-020(代表例27)。改名で行が動き、何が変わったか追えない"
+    },
+    {
+      "id": "M559",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      selected: mode == key && direction == dir,",
+      "replace": "                      selected: mode == key,",
+      "note": "008:T02 メニューの印をキーだけで付ける — 昇順・降順の両方に印が付き、今の並び順を1か所で読めない(002 REQ-020)"
+    },
+    {
+      "id": "M560",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            itemBuilder: (context) => [\n              for (final key in _sortKeys)\n                for (final dir in SortDirection.values)",
+      "replace": "            itemBuilder: (context) => [\n              for (final key in _sortKeys)\n                for (final dir in const [SortDirection.ascending])",
+      "note": "008:T02 メニューから降順を落とす — 002 REQ-020「すべてのキーと向きを選べる」が壊れる"
+    },
+    {
+      "id": "M561",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      child: Wrap(\n        spacing: 8,",
+      "replace": "      child: Wrap(\n        direction: Axis.vertical,\n        spacing: 8,",
+      "note": "008:T02 作成日時の警告を並び順の表示の下へ出す — `008:T01` の配置の決定(表示の右の空き)が崩れる"
+    },
+    {
+      "id": "M562",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          SizedBox(",
+      "replace": "          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。\n          if (selecting)\n          SizedBox(",
+      "note": "008:T02 通常表示でつまみを出さない — 002 REQ-019(代表例16)が壊れ、連番の有無に関わらず並べ替えられない"
     }
   ]
 }

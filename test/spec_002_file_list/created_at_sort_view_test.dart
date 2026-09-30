@@ -36,7 +36,7 @@ void main() {
       final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
       await _pump(tester, c);
 
-      // 既定(custom)では出ない。
+      // 既定(名前順)では出ない。
       expect(_warningBanner, findsNothing);
 
       c.setSortMode(FileSortMode.createdAt);
@@ -70,14 +70,81 @@ void main() {
       expect(_warningBanner, findsNothing);
     });
 
-    testWidgets('「更新日時順」チップで modifiedAt ソートへ切り替わる', (tester) async {
+    testWidgets('メニューの「更新日時 古い順」で modifiedAt ソートへ切り替わる', (tester) async {
       final c = FileListController(files: [_known('a.txt')]);
       await _pump(tester, c);
 
-      await tester.tap(find.text('更新日時順'));
-      await tester.pump();
+      await tester.tap(find.byKey(sortControlKey));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          sortOptionKeyOf(FileSortMode.modifiedAt, SortDirection.ascending),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(c.sortMode, FileSortMode.modifiedAt);
+    });
+
+    testWidgets('作成日時の降順でも出し、手で並べると消える(例26)', (tester) async {
+      final c = FileListController(
+        files: [_known('a.txt'), _unknown('b.png'), _known('c.txt')],
+      );
+      await _pump(tester, c);
+
+      c.setSortMode(
+        FileSortMode.createdAt,
+        direction: SortDirection.descending,
+      );
+      await tester.pump();
+      expect(_warningBanner, findsOneWidget);
+
+      c.reorder(0, 1);
+      await tester.pump();
+      expect(_warningBanner, findsNothing);
+    });
+
+    testWidgets('警告は並び順の表示の右に出る(`008:T01` の配置)', (tester) async {
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      c.setSortMode(FileSortMode.createdAt);
+      await _pump(tester, c);
+
+      final control = tester.getRect(find.byKey(sortControlKey));
+      final warning = tester.getRect(_warningBanner);
+      // 同じ行で、表示の右。
+      expect(warning.left, greaterThanOrEqualTo(control.right));
+      expect(warning.center.dy, closeTo(control.center.dy, control.height / 2));
+    });
+
+    testWidgets('入りきらないときは次の行へ回り、切れない(狭幅・文字 2.0)', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = FileListController(files: [_known('a.txt'), _unknown('b.png')]);
+      c.setSortMode(
+        FileSortMode.createdAt,
+        direction: SortDirection.descending,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 640),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(body: FileListView(controller: c)),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      final control = tester.getRect(find.byKey(sortControlKey));
+      final warning = tester.getRect(_warningBanner);
+      expect(warning.top, greaterThanOrEqualTo(control.bottom));
+      expect(warning.right, lessThanOrEqualTo(320));
+      // 件数と代替した旨は短くしても失わない。
+      expect(find.textContaining('1 件'), findsOneWidget);
+      expect(find.textContaining('更新日時で代替'), findsOneWidget);
     });
   });
 

@@ -18,12 +18,11 @@ const Key removalUndoStaleKey = Key('removal-undo-stale');
 /// (004 は置き換え方式なので、004 REQ-004)。
 ///
 /// **元の位置へ戻す。** [FileListController.items] を丸ごと控えてから [remove] を
-/// 実行し、取り消しでは控えを `setFiles` で戻す — 末尾へ付け足すのではない(代表例 6c)。
-/// 占有名も一緒に控える: `setFiles` は**置き換え後の folder と無関係になる占有名を捨てる**
+/// 実行し、取り消しでは控えを `restoreFiles` で戻す — 末尾へ付け足すのではない(代表例 6c)。
+/// **並び順(`sortMode` と `sortDirection`)も控えて戻す。** `setFiles` で戻すと読み込みと
+/// 同じく並び順が当てはまり、手で並べた一覧が名前順へ並び直す(代表例 25。`008:T01`)。
+/// 占有名も一緒に控える: `restoreFiles` は**置き換え後の folder と無関係になる占有名を捨てる**
 /// ので、控えを戻さないと取り消しただけで一覧の警告が弱くなる(005 REQ-026)。
-///
-/// **状態層に新しい操作を足していない** — `setFiles` / `setOccupiedNames` は
-/// 002 が既に持つ操作である。
 void removeUndoably(
   BuildContext context,
   FileListController controller,
@@ -31,6 +30,8 @@ void removeUndoably(
 ) {
   final messenger = ScaffoldMessenger.maybeOf(context);
   final before = controller.items;
+  final beforeSortMode = controller.sortMode;
+  final beforeSortDirection = controller.sortDirection;
   final occupied = controller.occupiedNames;
 
   remove();
@@ -42,6 +43,7 @@ void removeUndoably(
   // (すでにその順だった場合)、項目だけを見ていると「動いていない」と読める。
   // そこで戻すと、`sortMode` と表示順が食い違った一覧ができる。
   final afterSortMode = controller.sortMode;
+  final afterSortDirection = controller.sortDirection;
   // 占有名も見る。**除去は占有名を動かさない**ので [occupied] が除去後の値でもある。
   // 005 の実行準備は `items` にも `sortMode` にも触れずにここだけ取り直すので
   // (`RenameExecutionController.prepare`)、見ていないと**取り直した観測を古い控えで
@@ -68,12 +70,13 @@ void removeUndoably(
       onPressed: () {
         // **控えが古ければ戻さない。** 通知が出ている間に読み込み直しや
         // 並び替えが起きると、控えは**除去の1手前**ではなく**別の一覧**に
-        // なっている。そのまま `setFiles` すると、読み込んだばかりの一覧を
+        // なっている。そのまま戻すと、読み込んだばかりの一覧を
         // 古い控えで**無断で置き換える**(独立review attempt 1 の N-1)。
         //
         // 002 REQ-017 は「次の操作の後は取り消せなくてよい」としているが、
         // **誤って戻すことまでは許していない。**
         if (controller.sortMode != afterSortMode ||
+            controller.sortDirection != afterSortDirection ||
             !identical(controller.occupiedNames, occupied) ||
             !_sameItems(controller.items, after)) {
           showAppToast(
@@ -85,7 +88,11 @@ void removeUndoably(
           );
           return;
         }
-        controller.setFiles(before);
+        controller.restoreFiles(
+          before,
+          sortMode: beforeSortMode,
+          sortDirection: beforeSortDirection,
+        );
         controller.setOccupiedNames(occupied);
       },
     ),

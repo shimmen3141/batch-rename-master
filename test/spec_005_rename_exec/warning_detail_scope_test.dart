@@ -11,6 +11,7 @@
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +88,9 @@ void main() {
 
     testWidgets('行から開くと、他の行のファイルが混ざらない', (tester) async {
       final c = controller();
+      // 初期は名前の昇順(002 REQ-001)で dup1 が先頭になる。`nodate.jpg` を先頭の
+      // 行にするため名前の降順へ並べる(dup1 の重複警告は dup2 を含むので使わない)。
+      c.setSortMode(FileSortMode.name, direction: SortDirection.descending);
       await _pump(tester, c);
 
       await tester.tap(find.byKey(rowWarningKey).first);

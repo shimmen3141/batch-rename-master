@@ -8,6 +8,7 @@ import '../../data/rename_exec/rename_execution.dart';
 import '../file_source/source_path_text.dart';
 import '../common/app_toast.dart';
 import '../common/drag_selection_controller.dart';
+import '../common/selection_checkbox.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
@@ -302,10 +303,8 @@ class _FileListViewState extends State<FileListView> {
                     onClearAll: rows.isEmpty ? null : () => _clearAll(context),
                     onExitRemovalMode: _exitRemovalMode,
                   ),
-                  _SortBar(controller: widget.controller, selecting: selecting),
-                  _CreatedAtFallbackBanner(
-                    warning: widget.controller.createdAtSortWarning,
-                  ),
+                  // モード中も出す(並び順の選択は提示してよい。REQ-018)。
+                  _SortBar(controller: widget.controller),
                   // ルールが空なら警告ではなく未設定を提示する(005 REQ-020)。
                   // トークンが加われば自動でこの分岐が戻り、通常の警告提示になる。
                   if (ruleIsEmpty) const RuleNotConfiguredBanner(),
@@ -361,12 +360,6 @@ class _FileListViewState extends State<FileListView> {
                             key: ValueKey(row.source),
                             index: index,
                             row: row,
-                            // 並び順が出力に効くのは連番があるときだけ(REQ-014)。
-                            // **モード中に出さない判定は行側が持つ** — 枠を
-                            // checkbox と取り合うので、同じ場所で決めないと
-                            // 「どちらも出ない」「両方出る」が作れてしまう。
-                            showDragHandle:
-                                widget.controller.manualOrderMatters,
                             sortMode: widget.controller.sortMode,
                             showLocation: showRowLocation,
                             filePreview: widget.filePreview,
@@ -1469,134 +1462,200 @@ class _HeaderBar extends StatelessWidget {
   }
 }
 
+/// 並び順を1か所で示し、そこからすべてのキーと向きを選ぶcontrol(002 REQ-020)。
+///
+/// 押すとキー×向きの8項目のメニューが開く(2026-09-30 の開発者の決定。`008:T02`)。
+/// どの状態へも1回で行け、選べるものが全部見える。**文字を最大にしても**
+/// メニューは画面の高さに収まってスクロールするので、隠れた選択肢に気づける
+/// (`008:T07` の N-8a。以前の横並びの chip は画面外へはみ出していた)。
+/// 選んでいる項目には選択の印(丸いチェック)を付ける(2026-09-30 の開発者の指定)。
+///
+/// `custom`(手で並べた状態)はメニューに出さない — 選ぶものではなく
+/// 手で並べた結果を示す状態である(REQ-003)。このとき表示は「カスタム」になり、
+/// どの項目にも印が付かない。
+const Key sortControlKey = Key('sort-control');
+
+/// 並び順のメニューの項目(002 REQ-020)。
+Key sortOptionKeyOf(FileSortMode mode, SortDirection direction) =>
+    ValueKey('sort-option:${mode.name}:${direction.name}');
+
+/// メニューに並べる順(キーごとに昇順・降順)。
+const List<FileSortMode> _sortKeys = [
+  FileSortMode.name,
+  FileSortMode.createdAt,
+  FileSortMode.modifiedAt,
+  FileSortMode.size,
+];
+
+/// キーの表示名。
+String sortKeyLabel(FileSortMode mode) => switch (mode) {
+  FileSortMode.name => '名前',
+  FileSortMode.createdAt => '作成日時',
+  FileSortMode.modifiedAt => '更新日時',
+  FileSortMode.size => 'サイズ',
+  FileSortMode.custom => 'カスタム',
+};
+
+/// 向きの表示名。**昇順・降順ではなく、そのキーで何が先に来るか**で示す。
+String sortDirectionLabel(FileSortMode mode, SortDirection direction) {
+  final ascending = direction == SortDirection.ascending;
+  return switch (mode) {
+    FileSortMode.name => ascending ? 'A→Z' : 'Z→A',
+    FileSortMode.createdAt ||
+    FileSortMode.modifiedAt => ascending ? '古い順' : '新しい順',
+    FileSortMode.size => ascending ? '小さい順' : '大きい順',
+    FileSortMode.custom => '',
+  };
+}
+
 class _SortBar extends StatelessWidget {
-  const _SortBar({required this.controller, required this.selecting});
+  const _SortBar({required this.controller});
 
   final FileListController controller;
 
-  /// 除去のための選択モードか(002 REQ-018)。モード中は `カスタム順` を出さない。
-  final bool selecting;
-
-  /// 常に提示するソート(閲覧・確認の用途があるため。REQ-014)。
-  static const List<(FileSortMode, String)> _alwaysModes = [
-    (FileSortMode.name, '元の名前順'),
-    (FileSortMode.createdAt, '作成日時順'),
-    (FileSortMode.modifiedAt, '更新日時順'),
-    (FileSortMode.size, 'サイズ順'),
-  ];
-
-  /// 連番トークンがあるときだけ提示する(並び順が出力に効くのはそのときだけ)。
-  static const (FileSortMode, String) _customMode = (
-    FileSortMode.custom,
-    'カスタム順',
-  );
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final mode = controller.sortMode;
+    final direction = controller.sortDirection;
+    final current = mode == FileSortMode.custom
+        ? sortKeyLabel(mode)
+        : '${sortKeyLabel(mode)} ${sortDirectionLabel(mode, direction)}';
+    final warning = controller.createdAtSortWarning;
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.border)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            for (final (mode, label) in [
-              ..._alwaysModes,
-              // **モード中は出さない。** `カスタム順` は REQ-014 が言う
-              // 「手動並び替えの提示」そのもので、REQ-018 はモード中それを
-              // 提示しないと定めている。ソート自体(名前順など)は常に出す。
-              if (controller.manualOrderMatters && !selecting) _customMode,
-            ]) ...[
-              _SortChip(
-                label: label,
-                active: controller.sortMode == mode,
-                onTap: () => controller.setSortMode(mode),
-              ),
-              const SizedBox(width: 5),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 作成日時ソート時に「不明な件数を更新日時で代替した」ことを知らせる帯(REQ-011)。
-///
-/// [warning] が `null`(不明 0 件、または作成日時以外のソート)なら何も表示しない。
-class _CreatedAtFallbackBanner extends StatelessWidget {
-  const _CreatedAtFallbackBanner({required this.warning});
-
-  final CreatedAtFallbackWarning? warning;
-
-  @override
-  Widget build(BuildContext context) {
-    final warning = this.warning;
-    if (warning == null) return const SizedBox.shrink();
-    final colors = context.colors;
-    return Container(
-      key: const Key('created-at-fallback-warning'),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: colors.danger.withValues(alpha: 0.12),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      // **警告は表示の右の空きへ出し、入りきらなければ次の行へ回す**
+      // (`008:T01` の決定。開発者の案 2026-08-29)。`Wrap` は子が今の行に
+      // 収まらなければ次の行へ送るので、狭幅や文字の拡大でも切れない。
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 2,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 15, color: colors.danger),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '作成日時を取得できないファイルが ${warning.unknownCount} 件あります。'
-              'それらは更新日時で代替して並べています。',
-              style: TextStyle(color: colors.danger, fontSize: 11.5),
+          PopupMenuButton<(FileSortMode, SortDirection)>(
+            key: sortControlKey,
+            tooltip: '並び順を変える',
+            position: PopupMenuPosition.under,
+            onSelected: (choice) =>
+                controller.setSortMode(choice.$1, direction: choice.$2),
+            itemBuilder: (context) => [
+              for (final key in _sortKeys)
+                for (final dir in SortDirection.values)
+                  PopupMenuItem(
+                    key: sortOptionKeyOf(key, dir),
+                    value: (key, dir),
+                    child: _SortOption(
+                      keyLabel: sortKeyLabel(key),
+                      directionLabel: sortDirectionLabel(key, dir),
+                      selected: mode == key && direction == dir,
+                    ),
+                  ),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.swap_vert, size: 16, color: colors.primary),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      '並び順: $current',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: colors.textSecondary,
+                  ),
+                ],
+              ),
             ),
           ),
+          if (warning != null) _CreatedAtFallbackNote(warning: warning),
         ],
       ),
     );
   }
 }
 
-class _SortChip extends StatelessWidget {
-  const _SortChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
+class _SortOption extends StatelessWidget {
+  const _SortOption({
+    required this.keyLabel,
+    required this.directionLabel,
+    required this.selected,
   });
 
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
+  final String keyLabel;
+  final String directionLabel;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-        decoration: BoxDecoration(
-          color: active
-              ? colors.primary.withValues(alpha: 0.14)
-              : Colors.transparent,
-          border: Border.all(
-            color: active
-                ? colors.primary.withValues(alpha: 0.45)
-                : colors.border,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? colors.primary : colors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+    return Row(
+      children: [
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: keyLabel,
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                const TextSpan(text: '  '),
+                TextSpan(
+                  text: directionLabel,
+                  style: TextStyle(color: colors.textSecondary),
+                ),
+              ],
+            ),
+            style: const TextStyle(fontSize: 13),
           ),
         ),
-      ),
+        const SizedBox(width: 12),
+        // **押下は項目が受ける**(印だけを押し損ねても選べる)。
+        IgnorePointer(
+          child: SelectionCheckbox(value: selected, onChanged: (_) {}),
+        ),
+      ],
+    );
+  }
+}
+
+/// 作成日時順で「不明な件数を更新日時で代替した」ことを知らせる短い注記(REQ-011)。
+///
+/// 以前は一覧の上の帯だった。**件数と、更新日時で代替したことは短くしても残す。**
+class _CreatedAtFallbackNote extends StatelessWidget {
+  const _CreatedAtFallbackNote({required this.warning});
+
+  final CreatedAtFallbackWarning warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Row(
+      key: const Key('created-at-fallback-warning'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.warning_amber_rounded, size: 14, color: colors.danger),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            '作成日時不明の ${warning.unknownCount} 件は更新日時で代替',
+            style: TextStyle(color: colors.danger, fontSize: 11.5),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1611,7 +1670,6 @@ class _FileRow extends StatefulWidget {
     super.key,
     required this.index,
     required this.row,
-    required this.showDragHandle,
     required this.sortMode,
     required this.showLocation,
     required this.filePreview,
@@ -1628,9 +1686,6 @@ class _FileRow extends StatefulWidget {
   /// ReorderableListView 内での行位置(ドラッグハンドルが使用)。
   final int index;
   final RowView row;
-
-  /// 手動並び替えを提示するか(連番トークンがあるときだけ。REQ-014)。
-  final bool showDragHandle;
 
   /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
   final FileSortMode sortMode;
@@ -1719,10 +1774,10 @@ class _FileRowState extends State<_FileRow> {
           //
           // 行ごと包むと、**つまみの上の長押しも行が取る**。長押しは 500ms で
           // gesture arena を勝つので、つまみを掴んで少し止めただけで選択モードが
-          // 開き、`showDragHandle` が false になって**つまみが消え、掴んだままの
+          // 開き、**つまみが checkbox に入れ替わって消え、掴んだままの
           // 指では並び替えを始められない**(独立reviewが実測: 450ms は並び替わり、
           // 520ms でモードが開いた)。長押ししてからドラッグするのは Android の
-          // 既定の並び替え操作なので、REQ-003 / REQ-014 の導線が壊れる。
+          // 既定の並び替え操作なので、REQ-003 / REQ-019 の導線が壊れる。
           Expanded(
             child: GestureDetector(
               // 名前の文字の上だけ、にしない(この範囲の余白でも反応する)。
@@ -1820,51 +1875,41 @@ class _FileRowState extends State<_FileRow> {
           // **かくつく**(実機で観測)。右端なら行の読み始めが動かない。
           // 幅を固定しておくと、つまみ ↔ checkbox の入れ替わりでも中身が動かない。
           // **モード中はつまみを出さない**(REQ-018)ので、位置は取り合わない。
-          if (selecting || widget.showDragHandle)
-            SizedBox(
-              width: 32,
-              child: Center(
-                // **モード中はつまみを出さない**(REQ-018)。枠は同じなので、
-                // 入れ替わっても行の中身は動かない。
-                child: selecting
-                    ? (widget.onToggleMark == null
-                          // 外せない行(元場所ハンドルが無い)。**枠だけ残す。**
-                          ? const SizedBox(width: 24, height: 24)
-                          : Checkbox(
-                              key: removalMarkKeyOf(handle!),
-                              value: marked,
-                              onChanged: (_) => widget.onToggleMark!(),
-                              // **円にする**(2026-09-19 の要望2)。
-                              shape: const CircleBorder(),
-                              side: BorderSide(
-                                color: colors.textMuted,
-                                width: 1.5,
-                              ),
-                              activeColor: colors.selectionMark,
-                              checkColor: colors.onPrimary,
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ))
-                    // **触れた瞬間を見る**(`008:T32`)。`ReorderableDragStartListener`
-                    // だけだと、Flutter が約18px の移動でドラッグ開始と判定するまで
-                    // 色が変わらない(2026-09-19 の2回目の実機確認)。つまみは
-                    // 触れた瞬間からもう動かせるので、そこで色と振動を出す。
-                    : Listener(
-                        onPointerDown: (_) => _setGrabbed(true),
-                        onPointerUp: (_) => _setGrabbed(false),
-                        onPointerCancel: (_) => _setGrabbed(false),
-                        child: ReorderableDragStartListener(
-                          index: widget.index,
-                          child: Icon(
-                            Icons.drag_handle,
-                            size: 18,
-                            color: colors.textMuted,
-                          ),
+          // 通常表示では**ルールに関わらずつまみを出す**(REQ-019。REQ-014 は廃止)。
+          SizedBox(
+            width: 32,
+            child: Center(
+              // **モード中はつまみを出さない**(REQ-018)。枠は同じなので、
+              // 入れ替わっても行の中身は動かない。
+              child: selecting
+                  ? (widget.onToggleMark == null
+                        // 外せない行(元場所ハンドルが無い)。**枠だけ残す。**
+                        ? const SizedBox(width: 24, height: 24)
+                        // **円にする**(2026-09-19 の要望2)。
+                        : SelectionCheckbox(
+                            key: removalMarkKeyOf(handle!),
+                            value: marked,
+                            onChanged: (_) => widget.onToggleMark!(),
+                          ))
+                  // **触れた瞬間を見る**(`008:T32`)。`ReorderableDragStartListener`
+                  // だけだと、Flutter が約18px の移動でドラッグ開始と判定するまで
+                  // 色が変わらない(2026-09-19 の2回目の実機確認)。つまみは
+                  // 触れた瞬間からもう動かせるので、そこで色と振動を出す。
+                  : Listener(
+                      onPointerDown: (_) => _setGrabbed(true),
+                      onPointerUp: (_) => _setGrabbed(false),
+                      onPointerCancel: (_) => _setGrabbed(false),
+                      child: ReorderableDragStartListener(
+                        index: widget.index,
+                        child: Icon(
+                          Icons.drag_handle,
+                          size: 18,
+                          color: colors.textMuted,
                         ),
                       ),
-              ),
+                    ),
             ),
+          ),
         ],
       ),
     );

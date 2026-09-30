@@ -2,10 +2,13 @@ import '../../core/rename_engine.dart';
 
 /// ファイルリストのソート種別(002 spec: sortMode)。
 ///
-/// [name] / [createdAt] / [modifiedAt] / [size] はキーで昇順・安定ソート(REQ-002)。
-/// 時系列は**作成日時と更新日時の2種**を提供する。
-/// [custom] はユーザーが手動で並べ替えた順で、ソートを適用しない(REQ-003)。
+/// [name] / [createdAt] / [modifiedAt] / [size] はキーで、[SortDirection] の向きに
+/// 安定ソートする(REQ-002)。時系列は**作成日時と更新日時の2種**を提供する。
+/// [custom] は**手で並べた結果を示す状態**で、選ぶものではない(REQ-003)。
 enum FileSortMode { name, createdAt, modifiedAt, size, custom }
+
+/// 並び順の向き(002 spec: sortDirection)。キーを選ぶときの既定は [ascending](REQ-002)。
+enum SortDirection { ascending, descending }
 
 /// 作成日時ソートの並べ替えキー(REQ-002)。
 ///
@@ -16,11 +19,25 @@ enum FileSortMode { name, createdAt, modifiedAt, size, custom }
 /// [FileListController.createdAtSortWarning] と行の表示で示す(REQ-011/013)。
 DateTime createdAtSortKey(FileEntry file) => file.createdAt ?? file.modifiedAt;
 
-/// [mode] に対応する [FileEntry] の比較関数。[FileSortMode.custom] は比較しない
-/// (常に 0 を返す = 現在順を保持)。
+/// [mode] と [direction] に対応する [FileEntry] の比較関数。[FileSortMode.custom] は
+/// 比較しない(常に 0 を返す = 現在順を保持)。
 ///
 /// 名前順は自然順・大文字小文字を区別しない(002 決定済み事項)。
-int Function(FileEntry, FileEntry) comparatorFor(FileSortMode mode) {
+///
+/// **降順は比較の向きを反転して作る**(列を反転しない)。[stableSorted] が同値を元の
+/// 添字で決めるので、降順でも同値の item は元の相対順を保つ(REQ-002・代表例 1c)。
+int Function(FileEntry, FileEntry) comparatorFor(
+  FileSortMode mode, [
+  SortDirection direction = SortDirection.ascending,
+]) {
+  final ascending = _ascendingComparatorFor(mode);
+  return switch (direction) {
+    SortDirection.ascending => ascending,
+    SortDirection.descending => (a, b) => ascending(b, a),
+  };
+}
+
+int Function(FileEntry, FileEntry) _ascendingComparatorFor(FileSortMode mode) {
   return switch (mode) {
     FileSortMode.name => (a, b) => compareNatural(a.name, b.name),
     FileSortMode.createdAt => (a, b) => createdAtSortKey(
