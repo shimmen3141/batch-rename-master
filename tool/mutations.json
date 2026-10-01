@@ -1249,9 +1249,9 @@
     {
       "id": "M180",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                  // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                  maxLines: 2,",
-      "replace": "                  // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                  maxLines: 1,",
-      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)"
+      "find": "                  maxLines: 3,",
+      "replace": "                  maxLines: 1,",
+      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)  **2026-10-01 に`008:T10`が文字倍率 2.0 の狭幅のため 3 行まで許したので`find`を追随させた**"
     },
     {
       "id": "M181",
@@ -1468,14 +1468,14 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
       "replace": "          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 6),",
-      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)"
+      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)  **2026-10-01 に`008:T10`が「警告の箱は文字 + 上下の余白 4 + 枠の高さ」を test にしたので KILLED を期待する**"
     },
     {
       "id": "M221",
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "                        Text(\n                          row.currentName,\n                          maxLines: 1,",
       "replace": "                        Text(\n                          row.currentName,\n                          maxLines: 4,",
-      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
+      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)  **2026-10-01 に`008:T10`が「長い現在名で行が伸びない」を test にしたので KILLED を期待する**"
     },
     {
       "id": "M222",
@@ -1503,14 +1503,14 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double rowWarningLabelOpacity = 0.78;",
       "replace": "const double rowWarningLabelOpacity = 0.06;",
-      "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)"
+      "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)  **2026-10-01 に`008:T10`が濃さの下限(文字 0.6)を test にしたので KILLED を期待する**"
     },
     {
       "id": "M226",
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double rowWarningBorderOpacity = 0.45;",
       "replace": "const double rowWarningBorderOpacity = 0.0;",
-      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)"
+      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)  **2026-10-01 に`008:T10`が枠の濃さの下限(0.3)を test にしたので KILLED を期待する**"
     },
     {
       "id": "M227",
@@ -3857,6 +3857,34 @@
       "find": "        fontSize: appBarTitleFontSize,",
       "replace": "        fontSize: 22,",
       "note": "008:T10 見出しの文字を既定の大きさ(22)へ戻す(要望13)"
+    },
+    {
+      "id": "M602",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "const double ruleChipFadeMinWidth = 24;",
+      "replace": "const double ruleChipFadeMinWidth = 0;",
+      "note": "008:T10 フェードの下限を無くす — 数 px だけの途切れたチップが出て、続きがあると読めない(`008:T47` の独立review attempt 5 が挙げ、`008:T10` が引き受けた残余risk)"
+    },
+    {
+      "id": "M603",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "    if (rest >= ruleChipFadeMinWidth) {",
+      "replace": "    if (rest >= 0) {",
+      "note": "008:T10 フェードの下限の分岐を外す(下限より狭くても次のチップをフェードにする)— `008:T47` から引き受けた残余risk"
+    },
+    {
+      "id": "M604",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    final iconSize = MediaQuery.textScalerOf(context).scale(rowWarningFontSize);",
+      "replace": "    final iconSize = rowWarningFontSize;",
+      "note": "008:T10 行の警告のアイコンを文字の倍率に合わせない — 倍率を上げるほどアイコンが小さく上へずれる(`008:T18` から引き受けた残余risk)"
+    },
+    {
+      "id": "M605",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  maxLines: 3,",
+      "replace": "                  maxLines: 2,",
+      "note": "008:T10 行の警告を2行までに戻す — 文字倍率 2.0 の 320・360dp で併発した種別が切り詰められる(`008:T18` の確認C を引き受けた)"
     }
   ]
 }

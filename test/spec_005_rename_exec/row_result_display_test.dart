@@ -512,4 +512,129 @@ void main() {
       }
     });
   });
+  group('008:T10 行の警告の文字倍率・高さ・濃さ(`008:T18` から引き受けた残余risk)', () {
+    /// 種別が 3 つ併発する行(重複・作成日時不明・連番の桁不足)。
+    FileListController threeKinds({String first = 'alpha.jpg'}) =>
+        FileListController(
+          files: [_noCreatedAt(first), _noCreatedAt('bravo.jpg')],
+          rule: const RenameRule([
+            DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+            SequenceToken(start: 100, digits: 1, increment: 0),
+          ]),
+        );
+
+    Future<void> pumpScaled(
+      WidgetTester tester,
+      FileListController c,
+      double width,
+      double scale,
+    ) async {
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          key: ValueKey('$width-$scale-${c.hashCode}'),
+          theme: appDarkTheme(),
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: Size(width, 900),
+              textScaler: TextScaler.linear(scale),
+            ),
+            child: Scaffold(body: FileListView(controller: c)),
+          ),
+        ),
+      );
+    }
+
+    Finder warningText() => find
+        .descendant(
+          of: find.byKey(rowWarningKey).first,
+          matching: find.byType(Text),
+        )
+        .first;
+
+    testWidgets('文字を大きくしても、併発した種別が切り詰められない', (tester) async {
+      // `008:T18` の確認C(フォントサイズ最大)が未回答のまま引き受けた。2 行までだと
+      // 倍率 2.0 の 320・360dp で切り詰められた(2026-10-01 の測定)。
+      for (final width in [320.0, 360.0, 411.0]) {
+        for (final scale in [1.0, 1.3, 2.0]) {
+          await pumpScaled(tester, threeKinds(), width, scale);
+          expect(tester.takeException(), isNull);
+          expect(
+            tester
+                .renderObject<RenderParagraph>(warningText())
+                .didExceedMaxLines,
+            isFalse,
+            reason: '幅 $width / 文字 $scale で種別が切り詰められている',
+          );
+        }
+      }
+    });
+
+    testWidgets('警告のアイコンは文字の倍率に合わせて拡大し、文字との位置関係を保つ', (tester) async {
+      // 以前は [Icon] が倍率で拡大せず、補正量も定数だったので、倍率を上げるほど
+      // アイコンが上へずれた(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px)。test の字体は
+      // 実機の CJK と字面が違うので、**ずれが文字の大きさに比例していること**を見る
+      // (実機の揃いは manual 確認で見る)。
+      double? baseRatio;
+      for (final scale in [1.0, 1.3, 2.0]) {
+        await pumpScaled(tester, threeKinds(), 411, scale);
+        final fontSize = scale * rowWarningFontSize;
+        final icon = tester.getRect(
+          find.descendant(
+            of: find.byKey(rowWarningKey).first,
+            matching: find.byType(Icon),
+          ),
+        );
+        expect(icon.height, closeTo(fontSize, 0.01), reason: '文字 $scale');
+        final text = tester.getRect(warningText());
+        final paragraph = tester.renderObject<RenderParagraph>(warningText());
+        final baseline =
+            text.top +
+            paragraph.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+        final ratio = (icon.center.dy - baseline) / fontSize;
+        baseRatio ??= ratio;
+        expect(ratio, closeTo(baseRatio, 0.03), reason: '文字 $scale');
+      }
+    });
+
+    testWidgets('行の高さは、現在名の長さでも警告の余白でも伸びない', (tester) async {
+      // `008:T18` の残余risk(M220 / M221): 行の高さを縛る assertion が無かった。
+      // 現在名は 1 行で切り、警告の箱は「文字 + 上下の余白 4 + 枠」の高さである。
+      /// 行そのもの(下に行の区切り線を持つ箱)の高さ。
+      double rowOf(String name) {
+        final row = find
+            .ancestor(of: find.text(name), matching: find.byType(Container))
+            .evaluate()
+            .firstWhere((e) {
+              final decoration = (e.widget as Container).decoration;
+              return decoration is BoxDecoration &&
+                  decoration.border is Border &&
+                  (decoration.border! as Border).bottom.color ==
+                      AppColors.dark.rowDivider;
+            });
+        return tester.getSize(find.byWidget(row.widget)).height;
+      }
+
+      await pumpScaled(tester, threeKinds(), 411, 1);
+      final short = rowOf('alpha.jpg');
+      final box = tester.getSize(find.byKey(rowWarningKey).first).height;
+      final text = tester.getSize(warningText()).height;
+      expect(box, closeTo(text + 2 * 4 + 2, 0.01));
+
+      final longName = '${'とても長い現在の名前' * 6}.jpg';
+      await pumpScaled(tester, threeKinds(first: longName), 411, 1);
+      expect(rowOf(longName), short, reason: '長い現在名で行が伸びている');
+    });
+
+    test('警告の文字・枠・塗りの濃さには下限がある', () {
+      // `008:T18` の穴A(M225)・穴B(M226): 相対条件(変更後名より薄い・枠が在る)
+      // だけでは、読めないほど薄くしても通った。下限は 2026-09-03 の manual 確認で
+      // 開発者が見た値(文字 0.78 / 枠 0.45 / 塗り 0.12)と参考design(文字 .7)から
+      // 置いた。
+      expect(rowWarningLabelOpacity, greaterThanOrEqualTo(0.6));
+      expect(rowWarningBorderOpacity, greaterThanOrEqualTo(0.3));
+      expect(rowWarningFillOpacity, greaterThanOrEqualTo(0.06));
+    });
+  });
 }
