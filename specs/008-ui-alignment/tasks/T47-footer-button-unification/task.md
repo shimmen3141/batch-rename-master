@@ -140,6 +140,11 @@ M591(現 M594) KILLED   (test を足したあと)
 - mutation: M197・M579 の find を追随、M596(最小の高さを外す)・M597(文字の拡大に合わせない)を足した。`check_mutation_finds.py` → `PASS: 546`。範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list`、対象 `4c2bafc`)で4件: `M197 M579 M596 M597 KILLED / 4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
 - 検証(`4c2bafc`): `flutter test` +1124 PASS、`flutter analyze` No issues、`dart format` 0 changed。
 
+### 実機確認 6回目(2026-10-01、対象 `4c2bafc`)
+
+- 開発者の回答(原文): 「確認しました。問題ありませんでした。」
+- 1(未設定のbuttonの高さ)・2(余白)・3(文字サイズ最大)すべて **OK**。対象 `4c2bafc` 以後、`lib/`・依存・build設定の差分は無い(以後は記録だけ)。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
@@ -168,14 +173,9 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認5回目でフェードはOK。未設定のbuttonの高さの指定を受けて直した(`4c2bafc`、2026-10-01)。差分review attempt 8 PASS。review 側の確認は揃った
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認6回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「6回目で見ること」)
-- Requested action: worktree の HEAD から build し(`lib/` は `4c2bafc` と同一)、1〜3 を確かめて結果を会話で伝える
-- Evidence revision: `4c2bafc`(`lib/`)
-- Next Agent action: 実機確認6回目の結果を記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
-  1. 結果を「実機確認 6回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
-  2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
+- Last checkpoint: 実機確認6回目で全項目OK(2026-10-01、対象 `4c2bafc`)。独立review は `5bfcc7a..31a1ad5` を切れ目なく覆う連鎖で揃った(最後の区間 attempt 8 PASS、以後は記録だけ)。status を done にした
+- Blocker category: なし
+- Next Agent action: PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける
 
 ### 引き継ぎメモ(別セッション向け)
 
