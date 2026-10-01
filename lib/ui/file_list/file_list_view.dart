@@ -20,6 +20,7 @@ import 'removal_undo.dart';
 import 'rename_warning_view.dart';
 import 'row_preview_view.dart';
 import 'row_view.dart';
+import '../theme/app_typography.dart';
 
 /// 一覧の総件数(002 REQ-016)。**選択された件数ではない** — 一覧にある
 /// ファイルはすべて rename 対象である。
@@ -677,7 +678,7 @@ class _RemovalNoteCard extends StatelessWidget {
                         removalModeNoteLead,
                         style: TextStyle(
                           color: colors.textSecondary,
-                          fontSize: 10.5,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -686,7 +687,7 @@ class _RemovalNoteCard extends StatelessWidget {
                         removalModeNoteMain,
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontSize: 13,
+                          fontSize: AppFontSize.bodyLarge,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -727,7 +728,7 @@ class _RemovalNoteCompact extends StatelessWidget {
                     removalModeNoteLead,
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 10.5,
+                      fontSize: AppFontSize.caption,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -735,7 +736,7 @@ class _RemovalNoteCompact extends StatelessWidget {
                     removalModeNoteMain,
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 12,
+                      fontSize: AppFontSize.bodySmall,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -765,7 +766,10 @@ class _RemovalNoteLine extends StatelessWidget {
         Expanded(
           child: Text(
             removalModeNoteText,
-            style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: AppFontSize.label,
+            ),
           ),
         ),
       ],
@@ -1239,7 +1243,7 @@ class _RuleButton extends StatelessWidget {
             '命名ルールを設定する',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: AppFontSize.title,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1271,7 +1275,7 @@ class _RuleButton extends StatelessWidget {
               '命名ルール',
               style: TextStyle(
                 color: colors.primary,
-                fontSize: 10,
+                fontSize: AppFontSize.tiny,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.2,
               ),
@@ -1305,7 +1309,7 @@ class _RuleButton extends StatelessWidget {
           '編集',
           style: TextStyle(
             color: colors.primary,
-            fontSize: 11,
+            fontSize: AppFontSize.small,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1413,7 +1417,7 @@ class _HeaderBar extends StatelessWidget {
                         maxLines: 2,
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontSize: 12,
+                          fontSize: AppFontSize.bodySmall,
                           fontWeight: FontWeight.w700,
                         ),
                       )
@@ -1425,7 +1429,7 @@ class _HeaderBar extends StatelessWidget {
                         maxLines: 2,
                         style: TextStyle(
                           color: colors.textSecondary,
-                          fontSize: 12,
+                          fontSize: AppFontSize.bodySmall,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1575,7 +1579,7 @@ class _SortControl extends StatelessWidget {
           builder: (context, constraints) {
             final style = TextStyle(
               color: colors.textPrimary,
-              fontSize: 12,
+              fontSize: AppFontSize.bodySmall,
               fontWeight: FontWeight.w500,
             );
             // **「並び順:」は1行に入るときだけ付ける**(2026-09-30 の開発者の指定
@@ -1721,7 +1725,7 @@ class _MessageBanner extends StatelessWidget {
                       '更新日時で代替しています',
                       style: TextStyle(
                         color: colors.danger,
-                        fontSize: 11.5,
+                        fontSize: AppFontSize.label,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1797,7 +1801,7 @@ class _SortOption extends StatelessWidget {
                 ),
               ],
             ),
-            style: const TextStyle(fontSize: 13),
+            style: const TextStyle(fontSize: AppFontSize.bodyLarge),
           ),
         ),
         const SizedBox(width: 12),
@@ -1984,7 +1988,7 @@ class _FileRowState extends State<_FileRow> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontSize: 13,
+                            fontSize: AppFontSize.bodyLarge,
                           ),
                         ),
                         // 「現在名 → 変更後名」という読み方は矢印で残す。
@@ -2102,7 +2106,10 @@ class _DateSubInfo extends StatelessWidget {
     // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
     // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
     final emphasize = unknown && sortMode == FileSortMode.createdAt;
-    final base = TextStyle(color: colors.textMuted, fontSize: 10.5);
+    final base = TextStyle(
+      color: colors.textMuted,
+      fontSize: AppFontSize.caption,
+    );
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Column(
@@ -2202,7 +2209,10 @@ class _NewName extends StatelessWidget {
     if (newName == null) {
       return Text(
         '—',
-        style: TextStyle(color: colors.textDisabled, fontSize: 13),
+        style: TextStyle(
+          color: colors.textDisabled,
+          fontSize: AppFontSize.bodyLarge,
+        ),
       );
     }
     // 005 REQ-029: **変更が生じない行は、生成後名の代わりに「変わらない」ことが
@@ -2214,7 +2224,10 @@ class _NewName extends StatelessWidget {
         key: rowUnchangedKey,
         overflow: TextOverflow.ellipsis,
         // **強調しない**(参考designも `（変更なし）` を弱い色で置いている)。
-        style: TextStyle(color: colors.textMuted, fontSize: 13),
+        style: TextStyle(
+          color: colors.textMuted,
+          fontSize: AppFontSize.bodyLarge,
+        ),
       );
     }
     return Text(
@@ -2225,7 +2238,7 @@ class _NewName extends StatelessWidget {
       // 正常なら success、警告対象なら danger(2026-09-02 の要望7)。
       style: TextStyle(
         color: hasWarning ? colors.danger : colors.success,
-        fontSize: 13,
+        fontSize: AppFontSize.bodyLarge,
         fontWeight: FontWeight.w500,
       ),
     );

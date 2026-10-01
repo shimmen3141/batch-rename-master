@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// 通知の重大度(`008:T25`)。**見せ方は先頭のアイコンと左端の色帯**で、面の色は変えない。
 ///
@@ -260,7 +261,7 @@ class AppToastCard extends StatelessWidget {
                               child: DefaultTextStyle(
                                 style: TextStyle(
                                   color: colors.textPrimary,
-                                  fontSize: 12.5,
+                                  fontSize: AppFontSize.body,
                                   fontWeight: FontWeight.w500,
                                   height: 1.4,
                                 ),
@@ -286,7 +287,7 @@ class AppToastCard extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(9),
                                   ),
                                   textStyle: const TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: AppFontSize.label,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),

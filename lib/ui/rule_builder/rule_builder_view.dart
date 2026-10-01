@@ -6,6 +6,7 @@ import '../theme/token_colors.dart';
 import 'rule_controller.dart';
 import 'token_editors.dart';
 import 'token_presets.dart';
+import '../theme/app_typography.dart';
 
 /// トークンビルダーの描画層(003 spec の VER-002 対象)。
 ///
@@ -92,7 +93,7 @@ class RuleBuilderView extends StatelessWidget {
                           maxLines: 2,
                           style: TextStyle(
                             color: colors.textSecondary,
-                            fontSize: 11,
+                            fontSize: AppFontSize.small,
                             height: 1.4,
                           ),
                         ),
@@ -189,7 +190,10 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Text(
         '↓ 下のボタンから要素を追加',
-        style: TextStyle(color: colors.textDisabled, fontSize: 11),
+        style: TextStyle(
+          color: colors.textDisabled,
+          fontSize: AppFontSize.small,
+        ),
       ),
     );
   }
@@ -311,7 +315,7 @@ class TokenChip extends StatelessWidget {
                                     tokenKindLabel(token),
                                     style: TextStyle(
                                       color: hue.withValues(alpha: 0.85),
-                                      fontSize: 9,
+                                      fontSize: AppFontSize.micro,
                                     ),
                                   ),
                                   const SizedBox(width: tokenChipDeleteSize),
@@ -327,7 +331,7 @@ class TokenChip extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 15,
+                                  fontSize: AppFontSize.titleLarge,
                                   fontWeight: FontWeight.w700,
                                   fontFamily: 'monospace',
                                 ),
@@ -482,7 +486,7 @@ class _AddButton extends StatelessWidget {
           label,
           style: TextStyle(
             color: colors.textSecondary,
-            fontSize: 11.5,
+            fontSize: AppFontSize.label,
             fontWeight: FontWeight.w500,
           ),
         ),

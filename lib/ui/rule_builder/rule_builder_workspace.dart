@@ -10,6 +10,7 @@ import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
 import 'rule_controller.dart';
+import '../theme/app_typography.dart';
 
 /// ファイルリスト(002)とルールビルダー(003)を束ねるワークスペース外殻。
 ///
@@ -234,7 +235,7 @@ class _SheetHeader extends StatelessWidget {
         '命名ルール',
         style: TextStyle(
           color: colors.textPrimary,
-          fontSize: 15,
+          fontSize: AppFontSize.titleLarge,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -280,7 +281,10 @@ class _SheetPreview extends StatelessWidget {
             children: [
               Text(
                 'プレビュー（1つ目のファイル）',
-                style: TextStyle(color: colors.textMuted, fontSize: 10.5),
+                style: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: AppFontSize.caption,
+                ),
               ),
               const SizedBox(height: 7),
               // 名前は1行に収める。折り返すと、ルールを変えるたびに新しい名前の長さで
@@ -295,7 +299,7 @@ class _SheetPreview extends StatelessWidget {
                       : colors.textSecondary,
                   decoration: changed ? TextDecoration.lineThrough : null,
                   decorationColor: colors.danger.withValues(alpha: 0.85),
-                  fontSize: 11,
+                  fontSize: AppFontSize.small,
                   fontFamily: 'monospace',
                 ),
               ),
@@ -316,7 +320,7 @@ class _SheetPreview extends StatelessWidget {
                             style: TextStyle(
                               // 薄くて見えづらかった(manual 1回目の開発者の要望)。
                               color: colors.textPrimary,
-                              fontSize: 11,
+                              fontSize: AppFontSize.small,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -327,7 +331,7 @@ class _SheetPreview extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: colors.success,
-                                fontSize: 13,
+                                fontSize: AppFontSize.bodyLarge,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'monospace',
                               ),
@@ -341,7 +345,7 @@ class _SheetPreview extends StatelessWidget {
                           '（変更なし）',
                           style: TextStyle(
                             color: colors.textDisabled,
-                            fontSize: 10.5,
+                            fontSize: AppFontSize.caption,
                           ),
                         ),
                       ),

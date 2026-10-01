@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// ルール未設定の案内帯(警告が 0 件でない状態の代わりに出る)。
 const Key ruleNotConfiguredKey = Key('rule-not-configured');
@@ -173,7 +174,7 @@ class RuleNotConfiguredBanner extends StatelessWidget {
               '命名ルールが未設定です。ルールを設定すると変更後の名前を確認できます',
               style: TextStyle(
                 color: colors.primary,
-                fontSize: 11.5,
+                fontSize: AppFontSize.label,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -326,7 +327,7 @@ const double rowWarningBorderOpacity = 0.45;
 const double rowWarningLabelOpacity = 0.78;
 
 /// 行の警告の文字とアイコンの大きさ。
-const double rowWarningFontSize = 11;
+const double rowWarningFontSize = AppFontSize.small;
 
 /// アイコンを baseline からさらに下げる量([rowWarningFontSize] に対する割合)。
 ///
@@ -614,7 +615,7 @@ class WarningCountView extends StatelessWidget {
                     maxLines: 2,
                     style: TextStyle(
                       color: has ? colors.danger : colors.success,
-                      fontSize: 12,
+                      fontSize: AppFontSize.bodySmall,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -640,7 +641,7 @@ class WarningCountView extends StatelessWidget {
                         '詳細',
                         style: TextStyle(
                           color: colors.danger,
-                          fontSize: 12,
+                          fontSize: AppFontSize.bodySmall,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

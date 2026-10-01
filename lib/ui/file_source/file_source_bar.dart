@@ -11,6 +11,7 @@ import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
 import 'source_path_text.dart';
+import '../theme/app_typography.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
 ///
@@ -252,7 +253,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                   'リネームしたいファイルの種類',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 14,
+                    fontSize: AppFontSize.title,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -273,7 +274,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                       color: kind.isImplemented
                           ? colors.textSecondary
                           : colors.textDisabled,
-                      fontSize: 11.5,
+                      fontSize: AppFontSize.label,
                     ),
                   ),
                   onTap: () => Navigator.of(sheetContext).pop(kind),
@@ -371,7 +372,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                                     textKey: sourceLocationLabelKey,
                                     style: TextStyle(
                                       color: colors.textSecondary,
-                                      fontSize: 12,
+                                      fontSize: AppFontSize.bodySmall,
                                     ),
                                   ),
                                 ),

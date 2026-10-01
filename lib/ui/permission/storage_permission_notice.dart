@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// 全ファイルアクセスが無い間、読み込み導線の位置に出す説明と設定導線
 /// (013 REQ-001 / REQ-003)。
@@ -56,7 +57,10 @@ class StoragePermissionNotice extends StatelessWidget {
               Expanded(
                 child: Text(
                   explanation,
-                  style: TextStyle(color: colors.textPrimary, fontSize: 13),
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: AppFontSize.bodyLarge,
+                  ),
                 ),
               ),
             ],
@@ -66,7 +70,10 @@ class StoragePermissionNotice extends StatelessWidget {
             Text(
               settingsUnavailableHint,
               key: const Key('storage-settings-unavailable'),
-              style: TextStyle(color: colors.textSecondary, fontSize: 12),
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: AppFontSize.bodySmall,
+              ),
             ),
           ],
           const SizedBox(height: 8),

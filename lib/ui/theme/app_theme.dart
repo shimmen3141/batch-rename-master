@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_typography.dart';
 
 /// 参考デザイン準拠のダークテーマ。[AppColors.dark] をセマンティックカラーとして
 /// [ThemeData.extensions] に載せ、`context.colors` から参照できるようにする。
@@ -41,4 +42,4 @@ ThemeData appDarkTheme() {
 
 /// 上部の見出しの帯の高さと文字の大きさ(`008:T10` の要望13)。
 const double appBarHeight = 44;
-const double appBarTitleFontSize = 16;
+const double appBarTitleFontSize = AppFontSize.heading;
