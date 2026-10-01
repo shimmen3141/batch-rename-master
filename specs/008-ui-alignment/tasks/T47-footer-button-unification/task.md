@@ -150,15 +150,18 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - 連鎖: 上に続けて (記録 `054b1a5..7909c79`) → `7909c79..d8f00b0`(指摘は上のとおり閉じた。analyze の実行は SELF-CHECK)。
 - **attempt 6**: `5a36873..9db1cfe`(差分review。実機確認4回目の指定) — **FAIL**(P1 1件)。reviewerは`gpt-6-luna`。確認された点: フェードが残りの幅で列の右端まで届き、足りれば次のチップも中に描く。test が右端の位置・次のチップが覗く経路・1つ目からフェードする経路・薄くする長さを検査する。`flutter test` +1123 PASS、`flutter analyze` No issues(120.9s)、format 0 changed、範囲付き mutation 7件(M199・M241・M588・M589・M593〜M595)KILLED。
   - **P1(成果物の欠陥)**: `manual-verification.md` の冒頭が対象buildを `b63f121`(4回目)のままにしていて、handoff の `9be982b` と食い違う → `9be982b`(5回目)へ直した。P1 なので SELF-CHECK にせず、差分review attempt 7 で閉じたかを確かめる。
+- **attempt 7**: `9db1cfe..187f3f5`(差分review。`specs/` だけ) — **PASS**(P2 1件)。reviewerは`gpt-6-luna`。attempt 6 の P1 が閉じた(手順書の対象buildが `9be982b` で handoff と一致、`9be982b..187f3f5` で `lib/`・依存・build設定の差分なし)。`git diff --check` PASS。
+  - P2(成果物の欠陥): handoff の「Next Agent action」が attempt 6 のままだった → 直した(記録だけの差分。**SELF-CHECK** で閉じる。commit は下の handoff 更新)。
+- 連鎖: 上に続けて (記録 `d8f00b0..5a36873` SELF-CHECK) → `5a36873..9db1cfe` FAIL(P1)→ `9db1cfe..187f3f5` PASS(P1 が閉じた)→ 以後の記録だけの差分は SELF-CHECK。
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認4回目の指摘(フェードが早い)を直した(`9be982b`・`a4d5c50`、2026-10-01)。full test・analyze・format PASS。差分review attempt 6 は FAIL(P1: 手順書の対象buildの記載が古い)→ 直して attempt 7 を依頼中
-- Blocker category: human verification(と、並行して独立review)
+- Last checkpoint: 実機確認4回目の指摘(フェードが早い)を直した(`9be982b`・`a4d5c50`、2026-10-01)。差分review attempt 6 FAIL(P1: 手順書の対象buildが古い)→ 直して attempt 7 PASS。review 側の確認は揃った
+- Blocker category: human verification
 - Waiting for: 開発者によるAndroidエミュレータでの確認5回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「5回目で見ること」)
 - Requested action: worktree の HEAD から build し(`lib/` は `9be982b` と同一)、1〜3 を確かめて結果を会話で伝える
 - Evidence revision: `9be982b`(`lib/`)
-- Next Agent action: 差分review attempt 6 の結果と実機確認5回目の結果を記録する → どちらもOKなら done にして PR #204 を merge(手順は次のとおり)
+- Next Agent action: 実機確認5回目の結果を記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
   1. 結果を「実機確認 5回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
   2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
 
