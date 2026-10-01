@@ -53,7 +53,6 @@
     "tasks/T46-mutation-find-check",
     "tasks/T47-footer-button-unification",
     "tasks/T48-row-file-size",
-    "tasks/T49-inline-name-pair",
     "tasks/T50-row-warning-retune"
   ]
 }

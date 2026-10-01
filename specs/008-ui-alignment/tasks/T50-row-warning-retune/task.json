@@ -3,9 +3,7 @@
   "id": "T50",
   "title": "各行の警告の出し方を再調整する",
   "status": "pending",
-  "dependsOn": [
-    "T49"
-  ],
+  "dependsOn": [],
   "covers": [],
   "issue": null,
   "pullRequest": null,
