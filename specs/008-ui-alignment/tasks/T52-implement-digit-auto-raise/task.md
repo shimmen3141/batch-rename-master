@@ -12,7 +12,7 @@
 
 ## 受け入れ証拠
 
-- widget test(件数が増えて引き上がる・通知が出る・減っても下がらない・ゼロ埋めなしは触らない・保存される)。mutation。
+- widget test(003 の代表例15〜15d: 件数が増えて引き上がる・通知が出る・減っても下がらない・ゼロ埋めなしは触らない・復元して起動しても引き上がる・**連番が複数なら下限を下回るものだけ引き上がる**・保存される(007 REQ-008 の経路))。mutation。
 - `flutter test`・`flutter analyze`・`dart format`。独立review。
 - `manual-verification.md` で Android 実機と Windows desktop を確認する。
 
