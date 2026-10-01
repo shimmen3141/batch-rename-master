@@ -42,6 +42,11 @@ M506 KILLED / M510 KILLED / M511 SURVIVED(期待どおり。note に「SURVIVED�
 
 - 対象: `lib/` が `bcc2c34` と同一の build(`T50` と共通の手順 4)。受領: 開発者「動作は問題ありませんでしたが、各行の警告の下線が見えづらいです。…」→ **手順4(起動し直して1桁から2桁へ引き上がり、通知が出る)は期待どおり。** 指摘は `T50` の下線だけ。`T50` の修正(`a1e173a`)で code が変わったので、2回目で同じ build をもう一度確かめる。
 
+### 実機確認 2回目(2026-10-01)
+
+- 対象: `lib/` が `a1e173a` と同一の build(worktree HEAD `b0b5c97`)。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜6(`T50`・`T52` 共通)。
+- 受領: 2026-10-01、会話で開発者から「確認事項について、問題ありませんでした。」→ **0〜6 すべて期待どおり**(行の警告の下線が件数表示の「詳細」と同じ引き方で見える、作成日時不明の赤字と「！詳細」、名前が空、連番の桁の自動引き上げと通知、文字最大、Windows の広い窓・狭い窓)。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。`T50` と `T52` は同じ PR #208 なので、1回の review で両方を見た。
@@ -51,12 +56,4 @@ reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一�
 - `950cb2c..bcb5b58` は記録だけ(attempt 1 の P2 を閉じた。SELF-CHECK)。
 - **attempt 2**: `bcb5b58..47d0b40`(差分review。実機確認1回目の下線の指摘の修正) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 行の警告と件数表示の「詳細」が同じ引き方・太さ・色、行の高さ・文字倍率・baseline への影響が test に入っている、M622・M623・M633 KILLED(M570 は範囲付きで SURVIVED、全件で KILLED)、manual 2回目の build の見分け方が一致。`flutter test` 1164 PASS、analyze・format PASS。
 - 連鎖: `441acdf..950cb2c` PASS → `950cb2c..bcb5b58` SELF-CHECK → `bcb5b58..47d0b40` PASS → 以後の記録だけの差分は SELF-CHECK。
-
-## Current state / handoff
-
-- Last checkpoint: 実機確認1回目(動作OK・下線の指摘)を受けて下線の引き方を直した(`a1e173a`)。差分review attempt 2(`bcb5b58..47d0b40`)PASS
-- Blocker category: human verification
-- Waiting for: 開発者による実機確認2回目(`/workspace/.worktrees/008-T50-row-warning-retune/specs/008-ui-alignment/tasks/T50-row-warning-retune/manual-verification.md` の 0〜6。Android エミュレータと Windows desktop。`T50`・`T52` 共通)
-- Requested action: worktree の HEAD から build し(`lib/` は `a1e173a` と同一)、0〜6 を確かめて結果を会話で伝える
-- Evidence revision: `a1e173a`(`lib/`)
-- Next Agent action: 結果を両 task の「実機確認 2回目」節へ記録する → 指摘があれば直して差分review(range は `47d0b40` 以降)→ 確認をやり直す。OK なら両方 done にし、PR #208 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、T50・T52 の worktree と branch を片付ける。あわせて、命名ルール設定buttonに警告を出す案(推奨案4)を開発者に尋ねる
+- **SELF-CHECK**: `47d0b40..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
