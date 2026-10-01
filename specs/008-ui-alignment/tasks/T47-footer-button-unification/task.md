@@ -163,15 +163,17 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 - **attempt 7**: `9db1cfe..187f3f5`(差分review。`specs/` だけ) — **PASS**(P2 1件)。reviewerは`gpt-6-luna`。attempt 6 の P1 が閉じた(手順書の対象buildが `9be982b` で handoff と一致、`9be982b..187f3f5` で `lib/`・依存・build設定の差分なし)。`git diff --check` PASS。
   - P2(成果物の欠陥): handoff の「Next Agent action」が attempt 6 のままだった → 直した(記録だけの差分。**SELF-CHECK** で閉じる。commit は下の handoff 更新)。
 - 連鎖: 上に続けて (記録 `d8f00b0..5a36873` SELF-CHECK) → `5a36873..9db1cfe` FAIL(P1)→ `9db1cfe..187f3f5` PASS(P1 が閉じた)→ 以後の記録だけの差分は SELF-CHECK。
+- **attempt 8**: `6fa8a74..4b5cd1e`(差分review。実機確認5回目の指定) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。未設定の最小の高さが文字の倍率に追随し、1.0 / 2.0 で設定済みより低くその 0.8 倍以上であることを test が確かめる。M197・M579 の追随と M596・M597 が妥当。`flutter test` +1124 PASS、`flutter analyze` No issues(135.3s)、format 0 changed、範囲付き mutation 4件 KILLED、`git diff --check` PASS。
+- 連鎖: 上に続けて (記録 `187f3f5..6fa8a74` SELF-CHECK) → `6fa8a74..4b5cd1e` PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認5回目でフェードはOK。未設定のbuttonの高さの指定を受けて直した(`4c2bafc`、2026-10-01)。差分review attempt 8(`6fa8a74..` 新しい head)を依頼する
+- Last checkpoint: 実機確認5回目でフェードはOK。未設定のbuttonの高さの指定を受けて直した(`4c2bafc`、2026-10-01)。差分review attempt 8 PASS。review 側の確認は揃った
 - Blocker category: human verification
 - Waiting for: 開発者によるAndroidエミュレータでの確認6回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「6回目で見ること」)
 - Requested action: worktree の HEAD から build し(`lib/` は `4c2bafc` と同一)、1〜3 を確かめて結果を会話で伝える
 - Evidence revision: `4c2bafc`(`lib/`)
-- Next Agent action: 差分review attempt 8 と実機確認6回目の結果を記録する → どちらもOKなら done にして PR #204 を merge(手順は次のとおり)
+- Next Agent action: 実機確認6回目の結果を記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
   1. 結果を「実機確認 6回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
   2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
 
