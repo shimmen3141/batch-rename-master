@@ -133,9 +133,48 @@
 3. **引き受けた残余risk** — 行の高さ・警告の濃さ・押せる形の下限、行の警告の文字倍率、帯と一覧を組んだ test、フェードの下限。closeする / 受容し直すを1件ずつ記録する。文字 3.0 の項目(N-8b′・N-8b″)は Android の上限が 2.0 なので、製品経路の外として扱いを記録する。
 4. 独立review → 実機確認(Android)。Windows desktop の確認は host 側の人間に依頼する。
 
+### checkpoint 1: 見出しと行の区切り線(`c4748a7`)
+
+- 要望13: 見出しの帯を既定の高さ 56 → `appBarHeight`(44)、文字 22 → `appBarTitleFontSize`(16)。theme の `appBarTheme` に置いた。見出しは消さない(デスクトップでは歯車 `008:T43` が載る)。
+- 要望10: 行の区切り線だけを専用の色 `rowDivider`(白 12%)にした。他の境界線(`border`、白 8%)は変えない。
+- test: `test/widget_test.dart`「上部の見出しは低く小さい」「一覧の行の区切り線は他の境界線より少し濃い」。mutation M598〜M601 を追加、範囲付き(`flutter test test/widget_test.dart test/spec_002_file_list`)で `4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
+
+### checkpoint 2: 文字の大きさを theme へ(`3a8cf7d`)
+
+- `lib/ui/theme/app_typography.dart` の `AppFontSize`(micro 9 / tiny 10 / caption 10.5 / small 11 / label 11.5 / bodySmall 12 / body 12.5 / bodyLarge 13 / title 14 / titleLarge 15 / heading 16)。`lib/ui` の `fontSize:` の直書き 59 箇所を置き換えた。値は変えていない(diff の非 `fontSize` 行は formatter の折り返しだけであることを確かめた)。
+- test: `test/theme/typography_literals_test.dart`(直書きが戻らない・段の値を保つ)。
+- **余白(`EdgeInsets` 68 箇所)は寄せなかった。** 値の多くは部品ごとに固有で、共有されている値(行・帯の左右 12 など)は既に名前付きの定数になっている。名前だけ付け替えても揃いは変わらないので、文字の大きさの決定(値を変えない)の範囲で効果が無いと判断した。
+
+### checkpoint 3: 引き受けた残余risk(`07b7410`)
+
+| 出所 | risk | 扱い |
+|---|---|---|
+| `008:T18` | 行の高さを縛る assertion が無い(M220 / M221) | **閉じた。** 「警告の箱は文字 + 上下 4 + 枠の高さ」「長い現在名で行が伸びない」の test。M220・M221 KILLED |
+| `008:T18` | 穴A: 警告の濃さの下限(M225) | **閉じた。** 文字 ≥ 0.6(参考design .7、manual で見た 0.78)。M225 KILLED |
+| `008:T18` | 穴B: 押せる形の検査が構造だけ(M226) | **閉じた。** 枠 ≥ 0.3・塗り ≥ 0.06。M226 KILLED |
+| `008:T18` | 行の警告に文字倍率の被覆が無い(アイコンのずれ・切り詰め)。確認C 未回答 | **直して閉じた。** アイコンと補正量を `textScaler` で拡大(M604)。2 行では倍率 2.0 の 320・360dp で切り詰められた(2026-10-01 の測定。T18 当時の「1.3 から」は以後の変更で 2.0 へ移っていた)ので 3 行まで許した(M605、M180 の find 追随)。test は 320/360/411 × 1.0/1.3/2.0。実機の字体での揃いは manual 3 |
+| `008:T08` | 帯と一覧を組んだ widget test が無い | **閉じた。** `load_affordance_test`「帯と一覧を同じ画面に組んでも、場所の出し分けが食い違わない」(場所 0 / 1 / 2 種類) |
+| `008:T47` | フェードの下限の分岐を直接検査する test が無い | **閉じた。** 幅×数の loop で「フェードは下限より狭くならない」。M602・M603 KILLED |
+| `008:T23` | 幅 90dp で読み込み帯が overflow | **受容のまま。** 検証範囲の下限を 320dp とする(Android の一般的な最小幅)。90dp の端末は実在しない |
+| `008:T07`/`T16` | N-8b′・N-8b″(文字 3.0 での語尾の切り詰め・一覧の取り分) | **受容のまま。製品経路の外。** Android の上限は 2.0、Windows の文字サイズの上限は 225%(2.25)で、3.0 には届かない |
+| (新規・2026-10-01 の測定) | 文字 2.0 の低い画面で一覧が狭い: 360×640 で一覧 113px(フッター 242px)、320×640 で 62px。高さ 800 前後なら約 270px。overflow・切り詰めは無い | **開発者の決定で受容した**(2026-10-01。3案 受容 / 文字が大きいときフッターを詰める / フッターの文字拡大に上限 のうち受容)。manual 4 で見え方を見る |
+| `008:T20`・`T06`・`T28` | 余白・字体・アイコンの妥当性、長押しの範囲など見た目の判断 | manual 1〜4 で見る範囲に含めた。個別に足す変更は無い |
+
+- 範囲付き mutation(`flutter test test/spec_005_rename_exec test/spec_002_file_list test/spec_004_file_source test/widget_test.dart test/theme`、対象 `07b7410`、9件):
+
+```text
+M180 M220 M221 M225 M226 M602 M603 M604 M605 すべて KILLED
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`07b7410`): `flutter test` +1133 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 554 PASS。
+
+### manual
+
+- `manual-verification.md` を1回目の手順にした(見出し・区切り線・文字最大での行の警告・文字最大での全体)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。Windows desktop の確認は、このtaskの変更が Android と同じ widget なので Android で代える(受け入れ証拠からの逸脱として記録する。desktop 固有の差は見出しの歯車だけで、`widget_test` が歯車の配置を押さえている)。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手した(2026-10-01)。checkpoint 1 の実装中
+- Last checkpoint: checkpoint 1〜3 を実装した(`07b7410`、2026-10-01)。full test・analyze・format PASS。独立review を依頼する
 - Blocker category: なし
-- Evidence revision: `dev`@`72ca7ef`
-- Next Agent action: checkpoint 1(見出しの縮小・行の区切り線)を実装し、test を足す
+- Evidence revision: `07b7410`(`lib/`)
+- Next Agent action: 独立review(`72ca7ef..` 最新 head の全範囲)→ PASS なら実機確認1回目を依頼する
