@@ -26,7 +26,7 @@ product-map の将来候補「ルールをchipのUIで見せる」(`T20`の実�
 
 ## 受け入れ証拠
 
-- widget test: 未設定と設定済みでルール設定ボタンの外形(角丸・枠・面)が同じ。未設定では＋と「命名ルールを設定する」が白で、✎・「編集」・「命名ルール」の見出しが無い。設定済みではトークンごとに2段のチップ(種類名・値)が並び、×が無い。入りきらないときは最後に見えるチップが途切れてフェードし、数は出さない(2026-09-30 の決定。当初は「+N」だった)。フェードは列の右端まで届き、薄くするのは右端の 20px だけ(2026-10-01 の指定)。リネームボタンの角丸がルール設定ボタンと同じ。ボタン全体が一つの押下対象であること(2026-09-02 の要望9)を保つ。狭幅・文字 2.0 ではみ出さない。
+- widget test: 未設定と設定済みでルール設定ボタンの外形(角丸・枠・面)が同じ。未設定では＋と「命名ルールを設定する」が白で、✎・「編集」・「命名ルール」の見出しが無い。設定済みではトークンごとに2段のチップ(種類名・値)が並び、×が無い。入りきらないときは最後に見えるチップが途切れてフェードし、数は出さない(2026-09-30 の決定。当初は「+N」だった)。未設定のbuttonは設定済みよりひとまわり小さいくらいの高さ(2026-10-01 の指定)。フェードは列の右端まで届き、薄くするのは右端の 20px だけ(2026-10-01 の指定)。リネームボタンの角丸がルール設定ボタンと同じ。ボタン全体が一つの押下対象であること(2026-09-02 の要望9)を保つ。狭幅・文字 2.0 ではみ出さない。
 - 既存の005の下部バーのtestが継続PASS(または新しい見た目に合わせた改訂で、assertionを緩めない)。
 - `flutter test` / `flutter analyze` / `dart format --output=none --set-exit-if-changed .` がPASS。
 - `manual-verification.md` で Android エミュレータの見た目を確認する。
@@ -130,6 +130,16 @@ M591(現 M594) KILLED   (test を足したあと)
 ```
 - 検証: `flutter test` +1123 PASS、`flutter analyze` No issues、`dart format` 0 changed。
 
+### 実機確認 5回目(2026-10-01、対象 `9be982b`)と、それを受けた変更
+
+- 開発者の回答(原文): 「フェードについては問題ありませんでした。ルール未設定時のルール設定ボタンの大きさが気になります。もう少し縦に大きくしてください。ルール設定後の大きさよりひとまわり小さいぐらいの大きさにしてください。」
+- 1(フェードの終わり)は **OK**。2(余白)・3(文字サイズ最大)は触れられていない → 6回目で併せて見てもらう。
+- 測った高さ(幅 360): 未設定 34 / 設定済み 78(文字 1.0)、54 / 128(文字 2.0)。
+- 変更(`4c2bafc`): 未設定の中身に最小の高さ `ruleButtonEmptyMinContentHeight`(50。文字の拡大に合わせて伸ばす)を与えた。button は文字 1.0 で 64(設定済みの約 82%)、文字 2.0 で 114(同 89%)。
+- test: 「未設定のbuttonは設定済みよりひとまわり小さいくらいの高さ」(文字 1.0 / 2.0 で、設定済みより低く、その 0.8 倍以上)。
+- mutation: M197・M579 の find を追随、M596(最小の高さを外す)・M597(文字の拡大に合わせない)を足した。`check_mutation_finds.py` → `PASS: 546`。範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list`、対象 `4c2bafc`)で4件: `M197 M579 M596 M597 KILLED / 4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
+- 検証(`4c2bafc`): `flutter test` +1124 PASS、`flutter analyze` No issues、`dart format` 0 changed。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より一段軽いmodel」だが、開発者の指定を優先した(記録)。
@@ -156,13 +166,13 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 実機確認4回目の指摘(フェードが早い)を直した(`9be982b`・`a4d5c50`、2026-10-01)。差分review attempt 6 FAIL(P1: 手順書の対象buildが古い)→ 直して attempt 7 PASS。review 側の確認は揃った
+- Last checkpoint: 実機確認5回目でフェードはOK。未設定のbuttonの高さの指定を受けて直した(`4c2bafc`、2026-10-01)。差分review attempt 8(`6fa8a74..` 新しい head)を依頼する
 - Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認5回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「5回目で見ること」)
-- Requested action: worktree の HEAD から build し(`lib/` は `9be982b` と同一)、1〜3 を確かめて結果を会話で伝える
-- Evidence revision: `9be982b`(`lib/`)
-- Next Agent action: 実機確認5回目の結果を記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
-  1. 結果を「実機確認 5回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
+- Waiting for: 開発者によるAndroidエミュレータでの確認6回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「6回目で見ること」)
+- Requested action: worktree の HEAD から build し(`lib/` は `4c2bafc` と同一)、1〜3 を確かめて結果を会話で伝える
+- Evidence revision: `4c2bafc`(`lib/`)
+- Next Agent action: 差分review attempt 8 と実機確認6回目の結果を記録する → どちらもOKなら done にして PR #204 を merge(手順は次のとおり)
+  1. 結果を「実機確認 6回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
   2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
 
 ### 引き継ぎメモ(別セッション向け)
