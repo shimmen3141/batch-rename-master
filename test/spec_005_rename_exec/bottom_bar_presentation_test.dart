@@ -477,6 +477,59 @@ void main() {
       expect(sawNextPeek, isTrue);
     });
 
+    testWidgets('1つ目からフェードするときも、フェードは列の右端まで届く(008:T47 実機確認4回目)', (
+      tester,
+    ) async {
+      // 1つ目のチップは入るが、その後ろの残りが下限に満たない幅。1つ目のチップの
+      // 幅でフェードを止めると、右に空きが残って消えるのが早く見える。値は 132 で
+      // 切れるのでチップの幅には上限があり、画面の幅を変えてその場面を通る。
+      var sawFirstWithNext = false;
+      for (var width = 240.0; width <= 360; width += 2) {
+        await tester.binding.setSurfaceSize(Size(width, 800));
+        await tester.pumpWidget(
+          MaterialApp(
+            key: ValueKey(width),
+            theme: appDarkTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(size: Size(width, 800)),
+              child: Scaffold(
+                body: FileListView(
+                  controller: FileListController(
+                    files: [_f('a.txt')],
+                    rule: RenameRule([
+                      LiteralToken('a' * 40),
+                      LiteralToken('b' * 20),
+                    ]),
+                  ),
+                  onEditRule: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull, reason: 'width=$width');
+        final strip = find.byKey(ruleSummaryKey);
+        final fade = find.byKey(ruleChipFadeKey);
+        if (fade.evaluate().isEmpty) continue;
+        expect(
+          tester.getRect(fade).right,
+          closeTo(tester.getRect(strip).right, 0.01),
+          reason: 'width=$width',
+        );
+        final inFade = find
+            .descendant(of: fade, matching: find.byType(RuleSummaryChip))
+            .evaluate()
+            .length;
+        final all = find
+            .descendant(of: strip, matching: find.byType(RuleSummaryChip))
+            .evaluate()
+            .length;
+        if (inFade == 2 && all == 2) sawFirstWithNext = true;
+      }
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      expect(sawFirstWithNext, isTrue, reason: '1つ目からフェードする経路を通っていない');
+    });
+
     test('フェードで薄くするのは右端の決まった長さだけ(008:T47 実機確認4回目)', () {
       // 2026-10-01 の開発者の指定: 薄くし始めるのが早い。以前は幅の 35% からだった。
       for (final width in [24.0, 60.0, 140.0]) {
