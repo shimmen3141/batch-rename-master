@@ -209,13 +209,14 @@ reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一�
 - **attempt 1**: `72ca7ef..78438ba`(全範囲) — **FAIL**(P1 1件)。確認された点: 見出し・区切り線・文字の大きさの置き換え(値を保つ)、行の警告の拡大と `maxLines: 3` が 005 REQ-009 / REQ-021・002 の行の趣旨を損なわない、行の高さの test が警告の箱と行の箱を実際に測っている、M220/M221/M602/M603 KILLED、受容の根拠が出所を参照している、manual の文言が current revision と一致。`flutter test` 1133 PASS・analyze・format PASS。
   - **P1(成果物の欠陥)**: 受け入れ証拠は Windows desktop の確認も求めているのに、Agent が開発者の判断なしに Android で代えると記録していた → **Agent が受け入れ条件を自分で緩めたもので誤り。** manual に Windows desktop の節(5)を足し、代替の記述を消した。差分review attempt 2 で確かめる。
 - **attempt 2**: `78438ba..a79b38d`(差分review。`specs/` だけ) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。attempt 1 の P1 が閉じた(manual に Windows desktop の手順・期待結果があり、受け入れ証拠と一致。代替の記述は消えた)。
-- 連鎖: `72ca7ef..78438ba` FAIL(P1)→ `78438ba..a79b38d` PASS(P1 が閉じた)→ 以後の記録だけの差分は SELF-CHECK。
+- **attempt 3**: `a79b38d..41f4486`(差分review。2026-10-01 の要望の反映) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 歯車の表示条件(005 REQ-014/015・`008:T43`)を保ち、モード中も帯に残り `IndexedStack` の帯の高さも保つ / 上だけ `SafeArea`、browser の帯は theme のまま / preview 52・名前の強弱・folder 名・button のアイコン削除と対応 test / manual の文言が current revision と一致。`flutter analyze` No issues、`flutter test` 1137 PASS、`dart format` 0 changed、範囲付き mutation 15件(M94・M171・M218・M221・M476・M606〜M615)すべて KILLED。
+- 連鎖: `72ca7ef..78438ba` FAIL(P1)→ `78438ba..a79b38d` PASS(P1 が閉じた)→ `a79b38d..41f4486` PASS → 以後の記録だけの差分は SELF-CHECK。
 
 ## Current state / handoff
 
-- Last checkpoint: checkpoint 1〜3 を実装(`07b7410`)。独立review attempt 1 FAIL(P1: Windows desktop 確認を判断なしに省いた)→ 手順を足して attempt 2 PASS(2026-10-01)。review 側の確認は揃った
+- Last checkpoint: 2026-10-01 の開発者の要望(見出しの帯の削除・歯車を folder の帯へ・行の写真 52・名前の強弱・folder 名・button のアイコン)を `85f4b79` で実装。差分review attempt 3(`a79b38d..41f4486`)PASS。実機確認はまだ1回も行っていない
 - Blocker category: human verification
 - Waiting for: 開発者による実機確認1回目(`/workspace/.worktrees/008-T10-spacing-and-typography/specs/008-ui-alignment/tasks/T10-spacing-and-typography/manual-verification.md` の 0〜5。Android エミュレータと Windows desktop)
-- Requested action: worktree の HEAD から build し(`lib/` は `07b7410` と同一)、0〜5 を確かめて結果を会話で伝える
-- Evidence revision: `07b7410`(`lib/`)
-- Next Agent action: 結果を「実機確認 1回目」節として記録する → 指摘があれば直して差分review(range は前回の head から)→ 実機確認をやり直す。OK なら done にし、PR #205 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、worktree と branch を片付ける
+- Requested action: worktree の HEAD から build し(`lib/` は `85f4b79` と同一)、0〜5 を確かめて結果を会話で伝える
+- Evidence revision: `85f4b79`(`lib/`)
+- Next Agent action: 結果を「実機確認 1回目」節として記録する → 指摘があれば直して差分review(range は `41f4486` 以降)→ 実機確認をやり直す。OK なら done にし、PR #205 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、worktree と branch を片付ける
