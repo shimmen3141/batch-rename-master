@@ -3796,21 +3796,21 @@
       "note": "008:T47 フェードのチップを残りの幅で切らない — 最後のチップが丸ごと描かれてbuttonからはみ出す(2026-09-30 の開発者の決定「最後のチップをフェードさせるだけ」)  **2026-10-01 にフェードを常に列の右端まで伸ばした(実機確認4回目の開発者の指定)ので find を追随させた**"
     },
     {
-      "id": "M590",
+      "id": "M593",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "              fadeWidth > widths[shown] + ruleChipGap)\n            tokens[shown + 1],",
       "replace": "              false)\n            tokens[shown + 1],",
       "note": "008:T47 1つ手前をフェードにしたとき、その次のチップを描かない — フェードの中身が列の右端まで届かず空きが残り、消えるのが早く見える(2026-10-01 の開発者の指定。実機確認4回目)"
     },
     {
-      "id": "M591",
+      "id": "M594",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "  return (full: 0, fadeWidth: maxWidth);",
       "replace": "  return (full: 0, fadeWidth: maxWidth < widths.first ? maxWidth : widths.first);",
       "note": "008:T47 1つ目からフェードするとき、フェードを1つ目のチップの幅で止める — 列の右端に空きが残る(2026-10-01 の開発者の指定。実機確認4回目)"
     },
     {
-      "id": "M592",
+      "id": "M595",
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "    width > ruleChipFadeLength ? 1 - ruleChipFadeLength / width : 0;",
       "replace": "    0.35;",
