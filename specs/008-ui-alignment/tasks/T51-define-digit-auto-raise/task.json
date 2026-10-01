@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T51",
   "title": "件数が増えたとき連番の桁数を自動で引き上げる振る舞いを定義する",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [],
   "covers": [],
   "issue": null,
