@@ -13,6 +13,9 @@ const Key warningCountKey = Key('warning-count');
 /// 行の警告(005 REQ-009 (1))。押すと**その行の**詳細が開く(REQ-009 (4))。
 const Key rowWarningKey = Key('row-warning');
 
+/// 行の警告の文言(右端に書く種類。`008:T50`)。
+const Key rowWarningBadgeTextKey = Key('row-warning-badge-text');
+
 /// 設定中のルールの1行要約(参考designのルール設定button 2行目)。
 const Key ruleSummaryKey = Key('rule-summary');
 
@@ -191,7 +194,7 @@ class RuleNotConfiguredBanner extends StatelessWidget {
 /// 改修前は詳細側だけ `基準日時なし` / `桁不足` で、行は `作成日時不明` /
 /// `連番の桁不足` だった。**利用者から見て同じものが2つの語彙で呼ばれていた。**
 String warningKindLabel(Warning warning) => switch (warning) {
-  DuplicateWarning() => '名前の重複',
+  DuplicateWarning() => duplicateKindLabel,
   DigitShortageWarning() => digitShortageKindLabel,
   EmptyNameWarning() => '名前が空',
   // **どの基準が取れないかを明示する**(要望5)。基準から導くので、作成日時
@@ -201,8 +204,16 @@ String warningKindLabel(Warning warning) => switch (warning) {
   ),
 };
 
-/// 連番の桁が足りない種別の呼び名(行・詳細・確認dialog共通)。
-const String digitShortageKindLabel = '連番の桁不足';
+/// 名前が重複する種別の呼び名(行・詳細・確認dialog共通)。
+///
+/// **短くした**(`008:T50`。以前は `名前の重複`)。行の右端は現在名と同じ行に載るので、
+/// 語を短くするほど現在名が残る。同じ語彙を使う決まり(`008:T19`)に従い、詳細と
+/// 確認dialogも同じ語にそろえた。
+const String duplicateKindLabel = '重複';
+
+/// 連番の桁が足りない種別の呼び名(行・詳細・確認dialog共通)。`008:T50` で
+/// `連番の桁不足` から短くした(理由は [duplicateKindLabel])。
+const String digitShortageKindLabel = '桁不足';
 
 /// 日時トークンの基準が取れない種別の呼び名(基準ごとに変わる)。
 String missingSourceDateKindLabel(DateTimeSource source) =>
@@ -316,14 +327,12 @@ String describeDateTimeSource(DateTimeSource source) => switch (source) {
 // `T15` の設計指針と参考designに沿ったもので、要求ではない。
 // ---------------------------------------------------------------------------
 
-/// 行の警告の角の丸み・塗り・枠・文字の濃さ。
+/// 行の警告の押した跡の角の丸みと、文字の濃さ。
 ///
-/// **押せると分かる形にするため**の値である(2026-09-03 のmanual確認)。
-/// 値そのものは自由で、**固定しているのは「文字が変更後名より薄い」ことと
-/// 「枠と塗りが在る」ことである**(widget test が正本)。
+/// 値そのものは自由で、**固定しているのは「文字が変更後名より薄い」ことと、
+/// 押せることを太字・下線で示すこと**である(widget test が正本)。`008:T50` で
+/// 枠と塗りの箱をやめた(以前は塗り 0.12・枠 0.45)。
 const double rowWarningRadius = 6;
-const double rowWarningFillOpacity = 0.12;
-const double rowWarningBorderOpacity = 0.45;
 const double rowWarningLabelOpacity = 0.78;
 
 /// 行の警告の文字とアイコンの大きさ。
@@ -368,25 +377,36 @@ List<Warning> rowWarningsOf(
   ];
 }
 
-/// 行に出す短い一文(005 REQ-009 (1))。**種別が読み取れることが要求である。**
+/// 行の右端に書く種類(`008:T50`。2026-10-01 の開発者の決定)。
 ///
-/// 空名は結果を 2 つ示す — **(i) 名前が空になること** と
-/// **(ii) そのファイルが改名の対象にならないこと**(005 REQ-021 規則1)。
-/// (ii) は (i) の言い換えではない。(i) だけでは「空の名前へ改名される」とも読める。
+/// **その行のほかの場所から読めない種類だけを書く。**
 ///
-/// **トークンを名指ししない。** 名指しは詳細modalの節が担う([warningDetailSections])。
+/// - 作成日時不明は書かない — 補足情報の `作成日時: 不明` を赤で強調して読ませる
+///   (005 REQ-009 (1) の「種別が一覧の状態で分かる」はそこで満たす)。
+/// - 名前が空は書く — 結果(この名前にならず、改名されない)は補足情報からは
+///   読めない。変更後名の `（変更なし）` と合わせて、005 代表例20 の (i)(ii) を読ませる。
+/// - **書く種類が無いとき(作成日時不明だけの行)は `詳細` と書く。** 押す場所を
+///   どの行でも同じ位置に保ち、その行の詳細を開く入口を消さないためである。
+String rowWarningBadgeLabel(List<Warning> warnings) {
+  final kinds = [
+    for (final w in warnings)
+      if (w is! MissingSourceDateWarning) rowWarningLabel(w),
+  ];
+  return kinds.isEmpty ? rowWarningDetailLabel : kinds.join('・');
+}
+
+/// 右端に書く種類が無い行の文言(`008:T50`)。
+const String rowWarningDetailLabel = '詳細';
+
+/// 行の右端に書く種類の呼び名。作成日時不明は [rowWarningBadgeLabel] が外す。
 String rowWarningLabel(Warning warning) => switch (warning) {
-  DuplicateWarning() => '名前が重複',
-  EmptyNameWarning() => '名前が空・改名されません',
-  // **どの基準が取れないかを明示する**(2026-09-02 の要望5。原文は「『基準日時
-  // なし』…『作成日時不明』『更新日時不明』とちゃんと明示してほしい」)。
-  // 実際に取れないのは作成日時だけだが(001 INV-006: 更新日時・現在日時は常に
-  // 値を持つ)、**基準から導いて誤った名前を出さないようにする。**
+  DuplicateWarning() => duplicateKindLabel,
+  EmptyNameWarning() => '名前が空',
   MissingSourceDateWarning(:final token) => missingSourceDateKindLabel(
     token.source,
   ),
-  // 002 REQ-015 の導出で**行へ来る**(008:T17 の改訂)。指定桁数を超えて描かれる
-  // 行だけが該当する。文言は開発者の指定(2026-09-02 の要望5)。
+  // 002 REQ-015 の導出で**行へ来る**(008:T17 の改訂)。`T52` の自動の引き上げの
+  // 後はほぼ起きないが、判定は安全網として残る。
   DigitShortageWarning() => digitShortageKindLabel,
 };
 
@@ -480,87 +500,65 @@ class RowWarningView extends StatelessWidget {
     // 上げるほどアイコンが小さく、字面の中心も上へずれていった(`008:T18` から
     // 引き受けた残余risk。実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)。
     final iconSize = MediaQuery.textScalerOf(context).scale(rowWarningFontSize);
-    // **箱そのものを右へ寄せる**(参考designのコンパクト案。2026-09-02 の要望8)。
-    // 箱は中身の幅しか取らないので、`Row` の `mainAxisAlignment` では寄らない。
-    return Align(
-      alignment: Alignment.centerRight,
-      child: InkWell(
-        key: rowWarningKey,
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(rowWarningRadius),
-        child: Container(
-          // **tap範囲を文字より広く取る。** 11px の文字だけを当たり判定にすると
-          // 指で外す。**当たり判定は `008:T18` で行幅からバッジの幅へ縮んだ。**
-          // **縮む方向は `008:T19` が絶対値で固定した**(当たり判定と中身の差が
-          // 上下10 / 左右14 = この padding + 枠線。`M227` / `M261` が対照)。
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-          decoration: BoxDecoration(
-            color: colors.danger.withValues(alpha: rowWarningFillOpacity),
-            border: Border.all(
-              color: colors.danger.withValues(alpha: rowWarningBorderOpacity),
+    // **枠と塗りの箱をやめ、太字・下線の文字にした**(`008:T50`。2026-10-01 の開発者の
+    // 決定)。以前は現在名の上の専用の行に、角を丸めた赤の箱で置いていた(2026-09-03 の
+    // 要望「押せることが分からない」)。**押せることは下線で示す。** 右端は現在名と
+    // 同じ行に載るので、箱の枠と内側の余白のぶん現在名が早く切れるのを避けた。
+    return InkWell(
+      key: rowWarningKey,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(rowWarningRadius),
+      child: Padding(
+        // **tap範囲を文字より広く取る。** 11px の文字だけを当たり判定にすると指で外す
+        // (`008:T18` / `T19`。当たり判定と中身の差は上下 8 / 左右 12)。
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+        child: Row(
+          // **アイコンを文字の baseline へ揃え、字面の差を [rowWarningIconInkNudge] で
+          // 補正する**(2026-09-03・09-04 の manual 確認、`008:T10`)。
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 3),
+              // `CrossAxisAlignment.baseline` は子の baseline を固定するので、padding では
+              // 下がらない。paint 側でずらす。
+              child: Transform.translate(
+                offset: Offset(0, iconSize * rowWarningIconInkNudge),
+                child: Icon(Icons.error_outline, size: iconSize, color: label),
+              ),
             ),
-            borderRadius: BorderRadius.circular(rowWarningRadius),
-          ),
-          child: Row(
-            // **アイコンを文字のbaselineへ揃える**(2026-09-03 のmanual確認。原文は
-            // 「！マークが警告文に対して少し上にずれている。修正したい」)。
-            // `CrossAxisAlignment.start` は箱の上端を揃えるので、字面の中心が
-            // 下にある文字に対してアイコンが上へ浮く。`Icon` は内部が `RichText`
-            // なので baseline を持つ。
+            // **1行で、削らない。** 書く種類は短く(最長でも `重複・桁不足`)、残りの幅は
+            // 現在名が省略して譲る。
             //
-            // **baseline を揃えたうえで、字面の差を [rowWarningIconInkNudge] で
-            // 補正している。** 補正量は定数どうしの積なので**固定値である** —
-            // 利用者の文字倍率には追随しない(受容した残余risk。引き受け先
-            // `008:T10`)。詳しくは [rowWarningIconInkNudge] を読むこと。
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                // **字面(ink)の中心を揃えるために、baselineからさらに下げる。**
-                // baselineは揃っているが(box中心の差 0.14px)、**字面の位置が違う**
-                // ので上へ浮いて見える(2026-09-04 のmanual確認)。
-                //
-                // - Material icons は em box いっぱいに描かれ baseline の上 1em を
-                //   占める → ink の中心は **baseline − 0.5em**
-                // - CJKの字面は baseline の上 0.88em 〜 下 0.12em → ink の中心は
-                //   **baseline − 0.38em**
-                //
-                // 差は **0.12em**。**固定値ではなく font size に比例させる。**
-                // ただし比例先は定数なので**利用者の文字倍率には追随しない** —
-                // 受容した残余risk(引き受け先 `008:T10`)。
-                // [rowWarningIconInkNudge] を読むこと。
-                padding: const EdgeInsets.only(right: 3),
-                // **padding では下がらない。** `CrossAxisAlignment.baseline` は
-                // 子の baseline を行の baseline へ固定するので、top padding を足すと
-                // 箱ごと上へずれて相殺される。**paint 側でずらす。**
-                child: Transform.translate(
-                  offset: Offset(0, iconSize * rowWarningIconInkNudge),
-                  child: Icon(
-                    Icons.error_outline,
-                    size: iconSize,
+            // **下線は文字の装飾ではなく、文字の枠の下に引いた線**にする(2026-10-01 の
+            // 実機確認1回目。原文は「各行の警告の下線が見えづらいです。ヘッダー付近の
+            // 警告文の『詳細』の下線の引き方を参考にしてください」)。文字の装飾の下線は
+            // 字形に接して細い。件数表示の「詳細」([warningDetailLinkKey])と同じ引き方・
+            // 同じ太さ([warningLinkUnderlineWidth])にそろえる。
+            Container(
+              key: rowWarningUnderlineKey,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
                     color: label,
+                    width: warningLinkUnderlineWidth,
                   ),
                 ),
               ),
-              Flexible(
-                child: Text(
-                  warnings.map(rowWarningLabel).join('・'),
-                  // 種別がすべて併発しても、既定の文字倍率では 2 行に収まる短さに
-                  // してある。**倍率 2.0 の狭幅では 3 行要る**ので 3 行まで許す
-                  // (`008:T10`。2 行では 320・360dp で種別が切り詰められた)。
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: label,
-                    fontSize: rowWarningFontSize,
-                    fontWeight: FontWeight.w600,
-                  ),
+              child: Text(
+                rowWarningBadgeLabel(warnings),
+                key: rowWarningBadgeTextKey,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  color: label,
+                  fontSize: rowWarningFontSize,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -638,7 +636,10 @@ class WarningCountView extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(color: colors.danger, width: 1.5),
+                          bottom: BorderSide(
+                            color: colors.danger,
+                            width: warningLinkUnderlineWidth,
+                          ),
                         ),
                       ),
                       child: Text(
@@ -662,6 +663,13 @@ class WarningCountView extends StatelessWidget {
 
 /// 件数表示の「詳細」(押せることを示す文字と、その下の線)。
 const Key warningDetailLinkKey = Key('warning-detail-link');
+
+/// 押せることを示す下線の太さ。件数表示の「詳細」と行の警告で共有する
+/// (2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」、`008:T50` で行へも)。
+const double warningLinkUnderlineWidth = 1.5;
+
+/// 行の警告の文字の下の線(`008:T50`)。
+const Key rowWarningUnderlineKey = Key('row-warning-underline');
 
 /// 状態のメッセージのバナーの印の大きさ。行ごとに揃える(`008:T02`)。
 const double bannerIconSize = 14;

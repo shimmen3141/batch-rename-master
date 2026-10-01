@@ -92,3 +92,13 @@ bool rowHasNoChange(RowView row, {required bool ruleIsEmpty}) {
   if (newName == row.currentName) return true;
   return row.warnings.whereType<EmptyNameWarning>().isNotEmpty;
 }
+
+/// 行に「作成日時が取れない」警告があるか(`008:T50`)。
+///
+/// 行の右端には書かず、補足情報の `作成日時: 不明` を赤で強調する根拠に使う。
+/// **畳む前の警告を見る** — 名前が空になる行では基準日時不明は空名へ畳まれて
+/// 右端に出ない(005 REQ-021 規則1)が、原因が日時であることは補足情報で読ませる。
+bool rowHasMissingCreatedAt(RowView row) => row.warnings.any(
+  (w) =>
+      w is MissingSourceDateWarning && w.token.source == DateTimeSource.created,
+);

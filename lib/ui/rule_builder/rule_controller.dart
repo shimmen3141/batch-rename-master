@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
+import 'sequence_digits.dart';
+
+/// 連番の桁数を引き上げた1件(003 REQ-015)。[index] は `tokens` での位置。
+typedef SequenceDigitsRaise = ({int index, int from, int to});
 
 /// トークンビルダーの状態層(003 spec: `RuleController`)。
 ///
@@ -53,5 +57,39 @@ class RuleController extends ChangeNotifier {
   void replaceAt(int index, Token token) {
     _tokens[index] = token;
     notifyListeners();
+  }
+
+  /// ゼロ埋めありの連番の桁数が、一覧の件数 [itemCount] から決まる下限
+  /// ([sequenceMinDigits]。REQ-014 と同じ式)を下回っていれば、下限まで引き上げる
+  /// (003 REQ-015)。
+  ///
+  /// - **下げない。** 下限を上回る桁数はそのまま。
+  /// - ゼロ埋めなしの連番は触らない。桁数以外の値も変えない。
+  /// - 連番が複数あれば、下回るものそれぞれを**1回の変更として**引き上げる
+  ///   (通知は1回。何も変えなければ通知しない)。
+  ///
+  /// 件数を知らない(003 は 002 を参照しない)ので、件数を渡して呼ぶのは composition
+  /// root である。引き上げた内容を返すので、呼び出し側が利用者へ知らせる。
+  List<SequenceDigitsRaise> raiseSequenceDigits(int itemCount) {
+    final raises = <SequenceDigitsRaise>[];
+    for (var i = 0; i < _tokens.length; i++) {
+      final token = _tokens[i];
+      if (token is! SequenceToken || !token.zeroPad) continue;
+      final min = sequenceMinDigits(
+        start: token.start,
+        increment: token.increment,
+        itemCount: itemCount,
+      );
+      if (token.digits >= min) continue;
+      _tokens[i] = SequenceToken(
+        start: token.start,
+        digits: min,
+        increment: token.increment,
+        zeroPad: token.zeroPad,
+      );
+      raises.add((index: i, from: token.digits, to: min));
+    }
+    if (raises.isNotEmpty) notifyListeners();
+    return raises;
   }
 }

@@ -24,9 +24,58 @@
 - `flutter test`・`flutter analyze`・`dart format`。独立review。
 - `manual-verification.md` で Android 実機と Windows desktop を確認する。
 
-## Current state / handoff
+## 作業記録
 
-- Last checkpoint: 登録しただけ(2026-10-01)
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: 開発者に、行の警告で気になっている点を聞き取る
+- 2026-10-01 / 着手。開発者の要望(原文): 「気になっているのはわざわざ1行を警告に使ううえに、警告が見づらい部分です。今考えているのは、変更前の名前が書いてある行と同じ行の右端(ドラッグ用のつまみは含まない)に警告マークと「詳細」(太字・下線)を配置する案です。あるいは、詳細が無くても該当ファイルを見ればだいたい警告内容がわかるようにすることも考えました。…日時不明は各ファイルの詳細にある日時を赤字で強調する(並び順で日時不明の場合にやっているのと同じように)。連番の桁不足については、…自動で連番の桁を増やしつつトーストで通知すれば、…もう一つの案としては、命名ルール設定ボタンに警告を表示し、修正を促す導線にしつつ情報を一か所にまとめるというものです。」
+- Agent が案を整理して推奨案1〜4を出し、開発者が採った(plan の 2026-10-01 の決定)。桁不足の自動の引き上げは仕様の変更なので `T51`(定義)/ `T52`(実装)へ分けた。命名ルール設定buttonの案(4)は、1〜3 を実機で見てから決める。
+- **右端に書く種類**(開発者の確認「先ほどの表のとおりに進めてよいです」): 重複 →「重複」、名前が空 →「名前が空」、桁不足 →「桁不足」、作成日時不明 → 書かず補足情報の赤字。**書く種類が無い行(作成日時不明だけ)は「詳細」**。組み合わせは「・」でつなぐ(例「重複・桁不足」)。種類の呼び名は詳細と確認dialogも同じ短い語へそろえた(`008:T19` の同じ語彙の決まり)。
+- **005 REQ-009 (1)(種別が一覧で分かる)との関係**: 作成日時不明は補足情報の赤字の `作成日時: 不明` で読める。名前が空の (ii)「改名の対象にならない」は変更後名の `（変更なし）` で読める(以前は右端の `名前が空・改名されません` が担っていた)。spec の文言は変えていない。
+- branch `asdd/008-ui-alignment/T50-row-warning-retune`、worktree `/workspace/.worktrees/008-T50-row-warning-retune`、起点 `dev`@`ad61afe`。
+
+### checkpoint 1: 行の警告の置き場所と見せ方(`1b5d119`)
+
+- 専用の1行をやめ、現在名と同じ `Row` の右端(現在名は `Expanded` で残りの幅を取り、警告は削らない)へ。警告の形は枠と塗りの箱をやめ、**記号 + 太字・下線の文字**(押せることは下線で示す)。tap範囲は上下 4・左右 6 の余白を保つ。
+- `rowWarningBadgeLabel`: 右端には他の場所から読めない種類だけ。`rowHasMissingCreatedAt`: 畳む前の警告に作成日時の基準日時不明があれば、補足情報の `作成日時: 不明` を赤で強調(並び順が作成日時でなくても)。
+- 種類の呼び名: `duplicateKindLabel` = `重複`(以前 `名前の重複`)、`digitShortageKindLabel` = `桁不足`(以前 `連番の桁不足`)。
+- 既存 test 27件の期待値を新しい決定へ追随させた(主張は弱めていない。右端の文字列の代わりに補足情報の赤字・`（変更なし）`・下線と太字を見る形へ置き換えた)。行の高さは「警告のある行も、増えるのは1行より少ない」を足した。
+- mutation: M173・M179・M180・M213・M215・M218・M220〜M222・M227・M228・M261 の find を追随。**M224・M226・M605 を外した**(箱をやめて塗り・枠が無い / 行の警告は1行で行数の段階が無い。後継は M622・M623 と M180)。M622〜M626 を追加。範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list test/widget_test.dart`、対象 `1b5d119`、18件):
+
+```text
+M173 M179 M180 M213 M215 M218 M220 M221 M222 M225 M227 M261 M622 M623 M624 M625 M626 KILLED / M228 SURVIVED
+18 mutations: 17 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+- **M228 の SURVIVED を全件で確かめ直した**(`flutter test --exclude-tags tooling`): `1 mutations: 0 KILLED, 1 SURVIVED`。警告は現在名と同じ `Row` の非 flex の子で横幅の上限が無く、`MainAxisSize.max` でも中身の幅にしかならない **等価な変異**。対照として表に残し、note に期待値を書いた(右寄せは M213 が見る)。
+- 検証(`1b5d119`): `flutter test` +1152 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 571 PASS。
+
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `bcc2c34` と同一の build。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜6(`T52` と共通)。
+- 受領: 2026-10-01、会話で開発者から(原文)「動作は問題ありませんでしたが、各行の警告の下線が見えづらいです。ヘッダー付近の警告文の『詳細』の下線の引き方を参考にしてください。」→ **動作(0〜6)は期待どおり。下線の見え方だけ指摘。**
+
+### checkpoint 2: 下線の引き方(`a1e173a`)
+
+- 行の警告の下線を、文字の装飾(`TextDecoration.underline`。字形に接して細い)から、**件数表示の「詳細」と同じく文字の枠の下端に引いた線**へ変えた。太さは共有の定数 `warningLinkUnderlineWidth`(1.5)にし、件数表示も同じ定数を使う。
+- test: 「警告は押せると分かる形」を、文字の装飾ではなく下の線(太さ = 共有の定数 ≥ 1.5、色 = 文字と同じ、文字の下にある)を見る形へ。行の高さの test は線の太さを足した値へ。
+- mutation: M622・M623・M570 の find を追随、M633(線を細くする)を追加。範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list`、対象 `a1e173a`、7件):
+
+```text
+M220 M227 M261 M570 M622 M623 M633 すべて KILLED
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`a1e173a`): `flutter test` +1164 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 577 PASS。
+
+### 実機確認 2回目(2026-10-01)
+
+- 対象: `lib/` が `a1e173a` と同一の build(worktree HEAD `b0b5c97`)。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜6(`T50`・`T52` 共通)。
+- 受領: 2026-10-01、会話で開発者から「確認事項について、問題ありませんでした。」→ **0〜6 すべて期待どおり**(行の警告の下線が件数表示の「詳細」と同じ引き方で見える、作成日時不明の赤字と「！詳細」、名前が空、連番の桁の自動引き上げと通知、文字最大、Windows の広い窓・狭い窓)。
+
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。`T50` と `T52` は同じ PR #208 なので、1回の review で両方を見た。
+
+- **attempt 1**: `441acdf..950cb2c`(全範囲) — **PASS**。確認された点: T50 の右端の種類・補足情報の赤字・`（変更なし）` が 005 REQ-009 (1)・代表例20・20d・REQ-021 を保つ / `rowHasMissingCreatedAt` が畳む前の警告を見る / 語彙のそろい / 既存 test の書き換えに削除・skip・緩和が無い(4ファイルで 87 → 88 件)/ M224・M226・M605 の除外と M228 の等価の扱い / T52 が 003 REQ-015 を満たし、フレーム後1回でループしない / M631 を外した判断 / 既存 test 2件の意図 / mutation 表 576 件の一意 / manual 手順4が引き上げを起こす。reviewer 側: 範囲付き mutation 14 KILLED・M228 SURVIVED(全件でも SURVIVED)、`flutter test` 1164 PASS、analyze・format PASS。
+  - **P2(成果物の欠陥)**: 両 task の `Current state / handoff` が「登録しただけ」のままで、実装・PR・merge の記録と食い違う → handoff を現状へ更新して閉じた(**SELF-CHECK**、記録だけの差分)。
+- `950cb2c..bcb5b58` は記録だけ(attempt 1 の P2 を閉じた。SELF-CHECK)。
+- **attempt 2**: `bcb5b58..47d0b40`(差分review。実機確認1回目の下線の指摘の修正) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 行の警告と件数表示の「詳細」が同じ引き方・太さ・色、行の高さ・文字倍率・baseline への影響が test に入っている、M622・M623・M633 KILLED(M570 は範囲付きで SURVIVED、全件で KILLED)、manual 2回目の build の見分け方が一致。`flutter test` 1164 PASS、analyze・format PASS。
+- 連鎖: `441acdf..950cb2c` PASS → `950cb2c..bcb5b58` SELF-CHECK → `bcb5b58..47d0b40` PASS → 以後の記録だけの差分は SELF-CHECK。
+- **SELF-CHECK**: `47d0b40..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。

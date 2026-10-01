@@ -50,8 +50,14 @@ Finder _ruleButton() => find.byKey(const Key('configure-rule'));
 /// ルール単位の警告表示に使っていた種別の字面。**もう出ない**(008:T20。開発者の
 /// 決定「ルールの警告は無くす」)。種別は行が出し(005 REQ-009 (1))、説明は詳細
 /// dialogが持つ(同 (2) / (3))。
+///
+/// **行の右端の種別は除く**(`008:T50` で行も `桁不足` と書くようになった)。ここで
+/// 見たいのはルール単位の表示が戻っていないことである。
 Finder _ruleKindTexts() => find.byWidgetPredicate(
-  (w) => w is Text && const {'桁不足', '基準日時なし'}.contains(w.data),
+  (w) =>
+      w is Text &&
+      w.key != rowWarningBadgeTextKey &&
+      const {'桁不足', '基準日時なし'}.contains(w.data),
 );
 
 Finder _inRuleButton(Finder matching) =>
@@ -103,6 +109,17 @@ Matcher _containsNone(String needle) => predicate<List<String>>(
   '「$needle」を含まない',
 );
 
+/// 作成日時が取れないことを読ませる補足情報(`008:T50`)。行の右端には書かず、
+/// **補足情報の `作成日時: 不明` を赤で強調して種別を読ませる**(005 REQ-009 (1))。
+List<Text> _emphasizedUnknownCreatedAt(WidgetTester tester) => tester
+    .widgetList<Text>(find.byKey(rowCreatedAtKey))
+    .where(
+      (t) =>
+          (t.data ?? '').contains('不明') &&
+          t.style?.color == AppColors.dark.danger,
+    )
+    .toList();
+
 /// 行に見えている警告の文言(順序は表示順)。
 List<String> _rowWarningTexts(WidgetTester tester) => tester
     .widgetList<Text>(
@@ -139,7 +156,10 @@ void main() {
       expect(c.warnings.whereType<DuplicateWarning>().length, 2);
       // **タップも展開もしていない状態で**、2 行それぞれに種別が出ている。
       expect(_rowWarnings(), findsNWidgets(2));
-      expect(_rowWarningTexts(tester), ['名前が重複', '名前が重複']);
+      expect(_rowWarningTexts(tester), [
+        duplicateKindLabel,
+        duplicateKindLabel,
+      ]);
     });
 
     testWidgets('空名: 結果を 2 つ示す(空になる / 改名されない)', (tester) async {
@@ -156,8 +176,9 @@ void main() {
       expect(text, contains('空'));
       // (ii) そのファイルが改名の対象にならないこと(REQ-021 規則1)。
       // **(ii) は (i) の言い換えではない** — (i) だけでは「空の名前へ改名される」
-      // とも読める。
-      expect(text, contains('改名されません'));
+      // とも読める。`008:T50` で右端の文言を短くした(`名前が空・改名されません` →
+      // `名前が空`)ので、(ii) は**変更後名の `（変更なし）`** が担う。
+      expect(find.byKey(rowUnchangedKey), findsOneWidget);
     });
 
     testWidgets('基準日時不明: 対象の行だけに出る(名前は空にならない経路)', (tester) async {
@@ -178,7 +199,9 @@ void main() {
 
       // **作成日時が判明している行は巻き込まない。**
       expect(_rowWarnings(), findsOneWidget);
-      expect(_rowWarningTexts(tester).single, contains('作成日時'));
+      // 種別は補足情報の赤字で読む(`008:T50`)。右端は詳細への入口だけ。
+      expect(_rowWarningTexts(tester).single, rowWarningDetailLabel);
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(1));
     });
 
     // 008:T17 の改訂: **桁不足も、指定桁数を超えて描かれる行へ種別が出る。**
@@ -192,7 +215,7 @@ void main() {
       await _pump(tester, c);
 
       expect(c.warnings.whereType<DigitShortageWarning>().length, 1);
-      expect(_rowWarningTexts(tester).single, '連番の桁不足');
+      expect(_rowWarningTexts(tester).single, digitShortageKindLabel);
       // 件数には数える(005 REQ-009 冒頭「4 種すべてを提示する」)。
       expect(find.textContaining('1 件の問題'), findsOneWidget);
     });
@@ -224,7 +247,9 @@ void main() {
       expect(c.warnings.whereType<DigitShortageWarning>().length, 1);
       // 11 件中、超えるのは 10 件目と 11 件目の 2 行だけである。
       expect(
-        _rowWarningTexts(tester).where((t) => t == '連番の桁不足').length,
+        _rowWarningTexts(
+          tester,
+        ).where((t) => t == digitShortageKindLabel).length,
         2,
         reason: '1〜9 件目は 1 桁に収まる',
       );
@@ -245,8 +270,10 @@ void main() {
       // 生じない。**判定は消さない** — 詳細には出る(下の (3) の group)。
       for (final text in _rowWarningTexts(tester)) {
         expect(text, isNot(contains('重複')));
-        expect(text, contains('改名されません'));
+        expect(text, contains('名前が空'));
       }
+      // 改名されないことは変更後名の `（変更なし）` で読む(`008:T50`)。
+      expect(find.byKey(rowUnchangedKey), findsNWidgets(2));
     });
 
     testWidgets('空名 + 基準日時不明は結果へ畳む(REQ-021 規則1)', (tester) async {
@@ -263,15 +290,18 @@ void main() {
       expect(c.warnings.whereType<MissingSourceDateWarning>(), hasLength(1));
       // 行に出るのは結果だけ。原因(どのトークンか)は行に出さない。
       final text = _rowWarningTexts(tester).single;
-      expect(text, contains('改名されません'));
+      expect(text, contains('名前が空'));
+      expect(find.byKey(rowUnchangedKey), findsOneWidget);
       expect(text, isNot(contains('トークン')));
       // **基準日時不明を別立てで並べない**(REQ-021 規則1: 結果へ畳む)。
       // 行の警告は1つの `Text` へ連結されるので、**widget の個数を数えても
       // 別立てを検出できない。**文言そのものを見る。
       expect(text, isNot(contains('作成日時')));
+      // **原因(日時が取れない)は補足情報の赤字で読める**(`008:T50`)。
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(1));
     });
 
-    testWidgets('種別が併発しても行の警告が 2 行に収まる', (tester) async {
+    testWidgets('種別が併発しても行の警告が切り詰められない', (tester) async {
       // 行に同時に出るのは最大 2 種(重複 + 基準日時不明)である。空名が該当する
       // 行は REQ-021 が 1 つへ畳む。**切り詰めると併発時に種別が読めなくなる**
       // ので、いちばん狭い実機幅で全部読めることを固定する。
@@ -290,8 +320,9 @@ void main() {
       expect(texts, isNotEmpty);
       for (final text in texts) {
         expect(text, contains('重複'));
-        expect(text, contains('作成日時'));
       }
+      // 併発した作成日時不明は、両方の行の補足情報の赤字で読める(`008:T50`)。
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(2));
       final paragraphs = find.descendant(
         of: _rowWarnings(),
         matching: find.byType(Text),
@@ -320,8 +351,9 @@ void main() {
 
       expect(c.warnings.whereType<MissingSourceDateWarning>().length, 2);
       final text = _rowWarningTexts(tester).single;
-      expect(text, '作成日時不明');
+      expect(text, rowWarningDetailLabel);
       expect(text, isNot(contains('・')));
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(1));
     });
 
     testWidgets('`sortMode` を名前順にしても種別が読める', (tester) async {
@@ -339,7 +371,8 @@ void main() {
       await _pump(tester, c);
 
       expect(_rowWarnings(), findsOneWidget);
-      expect(_rowWarningTexts(tester).single, contains('作成日時'));
+      // **並び順が名前順でも、補足情報の作成日時は赤で強調される**(`008:T50`)。
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(1));
     });
   });
 
@@ -556,15 +589,28 @@ void main() {
         // **ルールは `RuleController` 側に置く。** `RuleBuilderWorkspace` は
         // 初回フレーム後に自分のルールを `FileListController` へ流すので、
         // controller 側へ直接入れると空で上書きされる。
+        //
+        // **警告の元は作成日時不明にする**(`008:T52`)。以前は桁不足(開始100・1桁)
+        // だったが、003 REQ-015 で件数に合わせて桁数が自動で引き上がり、警告そのものが
+        // 出なくなった。作成日時不明はルールを直しても消えない、もう一つのルール由来の
+        // 種別(以前の `基準日時なし`)である。
         final rule = RuleController()
-          ..addToken(const SequenceToken(start: 100, digits: 1));
+          ..addToken(const OriginalNameToken())
+          ..addToken(
+            const DateTimeToken(
+              source: DateTimeSource.created,
+              format: 'YYYYMMDD',
+            ),
+          );
         addTearDown(rule.dispose);
         await tester.pumpWidget(
           MaterialApp(
             theme: appDarkTheme(),
             home: Scaffold(
               body: RuleBuilderWorkspace(
-                fileList: FileListController(files: [_f('alpha.txt')]),
+                fileList: FileListController(
+                  files: [_noCreatedAt('alpha.jpg')],
+                ),
                 rule: rule,
               ),
             ),
@@ -601,7 +647,10 @@ void main() {
       expect(_inDetail(find.textContaining('bravo.txt')), findsOneWidget);
       expect(_inDetail(find.textContaining('same.txt')), findsNWidgets(2));
       // 種別ごとにまとまり、件数が見える。**行と同じ語彙**(008:T19)。
-      expect(_inDetail(find.textContaining('名前の重複 2 件')), findsOneWidget);
+      expect(
+        _inDetail(find.textContaining('$duplicateKindLabel 2 件')),
+        findsOneWidget,
+      );
     });
 
     // **008:T19 でスコープを分けた**(2026-09-02 の要望2、REQ-009 (4))。
@@ -641,7 +690,7 @@ void main() {
       await _pump(tester, c);
       await _openDetailFromCount(tester);
 
-      expect(_inDetail(find.textContaining('名前の重複')), findsWidgets);
+      expect(_inDetail(find.textContaining(duplicateKindLabel)), findsWidgets);
       expect(_inDetail(find.textContaining('名前が空')), findsWidgets);
     });
 
@@ -717,8 +766,8 @@ void main() {
       expect(_rowWarnings(), findsNWidgets(2));
       for (final text in _rowWarningTexts(tester)) {
         expect(text, contains('重複'));
-        expect(text, contains('作成日時'));
       }
+      expect(_emphasizedUnknownCreatedAt(tester), hasLength(2));
 
       await _openDetailFromCount(tester);
       // 詳細では対象ファイルが 1 件ずつ識別できる(重複 + 基準日時不明で 2 行)。

@@ -4,6 +4,9 @@ import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'token_presets.dart';
 import '../theme/app_typography.dart';
+import 'sequence_digits.dart';
+
+export 'sequence_digits.dart' show sequenceMinDigits;
 
 /// トークンのエディタ(ダイアログの中身)の key。
 const Key tokenEditorKey = Key('token-editor');
@@ -25,21 +28,6 @@ const String dateTimeCustomFormatLabel = '詳細に記述';
 
 /// エディタの高さが変わるときのアニメーションの長さ(008:T44。開発者の要望)。
 const Duration tokenEditorResizeDuration = Duration(milliseconds: 220);
-
-/// ゼロ埋めありの連番の桁数の下限(003 REQ-014)。
-///
-/// 最大の番号 `start + (max(itemCount, 1) − 1) × increment` の10進桁数。一覧が
-/// 0件なら開始番号の桁数になる。001 の桁不足(REQ-008)と同じ数え方なので、下限
-/// 以上の桁数なら、その件数では桁不足が出ない。
-int sequenceMinDigits({
-  required int start,
-  required int increment,
-  required int itemCount,
-}) {
-  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;
-  final max = last > start ? last : start;
-  return max.abs().toString().length;
-}
 
 /// 文字列トークンのエディタをどの入口から開いたか(見出しと説明を変えるだけ)。
 ///

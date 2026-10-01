@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T52",
   "title": "件数が増えたとき連番の桁数を自動で引き上げて通知する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T51"
   ],
@@ -10,6 +10,6 @@
     "003:REQ-015"
   ],
   "issue": null,
-  "pullRequest": null,
-  "manualVerification": null
+  "pullRequest": 208,
+  "manualVerification": "../T50-row-warning-retune/manual-verification.md"
 }

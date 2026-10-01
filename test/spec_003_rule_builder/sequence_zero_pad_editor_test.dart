@@ -269,9 +269,11 @@ void main() {
         final fl = FileListController(
           files: [for (var i = 0; i < 150; i++) _file('f$i.txt')],
         );
-        final rc = RuleController(
-          tokens: const [SequenceToken(start: 1, digits: 2)],
-        );
+        // **追加の経路で見る**(`008:T52`)。既存の [連番(2桁)] を150件で置くと、
+        // 003 REQ-015 の自動の引き上げで開く前に3桁になり、エディタが件数を受け
+        // 取らなくても3と出てしまう。追加の初期値は2桁なので、3と出るのはエディタが
+        // 件数を受け取ったときだけである。
+        final rc = RuleController();
         await tester.pumpWidget(
           MaterialApp(
             theme: appDarkTheme(),
@@ -285,7 +287,7 @@ void main() {
           await tester.tap(find.byKey(const Key('configure-rule')));
           await tester.pumpAndSettle();
         }
-        await tester.tap(tokenChip('連番(2桁)').last);
+        await tester.tap(find.text('＋ 連番').last);
         await tester.pumpAndSettle();
         expect(_digitsShown(tester), 3, reason: '150件なので3桁以上');
       });

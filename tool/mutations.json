@@ -1207,9 +1207,9 @@
     {
       "id": "M173",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "  DuplicateWarning() => '名前が重複',\n  EmptyNameWarning() => '名前が空・改名されません',",
+      "find": "  DuplicateWarning() => duplicateKindLabel,\n  EmptyNameWarning() => '名前が空',",
       "replace": "  DuplicateWarning() => '警告あり',\n  EmptyNameWarning() => '警告あり',",
-      "note": "008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する)"
+      "note": "008:T16 行から警告の種別が読めなくなる(005 REQ-009 (1)の「警告があることだけを示して種別を隠さない」に反する)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M174",
@@ -1242,16 +1242,16 @@
     {
       "id": "M179",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n",
-      "replace": "                        RowWarningView(warnings: widget.warnings),\n",
-      "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く"
+      "find": "                              RowWarningView(\n                                warnings: widget.warnings,\n                                onTap: widget.onShowWarningDetail,\n                              ),",
+      "replace": "                              RowWarningView(warnings: widget.warnings),",
+      "note": "008:T16 行の警告から詳細を開けなくする(005 REQ-009 (3)の入口の一方) — 対照として置く  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M180",
-      "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                  maxLines: 3,",
-      "replace": "                  maxLines: 1,",
-      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)  **2026-10-01 に`008:T10`が文字倍率 2.0 の狭幅のため 3 行まで許したので`find`を追随させた**"
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                              RowWarningView(\n                                warnings: widget.warnings,\n                                onTap: widget.onShowWarningDetail,\n                              ),",
+      "replace": "                              Flexible(\n                                child: RowWarningView(\n                                  warnings: widget.warnings,\n                                  onTap: widget.onShowWarningDetail,\n                                ),\n                              ),",
+      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)  **2026-10-01 に`008:T10`が文字倍率 2.0 の狭幅のため 3 行まで許したので`find`を追随させた**  2026-10-01 `008:T50` で行の警告は1行・削らない形になったので、**現在名と幅を分け合わせて切り詰める**形へ追随(意図は同じ: 併発時に種別が読めなくなる)"
     },
     {
       "id": "M181",
@@ -1416,10 +1416,10 @@
     },
     {
       "id": "M213",
-      "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "      alignment: Alignment.centerRight,",
-      "replace": "      alignment: Alignment.centerLeft,",
-      "note": "008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)。2026-09-03 に箱の形へ変えたので、寄せているのは外側の `Align` である"
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                            Expanded(\n                              child: Text(\n                                row.currentName,",
+      "replace": "                            Flexible(\n                              child: Text(\n                                row.currentName,",
+      "note": "008:T18 行の警告の右寄せをやめる — 2026-09-02 の要望8(右寄せ)。2026-09-03 に箱の形へ変えたので、寄せているのは外側の `Align` である  2026-10-01 `008:T50` で右寄せは現在名の `Expanded` が担うので、現在名を中身の幅だけにして警告を名前の直後へ寄せる形へ追随(意図は同じ: 右寄せをやめる)"
     },
     {
       "id": "M214",
@@ -1431,9 +1431,9 @@
     {
       "id": "M215",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "const String digitShortageKindLabel = '連番の桁不足';",
+      "find": "const String digitShortageKindLabel = '桁不足';",
       "replace": "const String digitShortageKindLabel = '問題があります';",
-      "note": "008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装。**`008:T19` で行と詳細が同じ定数を使う形にしたので `find` を追随させた**"
+      "note": "008:T18 桁不足の種別名を落として「警告がある」だけにする — 005 REQ-009 (1) が排除する実装。**`008:T19` で行と詳細が同じ定数を使う形にしたので `find` を追随させた**  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M216",
@@ -1452,9 +1452,9 @@
     {
       "id": "M218",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n                        // **変更前は小さく薄く",
-      "replace": "                        // **変更前は小さく薄く",
-      "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)"
+      "find": "                            if (widget.warnings.isNotEmpty) ...[\n                              const SizedBox(width: 6),\n                              RowWarningView(\n                                warnings: widget.warnings,\n                                onTap: widget.onShowWarningDetail,\n                              ),\n                            ],\n",
+      "replace": "",
+      "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)  2026-10-01 `008:T50` で行の警告は現在名と同じ行へ移ったので、**行から警告を落とす**形へ追随(対照)"
     },
     {
       "id": "M219",
@@ -1466,23 +1466,23 @@
     {
       "id": "M220",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
-      "replace": "          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 6),",
-      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)  **2026-10-01 に`008:T10`が「警告の箱は文字 + 上下の余白 4 + 枠の高さ」を test にしたので KILLED を期待する**"
+      "find": "        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
+      "replace": "        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 6),",
+      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)  **2026-10-01 に`008:T10`が「警告の箱は文字 + 上下の余白 4 + 枠の高さ」を test にしたので KILLED を期待する**  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M221",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                          row.currentName,\n                          key: rowCurrentNameKey,\n                          maxLines: 1,",
-      "replace": "                          row.currentName,\n                          key: rowCurrentNameKey,\n                          maxLines: 4,",
-      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)  **2026-10-01 に`008:T10`が「長い現在名で行が伸びない」を test にしたので KILLED を期待する**  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)"
+      "find": "                                row.currentName,\n                                key: rowCurrentNameKey,\n                                maxLines: 1,",
+      "replace": "                                row.currentName,\n                                key: rowCurrentNameKey,\n                                maxLines: 4,",
+      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)  **2026-10-01 に`008:T10`が「長い現在名で行が伸びない」を test にしたので KILLED を期待する**  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M222",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "            crossAxisAlignment: CrossAxisAlignment.baseline,",
-      "replace": "            crossAxisAlignment: CrossAxisAlignment.start,",
-      "note": "008:T18 警告のアイコンを箱の上端で揃える — 文字に対して上へ浮く(2026-09-03 のmanual確認「！マークが警告文に対して少し上にずれている」)"
+      "find": "          crossAxisAlignment: CrossAxisAlignment.baseline,\n          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.min,",
+      "replace": "          crossAxisAlignment: CrossAxisAlignment.start,\n          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.min,",
+      "note": "008:T18 警告のアイコンを箱の上端で揃える — 文字に対して上へ浮く(2026-09-03 のmanual確認「！マークが警告文に対して少し上にずれている」)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M223",
@@ -1492,13 +1492,6 @@
       "note": "008:T18 行の警告を変更後名と同じ濃さへ戻す — 目が散る(2026-09-03 のmanual確認)"
     },
     {
-      "id": "M224",
-      "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "const double rowWarningFillOpacity = 0.12;",
-      "replace": "const double rowWarningFillOpacity = 0.0;",
-      "note": "008:T18 行の警告の塗りを消す — 押せると分かる形でなくなる(2026-09-03 のmanual確認「ただの警告文に見える」)"
-    },
-    {
       "id": "M225",
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double rowWarningLabelOpacity = 0.78;",
@@ -1506,25 +1499,18 @@
       "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)  **2026-10-01 に`008:T10`が濃さの下限(文字 0.6)を test にしたので KILLED を期待する**"
     },
     {
-      "id": "M226",
-      "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "const double rowWarningBorderOpacity = 0.45;",
-      "replace": "const double rowWarningBorderOpacity = 0.0;",
-      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)  **2026-10-01 に`008:T10`が枠の濃さの下限(0.3)を test にしたので KILLED を期待する**"
-    },
-    {
       "id": "M227",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
-      "replace": "          padding: EdgeInsets.zero,",
-      "note": "008:T18 tap範囲を文字ぴったりまで縮める — **縮む方向**を縛るassertionが無いことの対照。M220は増やす方向しか置いていない。**SURVIVEDのまま残余risk(穴C)として受容し、引き受け先は008:T19**(独立review attempt 2 の R4)"
+      "find": "        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
+      "replace": "        padding: EdgeInsets.zero,",
+      "note": "008:T18 tap範囲を文字ぴったりまで縮める — **縮む方向**を縛るassertionが無いことの対照。M220は増やす方向しか置いていない。**SURVIVEDのまま残余risk(穴C)として受容し、引き受け先は008:T19**(独立review attempt 2 の R4)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M228",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。\n            mainAxisSize: MainAxisSize.min,",
-      "replace": "            // 箱は中身の幅だけ取る(右寄せは外側の `Align` が担う)。\n            mainAxisSize: MainAxisSize.max,",
-      "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)"
+      "find": "          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.min,",
+      "replace": "          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.max,",
+      "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)  **2026-10-01 `008:T50` 以後は SURVIVED が期待値(等価)。** 警告は現在名と同じ `Row` の非 flex の子になり、横幅の上限が無いので `MainAxisSize.max` でも中身の幅にしかならない(全件の `flutter test --exclude-tags tooling` でも SURVIVED を確認)。右寄せは M213 が見る"
     },
     {
       "id": "M229",
@@ -1746,9 +1732,9 @@
     {
       "id": "M261",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
-      "replace": "          padding: EdgeInsets.zero,",
-      "note": "008:T19 行の警告のtap範囲を文字ぴったりまで縮める — `008:T18` の穴Cとして受容していたもの(M227)を、当たり判定を絶対値で測る assertion で閉じた"
+      "find": "        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
+      "replace": "        padding: EdgeInsets.zero,",
+      "note": "008:T19 行の警告のtap範囲を文字ぴったりまで縮める — `008:T18` の穴Cとして受容していたもの(M227)を、当たり判定を絶対値で測る assertion で閉じた  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
     },
     {
       "id": "M262",
@@ -3230,8 +3216,8 @@
     },
     {
       "id": "M506",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "(itemCount < 1 ? 1 : itemCount)",
       "replace": "1"
     },
@@ -3258,15 +3244,15 @@
     },
     {
       "id": "M510",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;",
       "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"
     },
     {
       "id": "M511",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "((itemCount < 1 ? 1 : itemCount) - 1)",
       "replace": "(itemCount - 1)"
     },
@@ -3672,9 +3658,9 @@
     {
       "id": "M570",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                          bottom: BorderSide(color: colors.danger, width: 1.5),",
+      "find": "                          bottom: BorderSide(\n                            color: colors.danger,\n                            width: warningLinkUnderlineWidth,\n                          ),",
       "replace": "                          bottom: BorderSide.none,",
-      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)  **下線を文字の下に引いた線へ替えた(2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」)ので、線を消す形へ作り直した**"
+      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)  **下線を文字の下に引いた線へ替えた(2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」)ので、線を消す形へ作り直した**  2026-10-01 `008:T50` で太さを行の警告と共有する定数へ出したので find を追随"
     },
     {
       "id": "M571",
@@ -3880,13 +3866,6 @@
       "note": "008:T10 行の警告のアイコンを文字の倍率に合わせない — 倍率を上げるほどアイコンが小さく上へずれる(`008:T18` から引き受けた残余risk)"
     },
     {
-      "id": "M605",
-      "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                  maxLines: 3,",
-      "replace": "                  maxLines: 2,",
-      "note": "008:T10 行の警告を2行までに戻す — 文字倍率 2.0 の 320・360dp で併発した種別が切り詰められる(`008:T18` の確認C を引き受けた)"
-    },
-    {
       "id": "M606",
       "file": "lib/main.dart",
       "find": "      body: SafeArea(\n        bottom: false,\n        child: Column(",
@@ -3990,6 +3969,83 @@
       "find": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base,",
       "replace": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base.copyWith(fontSize: 12),",
       "note": "008:T48 大きさだけ補足情報と違う大きさにする(日時と同じ見え方で、強調しない)"
+    },
+    {
+      "id": "M622",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  bottom: BorderSide(\n                    color: label,\n                    width: warningLinkUnderlineWidth,\n                  ),",
+      "replace": "                  bottom: BorderSide.none,",
+      "note": "008:T50 行の警告の下線を消す — 押せることが分からなくなる(箱をやめた代わりに下線で示す。2026-10-01 の開発者の案「太字・下線」)。外した M224・M226 の後継  2026-10-01 実機確認1回目「下線が見えづらい」で、下線を文字の装飾から**文字の枠の下に引いた線**(件数表示の「詳細」と同じ)へ変えたので find を追随"
+    },
+    {
+      "id": "M623",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  fontSize: rowWarningFontSize,\n                  fontWeight: FontWeight.w700,",
+      "replace": "                  fontSize: rowWarningFontSize,\n                  fontWeight: FontWeight.w400,",
+      "note": "008:T50 行の警告を太字でなくする(2026-10-01 の開発者の案「太字・下線」)  2026-10-01 下線の引き方の変更で find を追随"
+    },
+    {
+      "id": "M624",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        unknown && (sortMode == FileSortMode.createdAt || dateWarned);",
+      "replace": "        unknown && (sortMode == FileSortMode.createdAt);",
+      "note": "008:T50 ルールが作成日時を使って警告が出ても補足情報の作成日時を強調しない — 右端に書かないので、作成日時不明の種別が一覧から読めなくなる(005 REQ-009 (1))"
+    },
+    {
+      "id": "M625",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      if (w is! MissingSourceDateWarning) rowWarningLabel(w),",
+      "replace": "      rowWarningLabel(w),",
+      "note": "008:T50 行の右端に作成日時不明も書く — 補足情報の赤字と二重になる(2026-10-01 の開発者の決定「補足情報で強調するなら日時不明は書かなくてもよい」)"
+    },
+    {
+      "id": "M626",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  return kinds.isEmpty ? rowWarningDetailLabel : kinds.join('・');",
+      "replace": "  return kinds.join('・');",
+      "note": "008:T50 作成日時不明だけの行で右端を空にする — その行の詳細を開く入口の文言が消える(開発者が確認した「！詳細」)"
+    },
+    {
+      "id": "M627",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "      if (token is! SequenceToken || !token.zeroPad) continue;",
+      "replace": "      if (token is! SequenceToken) continue;",
+      "note": "008:T52 ゼロ埋めなしの連番まで引き上げる — 桁数を使わない連番を書き換え、知らせが出る(003 REQ-015 / 代表例15b)"
+    },
+    {
+      "id": "M628",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "      if (token.digits >= min) continue;",
+      "replace": "      if (token.digits == min) continue;",
+      "note": "008:T52 下限を上回る桁数まで下限へ合わせる — 件数が減ったとき桁数が下がる(003 REQ-015「下げない」/ 代表例15a)"
+    },
+    {
+      "id": "M629",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "    if (raises.isNotEmpty) notifyListeners();",
+      "replace": "",
+      "note": "008:T52 引き上げても通知しない — プレビューへ流れず、前回ルールとして保存もされない(003 REQ-015 / 007 REQ-008)"
+    },
+    {
+      "id": "M630",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "    widget.rule.addListener(_scheduleRaiseDigits);\n    widget.fileList.addListener(_scheduleRaiseDigits);\n",
+      "replace": "    widget.rule.addListener(_scheduleRaiseDigits);\n",
+      "note": "008:T52 一覧の変化を見ない — 件数が増えても引き上がらない(003 代表例15)  代表例15c(起動時)もこの経路が担う(初期の `setRule` が一覧を通知する)。起動時に別に呼ぶ形は等価だったので外した(M631 を削除)"
+    },
+    {
+      "id": "M632",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "      content: Text(sequenceDigitsRaisedMessage(raises)),",
+      "replace": "      content: const Text('連番を変更しました'),",
+      "note": "008:T52 何桁から何桁へ変えたかを知らせない(003 REQ-015「何桁から何桁へ変えたかが読めること」)"
+    },
+    {
+      "id": "M633",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double warningLinkUnderlineWidth = 1.5;",
+      "replace": "const double warningLinkUnderlineWidth = 0.5;",
+      "note": "008:T50 押せることを示す下線を細くする — 実機で見えづらかった(2026-10-01 の実機確認1回目)。件数表示の「詳細」と行の警告で共有する太さ"
     }
   ]
 }

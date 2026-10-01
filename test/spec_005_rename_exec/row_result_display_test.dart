@@ -251,50 +251,76 @@ void main() {
     });
   });
 
-  group('要望8: 行の警告は現在名の上にある', () {
-    testWidgets('警告の縦位置が現在名より上で、右へ寄っている', (tester) async {
+  group('008:T50 行の警告は現在名と同じ行の右端にある(以前は 要望8: 現在名の上の行)', () {
+    testWidgets('警告は現在名と同じ行にあり、現在名の右に置かれる', (tester) async {
+      // 2026-10-01 の開発者の決定(`008:T50`): 「わざわざ1行を警告に使ううえに、
+      // 警告が見づらい」→ 変更前の名前の行の右端(つまみの左)に置く。
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
         rule: const RenameRule([LiteralToken('same')]),
       );
       await _pump(tester, c);
 
-      // 警告の箱は**中身の幅しか取らない**(2026-09-03 にボタンらしい形へ変えた)。
-      // したがって箱の位置そのものが右寄せの有無を表す。
       final warning = tester.getRect(find.byKey(rowWarningKey).first);
-      final current = tester.getRect(find.text('alpha.txt'));
+      final current = tester.getRect(find.byKey(rowCurrentNameKey).first);
+      // 同じ行: 縦の範囲が重なる(上の行にも下の行にも無い)。
+      expect(warning.top, lessThan(current.bottom), reason: '警告が現在名より下の行にある');
       expect(
         warning.bottom,
-        lessThanOrEqualTo(current.top),
-        reason: '警告が現在名の上に無い',
+        greaterThan(current.top),
+        reason: '警告が現在名より上の行にある',
       );
-      // 右寄せ: 箱の右端が、現在名の右端と同じかそれより右にある。
-      expect(
-        warning.right,
-        greaterThanOrEqualTo(current.right - 1),
-        reason: '警告が右へ寄っていない',
-      );
-      // **行幅いっぱいに広がっていない**ことも固定する。広がっていると、
-      // 左寄せへ変えても右端が動かず、右寄せの検査が空振りになる。
+      // 現在名の右: 現在名は残りの幅を取り、警告はその右に置かれる。
       expect(
         warning.left,
-        greaterThan(current.left + 1),
-        reason: '警告の箱が左端から始まっている',
+        greaterThanOrEqualTo(current.right),
+        reason: '警告が現在名の右に無い',
       );
-      // 文字は箱の中に収まっている。
-      final warningText = tester.getRect(
+      // 変更後名(矢印の行)の右端より右へはみ出さない = 行の右端に揃う。
+      final arrowRow = tester.getRect(
         find
-            .descendant(
-              of: find.byKey(rowWarningKey).first,
-              matching: find.byType(Text),
+            .ancestor(
+              of: find.byKey(rowNewNameKey).first,
+              matching: find.byType(Row),
             )
             .first,
       );
-      expect(warning.contains(warningText.topLeft), isTrue);
-      expect(
-        warning.contains(warningText.bottomRight - const Offset(1, 1)),
-        isTrue,
+      expect(warning.right, closeTo(arrowRow.right, 0.5), reason: '警告が行の右端に無い');
+    });
+
+    testWidgets('警告のある行も、増えるのは1行より少ない(専用の行を取らない)', (tester) async {
+      // 以前は警告のある行だけ1行ぶん高かった。**同じ行へ載せたので、差は警告の
+      // 押せる範囲(上下の余白 4)が現在名の行より高いぶんだけ**である。
+      final c = FileListController(
+        files: [_f('alpha.txt'), _f('bravo.txt'), _f('charlie.txt')],
+        rule: const RenameRule([OriginalNameToken()]),
       );
+      await _pump(tester, c);
+      double rowOf(String name) {
+        final row = find
+            .ancestor(of: find.text(name), matching: find.byType(Container))
+            .evaluate()
+            .firstWhere((e) {
+              final decoration = (e.widget as Container).decoration;
+              return decoration is BoxDecoration &&
+                  decoration.border is Border &&
+                  (decoration.border! as Border).bottom.color ==
+                      AppColors.dark.rowDivider;
+            });
+        return tester.getSize(find.byWidget(row.widget)).height;
+      }
+
+      final plain = rowOf('alpha.txt');
+      expect(find.byKey(rowWarningKey), findsNothing);
+      // 2 行だけ同じ名前にして警告を出す。
+      c.setRule(const RenameRule([LiteralToken('same')]));
+      await tester.pump();
+      expect(find.byKey(rowWarningKey), findsWidgets);
+      final warned = rowOf('alpha.txt');
+      final nameLine = tester
+          .getSize(find.byKey(rowCurrentNameKey).first)
+          .height;
+      expect(warned - plain, lessThan(nameLine), reason: '警告が専用の1行を取っている');
     });
 
     testWidgets('警告のアイコンが文字のbaselineへ揃っている', (tester) async {
@@ -339,9 +365,11 @@ void main() {
       expect(gap, lessThan(2.5), reason: 'アイコンを下げすぎている');
     });
 
-    testWidgets('警告は押せると分かる形で、変更後名より薄い', (tester) async {
+    testWidgets('警告は押せると分かる形(太字・下線)で、変更後名より薄い', (tester) async {
       // 2026-09-03 のmanual確認: 「ぱっと見だと押せることが分からず、ただの
       // 警告文に見える」「変更後名の表示の赤と同じ濃さなので、目が散る」。
+      // `008:T50` で枠と塗りの箱をやめ、**太字・下線**で押せることを示す
+      // (2026-10-01 の開発者の案「警告マークと『詳細』(太字・下線)」)。
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
         rule: const RenameRule([LiteralToken('same')]),
@@ -349,32 +377,29 @@ void main() {
       await _pump(tester, c);
       final colors = _colors(tester);
 
-      // 枠と塗りが在る(ただの文字ではない)。
-      final box = tester.widget<Container>(
-        find
-            .descendant(
-              of: find.byKey(rowWarningKey).first,
-              matching: find.byType(Container),
-            )
-            .first,
+      final style = tester
+          .widget<Text>(find.byKey(rowWarningBadgeTextKey).first)
+          .style!;
+      expect(style.fontWeight, FontWeight.w700, reason: '太字でない');
+      // **下線は文字の装飾ではなく、文字の枠の下に引いた線**(2026-10-01 の実機確認
+      // 1回目「下線が見えづらい。ヘッダー付近の『詳細』の下線の引き方を参考に」)。
+      // 件数表示の「詳細」と同じ太さ。文字の装飾の下線は重ねない(二重になる)。
+      expect(style.decoration, isNot(TextDecoration.underline));
+      final underline = tester.widget<Container>(
+        find.byKey(rowWarningUnderlineKey).first,
       );
-      final decoration = box.decoration! as BoxDecoration;
-      expect(decoration.border, isNotNull, reason: '枠が無い');
-      expect(decoration.borderRadius, isNotNull, reason: '角が丸くない');
-      expect(decoration.color!.a, greaterThan(0), reason: '塗りが無い');
-      expect(decoration.color!.a, lessThan(1), reason: '塗りが濃すぎる');
+      final bottom =
+          ((underline.decoration! as BoxDecoration).border! as Border).bottom;
+      expect(bottom.width, warningLinkUnderlineWidth, reason: '下線が細い');
+      expect(warningLinkUnderlineWidth, greaterThanOrEqualTo(1.5));
+      expect(bottom.color, style.color, reason: '下線が文字と違う色');
+      // 線は文字の下にある(文字の枠の下端に接して引く)。
+      final lineBox = tester.getRect(find.byKey(rowWarningUnderlineKey).first);
+      final textBox = tester.getRect(find.byKey(rowWarningBadgeTextKey).first);
+      expect(lineBox.bottom, greaterThanOrEqualTo(textBox.bottom));
 
       // 文字は danger と同じ色相で、**変更後名より薄い**。
-      final label = tester
-          .widgetList<Text>(
-            find.descendant(
-              of: find.byKey(rowWarningKey).first,
-              matching: find.byType(Text),
-            ),
-          )
-          .first
-          .style!
-          .color!;
+      final label = style.color!;
       expect(
         (label.r, label.g, label.b),
         (colors.danger.r, colors.danger.g, colors.danger.b),
@@ -411,9 +436,15 @@ void main() {
           .toList();
       expect(texts, isNotEmpty);
       for (final text in texts) {
-        expect(text, contains('重複'));
-        expect(text, contains('作成日時不明'));
-        expect(text, contains('連番の桁不足'));
+        expect(text, contains(duplicateKindLabel));
+        expect(text, contains(digitShortageKindLabel));
+        // 作成日時不明は右端に書かず、補足情報の赤字で読む(`008:T50`)。
+        expect(text, isNot(contains('作成日時')));
+      }
+      final createdAt = tester.widgetList<Text>(find.byKey(rowCreatedAtKey));
+      expect(createdAt, hasLength(2));
+      for (final t in createdAt) {
+        expect(t.style?.color, AppColors.dark.danger);
       }
       for (final element
           in find
@@ -600,7 +631,7 @@ void main() {
 
     testWidgets('行の高さは、現在名の長さでも警告の余白でも伸びない', (tester) async {
       // `008:T18` の残余risk(M220 / M221): 行の高さを縛る assertion が無かった。
-      // 現在名は 1 行で切り、警告の箱は「文字 + 上下の余白 4 + 枠」の高さである。
+      // 現在名は 1 行で切り、警告は「文字 + 上下の余白 4 + 下線」の高さである。
       /// 行そのもの(下に行の区切り線を持つ箱)の高さ。
       double rowOf(String name) {
         final row = find
@@ -620,21 +651,21 @@ void main() {
       final short = rowOf('alpha.jpg');
       final box = tester.getSize(find.byKey(rowWarningKey).first).height;
       final text = tester.getSize(warningText()).height;
-      expect(box, closeTo(text + 2 * 4 + 2, 0.01));
+      // `008:T50` で枠線をやめたので、上下の余白 4 と、文字の下に引いた下線の太さ
+      // (2026-10-01 の実機確認1回目で、件数表示の「詳細」と同じ引き方へ変えた)。
+      expect(box, closeTo(text + 2 * 4 + warningLinkUnderlineWidth, 0.01));
 
       final longName = '${'とても長い現在の名前' * 6}.jpg';
       await pumpScaled(tester, threeKinds(first: longName), 411, 1);
       expect(rowOf(longName), short, reason: '長い現在名で行が伸びている');
     });
 
-    test('警告の文字・枠・塗りの濃さには下限がある', () {
-      // `008:T18` の穴A(M225)・穴B(M226): 相対条件(変更後名より薄い・枠が在る)
-      // だけでは、読めないほど薄くしても通った。下限は 2026-09-03 の manual 確認で
-      // 開発者が見た値(文字 0.78 / 枠 0.45 / 塗り 0.12)と参考design(文字 .7)から
-      // 置いた。
+    test('警告の文字の濃さには下限がある', () {
+      // `008:T18` の穴A(M225): 相対条件(変更後名より薄い)だけでは、読めないほど
+      // 薄くしても通った。下限は 2026-09-03 の manual 確認で開発者が見た値(0.78)と
+      // 参考design(.7)から置いた。**枠と塗りの下限(穴B・M226)は `008:T50` で箱を
+      // やめたので外した**(押せる形は太字・下線の test が見る)。
       expect(rowWarningLabelOpacity, greaterThanOrEqualTo(0.6));
-      expect(rowWarningBorderOpacity, greaterThanOrEqualTo(0.3));
-      expect(rowWarningFillOpacity, greaterThanOrEqualTo(0.06));
     });
   });
 }
