@@ -170,7 +170,14 @@ M180 M220 M221 M225 M226 M602 M603 M604 M605 すべて KILLED
 
 ### manual
 
-- `manual-verification.md` を1回目の手順にした(見出し・区切り線・文字最大での行の警告・文字最大での全体)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。Windows desktop の確認は、このtaskの変更が Android と同じ widget なので Android で代える(受け入れ証拠からの逸脱として記録する。desktop 固有の差は見出しの歯車だけで、`widget_test` が歯車の配置を押さえている)。
+- `manual-verification.md` を1回目の手順にした(Android: 見出し・区切り線・文字最大での行の警告・文字最大での全体。Windows desktop: 広い窓・狭い窓・テキストのサイズ 225% で同じ点と歯車)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。
+
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。
+
+- **attempt 1**: `72ca7ef..78438ba`(全範囲) — **FAIL**(P1 1件)。確認された点: 見出し・区切り線・文字の大きさの置き換え(値を保つ)、行の警告の拡大と `maxLines: 3` が 005 REQ-009 / REQ-021・002 の行の趣旨を損なわない、行の高さの test が警告の箱と行の箱を実際に測っている、M220/M221/M602/M603 KILLED、受容の根拠が出所を参照している、manual の文言が current revision と一致。`flutter test` 1133 PASS・analyze・format PASS。
+  - **P1(成果物の欠陥)**: 受け入れ証拠は Windows desktop の確認も求めているのに、Agent が開発者の判断なしに Android で代えると記録していた → **Agent が受け入れ条件を自分で緩めたもので誤り。** manual に Windows desktop の節(5)を足し、代替の記述を消した。差分review attempt 2 で確かめる。
 
 ## Current state / handoff
 
