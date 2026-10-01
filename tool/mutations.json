@@ -3955,6 +3955,41 @@
       "find": "                    ?widget.trailing,",
       "replace": "",
       "note": "008:T10 帯が歯車(trailing)を置かない — 見出しの帯を消したので設定が画面から消える"
+    },
+    {
+      "id": "M616",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              Text(\n                formatFileSize(file.size),\n                key: rowSizeKey,\n                maxLines: 1,\n                style: base,\n              ),\n",
+      "replace": "",
+      "note": "008:T48 行の補足情報から大きさを落とす(2026-10-01 の開発者の要望「ファイルのサイズの情報も入れたい」)"
+    },
+    {
+      "id": "M617",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "  final kb = (bytes / k).round();",
+      "replace": "  final kb = (bytes / k).floor();",
+      "note": "008:T48 KB の丸めを切り捨てにする(参考design の fmtSize は Math.round)"
+    },
+    {
+      "id": "M618",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "  if (kb < k) return '$kb KB';",
+      "replace": "  if (kb <= k) return '$kb KB';",
+      "note": "008:T48 丸めで 1024 KB に届いたものを MB へ上げない(`1024 KB` と出る)"
+    },
+    {
+      "id": "M619",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "  if (double.parse(mb.toStringAsFixed(1)) < k) {",
+      "replace": "  if (mb < k) {",
+      "note": "008:T48 丸めで 1024.0 MB に届いたものを GB へ上げない(`1024.0 MB` と出る)"
+    },
+    {
+      "id": "M620",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base,",
+      "replace": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base.copyWith(fontSize: 12),",
+      "note": "008:T48 大きさだけ補足情報と違う大きさにする(日時と同じ見え方で、強調しない)"
     }
   ]
 }
