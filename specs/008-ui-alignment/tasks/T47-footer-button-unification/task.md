@@ -120,7 +120,7 @@ M192 M199 M241 M588 M589 すべて KILLED
 - 開発者の観測(原文): 「少しフェードをかけるのが早いです。左にペンのアイコンがあると思いますが、そのペンアイコンとチップとの余白と同じぐらいの大きさまで右側も伸ばしてください。『フェードの終わりと編集マークの間の余白』と『ペンアイコンとチップの間の余白』の大きさが同じになるイメージです。」
 - 4回目の 0・1 は上の指摘のほかは触れられておらず、2(余白)・3(文字サイズ最大)は回答が無い → 5回目で併せて見てもらう。
 - 原因(Agentの見立て): (a) 薄くし始めるのがフェードの幅の 35% からで、幅が広いと長い距離をかけて消えていた。(b) 残りが下限(24)に満たず1つ手前をフェードにしたとき、フェードはそのチップの幅で止まり、右に最大 28px の空きが残った。列の右端から `編集` までは 8、✎ からチップまでは 11 である。
-- 変更(`9be982b`、test `a1dcb1f` 系): フェードの幅を常に**残りの幅(列の右端まで)**にし、1つ手前をフェードにしたときは次のチップの端もフェードの中に描く。**薄くするのは右端の `ruleChipFadeLength`(20)だけ**にした(`ruleChipFadeStart`)。線形に透明へ向かうので、右端の数 px はほぼ見えず、見えなくなる所から `編集` までは 8 + 数 px ≒ 11 になる見込み。列と `編集` の間(8)は変えていない(変えると全部入る幅が変わる)。
+- 変更(`9be982b`、test `a4d5c50`): フェードの幅を常に**残りの幅(列の右端まで)**にし、1つ手前をフェードにしたときは次のチップの端もフェードの中に描く。**薄くするのは右端の `ruleChipFadeLength`(20)だけ**にした(`ruleChipFadeStart`)。線形に透明へ向かうので、右端の数 px はほぼ見えず、見えなくなる所から `編集` までは 8 + 数 px ≒ 11 になる見込み。列と `編集` の間(8)は変えていない(変えると全部入る幅が変わる)。
 - test: 幅×数の loop に「フェードの右端が列の右端と一致」と「1つ手前をフェードにした経路を通る」を足した。「1つ目からフェードするときもフェードは列の右端まで届く」(画面の幅 240〜360)と「薄くするのは右端の決まった長さだけ」を足した。
 - mutation: M589 の find を追随。足した: M593(1つ手前をフェードにしたとき次のチップを描かない)・M594(1つ目からフェードするときフェードを1つ目のチップの幅で止める)・M595(以前の 35% から薄くする)。`check_mutation_finds.py` → `PASS: 544`。範囲付きで回した(7件): `flutter test test/spec_005_rename_exec test/spec_002_file_list`。M594(当時の番号 M591)は最初 SURVIVED(既存の loop は 360 幅以上で、1つ目のチップの後ろに 24 未満しか残らない場面を通らなかった)→ test を足して KILLED。番号は、commit されなかった「フェード + N」の M590 と紛れないよう、回したあとで M593〜M595 へ振り直した。
 
@@ -151,13 +151,13 @@ reviewerは`gpt-6-luna`(開発者指定)。AGENTS.md の既定は「実装より
 
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 5(`7909c79..d8f00b0`)は P0/P1 なし。analyze の実行を SELF-CHECK で補い、P2 2件を閉じた・受容した(2026-09-30)。review 側の確認は揃った
-- Blocker category: human verification
-- Waiting for: 開発者によるAndroidエミュレータでの確認4回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「4回目で見ること」)
-- Requested action: 対象build(`lib/` が `b63f121` と同一。worktree の HEAD から build すればよい)で 0〜3 を確かめ、結果を会話で伝える
-- Evidence revision: `b63f121`(`lib/`)
-- Next Agent action: 実機確認4回目の結果を受け取り記録する → OK なら done にして PR #204 を merge(手順は次のとおり)
-  1. 結果を「実機確認 4回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。
+- Last checkpoint: 実機確認4回目の指摘(フェードが早い)を直した(`9be982b`・`a4d5c50`、2026-10-01)。full test・analyze・format PASS。差分review attempt 6(`5a36873..` 新しい head)を依頼中
+- Blocker category: human verification(と、並行して独立review)
+- Waiting for: 開発者によるAndroidエミュレータでの確認5回目(`/workspace/.worktrees/008-T47-footer-button-unification/specs/008-ui-alignment/tasks/T47-footer-button-unification/manual-verification.md` の「5回目で見ること」)
+- Requested action: worktree の HEAD から build し(`lib/` は `9be982b` と同一)、1〜3 を確かめて結果を会話で伝える
+- Evidence revision: `9be982b`(`lib/`)
+- Next Agent action: 差分review attempt 6 の結果と実機確認5回目の結果を記録する → どちらもOKなら done にして PR #204 を merge(手順は次のとおり)
+  1. 結果を「実機確認 5回目」節として記録する。指摘があれば直して、差分review(range は前回の head から)→ 実機確認をやり直す。review が `lib/` を変える指摘を出したら、実機確認もその build でやり直す。
   2. OK なら status を done にし、PR #204 を ready → CI PASS を確かめて merge commit で merge、`dev` で `workspace.py check specs` を確かめ、worktree と branch を片付ける(`.worktrees/` の空フォルダが権限で消せないことがある。そのときは人間へ伝えて残す)。
 
 ### 引き継ぎメモ(別セッション向け)
