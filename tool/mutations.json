@@ -3216,8 +3216,8 @@
     },
     {
       "id": "M506",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 下限に件数を使わない — 開始番号だけで決まる(003 REQ-014)  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "(itemCount < 1 ? 1 : itemCount)",
       "replace": "1"
     },
@@ -3244,15 +3244,15 @@
     },
     {
       "id": "M510",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1)。0件でも count−1 番目の値で下限を決める — 0件では開始番号の桁数という境界(003 例17)が崩れる  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "  final last = start + ((itemCount < 1 ? 1 : itemCount) - 1) * increment;\n  final max = last > start ? last : start;",
       "replace": "  final last = start + (itemCount - 1) * increment;\n  final max = last;"
     },
     {
       "id": "M511",
-      "file": "lib/ui/rule_builder/token_editors.dart",
-      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**",
+      "file": "lib/ui/rule_builder/sequence_digits.dart",
+      "note": "014:T04 独立review attempt 1(reviewer設計RV-T04-1の最初の案・対照)。0件の扱いだけを外す — 次の行の max(last, start) に吸収される等価な変異。**SURVIVEDが期待値**  2026-10-01 `008:T52` で `sequenceMinDigits` を `sequence_digits.dart` へ移した(自動の引き上げと同じ式を使うため)ので file を追随",
       "find": "((itemCount < 1 ? 1 : itemCount) - 1)",
       "replace": "(itemCount - 1)"
     },
@@ -4004,6 +4004,41 @@
       "find": "  return kinds.isEmpty ? rowWarningDetailLabel : kinds.join('・');",
       "replace": "  return kinds.join('・');",
       "note": "008:T50 作成日時不明だけの行で右端を空にする — その行の詳細を開く入口の文言が消える(開発者が確認した「！詳細」)"
+    },
+    {
+      "id": "M627",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "      if (token is! SequenceToken || !token.zeroPad) continue;",
+      "replace": "      if (token is! SequenceToken) continue;",
+      "note": "008:T52 ゼロ埋めなしの連番まで引き上げる — 桁数を使わない連番を書き換え、知らせが出る(003 REQ-015 / 代表例15b)"
+    },
+    {
+      "id": "M628",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "      if (token.digits >= min) continue;",
+      "replace": "      if (token.digits == min) continue;",
+      "note": "008:T52 下限を上回る桁数まで下限へ合わせる — 件数が減ったとき桁数が下がる(003 REQ-015「下げない」/ 代表例15a)"
+    },
+    {
+      "id": "M629",
+      "file": "lib/ui/rule_builder/rule_controller.dart",
+      "find": "    if (raises.isNotEmpty) notifyListeners();",
+      "replace": "",
+      "note": "008:T52 引き上げても通知しない — プレビューへ流れず、前回ルールとして保存もされない(003 REQ-015 / 007 REQ-008)"
+    },
+    {
+      "id": "M630",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "    widget.rule.addListener(_scheduleRaiseDigits);\n    widget.fileList.addListener(_scheduleRaiseDigits);\n",
+      "replace": "    widget.rule.addListener(_scheduleRaiseDigits);\n",
+      "note": "008:T52 一覧の変化を見ない — 件数が増えても引き上がらない(003 代表例15)  代表例15c(起動時)もこの経路が担う(初期の `setRule` が一覧を通知する)。起動時に別に呼ぶ形は等価だったので外した(M631 を削除)"
+    },
+    {
+      "id": "M632",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "      content: Text(sequenceDigitsRaisedMessage(raises)),",
+      "replace": "      content: const Text('連番を変更しました'),",
+      "note": "008:T52 何桁から何桁へ変えたかを知らせない(003 REQ-015「何桁から何桁へ変えたかが読めること」)"
     }
   ]
 }
