@@ -65,6 +65,12 @@ M616 M617 M618 M619 M620 すべて KILLED
 
 - `manual-verification.md` を1回目の手順にした(0 build の見分け、1 行の大きさと行の高さ、2 文字最大、3 Windows desktop)。デモの大きさの書き方は `formatFileSize` と同じ規則で計算した値を載せた。
 
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `5b93d9f` と同一の build(worktree HEAD `46258c7`)。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜3。
+- 受領: 2026-10-01、会話で開発者から「確認事項について、問題ありませんでした。」→ **0〜3 すべて期待どおり**(大きさがラベル無しで日時と同じ見え方、スマホ幅で更新日時の行に収まり行が高くならない、文字最大ではみ出さない、Windows の広い窓で1行・狭い窓ではみ出さない)。
+- 1000 刻み(Android のファイルアプリ)と 1024 刻みの違いは報告で伝えた。変更の要望は無く、1024 刻みのままとした。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。
@@ -72,12 +78,4 @@ reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一�
 - **attempt 1**: `c3cf6d2..3979a86`(全範囲) — **PASS**。確認された点: `formatFileSize` の単位・丸め・繰り上げと境界の test / 補足情報の末尾・同じ見え方 / `008:T07` の既存の保証を含む full regression 1151 PASS / M616〜M620 KILLED / manual のデモの値が `lib/main.dart` と一致 / Ahem の結果と実際の字体の見積もりの区別。analyze・format・`workspace.py check specs` PASS。
   - **P2(成果物の欠陥)**: 行の高さを「測定」と書いたが、測り方と出力が記録に無く再現できない → 一時 test の測り方と生出力を checkpoint 1 へ足して閉じた(**SELF-CHECK**、記録だけの差分)。
 - 連鎖: `c3cf6d2..3979a86` PASS → 以後の記録だけの差分は SELF-CHECK。
-
-## Current state / handoff
-
-- Last checkpoint: 大きさの表示を実装(`5b93d9f`)。独立review attempt 1(`c3cf6d2..3979a86`)PASS、P2 は記録で閉じた
-- Blocker category: human verification
-- Waiting for: 開発者による実機確認1回目(`/workspace/.worktrees/008-T48-row-file-size/specs/008-ui-alignment/tasks/T48-row-file-size/manual-verification.md` の 0〜3。Android エミュレータと Windows desktop)
-- Requested action: worktree の HEAD から build し(`lib/` は `5b93d9f` と同一)、0〜3 を確かめて結果を会話で伝える
-- Evidence revision: `5b93d9f`(`lib/`)
-- Next Agent action: 結果を「実機確認 1回目」節として記録する → 指摘があれば直して差分review(range は `3979a86` 以降)→ 実機確認をやり直す。OK なら done にし、PR #206 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、worktree と branch を片付ける
+- **SELF-CHECK**: `3979a86..HEAD` は `specs/` だけ(review・P2 の記録・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
