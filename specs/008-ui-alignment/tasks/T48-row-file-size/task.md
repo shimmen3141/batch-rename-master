@@ -33,9 +33,34 @@ Agent が3案を示した: A 補足情報(小さい灰色の「作成日時・�
 - 独立review。
 - `manual-verification.md` で Android 実機と Windows desktop の見え方を確認する。
 
+## 作業記録
+
+- 2026-10-01 / 着手(開発者の決定「Aでやります。」)。branch `asdd/008-ui-alignment/T48-row-file-size`、worktree `/workspace/.worktrees/008-T48-row-file-size`、起点 `dev`@`c3cf6d2`。
+
+### checkpoint 1: 大きさの表示(`5b93d9f`)
+
+- `lib/ui/file_list/file_size_format.dart` の `formatFileSize`: 1024 未満は `B`、KB は整数に丸め、MB・GB は小数1桁。**丸めで次の単位へ届いたら次の単位で書く**(`1048575` → `1.0 MB`。参考design の `fmtSize` をそのまま使うと `1024 KB` になる)。単位は参考designと同じ 1024 刻み。
+- 行の補足情報の `Wrap` の末尾へ、ラベル無し・日時と同じ見え方(`textMuted`・`caption`)で置いた(`rowSizeKey`)。
+- test: `test/spec_002_file_list/row_file_size_test.dart`(単位の境界、日時の後ろ・同じ見え方、320/360/411dp × 1.0/1.3/2.0 で overflow せず大きさが削られず作成日時の行へ割り込まない)。
+- **行の高さ(測定)**: test の字体 Ahem(1文字 = 1em)では、320・360・411dp で大きさが3行目に落ち、行が 15px 高くなる。800dp では3つが1行に並ぶ。**実際の字体での見積もり**: 更新日時 ≒ 140px + 間 8 + `2.3 MB` ≒ 35px = 183px で、補足情報の幅(320dp で約 202px、360dp で約 236px)に収まる → 行は高くならない見込み。manual 1 で確かめる。
+- **作成日時の省略は Ahem では以前から起きている**(320〜411dp。作成日時の文字列が補足情報の幅を超える)。この変更で増えたものではないので、test は「大きさが作成日時の行へ割り込まない」を主張にした。
+- 範囲付き mutation(`flutter test test/spec_002_file_list test/widget_test.dart`、対象 `5b93d9f`、5件):
+
+```text
+M616 M617 M618 M619 M620 すべて KILLED
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`5b93d9f`): `flutter test` +1151 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 569 PASS。
+
+### manual
+
+- `manual-verification.md` を1回目の手順にした(0 build の見分け、1 行の大きさと行の高さ、2 文字最大、3 Windows desktop)。デモの大きさの書き方は `formatFileSize` と同じ規則で計算した値を載せた。
+
+### 独立review
+
 ## Current state / handoff
 
-- Last checkpoint: 登録しただけ(2026-10-01)
+- Last checkpoint: 大きさの表示を実装(`5b93d9f`)。自動検証済み
 - Blocker category: none
-- Evidence revision: none
-- Next Agent action: branch と worktree を作り、in_progress にして、単位の整形と行への表示を test から足す
+- Evidence revision: `5b93d9f`
+- Next Agent action: Draft PR を作り、独立review attempt 1(`c3cf6d2..HEAD`)を走らせる
