@@ -202,6 +202,12 @@ M94 M171 M218 M221 M476 M598 M599 M600 M601 M606〜M615 すべて KILLED
 - 2026-10-01 の要望を反映して `manual-verification.md` を書き直した(対象 `85f4b79`。0 で帯が無いこと、1 folder の帯、2 行の写真と名前の強弱・区切り線、3〜4 文字最大、5 Windows の歯車の位置)。実機確認はまだ1回も行っていない。
 - (以前)`manual-verification.md` を1回目の手順にした(Android: 見出し・区切り線・文字最大での行の警告・文字最大での全体。Windows desktop: 広い窓・狭い窓・テキストのサイズ 225% で同じ点と歯車)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。
 
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `85f4b79` と同一の build(worktree HEAD `688d84e`)。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜5。
+- 受領: 2026-10-01、会話で開発者から「問題ありませんでした。」→ **0〜5 すべて期待どおり**(見出しの帯が無い・folder の帯・行の写真と名前の強弱・区切り線・文字最大での警告と全体・Windows の歯車)。
+- あわせて「ファイルのサイズの情報も入れたい」の相談を受けた。**T10 の範囲(振る舞いを変えない)の外**なので、別 task として扱う。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。
@@ -211,12 +217,4 @@ reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一�
 - **attempt 2**: `78438ba..a79b38d`(差分review。`specs/` だけ) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。attempt 1 の P1 が閉じた(manual に Windows desktop の手順・期待結果があり、受け入れ証拠と一致。代替の記述は消えた)。
 - **attempt 3**: `a79b38d..41f4486`(差分review。2026-10-01 の要望の反映) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 歯車の表示条件(005 REQ-014/015・`008:T43`)を保ち、モード中も帯に残り `IndexedStack` の帯の高さも保つ / 上だけ `SafeArea`、browser の帯は theme のまま / preview 52・名前の強弱・folder 名・button のアイコン削除と対応 test / manual の文言が current revision と一致。`flutter analyze` No issues、`flutter test` 1137 PASS、`dart format` 0 changed、範囲付き mutation 15件(M94・M171・M218・M221・M476・M606〜M615)すべて KILLED。
 - 連鎖: `72ca7ef..78438ba` FAIL(P1)→ `78438ba..a79b38d` PASS(P1 が閉じた)→ `a79b38d..41f4486` PASS → 以後の記録だけの差分は SELF-CHECK。
-
-## Current state / handoff
-
-- Last checkpoint: 2026-10-01 の開発者の要望(見出しの帯の削除・歯車を folder の帯へ・行の写真 52・名前の強弱・folder 名・button のアイコン)を `85f4b79` で実装。差分review attempt 3(`a79b38d..41f4486`)PASS。実機確認はまだ1回も行っていない
-- Blocker category: human verification
-- Waiting for: 開発者による実機確認1回目(`/workspace/.worktrees/008-T10-spacing-and-typography/specs/008-ui-alignment/tasks/T10-spacing-and-typography/manual-verification.md` の 0〜5。Android エミュレータと Windows desktop)
-- Requested action: worktree の HEAD から build し(`lib/` は `85f4b79` と同一)、0〜5 を確かめて結果を会話で伝える
-- Evidence revision: `85f4b79`(`lib/`)
-- Next Agent action: 結果を「実機確認 1回目」節として記録する → 指摘があれば直して差分review(range は `41f4486` 以降)→ 実機確認をやり直す。OK なら done にし、PR #205 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、worktree と branch を片付ける
+- **SELF-CHECK**: `41f4486..HEAD` は `specs/` だけ(review の記録・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
