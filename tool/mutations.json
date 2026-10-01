@@ -3829,6 +3829,34 @@
       "find": "      minHeight: MediaQuery.textScalerOf(\n        context,\n      ).scale(ruleButtonEmptyMinContentHeight),",
       "replace": "      minHeight: ruleButtonEmptyMinContentHeight,",
       "note": "008:T47 未設定のbuttonの最小の高さを文字の拡大に合わせない — 文字 2.0 で設定済みとの差が開き、ひとまわり小さいくらいの関係が崩れる(2026-10-01 の開発者の指定)"
+    },
+    {
+      "id": "M598",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        border: Border(bottom: BorderSide(color: colors.rowDivider)),",
+      "replace": "        border: Border(bottom: BorderSide(color: colors.border)),",
+      "note": "008:T10 行の区切り線を他の境界線と同じ濃さに戻す(2026-09-02 の要望10「もう少しだけ濃く」)"
+    },
+    {
+      "id": "M599",
+      "file": "lib/ui/theme/app_colors.dart",
+      "find": "    rowDivider: Color(0x1FFFFFFF),",
+      "replace": "    rowDivider: Color(0x14FFFFFF),",
+      "note": "008:T10 行の区切り線の色そのものを他の境界線と同じにする(要望10)"
+    },
+    {
+      "id": "M600",
+      "file": "lib/ui/theme/app_theme.dart",
+      "find": "      toolbarHeight: appBarHeight,\n",
+      "replace": "",
+      "note": "008:T10 見出しの帯の高さを既定(56)へ戻す — 要望13「見出しが幅を取る」"
+    },
+    {
+      "id": "M601",
+      "file": "lib/ui/theme/app_theme.dart",
+      "find": "        fontSize: appBarTitleFontSize,",
+      "replace": "        fontSize: 22,",
+      "note": "008:T10 見出しの文字を既定の大きさ(22)へ戻す(要望13)"
     }
   ]
 }

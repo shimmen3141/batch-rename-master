@@ -1916,7 +1916,7 @@ class _FileRowState extends State<_FileRow> {
         color: _grabbed
             ? colors.surface
             : (selecting && marked ? colors.selectedSurface : null),
-        border: Border(bottom: BorderSide(color: colors.border)),
+        border: Border(bottom: BorderSide(color: colors.rowDivider)),
       ),
       child: Row(
         children: [

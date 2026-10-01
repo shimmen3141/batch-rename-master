@@ -6,6 +6,8 @@ import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_settings_button.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
+import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,6 +28,62 @@ void main() {
     // 初期ルールは空なので、導線は未設定向けの表示になる(005 REQ-020)。
     expect(find.byKey(const Key('configure-rule')), findsOneWidget);
     expect(find.text('命名ルールを設定する'), findsOneWidget);
+  });
+
+  testWidgets('上部の見出しは低く小さい(008:T10 要望13)', (tester) async {
+    // 2026-09-02 の要望13: 見出しが幅を取るので、小さくして一覧の場所を確保する。
+    // 既定の AppBar は高さ 56・文字 22。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    expect(tester.getSize(find.byType(AppBar)).height, appBarHeight);
+    expect(appBarHeight, lessThan(kToolbarHeight));
+    final title = tester.widget<Text>(
+      find.descendant(of: find.byType(AppBar), matching: find.text('一括リネーム')),
+    );
+    final style = DefaultTextStyle.of(
+      tester.element(find.text('一括リネーム')),
+    ).style.merge(title.style);
+    expect(style.fontSize, appBarTitleFontSize);
+    expect(appBarTitleFontSize, lessThan(22));
+  });
+
+  testWidgets('一覧の行の区切り線は他の境界線より少し濃い(008:T10 要望10)', (tester) async {
+    // 2026-09-02 の要望10:「行の区切り線がやや薄いので、もう少しだけ濃くしても良いかも」。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    final colors = AppColors.dark;
+    final row = find
+        .ancestor(
+          of: find.text('IMG_0009.jpg'),
+          matching: find.byType(Container),
+        )
+        .evaluate()
+        .map((e) => e.widget as Container)
+        .firstWhere(
+          (c) =>
+              c.decoration is BoxDecoration &&
+              (c.decoration! as BoxDecoration).border is Border &&
+              ((c.decoration! as BoxDecoration).border! as Border)
+                      .bottom
+                      .width >
+                  0 &&
+              ((c.decoration! as BoxDecoration).border! as Border)
+                      .bottom
+                      .style !=
+                  BorderStyle.none,
+        );
+    final bottom =
+        ((row.decoration! as BoxDecoration).border! as Border).bottom;
+    expect(bottom.color, colors.rowDivider);
+    // 少しだけ濃い: 他の境界線より不透明で、それでも控えめ(白の 15% 未満)。
+    expect(colors.rowDivider.a, greaterThan(colors.border.a));
+    expect(colors.rowDivider.a, lessThan(0.15));
   });
 
   testWidgets('composition root がヘッダーへ歯車を置く(008:T43)', (tester) async {
