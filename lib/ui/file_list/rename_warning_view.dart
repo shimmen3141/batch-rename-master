@@ -39,6 +39,11 @@ const double ruleEditChipFillOpacity = 0.16;
 const double ruleButtonVerticalPadding = 6;
 const double ruleButtonHeadingGap = 9;
 
+/// 未設定のルール設定buttonの中身の最小の高さ(文字の拡大に合わせて伸ばす。`008:T47`)。
+/// 2026-10-01 の開発者の指定(実機確認5回目)で、設定済みよりひとまわり小さいくらいまで
+/// 縦に大きくした。文字 1.0 で button は 34 → 64(設定済みは 78)。
+const double ruleButtonEmptyMinContentHeight = 50;
+
 /// 詳細dialog内の節の並び(原因ごとに1節。005 REQ-009 (2) / (3))。
 ///
 /// `008:T19` で「原因の説明」節と「全件」節に分けていた形から組み直した

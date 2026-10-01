@@ -616,6 +616,50 @@ void main() {
       );
     });
 
+    testWidgets('未設定のbuttonは設定済みよりひとまわり小さいくらいの高さ(008:T47 実機確認5回目)', (
+      tester,
+    ) async {
+      // 2026-10-01 の開発者の指定: 未設定は文字の高さだけで、設定済みの半分以下に
+      // 見えていた。小さすぎず、設定済みを超えない(文字の拡大でも同じ関係)。
+      Future<double> height(RenameRule rule, double scale) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            key: ValueKey('${rule.tokens.length}-$scale'),
+            theme: appDarkTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: const Size(360, 800),
+                textScaler: TextScaler.linear(scale),
+              ),
+              child: Scaffold(
+                body: FileListView(
+                  controller: FileListController(
+                    files: [_f('a.txt')],
+                    rule: rule,
+                  ),
+                  onEditRule: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        return tester.getSize(find.byKey(_ruleButtonKey)).height;
+      }
+
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      for (final scale in [1.0, 2.0]) {
+        final empty = await height(const RenameRule([]), scale);
+        final set = await height(
+          const RenameRule([OriginalNameToken()]),
+          scale,
+        );
+        expect(empty, lessThan(set), reason: 'scale=$scale');
+        expect(empty, greaterThanOrEqualTo(set * 0.8), reason: 'scale=$scale');
+      }
+    });
+
     testWidgets('未設定と設定済みでbuttonの外形が同じ。未設定は＋と文言だけを白で出す(008:T47)', (
       tester,
     ) async {

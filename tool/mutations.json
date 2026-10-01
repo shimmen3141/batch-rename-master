@@ -1333,9 +1333,9 @@
     {
       "id": "M197",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          child: empty ? _emptyContent() : _ruleContent(colors),",
-      "replace": "          child: !empty ? _emptyContent() : _ruleContent(colors),",
-      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)  **008:T47 で未設定・設定済みの外形を揃え、中身だけを入れ替える形にしたので `find` を追随させた**"
+      "find": "          child: empty ? _emptyContent(context) : _ruleContent(colors),",
+      "replace": "          child: !empty ? _emptyContent(context) : _ruleContent(colors),",
+      "note": "008:T16 空ルールの主役表示と通常表示を入れ替える — 005 REQ-019 / REQ-020(独立review attempt 4 が追加)  **008:T47 で未設定・設定済みの外形を揃え、中身だけを入れ替える形にしたので `find` を追随させた**  **2026-10-01 に未設定の中身へ最小の高さを足した(`_emptyContent(context)`)ので find を追随させた**"
     },
     {
       "id": "M198",
@@ -3735,9 +3735,9 @@
     {
       "id": "M579",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "          '命名ルールを設定する',\n          style: TextStyle(\n            color: Colors.white,",
-      "replace": "          '命名ルールを設定する',\n          style: TextStyle(\n            color: Color(0xFF22D3EE),",
-      "note": "008:T47 未設定の文言を白にしない(2026-09-30 の開発者の指定)"
+      "find": "            '命名ルールを設定する',\n            style: TextStyle(\n              color: Colors.white,",
+      "replace": "            '命名ルールを設定する',\n            style: TextStyle(\n              color: Color(0xFF22D3EE),",
+      "note": "008:T47 未設定の文言を白にしない(2026-09-30 の開発者の指定)  **2026-10-01 に未設定の中身を最小の高さの枠で包み、字下げが変わったので find を追随させた**"
     },
     {
       "id": "M580",
@@ -3815,6 +3815,20 @@
       "find": "    width > ruleChipFadeLength ? 1 - ruleChipFadeLength / width : 0;",
       "replace": "    0.35;",
       "note": "008:T47 フェードを以前の幅の35%から始める — 薄くし始めるのが早い(2026-10-01 の開発者の指定。実機確認4回目)"
+    },
+    {
+      "id": "M596",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      minHeight: MediaQuery.textScalerOf(\n        context,\n      ).scale(ruleButtonEmptyMinContentHeight),",
+      "replace": "      minHeight: 0,",
+      "note": "008:T47 未設定のbuttonの最小の高さを外す — 文字の高さだけになり、設定済みの半分以下に小さく見える(2026-10-01 の開発者の指定。実機確認5回目)"
+    },
+    {
+      "id": "M597",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      minHeight: MediaQuery.textScalerOf(\n        context,\n      ).scale(ruleButtonEmptyMinContentHeight),",
+      "replace": "      minHeight: ruleButtonEmptyMinContentHeight,",
+      "note": "008:T47 未設定のbuttonの最小の高さを文字の拡大に合わせない — 文字 2.0 で設定済みとの差が開き、ひとまわり小さいくらいの関係が崩れる(2026-10-01 の開発者の指定)"
     }
   ]
 }

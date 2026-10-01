@@ -1212,7 +1212,7 @@ class _RuleButton extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(ruleButtonRadius),
           ),
-          child: empty ? _emptyContent() : _ruleContent(colors),
+          child: empty ? _emptyContent(context) : _ruleContent(colors),
         ),
       ),
     );
@@ -1220,22 +1220,32 @@ class _RuleButton extends StatelessWidget {
 
   /// 未設定: ＋と文言だけを白で出す(✎・見出し・`編集` は出さない。2026-09-30 の
   /// 開発者の指定)。文言は「変更する名前を設定する」から変えた。
-  Widget _emptyContent() => const Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.add, size: 18, color: Colors.white),
-      SizedBox(width: 6),
-      Flexible(
-        child: Text(
-          '命名ルールを設定する',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+  ///
+  /// **高さは設定済みよりひとまわり小さいくらい**にする(2026-10-01 の開発者の指定。
+  /// 実機確認5回目)。文字の高さだけだと設定済みの半分以下で、小さく見えた。
+  Widget _emptyContent(BuildContext context) => ConstrainedBox(
+    constraints: BoxConstraints(
+      minHeight: MediaQuery.textScalerOf(
+        context,
+      ).scale(ruleButtonEmptyMinContentHeight),
+    ),
+    child: const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add, size: 18, color: Colors.white),
+        SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            '命名ルールを設定する',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 
   Widget _ruleContent(AppColors colors) => Row(
