@@ -1510,7 +1510,7 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.min,",
       "replace": "          textBaseline: TextBaseline.alphabetic,\n          mainAxisSize: MainAxisSize.max,",
-      "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)"
+      "note": "008:T18 箱を行幅いっぱいへ広げる — 右寄せの検査が空振りしないことの対照。KILLEDであることに意味がある(独立review attempt 2 の R3)  2026-10-01 `008:T50` で行の警告を現在名と同じ行の右端へ移し、文言を短くしたので find を追随(意図は同じ)  **2026-10-01 `008:T50` 以後は SURVIVED が期待値(等価)。** 警告は現在名と同じ `Row` の非 flex の子になり、横幅の上限が無いので `MainAxisSize.max` でも中身の幅にしかならない(全件の `flutter test --exclude-tags tooling` でも SURVIVED を確認)。右寄せは M213 が見る"
     },
     {
       "id": "M229",
