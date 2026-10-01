@@ -495,4 +495,37 @@ void main() {
     expect(_location(tester), 'Camera');
     expect(_pickLabel(tester), '別フォルダへ');
   });
+  testWidgets('帯と一覧を同じ画面に組んでも、場所の出し分けが食い違わない(008:T10)', (tester) async {
+    // `008:T08` から引き受けた残余risk。帯(`locationLabelOf`)と行(`showRowLocation`)は
+    // 「場所が何種類か」を別々の式で数えている。**同じ画面へ組んだ検査が無かった**ので、
+    // 場所が 0 / 1 / 2 種類の一覧で、帯が具体名を出すなら行は出さず、帯が
+    // `複数のフォルダ` なら行が出す、を確かめる。
+    final cases = <String, List<String?>>{
+      '場所なし': [null, null],
+      '1つの場所': ['DCIM/Camera', 'DCIM/Camera'],
+      '2つの場所': ['DCIM/Camera', 'Download'],
+    };
+    for (final MapEntry(key: name, value: locations) in cases.entries) {
+      final controller = FileListController(
+        files: [
+          for (var i = 0; i < locations.length; i++)
+            _entry('f$i.jpg', handle: 'h:$name:$i', location: locations[i]),
+        ],
+      );
+      await tester.pumpWidget(const SizedBox());
+      await _pumpWithList(tester, controller);
+      final bar = _location(tester);
+      final rowShows = find.byKey(rowLocationKey).evaluate().isNotEmpty;
+      switch (name) {
+        case '場所なし':
+          expect(rowShows, isFalse, reason: name);
+        case '1つの場所':
+          expect(bar, 'DCIM/Camera', reason: name);
+          expect(rowShows, isFalse, reason: '$name: 帯と行が同じ場所を二重に出している');
+        case '2つの場所':
+          expect(bar, '複数のフォルダ', reason: name);
+          expect(rowShows, isTrue, reason: '$name: どの行がどの場所か分からない');
+      }
+    }
+  });
 }

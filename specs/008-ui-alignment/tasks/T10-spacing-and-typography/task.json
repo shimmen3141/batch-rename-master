@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T10",
   "title": "余白・階層・typographyを揃える",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T02",
     "T04",
@@ -15,6 +15,6 @@
   ],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 205,
   "manualVerification": "manual-verification.md"
 }

@@ -4,6 +4,7 @@ import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import '../theme/token_colors.dart';
 import 'token_presets.dart';
+import '../theme/app_typography.dart';
 
 /// 下部のルール設定buttonに並べる、設定中のルールのチップ(`008:T47`)。
 ///
@@ -100,11 +101,11 @@ const double _chipBorder = 1;
 const double _valueMaxWidth = 132;
 
 TextStyle _kindStyle(Color hue) =>
-    TextStyle(color: hue.withValues(alpha: 0.85), fontSize: 9);
+    TextStyle(color: hue.withValues(alpha: 0.85), fontSize: AppFontSize.micro);
 
 const TextStyle _valueStyle = TextStyle(
   color: Colors.white,
-  fontSize: 15,
+  fontSize: AppFontSize.titleLarge,
   fontWeight: FontWeight.w700,
   fontFamily: 'monospace',
 );

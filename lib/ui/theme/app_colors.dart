@@ -23,6 +23,10 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 面を仕切る細い境界線。
   final Color border;
 
+  /// 一覧の行どうしの区切り線(`008:T10`)。**他の境界線より少し濃い**(2026-09-02 の
+  /// 要望10「行の区切り線がやや薄いので、もう少しだけ濃くしても良いかも」)。
+  final Color rowDivider;
+
   /// 主要アクセント(アクティブ・強調)。
   final Color primary;
 
@@ -68,6 +72,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.surfaceElevated,
     required this.bar,
     required this.border,
+    required this.rowDivider,
     required this.primary,
     required this.primaryHover,
     required this.onPrimary,
@@ -92,6 +97,7 @@ class AppColors extends ThemeExtension<AppColors> {
     // 色に、ヘッダー・フッターとも固定する。
     bar: Color(0xFF2E2B38),
     border: Color(0x14FFFFFF),
+    rowDivider: Color(0x1FFFFFFF),
     primary: Color(0xFF22D3EE),
     primaryHover: Color(0xFF67E8F9),
     onPrimary: Color(0xFF05252B),
@@ -117,6 +123,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? surfaceElevated,
     Color? bar,
     Color? border,
+    Color? rowDivider,
     Color? primary,
     Color? primaryHover,
     Color? onPrimary,
@@ -136,6 +143,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceElevated: surfaceElevated ?? this.surfaceElevated,
       bar: bar ?? this.bar,
       border: border ?? this.border,
+      rowDivider: rowDivider ?? this.rowDivider,
       primary: primary ?? this.primary,
       primaryHover: primaryHover ?? this.primaryHover,
       onPrimary: onPrimary ?? this.onPrimary,
@@ -160,6 +168,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       bar: Color.lerp(bar, other.bar, t)!,
       border: Color.lerp(border, other.border, t)!,
+      rowDivider: Color.lerp(rowDivider, other.rowDivider, t)!,
       primary: Color.lerp(primary, other.primary, t)!,
       primaryHover: Color.lerp(primaryHover, other.primaryHover, t)!,
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,

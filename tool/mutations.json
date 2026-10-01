@@ -661,9 +661,9 @@
     {
       "id": "M94",
       "file": "lib/main.dart",
-      "note": "composition rootでFileSourceBarへのport結線を外す(Androidで読み込みの門が静かに消える。attempt 1 のMR01)",
-      "find": "            permission: _permission,\n            kinds: fileKindsFor(isAndroid: Platform.isAndroid),",
-      "replace": "            kinds: fileKindsFor(isAndroid: Platform.isAndroid),"
+      "note": "composition rootでFileSourceBarへのport結線を外す(Androidで読み込みの門が静かに消える。attempt 1 のMR01)  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)",
+      "find": "              permission: _permission,\n              kinds: fileKindsFor(isAndroid: Platform.isAndroid),",
+      "replace": "              kinds: fileKindsFor(isAndroid: Platform.isAndroid),"
     },
     {
       "id": "M95",
@@ -1193,9 +1193,9 @@
     {
       "id": "M171",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: widget.filePreview,\n                    ),",
-      "replace": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: null,\n                    ),",
-      "note": "008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加)"
+      "find": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: widget.filePreview,\n                      size: rowPreviewSize,\n                    ),",
+      "replace": "                    child: RowPreviewView(\n                      file: row.source,\n                      preview: null,\n                      size: rowPreviewSize,\n                    ),",
+      "note": "008:T07 FileListViewが行へportを渡さない — 対照として置く(独立review attempt 2が追加)  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)"
     },
     {
       "id": "M172",
@@ -1249,9 +1249,9 @@
     {
       "id": "M180",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                  // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                  maxLines: 2,",
-      "replace": "                  // 種別がすべて併発しても 2 行に収まる短さにしてある。\n                  maxLines: 1,",
-      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)"
+      "find": "                  maxLines: 3,",
+      "replace": "                  maxLines: 1,",
+      "note": "008:T16 行の警告を1行へ切り詰める — 併発時に後ろの種別が読めなくなる(005 REQ-009 (1))(独立reviewが追加)。**2026-09-03 に`find`の字下げを追随させた** — `008:T18`が`Text`を`Container > Row`の中へ入れ子にしたため一致しなくなり、無言で失効していた(独立review attempt 3 の P1-1)  **2026-10-01 に`008:T10`が文字倍率 2.0 の狭幅のため 3 行まで許したので`find`を追随させた**"
     },
     {
       "id": "M181",
@@ -1452,9 +1452,9 @@
     {
       "id": "M218",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n                        Text(\n                          row.currentName,",
-      "replace": "                        Text(\n                          row.currentName,",
-      "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)"
+      "find": "                        RowWarningView(\n                          warnings: widget.warnings,\n                          onTap: widget.onShowWarningDetail,\n                        ),\n                        // **変更前は小さく薄く",
+      "replace": "                        // **変更前は小さく薄く",
+      "note": "008:T18 行の警告を現在名の上から落とす — 2026-09-02 の要望8(上の行へ右寄せ)。対照として置く(独立review attempt 1 の R3)  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)"
     },
     {
       "id": "M219",
@@ -1468,14 +1468,14 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),",
       "replace": "          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 6),",
-      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)"
+      "note": "008:T18 行の警告の占有を大きく増やす — 行の高さを縛るassertionが無いことの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R5)  **2026-10-01 に`008:T10`が「警告の箱は文字 + 上下の余白 4 + 枠の高さ」を test にしたので KILLED を期待する**"
     },
     {
       "id": "M221",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                        Text(\n                          row.currentName,\n                          maxLines: 1,",
-      "replace": "                        Text(\n                          row.currentName,\n                          maxLines: 4,",
-      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)"
+      "find": "                          row.currentName,\n                          key: rowCurrentNameKey,\n                          maxLines: 1,",
+      "replace": "                          row.currentName,\n                          key: rowCurrentNameKey,\n                          maxLines: 4,",
+      "note": "008:T18 現在名の行数上限を外す — 長い現在名で行が伸びることの対照。**SURVIVEDのまま残余riskとして受容し、引き受け先は008:T10**(独立review attempt 1 の R6)  **2026-10-01 に`008:T10`が「長い現在名で行が伸びない」を test にしたので KILLED を期待する**  2026-10-01 `008:T10` のコード変更に find を追随(意図は同じ)"
     },
     {
       "id": "M222",
@@ -1503,14 +1503,14 @@
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double rowWarningLabelOpacity = 0.78;",
       "replace": "const double rowWarningLabelOpacity = 0.06;",
-      "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)"
+      "note": "008:T18 行の警告を読めない濃さまで薄くする — 濃さの**下限**を縛るassertionが無いことの対照。**SURVIVEDのまま残余risk(穴A)として受容し、引き受け先は008:T10**(独立review attempt 2 の R1)  **2026-10-01 に`008:T10`が濃さの下限(文字 0.6)を test にしたので KILLED を期待する**"
     },
     {
       "id": "M226",
       "file": "lib/ui/file_list/rename_warning_view.dart",
       "find": "const double rowWarningBorderOpacity = 0.45;",
       "replace": "const double rowWarningBorderOpacity = 0.0;",
-      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)"
+      "note": "008:T18 枠を完全に透明にする — 押せると分かる形の検査が構造(border != null)しか見ていないことの対照。**SURVIVEDのまま残余risk(穴B)として受容し、引き受け先は008:T10**(独立review attempt 2 の R2)  **2026-10-01 に`008:T10`が枠の濃さの下限(0.3)を test にしたので KILLED を期待する**"
     },
     {
       "id": "M227",
@@ -3021,9 +3021,9 @@
     {
       "id": "M476",
       "file": "lib/main.dart",
-      "note": "008:T43 composition rootがヘッダーへ歯車を置かない — フッターから移したので設定そのものが画面から消える",
-      "find": "        actions: [RenameSettingsButton(execution: _renameExecution)],",
-      "replace": "        actions: const [],"
+      "note": "008:T43 composition rootがヘッダーへ歯車を置かない — フッターから移したので設定そのものが画面から消える  **2026-10-01 `008:T10` で見出しの帯を削除し、歯車を folder の帯の右端(`trailing`)へ移したので find を追随**",
+      "find": "              trailing: RenameSettingsButton(execution: _renameExecution),",
+      "replace": "              trailing: null,"
     },
     {
       "id": "M477",
@@ -3829,6 +3829,132 @@
       "find": "      minHeight: MediaQuery.textScalerOf(\n        context,\n      ).scale(ruleButtonEmptyMinContentHeight),",
       "replace": "      minHeight: ruleButtonEmptyMinContentHeight,",
       "note": "008:T47 未設定のbuttonの最小の高さを文字の拡大に合わせない — 文字 2.0 で設定済みとの差が開き、ひとまわり小さいくらいの関係が崩れる(2026-10-01 の開発者の指定)"
+    },
+    {
+      "id": "M598",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        border: Border(bottom: BorderSide(color: colors.rowDivider)),",
+      "replace": "        border: Border(bottom: BorderSide(color: colors.border)),",
+      "note": "008:T10 行の区切り線を他の境界線と同じ濃さに戻す(2026-09-02 の要望10「もう少しだけ濃く」)"
+    },
+    {
+      "id": "M599",
+      "file": "lib/ui/theme/app_colors.dart",
+      "find": "    rowDivider: Color(0x1FFFFFFF),",
+      "replace": "    rowDivider: Color(0x14FFFFFF),",
+      "note": "008:T10 行の区切り線の色そのものを他の境界線と同じにする(要望10)"
+    },
+    {
+      "id": "M600",
+      "file": "lib/ui/theme/app_theme.dart",
+      "find": "      toolbarHeight: appBarHeight,\n",
+      "replace": "",
+      "note": "008:T10 見出しの帯の高さを既定(56)へ戻す — 要望13「見出しが幅を取る」"
+    },
+    {
+      "id": "M601",
+      "file": "lib/ui/theme/app_theme.dart",
+      "find": "        fontSize: appBarTitleFontSize,",
+      "replace": "        fontSize: 22,",
+      "note": "008:T10 見出しの文字を既定の大きさ(22)へ戻す(要望13)"
+    },
+    {
+      "id": "M602",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "const double ruleChipFadeMinWidth = 24;",
+      "replace": "const double ruleChipFadeMinWidth = 0;",
+      "note": "008:T10 フェードの下限を無くす — 数 px だけの途切れたチップが出て、続きがあると読めない(`008:T47` の独立review attempt 5 が挙げ、`008:T10` が引き受けた残余risk)"
+    },
+    {
+      "id": "M603",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "    if (rest >= ruleChipFadeMinWidth) {",
+      "replace": "    if (rest >= 0) {",
+      "note": "008:T10 フェードの下限の分岐を外す(下限より狭くても次のチップをフェードにする)— `008:T47` から引き受けた残余risk"
+    },
+    {
+      "id": "M604",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    final iconSize = MediaQuery.textScalerOf(context).scale(rowWarningFontSize);",
+      "replace": "    final iconSize = rowWarningFontSize;",
+      "note": "008:T10 行の警告のアイコンを文字の倍率に合わせない — 倍率を上げるほどアイコンが小さく上へずれる(`008:T18` から引き受けた残余risk)"
+    },
+    {
+      "id": "M605",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  maxLines: 3,",
+      "replace": "                  maxLines: 2,",
+      "note": "008:T10 行の警告を2行までに戻す — 文字倍率 2.0 の 320・360dp で併発した種別が切り詰められる(`008:T18` の確認C を引き受けた)"
+    },
+    {
+      "id": "M606",
+      "file": "lib/main.dart",
+      "find": "      body: SafeArea(\n        bottom: false,\n        child: Column(",
+      "replace": "      body: SafeArea(\n        top: false,\n        bottom: false,\n        child: Column(",
+      "note": "008:T10 見出しの帯を消した画面で上の SafeArea を外す — folder の帯が status bar の下へ潜る"
+    },
+    {
+      "id": "M607",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowPreviewSize = 52;",
+      "replace": "const double rowPreviewSize = 40;",
+      "note": "008:T10 行の preview を以前の 40 へ戻す(2026-10-01 の要望「写真が小さい」)"
+    },
+    {
+      "id": "M608",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowCurrentNameFontSize = AppFontSize.label;",
+      "replace": "const double rowCurrentNameFontSize = AppFontSize.bodyLarge;",
+      "note": "008:T10 現在名を変更後名と同じ大きさへ戻す(2026-10-01 の要望)"
+    },
+    {
+      "id": "M609",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;",
+      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;",
+      "note": "008:T10 現在名を本文の白へ戻す(2026-10-01 の要望「変更前の名前の色を薄く」)"
+    },
+    {
+      "id": "M610",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;",
+      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.textMuted;",
+      "note": "008:T10 現在名を最も薄い段にする — 小さい字で読めなくなる下限の対照"
+    },
+    {
+      "id": "M611",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const FontWeight rowNewNameFontWeight = FontWeight.w700;",
+      "replace": "const FontWeight rowNewNameFontWeight = FontWeight.w500;",
+      "note": "008:T10 変更後名の太字を以前の w500 へ戻す(2026-10-01 の要望)"
+    },
+    {
+      "id": "M612",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                      color: colors.textPrimary,\n                                      fontSize: sourceLocationFontSize,",
+      "replace": "                                      color: colors.textSecondary,\n                                      fontSize: sourceLocationFontSize,",
+      "note": "008:T10 folder 名を以前の薄い灰色へ戻す(2026-10-01 の要望「白に」)"
+    },
+    {
+      "id": "M613",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "const double sourceLocationFontSize = AppFontSize.bodyLarge;",
+      "replace": "const double sourceLocationFontSize = AppFontSize.bodySmall;",
+      "note": "008:T10 folder 名を以前の 12 へ戻す(2026-10-01 の要望「わずかに大きく」)"
+    },
+    {
+      "id": "M614",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                child: Text(\n                                  FileSourceBar.pickLabelOf(widget.controller),\n                                  maxLines: 1,\n                                  overflow: TextOverflow.ellipsis,\n                                ),\n                              ),",
+      "replace": "                                child: Row(\n                                  mainAxisSize: MainAxisSize.min,\n                                  children: [\n                                    const Icon(Icons.playlist_add, size: 16),\n                                    Text(\n                                      FileSourceBar.pickLabelOf(widget.controller),\n                                      maxLines: 1,\n                                      overflow: TextOverflow.ellipsis,\n                                    ),\n                                  ],\n                                ),\n                              ),",
+      "note": "008:T10 読み込み button にアイコンを戻す(2026-10-01 の要望「『別フォルダへ』のボタンにあるアイコンを削除」)"
+    },
+    {
+      "id": "M615",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                    ?widget.trailing,",
+      "replace": "",
+      "note": "008:T10 帯が歯車(trailing)を置かない — 見出しの帯を消したので設定が画面から消える"
     }
   ]
 }

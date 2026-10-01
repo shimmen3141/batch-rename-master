@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// ルール未設定の案内帯(警告が 0 件でない状態の代わりに出る)。
 const Key ruleNotConfiguredKey = Key('rule-not-configured');
@@ -173,7 +174,7 @@ class RuleNotConfiguredBanner extends StatelessWidget {
               '命名ルールが未設定です。ルールを設定すると変更後の名前を確認できます',
               style: TextStyle(
                 color: colors.primary,
-                fontSize: 11.5,
+                fontSize: AppFontSize.label,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -326,7 +327,7 @@ const double rowWarningBorderOpacity = 0.45;
 const double rowWarningLabelOpacity = 0.78;
 
 /// 行の警告の文字とアイコンの大きさ。
-const double rowWarningFontSize = 11;
+const double rowWarningFontSize = AppFontSize.small;
 
 /// アイコンを baseline からさらに下げる量([rowWarningFontSize] に対する割合)。
 ///
@@ -474,6 +475,11 @@ class RowWarningView extends StatelessWidget {
     // 補足である。**種別が読めることは変わらない** — 薄くするのは濃さだけで、
     // 背景との対比は保つ。
     final label = colors.danger.withValues(alpha: rowWarningLabelOpacity);
+    // **アイコンも文字の倍率に合わせて拡大する**(`008:T10`)。[Text] の `fontSize` は
+    // 利用者の文字倍率で拡大するが、[Icon] は既定で拡大しない。揃えないと、倍率を
+    // 上げるほどアイコンが小さく、字面の中心も上へずれていった(`008:T18` から
+    // 引き受けた残余risk。実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)。
+    final iconSize = MediaQuery.textScalerOf(context).scale(rowWarningFontSize);
     // **箱そのものを右へ寄せる**(参考designのコンパクト案。2026-09-02 の要望8)。
     // 箱は中身の幅しか取らないので、`Row` の `mainAxisAlignment` では寄らない。
     return Align(
@@ -530,13 +536,10 @@ class RowWarningView extends StatelessWidget {
                 // 子の baseline を行の baseline へ固定するので、top padding を足すと
                 // 箱ごと上へずれて相殺される。**paint 側でずらす。**
                 child: Transform.translate(
-                  offset: const Offset(
-                    0,
-                    rowWarningFontSize * rowWarningIconInkNudge,
-                  ),
+                  offset: Offset(0, iconSize * rowWarningIconInkNudge),
                   child: Icon(
                     Icons.error_outline,
-                    size: rowWarningFontSize,
+                    size: iconSize,
                     color: label,
                   ),
                 ),
@@ -544,8 +547,10 @@ class RowWarningView extends StatelessWidget {
               Flexible(
                 child: Text(
                   warnings.map(rowWarningLabel).join('・'),
-                  // 種別がすべて併発しても 2 行に収まる短さにしてある。
-                  maxLines: 2,
+                  // 種別がすべて併発しても、既定の文字倍率では 2 行に収まる短さに
+                  // してある。**倍率 2.0 の狭幅では 3 行要る**ので 3 行まで許す
+                  // (`008:T10`。2 行では 320・360dp で種別が切り詰められた)。
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: label,
@@ -614,7 +619,7 @@ class WarningCountView extends StatelessWidget {
                     maxLines: 2,
                     style: TextStyle(
                       color: has ? colors.danger : colors.success,
-                      fontSize: 12,
+                      fontSize: AppFontSize.bodySmall,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -640,7 +645,7 @@ class WarningCountView extends StatelessWidget {
                         '詳細',
                         style: TextStyle(
                           color: colors.danger,
-                          fontSize: 12,
+                          fontSize: AppFontSize.bodySmall,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

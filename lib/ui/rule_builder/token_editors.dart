@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/rename_engine.dart';
 import '../theme/app_colors.dart';
 import 'token_presets.dart';
+import '../theme/app_typography.dart';
 
 /// トークンのエディタ(ダイアログの中身)の key。
 const Key tokenEditorKey = Key('token-editor');
@@ -154,7 +155,7 @@ class _EditorScaffold extends StatelessWidget {
                         title,
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontSize: 15,
+                          fontSize: AppFontSize.titleLarge,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -163,7 +164,7 @@ class _EditorScaffold extends StatelessWidget {
                         description,
                         style: TextStyle(
                           color: colors.textSecondary,
-                          fontSize: 11.5,
+                          fontSize: AppFontSize.label,
                           height: 1.6,
                         ),
                       ),
@@ -194,7 +195,7 @@ class _EditorScaffold extends StatelessWidget {
                                 exampleLabel!,
                                 style: TextStyle(
                                   color: colors.textMuted,
-                                  fontSize: 10,
+                                  fontSize: AppFontSize.tiny,
                                 ),
                               ),
                               const SizedBox(height: 7),
@@ -203,7 +204,7 @@ class _EditorScaffold extends StatelessWidget {
                                 key: tokenEditorExampleKey,
                                 style: TextStyle(
                                   color: colors.success,
-                                  fontSize: 14,
+                                  fontSize: AppFontSize.title,
                                   fontWeight: FontWeight.w700,
                                   fontFamily: 'monospace',
                                 ),
@@ -287,7 +288,7 @@ class _OptionGroup extends StatelessWidget {
             label,
             style: TextStyle(
               color: colors.textMuted,
-              fontSize: 10,
+              fontSize: AppFontSize.tiny,
               letterSpacing: 1.4,
             ),
           ),
@@ -321,7 +322,7 @@ class _OptionChip extends StatelessWidget {
       showCheckmark: false,
       labelStyle: TextStyle(
         color: selected ? colors.primary : colors.textSecondary,
-        fontSize: 11.5,
+        fontSize: AppFontSize.label,
         fontFamily: 'monospace',
       ),
       backgroundColor: colors.background,
@@ -345,7 +346,10 @@ InputDecoration _fieldDecoration(AppColors colors, {String? hintText}) {
   );
   return InputDecoration(
     hintText: hintText,
-    hintStyle: TextStyle(color: colors.textDisabled, fontSize: 13),
+    hintStyle: TextStyle(
+      color: colors.textDisabled,
+      fontSize: AppFontSize.bodyLarge,
+    ),
     filled: true,
     fillColor: colors.background,
     isDense: true,
@@ -410,7 +414,7 @@ class _LiteralEditorState extends State<_LiteralEditor> {
           onChanged: (_) => setState(() {}),
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: 13,
+            fontSize: AppFontSize.bodyLarge,
             fontFamily: 'monospace',
           ),
           decoration: _fieldDecoration(colors, hintText: '"作成資料" や "旅行_" など'),
@@ -519,13 +523,16 @@ class _SequenceEditorState extends State<_SequenceEditor> {
             'ゼロ埋め',
             style: TextStyle(
               color: colors.textPrimary,
-              fontSize: 12.5,
+              fontSize: AppFontSize.body,
               fontWeight: FontWeight.w500,
             ),
           ),
           subtitle: Text(
             _zeroPad ? '例: 001, 002 …' : '例: 1, 2 … 10',
-            style: TextStyle(color: colors.textSecondary, fontSize: 11),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: AppFontSize.small,
+            ),
           ),
           value: _zeroPad,
           onChanged: (v) => setState(() {
@@ -564,7 +571,10 @@ class _SequenceEditorState extends State<_SequenceEditor> {
                           '$_minDigits桁以上',
                 key: sequenceMinDigitsKey,
                 textAlign: TextAlign.end,
-                style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: AppFontSize.small,
+                ),
               ),
             ),
         ],
@@ -623,7 +633,7 @@ class _NumberStepper extends StatelessWidget {
               label,
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 12.5,
+                fontSize: AppFontSize.body,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -641,7 +651,7 @@ class _NumberStepper extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.primary,
-                fontSize: 15,
+                fontSize: AppFontSize.titleLarge,
                 fontWeight: FontWeight.w700,
                 fontFamily: 'monospace',
               ),
@@ -772,7 +782,7 @@ class _DateTimeEditorState extends State<_DateTimeEditor> {
             onChanged: (_) => setState(() {}),
             style: TextStyle(
               color: colors.textPrimary,
-              fontSize: 13,
+              fontSize: AppFontSize.bodyLarge,
               fontFamily: 'monospace',
             ),
             decoration: _fieldDecoration(colors, hintText: 'YYYY年MM月DD日 など'),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'rename_execution_controller.dart';
 
-/// ヘッダーの歯車(`008:T43`)。key は test が押すためのもの。
+/// 歯車(`008:T43`)。key は test が押すためのもの。
 const Key renameSettingsButtonKey = Key('rename-settings-button');
 
 /// 歯車のメニューの「更新日時を一覧の並び順にずらす」(005 REQ-014)。
@@ -14,7 +14,8 @@ const String shiftModifiedAtLabel = '更新日時を一覧の並び順にずら�
 
 /// リネームの設定を開く歯車(`008:T43`。2026-09-29 の開発者の決定)。
 ///
-/// ヘッダーの右端に置き、押すと**メニュー**を出す。今の項目は更新日時ずらし
+/// folder の帯の右端に置き(`008:T10` で見出しの帯を削除したので、そこから移した)、
+/// 押すと**メニュー**を出す。今の項目は更新日時ずらし
 /// (005 REQ-014)だけで、**有効な設定が1つも無い端末では歯車そのものを出さない**
 /// (REQ-015。Android では出ない)。以前はフッターのチェックボックスだった。
 /// ON のときの印は出さない(開発者の決定)。

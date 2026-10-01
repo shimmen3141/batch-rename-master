@@ -10,6 +10,7 @@ import '../common/drag_selection_controller.dart';
 import '../common/selection_checkbox.dart';
 import '../file_list/row_preview_view.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// 現在folderのfileだけを一操作で選ぶ(004 REQ-020)。ケバブの項目である。
 const Key browserSelectAllKey = Key('browser-select-all');
@@ -420,7 +421,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
                             '›',
                             style: TextStyle(
                               color: colors.textSecondary,
-                              fontSize: 13,
+                              fontSize: AppFontSize.bodyLarge,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -463,7 +464,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
         segment.name,
         style: TextStyle(
           color: isCurrent ? colors.textPrimary : colors.textSecondary,
-          fontSize: 13,
+          fontSize: AppFontSize.bodyLarge,
           fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
         ),
       ),
@@ -593,7 +594,10 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
           child: Text(
             'この場所のファイルは、名前を変更できないことがあります。'
             'アプリごとの保存領域のため、許可があっても書き込めない場合があります。',
-            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: AppFontSize.bodySmall,
+            ),
           ),
         ),
       ],
@@ -618,7 +622,10 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
               Expanded(
                 child: Text(
                   '$failure。ここに出ていない保存場所があるかもしれません。',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: AppFontSize.bodySmall,
+                  ),
                 ),
               ),
             ],

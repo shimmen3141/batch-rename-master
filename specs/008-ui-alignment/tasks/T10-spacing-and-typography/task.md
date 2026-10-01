@@ -96,6 +96,7 @@
 | `008:T18`(同) | **穴A: 行の警告の濃さに下限が無い。** `rowWarningLabelOpacity` を `0.78 → 0.06` にしても通る。testが置いているのは相対条件(変更後名より薄い / 色相が `danger`)だけ | **M225**(同) |
 | `008:T18`(同) | **穴B: 「押せると分かる形」の検査が構造だけ。** 枠を完全に透明にしても、塗りが `0.001` でも通る。testは `border != null` / `borderRadius != null` / `0 < fill.a < 1` しか見ない | **M226**(同) |
 | `008:T18`(独立review attempt 4) | **行の警告に文字倍率の被覆が無い。** `textScaler` を上げると (i) アイコンと文字の字面の中心の差が開き(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)、(ii) 幅320dpで種別3つ併発のとき**倍率 1.3 から警告文が切り詰められる**。`rowWarningIconInkNudge` の比例先 `rowWarningFontSize` が定数で、`Icon` も `applyTextScaling` が既定 false であることが原因。**`T18`手順2′の確認C(フォントサイズ最大)は開発者の回答が無いまま`T18`から移管された。閉じるのはこのtaskである** | 対照は無い。`row_presentation_test.dart` の `TextScaler.linear` が前例 |
+| `008:T47`(独立review attempt 5) | **フッターのチップのフェードの下限(`ruleChipFadeMinWidth` = 24)に満たないとき1つ手前をフェードにする分岐と、下限そのものを直接検査する test が無い。** 分岐は M199・M241・M588・M589・M593〜M595 と「フェードがちょうど1つ」「フェードが列の右端まで届く」の test が間接に守る | 対照は無い。下限の値を見直すときに test を足す |
 
 **3条件の判定と受容の根拠は出所側のtask.mdにある** — [`T18`のtask.md](../T18-row-result-presentation/task.md)の
 「引き受けた残余risk」の各節。**ここへ複製しない。**
@@ -112,12 +113,108 @@
 ## 作業記録
 
 - 2026-08-13 / 人間の判断で(a)〜(d)を008の対象へ入れた際に定義。
+- 2026-10-01 / 着手(開発者の指示「008:T10に進んでください」)。依存 T02/T04/T06/T07/T08/T18/T19/T20 はすべて done。branch `asdd/008-ui-alignment/T10-spacing-and-typography`、worktree `/workspace/.worktrees/008-T10-spacing-and-typography`、起点 `dev`@`72ca7ef`。`008:T47` が引き受け先にした残余risk(フェードの下限)を上の表へ足した。
 
-## Current state / handoff
+### 着手時の棚卸し(2026-10-01、`72ca7ef`)
 
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: なし
-- Waiting for: 008の実装taskすべて。最後に一度で行う。**`T18`から残余risk4件を引き受けている**(上の「他taskから引き受けた残余risk」)
-- Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: 先行taskの完了後に着手する。先に手を付けない
+- 文字の大きさの直書きは `lib/ui` に `fontSize:` 60箇所、値は 9 / 10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 14 / 15 の10種類。参考designも 10 / 10.5 / 11 / 11.5 / 12 / 12.5 … を使い分けているので、**値は変えずに役割の名前を付けて theme へ寄せる**(見た目は変えない)。値をまとめる(例: 10.5 → 11)のは見た目の変更なので、このtaskではしない。
+- 上部の見出し(要望13)は `lib/main.dart` の既定の `AppBar`(高さ 56)。Android では歯車(`008:T43`)が出ないので、見出しだけが 56 を占めている。
+- 行の区切り線(要望10)は他の枠と同じ `colors.border`(白 8%)を共有している。
+
+### 開発者の決定(2026-10-01): 文字の大きさの揃え方
+
+- Agent が3案を出した: (A) 値を変えず名前だけ付けて theme へ寄せる(推奨)/ (B) 近い値を寄せて5〜6段にまとめる / (C) 今回は寄せない。
+- **開発者は (A) を選んだ。** 見た目は変わらないので、checkpoint 2 の主な証拠は既存の widget test の継続PASSである。plan の「人間の決定」にも記録した。
+
+### 進め方(checkpoint)
+
+1. **見た目の変更(要望13・要望10)** — 見出しを縮める、行の区切り線だけを少し濃くする。test と実機確認1回目。
+2. **typography と余白を theme へ寄せる** — 値を変えずに名前を付け、画面側の直書きを置き換える(見た目は変わらない。既存の widget test の継続PASSが主な証拠)。
+3. **引き受けた残余risk** — 行の高さ・警告の濃さ・押せる形の下限、行の警告の文字倍率、帯と一覧を組んだ test、フェードの下限。closeする / 受容し直すを1件ずつ記録する。文字 3.0 の項目(N-8b′・N-8b″)は Android の上限が 2.0 なので、製品経路の外として扱いを記録する。
+4. 独立review → 実機確認(Android)。Windows desktop の確認は host 側の人間に依頼する。
+
+### checkpoint 1: 見出しと行の区切り線(`c4748a7`)
+
+- 要望13: 見出しの帯を既定の高さ 56 → `appBarHeight`(44)、文字 22 → `appBarTitleFontSize`(16)。theme の `appBarTheme` に置いた。見出しは消さない(デスクトップでは歯車 `008:T43` が載る)。
+- 要望10: 行の区切り線だけを専用の色 `rowDivider`(白 12%)にした。他の境界線(`border`、白 8%)は変えない。
+- test: `test/widget_test.dart`「上部の見出しは低く小さい」「一覧の行の区切り線は他の境界線より少し濃い」。mutation M598〜M601 を追加、範囲付き(`flutter test test/widget_test.dart test/spec_002_file_list`)で `4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
+
+### checkpoint 2: 文字の大きさを theme へ(`3a8cf7d`)
+
+- `lib/ui/theme/app_typography.dart` の `AppFontSize`(micro 9 / tiny 10 / caption 10.5 / small 11 / label 11.5 / bodySmall 12 / body 12.5 / bodyLarge 13 / title 14 / titleLarge 15 / heading 16)。`lib/ui` の `fontSize:` の直書き 59 箇所を置き換えた。値は変えていない(diff の非 `fontSize` 行は formatter の折り返しだけであることを確かめた)。
+- test: `test/theme/typography_literals_test.dart`(直書きが戻らない・段の値を保つ)。
+- **余白(`EdgeInsets` 68 箇所)は寄せなかった。** 値の多くは部品ごとに固有で、共有されている値(行・帯の左右 12 など)は既に名前付きの定数になっている。名前だけ付け替えても揃いは変わらないので、文字の大きさの決定(値を変えない)の範囲で効果が無いと判断した。
+
+### checkpoint 3: 引き受けた残余risk(`07b7410`)
+
+| 出所 | risk | 扱い |
+|---|---|---|
+| `008:T18` | 行の高さを縛る assertion が無い(M220 / M221) | **閉じた。** 「警告の箱は文字 + 上下 4 + 枠の高さ」「長い現在名で行が伸びない」の test。M220・M221 KILLED |
+| `008:T18` | 穴A: 警告の濃さの下限(M225) | **閉じた。** 文字 ≥ 0.6(参考design .7、manual で見た 0.78)。M225 KILLED |
+| `008:T18` | 穴B: 押せる形の検査が構造だけ(M226) | **閉じた。** 枠 ≥ 0.3・塗り ≥ 0.06。M226 KILLED |
+| `008:T18` | 行の警告に文字倍率の被覆が無い(アイコンのずれ・切り詰め)。確認C 未回答 | **直して閉じた。** アイコンと補正量を `textScaler` で拡大(M604)。2 行では倍率 2.0 の 320・360dp で切り詰められた(2026-10-01 の測定。T18 当時の「1.3 から」は以後の変更で 2.0 へ移っていた)ので 3 行まで許した(M605、M180 の find 追随)。test は 320/360/411 × 1.0/1.3/2.0。実機の字体での揃いは manual 3 |
+| `008:T08` | 帯と一覧を組んだ widget test が無い | **閉じた。** `load_affordance_test`「帯と一覧を同じ画面に組んでも、場所の出し分けが食い違わない」(場所 0 / 1 / 2 種類) |
+| `008:T47` | フェードの下限の分岐を直接検査する test が無い | **閉じた。** 幅×数の loop で「フェードは下限より狭くならない」。M602・M603 KILLED |
+| `008:T23` | 幅 90dp で読み込み帯が overflow | **受容のまま。** 検証範囲の下限を 320dp とする(Android の一般的な最小幅)。90dp の端末は実在しない |
+| `008:T07`/`T16` | N-8b′・N-8b″(文字 3.0 での語尾の切り詰め・一覧の取り分) | **受容のまま。製品経路の外。** Android の上限は 2.0、Windows の文字サイズの上限は 225%(2.25)で、3.0 には届かない |
+| (新規・2026-10-01 の測定) | 文字 2.0 の低い画面で一覧が狭い: 360×640 で一覧 113px(フッター 242px)、320×640 で 62px。高さ 800 前後なら約 270px。overflow・切り詰めは無い | **開発者の決定で受容した**(2026-10-01。3案 受容 / 文字が大きいときフッターを詰める / フッターの文字拡大に上限 のうち受容)。manual 4 で見え方を見る |
+| `008:T20`・`T06`・`T28` | 余白・字体・アイコンの妥当性、長押しの範囲など見た目の判断 | manual 1〜4 で見る範囲に含めた。個別に足す変更は無い |
+
+- 範囲付き mutation(`flutter test test/spec_005_rename_exec test/spec_002_file_list test/spec_004_file_source test/widget_test.dart test/theme`、対象 `07b7410`、9件):
+
+```text
+M180 M220 M221 M225 M226 M602 M603 M604 M605 すべて KILLED
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`07b7410`): `flutter test` +1133 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 554 PASS。
+
+### 開発者の要望と決定(2026-10-01、実機確認の前に受領)
+
+実機確認1回目の依頼後、確認の前に開発者から4件を受領した(原文):
+
+1. 「リネームリストで、写真のサイズが小さいように思うのですが、参考デザイン(docs/design/Bulk Renamer.html)ではどうなっていますか。」
+2. 「参考デザインでは変更前と変更後のファイル名の文字の大きさを変えていたと思うのですが、同様にできますか。」
+3. 「ヘッダーでフォルダ名を表示していますが、そのフォルダ名の表示が薄いので白にしてください。また、フォルダ名の文字の大きさをわずかに大きくし、『別フォルダへ』のボタンにあるアイコンを削除してください。」
+4. 「『一括リネーム』が書いてあるヘッダーは削除してしまってもよいと思ったのですが、どうでしょうか。」
+
+Agent は参考designを照合して答えた(行の preview は 52、現在名 11.5・変更後名 13 の 700、folder 名 14 の `#eef1f4`、読み込み button は文字だけ、画面は folder の帯から始まり見出しの帯は無い)。ヘッダーを消すと歯車(`008:T43`)の置き場所が無くなるので、A: folder の帯の右端 / B: 一覧のケバブ / C: 帯を残す、を示した。
+
+**開発者の回答**: 「2については、文字の太さの変更に加え、変更前の名前の文字の色を薄くしてください。4についてはAで進めてください。それ以外はあなたの提案通り進めてください。」→ plan の「人間の決定」に記録した。checkpoint 1 の「見出しは消さない」はこの決定で変わった(要望13 は**縮める**から**消す**へ)。
+
+### checkpoint 4: 要望の反映(`85f4b79`)
+
+- 見出しの帯を削除。上だけ `SafeArea` で status bar を避ける。theme の `appBarTheme`(高さ 44・文字 16)は file browser の帯が使い続ける。
+- 歯車を `FileSourceBar.trailing` で folder の帯の右端、読み込み button の右へ。モードの出入りでは消さない(以前の帯でもモード中に出ていた)。
+- 行の preview 40 → 52(`rowPreviewSize`)。現在名 13 → 11.5(`AppFontSize.label`)・色 `textSecondary`(いちばん薄い `textMuted` は小さい字で読みにくいので使わない)。変更後名 w500 → w700。
+- folder 名 `textSecondary`・12 → `textPrimary`・13(参考designは 14。「わずかに」なので 1 段)。読み込み button のアイコンを削除。folder のアイコンは残した(要望はボタンのアイコンだけ)。
+- test: `test/widget_test.dart`(帯が無く folder の帯が status bar の下から始まる / browser の帯は低く小さいまま / folder 名の色と大きさ・button にアイコンが無い / 歯車が帯の右端で帯の中に収まり押せる)、`test/spec_002_file_list/row_name_hierarchy_test.dart`(preview 52、現在名 < 変更後名、変更後名 w700、現在名の明るさが白と `textMuted` の間)。
+- mutation: M606〜M615 を追加。M94・M171・M218・M221・M476 の find を追随させた(意図は同じ)。
+- 範囲付き mutation(`flutter test test/widget_test.dart test/spec_002_file_list test/spec_004_file_source test/spec_005_rename_exec test/spec_013_android_rename`、対象 `85f4b79`、19件 = 追加10・find追随5・見出しと区切り線の既存4):
+
+```text
+M94 M171 M218 M221 M476 M598 M599 M600 M601 M606〜M615 すべて KILLED
+19 mutations: 19 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`85f4b79`): `flutter test` +1136 PASS(-1 は commit 前の mutation の find 検査。find を追随させて `check_mutation_finds.py` 564 PASS)、`dart format` 0 changed、`flutter analyze` No issues(commit 後に `sort_child_properties_last` と test の不要な import の2件を直して再実行)。
+
+### manual
+
+- 2026-10-01 の要望を反映して `manual-verification.md` を書き直した(対象 `85f4b79`。0 で帯が無いこと、1 folder の帯、2 行の写真と名前の強弱・区切り線、3〜4 文字最大、5 Windows の歯車の位置)。実機確認はまだ1回も行っていない。
+- (以前)`manual-verification.md` を1回目の手順にした(Android: 見出し・区切り線・文字最大での行の警告・文字最大での全体。Windows desktop: 広い窓・狭い窓・テキストのサイズ 225% で同じ点と歯車)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。
+
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `85f4b79` と同一の build(worktree HEAD `688d84e`)。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜5。
+- 受領: 2026-10-01、会話で開発者から「問題ありませんでした。」→ **0〜5 すべて期待どおり**(見出しの帯が無い・folder の帯・行の写真と名前の強弱・区切り線・文字最大での警告と全体・Windows の歯車)。
+- あわせて「ファイルのサイズの情報も入れたい」の相談を受けた。**T10 の範囲(振る舞いを変えない)の外**なので、別 task として扱う。
+
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。
+
+- **attempt 1**: `72ca7ef..78438ba`(全範囲) — **FAIL**(P1 1件)。確認された点: 見出し・区切り線・文字の大きさの置き換え(値を保つ)、行の警告の拡大と `maxLines: 3` が 005 REQ-009 / REQ-021・002 の行の趣旨を損なわない、行の高さの test が警告の箱と行の箱を実際に測っている、M220/M221/M602/M603 KILLED、受容の根拠が出所を参照している、manual の文言が current revision と一致。`flutter test` 1133 PASS・analyze・format PASS。
+  - **P1(成果物の欠陥)**: 受け入れ証拠は Windows desktop の確認も求めているのに、Agent が開発者の判断なしに Android で代えると記録していた → **Agent が受け入れ条件を自分で緩めたもので誤り。** manual に Windows desktop の節(5)を足し、代替の記述を消した。差分review attempt 2 で確かめる。
+- **attempt 2**: `78438ba..a79b38d`(差分review。`specs/` だけ) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。attempt 1 の P1 が閉じた(manual に Windows desktop の手順・期待結果があり、受け入れ証拠と一致。代替の記述は消えた)。
+- **attempt 3**: `a79b38d..41f4486`(差分review。2026-10-01 の要望の反映) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 歯車の表示条件(005 REQ-014/015・`008:T43`)を保ち、モード中も帯に残り `IndexedStack` の帯の高さも保つ / 上だけ `SafeArea`、browser の帯は theme のまま / preview 52・名前の強弱・folder 名・button のアイコン削除と対応 test / manual の文言が current revision と一致。`flutter analyze` No issues、`flutter test` 1137 PASS、`dart format` 0 changed、範囲付き mutation 15件(M94・M171・M218・M221・M476・M606〜M615)すべて KILLED。
+- 連鎖: `72ca7ef..78438ba` FAIL(P1)→ `78438ba..a79b38d` PASS(P1 が閉じた)→ `a79b38d..41f4486` PASS → 以後の記録だけの差分は SELF-CHECK。
+- **SELF-CHECK**: `41f4486..HEAD` は `specs/` だけ(review の記録・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。

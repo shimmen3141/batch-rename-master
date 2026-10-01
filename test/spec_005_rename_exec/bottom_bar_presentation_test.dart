@@ -461,6 +461,13 @@ void main() {
               closeTo(tester.getRect(strip).right, 0.01),
               reason: 'width=$width n=$n',
             );
+            // **フェードは下限より狭くならない**(狭いと途切れたチップだと読めない。
+            // `008:T47` から引き受けた残余risk。`008:T10`)。
+            expect(
+              tester.getSize(fade).width,
+              greaterThanOrEqualTo(ruleChipFadeMinWidth),
+              reason: 'width=$width n=$n',
+            );
             if (inFade == 2) sawNextPeek = true;
             if (previousFit) sawFadeRightAfterFit = true;
             previousFit = false;
