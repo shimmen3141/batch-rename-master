@@ -4015,16 +4015,9 @@
     {
       "id": "M630",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "    widget.fileList.addListener(_scheduleRaiseDigits);\n    _scheduleSyncRule();",
-      "replace": "    _scheduleSyncRule();",
-      "note": "008:T52 一覧の変化を見ない — 件数が増えても引き上がらない(003 代表例15)"
-    },
-    {
-      "id": "M631",
-      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "    _scheduleRaiseDigits(); // 復元したルールと最初の一覧の組み合わせも見る(REQ-015)。",
-      "replace": "",
-      "note": "008:T52 起動時に見ない — 前回ルールの復元と最初の一覧の組み合わせで引き上がらない(003 代表例15c)"
+      "find": "    widget.rule.addListener(_scheduleRaiseDigits);\n    widget.fileList.addListener(_scheduleRaiseDigits);\n",
+      "replace": "    widget.rule.addListener(_scheduleRaiseDigits);\n",
+      "note": "008:T52 一覧の変化を見ない — 件数が増えても引き上がらない(003 代表例15)  代表例15c(起動時)もこの経路が担う(初期の `setRule` が一覧を通知する)。起動時に別に呼ぶ形は等価だったので外した(M631 を削除)"
     },
     {
       "id": "M632",

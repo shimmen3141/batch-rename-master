@@ -55,8 +55,11 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     widget.rule.addListener(_syncRule);
     widget.rule.addListener(_scheduleRaiseDigits);
     widget.fileList.addListener(_scheduleRaiseDigits);
-    _scheduleSyncRule(); // 初期ルールをプレビューへ反映(フレーム後)。
-    _scheduleRaiseDigits(); // 復元したルールと最初の一覧の組み合わせも見る(REQ-015)。
+    // 初期ルールをプレビューへ反映(フレーム後)。**復元したルールと最初の一覧の
+    // 組み合わせ(003 代表例15c)もこれで見る** — `setRule` が一覧を通知し、上の
+    // 一覧の購読が引き上げを起こす。別に呼ぶと同じことを2回書くことになる
+    // (mutation で等価と分かった。`008:T52`)。
+    _scheduleSyncRule();
   }
 
   @override
