@@ -30,24 +30,58 @@ void main() {
     expect(find.text('命名ルールを設定する'), findsOneWidget);
   });
 
-  testWidgets('上部の見出しは低く小さい(008:T10 要望13)', (tester) async {
-    // 2026-09-02 の要望13: 見出しが幅を取るので、小さくして一覧の場所を確保する。
-    // 既定の AppBar は高さ 56・文字 22。
+  testWidgets('メイン画面に見出しの帯を置かず、folder の帯が status bar の下から始まる(008:T10)', (
+    tester,
+  ) async {
+    // 2026-10-01 の開発者の決定: 「一括リネーム」の見出しの帯を削除する
+    // (要望13「見出しを小さくする」の変更。参考designも画面は folder の帯から始まる)。
+    // 帯が無いので、**status bar へ潜らないこと**も固定する。
+    tester.view.padding = const FakeViewPadding(top: 72); // 論理 24(倍率 3)
+    addTearDown(tester.view.resetPadding);
     final rule = RuleController();
     addTearDown(rule.dispose);
     await tester.pumpWidget(DemoApp(ruleController: rule));
     await tester.pump();
 
-    expect(tester.getSize(find.byType(AppBar)).height, appBarHeight);
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.text('一括リネーム'), findsNothing);
+    expect(tester.getTopLeft(find.byKey(sourceBarKey)).dy, 24);
+  });
+
+  test('別画面(file browser)の見出しの帯は低く小さいまま(008:T10 要望13)', () {
+    // メイン画面からは帯を消したが、theme の帯は browser が使い続ける。
+    // 既定の AppBar は高さ 56・文字 22。
+    final theme = appDarkTheme().appBarTheme;
+    expect(theme.toolbarHeight, appBarHeight);
     expect(appBarHeight, lessThan(kToolbarHeight));
-    final title = tester.widget<Text>(
-      find.descendant(of: find.byType(AppBar), matching: find.text('一括リネーム')),
-    );
-    final style = DefaultTextStyle.of(
-      tester.element(find.text('一括リネーム')),
-    ).style.merge(title.style);
-    expect(style.fontSize, appBarTitleFontSize);
+    expect(theme.titleTextStyle!.fontSize, appBarTitleFontSize);
     expect(appBarTitleFontSize, lessThan(22));
+  });
+
+  testWidgets('folder の帯: 場所は白で少し大きく、読み込み button はアイコンを持たない(008:T10)', (
+    tester,
+  ) async {
+    // 2026-10-01 の要望: 「フォルダ名の表示が薄いので白に」「わずかに大きく」
+    // 「『別フォルダへ』のボタンにあるアイコンを削除」。
+    final rule = RuleController();
+    addTearDown(rule.dispose);
+    await tester.pumpWidget(DemoApp(ruleController: rule));
+    await tester.pump();
+
+    final label = find.byKey(sourceLocationLabelKey);
+    expect(label, findsOneWidget);
+    final style = tester.widget<Text>(label).style!;
+    expect(style.color, AppColors.dark.textPrimary);
+    expect(style.fontSize, sourceLocationFontSize);
+    expect(sourceLocationFontSize, greaterThan(12)); // 以前は 12
+    expect(sourceLocationFontSize, lessThanOrEqualTo(14)); // 「わずかに」
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('pick-files-button')),
+        matching: find.byType(Icon),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('一覧の行の区切り線は他の境界線より少し濃い(008:T10 要望10)', (tester) async {
@@ -86,22 +120,35 @@ void main() {
     expect(colors.rowDivider.a, lessThan(0.15));
   });
 
-  testWidgets('composition root がヘッダーへ歯車を置く(008:T43)', (tester) async {
+  testWidgets('composition root が folder の帯の右端へ歯車を置く(008:T43 / T10)', (
+    tester,
+  ) async {
     // test は Linux(desktop)で動くので、更新日時ずらしが有効 = 歯車が出る。
     // `main.dart` で置き忘れると設定そのものが画面から消える(フッターから移したため)。
+    // 見出しの帯を削除したので、**folder の帯の右端、読み込み button の右**へ移した
+    // (2026-10-01 の開発者の決定 A)。
     final rule = RuleController();
     addTearDown(rule.dispose);
     await tester.pumpWidget(DemoApp(ruleController: rule));
     await tester.pump();
 
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.byKey(renameSettingsButtonKey),
-      ),
-      findsOneWidget,
+    final gear = find.descendant(
+      of: find.byKey(sourceBarKey),
+      matching: find.byKey(renameSettingsButtonKey),
     );
-    await tester.tap(find.byKey(renameSettingsButtonKey));
+    expect(gear, findsOneWidget);
+    expect(
+      tester.getCenter(gear).dx,
+      greaterThan(
+        tester.getTopRight(find.byKey(const Key('pick-files-button'))).dx,
+      ),
+    );
+    // 帯の中に収まる(はみ出して押せない位置にならない)。
+    final bar = tester.getRect(find.byKey(sourceBarKey));
+    final gearRect = tester.getRect(gear);
+    expect(bar.contains(gearRect.topLeft), isTrue);
+    expect(bar.contains(gearRect.bottomRight - const Offset(1, 1)), isTrue);
+    await tester.tap(gear);
     await tester.pumpAndSettle();
     expect(find.text(shiftModifiedAtLabel), findsOneWidget);
   });

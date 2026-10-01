@@ -36,7 +36,15 @@ class FileSourceBar extends StatefulWidget {
     required this.permission,
     required this.kinds,
     this.removalSelection,
+    this.trailing,
   });
+
+  /// 帯の右端、読み込み button の右に置くもの(`008:T10`)。
+  ///
+  /// composition root が**歯車**(`008:T43`)を渡す。見出しの帯を削除したので
+  /// (2026-10-01 の開発者の決定)、歯車の置き場所がここへ移った。**モードの出入りで
+  /// 消さない** — 以前の見出しの帯でもモード中に出ていた。
+  final Widget? trailing;
 
   /// 読み込み元(実装は **Android = app 内 file browser** / デスクトップのピッカー、
   /// テストでは fake)。
@@ -126,6 +134,9 @@ const Key sourceLocationLabelKey = Key('source-location-label');
 
 /// 読み込み帯そのもの(幅と配置の検査に使う)。
 const Key sourceBarKey = Key('file-source-bar');
+
+/// 帯の場所(folder 名)の文字の大きさ(`008:T10`)。以前は 12。
+const double sourceLocationFontSize = AppFontSize.bodyLarge;
 
 class _FileSourceBarState extends State<FileSourceBar>
     with WidgetsBindingObserver {
@@ -357,6 +368,8 @@ class _FileSourceBarState extends State<FileSourceBar>
                           : Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // folder のアイコンは残す(2026-10-01 に消したのは
+                                // 読み込み button のアイコンだけ)。
                                 Icon(
                                   Icons.folder_outlined,
                                   size: 14,
@@ -370,9 +383,11 @@ class _FileSourceBarState extends State<FileSourceBar>
                                   child: SourcePathText(
                                     text: locationLabel,
                                     textKey: sourceLocationLabelKey,
+                                    // **白で、少し大きく**(`008:T10`。2026-10-01 の要望。
+                                    // 以前は薄い灰色の 12 で読みにくかった)。
                                     style: TextStyle(
-                                      color: colors.textSecondary,
-                                      fontSize: AppFontSize.bodySmall,
+                                      color: colors.textPrimary,
+                                      fontSize: sourceLocationFontSize,
                                     ),
                                   ),
                                 ),
@@ -411,15 +426,11 @@ class _FileSourceBarState extends State<FileSourceBar>
                             children: [
                               // **button は右端に固定する**(実機確認 2026-09-18)。
                               // folder 名の長さで位置が動くと、押す場所を毎回探すことになる。
-                              OutlinedButton.icon(
+                              // **アイコンは置かない**(`008:T10`。2026-10-01 の要望。
+                              // 参考designも文字だけの button)。
+                              OutlinedButton(
                                 key: const Key('pick-files-button'),
                                 onPressed: () => _openKindSheet(context),
-                                icon: const Icon(Icons.playlist_add, size: 16),
-                                label: Text(
-                                  FileSourceBar.pickLabelOf(widget.controller),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: colors.primary,
                                   side: BorderSide(
@@ -432,6 +443,11 @@ class _FileSourceBarState extends State<FileSourceBar>
                                     vertical: 8,
                                   ),
                                 ),
+                                child: Text(
+                                  FileSourceBar.pickLabelOf(widget.controller),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               // **`一覧を空にする` はここには無い。** `008:T29` で
                               // 一覧のケバブの「すべてをリネーム対象から外す」へ移した
@@ -443,6 +459,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                         ],
                       ),
                     ),
+                    ?widget.trailing,
                   ],
                 ),
               ),

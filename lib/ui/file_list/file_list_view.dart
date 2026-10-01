@@ -1955,6 +1955,7 @@ class _FileRowState extends State<_FileRow> {
                     child: RowPreviewView(
                       file: row.source,
                       preview: widget.filePreview,
+                      size: rowPreviewSize,
                     ),
                   ),
                   // 現在名・変更後名・サブ情報を**縦に積む**(参考designのリッチな行)。
@@ -1982,13 +1983,16 @@ class _FileRowState extends State<_FileRow> {
                           warnings: widget.warnings,
                           onTap: widget.onShowWarningDetail,
                         ),
+                        // **変更前は小さく薄く、変更後は大きく太く**(`008:T10`。
+                        // 2026-10-01 の要望。参考designは現在名 11.5・変更後名 13 の太字)。
                         Text(
                           row.currentName,
+                          key: rowCurrentNameKey,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: AppFontSize.bodyLarge,
+                            color: rowCurrentNameColorOf(colors),
+                            fontSize: rowCurrentNameFontSize,
                           ),
                         ),
                         // 「現在名 → 変更後名」という読み方は矢印で残す。
@@ -2239,7 +2243,7 @@ class _NewName extends StatelessWidget {
       style: TextStyle(
         color: hasWarning ? colors.danger : colors.success,
         fontSize: AppFontSize.bodyLarge,
-        fontWeight: FontWeight.w500,
+        fontWeight: rowNewNameFontWeight,
       ),
     );
   }
@@ -2253,3 +2257,20 @@ const Key rowUnchangedKey = Key('row-unchanged');
 
 /// 実際の変更後名を出している変更後名。
 const Key rowNewNameKey = Key('row-new-name');
+
+/// 行の現在名(変更前の名前)。
+const Key rowCurrentNameKey = Key('row-current-name');
+
+/// 行の preview の一辺(`008:T10`。2026-10-01 の要望)。参考designのリッチな行は
+/// 52 で、以前の 40 では写真が小さかった。
+const double rowPreviewSize = 52;
+
+/// 現在名の文字の大きさ。**変更後名より小さい**(参考design: 11.5 と 13)。
+const double rowCurrentNameFontSize = AppFontSize.label;
+
+/// 現在名の色。**変更後名より薄い**(2026-10-01 の要望)。読めなくならないよう、
+/// いちばん薄い `textMuted` ではなく `textSecondary` を使う。
+Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;
+
+/// 変更後名の太さ。参考designは 700。
+const FontWeight rowNewNameFontWeight = FontWeight.w700;

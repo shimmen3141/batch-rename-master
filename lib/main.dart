@@ -152,31 +152,35 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    // **「一括リネーム」の見出しの帯は置かない**(`008:T10`。2026-10-01 の開発者の
+    // 決定。参考designも画面は folder の帯から始まる)。帯が無いので、端末の
+    // status bar へ潜らないよう上だけ `SafeArea` で避ける(下はフッターが自分で避ける)。
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('一括リネーム'),
-        // 歯車(`008:T43`)。有効な設定が無い端末(Android)では何も出さない。
-        actions: [RenameSettingsButton(execution: _renameExecution)],
-      ),
-      body: Column(
-        children: [
-          FileSourceBar(
-            source: _source,
-            controller: _files,
-            permission: _permission,
-            kinds: fileKindsFor(isAndroid: Platform.isAndroid),
-            removalSelection: _removalSelection,
-          ),
-          Expanded(
-            child: RuleBuilderWorkspace(
-              fileList: _files,
-              rule: widget.rule,
-              renameExecution: _renameExecution,
-              filePreview: _filePreview,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            FileSourceBar(
+              source: _source,
+              controller: _files,
+              permission: _permission,
+              kinds: fileKindsFor(isAndroid: Platform.isAndroid),
               removalSelection: _removalSelection,
+              // 歯車(`008:T43`)は folder の帯の右端へ移した(2026-10-01 の決定 A)。
+              // 有効な設定が無い端末(Android)では何も出さない。
+              trailing: RenameSettingsButton(execution: _renameExecution),
             ),
-          ),
-        ],
+            Expanded(
+              child: RuleBuilderWorkspace(
+                fileList: _files,
+                rule: widget.rule,
+                renameExecution: _renameExecution,
+                filePreview: _filePreview,
+                removalSelection: _removalSelection,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
