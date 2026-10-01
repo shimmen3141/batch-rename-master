@@ -1972,32 +1972,39 @@ class _FileRowState extends State<_FileRow> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 005 REQ-009 (1)。**現在名の上に1行設けて右寄せで置く**
-                        // (2026-09-02 の要望8。原文は「リネーム前の名前と同じ行の右の
-                        // スペースか、**さらにその上に1行設けてそこに右寄せで表示する**」で、
-                        // 参考designも両方の変種を持つ — リッチ案は現在名と同じ行、
-                        // コンパクト案は上の行に `text-align:right` で置いている)。
-                        //
-                        // **同じ行ではなく上の行を選んだ。** 008:T17 の改訂で桁不足が
-                        // 行へ来るようになり、種別は最大3つ併発する(重複・作成日時不明・
-                        // 連番の桁不足)。同じ行へ載せると、狭幅では現在名か種別の
-                        // どちらかが必ず切り詰められる。上の行なら行幅を丸ごと使える。
-                        // **行数は増えない** — 警告は元から変更後名の下で1行を占めていた。
-                        RowWarningView(
-                          warnings: widget.warnings,
-                          onTap: widget.onShowWarningDetail,
-                        ),
-                        // **変更前は小さく薄く、変更後は大きく太く**(`008:T10`。
-                        // 2026-10-01 の要望。参考designは現在名 11.5・変更後名 13 の太字)。
-                        Text(
-                          row.currentName,
-                          key: rowCurrentNameKey,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: rowCurrentNameColorOf(colors),
-                            fontSize: rowCurrentNameFontSize,
-                          ),
+                        // 005 REQ-009 (1)。**現在名と同じ行の右端に置く**(`008:T50`。
+                        // 2026-10-01 の開発者の決定。原文は「わざわざ1行を警告に使ううえに、
+                        // 警告が見づらい」)。以前は現在名の上に専用の1行を取っていた
+                        // (2026-09-02 の要望8)。**同じ行に載せられるのは、右端に書く種類を
+                        // 減らしたから**である — 作成日時不明は補足情報の赤字で読めるので
+                        // 書かず([rowWarningBadgeLabel])、桁不足は `T52` で起きなくなる。
+                        // 現在名は残りの幅で省略し、警告は削らない。
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            // **変更前は小さく薄く、変更後は大きく太く**(`008:T10`。
+                            // 2026-10-01 の要望。参考designは現在名 11.5・変更後名 13 の太字)。
+                            Expanded(
+                              child: Text(
+                                row.currentName,
+                                key: rowCurrentNameKey,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: rowCurrentNameColorOf(colors),
+                                  fontSize: rowCurrentNameFontSize,
+                                ),
+                              ),
+                            ),
+                            if (widget.warnings.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              RowWarningView(
+                                warnings: widget.warnings,
+                                onTap: widget.onShowWarningDetail,
+                              ),
+                            ],
+                          ],
                         ),
                         // 「現在名 → 変更後名」という読み方は矢印で残す。
                         Row(
@@ -2023,6 +2030,7 @@ class _FileRowState extends State<_FileRow> {
                           file: row.source,
                           sortMode: widget.sortMode,
                           showLocation: widget.showLocation,
+                          dateWarned: rowHasMissingCreatedAt(row),
                         ),
                       ],
                     ),
@@ -2091,7 +2099,12 @@ class _DateSubInfo extends StatelessWidget {
     required this.file,
     required this.sortMode,
     required this.showLocation,
+    required this.dateWarned,
   });
+
+  /// この行に「作成日時が取れない」警告がある(`008:T50`)。行の右端には書かず、
+  /// **ここの `作成日時: 不明` を赤で強調して種類を読ませる**(005 REQ-009 (1))。
+  final bool dateWarned;
 
   final FileEntry file;
 
@@ -2113,7 +2126,11 @@ class _DateSubInfo extends StatelessWidget {
     final unknown = createdAt == null;
     // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
     // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
-    final emphasize = unknown && sortMode == FileSortMode.createdAt;
+    // 並び順で作成日時を使っているとき(002 REQ-013)と、**ルールが作成日時を使って
+    // 警告が出ているとき**(`008:T50`)に強調する。ルールが作成日時を使っていなければ
+    // 不明でも問題は無いので、灰色のまま。
+    final emphasize =
+        unknown && (sortMode == FileSortMode.createdAt || dateWarned);
     final base = TextStyle(
       color: colors.textMuted,
       fontSize: AppFontSize.caption,

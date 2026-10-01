@@ -14,6 +14,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -328,7 +329,7 @@ void main() {
       await tester.tap(find.byKey(rowWarningKey).first);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('名前の重複'), findsWidgets);
+      expect(find.textContaining(duplicateKindLabel), findsWidgets);
       // **その行のファイルだけ**(混ざらない)。
       expect(_targetTexts(tester).every((t) => !t.contains('b.txt')), isTrue);
     });
@@ -348,19 +349,19 @@ void main() {
       await tester.tap(find.byKey(rowWarningKey).first);
       await tester.pumpAndSettle();
       expect(find.textContaining('作成日時不明'), findsWidgets);
-      expect(find.textContaining('連番の桁不足'), findsNothing);
+      expect(find.textContaining(digitShortageKindLabel), findsNothing);
       await tester.tap(find.byKey(const Key('warning-detail-close')));
       await tester.pumpAndSettle();
 
       // 全件の入口には出る(桁不足そのものは起きている)。
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
-      expect(find.textContaining('連番の桁不足'), findsWidgets);
+      expect(find.textContaining(digitShortageKindLabel), findsWidgets);
     });
   });
 
   group('行と詳細が同じ語彙を使う(008:T19 が文言の正本)', () {
-    testWidgets('作成日時が取れない: 行も詳細も「作成日時不明」', (tester) async {
+    testWidgets('作成日時が取れない: 行は補足情報の赤字、詳細は「作成日時不明」', (tester) async {
       final c = FileListController(
         files: [_noCreatedAt('a.jpg')],
         rule: const RenameRule([
@@ -378,7 +379,11 @@ void main() {
             ),
           )
           .data!;
-      expect(rowText, '作成日時不明');
+      // `008:T50`: 右端には書かず、補足情報の `作成日時: 不明` を赤で強調する。
+      expect(rowText, rowWarningDetailLabel);
+      final createdAt = tester.widget<Text>(find.byKey(rowCreatedAtKey));
+      expect(createdAt.data, contains('不明'));
+      expect(createdAt.style?.color, AppColors.dark.danger);
 
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
@@ -413,7 +418,7 @@ void main() {
       expect(section.targets.single, '「b.jpg」');
     });
 
-    testWidgets('桁不足: 行も詳細も「連番の桁不足」', (tester) async {
+    testWidgets('桁不足: 行も詳細も同じ語(`008:T50` で「桁不足」へ短くした)', (tester) async {
       final c = FileListController(
         files: [_dated('a.txt')],
         rule: const RenameRule([SequenceToken(start: 100, digits: 1)]),
@@ -429,13 +434,16 @@ void main() {
               ),
             )
             .data,
-        '連番の桁不足',
+        digitShortageKindLabel,
       );
 
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
-      expect(find.textContaining('連番の桁不足'), findsWidgets);
+      // 詳細の節の見出しも同じ語(桁不足は対象をトークンで示すので件数を付けない)。
+      // 以前の長い語は残っていない。
+      expect(find.text(digitShortageKindLabel), findsWidgets);
       expect(find.textContaining('桁不足 1 件'), findsNothing);
+      expect(find.textContaining('連番の桁不足'), findsNothing);
     });
   });
 
@@ -491,13 +499,13 @@ void main() {
       // 枠線ぶんで通ってしまう。値は `padding` の実装値に一致する。
       expect(
         hit.height - content.height,
-        closeTo(10, 0.01),
-        reason: 'padding vertical 4 の上下 + 枠線 1 の上下',
+        closeTo(8, 0.01),
+        reason: 'padding vertical 4 の上下(`008:T50` で枠線をやめた)',
       );
       expect(
         hit.width - content.width,
-        closeTo(14, 0.01),
-        reason: 'padding horizontal 6 の左右 + 枠線 1 の左右',
+        closeTo(12, 0.01),
+        reason: 'padding horizontal 6 の左右(`008:T50` で枠線をやめた)',
       );
       // 指で押せる大きさであること(縮める変更を止める)。
       expect(hit.height, greaterThanOrEqualTo(20));

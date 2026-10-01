@@ -7,6 +7,7 @@ import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
+import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:batch_rename_master/data/permission/storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -285,7 +286,13 @@ void main() {
 
       expect(find.byKey(ruleNotConfiguredKey), findsNothing);
       expect(find.byKey(rowWarningKey), findsNWidgets(2));
-      expect(find.textContaining('名前が重複'), findsNWidgets(2));
+      expect(
+        find.descendant(
+          of: find.byKey(rowWarningKey),
+          matching: find.text(duplicateKindLabel),
+        ),
+        findsNWidgets(2),
+      );
 
       // 空へ戻せば案内へ戻る(両方向を観測する)。
       files.setRule(RenameRule.empty);
@@ -352,7 +359,8 @@ void main() {
           .single
           .data!;
       expect(rowText, contains('空')); // (i) 結果
-      expect(rowText, contains('改名されません')); // (ii) 結果
+      // (ii) 結果は変更後名の `（変更なし）` が担う(`008:T50` で右端を短くした)。
+      expect(find.byKey(rowUnchangedKey), findsOneWidget);
       expect(rowText, isNot(contains('トークン'))); // 原因は行に出さない
 
       // **件数は 1 件**のまま(001 の 2 件を REQ-021 規則1 で 1 件へ畳む)。
@@ -418,14 +426,11 @@ void main() {
         ),
         findsNothing,
       );
-      // **種別が読めなくなったわけではない。** 行が出している。
-      expect(
-        find.descendant(
-          of: find.byKey(rowWarningKey),
-          matching: find.textContaining('作成日時不明'),
-        ),
-        findsOneWidget,
-      );
+      // **種別が読めなくなったわけではない。** 行が出している — `008:T50` からは
+      // 補足情報の `作成日時: 不明` を赤で強調する(右端には書かない)。
+      final createdAt = tester.widget<Text>(find.byKey(rowCreatedAtKey));
+      expect(createdAt.data, contains('不明'));
+      expect(createdAt.style?.color, AppColors.dark.danger);
 
       await tester.tap(find.byKey(warningCountKey));
       await tester.pumpAndSettle();
