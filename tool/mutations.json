@@ -3658,9 +3658,9 @@
     {
       "id": "M570",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                          bottom: BorderSide(color: colors.danger, width: 1.5),",
+      "find": "                          bottom: BorderSide(\n                            color: colors.danger,\n                            width: warningLinkUnderlineWidth,\n                          ),",
       "replace": "                          bottom: BorderSide.none,",
-      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)  **下線を文字の下に引いた線へ替えた(2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」)ので、線を消す形へ作り直した**"
+      "note": "008:T02 「詳細」に下線を付けない — 押せることが分かりにくい(2026-09-30 の開発者の指定)  **下線を文字の下に引いた線へ替えた(2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」)ので、線を消す形へ作り直した**  2026-10-01 `008:T50` で太さを行の警告と共有する定数へ出したので find を追随"
     },
     {
       "id": "M571",
@@ -3973,16 +3973,16 @@
     {
       "id": "M622",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                decoration: TextDecoration.underline,",
-      "replace": "                decoration: TextDecoration.none,",
-      "note": "008:T50 行の警告の下線を消す — 押せることが分からなくなる(箱をやめた代わりに下線で示す。2026-10-01 の開発者の案「太字・下線」)。外した M224・M226 の後継"
+      "find": "                  bottom: BorderSide(\n                    color: label,\n                    width: warningLinkUnderlineWidth,\n                  ),",
+      "replace": "                  bottom: BorderSide.none,",
+      "note": "008:T50 行の警告の下線を消す — 押せることが分からなくなる(箱をやめた代わりに下線で示す。2026-10-01 の開発者の案「太字・下線」)。外した M224・M226 の後継  2026-10-01 実機確認1回目「下線が見えづらい」で、下線を文字の装飾から**文字の枠の下に引いた線**(件数表示の「詳細」と同じ)へ変えたので find を追随"
     },
     {
       "id": "M623",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                fontWeight: FontWeight.w700,\n                decoration: TextDecoration.underline,",
-      "replace": "                fontWeight: FontWeight.w400,\n                decoration: TextDecoration.underline,",
-      "note": "008:T50 行の警告を太字でなくする(2026-10-01 の開発者の案「太字・下線」)"
+      "find": "                  fontSize: rowWarningFontSize,\n                  fontWeight: FontWeight.w700,",
+      "replace": "                  fontSize: rowWarningFontSize,\n                  fontWeight: FontWeight.w400,",
+      "note": "008:T50 行の警告を太字でなくする(2026-10-01 の開発者の案「太字・下線」)  2026-10-01 下線の引き方の変更で find を追随"
     },
     {
       "id": "M624",
@@ -4039,6 +4039,13 @@
       "find": "      content: Text(sequenceDigitsRaisedMessage(raises)),",
       "replace": "      content: const Text('連番を変更しました'),",
       "note": "008:T52 何桁から何桁へ変えたかを知らせない(003 REQ-015「何桁から何桁へ変えたかが読めること」)"
+    },
+    {
+      "id": "M633",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "const double warningLinkUnderlineWidth = 1.5;",
+      "replace": "const double warningLinkUnderlineWidth = 0.5;",
+      "note": "008:T50 押せることを示す下線を細くする — 実機で見えづらかった(2026-10-01 の実機確認1回目)。件数表示の「詳細」と行の警告で共有する太さ"
     }
   ]
 }

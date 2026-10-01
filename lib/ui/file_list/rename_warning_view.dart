@@ -530,17 +530,32 @@ class RowWarningView extends StatelessWidget {
             ),
             // **1行で、削らない。** 書く種類は短く(最長でも `重複・桁不足`)、残りの幅は
             // 現在名が省略して譲る。
-            Text(
-              rowWarningBadgeLabel(warnings),
-              key: rowWarningBadgeTextKey,
-              maxLines: 1,
-              softWrap: false,
-              style: TextStyle(
-                color: label,
-                fontSize: rowWarningFontSize,
-                fontWeight: FontWeight.w700,
-                decoration: TextDecoration.underline,
-                decorationColor: label,
+            //
+            // **下線は文字の装飾ではなく、文字の枠の下に引いた線**にする(2026-10-01 の
+            // 実機確認1回目。原文は「各行の警告の下線が見えづらいです。ヘッダー付近の
+            // 警告文の『詳細』の下線の引き方を参考にしてください」)。文字の装飾の下線は
+            // 字形に接して細い。件数表示の「詳細」([warningDetailLinkKey])と同じ引き方・
+            // 同じ太さ([warningLinkUnderlineWidth])にそろえる。
+            Container(
+              key: rowWarningUnderlineKey,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: label,
+                    width: warningLinkUnderlineWidth,
+                  ),
+                ),
+              ),
+              child: Text(
+                rowWarningBadgeLabel(warnings),
+                key: rowWarningBadgeTextKey,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  color: label,
+                  fontSize: rowWarningFontSize,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -621,7 +636,10 @@ class WarningCountView extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(color: colors.danger, width: 1.5),
+                          bottom: BorderSide(
+                            color: colors.danger,
+                            width: warningLinkUnderlineWidth,
+                          ),
                         ),
                       ),
                       child: Text(
@@ -645,6 +663,13 @@ class WarningCountView extends StatelessWidget {
 
 /// 件数表示の「詳細」(押せることを示す文字と、その下の線)。
 const Key warningDetailLinkKey = Key('warning-detail-link');
+
+/// 押せることを示す下線の太さ。件数表示の「詳細」と行の警告で共有する
+/// (2026-09-30 の開発者の指定「太くしつつ少しだけ下にずらす」、`008:T50` で行へも)。
+const double warningLinkUnderlineWidth = 1.5;
+
+/// 行の警告の文字の下の線(`008:T50`)。
+const Key rowWarningUnderlineKey = Key('row-warning-underline');
 
 /// 状態のメッセージのバナーの印の大きさ。行ごとに揃える(`008:T02`)。
 const double bannerIconSize = 14;

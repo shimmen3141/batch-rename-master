@@ -380,8 +380,23 @@ void main() {
       final style = tester
           .widget<Text>(find.byKey(rowWarningBadgeTextKey).first)
           .style!;
-      expect(style.decoration, TextDecoration.underline, reason: '下線が無い');
       expect(style.fontWeight, FontWeight.w700, reason: '太字でない');
+      // **下線は文字の装飾ではなく、文字の枠の下に引いた線**(2026-10-01 の実機確認
+      // 1回目「下線が見えづらい。ヘッダー付近の『詳細』の下線の引き方を参考に」)。
+      // 件数表示の「詳細」と同じ太さ。文字の装飾の下線は重ねない(二重になる)。
+      expect(style.decoration, isNot(TextDecoration.underline));
+      final underline = tester.widget<Container>(
+        find.byKey(rowWarningUnderlineKey).first,
+      );
+      final bottom =
+          ((underline.decoration! as BoxDecoration).border! as Border).bottom;
+      expect(bottom.width, warningLinkUnderlineWidth, reason: '下線が細い');
+      expect(warningLinkUnderlineWidth, greaterThanOrEqualTo(1.5));
+      expect(bottom.color, style.color, reason: '下線が文字と違う色');
+      // 線は文字の下にある(文字の枠の下端に接して引く)。
+      final lineBox = tester.getRect(find.byKey(rowWarningUnderlineKey).first);
+      final textBox = tester.getRect(find.byKey(rowWarningBadgeTextKey).first);
+      expect(lineBox.bottom, greaterThanOrEqualTo(textBox.bottom));
 
       // 文字は danger と同じ色相で、**変更後名より薄い**。
       final label = style.color!;
@@ -616,7 +631,7 @@ void main() {
 
     testWidgets('行の高さは、現在名の長さでも警告の余白でも伸びない', (tester) async {
       // `008:T18` の残余risk(M220 / M221): 行の高さを縛る assertion が無かった。
-      // 現在名は 1 行で切り、警告は「文字 + 上下の余白 4」の高さである。
+      // 現在名は 1 行で切り、警告は「文字 + 上下の余白 4 + 下線」の高さである。
       /// 行そのもの(下に行の区切り線を持つ箱)の高さ。
       double rowOf(String name) {
         final row = find
@@ -636,8 +651,9 @@ void main() {
       final short = rowOf('alpha.jpg');
       final box = tester.getSize(find.byKey(rowWarningKey).first).height;
       final text = tester.getSize(warningText()).height;
-      // `008:T50` で枠線をやめたので、上下の余白 4 だけ。
-      expect(box, closeTo(text + 2 * 4, 0.01));
+      // `008:T50` で枠線をやめたので、上下の余白 4 と、文字の下に引いた下線の太さ
+      // (2026-10-01 の実機確認1回目で、件数表示の「詳細」と同じ引き方へ変えた)。
+      expect(box, closeTo(text + 2 * 4 + warningLinkUnderlineWidth, 0.01));
 
       final longName = '${'とても長い現在の名前' * 6}.jpg';
       await pumpScaled(tester, threeKinds(first: longName), 411, 1);
