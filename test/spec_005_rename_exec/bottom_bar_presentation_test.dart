@@ -392,6 +392,7 @@ void main() {
       // その前は前から順に全体が見え、数(「+」)は出ない。
       var sawCut = false;
       var sawFadeRightAfterFit = false;
+      var sawNextPeek = false;
       for (var width = 320.0; width <= 440; width += 8) {
         await tester.binding.setSurfaceSize(Size(width, 800));
         var previousFit = false;
@@ -441,15 +442,26 @@ void main() {
             sawCut = true;
             expect(fades, 1, reason: 'width=$width n=$n');
             expect(chips, lessThanOrEqualTo(n), reason: 'width=$width n=$n');
-            // フェードしているのは、見えている最後のチップ(`abcdef{chips-1}`)。
+            final fade = find.byKey(ruleChipFadeKey);
+            final inFade = find
+                .descendant(of: fade, matching: find.byType(RuleSummaryChip))
+                .evaluate()
+                .length;
+            final full = chips - inFade;
+            // フェードしているのは、全体が見えているチップの次(`abcdef{full}`)。
             expect(
-              find.descendant(
-                of: find.byKey(ruleChipFadeKey),
-                matching: find.text('abcdef${chips - 1}'),
-              ),
+              find.descendant(of: fade, matching: find.text('abcdef$full')),
               findsOneWidget,
               reason: 'width=$width n=$n',
             );
+            // **フェードは列の右端まで届き、空きを残さない**(2026-10-01 の開発者の
+            // 指定。1つ手前をフェードにしたときに右へ空きが残り、消えるのが早く見えた)。
+            expect(
+              tester.getRect(fade).right,
+              closeTo(tester.getRect(strip).right, 0.01),
+              reason: 'width=$width n=$n',
+            );
+            if (inFade == 2) sawNextPeek = true;
             if (previousFit) sawFadeRightAfterFit = true;
             previousFit = false;
           }
@@ -460,6 +472,22 @@ void main() {
       // 1つ足したときにフェードが出ている(開発者が挙げた場面)。
       expect(sawCut, isTrue);
       expect(sawFadeRightAfterFit, isTrue);
+      // 前提: 残りが下限に満たず1つ手前をフェードにした経路(次のチップの端が覗く)も
+      // 通っている。
+      expect(sawNextPeek, isTrue);
+    });
+
+    test('フェードで薄くするのは右端の決まった長さだけ(008:T47 実機確認4回目)', () {
+      // 2026-10-01 の開発者の指定: 薄くし始めるのが早い。以前は幅の 35% からだった。
+      for (final width in [24.0, 60.0, 140.0]) {
+        expect(
+          width * (1 - ruleChipFadeStart(width)),
+          closeTo(ruleChipFadeLength, 0.001),
+          reason: 'width=$width',
+        );
+      }
+      // 長さより狭いフェードは全体を薄くする。
+      expect(ruleChipFadeStart(10), 0);
     });
 
     testWidgets('チップの列の高さは、1つ目のチップからフェードしても変わらない(008:T47)', (tester) async {
