@@ -96,6 +96,7 @@
 | `008:T18`(同) | **穴A: 行の警告の濃さに下限が無い。** `rowWarningLabelOpacity` を `0.78 → 0.06` にしても通る。testが置いているのは相対条件(変更後名より薄い / 色相が `danger`)だけ | **M225**(同) |
 | `008:T18`(同) | **穴B: 「押せると分かる形」の検査が構造だけ。** 枠を完全に透明にしても、塗りが `0.001` でも通る。testは `border != null` / `borderRadius != null` / `0 < fill.a < 1` しか見ない | **M226**(同) |
 | `008:T18`(独立review attempt 4) | **行の警告に文字倍率の被覆が無い。** `textScaler` を上げると (i) アイコンと文字の字面の中心の差が開き(実測 gap = 1.18 / 2.37 / 4.30 / 6.91px @ 1.0 / 1.3 / 2.0 / 3.0)、(ii) 幅320dpで種別3つ併発のとき**倍率 1.3 から警告文が切り詰められる**。`rowWarningIconInkNudge` の比例先 `rowWarningFontSize` が定数で、`Icon` も `applyTextScaling` が既定 false であることが原因。**`T18`手順2′の確認C(フォントサイズ最大)は開発者の回答が無いまま`T18`から移管された。閉じるのはこのtaskである** | 対照は無い。`row_presentation_test.dart` の `TextScaler.linear` が前例 |
+| `008:T47`(独立review attempt 5) | **フッターのチップのフェードの下限(`ruleChipFadeMinWidth` = 24)に満たないとき1つ手前をフェードにする分岐と、下限そのものを直接検査する test が無い。** 分岐は M199・M241・M588・M589・M593〜M595 と「フェードがちょうど1つ」「フェードが列の右端まで届く」の test が間接に守る | 対照は無い。下限の値を見直すときに test を足す |
 
 **3条件の判定と受容の根拠は出所側のtask.mdにある** — [`T18`のtask.md](../T18-row-result-presentation/task.md)の
 「引き受けた残余risk」の各節。**ここへ複製しない。**
@@ -112,12 +113,24 @@
 ## 作業記録
 
 - 2026-08-13 / 人間の判断で(a)〜(d)を008の対象へ入れた際に定義。
+- 2026-10-01 / 着手(開発者の指示「008:T10に進んでください」)。依存 T02/T04/T06/T07/T08/T18/T19/T20 はすべて done。branch `asdd/008-ui-alignment/T10-spacing-and-typography`、worktree `/workspace/.worktrees/008-T10-spacing-and-typography`、起点 `dev`@`72ca7ef`。`008:T47` が引き受け先にした残余risk(フェードの下限)を上の表へ足した。
+
+### 着手時の棚卸し(2026-10-01、`72ca7ef`)
+
+- 文字の大きさの直書きは `lib/ui` に `fontSize:` 60箇所、値は 9 / 10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 14 / 15 の10種類。参考designも 10 / 10.5 / 11 / 11.5 / 12 / 12.5 … を使い分けているので、**値は変えずに役割の名前を付けて theme へ寄せる**(見た目は変えない)。値をまとめる(例: 10.5 → 11)のは見た目の変更なので、このtaskではしない。
+- 上部の見出し(要望13)は `lib/main.dart` の既定の `AppBar`(高さ 56)。Android では歯車(`008:T43`)が出ないので、見出しだけが 56 を占めている。
+- 行の区切り線(要望10)は他の枠と同じ `colors.border`(白 8%)を共有している。
+
+### 進め方(checkpoint)
+
+1. **見た目の変更(要望13・要望10)** — 見出しを縮める、行の区切り線だけを少し濃くする。test と実機確認1回目。
+2. **typography と余白を theme へ寄せる** — 値を変えずに名前を付け、画面側の直書きを置き換える(見た目は変わらない。既存の widget test の継続PASSが主な証拠)。
+3. **引き受けた残余risk** — 行の高さ・警告の濃さ・押せる形の下限、行の警告の文字倍率、帯と一覧を組んだ test、フェードの下限。closeする / 受容し直すを1件ずつ記録する。文字 3.0 の項目(N-8b′・N-8b″)は Android の上限が 2.0 なので、製品経路の外として扱いを記録する。
+4. 独立review → 実機確認(Android)。Windows desktop の確認は host 側の人間に依頼する。
 
 ## Current state / handoff
 
-- Last checkpoint: 定義しただけ。未着手
+- Last checkpoint: 着手した(2026-10-01)。checkpoint 1 の実装中
 - Blocker category: なし
-- Waiting for: 008の実装taskすべて。最後に一度で行う。**`T18`から残余risk4件を引き受けている**(上の「他taskから引き受けた残余risk」)
-- Requested action: なし
-- Evidence revision: `dev@ea1dd04`
-- Next Agent action: 先行taskの完了後に着手する。先に手を付けない
+- Evidence revision: `dev`@`72ca7ef`
+- Next Agent action: checkpoint 1(見出しの縮小・行の区切り線)を実装し、test を足す
