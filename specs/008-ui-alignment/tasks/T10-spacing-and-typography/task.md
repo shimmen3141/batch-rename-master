@@ -168,9 +168,39 @@ M180 M220 M221 M225 M226 M602 M603 M604 M605 すべて KILLED
 ```
 - 検証(`07b7410`): `flutter test` +1133 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 554 PASS。
 
+### 開発者の要望と決定(2026-10-01、実機確認の前に受領)
+
+実機確認1回目の依頼後、確認の前に開発者から4件を受領した(原文):
+
+1. 「リネームリストで、写真のサイズが小さいように思うのですが、参考デザイン(docs/design/Bulk Renamer.html)ではどうなっていますか。」
+2. 「参考デザインでは変更前と変更後のファイル名の文字の大きさを変えていたと思うのですが、同様にできますか。」
+3. 「ヘッダーでフォルダ名を表示していますが、そのフォルダ名の表示が薄いので白にしてください。また、フォルダ名の文字の大きさをわずかに大きくし、『別フォルダへ』のボタンにあるアイコンを削除してください。」
+4. 「『一括リネーム』が書いてあるヘッダーは削除してしまってもよいと思ったのですが、どうでしょうか。」
+
+Agent は参考designを照合して答えた(行の preview は 52、現在名 11.5・変更後名 13 の 700、folder 名 14 の `#eef1f4`、読み込み button は文字だけ、画面は folder の帯から始まり見出しの帯は無い)。ヘッダーを消すと歯車(`008:T43`)の置き場所が無くなるので、A: folder の帯の右端 / B: 一覧のケバブ / C: 帯を残す、を示した。
+
+**開発者の回答**: 「2については、文字の太さの変更に加え、変更前の名前の文字の色を薄くしてください。4についてはAで進めてください。それ以外はあなたの提案通り進めてください。」→ plan の「人間の決定」に記録した。checkpoint 1 の「見出しは消さない」はこの決定で変わった(要望13 は**縮める**から**消す**へ)。
+
+### checkpoint 4: 要望の反映(`85f4b79`)
+
+- 見出しの帯を削除。上だけ `SafeArea` で status bar を避ける。theme の `appBarTheme`(高さ 44・文字 16)は file browser の帯が使い続ける。
+- 歯車を `FileSourceBar.trailing` で folder の帯の右端、読み込み button の右へ。モードの出入りでは消さない(以前の帯でもモード中に出ていた)。
+- 行の preview 40 → 52(`rowPreviewSize`)。現在名 13 → 11.5(`AppFontSize.label`)・色 `textSecondary`(いちばん薄い `textMuted` は小さい字で読みにくいので使わない)。変更後名 w500 → w700。
+- folder 名 `textSecondary`・12 → `textPrimary`・13(参考designは 14。「わずかに」なので 1 段)。読み込み button のアイコンを削除。folder のアイコンは残した(要望はボタンのアイコンだけ)。
+- test: `test/widget_test.dart`(帯が無く folder の帯が status bar の下から始まる / browser の帯は低く小さいまま / folder 名の色と大きさ・button にアイコンが無い / 歯車が帯の右端で帯の中に収まり押せる)、`test/spec_002_file_list/row_name_hierarchy_test.dart`(preview 52、現在名 < 変更後名、変更後名 w700、現在名の明るさが白と `textMuted` の間)。
+- mutation: M606〜M615 を追加。M94・M171・M218・M221・M476 の find を追随させた(意図は同じ)。
+- 範囲付き mutation(`flutter test test/widget_test.dart test/spec_002_file_list test/spec_004_file_source test/spec_005_rename_exec test/spec_013_android_rename`、対象 `85f4b79`、19件 = 追加10・find追随5・見出しと区切り線の既存4):
+
+```text
+M94 M171 M218 M221 M476 M598 M599 M600 M601 M606〜M615 すべて KILLED
+19 mutations: 19 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`85f4b79`): `flutter test` +1136 PASS(-1 は commit 前の mutation の find 検査。find を追随させて `check_mutation_finds.py` 564 PASS)、`dart format` 0 changed、`flutter analyze` No issues(commit 後に `sort_child_properties_last` と test の不要な import の2件を直して再実行)。
+
 ### manual
 
-- `manual-verification.md` を1回目の手順にした(Android: 見出し・区切り線・文字最大での行の警告・文字最大での全体。Windows desktop: 広い窓・狭い窓・テキストのサイズ 225% で同じ点と歯車)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。
+- 2026-10-01 の要望を反映して `manual-verification.md` を書き直した(対象 `85f4b79`。0 で帯が無いこと、1 folder の帯、2 行の写真と名前の強弱・区切り線、3〜4 文字最大、5 Windows の歯車の位置)。実機確認はまだ1回も行っていない。
+- (以前)`manual-verification.md` を1回目の手順にした(Android: 見出し・区切り線・文字最大での行の警告・文字最大での全体。Windows desktop: 広い窓・狭い窓・テキストのサイズ 225% で同じ点と歯車)。画面の文言(「一括リネーム」「命名ルールを設定する」「＋ 自由テキスト」)は current revision と `git grep` で照合した。
 
 ### 独立review
 

@@ -3,7 +3,6 @@
 // - 「リネームリストで、写真のサイズが小さい」→ 参考designのリッチな行と同じ 52 にする。
 // - 「変更前と変更後のファイル名の文字の大きさを変える」「変更前の名前の文字の色を薄く」
 //   → 現在名は小さく薄く、変更後名は大きく太く。
-import 'package:batch_rename_master/core/file_entry.dart';
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
