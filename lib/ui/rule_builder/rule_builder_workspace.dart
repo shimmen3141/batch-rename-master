@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/preview/file_preview.dart';
+import '../common/app_toast.dart';
 import '../file_list/file_list_controller.dart';
 import '../file_list/removal_selection.dart';
 import '../file_list/file_list_view.dart';
@@ -52,7 +53,10 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
   void initState() {
     super.initState();
     widget.rule.addListener(_syncRule);
+    widget.rule.addListener(_scheduleRaiseDigits);
+    widget.fileList.addListener(_scheduleRaiseDigits);
     _scheduleSyncRule(); // 初期ルールをプレビューへ反映(フレーム後)。
+    _scheduleRaiseDigits(); // 復元したルールと最初の一覧の組み合わせも見る(REQ-015)。
   }
 
   @override
@@ -60,9 +64,54 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.rule != widget.rule) {
       oldWidget.rule.removeListener(_syncRule);
+      oldWidget.rule.removeListener(_scheduleRaiseDigits);
       widget.rule.addListener(_syncRule);
+      widget.rule.addListener(_scheduleRaiseDigits);
       _scheduleSyncRule();
+      _scheduleRaiseDigits();
     }
+    if (oldWidget.fileList != widget.fileList) {
+      oldWidget.fileList.removeListener(_scheduleRaiseDigits);
+      widget.fileList.addListener(_scheduleRaiseDigits);
+      _scheduleRaiseDigits();
+    }
+  }
+
+  /// 連番の桁数の自動の引き上げを、フレーム後に1回だけ行う(003 REQ-015)。
+  ///
+  /// **件数(002)とルール(003)のどちらが変わっても見る** — 件数が増えたときと、
+  /// ルールが置き換わったとき(前回ルールの復元を含む)の両方で起きるためである。
+  /// 引き上げはルールを変えるので、**通知の最中に同期で変えない**(同じフレームで
+  /// 一覧とルールが互いの通知の中で書き換わる)。フレーム後へ回し、同じフレームの
+  /// 何度もの通知は1回にまとめる。
+  bool _raiseScheduled = false;
+  void _scheduleRaiseDigits() {
+    if (_raiseScheduled) return;
+    _raiseScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _raiseScheduled = false;
+      if (mounted) _raiseDigits();
+    });
+    // フレームが要求されていないと post-frame は来ない(通知だけで画面が変わらない
+    // 場合)。ここで要求しておく。
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _raiseDigits() {
+    // 件数は連番のエディタの下限と同じもの(一覧 = rename 対象。`008:T03`)。
+    final raises = widget.rule.raiseSequenceDigits(
+      widget.fileList.selectedCount,
+    );
+    if (raises.isEmpty) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    // **黙って変えない**(003 REQ-015)。何桁から何桁へ変えたかを読ませる。
+    showAppToast(
+      messenger,
+      key: sequenceDigitsRaisedToastKey,
+      tone: ToastTone.info,
+      content: Text(sequenceDigitsRaisedMessage(raises)),
+    );
   }
 
   /// 初期同期をフレーム後へ回す(003 T6)。
@@ -80,6 +129,8 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
   @override
   void dispose() {
     widget.rule.removeListener(_syncRule);
+    widget.rule.removeListener(_scheduleRaiseDigits);
+    widget.fileList.removeListener(_scheduleRaiseDigits);
     super.dispose();
   }
 
@@ -356,4 +407,18 @@ class _SheetPreview extends StatelessWidget {
       },
     );
   }
+}
+
+/// 連番の桁数を自動で引き上げたときの通知(003 REQ-015)。
+const Key sequenceDigitsRaisedToastKey = Key('sequence-digits-raised');
+
+/// 通知の文言。**何桁から何桁へ変えたかを読ませる**(003 REQ-015)。連番が複数なら
+/// 変えたものを順に並べる。
+String sequenceDigitsRaisedMessage(List<SequenceDigitsRaise> raises) {
+  if (raises.length == 1) {
+    final r = raises.single;
+    return 'ファイルの数に合わせて、連番の桁数を${r.from}桁から${r.to}桁へ増やしました';
+  }
+  final parts = [for (final r in raises) '${r.from}桁→${r.to}桁'].join('、');
+  return 'ファイルの数に合わせて、連番の桁数を増やしました($parts)';
 }

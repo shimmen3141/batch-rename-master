@@ -556,15 +556,28 @@ void main() {
         // **ルールは `RuleController` 側に置く。** `RuleBuilderWorkspace` は
         // 初回フレーム後に自分のルールを `FileListController` へ流すので、
         // controller 側へ直接入れると空で上書きされる。
+        //
+        // **警告の元は作成日時不明にする**(`008:T52`)。以前は桁不足(開始100・1桁)
+        // だったが、003 REQ-015 で件数に合わせて桁数が自動で引き上がり、警告そのものが
+        // 出なくなった。作成日時不明はルールを直しても消えない、もう一つのルール由来の
+        // 種別(以前の `基準日時なし`)である。
         final rule = RuleController()
-          ..addToken(const SequenceToken(start: 100, digits: 1));
+          ..addToken(const OriginalNameToken())
+          ..addToken(
+            const DateTimeToken(
+              source: DateTimeSource.created,
+              format: 'YYYYMMDD',
+            ),
+          );
         addTearDown(rule.dispose);
         await tester.pumpWidget(
           MaterialApp(
             theme: appDarkTheme(),
             home: Scaffold(
               body: RuleBuilderWorkspace(
-                fileList: FileListController(files: [_f('alpha.txt')]),
+                fileList: FileListController(
+                  files: [_noCreatedAt('alpha.jpg')],
+                ),
                 rule: rule,
               ),
             ),
