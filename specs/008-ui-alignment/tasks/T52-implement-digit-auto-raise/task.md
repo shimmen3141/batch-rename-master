@@ -38,6 +38,10 @@ M506 KILLED / M510 KILLED / M511 SURVIVED(期待どおり。note に「SURVIVED�
 - **M631 の SURVIVED を全件で確かめ直した**(`flutter test --exclude-tags tooling`): `1 mutations: 0 KILLED, 1 SURVIVED`。起動時の `_scheduleRaiseDigits()` は、初期の `_syncRule` → `setRule` が一覧を通知して一覧の購読が引き上げを起こすので**等価**だった。重複した呼び出しを外し、M631 を表から削除した(代表例15c は M630 の経路が担う。test「例15c」は残っている)。
 - 検証(`51f7870`): `flutter test` +1163 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 575 PASS。
 
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `bcc2c34` と同一の build(`T50` と共通の手順 4)。受領: 開発者「動作は問題ありませんでしたが、各行の警告の下線が見えづらいです。…」→ **手順4(起動し直して1桁から2桁へ引き上がり、通知が出る)は期待どおり。** 指摘は `T50` の下線だけ。`T50` の修正(`a1e173a`)で code が変わったので、2回目で同じ build をもう一度確かめる。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。`T50` と `T52` は同じ PR #208 なので、1回の review で両方を見た。

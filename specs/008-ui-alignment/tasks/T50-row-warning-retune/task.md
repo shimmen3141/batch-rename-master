@@ -47,6 +47,23 @@ M173 M179 M180 M213 M215 M218 M220 M221 M222 M225 M227 M261 M622 M623 M624 M625 
 - **M228 の SURVIVED を全件で確かめ直した**(`flutter test --exclude-tags tooling`): `1 mutations: 0 KILLED, 1 SURVIVED`。警告は現在名と同じ `Row` の非 flex の子で横幅の上限が無く、`MainAxisSize.max` でも中身の幅にしかならない **等価な変異**。対照として表に残し、note に期待値を書いた(右寄せは M213 が見る)。
 - 検証(`1b5d119`): `flutter test` +1152 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 571 PASS。
 
+### 実機確認 1回目(2026-10-01)
+
+- 対象: `lib/` が `bcc2c34` と同一の build。Android エミュレータと Windows desktop。手順 `manual-verification.md` の 0〜6(`T52` と共通)。
+- 受領: 2026-10-01、会話で開発者から(原文)「動作は問題ありませんでしたが、各行の警告の下線が見えづらいです。ヘッダー付近の警告文の『詳細』の下線の引き方を参考にしてください。」→ **動作(0〜6)は期待どおり。下線の見え方だけ指摘。**
+
+### checkpoint 2: 下線の引き方(`a1e173a`)
+
+- 行の警告の下線を、文字の装飾(`TextDecoration.underline`。字形に接して細い)から、**件数表示の「詳細」と同じく文字の枠の下端に引いた線**へ変えた。太さは共有の定数 `warningLinkUnderlineWidth`(1.5)にし、件数表示も同じ定数を使う。
+- test: 「警告は押せると分かる形」を、文字の装飾ではなく下の線(太さ = 共有の定数 ≥ 1.5、色 = 文字と同じ、文字の下にある)を見る形へ。行の高さの test は線の太さを足した値へ。
+- mutation: M622・M623・M570 の find を追随、M633(線を細くする)を追加。範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list`、対象 `a1e173a`、7件):
+
+```text
+M220 M227 M261 M570 M622 M623 M633 すべて KILLED
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+- 検証(`a1e173a`): `flutter test` +1164 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 577 PASS。
+
 ### 独立review
 
 reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。`T50` と `T52` は同じ PR #208 なので、1回の review で両方を見た。
