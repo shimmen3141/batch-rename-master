@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T52",
   "title": "件数が増えたとき連番の桁数を自動で引き上げて通知する",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T51"
   ],

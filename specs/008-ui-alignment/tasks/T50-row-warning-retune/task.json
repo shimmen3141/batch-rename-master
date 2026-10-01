@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T50",
   "title": "各行の警告の出し方を再調整する",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,

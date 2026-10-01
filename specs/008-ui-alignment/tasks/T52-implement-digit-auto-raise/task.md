@@ -38,9 +38,19 @@ M506 KILLED / M510 KILLED / M511 SURVIVED(期待どおり。note に「SURVIVED�
 - **M631 の SURVIVED を全件で確かめ直した**(`flutter test --exclude-tags tooling`): `1 mutations: 0 KILLED, 1 SURVIVED`。起動時の `_scheduleRaiseDigits()` は、初期の `_syncRule` → `setRule` が一覧を通知して一覧の購読が引き上げを起こすので**等価**だった。重複した呼び出しを外し、M631 を表から削除した(代表例15c は M630 の経路が担う。test「例15c」は残っている)。
 - 検証(`51f7870`): `flutter test` +1163 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` 575 PASS。
 
+### 独立review
+
+reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一段軽い」に代えて従った)。`T50` と `T52` は同じ PR #208 なので、1回の review で両方を見た。
+
+- **attempt 1**: `441acdf..950cb2c`(全範囲) — **PASS**。確認された点: T50 の右端の種類・補足情報の赤字・`（変更なし）` が 005 REQ-009 (1)・代表例20・20d・REQ-021 を保つ / `rowHasMissingCreatedAt` が畳む前の警告を見る / 語彙のそろい / 既存 test の書き換えに削除・skip・緩和が無い(4ファイルで 87 → 88 件)/ M224・M226・M605 の除外と M228 の等価の扱い / T52 が 003 REQ-015 を満たし、フレーム後1回でループしない / M631 を外した判断 / 既存 test 2件の意図 / mutation 表 576 件の一意 / manual 手順4が引き上げを起こす。reviewer 側: 範囲付き mutation 14 KILLED・M228 SURVIVED(全件でも SURVIVED)、`flutter test` 1164 PASS、analyze・format PASS。
+  - **P2(成果物の欠陥)**: 両 task の `Current state / handoff` が「登録しただけ」のままで、実装・PR・merge の記録と食い違う → handoff を現状へ更新して閉じた(**SELF-CHECK**、記録だけの差分)。
+- 連鎖: `441acdf..950cb2c` PASS → 以後の記録だけの差分は SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録しただけ(2026-10-01)
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: `T51` の承認を待ってから着手する
+- Last checkpoint: `T50`(行の警告)と `T52`(連番の桁の自動引き上げ)を同じ branch で実装(`bcc2c34`、T52 は merge で取り込み)。独立review attempt 1(`441acdf..950cb2c`)PASS、P2 は記録で閉じた
+- Blocker category: human verification
+- Waiting for: 開発者による実機確認1回目(`/workspace/.worktrees/008-T50-row-warning-retune/specs/008-ui-alignment/tasks/T50-row-warning-retune/manual-verification.md` の 0〜6。Android エミュレータと Windows desktop。`T50`・`T52` 共通)
+- Requested action: worktree の HEAD から build し(`lib/` は `bcc2c34` と同一)、0〜6 を確かめて結果を会話で伝える
+- Evidence revision: `bcc2c34`(`lib/`)
+- Next Agent action: 結果を両 task の「実機確認 1回目」節へ記録する → 指摘があれば直して差分review(range は `950cb2c` 以降)→ 実機確認をやり直す。OK なら両方 done にし、PR #208 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、T50・T52 の worktree と branch を片付ける。あわせて、命名ルール設定buttonに警告を出す案(推奨案4)を開発者に尋ねる
