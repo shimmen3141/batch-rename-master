@@ -13,6 +13,7 @@ import '../rename_exec/rename_execution_controller.dart';
 import '../rule_builder/rule_chip_strip.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
+import 'file_size_format.dart';
 import 'file_sort.dart';
 import 'header_metrics.dart';
 import 'removal_selection.dart';
@@ -72,6 +73,9 @@ const Key rowCreatedAtKey = Key('row-created-at');
 
 /// 行サブ情報の更新日時。狭幅では作成日時より先に削られる側である(008:T07)。
 const Key rowModifiedAtKey = Key('row-modified-at');
+
+/// 行サブ情報のファイルの大きさ(`008:T48`)。
+const Key rowSizeKey = Key('row-size');
 
 /// メイン画面のファイルリスト(002 spec の描画層)。
 ///
@@ -2177,6 +2181,15 @@ class _DateSubInfo extends StatelessWidget {
                 key: rowModifiedAtKey,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: base,
+              ),
+              // **大きさは日時の後ろ、ラベル無し**(`008:T48`。2026-10-01 の開発者の
+              // 決定 A。参考designも `2.4 MB · 8/4 16:00` とラベルを付けない)。
+              // 短いので、日時が2行に分かれる幅では更新日時の横へ収まる。
+              Text(
+                formatFileSize(file.size),
+                key: rowSizeKey,
+                maxLines: 1,
                 style: base,
               ),
             ],

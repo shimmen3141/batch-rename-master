@@ -2,12 +2,12 @@
   "schema": "asdd.task/v1",
   "id": "T48",
   "title": "行の補足情報へファイルサイズを足す",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [],
   "covers": [
     "002:REQ-010"
   ],
   "issue": null,
-  "pullRequest": null,
-  "manualVerification": null
+  "pullRequest": 206,
+  "manualVerification": "manual-verification.md"
 }
