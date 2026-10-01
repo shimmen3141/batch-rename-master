@@ -70,13 +70,15 @@ reviewerは`gpt-6-luna`(開発者指定。AGENTS.md の既定「実装より一�
 
 - **attempt 1**: `441acdf..950cb2c`(全範囲) — **PASS**。確認された点: T50 の右端の種類・補足情報の赤字・`（変更なし）` が 005 REQ-009 (1)・代表例20・20d・REQ-021 を保つ / `rowHasMissingCreatedAt` が畳む前の警告を見る / 語彙のそろい / 既存 test の書き換えに削除・skip・緩和が無い(4ファイルで 87 → 88 件)/ M224・M226・M605 の除外と M228 の等価の扱い / T52 が 003 REQ-015 を満たし、フレーム後1回でループしない / M631 を外した判断 / 既存 test 2件の意図 / mutation 表 576 件の一意 / manual 手順4が引き上げを起こす。reviewer 側: 範囲付き mutation 14 KILLED・M228 SURVIVED(全件でも SURVIVED)、`flutter test` 1164 PASS、analyze・format PASS。
   - **P2(成果物の欠陥)**: 両 task の `Current state / handoff` が「登録しただけ」のままで、実装・PR・merge の記録と食い違う → handoff を現状へ更新して閉じた(**SELF-CHECK**、記録だけの差分)。
-- 連鎖: `441acdf..950cb2c` PASS → 以後の記録だけの差分は SELF-CHECK。
+- `950cb2c..bcb5b58` は記録だけ(attempt 1 の P2 を閉じた。SELF-CHECK)。
+- **attempt 2**: `bcb5b58..47d0b40`(差分review。実機確認1回目の下線の指摘の修正) — **PASS**(指摘なし)。reviewerは`gpt-6-luna`。確認された点: 行の警告と件数表示の「詳細」が同じ引き方・太さ・色、行の高さ・文字倍率・baseline への影響が test に入っている、M622・M623・M633 KILLED(M570 は範囲付きで SURVIVED、全件で KILLED)、manual 2回目の build の見分け方が一致。`flutter test` 1164 PASS、analyze・format PASS。
+- 連鎖: `441acdf..950cb2c` PASS → `950cb2c..bcb5b58` SELF-CHECK → `bcb5b58..47d0b40` PASS → 以後の記録だけの差分は SELF-CHECK。
 
 ## Current state / handoff
 
-- Last checkpoint: `T50`(行の警告)と `T52`(連番の桁の自動引き上げ)を同じ branch で実装(`bcc2c34`、T52 は merge で取り込み)。独立review attempt 1(`441acdf..950cb2c`)PASS、P2 は記録で閉じた
+- Last checkpoint: 実機確認1回目(動作OK・下線の指摘)を受けて下線の引き方を直した(`a1e173a`)。差分review attempt 2(`bcb5b58..47d0b40`)PASS
 - Blocker category: human verification
-- Waiting for: 開発者による実機確認1回目(`/workspace/.worktrees/008-T50-row-warning-retune/specs/008-ui-alignment/tasks/T50-row-warning-retune/manual-verification.md` の 0〜6。Android エミュレータと Windows desktop。`T50`・`T52` 共通)
-- Requested action: worktree の HEAD から build し(`lib/` は `bcc2c34` と同一)、0〜6 を確かめて結果を会話で伝える
-- Evidence revision: `bcc2c34`(`lib/`)
-- Next Agent action: 結果を両 task の「実機確認 1回目」節へ記録する → 指摘があれば直して差分review(range は `950cb2c` 以降)→ 実機確認をやり直す。OK なら両方 done にし、PR #208 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、T50・T52 の worktree と branch を片付ける。あわせて、命名ルール設定buttonに警告を出す案(推奨案4)を開発者に尋ねる
+- Waiting for: 開発者による実機確認2回目(`/workspace/.worktrees/008-T50-row-warning-retune/specs/008-ui-alignment/tasks/T50-row-warning-retune/manual-verification.md` の 0〜6。Android エミュレータと Windows desktop。`T50`・`T52` 共通)
+- Requested action: worktree の HEAD から build し(`lib/` は `a1e173a` と同一)、0〜6 を確かめて結果を会話で伝える
+- Evidence revision: `a1e173a`(`lib/`)
+- Next Agent action: 結果を両 task の「実機確認 2回目」節へ記録する → 指摘があれば直して差分review(range は `47d0b40` 以降)→ 確認をやり直す。OK なら両方 done にし、PR #208 を ready → CI → merge commit で merge、`dev` で `workspace.py check specs`、T50・T52 の worktree と branch を片付ける。あわせて、命名ルール設定buttonに警告を出す案(推奨案4)を開発者に尋ねる
