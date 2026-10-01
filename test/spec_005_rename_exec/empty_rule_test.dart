@@ -299,18 +299,25 @@ void main() {
       var opened = 0;
       await _pump(tester, files, onEditRule: () => opened++);
 
-      expect(find.text('変更する名前を設定する'), findsOneWidget);
+      // 文言は `008:T47` で「変更する名前を設定する」から変えた。
+      expect(find.text('命名ルールを設定する'), findsOneWidget);
       await tester.tap(find.byKey(const Key('configure-rule')));
       await tester.pumpAndSettle();
       expect(opened, 1);
 
       files.setRule(const RenameRule([LiteralToken('x')]));
       await tester.pump();
-      expect(find.text('変更する名前を設定する'), findsNothing);
+      expect(find.text('命名ルールを設定する'), findsNothing);
       // 参考designの2行button(見出し + 設定中のルール)へ入れ替わる。
       expect(find.text('命名ルール'), findsOneWidget);
-      // **トークンを並べた形である**(008:T20 の要望9)。説明文にしない。
-      expect((tester.widget<Text>(find.byKey(ruleSummaryKey))).data, 'x');
+      // **トークンのチップで並べる**(008:T47。以前は字面 `x`)。説明文にしない。
+      expect(
+        find.descendant(
+          of: find.byKey(ruleSummaryKey),
+          matching: find.text('x'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 

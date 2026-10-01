@@ -102,8 +102,9 @@ void main() {
     // 日時はフォーマットそのものを値として出す。
     Finder inChip(String description, String text) =>
         find.descendant(of: tokenChip(description), matching: find.text(text));
-    expect(inChip('元の名前', '元名'), findsOneWidget);
-    expect(inChip('元の名前', '[元のファイル名]'), findsOneWidget);
+    // 2026-09-30 に「元名」「[元のファイル名]」から変えた(`008:T47`)。
+    expect(inChip('元の名前', '元の名前'), findsOneWidget);
+    expect(inChip('元の名前', 'ファイル名'), findsOneWidget);
     expect(inChip('テキスト', 'テキスト'), findsNWidgets(2)); // 種類名と値
     expect(inChip('日時 YYYYMMDD', '作成日時'), findsOneWidget);
     expect(inChip('日時 YYYYMMDD', 'YYYYMMDD'), findsOneWidget);

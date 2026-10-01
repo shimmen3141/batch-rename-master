@@ -50,6 +50,7 @@
     "tasks/T43-settings-gear-shift-toggle",
     "tasks/T44-token-editor-presentation",
     "tasks/T45-rule-sheet-presentation",
-    "tasks/T46-mutation-find-check"
+    "tasks/T46-mutation-find-check",
+    "tasks/T47-footer-button-unification"
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T47",
+  "title": "フッターのボタンの形を揃え、ルールをチップで見せる",
+  "status": "done",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": 204,
+  "manualVerification": "manual-verification.md"
+}

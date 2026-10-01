@@ -54,7 +54,8 @@ String _literalLabel(String value) {
 /// 文字列トークンは入口を持たない(003 REQ-011)ので、値が区切りのプリセットなら
 /// 「区切り」、それ以外は「テキスト」と呼ぶ。日時は基準の名前にする。
 String tokenKindLabel(Token token) => switch (token) {
-  OriginalNameToken() => '元名',
+  // 「元名」から変えた(2026-09-30 の開発者の指定。`008:T47`)。
+  OriginalNameToken() => '元の名前',
   LiteralToken(:final value) =>
     separatorPresets.contains(value) ? '区切り' : 'テキスト',
   SequenceToken() => '連番',
@@ -68,12 +69,12 @@ String tokenKindLabel(Token token) => switch (token) {
 /// チップの下段に出す値: 一覧の1件目([sample])で描いた実際の値(参考デザイン。
 /// 008:T45)。
 ///
-/// 元の名前はファイルごとに違うので `[元のファイル名]`。連番は1番目の値。日時は
+/// 元の名前はファイルごとに違うので `ファイル名`(2026-09-30 に `[元のファイル名]` から変えた。`008:T47`)。連番は1番目の値。日時は
 /// 1件目が無ければフォーマットそのもの、基準の日時が不明なら「不明」(001 INV-006。
 /// 別の日時で代えない)。空白は見えないので `␣` にする。
 String tokenChipValue(Token token, FileEntry? sample) {
   final raw = switch (token) {
-    OriginalNameToken() => '[元のファイル名]',
+    OriginalNameToken() => 'ファイル名',
     LiteralToken(:final value) => value,
     SequenceToken() => token.render(
       RenameContext(

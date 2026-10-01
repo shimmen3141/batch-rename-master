@@ -33,6 +33,17 @@ const double ruleButtonBorderOpacity = 0.42;
 const double ruleButtonIconBoxSize = 32;
 const double ruleEditChipFillOpacity = 0.16;
 
+/// ルール設定buttonの上下の内側の余白と、「命名ルール」とチップの間(`008:T47`)。
+/// 2026-09-30 の開発者の指定で、上下を 11 → 8 → 6 に詰め、間を 4 → 7 → 9 に広げた
+/// (実機確認1回目・2回目)。
+const double ruleButtonVerticalPadding = 6;
+const double ruleButtonHeadingGap = 9;
+
+/// 未設定のルール設定buttonの中身の最小の高さ(文字の拡大に合わせて伸ばす。`008:T47`)。
+/// 2026-10-01 の開発者の指定(実機確認5回目)で、設定済みよりひとまわり小さいくらいまで
+/// 縦に大きくした。文字 1.0 で button は 34 → 64(設定済みは 78)。
+const double ruleButtonEmptyMinContentHeight = 50;
+
 /// 詳細dialog内の節の並び(原因ごとに1節。005 REQ-009 (2) / (3))。
 ///
 /// `008:T19` で「原因の説明」節と「全件」節に分けていた形から組み直した
@@ -385,7 +396,9 @@ String rowWarningLabel(Warning warning) => switch (warning) {
 /// のような説明的な表示になってしまっている」)。**説明は [describeToken] が持ち、
 /// ここは使わない。**
 ///
-/// ルールが空なら空文字を返す(空のときは button ごと入れ替わるので使われない)。
+/// ルールが空なら空文字を返す(空のときは button の中身が入れ替わるので使われない)。
+///
+/// `008:T47` から button はチップ(`RuleChipStrip`)で並べ、この字面は**読み上げ**に使う。
 String describeRuleSummary(RenameRule rule) =>
     rule.tokens.map(describeTokenChip).join();
 
