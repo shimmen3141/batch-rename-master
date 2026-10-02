@@ -254,6 +254,24 @@ void main() {
     });
   });
 
+  test('問い合わせ中に改名が起き、その問い合わせが失敗しても、終わってからもう一度問い合わせる', () async {
+    // 取れたときは結果を入れること自体が一覧の変更通知になるが、**取れなかったときは
+    // 通知が無い**。最後に見直さないと、問い合わせ中の改名を取りこぼす。
+    final a = _f('a.txt');
+    final c = FileListController(files: [a]);
+    final lister = _Lister({})..pending.add('F');
+    final sync = FolderNamesSync(files: c, listNames: lister.call);
+    addTearDown(sync.dispose);
+    await pumpEventQueue();
+
+    c.replaceItems({a: _f('b.txt')});
+    await pumpEventQueue();
+    lister.complete('F');
+    await pumpEventQueue();
+
+    expect(lister.calls, ['F', 'F']);
+  });
+
   test('dispose 後は問い合わせも書き込みもしない', () async {
     final c = FileListController(files: [_f('a.txt')]);
     final lister = _Lister({
