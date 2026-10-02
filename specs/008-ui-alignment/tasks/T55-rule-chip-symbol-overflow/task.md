@@ -41,9 +41,23 @@
 - 2026-10-03 / 起票と実装。test 用のフォントで `same` / `same ` などを描いて再現しないことを確かめ(字形ごとの差が無い)、
   原因を上のとおり特定した。
 
+- 2026-10-03 / 実装(`80a9754`)。検証: `flutter analyze` No issues、`dart format` 0 changed、`flutter test` 1199 PASS、
+  `check_mutation_finds.py` PASS(612件)。mutation(`flutter test test/spec_005_rename_exec/bottom_bar_presentation_test.dart`、3件):
+
+```text
+M666 | KILLED | lib/ui/rule_builder/rule_chip_strip.dart | 008:T55 値の行の高さを固定しない ... | exit 1
+M667 | KILLED | lib/ui/rule_builder/rule_chip_strip.dart | 008:T55 値の Text に strut を付けない ... | exit 1
+M668 | SURVIVED | lib/ui/rule_builder/rule_chip_strip.dart | 008:T55 列の高さを strut 無しで測る ... | exit 0: the tests passed with the mutation applied
+3 mutations: 2 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+  - **M668 の SURVIVED を受容する(安全網の穴)**: 列の高さを strut 無しで測っても、test のフォントは字形ごとの差が無く、
+    strut の有無で行の高さが変わらないので区別できない。失敗は見た目(1px のはみ出しか隙間)で、データ損失・無断置換・
+    偽の成功・権限・互換性のいずれにも当たらない。引き受け先: 008:T55 の実機確認。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装(未commit)
+- Last checkpoint: 実装と自動検証(`80a9754`)。独立reviewを依頼する
 - Blocker category: none
-- Evidence revision: 未定
-- Next Agent action: 検証して commit し、mutation と独立reviewへ進む
+- Evidence revision: `80a9754`
+- Next Agent action: 独立review(Sonnet、`520d072..HEAD`)を起動し、PASS なら実機確認を依頼する

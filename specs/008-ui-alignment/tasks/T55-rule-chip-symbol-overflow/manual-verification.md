@@ -2,7 +2,7 @@
 
 `008:T55` で、ルール設定buttonのチップの値の行の高さを、描く文字によらず一定にした。
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `__COMMIT__` と同一のもの**である。branch
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `80a9754` と同一のもの**である。branch
 `asdd/008-ui-alignment/T55-rule-chip-symbol-overflow` のHEADからbuildすればこれを満たす。
 **code・dependency・build設定が変わったら、この結果は再利用しない。**
 

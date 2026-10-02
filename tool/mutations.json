@@ -4290,7 +4290,7 @@
       "file": "lib/ui/rule_builder/rule_chip_strip.dart",
       "find": "      lineHeight(_valueStyle, strut: _valueStrut(base));",
       "replace": "      lineHeight(_valueStyle);",
-      "note": "008:T55 列の高さを strut 無しで測る — 描く行の高さ(strut)と測った高さが食い違う"
+      "note": "008:T55 列の高さを strut 無しで測る — 描く行の高さ(strut)と測った高さが食い違う。**SURVIVED を受容**: test のフォントは字形ごとの差が無く、strut の有無で行の高さが変わらないので区別できない。実機確認(T55 の manual)で見る"
     }
   ]
 }
