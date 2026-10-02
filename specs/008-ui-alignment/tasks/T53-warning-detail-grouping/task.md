@@ -29,7 +29,7 @@
    なる、読み込んだ他のファイル)**が読める。相手の他の警告は出さない。**読み込んでいない占有名との衝突は相手の名前を
    課さない**(001 の警告が相手が占有名かを持たないため)。改訂案は
    [`behavior-contract.json`](../../../005-rename-exec/contracts/behavior-contract.json) の `revision_history` 10.0 と、
-   [`spec.md`](../../../005-rename-exec/spec.md) の代表例 20e″。**開発者の承認を得るまで実装しない。**
+   [`spec.md`](../../../005-rename-exec/spec.md) の代表例 20e″。**開発者が2026-10-02に承認した。**
 2. **見せ方**(005 spec「自由とする点」):
    - `T14` の `_DesignDialog` と同じ枠(角丸18のcard、見出しと説明、区切り線の下の「閉じる」)。
    - 種類ごとに薄い赤の枠(`T14` の `_IssueCard` と同じ形)。見出しは種別名と件数、説明は原因ごとに1つ
@@ -62,12 +62,12 @@
 ## 作業記録
 
 - 2026-10-02 / 開発者の要望を受けて起票し、005 revision 10.0 の改訂案を書いた。
+- 2026-10-02 / 開発者が 005 revision 10.0 を承認した(「詳細modalの変更案は承認します」)。contract の `status` を `approved`、10.0 の `approved_date` を 2026-10-02 にし、task を `in_progress` にした。
+- 2026-10-02 / 同時に尋ねた「元に戻す」付きの失敗通知を閉じるまで残すかは、開発者が **B(現状維持: 5秒で通知ごと消える)** を選んだ。この task の範囲に含めない。
 
 ## Current state / handoff
 
-- Last checkpoint: 起票と 005 revision 10.0 の改訂案(draft)
-- Blocker category: human-decision
-- Waiting for: 開発者(005 revision 10.0 の承認)
-- Requested action: REQ-009 (4) の追記文と代表例 20e″ を読み、承認するか直す点を伝える
-- Evidence revision: 未定(実装前)
-- Next Agent action: 承認を受けたら contract の `status` を `approved`・`approved_date` を入れ、実装に入る
+- Last checkpoint: 005 revision 10.0 承認済み。実装に着手
+- Blocker category: none
+- Evidence revision: 未定(実装中)
+- Next Agent action: 確認dialogの枠と枠内の部品を共有へ切り出し、詳細modalを重複の変更後名ごとの枠で作り直す
