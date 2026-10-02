@@ -55,9 +55,24 @@ M668 | SURVIVED | lib/ui/rule_builder/rule_chip_strip.dart | 008:T55 列の高�
     strut の有無で行の高さが変わらないので区別できない。失敗は見た目(1px のはみ出しか隙間)で、データ損失・無断置換・
     偽の成功・権限・互換性のいずれにも当たらない。引き受け先: 008:T55 の実機確認。
 
+
+### 独立review
+
+reviewer は Sonnet 5(Agent tool。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `520d072..fb78b91` — **PASS** — 指摘なし
+  - 確認できた点: strut は `Text` の実効 style と同じ合成(`DefaultTextStyle` に値の style を merge)から作られ、文字倍率も
+    strut と本文に同じく効くので、描く行と `_chipHeight` の測りが一致する。T47 の見た目・フェードは不変。test は仕組みを固定。
+    M668 の受容は安全網の穴の3条件(条件2を満たさない)に合う。manual は current code と一致。
+  - reviewer の検証: `flutter test` 1199 PASS、`flutter analyze` No issues、`dart format` 0 changed、mutation M666〜M668 を再現
+    (2 KILLED、M668 SURVIVED)。
+- 連鎖: `520d072..fb78b91` PASS → 以後の記録だけの差分は SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(`80a9754`)。独立reviewを依頼する
-- Blocker category: none
-- Evidence revision: `80a9754`
-- Next Agent action: 独立review(Sonnet、`520d072..HEAD`)を起動し、PASS なら実機確認を依頼する
+- Last checkpoint: 独立review attempt 1 PASS(`520d072..fb78b91`)。code を `80a9754` で凍結し、実機確認を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1・2を行い、結果を会話で伝える
+- Evidence revision: `lib/` が `80a9754` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する

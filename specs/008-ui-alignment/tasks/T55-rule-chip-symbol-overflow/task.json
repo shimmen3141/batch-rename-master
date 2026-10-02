@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T55",
   "title": "ルール設定buttonのチップで、空白の「␣」を含む値が列の高さからはみ出さないようにする",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
