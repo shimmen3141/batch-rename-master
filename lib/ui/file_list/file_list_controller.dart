@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/rename_engine.dart';
+import '../../data/rename_exec/occupied_names.dart';
 import 'file_sort.dart';
 import 'row_view.dart';
 
@@ -56,21 +57,32 @@ class FileListController extends ChangeNotifier {
   /// [item] が選択されているか。
   bool selectedOf(FileEntry item) => _selected.contains(item);
 
-  /// 一覧の警告表示に用いる folder ごとの占有名(005 REQ-026 / REQ-028)。
+  /// 一覧の警告表示に用いる、folder ごとの**実在名**(004 REQ-014 の列挙結果。`008:T54`)。
   ///
   /// **表示のための値である。** 実体はいつでも変わりうるので一覧の警告は本質的に
   /// 事後的であり、この値は読み込み時などに取った古い観測でよい。**実行の可否と
-  /// 自動解決の入力は、実行を要求した時点で取り直したものを使う**(REQ-028)。
-  OccupiedNamesByFolder _occupiedNames = const {};
+  /// 自動解決の入力は、実行を要求した時点で取り直したものを使う**(005 REQ-028)。
+  ///
+  /// **引く前の名前を持つ。** 占有名(実在名 − 改名で空く名前。005 OP-005)は選択と
+  /// ルールで変わるので、評価のたびに [displayOccupiedNames] で引く。以前は引いた後の
+  /// 占有名を持っていたため、取ったあとに選択やルールを変えると一覧の警告がずれた。
+  Map<String?, Set<String>> _folderNames = const {};
 
-  OccupiedNamesByFolder get occupiedNames => _occupiedNames;
+  Map<String?, Set<String>> get folderNames => _folderNames;
 
-  /// 一覧の警告表示に使う占有名を差し替える(REQ-026 / REQ-028)。
-  void setOccupiedNames(OccupiedNamesByFolder names) {
-    _occupiedNames = Map.unmodifiable({
-      for (final entry in names.entries) entry.key: Set.of(entry.value),
+  /// 実在名を**丸ごと**差し替える(除去の取り消しで控えを戻す)。
+  void setFolderNames(Map<String?, Set<String>> names) {
+    _folderNames = Map.unmodifiable({
+      for (final entry in names.entries)
+        entry.key: Set<String>.unmodifiable(entry.value),
     });
     notifyListeners();
+  }
+
+  /// [names] の folder だけ実在名を差し替える(取り直した folder の分)。
+  void updateFolderNames(Map<String?, Set<String>> names) {
+    if (names.isEmpty) return;
+    setFolderNames({..._folderNames, ...names});
   }
 
   /// [item] の選択を反転する(REQ-004)。
@@ -185,7 +197,7 @@ class FileListController extends ChangeNotifier {
   ///
   /// [setFiles] と同じく置き換えて全件を選択するが、**並び順を当てはめない** —
   /// 手で並べた一覧を取り消して名前順へ並び直すと、取り消しにならない(代表例 25)。
-  /// 占有名は [setFiles] と同じく捨てるので、呼ぶ側が控えを戻す。
+  /// 実在名は [setFiles] と同じく捨てるので、呼ぶ側が控えを戻す。
   void restoreFiles(
     List<FileEntry> entries, {
     required FileSortMode sortMode,
@@ -197,9 +209,9 @@ class FileListController extends ChangeNotifier {
   }
 
   void _replace(List<FileEntry> entries, {required bool applySort}) {
-    // 前の読み込みで取った占有名は、置き換え後の folder とは無関係になる。
+    // 前の読み込みで取った実在名は、置き換え後の folder とは無関係になる。
     // 残すと**別の folder の名前で警告が出る**ので捨てる(REQ-026)。
-    _occupiedNames = const {};
+    _folderNames = const {};
     final seen = <String>{};
     final next = <FileEntry>[];
     for (final entry in entries) {
@@ -299,7 +311,7 @@ class FileListController extends ChangeNotifier {
       _rule,
       ordered,
       now,
-      occupiedNames: _occupiedNames,
+      occupiedNames: displayOccupiedNames(_folderNames, generated),
     );
     // 002 REQ-015: 001 が対象ファイルを持たせて返す警告(重複・空名・基準日時不明)
     // は、その item の行データへそのまま載せる。

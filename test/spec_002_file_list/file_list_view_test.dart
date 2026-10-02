@@ -320,13 +320,13 @@ void main() {
       ],
       rule: _seq2,
     );
-    c.setOccupiedNames({
+    c.setFolderNames({
       'folder': {'old.txt'},
     });
     await _pump(tester, c);
 
     await removeOneFile(tester, 'h:b');
-    c.setOccupiedNames({
+    c.setFolderNames({
       'folder': {'new.txt'},
     });
     await tester.pumpAndSettle();
@@ -334,7 +334,7 @@ void main() {
     await tester.tap(find.text('元に戻す'));
     await tester.pumpAndSettle();
 
-    expect(c.occupiedNames, {
+    expect(c.folderNames, {
       'folder': {'new.txt'},
     });
     expect(find.byKey(removalUndoStaleKey), findsOneWidget);
@@ -369,7 +369,7 @@ void main() {
     // 外して戻しただけで**一覧の重複警告が弱くなる**。
     final files = [_f('a.txt', handle: 'h:a'), _f('b.txt', handle: 'h:b')];
     final c = FileListController(files: files, rule: _seq2);
-    c.setOccupiedNames({
+    c.setFolderNames({
       'folder': {'keep.txt'},
     });
     await _pump(tester, c);
@@ -378,7 +378,7 @@ void main() {
     await tester.tap(find.text('元に戻す'));
     await tester.pumpAndSettle();
 
-    expect(c.occupiedNames, {
+    expect(c.folderNames, {
       'folder': {'keep.txt'},
     });
   });

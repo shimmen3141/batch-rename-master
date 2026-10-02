@@ -17,6 +17,7 @@ import 'data/preview/video_file_preview.dart';
 import 'data/rename_exec/platform_rename_executor.dart';
 import 'data/rule_store/shared_preferences_rule_store.dart';
 import 'ui/file_list/file_list_controller.dart';
+import 'ui/file_list/folder_names_sync.dart';
 import 'ui/file_list/removal_selection.dart';
 import 'ui/file_source/file_source_bar.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
@@ -82,6 +83,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   @override
   void dispose() {
+    _folderNamesSync.dispose();
     _renameExecution.dispose();
     _removalSelection.dispose();
     _files.dispose();
@@ -149,6 +151,19 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
         // 占有名の材料は 004 が供給する(004 REQ-014 / 005 REQ-026)。
         listNames: _source.listNames,
       );
+
+  /// 読み込んだ folder の実在名を取り、実行buttonを押す前から一覧の警告に
+  /// 読み込んでいない同名との重複を出す(005 REQ-026 / REQ-028。`008:T54`)。
+  late final FolderNamesSync _folderNamesSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _folderNamesSync = FolderNamesSync(
+      files: _files,
+      listNames: _source.listNames,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

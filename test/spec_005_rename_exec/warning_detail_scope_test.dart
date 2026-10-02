@@ -297,7 +297,7 @@ void main() {
         ],
         rule: const RenameRule([LiteralToken('same')]),
       );
-      c.setOccupiedNames({
+      c.setFolderNames({
         'F': {'same.txt'},
       });
       await _pump(tester, c);
@@ -343,7 +343,7 @@ void main() {
         ],
         rule: const RenameRule([LiteralToken('same')]),
       );
-      c.setOccupiedNames({
+      c.setFolderNames({
         'F': {'same.log'},
       });
       await _pump(tester, c);
