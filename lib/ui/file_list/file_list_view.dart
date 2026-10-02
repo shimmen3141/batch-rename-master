@@ -18,6 +18,7 @@ import 'file_sort.dart';
 import 'header_metrics.dart';
 import 'removal_selection.dart';
 import 'removal_undo.dart';
+import 'rename_confirmation_view.dart';
 import 'rename_warning_view.dart';
 import 'row_preview_view.dart';
 import 'row_view.dart';
@@ -438,7 +439,7 @@ class _FileListViewState extends State<FileListView> {
                         controller: widget.controller,
                         execution: widget.renameExecution,
                         onEditRule: widget.onEditRule,
-                        warnings: ruleIsEmpty ? const <Warning>[] : warnings,
+                        rows: rows,
                       ),
                       removalMode: removalModeBar(fill: true),
                     )
@@ -823,15 +824,16 @@ class _FixedFooter extends StatelessWidget {
 
 /// リストの下に固定するアクションバー(参考デザインの下部バー)。
 ///
-/// 上段にルール設定への導線、下段に実行を置く。ルールが空のときは実行を無効に
-/// したうえで、ルール設定ボタンを主役の表示へ入れ替える(005 REQ-019 / REQ-020)。
+/// 上段にルール設定への導線、下段に実行を置く。**変更が生じるファイルが0件の
+/// ときは実行を無効にする**(005 REQ-019 revision 9.0。空のルールはこの0件に含まれる)。
+/// ルールが空なら、ルール設定ボタンを主役の表示へ入れ替える(REQ-020)。
 class _RenameActionBar extends StatelessWidget {
   const _RenameActionBar({
     super.key,
     required this.controller,
     required this.execution,
     required this.onEditRule,
-    required this.warnings,
+    required this.rows,
   });
 
   final FileListController controller;
@@ -840,8 +842,8 @@ class _RenameActionBar extends StatelessWidget {
   final RenameExecutionController? execution;
   final VoidCallback? onEditRule;
 
-  /// ルール設定buttonへ載せる警告(005 REQ-009 (2))。ルールが空なら空で渡る。
-  final List<Warning> warnings;
+  /// 同じ build で作った行(実行できるかを数え直さずに決めるため。`008:T20` の F3)。
+  final List<RowView> rows;
 
   Future<void> _request(BuildContext context) async {
     final execution = this.execution;
@@ -870,46 +872,18 @@ class _RenameActionBar extends StatelessWidget {
     if (!context.mounted) return;
     final occupiedNames = (prepared as OccupiedNamesReady).names;
 
-    // 確認ダイアログも帯と同じ提示単位を使う(REQ-021 のまとめを両方へ効かせる)。
     // `prepare` が取り直した占有名を `controller` へ反映済みなので、この警告には
     // 占有名との衝突が含まれる(REQ-026 / REQ-028)。
-    final warnings = presentWarnings(
-      controller.warnings,
-      amongFiles: controller.rows.map((r) => r.source),
-    );
+    final warnings = controller.warnings;
     if (warnings.isNotEmpty) {
-      final force = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const Key('rename-confirmation-dialog'),
-          title: const Text('警告を確認してください'),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final warning in warnings) Text('• ${warning.message}'),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              key: const Key('rename-cancel'),
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('キャンセル'),
-            ),
-            FilledButton(
-              key: const Key('rename-force'),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('強制実行'),
-            ),
-          ],
-        ),
+      // **何を聞かれていて、実行すると何が起きるか**を種類ごとに示す(`008:T14`)。
+      // 同じファイルの空名と基準日時不明は、空名の側へ畳む(REQ-021 規則1)。
+      final force = await showRenameConfirmation(
+        context,
+        warnings,
+        amongFiles: controller.rows.map((r) => r.source),
       );
-      if (force != true || !context.mounted) return;
+      if (!force || !context.mounted) return;
       await _run(context, force: true, occupiedNames: occupiedNames);
       return;
     }
@@ -928,29 +902,45 @@ class _RenameActionBar extends StatelessWidget {
         '${lines.join(' / ')}';
   }
 
-  /// 結果の本文。再採番が起きた項目は**全件**を並べる(REQ-024)。
+  /// 結果の本文。再採番が起きた項目は**件数と詳細の入口**を置く(REQ-024)。
   ///
-  /// 件数だけでは「どれが変わったか」が分からず、先頭数件で打ち切ると
-  /// **残りは黙って別の名前になる**。多いときは高さを制限してスクロールさせ、
-  /// 落とさない。
-  Widget _resultContent(String summary, List<SuccessfulRename> renumbered) {
+  /// 「旧 → 新」は通知の中へ並べず、`詳細` から開くdialogで**全件**読ませる
+  /// (`008:T14`。2026-10-02 の開発者の決定 A)。通知の中へ並べると件数が多いとき
+  /// 縦に伸び、高さで打ち切ると scroll しないと読めなかった。
+  Widget _resultContent(
+    BuildContext context,
+    String summary,
+    List<SuccessfulRename> renumbered,
+  ) {
     if (renumbered.isEmpty) return Text(summary);
+    final colors = context.colors;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(summary),
         const SizedBox(height: 4),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 96),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final s in renumbered)
-                  Text('${s.confirmedName} → ${s.newName}'),
-              ],
+        InkWell(
+          key: renumberedDetailLinkKey,
+          onTap: () => showRenumberedDetail(context, renumbered),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: colors.primary,
+                    width: warningLinkUnderlineWidth,
+                  ),
+                ),
+              ),
+              child: Text(
+                '名前を確認する',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
@@ -1027,18 +1017,27 @@ class _RenameActionBar extends StatelessWidget {
       //
       // **失敗を含むならエラーの見せ方にする**(`008:T25`)。成功の✓で失敗を伝えない。
       tone: failure == null ? ToastTone.success : ToastTone.danger,
-      content: _resultContent(message.toString(), renumbered),
+      content: _resultContent(context, message.toString(), renumbered),
       // undo はこのトースト内に置く(参考デザインどおり)。下部バーへ置くと
       // 結果トーストがバーを覆い、取り消せる 5 秒の間だけ押せなくなる。
       // **undo は 5 秒で期限切れ**(REQ-007)なので、押せなくなった undo を残さない。
       // **失敗を含んでも同じ** — エラーは既定で残るが、undo を持つ間はその期限で消す。
+      //
+      // **名前が変わった項目があるなら閉じるまで残す**(`008:T14`。2026-10-02 の
+      // 開発者の決定)。詳細を開く前に消えると、どの名前になったかを読めない。
+      // そのときも undo は期限で消える(押しても何も起きない操作を残さない)。
       duration: execution.undoWindow,
-      persist: execution.canUndo ? false : null,
+      persist: renumbered.isNotEmpty
+          ? true
+          : execution.canUndo
+          ? false
+          : null,
       action: execution.canUndo
           ? ToastAction(
               key: const Key('rename-undo'),
               label: '元に戻す',
               onPressed: () => _undo(context),
+              expiresAfter: execution.undoWindow,
             )
           : null,
     );
@@ -1091,7 +1090,7 @@ class _RenameActionBar extends StatelessWidget {
     final empty = controller.isRuleEmpty;
     final running = execution?.isRunning ?? false;
     // 005 REQ-019: 実行できるのは**変更が生じるファイルが1件以上ある**ときだけ。
-    final changedCount = controller.changedFileCount;
+    final changedCount = controller.changedFileCountIn(rows);
     return Material(
       key: renameActionBarSurfaceKey,
       color: colors.bar,

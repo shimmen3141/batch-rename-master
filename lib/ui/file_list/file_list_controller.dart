@@ -353,7 +353,13 @@ class FileListController extends ChangeNotifier {
   /// **ルールの形では数えない。** `[元の名前]` 1つだけのルールも、同じ結果になる
   /// 別の形のルールも同じ扱いになる(例22a / 例22b)。判定は [rowHasNoChange] が
   /// 持ち、**提示と実行の門が同じ判定を使う**(005 REQ-019)。
-  int get changedFileCount {
+  int get changedFileCount => changedFileCountIn(rows);
+
+  /// [changedFileCount] を、**同じ build で作った** [rows] から数える。
+  ///
+  /// [changedFileCount] は [rows] を取るたびに 001 の評価をもう一度走らせるので、
+  /// 既に [preview] を持っている build ではこちらを使う(`008:T20` の F3)。
+  int changedFileCountIn(List<RowView> rows) {
     final empty = isRuleEmpty;
     var count = 0;
     for (final row in rows) {

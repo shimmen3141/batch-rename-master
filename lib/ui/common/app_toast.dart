@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -81,10 +83,22 @@ class _ToastHostState extends State<ToastHost> {
 
 /// 通知の本文側に置く操作(「元に戻す」など)。
 class ToastAction {
-  const ToastAction({required this.label, required this.onPressed, this.key});
+  const ToastAction({
+    required this.label,
+    required this.onPressed,
+    this.key,
+    this.expiresAfter,
+  });
 
   final String label;
   final VoidCallback onPressed;
+
+  /// 操作が押せる期間。過ぎたら**通知は残したまま操作だけを消す**(`008:T14`)。
+  ///
+  /// 閉じるまで残る通知([showAppToast] の `persist`)に期限のある操作(改名の
+  /// 「元に戻す」は5秒)を載せるとき、押しても何も起きない操作を残さないためである。
+  /// `null` なら通知が出ている間ずっと押せる。
+  final Duration? expiresAfter;
 
   /// 操作の button に付ける key(test と既存の観測点のため)。
   final Key? key;
@@ -144,7 +158,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
       ),
       duration: duration,
       persist: persist ?? tone == ToastTone.danger,
-      content: AppToastCard(
+      content: _ExpiringToastCard(
         tone: tone,
         action: action,
         onClose: () =>
@@ -159,6 +173,57 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showAppToast(
         child: content,
       ),
     ),
+  );
+}
+
+/// [ToastAction.expiresAfter] を過ぎたら操作を外す [AppToastCard](`008:T14`)。
+class _ExpiringToastCard extends StatefulWidget {
+  const _ExpiringToastCard({
+    required this.tone,
+    required this.child,
+    required this.onClose,
+    this.action,
+    this.onAction,
+  });
+
+  final ToastTone tone;
+  final Widget child;
+  final VoidCallback onClose;
+  final ToastAction? action;
+  final VoidCallback? onAction;
+
+  @override
+  State<_ExpiringToastCard> createState() => _ExpiringToastCardState();
+}
+
+class _ExpiringToastCardState extends State<_ExpiringToastCard> {
+  Timer? _timer;
+  bool _expired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final expiresAfter = widget.action?.expiresAfter;
+    if (expiresAfter != null) {
+      _timer = Timer(expiresAfter, () {
+        if (mounted) setState(() => _expired = true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AppToastCard(
+    tone: widget.tone,
+    onClose: widget.onClose,
+    action: _expired ? null : widget.action,
+    onAction: _expired ? null : widget.onAction,
+    child: widget.child,
   );
 }
 

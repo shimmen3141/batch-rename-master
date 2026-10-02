@@ -2867,9 +2867,9 @@
     {
       "id": "M455",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "note": "008:T25 「元に戻す」を持つ失敗結果を閉じるまで残す — 期限(5秒。005 REQ-007)が過ぎて押せなくなった「元に戻す」が残る",
-      "find": "      persist: execution.canUndo ? false : null,",
-      "replace": "      persist: null,"
+      "note": "008:T25 「元に戻す」を持つ失敗結果を閉じるまで残す — 期限(5秒。005 REQ-007)が過ぎて押せなくなった「元に戻す」が残る  **008:T14 で再採番がある結果を閉じるまで残す分岐を前に足したので、`find` を追随させた**(意図は同じ)",
+      "find": "          : execution.canUndo\n          ? false\n          : null,",
+      "replace": "          : null,"
     },
     {
       "id": "M456",
@@ -4046,6 +4046,76 @@
       "find": "const double warningLinkUnderlineWidth = 1.5;",
       "replace": "const double warningLinkUnderlineWidth = 0.5;",
       "note": "008:T50 押せることを示す下線を細くする — 実機で見えづらかった(2026-10-01 の実機確認1回目)。件数表示の「詳細」と行の警告で共有する太さ"
+    },
+    {
+      "id": "M634",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      persist: renumbered.isNotEmpty\n          ? true\n",
+      "replace": "      persist: renumbered.isNotEmpty\n          ? false\n",
+      "note": "008:T14 名前が変わった項目がある結果を期限で消す — 詳細を開く前に消えると、どの名前になったかを読めない(2026-10-02 の開発者の決定。005 REQ-024)"
+    },
+    {
+      "id": "M635",
+      "file": "lib/ui/common/app_toast.dart",
+      "find": "        if (mounted) setState(() => _expired = true);",
+      "replace": "        if (mounted) setState(() => _expired = false);",
+      "note": "008:T14 期限を過ぎても「元に戻す」を残す — 閉じるまで残る通知に、押しても何も起きない操作が残る(005 REQ-007)"
+    },
+    {
+      "id": "M636",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              expiresAfter: execution.undoWindow,\n",
+      "replace": "",
+      "note": "008:T14 「元に戻す」に期限を渡さない — 再採番で残る通知に、期限切れの操作が残る(M635 と対で、呼び出し側の渡し忘れを捕まえる)"
+    },
+    {
+      "id": "M637",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (renumbered.isEmpty) return Text(summary);",
+      "replace": "    return Text(summary);",
+      "note": "008:T14 結果の通知から詳細の入口を落とす — どの項目がどの名前になったかへ到達できない(005 REQ-024)"
+    },
+    {
+      "id": "M638",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "        if (excluded.contains(file)) continue;\n",
+      "replace": "",
+      "note": "008:T14 名前が空になるファイルの日時不明を「空にして改名します」へも数える — 改名しないファイルを改名すると書く(005 REQ-022 / REQ-021 規則1)"
+    },
+    {
+      "id": "M639",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "    issues.any((i) => i.resolves) ? '自動解決して実行' : 'このまま実行';",
+      "replace": "    '自動解決して実行';",
+      "note": "008:T14 何も解決しないのに「自動解決して実行」と書く — 名前が空・日時不明だけの確認で偽りの説明になる"
+    },
+    {
+      "id": "M640",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "        put('duplicate', warningKindLabel(warning), file);",
+      "replace": "        put('duplicate-${files.length}', warningKindLabel(warning), file);",
+      "note": "008:T14 重複を1ファイル1枠に戻す — 30件の重複で同じ枠が30個並び、何を聞かれているかが読めない(013:T07 の U5)"
+    },
+    {
+      "id": "M641",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "            Flexible(\n              child: SingleChildScrollView(",
+      "replace": "            SizedBox(\n              child: SingleChildScrollView(",
+      "note": "008:T14 本文だけをscrollさせるのをやめる — 件数が多いと実行・キャンセルのbuttonが画面の外へ出る"
+    },
+    {
+      "id": "M642",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "              background: colors.danger,",
+      "replace": "              background: colors.primary,",
+      "note": "008:T14 確認の実行buttonを通常の色にする — 警告を押し切る操作だと見分けられない(design 土台の dlgConfirmBg)"
+    },
+    {
+      "id": "M643",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (execution == null ||\n        execution.isRunning ||\n        !controller.hasChangedFiles) {",
+      "replace": "    if (execution == null || execution.isRunning) {",
+      "note": "008:T14(008:T20 の F5) 画面の0件ガードを外す — 押した時点で変更0件でも確認dialogが開き、占有名を取りに行く(005 REQ-019)。以前は controller の門だけが守っていた"
     }
   ]
 }

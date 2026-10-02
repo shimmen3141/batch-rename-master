@@ -7,6 +7,7 @@ import 'package:batch_rename_master/data/rename_exec/rename_executor.dart';
 import 'package:batch_rename_master/data/rename_exec/saf_rename_executor.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
+import 'package:batch_rename_master/ui/file_list/rename_confirmation_view.dart';
 import 'package:batch_rename_master/ui/rename_exec/rename_execution_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/ui/common/app_toast.dart';
@@ -170,8 +171,15 @@ void main() {
 
     expect(find.textContaining('1 件を改名しました'), findsOneWidget);
     expect(find.textContaining('1 件の名前が変わりました'), findsOneWidget);
+    // 名前は通知の中に並べず、詳細のdialogで読む(`008:T14` の決定 A)。
+    expect(find.textContaining(' → '), findsNothing);
+    await tester.tap(find.byKey(renumberedDetailLinkKey));
+    await tester.pumpAndSettle();
     expect(
-      find.textContaining('renamed.txt → renamed (1).txt'),
+      find.descendant(
+        of: find.byKey(renumberedDetailDialogKey),
+        matching: find.textContaining('renamed.txt → renamed (1).txt'),
+      ),
       findsOneWidget,
       reason: 'どの項目がどの名前になったかを示す',
     );
@@ -218,11 +226,20 @@ void main() {
       find.textContaining('件の名前が変わりました', skipOffstage: false),
       findsOneWidget,
     );
+    await tester.tap(find.byKey(renumberedDetailLinkKey));
+    await tester.pumpAndSettle();
     // 4件すべてが「旧 → 新」の行として出ている(3件で打ち切らない)。
     // scroll外の行も数える。**先頭3件で打ち切らない**ことがこのtestの主眼で、
     // 画面内に何件見えるかではない。
     // 空白を挟んだ矢印で数える(並び順の表示「名前 A→Z」を拾わない)。
-    expect(find.textContaining(' → ', skipOffstage: false), findsNWidgets(4));
+    expect(
+      find.descendant(
+        of: find.byKey(renumberedDetailDialogKey),
+        matching: find.textContaining(' → ', skipOffstage: false),
+        skipOffstage: false,
+      ),
+      findsNWidgets(4),
+    );
     execution.dispose();
   });
 
