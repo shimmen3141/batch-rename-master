@@ -106,9 +106,25 @@ M653 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複の組
 ```
 
 
+### 独立review
+
+reviewer は開発者の指定どおり `gpt-6-luna`(`codex-container exec -m gpt-6-luna`)。実装は Claude Opus 5.5。
+contract を変える task なので、実装と同等以上の model を使う(AGENTS.md)。
+
+- Review attempt 1: `5c7b7a7..ec9ab32` — **PASS** — 未解決 P0/P1 なし、P2/P3 なし
+  - 確認できた点: revision 10.0 と `rowDetailWarnings` / 組の分け方が一致(相手の他の警告・別 folder・別の変更後名は
+    混ざらない。行と全件は同じ `preview`)。「フォルダにある既存のファイル」は読み込んだ1件だけの組に限られ、
+    選んでいない行・占有名との衝突と矛盾しない。REQ-009 (2)/(3)、REQ-021 規則1/2 を維持。共有部品への切り出しで
+    T14 の振る舞いは変わらない。test の書き換えは revision 10.0 による期待の変更で緩和ではない。manual 手順3は
+    `prepare()` の占有名の反映と一致。
+  - reviewer の検証: `flutter test` 1181 PASS、`flutter analyze` No issues、`dart format` 0 changed、
+    mutation M646〜M653 の8件 KILLED。足した mutation なし。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(`0652b32`)。独立reviewを依頼する
-- Blocker category: none
-- Evidence revision: `0652b32`
-- Next Agent action: 独立review(`gpt-6-luna`、contract を変えるので実装と同等以上)を `5c7b7a7..HEAD` で起動する
+- Last checkpoint: 独立review attempt 1 PASS(`5c7b7a7..ec9ab32`)。code を `0652b32` で凍結し、実機確認を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順0〜3(4は任意)を行い、結果を会話で伝える
+- Evidence revision: `lib/` が `0652b32` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
