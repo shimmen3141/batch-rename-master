@@ -159,9 +159,20 @@ contract を変える task なので、実装と同等以上の model を使う(
   - **以後の review は Sonnet**(Agent tool、`model: sonnet`)。2026-10-02、開発者「レビューはいったんsonnetにやらせるようにしてください」。
     contract を変える task には実装(Opus 5.5)と同等以上を使う既定(AGENTS.md)と食い違うが、開発者の指定に従う。
 
+- Review attempt 3(差分): `c568f09..5ac87f4` — **PASS** — 未解決 P0/P1 なし。reviewer は Sonnet 5(Agent tool、開発者の指定)
+  - T53-R1 が閉じた: 新しい test は、`_DuplicateGroupBox` の `Text` へ `maxLines: 1, overflow: TextOverflow.ellipsis` を
+    足すと FAIL する(reviewer が一時的に当てて確かめ、復元済み)。「折り返す・切り詰めない」は REQ-009 (3) から導かれる。
+    他の振る舞い・manual の対象 commit(`53ec95d`)は current code と一致。
+  - reviewer の検証: `flutter test` 1184 PASS、`flutter analyze` No issues、`dart format` 0 changed、`check_mutation_finds.py` PASS(601)。
+  - **T53-R3(P3)**: 切り詰めへ戻す対照 mutation が表に無い。**足さない** — 上のとおり test が検出することを reviewer が
+    確かめており、`tool/` への追加は新たな差分reviewを要する。受容(引き受け先: 次に T53 の詳細modalへ触れる task)。
+- 連鎖: `5c7b7a7..ec9ab32` PASS → `ec9ab32..c568f09` FAIL(T53-R1)→ `c568f09..5ac87f4` PASS(T53-R1 閉鎖)→ 以後の記録だけの差分は SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: T53-R1 を `53ec95d` で閉じた(1行より長い名前の扱いを明記・固定)。差分reviewを依頼する
-- Blocker category: none
-- Evidence revision: `53ec95d`
-- Next Agent action: 差分review attempt 3(Sonnet、`c568f09..HEAD`)を起動し、PASS なら実機確認2回目を依頼する
+- Last checkpoint: 差分review attempt 3 PASS(`c568f09..5ac87f4`)。code を `53ec95d` で凍結し、実機確認2回目を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認2回目)
+- Requested action: [manual-verification.md](manual-verification.md) の手順0〜3(4は任意)を行い、結果を会話で伝える
+- Evidence revision: `lib/` が `53ec95d` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
