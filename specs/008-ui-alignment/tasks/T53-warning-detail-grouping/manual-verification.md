@@ -3,7 +3,7 @@
 `008:T53` で作り直した**警告の詳細**(一覧の「リネーム: N 件の問題 詳細」と、行の「重複」から開くもの)を、
 実機の字体と幅で確かめる。
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `0652b32` と同一のもの**である。branch
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `a2ab21b` と同一のもの**である。branch
 `asdd/008-ui-alignment/T53-warning-detail-grouping` のHEADからbuildすればこれを満たす。
 **code・dependency・build設定が変わったら、この結果は再利用しない。**
 
@@ -53,9 +53,10 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'same.log') -Value 't53-existin
 
 - 見出しが「8 件の問題」。薄い赤の枠が**1つ**あり、「重複 8 件」と「変更後の名前が同じになるファイルを、
   名前ごとにまとめています」が読める。
-- その枠の中に**小さな枠が2つ**ある。
-  - `→ 「same.txt」`の下に `photo_01.txt` 〜 `photo_06.txt` の6個。
-  - `→ 「same.md」`の下に `memo_1.md` と `memo_2.md`。
+- その枠の中に**小さな枠が2つ**ある。どちらも、**ファイル名が「、」で区切られて横に並び**、**最後の行に赤で** `→ 「変更後名」` がある。
+  - 1つは `photo_01.txt` 〜 `photo_06.txt` の6個と、最後の行に `→ 「same.txt」`。
+  - もう1つは `memo_1.md`、`memo_2.md` と、最後の行に `→ 「same.md」`。
+- 1行に入りきらないときは、**ファイル名の途中で折れずに**、次の名前が次の行の先頭から始まる。行の先頭に「、」が来ない。
 - **どれとどれが同じ名前になるのかが、名前を見比べなくても分かる。**(分かりにくいところがあれば教えてほしい)
 - 下の「閉じる」で閉じる。
 
@@ -66,7 +67,7 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'same.log') -Value 't53-existin
 **こうなってほしい**
 
 - 見出しが「「memo_1.md」の問題」。
-- 小さな枠が**1つ**で、`→ 「same.md」`の下に `memo_1.md` と **`memo_2.md`(相手)** が並ぶ。
+- 小さな枠が**1つ**で、`memo_1.md`、**`memo_2.md`(相手)** が横に並び、最後の行に `→ 「same.md」`。
 - `photo_…` は出ない。
 
 2. 「閉じる」で閉じる。
@@ -81,7 +82,7 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'same.log') -Value 't53-existin
 
 **こうなってほしい**
 
-- `→ 「same.log」`の枠に `solo.log` と、灰色で **「フォルダにある既存のファイル」** が並ぶ。
+- 枠の中が上から `solo.log`、赤の `→ 「same.log」`、その下の行に**赤で「(フォルダにある既存のファイルと重複)」**。
 
 3. 「閉じる」で閉じる。
 

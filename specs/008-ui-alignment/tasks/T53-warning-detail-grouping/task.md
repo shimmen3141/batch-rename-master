@@ -106,6 +106,30 @@ M653 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複の組
 ```
 
 
+- 2026-10-02 / **実機確認1回目(build: `lib/` が `0652b32`)**。開発者「確認事項について、動作に問題はなかったが、見せ方はもっと工夫できると思いました」。指摘は次の3点(原文の要旨):
+  1. 各枠の1行目にある赤の矢印と変更後名は、枠の**最後の行**へ(「1行目に矢印があるのは不自然」)。
+  2. ファイル名は縦に並べず「、」で区切って横にも並べてよい。入りきらなければ**ファイル名の途中では改行せず、次の行から始める**。
+  3. 「フォルダにある既存のファイル」は矢印の行の**次の行**(一番下)、**赤**、文言は「(フォルダにある既存のファイルと重複)」。
+  - 同時に「実行buttonを押す前に読み込んでいない同名を調べられるか」を尋ねられた。回答は会話で返し、この task の範囲には含めない。
+- 2026-10-02 / 指摘の修正(`a2ab21b`)。組の中を `Wrap`(1ファイル1子、区切り「、」は名前の後ろ)→ 赤の `→ 「変更後名」`
+  (`warningDetailGroupResultKey`)→ 赤の `existingFileLabel`(`warningDetailGroupExistingKey`)の順にした。test を追随
+  (組の Text の順)し、並び・色・文言の test と、入りきらない名前が次の行の先頭から1行で始まる test を足した。
+  - 検証(`a2ab21b`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1183 PASS**、`check_mutation_finds.py` PASS(601件)。
+  - mutation: M653 の `find` を追随、追加 M654〜M657。範囲付き(`flutter test test/spec_005_rename_exec`、M650 / M651 を含む7件):
+
+```text
+M650 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 読み込んでいない同名とぶつかる組に「フォルダにある既存のファイル」を書かない ... | exit 1
+M651 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 読み込んだ相手がいる組にも「フォルダにある既存のファイル」を書く ... | exit 1
+M653 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複の組にファイルを並べない ... | exit 1
+M654 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 変更後名をファイルより前(組の1行目)に戻す ... | exit 1
+M655 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 ファイルを1行に1つ縦に並べる ... | exit 1
+M656 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 「(フォルダにある既存のファイルと重複)」を赤にしない ... | exit 1
+M657 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 区切りを名前の前に付ける ... | exit 1
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - manual の期待を新しい並びへ直し、対象 build を `a2ab21b` にした。**1回目の結果は再利用しない**(code が変わった)。
+
 ### 独立review
 
 reviewer は開発者の指定どおり `gpt-6-luna`(`codex-container exec -m gpt-6-luna`)。実装は Claude Opus 5.5。
@@ -122,9 +146,7 @@ contract を変える task なので、実装と同等以上の model を使う(
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`5c7b7a7..ec9ab32`)。code を `0652b32` で凍結し、実機確認を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順0〜3(4は任意)を行い、結果を会話で伝える
-- Evidence revision: `lib/` が `0652b32` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認1回目の見せ方の指摘を `a2ab21b` で直した。差分reviewを依頼する
+- Blocker category: none
+- Evidence revision: `a2ab21b`
+- Next Agent action: 差分review(`gpt-6-luna`、`ec9ab32..HEAD`)を起動し、PASS なら実機確認2回目を依頼する
