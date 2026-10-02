@@ -204,6 +204,37 @@ M643 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14(008:T20 の F5) �
 11 mutations: 11 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+### 独立review
+
+reviewer は開発者の指定どおり `gpt-6-luna`(`codex-container exec -m gpt-6-luna`)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `9b14ad5..d7c2db6` — **FAIL** — P1 1件(T14-R1)
+  - **T14-R1(P1・成果物の欠陥)**: `[元の名前][作成日時]` で作成日時が取れないファイルは生成後名が現在名と同じで
+    改名されない(005 REQ-019 の「変わらない」)のに、確認dialogが「その日時の部分を空にして改名します」と書く。
+  - 確認できた点(次回の前提): 重複・桁不足の説明は001の自動解決どおり、空名は REQ-022 どおり、判定・キャンセル・key
+    は維持、再採番の詳細dialogは全件(REQ-024)、undo は5秒で操作だけ消える(REQ-007)、REQ-024 test の assertion
+    は維持、F3/F5 は閉じた、manual のbutton名・重複の名前例は current code と一致。reviewer の mutation 3件
+    (M638 / M639 / M643)は KILLED。analyze PASS、full test 1174 PASS。
+  - **修正(`6d2f56d`)**: 行と警告を**同じ評価**(`controller.preview`)から取り、`rowHasNoChange` で名前が変わらない
+    ファイルを「日時が取れず名前が変わらないため、これらのファイルは改名しません」の枠へ分けた。**行の `source` と
+    警告の `file` は別の評価の instance で一致しない**ので、名前が変わらない行は行が持つ警告のファイルで数える
+    (`source` で数えると一致せず黙って直らない — `M645` が対照)。
+  - **同じ型の誤りを自分の記録でも見つけて直した**: manual の手順2(`[元の名前][作成日時]` で12件)は、
+    端末のファイルでは作成日時が取れないので**12件とも名前が変わらず、実行buttonが押せない**手順だった。
+    `[元の名前][自由テキスト _][作成日時]` に変えた(名前が `photo_01_.txt` に変わる)。unit test の
+    「日時不明だけ」も同じ前提の誤りで「空にして改名」を期待していたので、名前が変わる場合と変わらない場合の2件へ分けた。
+  - 検証(`6d2f56d`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1176 PASS**、
+    `check_mutation_finds.py` PASS(589件)。範囲付き mutation(`flutter test test/spec_005_rename_exec`):
+
+```text
+M638 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 名前が空になるファイルの日時不明を「空にして改名します」へも数える ... | exit 1
+M639 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 何も解決しないのに「自動解決して実行」と書く ... | exit 1
+M643 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14(008:T20 の F5) 画面の0件ガードを外す ... | exit 1
+M644 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 日時不明で名前が変わらないファイルも「その部分を空にして改名します」と書く ... | exit 1
+M645 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 名前が変わらないファイルを行の source で数える ... | exit 1
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 ### machine検証の範囲と、manualで見ないもの
 
 - **再採番の詳細dialog**は widget test だけで確かめる(実行の最中に他processが同名を作る競合が要り、手で再現できない)。
@@ -217,9 +248,9 @@ M643 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14(008:T20 の F5) �
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証が完了(`90b704e`)。独立reviewはまだ
+- Last checkpoint: review attempt 1 の T14-R1 を直した(`6d2f56d`)。差分review attempt 2 の前
 - Blocker category: なし
 - Waiting for: なし
 - Requested action: なし
-- Evidence revision: `90b704e`
-- Next Agent action: implementation phase の独立review(gpt-6-luna)を `9b14ad5..HEAD` で依頼する。PASS後に実機確認を依頼する
+- Evidence revision: `6d2f56d`
+- Next Agent action: 差分review attempt 2(`d7c2db6..HEAD`)を gpt-6-luna へ依頼する。PASS後に実機確認を依頼する
