@@ -119,6 +119,13 @@ M665 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 作った時�
 ```
 
 
+- 2026-10-03 / **実機確認(build: `lib/` が `20eb3b1`、Android エミュレータ)**。開発者「動作について、すべて問題ありませんでした。
+  重複の警告は1秒も待たずにすぐに表示されました」。手順0〜4の全項目 OK。**5002 件のフォルダで、「重複」が出るまで1秒未満**
+  (「所要時間の懸念」の見積もりと一致)。
+  - 同じ確認の中で、無関係な不具合を1件受領した(自由テキスト `same ` の末尾の空白でルール設定buttonのチップが
+    「BOTTOM OVERFLOWED BY 1.00 PIXELS」)。T54 の範囲外として別に扱う。
+- **SELF-CHECK**: `93932f2..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
+
 ### 独立review
 
 reviewer は Sonnet 5(Agent tool、`model: sonnet`。2026-10-03 の開発者の指定「レビューはいったんsonnetにやらせる」)。実装は Claude Opus 5.5。
@@ -135,9 +142,7 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。2026-10-03 の開発者の�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`0e58f25..93932f2`)。code を `20eb3b1` で凍結し、実機確認を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順0〜4を行い、結果(手順2のおおよその秒数を含む)を会話で伝える
-- Evidence revision: `lib/` が `20eb3b1` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認 OK(`20eb3b1`)。task を `done` にし、PR #211 を merge する
+- Blocker category: none
+- Evidence revision: `20eb3b1`
+- Next Agent action: なし(done)

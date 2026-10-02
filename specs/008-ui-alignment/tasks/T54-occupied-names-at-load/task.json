@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T54",
   "title": "読み込んだ時点でフォルダの名前を調べ、一覧の警告に読み込んでいないファイルとの重複を出す",
-  "status": "blocked",
+  "status": "done",
   "dependsOn": [],
   "covers": [
     "005:REQ-026",
