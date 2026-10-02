@@ -375,17 +375,18 @@ class _FileListViewState extends State<FileListView> {
                             ruleIsEmpty: ruleIsEmpty,
                             // 005 REQ-009 (4): **行から開くのはその行の警告だけ。**
                             // 全件は件数表示から開く(2026-09-02 の要望2)。
+                            // revision 10.0(`008:T53`): **重複の相手も読める**。
+                            // 相手の他の警告は足さない([rowDetailWarnings])。
+                            // 行と全件は**同じ評価**([preview])から取る。
                             onShowWarningDetail: () => showWarningDetail(
                               context,
-                              row.warnings,
+                              rowDetailWarnings(row.warnings, warnings),
                               ruleIsEmpty: ruleIsEmpty,
                               scopeFile: row.source,
                               // 同名が一覧に並ぶときだけ場所を添える。**母集合は
                               // 一覧のファイル**(警告を持つものだけだと、同名2件の
                               // 片方だけが警告されたときに見分けられない)。
-                              amongFiles: widget.controller.rows.map(
-                                (r) => r.source,
-                              ),
+                              amongFiles: rows.map((r) => r.source),
                             ),
                             selecting: selecting,
                             marked: handle != null && marked.contains(handle),

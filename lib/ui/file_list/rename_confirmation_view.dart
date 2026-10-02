@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
 import '../../data/rename_exec/rename_execution.dart';
+import '../common/design_dialog.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import 'rename_warning_view.dart';
@@ -184,10 +185,10 @@ Future<bool> showRenameConfirmation(
   );
   final confirmed = await showDialog<bool>(
     context: context,
-    barrierColor: const Color(0xA8000000),
+    barrierColor: designDialogBarrierColor,
     builder: (dialogContext) {
       final colors = dialogContext.colors;
-      return _DesignDialog(
+      return DesignDialog(
         key: renameConfirmationDialogKey,
         title: '実行前の確認',
         description: confirmationDescription(warnings),
@@ -198,7 +199,7 @@ Future<bool> showRenameConfirmation(
         actions: [
           Expanded(
             flex: 10,
-            child: _DialogButton(
+            child: DialogButton(
               key: renameCancelKey,
               label: 'キャンセル',
               background: colors.surfaceElevated,
@@ -209,7 +210,7 @@ Future<bool> showRenameConfirmation(
           const SizedBox(width: 8),
           Expanded(
             flex: 13,
-            child: _DialogButton(
+            child: DialogButton(
               key: renameForceKey,
               label: confirmationActionLabel(issues),
               // **警告を押し切る操作だと見分けられる色にする**(design 土台)。
@@ -250,10 +251,10 @@ Future<void> showRenumberedDetail(
 ) {
   return showDialog<void>(
     context: context,
-    barrierColor: const Color(0xA8000000),
+    barrierColor: designDialogBarrierColor,
     builder: (dialogContext) {
       final colors = dialogContext.colors;
-      return _DesignDialog(
+      return DesignDialog(
         key: renumberedDetailDialogKey,
         title: '名前が変わったファイル',
         description:
@@ -290,7 +291,7 @@ Future<void> showRenumberedDetail(
         ],
         actions: [
           Expanded(
-            child: _DialogButton(
+            child: DialogButton(
               key: renumberedDetailCloseKey,
               label: '閉じる',
               background: colors.surfaceElevated,
@@ -304,128 +305,7 @@ Future<void> showRenumberedDetail(
   );
 }
 
-/// design 土台のdialogの枠(見出しと説明、本文、区切り線の下のbutton列)。
-///
-/// tokenのエディタ(`008:T44`)と同じ形。**本文だけをscrollさせる** — 件数が多くても
-/// 見出しとbuttonは画面に残り、何を選ぶのかを見失わない。
-class _DesignDialog extends StatelessWidget {
-  const _DesignDialog({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.body,
-    required this.actions,
-  });
-
-  final String title;
-  final String description;
-  final List<Widget> body;
-  final List<Widget> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Dialog(
-      insetPadding: const EdgeInsets.all(26),
-      backgroundColor: colors.surface,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: AppFontSize.titleLarge,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: AppFontSize.label,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: body,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
-                ),
-              ),
-              child: Row(children: actions),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogButton extends StatelessWidget {
-  const _DialogButton({
-    super.key,
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.onPressed,
-    this.bold = false,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final VoidCallback onPressed;
-  final bool bold;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        backgroundColor: background,
-        foregroundColor: foreground,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        textStyle: TextStyle(
-          fontSize: AppFontSize.body,
-          fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-      ),
-      child: Text(label, textAlign: TextAlign.center),
-    );
-  }
-}
-
-/// 種類1つ分の枠(design 土台の `issues`: 薄い赤の面と枠、⚠、見出し、説明)。
+/// 種類1つ分の枠([IssueCard])。対象は件数ぶん行を増やさず、1つの段落へ並べる。
 class _IssueCard extends StatelessWidget {
   const _IssueCard({super.key, required this.issue});
 
@@ -434,65 +314,21 @@ class _IssueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: colors.danger.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.danger.withValues(alpha: 0.22)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(
-              Icons.warning_amber_rounded,
-              size: 14,
-              color: colors.danger,
+    return IssueCard(
+      title: issue.title,
+      description: issue.consequence,
+      // **対象は件数ぶん行を増やさず、1つの段落へ並べる。** 30件でも
+      // 種類の枠が縦に伸びすぎず、どのファイルかは読める。
+      child: issue.targets.isEmpty
+          ? null
+          : Text(
+              issue.targets.join('、'),
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: AppFontSize.small,
+                height: 1.5,
+              ),
             ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  issue.title,
-                  style: TextStyle(
-                    color: colors.danger,
-                    fontSize: AppFontSize.bodySmall,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  issue.consequence,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: AppFontSize.small,
-                    height: 1.6,
-                  ),
-                ),
-                // **対象は件数ぶん行を増やさず、1つの段落へ並べる。** 30件でも
-                // 種類の枠が縦に伸びすぎず、どのファイルかは読める。
-                if (issue.targets.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    issue.targets.join('、'),
-                    style: TextStyle(
-                      color: colors.textMuted,
-                      fontSize: AppFontSize.small,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rename_engine.dart';
+import '../common/design_dialog.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
@@ -677,6 +678,24 @@ const double bannerIconSize = 14;
 /// 状態のメッセージのバナーの、印と文の間。行ごとに揃える(`008:T02`)。
 const double bannerIconGap = 8;
 
+/// 詳細modalの重複の組1つ(**同じ folder で同じ変更後名になるファイル**。`008:T53`)。
+class WarningDetailGroup {
+  const WarningDetailGroup({required this.resultName, required this.members});
+
+  /// 組の見出し(変更後名。同じ名前の組が別の folder にもあれば場所を添える)。
+  final String resultName;
+
+  /// その名前になる、読み込んだファイル([fileLabel])。
+  ///
+  /// **1件だけなら、相手は読み込んでいないファイル**(フォルダにもともとある同名の
+  /// ファイル、または選んでいない行)である — 001 は相手が読み込んだファイルなら
+  /// その相手にも重複を返す。
+  final List<String> members;
+
+  /// 相手が読み込んだファイルの中に無い(フォルダにある既存のファイルとぶつかる)か。
+  bool get collidesWithExisting => members.length == 1;
+}
+
 /// 詳細modalの節1つ(005 REQ-009 (2) / (3))。
 ///
 /// **説明は節に1つだけ**で、対象の件数に比例しない。単位は原因(トークン)ごと
@@ -686,6 +705,7 @@ class WarningDetailSection {
     required this.title,
     required this.explanation,
     required this.targets,
+    this.groups = const <WarningDetailGroup>[],
   });
 
   /// 種別名と件数の見出し。
@@ -694,14 +714,50 @@ class WarningDetailSection {
   /// ファイルによって変わらない説明(**節に1つ**)。
   final String explanation;
 
-  /// 対象の識別([fileLabel]。重複は変更後名も添える)。
+  /// 対象の識別([fileLabel])。重複の節では [groups] の全員を並べた順。
   final List<String> targets;
+
+  /// 重複の節だけ: 変更後名ごとの組(`008:T53`)。他の節は空。
+  final List<WarningDetailGroup> groups;
+}
+
+/// 重複の組を分ける鍵。001 が重複を数えるのと同じ — **folder と変更後名**。
+(String?, String) _duplicateKey(DuplicateWarning warning) =>
+    (warning.file.sourceFolder, warning.resultName);
+
+/// 行から開く詳細へ渡す警告(005 REQ-009 (4)、revision 10.0。`008:T53`)。
+///
+/// その行の警告([rowWarnings])に、**その行の重複の相手**の重複の警告を足す。
+/// 相手は [allWarnings] のうち、同じ folder・同じ変更後名の重複である。
+/// **相手の他の警告(日時不明など)は足さない** — 相手は、そのファイルの重複という
+/// 1つの出来事の一部として読ませる。
+///
+/// [rowWarnings] と [allWarnings] は**同じ評価**から取ること(`controller.preview`)。
+/// その行の重複を identity で見分けて二重に足さない。
+List<Warning> rowDetailWarnings(
+  List<Warning> rowWarnings,
+  List<Warning> allWarnings,
+) {
+  final keys = {
+    for (final w in rowWarnings.whereType<DuplicateWarning>()) _duplicateKey(w),
+  };
+  if (keys.isEmpty) return rowWarnings;
+  final own = Set<Warning>.identity()..addAll(rowWarnings);
+  return <Warning>[
+    ...rowWarnings,
+    for (final w in allWarnings.whereType<DuplicateWarning>())
+      if (!own.contains(w) && keys.contains(_duplicateKey(w))) w,
+  ];
 }
 
 /// [warnings] を原因ごとの節へ組む(`008:T19`。2026-09-02 の要望3・4)。
 ///
-/// **呼び出し側がスコープを決めて渡す** — 行から開くならその行の警告だけ、
-/// ヘッダの件数から開くなら全件(005 REQ-009 (4): 一方に他方が混ざらない)。
+/// **呼び出し側がスコープを決めて渡す** — 行から開くならその行の警告と重複の相手
+/// ([rowDetailWarnings])、ヘッダの件数から開くなら全件(005 REQ-009 (4))。
+///
+/// **重複は変更後名ごとの組に分ける**(`008:T53`。2026-10-02 の開発者の要望
+/// 「重複するファイルを一つの枠に列挙する」)。1つの節に全件を並べると、どれと
+/// どれが同じ名前になるのかを名前を見比べて探すことになる。
 ///
 /// **REQ-021 のまとめは行だけに効かせる。** 空名と基準日時不明が同時に該当する
 /// ファイルは、行では結果へ畳む(規則1)が、ここでは両方の節に並ぶ —
@@ -736,6 +792,9 @@ List<WarningDetailSection> warningDetailSections(
     if (target != null) targets[key]!.add(target);
   }
 
+  // 重複の組(現れた順)。組の中も現れた順。
+  final groups = <(String?, String), List<FileEntry>>{};
+
   for (final warning in warnings) {
     switch (warning) {
       case DigitShortageWarning(
@@ -763,13 +822,15 @@ List<WarningDetailSection> warningDetailSections(
               'その部分が空になります',
           label(file),
         );
-      case DuplicateWarning(:final file, :final resultName):
+      case DuplicateWarning(:final file):
         put(
           'duplicate',
           warningKindLabel(warning),
-          '変更後の名前が他のファイルと同じになります',
-          '${label(file)} → 「$resultName」',
+          '変更後の名前が同じになるファイルを、名前ごとにまとめています',
+          null,
         );
+        final members = groups[_duplicateKey(warning)] ??= <FileEntry>[];
+        if (!members.any((m) => identical(m, file))) members.add(file);
       case EmptyNameWarning(:final file):
         put(
           'empty',
@@ -780,6 +841,27 @@ List<WarningDetailSection> warningDetailSections(
     }
   }
 
+  // 同じ変更後名の組が別の folder にもあれば、見出しに場所を添える。
+  final sharedNames = <String>{};
+  final seenNames = <String>{};
+  for (final (_, name) in groups.keys) {
+    if (!seenNames.add(name)) sharedNames.add(name);
+  }
+  final duplicateGroups = <WarningDetailGroup>[
+    for (final MapEntry(key: (_, name), value: members) in groups.entries)
+      WarningDetailGroup(
+        resultName: switch (members.first.sourceLocation) {
+          final location? when sharedNames.contains(name) =>
+            '「$name」($location)',
+          _ => '「$name」',
+        },
+        members: [for (final m in members) label(m)],
+      ),
+  ];
+  if (duplicateGroups.isNotEmpty) {
+    targets['duplicate'] = [for (final g in duplicateGroups) ...g.members];
+  }
+
   return <WarningDetailSection>[
     for (final key in order)
       WarningDetailSection(
@@ -788,15 +870,35 @@ List<WarningDetailSection> warningDetailSections(
             : '${kinds[key]!} ${targets[key]!.length} 件',
         explanation: explanations[key]!,
         targets: targets[key]!,
+        groups: key == 'duplicate'
+            ? duplicateGroups
+            : const <WarningDetailGroup>[],
       ),
   ];
 }
 
+/// 重複の組1つの枠(`008:T53`)。
+Key warningDetailGroupKey(int section, int group) =>
+    Key('warning-detail-group-$section-$group');
+
+/// 詳細dialogの「閉じる」。
+const Key warningDetailCloseKey = Key('warning-detail-close');
+
+/// 相手が読み込んだファイルの中に無いときの書き方(`008:T53`)。
+///
+/// 001 の警告は相手が占有名かどうかを持たないので、「読み込んだ相手が無い」ことから
+/// こう書く(005 revision 10.0 で提示の自由とした)。選んでいない行の現在名と
+/// ぶつかる場合も、フォルダにある既存のファイルであることは変わらない。
+const String existingFileLabel = 'フォルダにある既存のファイル';
+
 /// 警告の詳細(005 REQ-009 (3) / (4))。
 ///
-/// **スコープは呼び出し側が決める。** [warnings] にその行の警告だけを渡せば
-/// その行の詳細、全件を渡せば全件の詳細になる。[scopeFile] は見出しに使うだけで
-/// 絞り込みはしない(絞り込みの正本は渡された [warnings] である)。
+/// **スコープは呼び出し側が決める。** [warnings] にその行の警告(と重複の相手。
+/// [rowDetailWarnings])を渡せばその行の詳細、全件を渡せば全件の詳細になる。
+/// [scopeFile] は見出しに使うだけで絞り込みはしない(絞り込みの正本は渡された
+/// [warnings] である)。
+///
+/// 見た目は実行前の確認(`008:T14`)と同じ枠([DesignDialog] / [IssueCard])。
 Future<void> showWarningDetail(
   BuildContext context,
   List<Warning> warnings, {
@@ -812,71 +914,112 @@ Future<void> showWarningDetail(
   if (sections.isEmpty) return;
   await showDialog<void>(
     context: context,
+    barrierColor: designDialogBarrierColor,
     builder: (dialogContext) {
       final colors = dialogContext.colors;
-      return AlertDialog(
+      final targetStyle = TextStyle(
+        color: colors.textPrimary,
+        fontSize: AppFontSize.small,
+        height: 1.5,
+      );
+      return DesignDialog(
         key: warningDetailDialogKey,
-        title: Text(
-          scopeFile == null
-              ? warningCountLabel(warnings)
-              : '${fileLabel(scopeFile, withLocation: false)}の問題',
-        ),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              key: warningDetailSectionsKey,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final (index, section) in sections.indexed)
-                  Padding(
-                    key: warningDetailSectionKey(index),
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          section.title,
-                          style: TextStyle(
-                            color: colors.danger,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        // **説明は節に1つだけ**(005 REQ-009 (2))。
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 4),
-                          child: Text(
-                            section.explanation,
-                            key: warningDetailExplanationKey(index),
-                            style: TextStyle(color: colors.textSecondary),
-                          ),
-                        ),
-                        Column(
+        title: scopeFile == null
+            ? warningCountLabel(warnings)
+            : '${fileLabel(scopeFile, withLocation: false)}の問題',
+        body: [
+          Column(
+            key: warningDetailSectionsKey,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (index, section) in sections.indexed)
+                IssueCard(
+                  key: warningDetailSectionKey(index),
+                  title: section.title,
+                  // **説明は節に1つだけ**(005 REQ-009 (2))。
+                  description: section.explanation,
+                  descriptionKey: warningDetailExplanationKey(index),
+                  child: section.targets.isEmpty
+                      ? null
+                      : Column(
                           key: warningDetailTargetsKey(index),
                           mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            for (final target in section.targets)
-                              Text('• $target'),
+                            if (section.groups.isEmpty)
+                              for (final target in section.targets)
+                                Text(target, style: targetStyle),
+                            for (final (g, group) in section.groups.indexed)
+                              _DuplicateGroupBox(
+                                key: warningDetailGroupKey(index, g),
+                                group: group,
+                                targetStyle: targetStyle,
+                              ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                ),
+            ],
           ),
-        ),
+        ],
         actions: [
-          TextButton(
-            key: const Key('warning-detail-close'),
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('閉じる'),
+          Expanded(
+            child: DialogButton(
+              key: warningDetailCloseKey,
+              label: '閉じる',
+              background: colors.surfaceElevated,
+              foreground: colors.textPrimary,
+              onPressed: () => Navigator.pop(dialogContext),
+            ),
           ),
         ],
       );
     },
   );
+}
+
+/// 重複の組1つ: 変更後名の見出しと、その名前になるファイル(`008:T53`)。
+class _DuplicateGroupBox extends StatelessWidget {
+  const _DuplicateGroupBox({
+    super.key,
+    required this.group,
+    required this.targetStyle,
+  });
+
+  final WarningDetailGroup group;
+  final TextStyle targetStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(10, 7, 10, 8),
+      decoration: BoxDecoration(
+        color: colors.background.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.danger.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '→ ${group.resultName}',
+            style: TextStyle(
+              color: colors.danger,
+              fontSize: AppFontSize.small,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+            ),
+          ),
+          for (final member in group.members) Text(member, style: targetStyle),
+          if (group.collidesWithExisting)
+            Text(
+              existingFileLabel,
+              style: targetStyle.copyWith(color: colors.textMuted),
+            ),
+        ],
+      ),
+    );
+  }
 }

@@ -129,9 +129,242 @@ void main() {
       await tester.tap(find.byKey(rowWarningKey).first);
       await tester.pumpAndSettle();
 
+      // **相手も同じ組に並ぶ**(revision 10.0、代表例 20e″。`008:T53`)。
+      final group = find.byKey(warningDetailGroupKey(0, 0));
+      List<String> groupTexts() => tester
+          .widgetList<Text>(
+            find.descendant(of: group, matching: find.byType(Text)),
+          )
+          .map((t) => t.data ?? '')
+          .toList();
+      expect(groupTexts(), hasLength(3));
+      expect(groupTexts()[0], contains('same.txt'));
+      expect(groupTexts().sublist(1), ['「alpha.txt」', '「bravo.txt」']);
+    });
+  });
+
+  group('重複の相手(005 revision 10.0。`008:T53`)', () {
+    testWidgets('狭い幅・大きな文字・多くの組でも、見出しと「閉じる」が画面に残る', (tester) async {
+      const screenSize = Size(320, 640);
+      tester.view.physicalSize = screenSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // 30 folder × 2 件。どの folder でも2件が `same.txt` になる → 30 組。
+      FileEntry f(String name, int folder) => FileEntry(
+        name: name,
+        createdAt: DateTime(2024, 3, 4),
+        modifiedAt: DateTime(2026, 8, 4),
+        size: 0,
+        sourceFolder: 'F$folder',
+        sourceLocation: 'DCIM/F$folder',
+      );
+      final c = FileListController(
+        files: [
+          for (var i = 0; i < 30; i++) ...[f('a_$i.txt', i), f('b_$i.txt', i)],
+        ],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: screenSize,
+            textScaler: TextScaler.linear(1.6),
+          ),
+          child: MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(body: FileListView(controller: c)),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final screen = Offset.zero & screenSize;
+      final close = tester.getRect(find.byKey(warningDetailCloseKey));
+      expect(screen.contains(close.topLeft), isTrue);
+      expect(screen.contains(close.bottomRight), isTrue);
+      final dialog = tester.getRect(find.byKey(warningDetailDialogKey));
+      expect(screen.contains(dialog.topLeft), isTrue);
+      // 組は folder ごとに分かれている(最初の組が見えていればよい)。
+      expect(find.byKey(warningDetailGroupKey(0, 0)), findsOneWidget);
       expect(
-        _targetTexts(tester).single,
-        allOf(contains('alpha.txt'), contains('same.txt')),
+        find.descendant(
+          of: find.byKey(warningDetailGroupKey(0, 0)),
+          matching: find.textContaining('DCIM/F0'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('行から開くと相手が読め、相手の他の警告は出ない(代表例 20e″)', (tester) async {
+      // どちらも作成日時が取れない → 生成後名はともに `same.jpg`(重複)で、
+      // 2件とも作成日時不明も持つ。
+      final c = FileListController(
+        files: [_noCreatedAt('a.jpg'), _noCreatedAt('b.jpg')],
+        rule: const RenameRule([
+          LiteralToken('same'),
+          DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+        ]),
+      );
+      await _pump(tester, c);
+      expect(c.warnings.whereType<DuplicateWarning>(), hasLength(2));
+      expect(c.warnings.whereType<MissingSourceDateWarning>(), hasLength(2));
+
+      await tester.tap(find.byKey(rowWarningKey).first);
+      await tester.pumpAndSettle();
+
+      final sections = find.byWidgetPredicate((w) {
+        final key = w.key;
+        return key is ValueKey<String> &&
+            key.value.startsWith('warning-detail-section-');
+      });
+      expect(sections, findsNWidgets(2));
+      // 重複の組には相手(b.jpg)が並ぶ。
+      final group = find.byKey(warningDetailGroupKey(0, 0));
+      expect(
+        find.descendant(of: group, matching: find.text('「b.jpg」')),
+        findsOneWidget,
+      );
+      // **作成日時不明の節は、その行のファイルだけ**(相手の分は出さない)。
+      final dateTargets = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(warningDetailTargetsKey(1)),
+              matching: find.byType(Text),
+            ),
+          )
+          .map((t) => t.data)
+          .toList();
+      expect(dateTargets, ['「a.jpg」']);
+      expect(find.textContaining('作成日時不明 1 件'), findsOneWidget);
+    });
+
+    test('相手として足すのは、同じ folder・同じ変更後名の重複だけ', () {
+      FileEntry f(String name, String folder) => FileEntry(
+        name: name,
+        modifiedAt: DateTime(2026, 8, 4),
+        size: 0,
+        sourceFolder: folder,
+      );
+      final a = f('a.txt', 'A');
+      final b = f('b.txt', 'A');
+      final otherFolder = f('c.txt', 'B');
+      final otherName = f('d.txt', 'A');
+      final own = DuplicateWarning(file: a, resultName: 'same.txt');
+      final ownDate = MissingSourceDateWarning(
+        file: a,
+        tokenIndex: 1,
+        token: const DateTimeToken(
+          source: DateTimeSource.created,
+          format: 'YYYY',
+        ),
+      );
+      final partner = DuplicateWarning(file: b, resultName: 'same.txt');
+      final partnerDate = MissingSourceDateWarning(
+        file: b,
+        tokenIndex: 1,
+        token: const DateTimeToken(
+          source: DateTimeSource.created,
+          format: 'YYYY',
+        ),
+      );
+      final all = <Warning>[
+        own,
+        ownDate,
+        partner,
+        partnerDate,
+        DuplicateWarning(file: otherFolder, resultName: 'same.txt'),
+        DuplicateWarning(file: otherName, resultName: 'other.txt'),
+      ];
+
+      expect(rowDetailWarnings([own, ownDate], all), [own, ownDate, partner]);
+      // 重複を持たない行には何も足さない。
+      expect(rowDetailWarnings([ownDate], all), [ownDate]);
+    });
+
+    testWidgets('読み込んでいない同名とぶつかると「フォルダにある既存のファイル」', (tester) async {
+      final c = FileListController(
+        files: [
+          FileEntry(
+            name: 'alpha.txt',
+            createdAt: DateTime(2024, 3, 4),
+            modifiedAt: DateTime(2026, 8, 4),
+            size: 0,
+            sourceFolder: 'F',
+          ),
+        ],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      c.setOccupiedNames({
+        'F': {'same.txt'},
+      });
+      await _pump(tester, c);
+      expect(c.warnings.whereType<DuplicateWarning>(), hasLength(1));
+
+      for (final entry in [rowWarningKey, warningCountKey]) {
+        await tester.tap(find.byKey(entry));
+        await tester.pumpAndSettle();
+        final group = find.byKey(warningDetailGroupKey(0, 0));
+        expect(
+          find.descendant(of: group, matching: find.text('「alpha.txt」')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: group, matching: find.text(existingFileLabel)),
+          findsOneWidget,
+          reason: '$entry から開いた詳細',
+        );
+        await tester.tap(find.byKey(warningDetailCloseKey));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('同じ変更後名でも folder が違えば別の組(場所を見出しに添える)', (tester) async {
+      FileEntry f(String name, String folder) => FileEntry(
+        name: name,
+        createdAt: DateTime(2024, 3, 4),
+        modifiedAt: DateTime(2026, 8, 4),
+        size: 0,
+        sourceFolder: folder,
+        sourceLocation: 'DCIM/$folder',
+      );
+      final c = FileListController(
+        files: [
+          f('a1.txt', 'A'),
+          f('b1.txt', 'B'),
+          f('a2.txt', 'A'),
+          f('b2.txt', 'B'),
+        ],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      List<String> groupTexts(int g) => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(warningDetailGroupKey(0, g)),
+              matching: find.byType(Text),
+            ),
+          )
+          .map((t) => t.data ?? '')
+          .toList();
+      final groups = [groupTexts(0), groupTexts(1)];
+      expect(find.byKey(warningDetailGroupKey(0, 2)), findsNothing);
+      // 組ごとに、同じ folder のファイルだけが並ぶ。
+      final byHeading = {for (final g in groups) g.first: g.sublist(1).toSet()};
+      expect(byHeading.keys, everyElement(contains('same.txt')));
+      expect(byHeading.keys.toSet(), hasLength(2), reason: '見出しで2つの組を見分けられる');
+      expect(
+        byHeading.values,
+        containsAll([
+          {'「a1.txt」', '「a2.txt」'},
+          {'「b1.txt」', '「b2.txt」'},
+        ]),
       );
     });
   });
@@ -330,8 +563,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining(duplicateKindLabel), findsWidgets);
-      // **その行のファイルだけ**(混ざらない)。
-      expect(_targetTexts(tester).every((t) => !t.contains('b.txt')), isTrue);
+      // 空名の節は**その行のファイルだけ**(混ざらない)。b.txt は重複の相手としてだけ
+      // 読める(revision 10.0。`008:T53`)。
+      final sectionCount = find
+          .byWidgetPredicate((w) {
+            final key = w.key;
+            return key is ValueKey<String> &&
+                key.value.startsWith('warning-detail-section-');
+          })
+          .evaluate()
+          .length;
+      for (var i = 0; i < sectionCount; i++) {
+        final inGroups = find.descendant(
+          of: find.byKey(warningDetailTargetsKey(i)),
+          matching: find.byWidgetPredicate((w) {
+            final key = w.key;
+            return key is ValueKey<String> &&
+                key.value.startsWith('warning-detail-group-');
+          }),
+        );
+        final texts = tester
+            .widgetList<Text>(
+              find.descendant(
+                of: find.byKey(warningDetailTargetsKey(i)),
+                matching: find.byType(Text),
+              ),
+            )
+            .map((t) => t.data ?? '');
+        if (inGroups.evaluate().isEmpty) {
+          expect(texts, everyElement(isNot(contains('b.txt'))));
+        } else {
+          expect(texts.where((t) => t.contains('b.txt')), hasLength(1));
+        }
+      }
     });
 
     testWidgets('桁不足に該当しない行の詳細には、桁不足の節が出ない', (tester) async {

@@ -645,7 +645,18 @@ void main() {
       expect(_detail(), findsOneWidget);
       expect(_inDetail(find.textContaining('alpha.txt')), findsOneWidget);
       expect(_inDetail(find.textContaining('bravo.txt')), findsOneWidget);
-      expect(_inDetail(find.textContaining('same.txt')), findsNWidgets(2));
+      // **変更後名ごとの組に、その名前になる2件が並ぶ**(`008:T53`)。変更後名は
+      // 組の見出しに1回だけ書く。
+      final group = find.byKey(warningDetailGroupKey(0, 0));
+      Finder inGroup(String text) =>
+          find.descendant(of: group, matching: find.textContaining(text));
+      expect(inGroup('same.txt'), findsOneWidget);
+      expect(inGroup('alpha.txt'), findsOneWidget);
+      expect(inGroup('bravo.txt'), findsOneWidget);
+      expect(find.byKey(warningDetailGroupKey(0, 1)), findsNothing);
+      expect(_inDetail(find.textContaining('same.txt')), findsOneWidget);
+      // 相手は読み込んだファイルなので「既存のファイル」とは書かない。
+      expect(_inDetail(find.text(existingFileLabel)), findsNothing);
       // 種別ごとにまとまり、件数が見える。**行と同じ語彙**(008:T19)。
       expect(
         _inDetail(find.textContaining('$duplicateKindLabel 2 件')),
@@ -654,30 +665,33 @@ void main() {
     });
 
     // **008:T19 でスコープを分けた**(2026-09-02 の要望2、REQ-009 (4))。
-    // 改修前は行から開いても全件が出ていた。
-    testWidgets('行から開くとその行だけ、件数から開くと全件(両方向)', (tester) async {
+    // 改修前は行から開いても全件が出ていた。**revision 10.0(`008:T53`)で、
+    // 行から開いても重複の相手は読めるようにした**(他の警告が混ざらないことは
+    // `warning_detail_scope_test.dart`)。
+    testWidgets('行から開くとその行と重複の相手、件数から開くと全件', (tester) async {
       final c = FileListController(
         files: [_f('alpha.txt'), _f('bravo.txt')],
         rule: const RenameRule([LiteralToken('same')]),
       );
       await _pump(tester, c);
 
-      // 行から: **その行のファイルだけ。**他方が混ざらない。
       await tester.tap(_rowWarnings().first);
       await tester.pumpAndSettle();
       expect(_detail(), findsOneWidget);
       // 見出しがスコープを示す。
       expect(_inDetail(find.textContaining('「alpha.txt」の問題')), findsOneWidget);
       expect(_targets(tester), _containsOne('alpha.txt'));
-      expect(_targets(tester), _containsNone('bravo.txt'));
+      // **同じ変更後名になる相手が読める**(revision 10.0、代表例 20e″)。
+      expect(_targets(tester), _containsOne('bravo.txt'));
       // 行から開いた詳細でも、全件と同じ内容(重複する変更後名)が読める((4))。
       expect(_targets(tester), _containsOne('same.txt'));
       expect(_explanations(tester), hasLength(1));
-      await tester.tap(find.byKey(const Key('warning-detail-close')));
+      await tester.tap(find.byKey(warningDetailCloseKey));
       await tester.pumpAndSettle();
 
       // 件数から: **全件。**特定のファイルに絞られない。
       await _openDetailFromCount(tester);
+      expect(_inDetail(find.textContaining('「alpha.txt」の問題')), findsNothing);
       expect(_targets(tester), _containsOne('alpha.txt'));
       expect(_targets(tester), _containsOne('bravo.txt'));
     });
