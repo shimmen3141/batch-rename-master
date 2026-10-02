@@ -95,7 +95,7 @@
     例外を投げる供給元にも同じ上限を置いた(例外は `FolderNamesSync` が取れなかった扱いにするので、投げても連鎖は止まらない)。
     実装側に再問い合わせの上限を持たせる案(対応案2)は採らない — 製品の振る舞いは `_failed` で正しく止まり、仕様にも
     回数の上限は無い。**残余risk**: `_failed` への記録だけが再問い合わせの歯止めである構造は、将来この行を消す変更を
-    test が有限時間で検出できる(上の上限)ことで受ける。
+    test が有限時間で検出できる(上の上限)ことで受ける。引き受け先: 008:T54(この構造の所有 task。独立review attempt 1 の P3)。
   - M662 を手で当てて `timeout 120` で test を流し、**3秒で3件が落ちる**ことを確かめた(暴走しない)。
   - 14件を流し直した(前面、`timeout 590`、**全体で139秒**)。command は `flutter test` を `folder_names_sync_test.dart`・
     `occupied_names_test.dart`・`file_list_view_test.dart` に絞ったもの:
@@ -118,9 +118,26 @@ M665 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 作った時�
 14 mutations: 14 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。2026-10-03 の開発者の指定「レビューはいったんsonnetにやらせる」)。実装は Claude Opus 5.5。
+占有名(データ保護)に触れる task には実装と同等以上を使う既定(AGENTS.md)と食い違うが、開発者の指定に従う。
+
+- (数えない)`0e58f25..06ad35f` の review は、M662 の暴走の件で依頼側が途中で止めた。
+- Review attempt 1: `0e58f25..93932f2` — **PASS** — 未解決 P0/P1 なし
+  - 確認できた点: 実行の可否と自動解決(REQ-026 / REQ-028)は不変で、一覧用の値は実行経路へ漏れない。`displayOccupiedNames` は
+    OP-005 と同じ引き方で、生成後名と一致する名前だけを返す最適化は `validate` の重複判定と等価。`FolderNamesSync` の時機・失敗・
+    二重防止・置き換え・dispose・`main.dart` の配線、除去の取り消し、test の書き換え、記録の訂正、manual は current code と一致。
+  - reviewer の検証: `flutter analyze` No issues、`flutter test` 1198 PASS、範囲付き mutation 14件 KILLED(M662 を含め完走)。
+  - **P3**: 残余risk に引き受け先の task ID が無い → 「引き受け先: 008:T54」を足して閉じた(記録だけの差分。SELF-CHECK)。
+- 連鎖: `0e58f25..93932f2` PASS → 以後の記録だけの差分は SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: 記録の訂正と test の上限(`04f862a`)。mutation 14件を流し直して KILLED。独立reviewを依頼する
-- Blocker category: none
-- Evidence revision: `04f862a`(`lib/` は `20eb3b1` から変わっていない)
-- Next Agent action: 独立review(Sonnet、`0e58f25..HEAD`。1回目は M662 の件で途中で止めたので数えない)を起動し、PASS なら実機確認を依頼する
+- Last checkpoint: 独立review attempt 1 PASS(`0e58f25..93932f2`)。code を `20eb3b1` で凍結し、実機確認を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順0〜4を行い、結果(手順2のおおよその秒数を含む)を会話で伝える
+- Evidence revision: `lib/` が `20eb3b1` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
