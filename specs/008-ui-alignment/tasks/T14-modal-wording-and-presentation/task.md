@@ -241,6 +241,16 @@ M645 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 名前が変わ�
   - reviewer の mutation: M638 / M644 / M645 KILLED。`flutter test` 1176 PASS、`flutter analyze` No issues。
   - 連鎖: `9b14ad5..d7c2db6`(FAIL、T14-R1)→ `d7c2db6..7afd544`(PASS、T14-R1 の閉鎖を確認)。
 
+- **SELF-CHECK**: `7afd544..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
+- 連鎖: `9b14ad5..d7c2db6` FAIL(T14-R1)→ `d7c2db6..7afd544` PASS(T14-R1 閉鎖)→ 以後の記録だけの差分は SELF-CHECK。
+
+### 実機確認(2026-10-02)
+
+- 対象: `lib/` が `6d2f56d` と同一の build(branch HEAD `121b8ac`)、host 側の Android エミュレータ。
+- 結果: 開発者から「確認事項について、問題ありませんでした。」(会話で受領、2026-10-02)。
+  手順0〜2(重複の確認・キャンセル・実行・元に戻す、作成日時不明の確認)と任意の手順3がすべて期待どおり。
+- 受領後に code・dependency・build 設定の変更なし。
+
 ### machine検証の範囲と、manualで見ないもの
 
 - **再採番の詳細dialog**は widget test だけで確かめる(実行の最中に他processが同名を作る競合が要り、手で再現できない)。
@@ -251,12 +261,3 @@ M645 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 名前が変わ�
 - 2026-08-25 / `013:T07`の実機確認(U5)を受けて定義。開発者が「U1〜U5をすべてtask化する」
   と決定した。あわせて、割り当て先の無かった2026-08-15の決定(結果の提示手段)をここへ
   接続した。
-
-## Current state / handoff
-
-- Last checkpoint: implementation の独立review PASS(`9b14ad5..7afd544`)。実機確認待ち
-- Blocker category: manual-evidence
-- Waiting for: 開発者(host 側の Android エミュレータ)
-- Requested action: [manual-verification.md](manual-verification.md) の手順0〜2(3は任意)を、`lib/` が `6d2f56d` と同一の build で行う。`/workspace` は branch `asdd/008-ui-alignment/T14-modal-wording-and-presentation` のまま待つ
-- Evidence revision: `6d2f56d`(code)/ `7afd544`(記録)
-- Next Agent action: 結果を受け取ったら作業記録へ要約し、問題が無ければ final-evidence の review を経て PR #209 を ready にする
