@@ -55,6 +55,7 @@
     "tasks/T48-row-file-size",
     "tasks/T50-row-warning-retune",
     "tasks/T51-define-digit-auto-raise",
-    "tasks/T52-implement-digit-auto-raise"
+    "tasks/T52-implement-digit-auto-raise",
+    "tasks/T53-warning-detail-grouping"
   ]
 }

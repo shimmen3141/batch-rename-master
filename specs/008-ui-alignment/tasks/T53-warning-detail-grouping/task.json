@@ -1,0 +1,13 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T53",
+  "title": "警告の詳細modalを、重複を変更後名ごとにまとめた見せ方へ改める",
+  "status": "done",
+  "dependsOn": [],
+  "covers": [
+    "005:REQ-009"
+  ],
+  "issue": null,
+  "pullRequest": 210,
+  "manualVerification": "manual-verification.md"
+}

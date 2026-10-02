@@ -1298,9 +1298,9 @@
     {
       "id": "M191",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                        Padding(\n                          padding: const EdgeInsets.only(top: 2, bottom: 4),\n                          child: Text(\n                            section.explanation,\n                            key: warningDetailExplanationKey(index),",
-      "replace": "                        Padding(\n                          padding: const EdgeInsets.only(top: 2, bottom: 4),\n                          child: Text(\n                            '',\n                            key: warningDetailExplanationKey(index),",
-      "note": "008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2))。**`008:T19` で節ごとの説明へ組み直したので `find` を追随させた**"
+      "find": "                  description: section.explanation,\n                  descriptionKey: warningDetailExplanationKey(index),",
+      "replace": "                  description: '',\n                  descriptionKey: warningDetailExplanationKey(index),",
+      "note": "008:T16 詳細dialogから原因ごとの説明を落とす — 常設側が種別だけなので、どのトークンが何桁必要かを読める場所が無くなる(005 REQ-009 (2))。**`008:T19` で節ごとの説明へ組み直したので `find` を追随させた**。**`008:T53` で詳細を確認dialogと同じ枠へ作り直したので `find` を追随させた**"
     },
     {
       "id": "M192",
@@ -1312,16 +1312,16 @@
     {
       "id": "M194",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                        Column(\n                          key: warningDetailTargetsKey(index),\n                          mainAxisSize: MainAxisSize.min,\n                          crossAxisAlignment: CrossAxisAlignment.start,\n                          children: [\n                            for (final target in section.targets)\n                              Text('• $target'),\n                          ],\n                        ),",
-      "replace": "                        Column(\n                          key: warningDetailTargetsKey(index),\n                          mainAxisSize: MainAxisSize.min,\n                          crossAxisAlignment: CrossAxisAlignment.start,\n                          children: [\n                            for (final target in section.targets)\n                              Text('• $target'),\n                            for (final _ in section.targets)\n                              Text(\n                                section.explanation,\n                                key: warningDetailExplanationKey(index),\n                              ),\n                          ],\n                        ),",
-      "note": "008:T16 詳細dialogの説明を該当fileの件数ぶん繰り返す — 005 REQ-009 (2)(独立review attempt 4 が追加)。**`008:T19` で節の構造が変わったので `find` を追随させた**(説明を対象の列挙の中へ件数ぶん入れる形にした)。**このmutationは対象が2件以上の節で key の重複も起こす**が、意味の側でも落ちる(説明が件数ぶんになる)ことを attempt 1 が確認している"
+      "find": "                            if (section.groups.isEmpty)\n                              for (final target in section.targets)\n                                Text(target, style: targetStyle),",
+      "replace": "                            if (section.groups.isEmpty)\n                              for (final target in section.targets)\n                                Text(target, style: targetStyle),\n                            for (final _ in section.targets)\n                              Text(\n                                section.explanation,\n                                key: warningDetailExplanationKey(index),\n                              ),",
+      "note": "008:T16 詳細dialogの説明を該当fileの件数ぶん繰り返す — 005 REQ-009 (2)(独立review attempt 4 が追加)。**`008:T19` で節の構造が変わったので `find` を追随させた**(説明を対象の列挙の中へ件数ぶん入れる形にした)。**このmutationは対象が2件以上の節で key の重複も起こす**が、意味の側でも落ちる(説明が件数ぶんになる)ことを attempt 1 が確認している。**`008:T53` で詳細を確認dialogと同じ枠へ作り直したので `find` を追随させた**"
     },
     {
       "id": "M195",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "                            for (final target in section.targets)\n                              Text('• $target'),",
-      "replace": "                            Text('• ${section.targets.first}'),",
-      "note": "008:T16 詳細dialogの対象の列挙を節あたり1件へ間引く — 005 REQ-009 (3)「全件」(独立review attempt 4 が追加)。**`008:T19` で節ごとの列挙へ組み直したので `find` を追随させた**"
+      "find": "                              for (final target in section.targets)\n                                Text(target, style: targetStyle),",
+      "replace": "                              Text(section.targets.first, style: targetStyle),",
+      "note": "008:T16 詳細dialogの対象の列挙を節あたり1件へ間引く — 005 REQ-009 (3)「全件」(独立review attempt 4 が追加)。**`008:T19` で節ごとの列挙へ組み直したので `find` を追随させた**。**`008:T53` で詳細を確認dialogと同じ枠へ作り直したので `find` を追随させた**"
     },
     {
       "id": "M196",
@@ -1704,9 +1704,9 @@
     {
       "id": "M257",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                              context,\n                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
-      "replace": "                              context,\n                              warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
-      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**。**008:T46で`find`を追随させた**(字下げの変更)"
+      "find": "                              rowDetailWarnings(row.warnings, warnings),\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "replace": "                              warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "note": "008:T19 行から開く詳細を改修前の全件へ戻す — 005 REQ-009 (4)「ファイルごとの入口が全件を出す実装を排除する」(2026-09-02 の要望2)。**`find` を attempt 1 の修正(amongFiles の追加)へ追随させた**。**008:T46で`find`を追随させた**(字下げの変更)。**`008:T53` で行の警告に重複の相手を足す([rowDetailWarnings])ようにしたので `find` を追随させた**(全件へ戻す向きは同じ)"
     },
     {
       "id": "M258",
@@ -1753,9 +1753,9 @@
     {
       "id": "M264",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                              row.warnings,\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
-      "replace": "                              rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
-      "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5。**008:T46で`find`を追随させた**(字下げの変更)"
+      "find": "                              rowDetailWarnings(row.warnings, warnings),\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "replace": "                              rowDetailWarnings(\n                                rowWarningsOf(row.warnings, ruleIsEmpty: ruleIsEmpty),\n                                warnings,\n                              ),\n                              ruleIsEmpty: ruleIsEmpty,\n                              scopeFile: row.source,",
+      "note": "008:T19 行の詳細へ行の畳み込みを掛ける — REQ-021 規則2 の「ただし REQ-009 (3) の提示には含める」重複と、規則1 で畳んだ原因の名指しが行スコープから消える(REQ-009 (4))。独立review attempt 1 の P3-5。**008:T46で`find`を追随させた**(字下げの変更)。**`008:T53` で `find` を追随させた**([rowDetailWarnings] の引数へ畳み込みを掛ける)"
     },
     {
       "id": "M265",
@@ -4098,10 +4098,10 @@
     },
     {
       "id": "M641",
-      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "file": "lib/ui/common/design_dialog.dart",
       "find": "            Flexible(\n              child: SingleChildScrollView(",
       "replace": "            SizedBox(\n              child: SingleChildScrollView(",
-      "note": "008:T14 本文だけをscrollさせるのをやめる — 件数が多いと実行・キャンセルのbuttonが画面の外へ出る"
+      "note": "008:T14 本文だけをscrollさせるのをやめる — 件数が多いと実行・キャンセルのbuttonが画面の外へ出る。**`008:T53` で枠を `lib/ui/common/design_dialog.dart` へ切り出したので `file` を追随させた**(警告の詳細も同じ枠を使う)"
     },
     {
       "id": "M642",
@@ -4130,6 +4130,90 @@
       "find": "              ...r.warnings.map(warningFile).nonNulls,",
       "replace": "              r.source,",
       "note": "008:T14 名前が変わらないファイルを行の source で数える — 警告のファイルとは別の評価の instance なので一致せず、T14-R1 が再発する(対照)"
+    },
+    {
+      "id": "M646",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  if (keys.isEmpty) return rowWarnings;",
+      "replace": "  return rowWarnings;",
+      "note": "008:T53 行から開いた詳細に重複の相手を足さない — 005 REQ-009 (4) revision 10.0「同じ folder で同じ変更後名になる、読み込んだ他のファイルも読める」(代表例 20e″)"
+    },
+    {
+      "id": "M647",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "      if (!own.contains(w) && keys.contains(_duplicateKey(w))) w,",
+      "replace": "      if (!own.contains(w) && keys.contains(_duplicateKey(w)))\n        ...allWarnings.where((x) => identical(warningFile(x), w.file)),",
+      "note": "008:T53 相手の重複だけでなく、相手の他の警告(日時不明など)も足す — 005 REQ-009 (4) revision 10.0「相手のファイルが該当する他の警告は出さない」"
+    },
+    {
+      "id": "M648",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "    (warning.file.sourceFolder, warning.resultName);",
+      "replace": "    (null, warning.resultName);",
+      "note": "008:T53 重複の組を folder で分けない — 001 は folder ごとに重複を数えるので、別の folder の同名は相手ではない(005 REQ-009 (4) revision 10.0「同じ folder で」)"
+    },
+    {
+      "id": "M649",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "        final members = groups[_duplicateKey(warning)] ??= <FileEntry>[];",
+      "replace": "        final members = groups[(null, '')] ??= <FileEntry>[];",
+      "note": "008:T53 重複を変更後名ごとの組に分けない(1つの組に全件) — 開発者の要望「重複するファイルを一つの枠に列挙する」(どれとどれがぶつかるかが読めない)"
+    },
+    {
+      "id": "M650",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  bool get collidesWithExisting => members.length == 1;",
+      "replace": "  bool get collidesWithExisting => false;",
+      "note": "008:T53 読み込んでいない同名とぶつかる組に「フォルダにある既存のファイル」を書かない — 相手が無いように見える(提示の自由として選んだ書き方)"
+    },
+    {
+      "id": "M651",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "  bool get collidesWithExisting => members.length == 1;",
+      "replace": "  bool get collidesWithExisting => true;",
+      "note": "008:T53 読み込んだ相手がいる組にも「フォルダにある既存のファイル」を書く — 無い相手を示す(M650 の対照)"
+    },
+    {
+      "id": "M652",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          final location? when sharedNames.contains(name) =>",
+      "replace": "          final location? when false =>",
+      "note": "008:T53 同じ変更後名の組が別の folder にもあるとき、見出しに場所を添えない — 2つの組が同じ見出しになり見分けられない"
+    },
+    {
+      "id": "M653",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n",
+      "replace": "",
+      "note": "008:T53 重複の組にファイルを並べない — 005 REQ-009 (3)「どのファイルが対象かを識別できる」。**実機確認の指摘(ファイルを「、」で横に並べる)で `find` を追随させた**"
+    },
+    {
+      "id": "M654",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          Wrap(\n            children: [\n              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n            ],\n          ),\n          // **変更後名は最後の行**(同じ確認。原文は「1行目に矢印があるのは不自然」)。\n          // ファイル → 名前の順に読める。\n          Text(\n            '→ ${group.resultName}',\n            key: warningDetailGroupResultKey,\n            style: danger,\n          ),\n",
+      "replace": "          Text(\n            '→ ${group.resultName}',\n            key: warningDetailGroupResultKey,\n            style: danger,\n          ),\n          Wrap(\n            children: [\n              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n            ],\n          ),\n          // **変更後名は最後の行**(同じ確認。原文は「1行目に矢印があるのは不自然」)。\n          // ファイル → 名前の順に読める。\n",
+      "note": "008:T53 変更後名をファイルより前(組の1行目)に戻す — 2026-10-02 の実機確認「1行目に矢印があるのは不自然」(最後の行に置く)"
+    },
+    {
+      "id": "M655",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          Wrap(\n            children: [\n              for (final (i, member)",
+      "replace": "          Column(\n            children: [\n              for (final (i, member)",
+      "note": "008:T53 ファイルを1行に1つ縦に並べる — 2026-10-02 の実機確認「「、」で区切って横にも並べてよい」"
+    },
+    {
+      "id": "M656",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              existingFileLabel,\n              key: warningDetailGroupExistingKey,\n              style: danger,",
+      "replace": "              existingFileLabel,\n              key: warningDetailGroupExistingKey,\n              style: targetStyle,",
+      "note": "008:T53 「(フォルダにある既存のファイルと重複)」を赤にしない — 2026-10-02 の実機確認での開発者の指定"
+    },
+    {
+      "id": "M657",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  i < group.members.length - 1 ? '$member、' : member,",
+      "replace": "                  i > 0 ? '、$member' : member,",
+      "note": "008:T53 区切りを名前の前に付ける — 次の行の行頭に「、」が来る(2026-10-02 の実機確認「ファイル名の途中では改行せず、次の行から始める」)"
     }
   ]
 }
