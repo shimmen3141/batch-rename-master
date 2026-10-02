@@ -5,7 +5,7 @@
 いまは、読み込んでいないファイル(フォルダにもともとある同名)との重複が、**実行buttonを押したとき**に初めて
 一覧の警告へ現れる。読み込んだ時点でフォルダの名前を調べ、**実行buttonを押す前から**一覧と詳細に出す。
 
-## 受領した要望(2026-10-02)
+## 受領した要望(2026-10-03 JST)
 
 `T53` の実機確認1回目で、開発者が「実行buttonを押す前(ルール設定時点？)に調べることは可能ですか」と尋ねた。
 回答(可能・仕様の変更は不要・別 task を推奨)を受けて、開発者が「新しい task として登録したい」とした。
@@ -35,7 +35,7 @@
 - **仕様の変更は要らない見込み**(REQ-028「一覧の警告はより前に取得した占有名で評価してよい」)。着手時に 005 の
   REQ-026 / REQ-028 / OP-005 と照合し、要るなら開発者の承認を取る。
 
-## 所要時間の懸念(2026-10-02 の見積もり)
+## 所要時間の懸念(2026-10-03 JST の見積もり)
 
 - container(Linux、ローカルの disk)で 5000 件のフォルダを `Directory.list` で名前だけ読むと **10〜60ms**。
   ファイルごとに `stat` まですると約 0.7 秒(今の列挙はしない)。
@@ -55,9 +55,12 @@
 
 ## 作業記録
 
-- 2026-10-02 / 起票。開発者の懸念(数千件のフォルダの所要時間)に、container での計測と見積もりで答えた(上の「所要時間の懸念」)。
-- 2026-10-02 / 開発者「008:T54 に着手してください。方針に沿いつつ、できれば効率的な方法で実装してください」。`in_progress` にした。
-- 2026-10-02 / 実装(`c29cfde`)。
+日付は JST(container の時計は UTC なので、commit の時刻とは日付がずれることがある)。
+
+
+- 2026-10-03 / 起票。開発者の懸念(数千件のフォルダの所要時間)に、container での計測と見積もりで答えた(上の「所要時間の懸念」)。
+- 2026-10-03 / 開発者「008:T54 に着手してください。方針に沿いつつ、できれば効率的な方法で実装してください」。`in_progress` にした。
+- 2026-10-03 / 実装(`c29cfde`)。
   - **実在名と引く集合を分けた**(`lib/data/rename_exec/occupied_names.dart`): `freedNamesByFolder`(改名で空く名前。OP-005 の
     引く集合)を切り出し、`collectOccupiedNames` はそれで引く(振る舞いは同じ)。`OccupiedNamesReady.folderNames` に引く前の
     実在名も載せる。
@@ -74,11 +77,28 @@
   - test: `test/spec_005_rename_exec/folder_names_sync_test.dart`(新規)。既存 test の `setOccupiedNames` / `occupiedNames`
     は名前の置き換えだけ(値の意味は変わらない — 渡していた名前に読み込んだファイルの名前は含まれていない)。
   - 検証(`c29cfde`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` 1197 PASS、`check_mutation_finds.py` PASS(609件)。
-- 2026-10-02 / 範囲付き mutation(`flutter test` を `folder_names_sync_test.dart`・`occupied_names_test.dart`・
-  `file_list_view_test.dart` に絞った。background で全 spec を回すと session がメモリ不足で2回止められたため)。
-  1回目に **M664 が SURVIVED**: 取れたときは結果を入れること自体が一覧の変更通知になるので、最後の見直しが無くても
-  再問い合わせが走る。**取れなかったときは通知が無く、問い合わせ中の改名を取りこぼす** — その test が無かった。
-  test を足し(`20eb3b1`)、M664 を流し直して KILLED。`flutter test` 1198 PASS。
+- 2026-10-03 / 範囲付き mutation の1回目(`c29cfde`)。**この回の表は証拠として使わない**(下の訂正)。
+  - **M664 が SURVIVED**: 取れたときは結果を入れること自体が一覧の変更通知になるので、最後の見直しが無くても再問い合わせが
+    走る。**取れなかったときは通知が無く、問い合わせ中の改名を取りこぼす** — その test が無かった。test を足した(`20eb3b1`)。
+- 2026-10-03 / **記録の訂正**(別セッションの調査による。[finding](../../../../development-findings/2026-10-03-runaway-mutation-exhausted-host-memory.md))。
+  - 以前ここに「background で全 spec を回すと **session がメモリ不足で2回止められた**」と書いたのは**誤り**だった。実際には
+    **mutation M662 が test を無限ループさせ**、`flutter_tester` が膨らみ続けて **Windows ホストのコミットメモリを枯渇させ、
+    WSL2 VM ごと Docker が止まった**(2026-10-03 03:13 / 04:23 JST の2回)。範囲を3本の test に絞っても、M662 が入っていれば
+    同じことが起きる — 原因は実行範囲ではなく mutation そのものだった。
+  - **M662 の「KILLED | exit 1」は検出ではなかった。** M662(`_failed.add(folder);` の削除)を当てると、失敗した folder を
+    即座に問い合わせ直し続ける。偽の供給元が `Future.value` で即座に返すので連鎖は microtask だけで回り、timer が発火しない
+    — `pumpEventQueue` も test の timeout も timer なので test は落ちない。1回目の生出力の時刻(20:02:50 UTC = 05:02:50 JST)は、
+    別セッションが暴走した `flutter_tester` を止めた直後で、**exit 1 はその停止による**と見るのが妥当である。同じ実行の
+    M663〜M665 も、ホストが swap で詰まっている間に走った可能性がある。
+  - **対応**(finding の対応案1。`04f862a`): test の偽の供給元に**問い合わせの上限**
+    (`_callLimit` = 100。超えたら完了しない Future を返して連鎖を断つ)を置き、呼び出し回数の assertion で落ちるようにした。
+    例外を投げる供給元にも同じ上限を置いた(例外は `FolderNamesSync` が取れなかった扱いにするので、投げても連鎖は止まらない)。
+    実装側に再問い合わせの上限を持たせる案(対応案2)は採らない — 製品の振る舞いは `_failed` で正しく止まり、仕様にも
+    回数の上限は無い。**残余risk**: `_failed` への記録だけが再問い合わせの歯止めである構造は、将来この行を消す変更を
+    test が有限時間で検出できる(上の上限)ことで受ける。
+  - M662 を手で当てて `timeout 120` で test を流し、**3秒で3件が落ちる**ことを確かめた(暴走しない)。
+  - 14件を流し直した(前面、`timeout 590`、**全体で139秒**)。command は `flutter test` を `folder_names_sync_test.dart`・
+    `occupied_names_test.dart`・`file_list_view_test.dart` に絞ったもの:
 
 ```text
 M30 | KILLED | lib/data/rename_exec/occupied_names.dart | 占有名から「改名される選択fileの現在名」を除く処理を除去(例25bのP0再発)。**`008:T ... | exit 1
@@ -93,15 +113,14 @@ M660 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 改名で名�
 M661 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 読み込み直しで捨てられた実在名を取り直さない ... | exit 1
 M662 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 取れなかった folder を覚えない ... | exit 1
 M663 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 問い合わせ中に一覧から無くなった folder の結果も入れる ... | exit 1
-M664 | SURVIVED(1回目) | lib/ui/file_list/folder_names_sync.dart | 008:T54 問い合わせ中に起きた改名を取りこぼす ... | exit 0: the tests passed with the mutation applied
+M664 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 問い合わせ中に起きた改名を取りこぼす ... | exit 1
 M665 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 作った時点の一覧を問い合わせない ... | exit 1
-14 mutations: 13 KILLED, 1 SURVIVED, 0 SKIPPED
-M664 | KILLED | lib/ui/file_list/folder_names_sync.dart | 008:T54 問い合わせ中に起きた改名を取りこぼす ... | exit 1(`20eb3b1` で再実行)
+14 mutations: 14 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
 ## Current state / handoff
 
-- Last checkpoint: 実装と自動検証(`20eb3b1`)。独立reviewを依頼する
+- Last checkpoint: 記録の訂正と test の上限(`04f862a`)。mutation 14件を流し直して KILLED。独立reviewを依頼する
 - Blocker category: none
-- Evidence revision: `20eb3b1`
-- Next Agent action: 独立review(Sonnet、`0e58f25..HEAD`)を起動し、PASS なら実機確認を依頼する
+- Evidence revision: `04f862a`(`lib/` は `20eb3b1` から変わっていない)
+- Next Agent action: 独立review(Sonnet、`0e58f25..HEAD`。1回目は M662 の件で途中で止めたので数えない)を起動し、PASS なら実機確認を依頼する

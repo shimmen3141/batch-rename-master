@@ -4248,7 +4248,7 @@
       "file": "lib/ui/file_list/folder_names_sync.dart",
       "find": "        _failed.add(folder);\n",
       "replace": "",
-      "note": "008:T54 取れなかった folder を覚えない — 列挙できない経路(SAF)で問い合わせを繰り返し続ける"
+      "note": "008:T54 取れなかった folder を覚えない — 列挙できない経路(SAF)で問い合わせを繰り返し続ける。**当てると test が無限ループし、ホストのメモリを枯渇させた**(2026-10-03。`development-findings/2026-10-03-runaway-mutation-exhausted-host-memory.md`)。test の偽の供給元に問い合わせの上限(`_callLimit`)を置いて、有限時間で落ちるようにした"
     },
     {
       "id": "M663",
