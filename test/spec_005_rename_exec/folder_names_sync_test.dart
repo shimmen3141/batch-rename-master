@@ -34,6 +34,7 @@ class _Lister {
 
   Future<NameListResult> call(String folder) {
     calls.add(folder);
+    if (calls.length > _callLimit) return _never();
     if (pending.contains(folder)) {
       return (_waiting[folder] = Completer<NameListResult>()).future;
     }
@@ -52,6 +53,19 @@ class _Lister {
     _waiting.remove(folder)!.complete(_result(folder));
   }
 }
+
+/// 問い合わせの上限。**問い合わせが止まらない不具合を、有限時間で落とすため**に置く。
+///
+/// 失敗を覚えない実装(`tool/mutations.json` の M662)は、失敗した folder を即座に
+/// 問い合わせ直し続ける。偽の供給元が `Future.value` で即座に返すと、その連鎖は
+/// microtask だけで回り、**timer が永久に発火しない** — `pumpEventQueue` も test の
+/// timeout も timer なので、test は落ちずにメモリを食い続けた(2026-10-03、ホストの
+/// メモリを枯渇させた。`development-findings/2026-10-03-runaway-mutation-exhausted-host-memory.md`)。
+/// 例外を投げても `FolderNamesSync` が取れなかった扱いにして連鎖は続くので、
+/// **上限を超えたら完了しない Future を返して連鎖を断ち**、呼び出し回数の assertion で落とす。
+const _callLimit = 100;
+
+Future<NameListResult> _never() => Completer<NameListResult>().future;
 
 List<DuplicateWarning> _duplicates(FileListController c) =>
     c.warnings.whereType<DuplicateWarning>().toList();
@@ -198,9 +212,10 @@ void main() {
     var calls = 0;
     final sync = FolderNamesSync(
       files: c,
-      listNames: (folder) async {
+      listNames: (folder) {
         calls++;
-        throw StateError('壊れた供給元');
+        if (calls > _callLimit) return _never();
+        return Future.error(StateError('壊れた供給元'));
       },
     );
     addTearDown(sync.dispose);
