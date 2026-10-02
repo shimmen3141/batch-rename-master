@@ -144,9 +144,24 @@ contract を変える task なので、実装と同等以上の model を使う(
   - reviewer の検証: `flutter test` 1181 PASS、`flutter analyze` No issues、`dart format` 0 changed、
     mutation M646〜M653 の8件 KILLED。足した mutation なし。
 
+- Review attempt 2(差分): `ec9ab32..c568f09` — **FAIL** — P1 1件(T53-R1)。reviewer は `gpt-6-luna`
+  - **T53-R1(P1・成果物の欠陥)**: 「名前の途中で折らない」の保証が、1件ずつなら幅に収まる名前でしか確かめられて
+    いない。**1行の幅より長い名前**が名前の中で折れる経路がある。
+  - 確認できた点(次回の前提): 指定の3点(順序・横並び・既存ファイルの行の位置/色/文言)は実装と test で満たす。
+    スコープ(`rowDetailWarnings`)と REQ-009 (3)/(4) は前回から変わらない。manual は `a2ab21b` と一致。test の
+    書き換えは緩和でない。M650 / M651 / M653〜M657 は KILLED。`flutter test` 1183 PASS、analyze No issues。
+  - **対応(`53ec95d`)**: 1行より長い名前は、折り返すか切り詰めるかしか無い。**切り詰めると名前が読めず REQ-009 (3)
+    「識別できる形」に反する**ので、**次の行の先頭から始めて名前の中で折り返す**と決め、code のコメント・test
+    (`maxLines`・`overflow` を持たない、行頭から始まる、2行以上に折れて全体が読める)・manual へ明記した。
+    開発者の指定「ファイル名の途中では改行せず、次の行から始める」は、1行に収まる名前について満たす。
+  - 検証(`53ec95d`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1184 PASS**、
+    `check_mutation_finds.py` PASS(601件)。
+  - **以後の review は Sonnet**(Agent tool、`model: sonnet`)。2026-10-02、開発者「レビューはいったんsonnetにやらせるようにしてください」。
+    contract を変える task には実装(Opus 5.5)と同等以上を使う既定(AGENTS.md)と食い違うが、開発者の指定に従う。
+
 ## Current state / handoff
 
-- Last checkpoint: 実機確認1回目の見せ方の指摘を `a2ab21b` で直した。差分reviewを依頼する
+- Last checkpoint: T53-R1 を `53ec95d` で閉じた(1行より長い名前の扱いを明記・固定)。差分reviewを依頼する
 - Blocker category: none
-- Evidence revision: `a2ab21b`
-- Next Agent action: 差分review(`gpt-6-luna`、`ec9ab32..HEAD`)を起動し、PASS なら実機確認2回目を依頼する
+- Evidence revision: `53ec95d`
+- Next Agent action: 差分review attempt 3(Sonnet、`c568f09..HEAD`)を起動し、PASS なら実機確認2回目を依頼する

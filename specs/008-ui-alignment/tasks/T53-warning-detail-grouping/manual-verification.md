@@ -3,7 +3,7 @@
 `008:T53` で作り直した**警告の詳細**(一覧の「リネーム: N 件の問題 詳細」と、行の「重複」から開くもの)を、
 実機の字体と幅で確かめる。
 
-**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `a2ab21b` と同一のもの**である。branch
+**対象buildは、`lib/`・`hook/`・`src/`の内容が commit `53ec95d` と同一のもの**である。branch
 `asdd/008-ui-alignment/T53-warning-detail-grouping` のHEADからbuildすればこれを満たす。
 **code・dependency・build設定が変わったら、この結果は再利用しない。**
 
@@ -57,6 +57,7 @@ Set-Content -LiteralPath (Join-Path $fixturePath 'same.log') -Value 't53-existin
   - 1つは `photo_01.txt` 〜 `photo_06.txt` の6個と、最後の行に `→ 「same.txt」`。
   - もう1つは `memo_1.md`、`memo_2.md` と、最後の行に `→ 「same.md」`。
 - 1行に入りきらないときは、**ファイル名の途中で折れずに**、次の名前が次の行の先頭から始まる。行の先頭に「、」が来ない。
+  (1つの名前だけで1行より長いときは、次の行の先頭から始めて名前の中で折り返す。切って「…」にはしない)
 - **どれとどれが同じ名前になるのかが、名前を見比べなくても分かる。**(分かりにくいところがあれば教えてほしい)
 - 下の「閉じる」で閉じる。
 
