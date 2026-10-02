@@ -4183,9 +4183,37 @@
     {
       "id": "M653",
       "file": "lib/ui/file_list/rename_warning_view.dart",
-      "find": "          for (final member in group.members) Text(member, style: targetStyle),",
+      "find": "              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n",
       "replace": "",
-      "note": "008:T53 重複の組にファイルを並べない — 005 REQ-009 (3)「どのファイルが対象かを識別できる」"
+      "note": "008:T53 重複の組にファイルを並べない — 005 REQ-009 (3)「どのファイルが対象かを識別できる」。**実機確認の指摘(ファイルを「、」で横に並べる)で `find` を追随させた**"
+    },
+    {
+      "id": "M654",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          Wrap(\n            children: [\n              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n            ],\n          ),\n          // **変更後名は最後の行**(同じ確認。原文は「1行目に矢印があるのは不自然」)。\n          // ファイル → 名前の順に読める。\n          Text(\n            '→ ${group.resultName}',\n            key: warningDetailGroupResultKey,\n            style: danger,\n          ),\n",
+      "replace": "          Text(\n            '→ ${group.resultName}',\n            key: warningDetailGroupResultKey,\n            style: danger,\n          ),\n          Wrap(\n            children: [\n              for (final (i, member) in group.members.indexed)\n                Text(\n                  i < group.members.length - 1 ? '$member、' : member,\n                  style: targetStyle,\n                ),\n            ],\n          ),\n          // **変更後名は最後の行**(同じ確認。原文は「1行目に矢印があるのは不自然」)。\n          // ファイル → 名前の順に読める。\n",
+      "note": "008:T53 変更後名をファイルより前(組の1行目)に戻す — 2026-10-02 の実機確認「1行目に矢印があるのは不自然」(最後の行に置く)"
+    },
+    {
+      "id": "M655",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "          Wrap(\n            children: [\n              for (final (i, member)",
+      "replace": "          Column(\n            children: [\n              for (final (i, member)",
+      "note": "008:T53 ファイルを1行に1つ縦に並べる — 2026-10-02 の実機確認「「、」で区切って横にも並べてよい」"
+    },
+    {
+      "id": "M656",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "              existingFileLabel,\n              key: warningDetailGroupExistingKey,\n              style: danger,",
+      "replace": "              existingFileLabel,\n              key: warningDetailGroupExistingKey,\n              style: targetStyle,",
+      "note": "008:T53 「(フォルダにある既存のファイルと重複)」を赤にしない — 2026-10-02 の実機確認での開発者の指定"
+    },
+    {
+      "id": "M657",
+      "file": "lib/ui/file_list/rename_warning_view.dart",
+      "find": "                  i < group.members.length - 1 ? '$member、' : member,",
+      "replace": "                  i > 0 ? '、$member' : member,",
+      "note": "008:T53 区切りを名前の前に付ける — 次の行の行頭に「、」が来る(2026-10-02 の実機確認「ファイル名の途中では改行せず、次の行から始める」)"
     }
   ]
 }

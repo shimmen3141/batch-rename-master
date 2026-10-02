@@ -889,7 +889,15 @@ const Key warningDetailCloseKey = Key('warning-detail-close');
 /// 001 の警告は相手が占有名かどうかを持たないので、「読み込んだ相手が無い」ことから
 /// こう書く(005 revision 10.0 で提示の自由とした)。選んでいない行の現在名と
 /// ぶつかる場合も、フォルダにある既存のファイルであることは変わらない。
-const String existingFileLabel = 'フォルダにある既存のファイル';
+///
+/// 文言と赤は 2026-10-02 の実機確認での開発者の指定。
+const String existingFileLabel = '(フォルダにある既存のファイルと重複)';
+
+/// 重複の組の、変更後名の行(組の最後の行)。
+const Key warningDetailGroupResultKey = Key('warning-detail-group-result');
+
+/// 重複の組の「(フォルダにある既存のファイルと重複)」の行(変更後名の次の行)。
+const Key warningDetailGroupExistingKey = Key('warning-detail-group-existing');
 
 /// 警告の詳細(005 REQ-009 (3) / (4))。
 ///
@@ -992,6 +1000,12 @@ class _DuplicateGroupBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final danger = TextStyle(
+      color: colors.danger,
+      fontSize: AppFontSize.small,
+      fontWeight: FontWeight.w700,
+      height: 1.5,
+    );
     return Container(
       margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.fromLTRB(10, 7, 10, 8),
@@ -1003,20 +1017,32 @@ class _DuplicateGroupBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // **ファイルは「、」で区切って横へ並べ、入りきらなければ名前の切れ目で次の行へ
+          // 送る**(2026-10-02 の実機確認。原文は「入りきらない場合はファイル名の途中では
+          // 改行せず、次の行から始めるイメージ」)。区切りは名前の後ろに付け、行頭に
+          // 「、」が来ないようにする。
+          Wrap(
+            children: [
+              for (final (i, member) in group.members.indexed)
+                Text(
+                  i < group.members.length - 1 ? '$member、' : member,
+                  style: targetStyle,
+                ),
+            ],
+          ),
+          // **変更後名は最後の行**(同じ確認。原文は「1行目に矢印があるのは不自然」)。
+          // ファイル → 名前の順に読める。
           Text(
             '→ ${group.resultName}',
-            style: TextStyle(
-              color: colors.danger,
-              fontSize: AppFontSize.small,
-              fontWeight: FontWeight.w700,
-              height: 1.5,
-            ),
+            key: warningDetailGroupResultKey,
+            style: danger,
           ),
-          for (final member in group.members) Text(member, style: targetStyle),
+          // 相手が読み込んだファイルの中に無い組は、変更後名の次の行で示す(同じ確認)。
           if (group.collidesWithExisting)
             Text(
               existingFileLabel,
-              style: targetStyle.copyWith(color: colors.textMuted),
+              key: warningDetailGroupExistingKey,
+              style: danger,
             ),
         ],
       ),

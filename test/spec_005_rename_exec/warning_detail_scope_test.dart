@@ -16,6 +16,7 @@ import 'package:batch_rename_master/ui/file_list/rename_warning_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FileEntry _dated(String name, {String? location}) => FileEntry(
@@ -137,9 +138,8 @@ void main() {
           )
           .map((t) => t.data ?? '')
           .toList();
-      expect(groupTexts(), hasLength(3));
-      expect(groupTexts()[0], contains('same.txt'));
-      expect(groupTexts().sublist(1), ['「alpha.txt」', '「bravo.txt」']);
+      // ファイルを「、」で区切って並べ、**変更後名は最後の行**(2026-10-02 の実機確認)。
+      expect(groupTexts(), ['「alpha.txt」、', '「bravo.txt」', '→ 「same.txt」']);
     });
   });
 
@@ -321,6 +321,134 @@ void main() {
       }
     });
 
+    testWidgets('組の並び: ファイルは横に並べ、変更後名、既存のファイルとの重複の順で、後の2行は赤', (tester) async {
+      // 2026-10-02 の実機確認での開発者の指定。
+      final c = FileListController(
+        files: [
+          for (final name in ['a.txt', 'b.txt', 'c.txt'])
+            FileEntry(
+              name: name,
+              createdAt: DateTime(2024, 3, 4),
+              modifiedAt: DateTime(2026, 8, 4),
+              size: 0,
+              sourceFolder: 'F',
+            ),
+          FileEntry(
+            name: 'solo.log',
+            createdAt: DateTime(2024, 3, 4),
+            modifiedAt: DateTime(2026, 8, 4),
+            size: 0,
+            sourceFolder: 'F',
+          ),
+        ],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      c.setOccupiedNames({
+        'F': {'same.log'},
+      });
+      await _pump(tester, c);
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      // 3件の組: 短い名前は**同じ行に横へ並ぶ**。
+      final txt = find.byKey(warningDetailGroupKey(0, 0));
+      Rect rectIn(Finder group, Finder of) =>
+          tester.getRect(find.descendant(of: group, matching: of));
+      final a = rectIn(txt, find.text('「a.txt」、'));
+      final b = rectIn(txt, find.text('「b.txt」、'));
+      final cc = rectIn(txt, find.text('「c.txt」'));
+      expect(b.top, a.top);
+      expect(cc.top, a.top);
+      expect(b.left, greaterThan(a.left));
+      // 変更後名はファイルより下(最後の行)。既存のファイルの行はこの組に無い。
+      final result = rectIn(txt, find.byKey(warningDetailGroupResultKey));
+      expect(result.top, greaterThanOrEqualTo(a.bottom));
+      expect(
+        find.descendant(
+          of: txt,
+          matching: find.byKey(warningDetailGroupExistingKey),
+        ),
+        findsNothing,
+      );
+
+      // 1件だけの組: ファイル → 変更後名 → (フォルダにある既存のファイルと重複)。
+      final log = find.byKey(warningDetailGroupKey(0, 1));
+      final solo = rectIn(log, find.text('「solo.log」'));
+      final logResult = rectIn(log, find.byKey(warningDetailGroupResultKey));
+      final existing = rectIn(log, find.byKey(warningDetailGroupExistingKey));
+      expect(logResult.top, greaterThanOrEqualTo(solo.bottom));
+      expect(existing.top, greaterThanOrEqualTo(logResult.bottom));
+      final danger = AppColors.dark.danger;
+      for (final key in [
+        warningDetailGroupResultKey,
+        warningDetailGroupExistingKey,
+      ]) {
+        final text = tester.widget<Text>(
+          find.descendant(of: log, matching: find.byKey(key)),
+        );
+        expect(text.style?.color, danger, reason: '$key');
+      }
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: log,
+                matching: find.byKey(warningDetailGroupExistingKey),
+              ),
+            )
+            .data,
+        '(フォルダにある既存のファイルと重複)',
+      );
+    });
+
+    testWidgets('入りきらない名前は途中で折らず、次の行の先頭から始める', (tester) async {
+      tester.view.physicalSize = const Size(360, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // 1件ずつなら1行に収まるが、2件は同じ行に入らない長さ。
+      final names = ['IMG_0001_xx.jpg', 'IMG_0002_xx.jpg'];
+      final c = FileListController(
+        files: [for (final n in names) _dated(n)],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+
+      final group = find.byKey(warningDetailGroupKey(0, 0));
+      final first = find.descendant(
+        of: group,
+        matching: find.text('「${names[0]}」、'),
+      );
+      final second = find.descendant(
+        of: group,
+        matching: find.text('「${names[1]}」'),
+      );
+      final r1 = tester.getRect(first);
+      final r2 = tester.getRect(second);
+      // 2件目は次の行の先頭から始まる。
+      expect(r2.top, greaterThanOrEqualTo(r1.bottom));
+      expect(r2.left, r1.left);
+      // どちらも1行で描かれている(名前の途中で折れていない)。
+      for (final finder in [first, second]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.descendant(of: finder, matching: find.byType(RichText)),
+        );
+        expect(
+          paragraph
+              .getBoxesForSelection(
+                TextSelection(
+                  baseOffset: 0,
+                  extentOffset: paragraph.text.toPlainText().length,
+                ),
+              )
+              .map((box) => box.top)
+              .toSet(),
+          hasLength(1),
+        );
+      }
+    });
+
     testWidgets('同じ変更後名でも folder が違えば別の組(場所を見出しに添える)', (tester) async {
       FileEntry f(String name, String folder) => FileEntry(
         name: name,
@@ -356,7 +484,14 @@ void main() {
       final groups = [groupTexts(0), groupTexts(1)];
       expect(find.byKey(warningDetailGroupKey(0, 2)), findsNothing);
       // 組ごとに、同じ folder のファイルだけが並ぶ。
-      final byHeading = {for (final g in groups) g.first: g.sublist(1).toSet()};
+      // 変更後名は組の最後の行。ファイルの後ろの「、」は区切り。
+      final byHeading = {
+        for (final g in groups)
+          g.last: {
+            for (final t in g.sublist(0, g.length - 1))
+              t.endsWith('、') ? t.substring(0, t.length - 1) : t,
+          },
+      };
       expect(byHeading.keys, everyElement(contains('same.txt')));
       expect(byHeading.keys.toSet(), hasLength(2), reason: '見出しで2つの組を見分けられる');
       expect(
