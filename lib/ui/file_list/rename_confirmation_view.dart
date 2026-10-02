@@ -59,14 +59,21 @@ class ConfirmationIssue {
 /// 読めなくなる(`013:T07` の U5)。種別の順序は 001 が返した順。
 ///
 /// - 名前が空になるファイルは**改名されない**(005 REQ-022)ので、同じファイルの
-///   基準日時不明は「空のまま改名します」の側へ数えない(REQ-021 規則1 と同じ畳み方)。
+///   基準日時不明は「空にして改名します」の側へ数えない(REQ-021 規則1 と同じ畳み方)。
+/// - **日時不明でも名前が変わらないファイルがある**(`[元の名前][作成日時]` で作成日時が
+///   取れないと、生成後名が現在名と同じになる)。[unchangedFiles] に入るファイルは
+///   「改名しません」の枠へ分ける — 改名されないファイルを「改名します」と書かない
+///   (独立review attempt 1 の T14-R1)。[unchangedFiles] は呼び出し側が
+///   `rowHasNoChange`(005 REQ-019 の判定)で作って渡す。
 /// - 桁不足はトークンに対する警告で、対象ファイルを持たない。複数あれば最も大きい
 ///   必要桁数を書く。**`008:T21` / `T52` 以後、UIからは届かない**(桁数を下限より
 ///   小さくできない)が、001 の判定は安全網として残るので、届いたときも書けるようにする。
 List<ConfirmationIssue> confirmationIssues(
   List<Warning> warnings, {
   Iterable<FileEntry> amongFiles = const <FileEntry>[],
+  Iterable<FileEntry> unchangedFiles = const <FileEntry>[],
 }) {
+  final unchanged = Set<FileEntry>.identity()..addAll(unchangedFiles);
   final ambiguous = ambiguousFileNames(
     amongFiles.isEmpty ? warnings.map(warningFile).nonNulls : amongFiles,
   );
@@ -101,7 +108,13 @@ List<ConfirmationIssue> confirmationIssues(
         put('empty', warningKindLabel(warning), file);
       case MissingSourceDateWarning(:final file, :final token):
         if (excluded.contains(file)) continue;
-        put('date-${token.source.name}', warningKindLabel(warning), file);
+        put(
+          unchanged.contains(file)
+              ? 'date-same-${token.source.name}'
+              : 'date-${token.source.name}',
+          warningKindLabel(warning),
+          file,
+        );
     }
   }
 
@@ -125,6 +138,12 @@ List<ConfirmationIssue> confirmationIssues(
         ConfirmationIssue(
           title: '${kinds[key]} ${files[key]!.length} 件',
           consequence: '変更後の名前が空になるため、これらのファイルは改名しません',
+          targets: [for (final f in files[key]!) label(f)],
+        )
+      else if (key.startsWith('date-same-'))
+        ConfirmationIssue(
+          title: '${kinds[key]} ${files[key]!.length} 件',
+          consequence: '日時が取れず名前が変わらないため、これらのファイルは改名しません',
           targets: [for (final f in files[key]!) label(f)],
         )
       else
@@ -156,8 +175,13 @@ Future<bool> showRenameConfirmation(
   BuildContext context,
   List<Warning> warnings, {
   Iterable<FileEntry> amongFiles = const <FileEntry>[],
+  Iterable<FileEntry> unchangedFiles = const <FileEntry>[],
 }) async {
-  final issues = confirmationIssues(warnings, amongFiles: amongFiles);
+  final issues = confirmationIssues(
+    warnings,
+    amongFiles: amongFiles,
+    unchangedFiles: unchangedFiles,
+  );
   final confirmed = await showDialog<bool>(
     context: context,
     barrierColor: const Color(0xA8000000),

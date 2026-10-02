@@ -113,13 +113,13 @@ void main() {
       expect(confirmationActionLabel(issues), 'このまま実行');
     });
 
-    test('日時不明だけなら「その部分を空にして改名」と書く', () {
+    test('日時不明で名前が変わるファイルは「その部分を空にして改名」と書く', () {
       final files = [
         _file('a.jpg'),
         _file('b.jpg', createdAt: DateTime(2026, 1, 1)),
       ];
       final warnings = validate(
-        const RenameRule([OriginalNameToken(), _created]),
+        const RenameRule([OriginalNameToken(), LiteralToken('_'), _created]),
         files,
         DateTime(2026, 10, 2),
       );
@@ -128,6 +128,21 @@ void main() {
       expect(issues.single.consequence, contains('空にして改名します'));
       expect(issues.single.targets, ['「a.jpg」']);
       expect(confirmationActionLabel(issues), 'このまま実行');
+    });
+
+    test('日時不明で名前が変わらないファイルは「改名しません」と書く(review attempt 1 の T14-R1)', () {
+      // [元の名前][作成日時] で作成日時が無いと、生成後名は現在名と同じになる。
+      final a = _file('a.jpg');
+      final files = [a, _file('b.jpg', createdAt: DateTime(2026, 1, 1))];
+      final warnings = validate(
+        const RenameRule([OriginalNameToken(), _created]),
+        files,
+        DateTime(2026, 10, 2),
+      );
+      final issues = confirmationIssues(warnings, unchangedFiles: [a]);
+      expect(issues.map((i) => i.title), ['作成日時不明 1 件']);
+      expect(issues.single.consequence, contains('改名しません'));
+      expect(issues.single.consequence, isNot(contains('改名します')));
     });
 
     test('桁不足は(UIから届かなくても)必要な桁数へ広げると書く', () {
@@ -187,6 +202,36 @@ void main() {
     await tester.tap(find.byKey(renameForceKey));
     await tester.pumpAndSettle();
     expect(executor.calls, hasLength(2), reason: '自動解決した名前で2件とも改名する');
+    execution.dispose();
+  });
+
+  testWidgets('名前が変わらない日時不明のファイルを「改名します」と書かず、実際にも改名しない(T14-R1)', (
+    tester,
+  ) async {
+    final files = FileListController(
+      files: [
+        _file('a.jpg'),
+        _file('b.jpg', createdAt: DateTime(2026, 1, 1)),
+      ],
+      rule: const RenameRule([OriginalNameToken(), _created]),
+    );
+    final executor = FakeRenameExecutor(
+      files: {'/files/a.jpg': 'a.jpg', '/files/b.jpg': 'b.jpg'},
+    );
+    final execution = _execution(files, executor);
+    await _pump(tester, files, execution);
+
+    await tester.tap(find.byKey(const Key('rename-action')));
+    await tester.pumpAndSettle();
+    expect(_inDialog(find.text('作成日時不明 1 件')), findsOneWidget);
+    expect(_inDialog(find.textContaining('改名しません')), findsOneWidget);
+    expect(_inDialog(find.textContaining('改名します')), findsNothing);
+    expect(_inDialog(find.text('このまま実行')), findsOneWidget);
+
+    await tester.tap(find.byKey(renameForceKey));
+    await tester.pumpAndSettle();
+    expect(executor.calls, hasLength(1));
+    expect(executor.calls.single, startsWith('/files/b.jpg -> '));
     execution.dispose();
   });
 

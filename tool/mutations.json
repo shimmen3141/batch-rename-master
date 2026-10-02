@@ -4116,6 +4116,20 @@
       "find": "    if (execution == null ||\n        execution.isRunning ||\n        !controller.hasChangedFiles) {",
       "replace": "    if (execution == null || execution.isRunning) {",
       "note": "008:T14(008:T20 の F5) 画面の0件ガードを外す — 押した時点で変更0件でも確認dialogが開き、占有名を取りに行く(005 REQ-019)。以前は controller の門だけが守っていた"
+    },
+    {
+      "id": "M644",
+      "file": "lib/ui/file_list/rename_confirmation_view.dart",
+      "find": "          unchanged.contains(file)\n              ? 'date-same-${token.source.name}'\n              : 'date-${token.source.name}',",
+      "replace": "          'date-${token.source.name}',",
+      "note": "008:T14 日時不明で名前が変わらないファイルも「その部分を空にして改名します」と書く — 改名されないファイルを改名すると書く(独立review attempt 1 の T14-R1。005 REQ-019)"
+    },
+    {
+      "id": "M645",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "              ...r.warnings.map(warningFile).nonNulls,",
+      "replace": "              r.source,",
+      "note": "008:T14 名前が変わらないファイルを行の source で数える — 警告のファイルとは別の評価の instance なので一致せず、T14-R1 が再発する(対照)"
     }
   ]
 }

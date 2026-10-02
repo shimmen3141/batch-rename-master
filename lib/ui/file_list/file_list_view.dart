@@ -874,14 +874,25 @@ class _RenameActionBar extends StatelessWidget {
 
     // `prepare` が取り直した占有名を `controller` へ反映済みなので、この警告には
     // 占有名との衝突が含まれる(REQ-026 / REQ-028)。
-    final warnings = controller.warnings;
+    //
+    // **行と警告を同じ評価から取る。** 警告が指す [FileEntry] は評価ごとに作られ、
+    // 行の `source` とは同一でない。名前が変わらないファイルは、行が持つ警告の
+    // ファイル(同じ評価のもの)で数える(review attempt 1 の T14-R1)。
+    final preview = controller.preview;
+    final warnings = preview.warnings;
     if (warnings.isNotEmpty) {
       // **何を聞かれていて、実行すると何が起きるか**を種類ごとに示す(`008:T14`)。
       // 同じファイルの空名と基準日時不明は、空名の側へ畳む(REQ-021 規則1)。
       final force = await showRenameConfirmation(
         context,
         warnings,
-        amongFiles: controller.rows.map((r) => r.source),
+        amongFiles: preview.rows.map((r) => r.source),
+        // 名前が変わらないファイルを「改名します」と書かないため(005 REQ-019 と同じ判定)。
+        unchangedFiles: [
+          for (final r in preview.rows)
+            if (rowHasNoChange(r, ruleIsEmpty: controller.isRuleEmpty))
+              ...r.warnings.map(warningFile).nonNulls,
+        ],
       );
       if (!force || !context.mounted) return;
       await _run(context, force: true, occupiedNames: occupiedNames);
