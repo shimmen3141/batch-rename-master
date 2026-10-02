@@ -5,7 +5,44 @@
 `013:T07`の実機確認で開発者が挙げた**U5**を解消する。原文は「**モーダルの文言や
 見せ方は改善の余地あり**」である。
 
-## 対象modalが特定できていない — 着手時に人間へ確認する
+## 着手時の決定(2026-10-02、開発者)
+
+現状と修正案を示し、開発者が次のとおり決めた。
+
+- **① 実行前確認dialog**: 提示した方針で進める(参考デザインの「実行前の確認」へ寄せ、種類ごとに1枠、
+  強制実行したときに何が起きるかを書く)。開発者の補足(原文): 「連番の警告が出るルートはなくなったので、
+  それは表示されないはずです」 — `008:T21` / `T52` 以後、桁数は下限より小さくできない。**001 の桁不足判定は
+  安全網として残る**ので、コードは届いたときも書けるようにし、manual では見ない。
+- **② 再採番の結果**: **案A**。通知には件数と入口(「名前を確認する」)だけを置き、押すと中央のdialogで
+  「旧 → 新」を全件読む。原文: 「エラーと同様に自動で消えないようにしてください」 — **名前が変わった項目がある
+  結果の通知は閉じるまで残す。「元に戻す」は期限(5秒。005 REQ-007)を過ぎたら通知から消す**(押しても
+  何も起きない操作を残さない)。
+  - 提示した選択肢: A 通知から開く(推奨) / B 自動で開く(undoをdialogへ移す) / C やらない(①だけ)。
+  - **観測**: 「エラーと同様に」の前提と違い、**現在は「元に戻す」を持つ失敗結果は5秒で消える**
+    (`008:T25` の決定。`M455`)。このtaskでは失敗結果の扱いを変えていない。揃えるかは開発者へ報告した。
+
+### 対象の確定
+
+表の1(実行前確認dialog)と、結果の提示手段。**表の2〜4はこのtaskの対象外**(2は`T08`、3は`T44`、4は`T45`が
+完了済み)。U5 が指すmodalの確認は、残る対象が1だけになったため不要になった。
+
+### design 土台との照合(適用範囲: 「実行前の確認」dialog `dlg.kind === 'validate'`)
+
+合わせた点: 見出し「実行前の確認」、説明文、薄い赤の枠に⚠・見出し・説明、区切り線の下に「キャンセル」と赤い実行button
+(角丸18のcard、`Dialog` の枠は `008:T44` のtokenエディタと同じ値)。
+
+**離れた点と理由**:
+
+- **実行buttonの文言を条件付きにした。** 土台は常に「自動解決して実行」。名前が空・日時不明だけの確認では
+  何も自動解決しないので、そのときは「このまま実行」と書く(偽りの説明にしない)。
+- **枠に対象ファイルの名前を添えた。** 土台は種類と件数だけ。既存の確認dialogは対象を読めており(test
+  「警告時は全件を確認してから」)、dialogの上から警告の詳細は開けないので、読めるものを減らさない。
+  件数ぶん行を増やさず「、」で1段落に並べる。
+- **種類は「名前が空」「作成日時不明 / 更新日時不明」も持つ。** 土台は重複と桁数不足だけ。語彙は `T19` の正本
+  (`warningKindLabel`)を使い、土台の「名前の重複」「連番の桁数不足」は使わない。
+- **本文だけをscrollさせる。** 土台は件数が少ない前提。件数が多くても見出しとbuttonは画面に残す。
+
+## 対象modalが特定できていない — 着手時に人間へ確認する(2026-10-02 に解消。上の「着手時の決定」)
 
 **U5はどのmodalを指すか書かれていない。** 推測で直すと、指摘されていないものを変えて
 manual確認をやり直させることになる。**着手した最初の質問として、下の一覧を示して
@@ -50,6 +87,8 @@ manual確認をやり直させることになる。**着手した最初の質問
   `T19` の独立review attempt 2 は「同じ概念の活用形であり、`T19` が宣言した検証範囲
   (日時と桁不足の語彙)の外」として欠陥にしなかった。**文言を触るこのtaskが字面を揃えるときに拾う。**
   経緯は [`T19` の task.md](../T19-warning-detail-modal/task.md) の「引き渡した残余risk」にある。
+- **→ 2026-10-02 に確認: 既に揃っている。** `008:T50` が行・詳細・確認dialogの呼び名を `重複` 1つに縮めた
+  (`duplicateKindLabel`)。このtaskの確認dialogも同じ関数を使う。
 
 ## 着手時に人間へ確認すること(`008:T06` から、2026-09-18)
 
@@ -109,16 +148,116 @@ token のエディタ(`token_editors.dart`)は `T06` で bottom sheet のまま�
 
 ## 作業記録
 
+### 実装(2026-10-02、checkpoint `90b704e`)
+
+実装は Claude Opus 5.5。起点は`dev`@`9b14ad5`、branch `asdd/008-ui-alignment/T14-modal-wording-and-presentation`。
+
+- 新規 `lib/ui/file_list/rename_confirmation_view.dart`:
+  - `confirmationIssues`: 001 の警告を**種類ごとに1つ**へまとめ、強制実行したときの処理を添える。重複は
+    「末尾へ (1) (2) … を付けて改名」(001 の自動解決)、桁不足は「連番を N 桁に広げて改名」、名前が空は
+    「これらのファイルは改名しません」(005 REQ-022)、日時不明は「その日時の部分を空にして改名」。**名前が空に
+    なるファイルの日時不明は、日時不明の枠へ数えない**(改名しないファイルを改名すると書かない。REQ-021 規則1
+    と同じ畳み方)。
+  - `showRenameConfirmation`: 上の design 土台どおりのdialog。key(`rename-confirmation-dialog` /
+    `rename-cancel` / `rename-force`)は既存のまま。
+  - `showRenumberedDetail`: 再採番の「確認した名前 → 結果の名前」を全件並べるdialog(REQ-024)。
+- `lib/ui/common/app_toast.dart`: `ToastAction.expiresAfter`。過ぎたら**通知は残したまま操作だけを外す**。
+- `lib/ui/file_list/file_list_view.dart`:
+  - 確認dialogを `showRenameConfirmation` へ置き換えた。判定(警告があれば確認を挟む、強制実行の名前)は変えていない。
+  - 結果の通知: 再採番があれば「名前を確認する」(下線)を置き、`persist: true`。「元に戻す」へ `expiresAfter` を渡す。
+  - **F3**: `_RenameActionBar` の未使用の `warnings` を外し、同じ build の `rows` を受けて
+    `FileListController.changedFileCountIn(rows)` で数える(001 の評価をもう一度走らせない)。class doc を
+    005 REQ-019 revision 9.0(変更が0件なら無効)へ直した。
+  - **F5**: 0件ガードは残し、testで縛った(下)。
+- test:
+  - 新規 `test/spec_005_rename_exec/rename_confirmation_presentation_test.dart`(11件): 種類ごとのまとめ
+    (重複30件が1枠 / 名前が空と日時不明の畳み / 日時不明だけ / 桁不足)、dialogの見出し・説明・1枠・赤いbutton・
+    強制実行で改名、320×640・文字1.6倍・60件でも見出しとbuttonが画面内、**古いcallbackで変更0件のまま要求しても
+    確認も占有名の取得もしない(F5)**、再採番の通知は閉じるまで残り undo だけ期限で消える、12件でも通知へ
+    名前を並べずdialogで全件読める、再採番が無い結果は従来どおり期限で消える。
+  - `warning_confirmation_results_test.dart` の REQ-024 の2件: 「旧 → 新」を通知ではなく詳細dialogで数える
+    ように変えた(決定 A による提示場所の変更。**4件を落とさない**主眼と件数の assertion は同じ)。
+
+検証(`90b704e`、container内で直接実行):
+
+- `dart format --output=none --set-exit-if-changed .` — PASS(0 changed)
+- `flutter analyze` — No issues found
+- `flutter test` — **All tests passed(1174件)**
+- `python3 tool/check_mutation_finds.py` — PASS(587件)
+
+mutation: 今回足した `M634`〜`M643` と、`find` を追随させた `M455` の11件を、
+`command` を `flutter test test/spec_005_rename_exec test/spec_002_file_list/app_toast_test.dart` へ絞って回した:
+
+```text
+command: flutter test test/spec_005_rename_exec test/spec_002_file_list/app_toast_test.dart
+M455 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T25 「元に戻す」を持つ失敗結果を閉じるまで残す ... | exit 1
+M634 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 名前が変わった項目がある結果を期限で消す ... | exit 1
+M635 | KILLED | lib/ui/common/app_toast.dart | 008:T14 期限を過ぎても「元に戻す」を残す ... | exit 1
+M636 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 「元に戻す」に期限を渡さない ... | exit 1
+M637 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 結果の通知から詳細の入口を落とす ... | exit 1
+M638 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 名前が空になるファイルの日時不明を「空にして改名します」へも数える ... | exit 1
+M639 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 何も解決しないのに「自動解決して実行」と書く ... | exit 1
+M640 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 重複を1ファイル1枠に戻す ... | exit 1
+M641 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 本文だけをscrollさせるのをやめる ... | exit 1
+M642 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 確認の実行buttonを通常の色にする ... | exit 1
+M643 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14(008:T20 の F5) 画面の0件ガードを外す ... | exit 1
+11 mutations: 11 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+### 独立review
+
+reviewer は開発者の指定どおり `gpt-6-luna`(`codex-container exec -m gpt-6-luna`)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `9b14ad5..d7c2db6` — **FAIL** — P1 1件(T14-R1)
+  - **T14-R1(P1・成果物の欠陥)**: `[元の名前][作成日時]` で作成日時が取れないファイルは生成後名が現在名と同じで
+    改名されない(005 REQ-019 の「変わらない」)のに、確認dialogが「その日時の部分を空にして改名します」と書く。
+  - 確認できた点(次回の前提): 重複・桁不足の説明は001の自動解決どおり、空名は REQ-022 どおり、判定・キャンセル・key
+    は維持、再採番の詳細dialogは全件(REQ-024)、undo は5秒で操作だけ消える(REQ-007)、REQ-024 test の assertion
+    は維持、F3/F5 は閉じた、manual のbutton名・重複の名前例は current code と一致。reviewer の mutation 3件
+    (M638 / M639 / M643)は KILLED。analyze PASS、full test 1174 PASS。
+  - **修正(`6d2f56d`)**: 行と警告を**同じ評価**(`controller.preview`)から取り、`rowHasNoChange` で名前が変わらない
+    ファイルを「日時が取れず名前が変わらないため、これらのファイルは改名しません」の枠へ分けた。**行の `source` と
+    警告の `file` は別の評価の instance で一致しない**ので、名前が変わらない行は行が持つ警告のファイルで数える
+    (`source` で数えると一致せず黙って直らない — `M645` が対照)。
+  - **同じ型の誤りを自分の記録でも見つけて直した**: manual の手順2(`[元の名前][作成日時]` で12件)は、
+    端末のファイルでは作成日時が取れないので**12件とも名前が変わらず、実行buttonが押せない**手順だった。
+    `[元の名前][自由テキスト _][作成日時]` に変えた(名前が `photo_01_.txt` に変わる)。unit test の
+    「日時不明だけ」も同じ前提の誤りで「空にして改名」を期待していたので、名前が変わる場合と変わらない場合の2件へ分けた。
+  - 検証(`6d2f56d`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1176 PASS**、
+    `check_mutation_finds.py` PASS(589件)。範囲付き mutation(`flutter test test/spec_005_rename_exec`):
+
+```text
+M638 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 名前が空になるファイルの日時不明を「空にして改名します」へも数える ... | exit 1
+M639 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 何も解決しないのに「自動解決して実行」と書く ... | exit 1
+M643 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14(008:T20 の F5) 画面の0件ガードを外す ... | exit 1
+M644 | KILLED | lib/ui/file_list/rename_confirmation_view.dart | 008:T14 日時不明で名前が変わらないファイルも「その部分を空にして改名します」と書く ... | exit 1
+M645 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T14 名前が変わらないファイルを行の source で数える ... | exit 1
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- Review attempt 2(差分): `d7c2db6..7afd544` — **PASS** — 未解決 P0/P1 なし、P2/P3 なし
+  - T14-R1 が閉じた(同じ `controller.preview` から行と警告を取り、名前が変わらない日時不明は「改名しません」)。
+    空名の畳みとも一致。manual 手順2は current code で実行できる。task.md の記録は差分と一致。
+  - reviewer の mutation: M638 / M644 / M645 KILLED。`flutter test` 1176 PASS、`flutter analyze` No issues。
+  - 連鎖: `9b14ad5..d7c2db6`(FAIL、T14-R1)→ `d7c2db6..7afd544`(PASS、T14-R1 の閉鎖を確認)。
+
+- **SELF-CHECK**: `7afd544..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
+- 連鎖: `9b14ad5..d7c2db6` FAIL(T14-R1)→ `d7c2db6..7afd544` PASS(T14-R1 閉鎖)→ 以後の記録だけの差分は SELF-CHECK。
+
+### 実機確認(2026-10-02)
+
+- 対象: `lib/` が `6d2f56d` と同一の build(branch HEAD `121b8ac`)、host 側の Android エミュレータ。
+- 結果: 開発者から「確認事項について、問題ありませんでした。」(会話で受領、2026-10-02)。
+  手順0〜2(重複の確認・キャンセル・実行・元に戻す、作成日時不明の確認)と任意の手順3がすべて期待どおり。
+- 受領後に code・dependency・build 設定の変更なし。
+
+### machine検証の範囲と、manualで見ないもの
+
+- **再採番の詳細dialog**は widget test だけで確かめる(実行の最中に他processが同名を作る競合が要り、手で再現できない)。
+- **「名前が空」の枠**は、実機では確認dialogまで届かない(日時だけのルールでは他のファイルも変更0件になる)ので
+  widget test だけ。**「桁不足」の枠**は画面から出ない(`T52` の自動引き上げ)ので unit test だけ。
+- 実機で見るのは、重複・作成日時不明の確認dialogの読みやすさ、色、狭幅、実際の改名と取り消し([manual](manual-verification.md))。
+
 - 2026-08-25 / `013:T07`の実機確認(U5)を受けて定義。開発者が「U1〜U5をすべてtask化する」
   と決定した。あわせて、割り当て先の無かった2026-08-15の決定(結果の提示手段)をここへ
   接続した。
-
-## Current state / handoff
-
-- Last checkpoint: 定義しただけ。未着手
-- Blocker category: なし
-- Waiting for: なし
-- Requested action: **着手時に、U5がどのmodalを指すかを人間へ一度だけ確認する**(上の表)
-- Evidence revision: `dev@ae59859`
-- Next Agent action: 他taskと独立に着手できる。**先に対象を確定させること** — 対象が
-  `T05`/`T06`のmodalだけなら、このtaskは結果の提示手段だけを持つ
