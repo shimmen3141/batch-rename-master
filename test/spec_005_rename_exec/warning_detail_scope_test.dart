@@ -449,6 +449,44 @@ void main() {
       }
     });
 
+    testWidgets('1行より長い名前は、次の行の先頭から始め、切らずに全体を読ませる(T53-R1)', (tester) async {
+      tester.view.physicalSize = const Size(360, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      const long = 'IMG_20240304_120000_this_is_a_very_long_file_name.jpg';
+      final c = FileListController(
+        files: [_dated('a.jpg'), _dated(long)],
+        rule: const RenameRule([LiteralToken('same')]),
+      );
+      await _pump(tester, c);
+      await tester.tap(find.byKey(warningCountKey));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      final group = find.byKey(warningDetailGroupKey(0, 0));
+      final short = tester.getRect(
+        find.descendant(of: group, matching: find.text('「a.jpg」、')),
+      );
+      final longFinder = find.descendant(
+        of: group,
+        matching: find.text('「$long」'),
+      );
+      final longText = tester.widget<Text>(longFinder);
+      // 切り詰めない(名前の全体が読める)。
+      expect(longText.maxLines, isNull);
+      expect(longText.overflow, isNull);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: longFinder, matching: find.byType(RichText)),
+      );
+      expect(paragraph.didExceedMaxLines, isFalse);
+      // 1行に入らないので折り返している。そのうえで、**前の名前の後ろからではなく
+      // 次の行の先頭から**始まる。
+      final rect = tester.getRect(longFinder);
+      expect(rect.height, greaterThan(short.height * 1.5));
+      expect(rect.top, greaterThanOrEqualTo(short.bottom));
+      expect(rect.left, short.left);
+    });
+
     testWidgets('同じ変更後名でも folder が違えば別の組(場所を見出しに添える)', (tester) async {
       FileEntry f(String name, String folder) => FileEntry(
         name: name,

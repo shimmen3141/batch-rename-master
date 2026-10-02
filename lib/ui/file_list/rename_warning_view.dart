@@ -1021,6 +1021,10 @@ class _DuplicateGroupBox extends StatelessWidget {
           // 送る**(2026-10-02 の実機確認。原文は「入りきらない場合はファイル名の途中では
           // 改行せず、次の行から始めるイメージ」)。区切りは名前の後ろに付け、行頭に
           // 「、」が来ないようにする。
+          //
+          // **1行の幅より長い名前だけは、次の行の先頭から始めて名前の中で折り返す。**
+          // 切り詰め(「…」)にすると名前が読めず、どのファイルかを識別できない
+          // (005 REQ-009 (3))。独立review attempt 2 の T53-R1。
           Wrap(
             children: [
               for (final (i, member) in group.members.indexed)
