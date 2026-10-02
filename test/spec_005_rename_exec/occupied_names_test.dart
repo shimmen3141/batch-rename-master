@@ -686,7 +686,7 @@ void main() {
       final prepared = await wired.execution.prepare();
 
       expect(prepared, isA<OccupiedNamesUnavailable>());
-      expect(wired.files.occupiedNames, isEmpty, reason: '失敗した取得結果を占有名として採らない');
+      expect(wired.files.folderNames, isEmpty, reason: '失敗した取得結果を占有名として採らない');
     });
   });
 
@@ -702,7 +702,7 @@ void main() {
             : const NameListFailed(PickError(PickErrorKind.io, '用意していないフォルダ')),
       );
       // 読み込み時点の観測を一覧へ入れておく(この時点では警告0件)。
-      wired.files.setOccupiedNames(const {_a: <String>{}});
+      wired.files.setFolderNames(const {_a: <String>{}});
       await _pump(tester, wired.files, wired.execution);
       expect(wired.files.warnings, isEmpty, reason: '一覧には警告が出ていない状態から始める');
 

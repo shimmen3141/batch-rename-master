@@ -32,7 +32,7 @@ void removeUndoably(
   final before = controller.items;
   final beforeSortMode = controller.sortMode;
   final beforeSortDirection = controller.sortDirection;
-  final occupied = controller.occupiedNames;
+  final occupied = controller.folderNames;
 
   remove();
 
@@ -49,7 +49,7 @@ void removeUndoably(
   // (`RenameExecutionController.prepare`)、見ていないと**取り直した観測を古い控えで
   // 上書きする**(独立review attempt 2 の N-3)。
   //
-  // **同一性で比べる。** `setOccupiedNames` は必ず新しい map を作るので、
+  // **同一性で比べる。** `setFolderNames` / `updateFolderNames` は必ず新しい map を作るので、
   // 内容が同じでも「取り直された」ことが分かる。取り直しただけで取り消しを
   // 断るのは**安全側に倒しすぎ**だが、誤って戻すよりよい。
   final removed = before.length - controller.items.length;
@@ -77,7 +77,7 @@ void removeUndoably(
         // **誤って戻すことまでは許していない。**
         if (controller.sortMode != afterSortMode ||
             controller.sortDirection != afterSortDirection ||
-            !identical(controller.occupiedNames, occupied) ||
+            !identical(controller.folderNames, occupied) ||
             !_sameItems(controller.items, after)) {
           showAppToast(
             messenger,
@@ -93,7 +93,7 @@ void removeUndoably(
           sortMode: beforeSortMode,
           sortDirection: beforeSortDirection,
         );
-        controller.setOccupiedNames(occupied);
+        controller.setFolderNames(occupied);
       },
     ),
   );

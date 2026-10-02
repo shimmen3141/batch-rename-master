@@ -91,7 +91,7 @@ class RenameExecutionController extends ChangeNotifier {
 
   /// 実行を要求した時点で占有名を取り直す(005 OP-005 / REQ-028)。
   ///
-  /// 取得できたら [FileListController.setOccupiedNames] へも反映するので、以降の
+  /// 取得できたら [FileListController.updateFolderNames] へも反映するので、以降の
   /// [FileListController.warnings] は**取り直した占有名**で評価される — 呼び出し側は
   /// この後に警告を読み、確認の要否を決めればよい(REQ-011 / REQ-028)。
   ///
@@ -105,10 +105,11 @@ class RenameExecutionController extends ChangeNotifier {
       listNames: listNames,
     );
     switch (result) {
-      case OccupiedNamesReady(:final names):
+      case OccupiedNamesReady(:final folderNames):
         _unavailableFolders = const {};
-        // 一覧の警告表示も取り直した占有名へ揃える(REQ-026)。
-        files.setOccupiedNames(names.asMap);
+        // 一覧の警告表示も取り直した実在名へ揃える(REQ-026)。**引く前の名前を渡す** —
+        // 一覧は選択とルールに合わせて評価のたびに引く(`008:T54`)。
+        files.updateFolderNames(folderNames);
       case OccupiedNamesUnavailable(:final reasons):
         _unavailableFolders = reasons;
     }

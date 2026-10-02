@@ -68,10 +68,21 @@ sealed class OccupiedNamesResult {
 
 /// 対象 folder の実在名をすべて取得でき、占有名を組み立てられた。
 class OccupiedNamesReady extends OccupiedNamesResult {
-  const OccupiedNamesReady(this.names);
+  const OccupiedNamesReady(
+    this.names, {
+    this.folderNames = const <String?, Set<String>>{},
+  });
 
   /// 対象 folder について全域な占有名。
   final OccupiedNames names;
+
+  /// 占有名の材料にした、対象 folder の**実在名そのもの**(引く前。`008:T54`)。
+  ///
+  /// 一覧の警告はこれを持ち、選択とルールに合わせて**評価のたびに**引く
+  /// ([displayOccupiedNames])。引いた後の [names] を持つと、取ったあとに選択や
+  /// ルールを変えたとき、空かない名前を空いたものとして、または空く名前を
+  /// 占有されたものとして扱ってしまう。
+  final Map<String?, Set<String>> folderNames;
 }
 
 /// 1つ以上の folder で実在名を取得できなかった(REQ-027)。
@@ -122,17 +133,17 @@ Future<OccupiedNamesResult> collectOccupiedNames({
   // 集合(この実行で改名される選択 file の現在名)を1回の走査で作る。
   // **前者は REQ-022 の除外で狭めない。** 同じ folder を二度問い合わせないよう、
   // 順序は再現できるよう出現順にする。
+  final preview = generatePreview(rule, entries, now);
   final targets = <String?>[];
-  final renamed = <FileEntry>[];
-  for (final preview in generatePreview(rule, entries, now)) {
-    final file = preview.source;
+  for (final entry in preview) {
+    final file = entry.source;
     if (file.sourceHandle == null) continue;
     if (!targets.contains(file.sourceFolder)) targets.add(file.sourceFolder);
-    if (_hasEmptyBase(file, preview.resultName)) continue;
-    renamed.add(file);
   }
+  final freed = freedNamesByFolder(preview);
 
   final byFolder = <String?, Set<String>>{};
+  final listed = <String?, Set<String>>{};
   final reasons = <String?, PickError>{};
 
   for (final folder in targets) {
@@ -148,19 +159,60 @@ Future<OccupiedNamesResult> collectOccupiedNames({
     final result = await listNames(folder);
     switch (result) {
       case NamesListed(:final names):
+        listed[folder] = names;
         // 占有名 = 実在名 − この folder で改名される選択 file の現在名。
-        byFolder[folder] = {...names}
-          ..removeAll([
-            for (final file in renamed)
-              if (file.sourceFolder == folder) file.name,
-          ]);
+        byFolder[folder] = {...names}..removeAll(freed[folder] ?? const {});
       case NameListFailed(:final error):
         reasons[folder] = error;
     }
   }
 
   if (reasons.isNotEmpty) return OccupiedNamesUnavailable(reasons);
-  return OccupiedNamesReady(OccupiedNames(byFolder));
+  return OccupiedNamesReady(OccupiedNames(byFolder), folderNames: listed);
+}
+
+/// この実行で**空く**名前(folder ごと): 実体ハンドルを持ち、REQ-022 で除外されない
+/// 選択 file の現在名(OP-005 の「引く集合」)。
+///
+/// [preview] は 001 の `generatePreview` の結果(選択 file だけ)。
+Map<String?, Set<String>> freedNamesByFolder(Iterable<PreviewEntry> preview) {
+  final freed = <String?, Set<String>>{};
+  for (final entry in preview) {
+    final file = entry.source;
+    if (file.sourceHandle == null) continue;
+    if (_hasEmptyBase(file, entry.resultName)) continue;
+    (freed[file.sourceFolder] ??= <String>{}).add(file.name);
+  }
+  return freed;
+}
+
+/// 一覧の警告に渡す占有名(005 REQ-026 / REQ-028。`008:T54`)。
+///
+/// [folderNames](読み込み時などに取った実在名)から、**いまの選択とルールで**空く
+/// 名前を引く。OP-005 と同じ引き方なので、実行の要求時に取り直した結果と食い違わない
+/// (観測の時点だけが違う)。
+///
+/// **選択 file の生成後名と一致する名前だけを返す。** 001 の `validate` が占有名で
+/// 見るのは「選択 file の生成後名がその folder の最終名集合で2回以上出るか」だけで、
+/// 生成後名と一致しない占有名は警告を変えない。数千件のフォルダでも、評価のたびに
+/// 全件を数え直さずに済む(返す件数は選択件数以下)。
+Map<String?, Set<String>> displayOccupiedNames(
+  Map<String?, Set<String>> folderNames,
+  Iterable<PreviewEntry> preview,
+) {
+  if (folderNames.isEmpty) return const {};
+  final freed = freedNamesByFolder(preview);
+  final occupied = <String?, Set<String>>{};
+  for (final entry in preview) {
+    final folder = entry.source.sourceFolder;
+    final names = folderNames[folder];
+    if (names == null) continue;
+    final name = entry.resultName;
+    if (!names.contains(name)) continue;
+    if (freed[folder]?.contains(name) ?? false) continue;
+    (occupied[folder] ??= <String>{}).add(name);
+  }
+  return occupied;
 }
 
 /// 生成後ベース名(拡張子を除く)が空になるか(005 REQ-022)。
