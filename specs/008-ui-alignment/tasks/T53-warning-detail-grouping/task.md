@@ -64,10 +64,51 @@
 - 2026-10-02 / 開発者の要望を受けて起票し、005 revision 10.0 の改訂案を書いた。
 - 2026-10-02 / 開発者が 005 revision 10.0 を承認した(「詳細modalの変更案は承認します」)。contract の `status` を `approved`、10.0 の `approved_date` を 2026-10-02 にし、task を `in_progress` にした。
 - 2026-10-02 / 同時に尋ねた「元に戻す」付きの失敗通知を閉じるまで残すかは、開発者が **B(現状維持: 5秒で通知ごと消える)** を選んだ。この task の範囲に含めない。
+- 2026-10-02 / 実装(`0652b32`)。
+  - **共有部品**: `T14` の確認dialogの枠を `lib/ui/common/design_dialog.dart`(`DesignDialog` / `DialogButton` / `IssueCard`)
+    へ切り出した。確認dialog・再採番の結果の詳細・警告の詳細が同じ枠を使う。`DesignDialog` の説明は省略可にした。
+  - **詳細modal**(`lib/ui/file_list/rename_warning_view.dart`): `showWarningDetail` を `DesignDialog` で作り直した。節は
+    `IssueCard`(見出し・説明1つ・対象)。**重複は (folder, 変更後名) ごとの組**(`WarningDetailGroup`)で小さな枠に並べ、
+    見出しは `→ 「変更後名」`。同じ変更後名の組が別の folder にもあれば見出しへ場所を添える。組が1件だけなら
+    「フォルダにある既存のファイル」(`existingFileLabel`)を添える。既存の key(`warningDetailSectionKey` /
+    `warningDetailExplanationKey` / `warningDetailTargetsKey` / `warning-detail-close`)は保った。
+  - **行から開くと相手も**: `rowDetailWarnings(rowWarnings, allWarnings)` が、その行の重複と同じ (folder, 変更後名) の
+    **重複の警告だけ**を足す(相手の他の警告は足さない)。`file_list_view.dart` の行の入口は、行と全件を同じ
+    `controller.preview` から取って渡す(行の `warnings` と全件の警告が同じ instance なので、自分の重複を identity で除ける)。
+  - **test**: `warning_display_test.dart` の2件と `warning_detail_scope_test.dart` の2件は、**revision 10.0 で期待が変わった**
+    ので書き換えた — 行から開くと相手(bravo / b.txt)が**読める**ことへ、変更後名は組の見出しに1回だけ書くことへ。
+    「他の行のファイルが混ざらない」(`nodate.jpg` の行)と「その行の空名の節に相手が出ない」は残した。追加: 代表例 20e″
+    (相手の作成日時不明は出ない)、`rowDetailWarnings` の unit test(別 folder・別の名前・他の警告を足さない)、
+    占有名との衝突(行・全件の両方で「フォルダにある既存のファイル」)、別 folder の同名は別の組、幅320・文字1.6・30組で
+    見出しと「閉じる」が画面に残る。
+  - 検証(`0652b32`): `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1181 PASS**、
+    `check_mutation_finds.py` PASS(597件)。
+  - mutation: `find` を追随させた M191 / M194 / M195 / M257 / M264 / M641(file を共有部品へ)、追加 M646〜M653。
+    範囲付き(`flutter test test/spec_005_rename_exec test/spec_002_file_list`、変更箇所を守る既存の M175 を含む15件):
+
+```text
+M175 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 原因の説明を該当ファイルの件数ぶん繰り返す(005 REQ-00 ... | exit 1
+M191 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogから原因ごとの説明を落とす ... | exit 1
+M194 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogの説明を該当fileの件数ぶん繰り返す ... | exit 1
+M195 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T16 詳細dialogの対象の列挙を節あたり1件へ間引く ... | exit 1
+M257 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T19 行から開く詳細を改修前の全件へ戻す ... | exit 1
+M264 | KILLED | lib/ui/file_list/file_list_view.dart | 008:T19 行の詳細へ行の畳み込みを掛ける ... | exit 1
+M641 | KILLED | lib/ui/common/design_dialog.dart | 008:T14 本文だけをscrollさせるのをやめる ... | exit 1
+M646 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 行から開いた詳細に重複の相手を足さない ... | exit 1
+M647 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 相手の重複だけでなく、相手の他の警告(日時不明など)も足す ... | exit 1
+M648 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複の組を folder で分けない ... | exit 1
+M649 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複を変更後名ごとの組に分けない(1つの組に全件) ... | exit 1
+M650 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 読み込んでいない同名とぶつかる組に「フォルダにある既存のファイル」を書かない ... | exit 1
+M651 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 読み込んだ相手がいる組にも「フォルダにある既存のファイル」を書く ... | exit 1
+M652 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 同じ変更後名の組が別の folder にもあるとき、見出しに場所を添えない ... | exit 1
+M653 | KILLED | lib/ui/file_list/rename_warning_view.dart | 008:T53 重複の組にファイルを並べない ... | exit 1
+15 mutations: 15 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
 
 ## Current state / handoff
 
-- Last checkpoint: 005 revision 10.0 承認済み。実装に着手
+- Last checkpoint: 実装と自動検証(`0652b32`)。独立reviewを依頼する
 - Blocker category: none
-- Evidence revision: 未定(実装中)
-- Next Agent action: 確認dialogの枠と枠内の部品を共有へ切り出し、詳細modalを重複の変更後名ごとの枠で作り直す
+- Evidence revision: `0652b32`
+- Next Agent action: 独立review(`gpt-6-luna`、contract を変えるので実装と同等以上)を `5c7b7a7..HEAD` で起動する
