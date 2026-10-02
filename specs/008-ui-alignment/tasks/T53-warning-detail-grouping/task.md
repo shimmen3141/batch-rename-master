@@ -168,11 +168,13 @@ contract を変える task なので、実装と同等以上の model を使う(
     確かめており、`tool/` への追加は新たな差分reviewを要する。受容(引き受け先: 次に T53 の詳細modalへ触れる task)。
 - 連鎖: `5c7b7a7..ec9ab32` PASS → `ec9ab32..c568f09` FAIL(T53-R1)→ `c568f09..5ac87f4` PASS(T53-R1 閉鎖)→ 以後の記録だけの差分は SELF-CHECK。
 
+- 2026-10-02 / **実機確認2回目(build: `lib/` が `53ec95d`、Android エミュレータ)**。開発者「確認事項について、問題ありませんでした。」
+  手順0〜3(と任意の4)の全項目 OK として受領した。
+- **SELF-CHECK**: `5ac87f4..HEAD` は `specs/` だけ(review・handoff・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
+
 ## Current state / handoff
 
-- Last checkpoint: 差分review attempt 3 PASS(`c568f09..5ac87f4`)。code を `53ec95d` で凍結し、実機確認2回目を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認2回目)
-- Requested action: [manual-verification.md](manual-verification.md) の手順0〜3(4は任意)を行い、結果を会話で伝える
-- Evidence revision: `lib/` が `53ec95d` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認2回目 OK(`53ec95d`)。task を `done` にし、PR #210 を merge する
+- Blocker category: none
+- Evidence revision: `53ec95d`
+- Next Agent action: なし(done)
