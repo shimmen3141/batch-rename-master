@@ -94,6 +94,18 @@ StorageLocation? soleLocation(StorageLocations locations) {
   return locations.locations.single;
 }
 
+/// [folder] を含む保存場所(004 REQ-021 の開き直しの起点)。root そのものも含む。
+///
+/// どれにも含まれなければ `null`(SD カードを抜いたなど)。
+StorageLocation? locationContaining(StorageLocations locations, String folder) {
+  final normalized = p.normalize(folder);
+  for (final location in locations.locations) {
+    final root = p.normalize(location.root);
+    if (normalized == root || p.isWithin(root, normalized)) return location;
+  }
+  return null;
+}
+
 /// [folder] から1つ上へ辿れるか(004 REQ-015: 上限は保存場所の root)。
 ///
 /// **root そのものからは辿れない。** `/storage` や `/` へは到達経路が無い —

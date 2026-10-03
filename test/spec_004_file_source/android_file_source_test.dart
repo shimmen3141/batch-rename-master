@@ -217,4 +217,81 @@ void main() {
       );
     });
   });
+
+  group('REQ-021: 一覧の所属folderを、一覧の状態を初期値にして開き直す', () {
+    test('folderと一覧のハンドルを渡して開き、確定を Picked にする', () async {
+      final a = await makeFile('a.txt');
+      final b = await makeFile('b.txt');
+      String? openedFolder;
+      Set<String>? openedWith;
+      final source = AndroidFileSource(
+        pick: () async => fail('開き直しで pick は使わない'),
+        reopen: (folder, selected) async {
+          openedFolder = folder;
+          openedWith = selected;
+          return BrowserSelection(folder: folder, paths: [a, b]);
+        },
+      );
+
+      final result =
+          await source.reopenFolder(dir.path, selected: {a}) as Picked;
+
+      expect(openedFolder, dir.path);
+      expect(openedWith, {a});
+      expect(result.entries.map((e) => e.sourceHandle), [a, b]);
+      expect(result.entries.map((e) => e.sourceFolder).toSet(), {dir.path});
+    });
+
+    test('閉じたら Cancelled(代表例 39)', () async {
+      final source = AndroidFileSource(
+        pick: () async => null,
+        reopen: (folder, selected) async => null,
+      );
+
+      expect(
+        await source.reopenFolder(dir.path, selected: const {}),
+        isA<Cancelled>(),
+      );
+    });
+
+    test('代表例 42: folder が無ければ browser を開かずに Failed', () async {
+      var opened = false;
+      final source = AndroidFileSource(
+        pick: () async => null,
+        reopen: (folder, selected) async {
+          opened = true;
+          return null;
+        },
+      );
+
+      final result = await source.reopenFolder(
+        p.join(dir.path, 'gone'),
+        selected: const {},
+      );
+
+      expect(result, isA<Failed>());
+      expect(opened, isFalse, reason: 'browser に入らない');
+    });
+
+    test('開き直す browser が無ければ Failed(例外を投げない)', () async {
+      final source = AndroidFileSource(pick: () async => null);
+
+      expect(
+        await source.reopenFolder(dir.path, selected: const {}),
+        isA<Failed>(),
+      );
+    });
+
+    test('browser が投げても Failed にする', () async {
+      final source = AndroidFileSource(
+        pick: () async => null,
+        reopen: (folder, selected) async => throw StateError('壊れた'),
+      );
+
+      expect(
+        await source.reopenFolder(dir.path, selected: const {}),
+        isA<Failed>(),
+      );
+    });
+  });
 }

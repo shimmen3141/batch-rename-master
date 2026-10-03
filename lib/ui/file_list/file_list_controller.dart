@@ -193,6 +193,43 @@ class FileListController extends ChangeNotifier {
     _replace(entries, applySort: true);
   }
 
+  /// 同じ folder を開き直して確定した選択で**置き換える**(REQ-021 / 004 REQ-021)。
+  ///
+  /// 置き換え・全件選択・同一ハンドルの集約は [setFiles] と同じで、**並びだけが違う**。
+  /// [sortMode] がキーなら全体へ当てはめる。[FileSortMode.custom] なら `custom` のまま、
+  /// 一覧にあった item(ハンドルで照合する)は互いの順を保ち、新しく入った item を
+  /// その後ろへ名前の昇順で並べる — 手で並べた順は同じファイル群に対するもので、
+  /// 開き直して足しても意味を失わない(REQ-008 の名前順へ戻すは行わない)。
+  ///
+  /// 並べる位置は前の item から取り、**中身は [entries] の値を使う**(開き直したときの
+  /// 更新日時やサイズが新しい)。
+  void reselectFiles(List<FileEntry> entries) {
+    if (_sortMode != FileSortMode.custom) {
+      _replace(entries, applySort: true);
+      return;
+    }
+    final incoming = <String, FileEntry>{};
+    final fresh = <FileEntry>[];
+    for (final entry in entries) {
+      final handle = entry.sourceHandle;
+      if (handle == null) {
+        fresh.add(entry);
+      } else {
+        incoming.putIfAbsent(handle, () => entry);
+      }
+    }
+    final kept = <FileEntry>[];
+    for (final item in _items) {
+      final entry = incoming.remove(item.sourceHandle);
+      if (entry != null) kept.add(entry);
+    }
+    fresh.addAll(incoming.values);
+    _replace([
+      ...kept,
+      ...stableSorted(fresh, comparatorFor(FileSortMode.name)),
+    ], applySort: false);
+  }
+
   /// 除去の取り消しで、控えた一覧と並び順を**そのまま**戻す(REQ-017)。
   ///
   /// [setFiles] と同じく置き換えて全件を選択するが、**並び順を当てはめない** —

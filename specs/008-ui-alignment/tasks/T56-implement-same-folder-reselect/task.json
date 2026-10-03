@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T56",
   "title": "一覧の先頭のfolder行から同じfolderを開き直す導線を実装する",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T26"
   ],

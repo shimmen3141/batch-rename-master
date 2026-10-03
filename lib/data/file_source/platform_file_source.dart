@@ -19,10 +19,15 @@ FileSource fileSourceFor({
   required bool isAndroid,
   required bool isDesktop,
   required BrowserPicker pick,
+  BrowserReopener? reopen,
   String Function(String folder)? locationNameOf,
 }) {
   if (isAndroid) {
-    return AndroidFileSource(pick: pick, locationNameOf: locationNameOf);
+    return AndroidFileSource(
+      pick: pick,
+      reopen: reopen,
+      locationNameOf: locationNameOf,
+    );
   }
   if (isDesktop) return const DesktopFileSource();
   return const UnsupportedFileSource();
@@ -31,11 +36,13 @@ FileSource fileSourceFor({
 /// 実行中のプラットフォームに合う [FileSource] を返す。
 FileSource createPlatformFileSource({
   required BrowserPicker pick,
+  BrowserReopener? reopen,
   String Function(String folder)? locationNameOf,
 }) => fileSourceFor(
   isAndroid: Platform.isAndroid,
   isDesktop: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
   pick: pick,
+  reopen: reopen,
   locationNameOf: locationNameOf,
 );
 
