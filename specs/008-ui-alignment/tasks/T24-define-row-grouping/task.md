@@ -81,6 +81,13 @@ Windows desktop の picker も folder を跨げない
 - **`T28` の選択モード(002 REQ-018)との関係。** folder 行は選べるのか(folder ごと外せるのか)、
   選択件数に数えるのか。数えるなら「件数と実行結果の食い違い」を作らない形にする。
 
+## `T26` との分担の決着(2026-10-03)
+
+- `T26` が 004 REQ-021(同じ folder を一覧の状態で開き直す)を定義し、開発者が承認した。入口は**一覧の先頭の folder 行**。
+- **1 folder のときの folder 行は [`T56`](../T56-implement-same-folder-reselect/task.md) が実装する**(右端の `＋ 追加`。
+  行全体のタップは開かず、この task の折りたたみのために空けてある)。
+- この task に残るのは**複数 folder を束ねる表示**(並び替えとの両立、折りたたみ、選択の数え方)で、優先度は低いまま。
+
 ## Current state / handoff
 
 - Last checkpoint: **1 folder でも folder 行を出す案**を受領し、前提が変わった(2026-09-19)。

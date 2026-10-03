@@ -58,6 +58,7 @@
     "tasks/T52-implement-digit-auto-raise",
     "tasks/T53-warning-detail-grouping",
     "tasks/T54-occupied-names-at-load",
-    "tasks/T55-rule-chip-symbol-overflow"
+    "tasks/T55-rule-chip-symbol-overflow",
+    "tasks/T56-implement-same-folder-reselect"
   ]
 }
