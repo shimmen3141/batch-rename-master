@@ -54,6 +54,10 @@ M668 | SURVIVED | lib/ui/rule_builder/rule_chip_strip.dart | 008:T55 列の高�
   - **M668 の SURVIVED を受容する(安全網の穴)**: 列の高さを strut 無しで測っても、test のフォントは字形ごとの差が無く、
     strut の有無で行の高さが変わらないので区別できない。失敗は見た目(1px のはみ出しか隙間)で、データ損失・無断置換・
     偽の成功・権限・互換性のいずれにも当たらない。引き受け先: 008:T55 の実機確認。
+- 2026-10-03 / **実機確認(build: `lib/` が `80a9754`、Android エミュレータ)**。開発者「確認事項について、すべて問題ありませんでした」。
+  手順1・2の全項目 OK(`same␣` / `a␣b` / 全角空白のチップで縞・はみ出しの表示なし、元の名前などと並べたときの高さが揃う)。
+  M668 の受容で引き受けた見た目の確認もこれで閉じる。
+- **SELF-CHECK**: `fb78b91..HEAD` は `specs/` だけ(review・handoff・PR番号・実機確認の記録)。`lib/`・`test/`・`tool/` に差分なし。
 
 
 ### 独立review
@@ -70,9 +74,7 @@ reviewer は Sonnet 5(Agent tool。開発者の指定)。実装は Claude Opus 5
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`520d072..fb78b91`)。code を `80a9754` で凍結し、実機確認を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1・2を行い、結果を会話で伝える
-- Evidence revision: `lib/` が `80a9754` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認 OK(`80a9754`)。task を `done` にし、PR #212 を merge する
+- Blocker category: none
+- Evidence revision: `80a9754`
+- Next Agent action: なし(done)
