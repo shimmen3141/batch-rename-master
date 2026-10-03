@@ -17,6 +17,8 @@ import 'package:batch_rename_master/ui/file_list/removal_selection.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
 import 'package:batch_rename_master/ui/file_source/file_source_bar.dart';
 import 'package:batch_rename_master/ui/file_source/same_folder_reopen.dart';
+import 'package:batch_rename_master/ui/rule_builder/rule_builder_workspace.dart';
+import 'package:batch_rename_master/ui/rule_builder/rule_controller.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -348,6 +350,48 @@ void main() {
 
       expect(_names(c), ['a']);
       expect(find.byKey(const Key('file-source-error')), findsNothing);
+    });
+  });
+
+  group('結線', () {
+    for (final (label, width) in [('狭幅', 400.0), ('広幅', 1200.0)]) {
+      testWidgets('RuleBuilderWorkspace は$labelでも入口を一覧へ渡す', (tester) async {
+        tester.view.physicalSize = Size(width, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+        var calls = 0;
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: appDarkTheme(),
+            home: Scaffold(
+              body: RuleBuilderWorkspace(
+                fileList: FileListController(files: [_f('a')]),
+                rule: RuleController(),
+                onReopenFolder: () async => calls++,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(_add);
+        await tester.pump();
+
+        expect(calls, 1);
+      });
+    }
+
+    testWidgets('代表例 41: 改名した後は、改名後のハンドルで開き直す', (tester) async {
+      final c = FileListController(files: [_f('a'), _f('b')]);
+      final source = _ReopenSource([const Cancelled()]);
+      await _pump(tester, controller: c, source: source);
+      // 005 が改名の成功を反映する経路(REQ-018)。
+      c.replaceItems({c.items.first: _f('z')});
+      await tester.pump();
+
+      await _tapAdd(tester);
+
+      expect(source.reopened.single.$2, {'/A/z', '/A/b'});
     });
   });
 

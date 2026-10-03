@@ -4382,6 +4382,20 @@
       "find": "    if (normalized == root || p.isWithin(root, normalized)) return location;",
       "replace": "    if (normalized == root) return location;",
       "note": "008:T56 保存場所の root より下の folder を含むと判定しない — 開き直しが保存場所から始まる"
+    },
+    {
+      "id": "M682",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,",
+      "replace": "      onEditRule: _openRuleSheet,",
+      "note": "008:T56 狭幅(mobile)の一覧へ入口を渡さない — folder 行が製品で出ない。**独立review attempt 1 の reviewer が設計した対照(REV1)。当時は SURVIVED で、結線の test を足して KILLED にした**"
+    },
+    {
+      "id": "M683",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "            removalSelection: widget.removalSelection,\n            onReopenFolder: widget.onReopenFolder,",
+      "replace": "            removalSelection: widget.removalSelection,",
+      "note": "008:T56 広幅の一覧へ入口を渡さない(M682 の広幅側。独立review attempt 1 の P2-1 で足した)"
     }
   ]
 }
