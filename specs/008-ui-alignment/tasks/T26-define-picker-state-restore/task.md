@@ -89,7 +89,9 @@
 
 「別フォルダへ」は復元しない / 初期値は一覧から導き保存しない(一覧がある間有効) / 確定の並び(キーなら全体へ当てはめ、
 `custom` なら順を保って新しい分を後ろへ) / folder 消失時は browser に入らず一覧無変化で理由 / folder から消えた
-ファイルは確定で外れる / browser 経由で外した分に 002 REQ-017 の取り消しは出さない / desktop は対象外。
+ファイルは確定で外れる / desktop は対象外。
+あわせて「browser 経由で外した分に 002 REQ-017 の取り消しは出さない」とした。**これは spec へ明記していない** —
+REQ-017 が `removeFile` / `clearFiles` の直後に限っており、`reselectFiles` は別の操作なので、そこから導ける帰結である(独立review attempt 1 の P3)。
 
 ### spec 改訂案(2026-10-03、承認待ち)
 
@@ -110,11 +112,23 @@
 - REQ-004 の行は変更なし(`git diff` で REQ-004 の行に差分が無い)。
 - `workspace.py check specs` PASS(112 tasks)。`flutter test test/tooling` PASS。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装(定義)は Claude Opus 5.5。
+spec・contract に触れる task には実装と同等以上を使う既定(AGENTS.md)と食い違うが、開発者の指定に従う。
+
+- Review attempt 1: `d29c0dd..756d400` — **PASS** — P0/P1 なし。P3 が2件(どちらも成果物の欠陥・記録)
+  - 確認できた点: 「決めること」すべてに REQ-021 が答える。REQ-004 の行は不変。REQ-016/017/018/020 と 005 の改名後ハンドルとの整合。
+    代表例 28〜31 の期待値を規則から再計算して一致。T56 の covers・依存。`workspace.py check` PASS(112)、`flutter test test/tooling` PASS(6)。
+  - P3-1: T56 の Next Agent action が文の途中で切れていた → 閉じた。
+  - P3-2: 「REQ-017 の取り消しは出さない」を「spec へ書いた」としていたが明記は無い(導ける帰結) → 記録を言い直した。
+- **SELF-CHECK**: `756d400..HEAD` は `specs/` だけで、P3 の2件を閉じる記録の差分。`lib/`・`test/`・`tool/` に差分なし。
+
 ## Current state / handoff
 
-- Last checkpoint: 仕様を開発者が承認。`T56` を切り出した。独立 review へ出す
+- Last checkpoint: 独立review attempt 1 PASS(`d29c0dd..756d400`)、P3 を閉じた。`done` にして PR を merge する
 - Blocker category: none
-- Waiting for: 独立 review
+- Waiting for: なし
 - Requested action: なし
 - Evidence revision: 本 branch の HEAD
-- Next Agent action: 独立 review(`d29c0dd..HEAD`)が PASS なら PR を作り、`done` にして merge する
+- Next Agent action: なし(done)。次は `T56`

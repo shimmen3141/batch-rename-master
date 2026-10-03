@@ -48,4 +48,4 @@
 - Waiting for: なし
 - Requested action: なし
 - Evidence revision: 未着手
-- Next Agent action: `T26` の merge 後に着手する。`storage_browser_view.dart` の起点と初期選択の受け口から
+- Next Agent action: `T26` の merge 後に着手する。`storage_browser_view.dart` の起点と初期選択の受け口を足すところから始める

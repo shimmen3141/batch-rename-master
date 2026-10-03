@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T26",
   "title": "読み込み画面の状態復元を定義する",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
