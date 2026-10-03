@@ -5,6 +5,7 @@ import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
+import '../file_source/same_folder_reopen.dart';
 import '../file_source/source_path_text.dart';
 import '../common/app_toast.dart';
 import '../common/drag_selection_controller.dart';
@@ -93,9 +94,17 @@ class FileListView extends StatefulWidget {
     this.onEditRule,
     this.filePreview,
     this.removalSelection,
+    this.onReopenFolder,
   });
 
   final FileListController controller;
+
+  /// 一覧の所属 folder を、一覧の状態を初期値にして開き直す(004 REQ-021。`008:T56`)。
+  ///
+  /// **`null` なら folder 行を出さない。** 開き直せない platform(desktop)や、
+  /// 一覧だけを描く画面では入口が無い。製品では composition root が
+  /// [SameFolderReopen] を渡し、読み込み帯の結線(権限・通知)に載せる。
+  final Future<void> Function()? onReopenFolder;
   final RenameExecutionController? renameExecution;
 
   /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
@@ -250,6 +259,7 @@ class _FileListViewState extends State<FileListView> {
         // モードが戻り、前の外す候補が選択済みで復活する**(独立reviewが製品構成で
         // 実測した)。`build` の中では `setState` を呼べないので frame の後に回す。
         final selecting = _selection.selecting && rows.isNotEmpty;
+        final soleFolder = soleFolderOf(rows.map((r) => r.source));
         if (_selection.selecting && rows.isEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _selection.selecting) _selection.exit();
@@ -312,6 +322,19 @@ class _FileListViewState extends State<FileListView> {
                     // 一覧全体の件数(005 REQ-009 (3) の入口)。ルールが空なら出さない。
                     warnings: ruleIsEmpty ? const <Warning>[] : warnings,
                   ),
+                  // **一覧の所属 folder が1つのときだけ**、一覧の先頭に folder 行を置く
+                  // (004 REQ-021 の入口。`008:T26` の決定)。一覧の外に置くので、
+                  // スクロールしても先頭に残る。
+                  if (widget.onReopenFolder != null && soleFolder != null)
+                    _FolderRow(
+                      label: folderLabelOf(
+                        rows.map((r) => r.source),
+                        soleFolder,
+                      ),
+                      // **モード中は入口を出さない**(004 REQ-021 / 002 REQ-018)。
+                      // 行は残す — 消すと一覧が跳ねる(`008:T30` の帯と同じ理由)。
+                      onAdd: selecting ? null : widget.onReopenFolder,
+                    ),
                   Expanded(
                     child: Listener(
                       behavior: HitTestBehavior.translucent,
@@ -451,6 +474,75 @@ class _FileListViewState extends State<FileListView> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 一覧の先頭の folder 行(`008:T56`。004 REQ-021 の入口の置き場所)。
+const Key folderRowKey = Key('folder-row');
+
+/// folder 行の名前。
+const Key folderRowLabelKey = Key('folder-row-label');
+
+/// folder 行の右端の `＋ 追加`。**同じ folder を一覧の状態で開き直す**(004 REQ-021)。
+const Key folderRowAddKey = Key('folder-row-add');
+
+/// 一覧の先頭の folder 行(`008:T56`)。
+///
+/// **行全体の tap では開かない。** 開くのは右端の `＋ 追加` だけで、行の tap は
+/// `008:T24`(複数 folder を束ねる表示)の折りたたみのために空けてある。
+/// [onAdd] が `null`(選択モード中)なら `＋ 追加` を描かないが、**場所は残す** —
+/// 行の高さを変えない。
+class _FolderRow extends StatelessWidget {
+  const _FolderRow({required this.label, required this.onAdd});
+
+  final String label;
+  final Future<void> Function()? onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final onAdd = this.onAdd;
+    return Container(
+      key: folderRowKey,
+      padding: const EdgeInsets.only(left: 12, right: 4),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(bottom: BorderSide(color: colors.rowDivider)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.folder_open_outlined, size: 16, color: colors.textMuted),
+          const SizedBox(width: 6),
+          Expanded(
+            // 入りきらない分は**先頭側**を省略し、判別に効く末尾を残す(帯と同じ)。
+            child: SourcePathText(
+              text: label,
+              textKey: folderRowLabelKey,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: AppFontSize.label,
+              ),
+            ),
+          ),
+          Visibility(
+            visible: onAdd != null,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: TextButton(
+              key: folderRowAddKey,
+              onPressed: onAdd == null ? null : () => onAdd(),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.primary,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: const Text('＋ 追加'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

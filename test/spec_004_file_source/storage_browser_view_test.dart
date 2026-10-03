@@ -82,6 +82,8 @@ Future<_Result> _open(
   WidgetTester tester,
   StorageBrowserPort browser, {
   FilePreviewPort? preview,
+  String? initialFolder,
+  Set<String> initialSelection = const {},
 }) async {
   final result = _Result();
   await tester.pumpWidget(
@@ -99,6 +101,8 @@ Future<_Result> _open(
                         builder: (_) => StorageBrowserView(
                           browser: browser,
                           preview: preview,
+                          initialFolder: initialFolder,
+                          initialSelection: initialSelection,
                         ),
                       ),
                     );
@@ -613,6 +617,136 @@ void main() {
       await _open(tester, _FakeBrowser(tree: const {_root: []}));
 
       expect(find.byKey(const Key('browser-locations-failure')), findsNothing);
+    });
+  });
+
+  group('REQ-021: 一覧の所属folderを、一覧の状態を初期値にして開く', () {
+    final tree = {
+      _root: [_dir(_root, 'A'), _dir(_root, 'B')],
+      '$_root/A': [
+        _dir('$_root/A', 'sub'),
+        _file('$_root/A', 'a.txt'),
+        _file('$_root/A', 'b.txt'),
+        _file('$_root/A', 'c.txt'),
+      ],
+      '$_root/B': [_file('$_root/B', 'd.txt')],
+    };
+
+    testWidgets('代表例 36: 所属folderを表示し、一覧にあるfileが選択済みで始まる', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '$_root/A',
+        initialSelection: {'$_root/A/a.txt', '$_root/A/b.txt'},
+      );
+
+      expect(_breadcrumb(tester), ['内部ストレージ', 'A']);
+      expect(_title(tester), '2件選択中');
+      expect(_isChecked(tester, 'a.txt'), isTrue);
+      expect(_isChecked(tester, 'b.txt'), isTrue);
+      expect(_isChecked(tester, 'c.txt'), isFalse);
+    });
+
+    testWidgets('代表例 37・38: 足して外して確定すると、その選択が返る', (tester) async {
+      final result = await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '$_root/A',
+        initialSelection: {'$_root/A/a.txt', '$_root/A/b.txt'},
+      );
+
+      await tester.tap(find.byKey(const Key('browser-file-c.txt')));
+      await tester.tap(find.byKey(const Key('browser-file-b.txt')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('browser-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(result.value!.folder, '$_root/A');
+      expect(result.value!.paths.toSet(), {'$_root/A/a.txt', '$_root/A/c.txt'});
+    });
+
+    testWidgets('folderに無いfileは選択に数えない(消えたfileは確定で外れる)', (tester) async {
+      final result = await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '$_root/A',
+        initialSelection: {'$_root/A/a.txt', '$_root/A/gone.txt'},
+      );
+
+      expect(_title(tester), '1件選択中');
+      await tester.tap(find.byKey(const Key('browser-confirm')));
+      await tester.pumpAndSettle();
+      expect(result.value!.paths, ['$_root/A/a.txt']);
+    });
+
+    testWidgets('代表例 40: 別のfolderへ移ると初期の選択も解除される(REQ-016)', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '$_root/A',
+        initialSelection: {'$_root/A/a.txt'},
+      );
+
+      await tester.tap(find.byKey(const Key('browser-folder-sub')));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ', 'A', 'sub']);
+      expect(_title(tester), '内部ストレージ', reason: '移動で解除される');
+    });
+
+    testWidgets('所属folderから上位へも辿れる(REQ-015)', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '$_root/A',
+        initialSelection: const {},
+      );
+
+      await tester.tap(find.byKey(const Key('browser-up')));
+      await tester.pumpAndSettle();
+
+      expect(_breadcrumb(tester), ['内部ストレージ']);
+    });
+
+    testWidgets('保存場所が複数でも、一覧を挟まず所属folderから始まる', (tester) async {
+      final browser = _FakeBrowser(
+        tree: {
+          ...tree,
+          '/storage/1A2B/X': [_file('/storage/1A2B/X', 'x.txt')],
+        },
+        locationList: const [
+          StorageLocation(name: '内部ストレージ', root: _root),
+          StorageLocation(name: 'SD カード', root: '/storage/1A2B'),
+        ],
+      );
+      await _open(
+        tester,
+        browser,
+        initialFolder: '/storage/1A2B/X',
+        initialSelection: {'/storage/1A2B/X/x.txt'},
+      );
+
+      expect(_breadcrumb(tester), ['SD カード', 'X']);
+      expect(_isChecked(tester, 'x.txt'), isTrue);
+    });
+
+    testWidgets('代表例 43: 起点を渡さなければ保存場所から始まる(「別フォルダへ」)', (tester) async {
+      final browser = _FakeBrowser(tree: tree);
+      await _open(tester, browser);
+
+      expect(_breadcrumb(tester), ['内部ストレージ']);
+      expect(browser.listed, [_root]);
+    });
+
+    testWidgets('どの保存場所にも含まれない起点なら保存場所から始める', (tester) async {
+      await _open(
+        tester,
+        _FakeBrowser(tree: tree),
+        initialFolder: '/mnt/elsewhere',
+        initialSelection: const {},
+      );
+
+      expect(_breadcrumb(tester), ['内部ストレージ']);
     });
   });
 

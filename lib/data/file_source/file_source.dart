@@ -109,6 +109,23 @@ abstract interface class FileSource {
   Future<NameListResult> listNames(String folder);
 }
 
+/// 一覧の所属 folder を、一覧の状態を初期値にして開き直せる [FileSource](REQ-021)。
+///
+/// **Android の app 内 browser だけが持つ。** desktop の OS picker は選択の初期値を
+/// 持てないので実装しない(REQ-021 は desktop を対象外とする)。UI はこの型を持つ
+/// source にだけ入口を出す — platform を自分で判定しない。
+abstract interface class FolderReopenSource {
+  /// [folder] を開き、[selected](元場所ハンドル)を選択済みにして選ばせる。
+  ///
+  /// 結果は [FileSource.pickFiles] と同じく [Picked] / [Cancelled] / [Failed] で、
+  /// **例外を投げない**。[folder] が無い・確かめられないときは **browser を開かずに**
+  /// [Failed] を返す(REQ-021。一覧は変えずに理由を示すのは呼ぶ側)。
+  Future<PickResult> reopenFolder(
+    String folder, {
+    required Set<String> selected,
+  });
+}
+
 /// あらかじめ与えた結果を返す [FileSource] 実装(サンドボックス検証用の fake)。
 ///
 /// [fileResults] を順に返し、尽きたら [exhausted] を返す

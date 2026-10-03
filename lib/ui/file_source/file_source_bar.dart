@@ -10,6 +10,7 @@ import '../file_list/removal_selection.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
+import 'same_folder_reopen.dart';
 import 'source_path_text.dart';
 import '../theme/app_typography.dart';
 
@@ -37,7 +38,15 @@ class FileSourceBar extends StatefulWidget {
     required this.kinds,
     this.removalSelection,
     this.trailing,
+    this.reopen,
   });
+
+  /// 一覧の folder 行から同じ folder を開き直す受け口(004 REQ-021。`008:T56`)。
+  ///
+  /// 帯が**自分の開き直しの処理を登録する**。権限の確認と説明・失敗の通知を
+  /// 読み込みと同じ経路に載せるためで、folder 行はこれを呼ぶだけである。
+  /// [source] が [FolderReopenSource] でなければ(desktop)何もしない。
+  final SameFolderReopen? reopen;
 
   /// 帯の右端、読み込み button の右に置くもの(`008:T10`)。
   ///
@@ -156,12 +165,51 @@ class _FileSourceBarState extends State<FileSourceBar>
     // **ここでは確認しない**(013 REQ-002: 起動しただけでは確認も遷移もしない)。
     // 登録するのは、設定画面から**戻ってきたとき**に気づくためである。
     WidgetsBinding.instance.addObserver(this);
+    widget.reopen?.attach(_reopenSameFolder);
+  }
+
+  @override
+  void didUpdateWidget(FileSourceBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reopen != widget.reopen) {
+      oldWidget.reopen?.detach(_reopenSameFolder);
+      widget.reopen?.attach(_reopenSameFolder);
+    }
   }
 
   @override
   void dispose() {
+    widget.reopen?.detach(_reopenSameFolder);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// 一覧の所属 folder を、一覧の状態を初期値にして開き直す(004 REQ-021)。
+  ///
+  /// **読み込みと同じく、開く前に権限を確かめる**(013 REQ-004)。未許可なら開かず、
+  /// 帯の位置に説明を出す(013 REQ-001 / REQ-003)。確定は置き換え(004 REQ-004)で、
+  /// 並びだけ 002 REQ-021 に従う([FileListController.reselectFiles])。
+  /// `Cancelled` は無変化、`Failed`(folder が無いなど)は無変化のまま理由を通知する。
+  Future<void> _reopenSameFolder() async {
+    final source = widget.source;
+    final items = widget.controller.items;
+    final folder = soleFolderOf(items);
+    if (source is! FolderReopenSource || folder == null) return;
+    final reopener = source as FolderReopenSource;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (await _checkPermission() == StoragePermissionState.denied) return;
+    final selected = {for (final item in items) ?item.sourceHandle};
+    final error = await applyPick(
+      () => reopener.reopenFolder(folder, selected: selected),
+      widget.controller.reselectFiles,
+    );
+    if (error == null || messenger == null) return;
+    showAppToast(
+      messenger,
+      key: const Key('file-source-error'),
+      tone: ToastTone.danger,
+      content: Text(FileSourceBar.messageOf(error)),
+    );
   }
 
   /// 設定画面から戻ってきたら確認し直す(013 REQ-004)。
