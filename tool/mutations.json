@@ -4270,6 +4270,27 @@
       "find": "  FolderNamesSync({required this.files, required this.listNames}) {\n    files.addListener(_onFilesChanged);\n    _onFilesChanged();",
       "replace": "  FolderNamesSync({required this.files, required this.listNames}) {\n    files.addListener(_onFilesChanged);",
       "note": "008:T54 作った時点の一覧を問い合わせない — 起動時にすでに並んでいるファイルの占有名が出ない"
+    },
+    {
+      "id": "M666",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "    StrutStyle.fromTextStyle(base.merge(_valueStyle), forceStrutHeight: true);",
+      "replace": "    StrutStyle.fromTextStyle(base.merge(_valueStyle), forceStrutHeight: false);",
+      "note": "008:T55 値の行の高さを固定しない — `␣` など等幅のフォントに無い字形で行が高くなり、固定した列の高さからはみ出す(2026-10-03 の実機確認)"
+    },
+    {
+      "id": "M667",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "                strutStyle: _valueStrut(DefaultTextStyle.of(context).style),\n",
+      "replace": "",
+      "note": "008:T55 値の Text に strut を付けない — 同上"
+    },
+    {
+      "id": "M668",
+      "file": "lib/ui/rule_builder/rule_chip_strip.dart",
+      "find": "      lineHeight(_valueStyle, strut: _valueStrut(base));",
+      "replace": "      lineHeight(_valueStyle);",
+      "note": "008:T55 列の高さを strut 無しで測る — 描く行の高さ(strut)と測った高さが食い違う。**SURVIVED を受容**: test のフォントは字形ごとの差が無く、strut の有無で行の高さが変わらないので区別できない。実機確認(T55 の manual)で見る"
     }
   ]
 }

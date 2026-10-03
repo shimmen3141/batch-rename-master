@@ -110,6 +110,16 @@ const TextStyle _valueStyle = TextStyle(
   fontFamily: 'monospace',
 );
 
+/// 値の行の高さを、**描く文字によらず**一定にする(`008:T55`)。
+///
+/// 列の高さはチップ1つ分に固定している([_chipHeight])。値の行の高さが文字で変わると、
+/// 固定した高さからはみ出す。空白を見せる `␣` は等幅のフォントに無く、端末では別の
+/// フォントで描かれて行が 1px 高くなり、「BOTTOM OVERFLOWED BY 1.00 PIXELS」になった
+/// (2026-10-03 の実機確認。自由テキスト `same `)。test のフォントは字形ごとの差が無く、
+/// test では再現しない。
+StrutStyle _valueStrut(TextStyle base) =>
+    StrutStyle.fromTextStyle(base.merge(_valueStyle), forceStrutHeight: true);
+
 /// 1つのチップ。設定画面の [TokenChip] から削除の×と、そのための幅を除いた形。
 class RuleSummaryChip extends StatelessWidget {
   const RuleSummaryChip({super.key, required this.token, required this.sample});
@@ -151,6 +161,7 @@ class RuleSummaryChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: _valueStyle,
+                strutStyle: _valueStrut(DefaultTextStyle.of(context).style),
               ),
             ),
           ],
@@ -205,12 +216,15 @@ double _chipWidth(
 }
 
 /// チップ1つの高さ(上下の内側の余白 2 + 3、枠 1 + 1、種類名と値の1行ずつ)。
+///
+/// **値の行は [_valueStrut] で高さを固定して測る** — 描くときと同じ高さになる(`008:T55`)。
 double _chipHeight(BuildContext context, TextStyle base, TextScaler scaler) {
-  double lineHeight(TextStyle style) {
+  double lineHeight(TextStyle style, {StrutStyle? strut}) {
     final painter = TextPainter(
       text: TextSpan(text: 'あ', style: base.merge(style)),
       textDirection: Directionality.of(context),
       textScaler: scaler,
+      strutStyle: strut,
       maxLines: 1,
     )..layout();
     final height = painter.height;
@@ -222,7 +236,8 @@ double _chipHeight(BuildContext context, TextStyle base, TextScaler scaler) {
       3 +
       2 * _chipBorder +
       lineHeight(_kindStyle(Colors.white)) +
-      lineHeight(_valueStyle);
+      // 値の行は描くときと同じ strut で測る(文字によらず同じ高さになる)。
+      lineHeight(_valueStyle, strut: _valueStrut(base));
 }
 
 /// 途切れさせてフェードしたチップ(`008:T47`)。チップは本来の幅で描き、[width] で

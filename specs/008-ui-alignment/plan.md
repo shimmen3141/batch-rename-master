@@ -223,3 +223,4 @@ T37のエミュレータ確認報告では範囲選択は概ね機能したが�
 | T52 | [task.md](tasks/T52-implement-digit-auto-raise/task.md) |
 | T53 | [task.md](tasks/T53-warning-detail-grouping/task.md) |
 | T54 | [task.md](tasks/T54-occupied-names-at-load/task.md) |
+| T55 | [task.md](tasks/T55-rule-chip-symbol-overflow/task.md) |

@@ -891,4 +891,47 @@ void main() {
       }
     });
   });
+
+  testWidgets('値の行の高さは描く文字によらず一定(空白の「␣」で列からはみ出さない。008:T55)', (tester) async {
+    // 2026-10-03 の実機確認: 自由テキスト `same ` の `␣` は等幅のフォントに無く、端末では
+    // 別のフォントで描かれて行が 1px 高くなり、固定した列の高さからはみ出した。test の
+    // フォントは字形ごとの差が無く再現しないので、**行の高さを strut で固定している**ことと、
+    // 列の高さを同じ strut で測っていることを確かめる。
+    for (final value in ['same', 'same ', '　', 'あ']) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              child: RuleChipStrip(
+                rule: RenameRule([LiteralToken(value)]),
+                sample: null,
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull, reason: '「$value」');
+      final valueText = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byType(RuleSummaryChip),
+              matching: find.byType(Text),
+            ),
+          )
+          .last;
+      final strut = valueText.strutStyle;
+      expect(strut, isNotNull, reason: '「$value」');
+      expect(strut!.forceStrutHeight, isTrue, reason: '「$value」');
+      expect(strut.fontFamily, valueText.style!.fontFamily);
+      expect(strut.fontSize, valueText.style!.fontSize);
+      // 列の高さ(固定)とチップの高さが一致する。
+      expect(
+        tester.getSize(find.byType(RuleSummaryChip)).height,
+        tester.getSize(find.byType(RuleChipStrip)).height,
+        reason: '「$value」',
+      );
+    }
+  });
 }
