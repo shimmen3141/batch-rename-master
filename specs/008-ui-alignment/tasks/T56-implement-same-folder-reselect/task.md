@@ -92,11 +92,28 @@ M681 | KILLED | lib/data/file_source/storage_browser.dart | 保存場所の root
 - 代表例 42(folder の消失)は manual に入れない(エミュレータで folder を消す操作が手間で、
   `android_file_source_test` と `same_folder_reopen_test` が経路を固定している)。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+権限(013 REQ-004)に触れる task には実装と同等以上を使う既定(AGENTS.md)と食い違うが、開発者の指定に従う。
+
+- Review attempt 1: `ca12916..da6efd7` — **PASS** — P0/P1 なし。P2 が2件
+  - 確認できた点: 004 REQ-021 / REQ-015・002 REQ-021・代表例 36〜43 と実装の突き合わせ、開く直前の権限確認、folder 消失時に
+    browser を開かないこと、desktop の除外(型で判定)、選択モード中の入口の隠し方、占有名の取り直しと除去の取り消しの既存の安全策が
+    効くこと。`flutter test` 1236 PASS・analyze・format・workspace check、mutation 20件を再現(20 KILLED)。
+  - P2-1(安全網の穴): `RuleBuilderWorkspace` が `onReopenFolder` を一覧へ渡す結線(狭幅・広幅)が test に守られていない。
+    reviewer の対照 REV1 が SURVIVED → 結線の widget test(狭幅・広幅)を足し、REV1 を **M682**、広幅側を **M683** として
+    表へ取り込んだ(`de9714c`)。範囲付き(`same_folder_reopen_test.dart` と `test/spec_003_rule_builder`)で **2 KILLED**。
+  - P2-2(成果物の欠陥・記録): 代表例 41(改名後のハンドルで開き直す)の専用 test が無いのに検証範囲に書いていた →
+    `same_folder_reopen_test.dart` に専用 test を足した(`de9714c`)。
+  - 閉じたあとの検証: `flutter test` **1239 PASS**、analyze No issues、format 0 changed、`check_mutation_finds.py` PASS(627)。
+- 残余risk の更新: `RuleBuilderWorkspace` の結線は上で test に入った。残るのは `main.dart` の結線だけ(作業記録の残余risk のとおり)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装と machine 検証(`29d77d3`)。独立 review へ出す
+- Last checkpoint: 独立review attempt 1 PASS(`ca12916..da6efd7`)、P2 を test で閉じた(`de9714c`)。差分 review へ出す
 - Blocker category: none
-- Waiting for: 独立 review
+- Waiting for: 差分 review(`da6efd7..HEAD`)
 - Requested action: なし
-- Evidence revision: `lib/` が `29d77d3` と同一
-- Next Agent action: 独立 review(`ca12916..HEAD`)が PASS なら PR を Draft で作り、エミュレータ確認を依頼する
+- Evidence revision: `lib/` が `29d77d3` と同一(以後は test・tool・specs だけ)
+- Next Agent action: 差分 review が PASS なら push して PR を Draft で作り、エミュレータ確認を依頼する
