@@ -96,11 +96,25 @@
 - 004: REQ-015 の起点の例外、**REQ-021** 追加、代表例 36〜43、「自由とする点」に入口の見た目、「008:T26 由来の更新」節。
 - 002: 操作 `reselectFiles`、**REQ-021**(確定したときの並び)、代表例 28〜31、「008 T26 由来の更新」節。
 
+### 承認(2026-10-03)
+
+開発者「承認します。続けてください。」 — 004(REQ-015 更新・REQ-021・代表例 36〜43)と 002(`reselectFiles`・REQ-021・
+代表例 28〜31)を文面どおり承認。実装 task [`T56`](../T56-implement-same-folder-reselect/task.md) を切り出し、`covers` に
+`004:REQ-015` / `004:REQ-021` / `002:REQ-021` を書いた。`T24` に分担(1 folder の folder 行は `T56`)を記録した。
+
+### 受け入れ証拠との照合
+
+- 「決めること」: 復元するもの(folder と選択。一覧から導く) / REQ-004 との両立(初期値で、確定は置き換え) /
+  いつまで(一覧がある間。保存しない) / folder 消失(入らず一覧無変化で理由) / どこに出すか(一覧の入口。提示は folder 行) /
+  desktop(対象外) — すべて 004 REQ-021 と代表例に答えがある。
+- REQ-004 の行は変更なし(`git diff` で REQ-004 の行に差分が無い)。
+- `workspace.py check specs` PASS(112 tasks)。`flutter test test/tooling` PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手(2026-10-03)。案A・入口は folder 行(案1)に決定。004・002 の改訂案を書き、承認を求めている
+- Last checkpoint: 仕様を開発者が承認。`T56` を切り出した。独立 review へ出す
 - Blocker category: none
-- Waiting for: 開発者(004・002 の改訂案の承認)
-- Requested action: 004 REQ-015/021・002 REQ-021 の改訂案を承認する
-- Evidence revision: 未着手
-- Next Agent action: 現在の browser の状態の持ち方を読み、「決めること」への案を作って人間へ一度に示す
+- Waiting for: 独立 review
+- Requested action: なし
+- Evidence revision: 本 branch の HEAD
+- Next Agent action: 独立 review(`d29c0dd..HEAD`)が PASS なら PR を作り、`done` にして merge する
