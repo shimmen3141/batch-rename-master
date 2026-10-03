@@ -107,13 +107,16 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
   - P2-2(成果物の欠陥・記録): 代表例 41(改名後のハンドルで開き直す)の専用 test が無いのに検証範囲に書いていた →
     `same_folder_reopen_test.dart` に専用 test を足した(`de9714c`)。
   - 閉じたあとの検証: `flutter test` **1239 PASS**、analyze No issues、format 0 changed、`check_mutation_finds.py` PASS(627)。
+- Review attempt 2(差分): `da6efd7..da379ef` — **PASS** — 指摘なし。P2-1・P2-2 が test と mutation で閉じたことを確認
+  (M682/M683 を再現して 2 KILLED、`flutter test` 1239 PASS、`check_mutation_finds.py` 627 PASS)。
+- 連鎖: `ca12916..da6efd7` PASS → `da6efd7..da379ef` PASS。以後の記録だけの差分は SELF-CHECK。
 - 残余risk の更新: `RuleBuilderWorkspace` の結線は上で test に入った。残るのは `main.dart` の結線だけ(作業記録の残余risk のとおり)。
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`ca12916..da6efd7`)、P2 を test で閉じた(`de9714c`)。差分 review へ出す
-- Blocker category: none
-- Waiting for: 差分 review(`da6efd7..HEAD`)
-- Requested action: なし
-- Evidence revision: `lib/` が `29d77d3` と同一(以後は test・tool・specs だけ)
-- Next Agent action: 差分 review が PASS なら push して PR を Draft で作り、エミュレータ確認を依頼する
+- Last checkpoint: 独立review attempt 2 PASS(`ca12916..da379ef` を連鎖で覆う)。code を `29d77d3` で凍結し、実機確認を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順0〜6を行い、結果を会話で伝える
+- Evidence revision: `lib/` が `29d77d3` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
