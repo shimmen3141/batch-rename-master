@@ -77,7 +77,11 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
   - F2(安全網の穴, P2): 照会 command の引用が崩れても検出できない(対照 CM-R2 が SURVIVED)→ 完全一致の test を足した。**M692**。
   - F3(記録, P3): T01 の handoff が `in_progress` なのに「未着手」 → 言い直した。
   - F4(提案, P3): `DynamicLibrary.process()` で `statx` が見つからないときの保険 → `libc.so` を直接開く探し方を足した。
-  - 直した commit: `test(asdd-010/T04): 独立reviewの指摘…`。`integration_test/`・`test/`・`tool/` に差分があるので、差分review を行う。
+  - 直した commit: `test(asdd-010/T04): 独立reviewの指摘…`。
+- Review attempt 2(差分): `a86cc92..267e75b` — **PASS** — 指摘なし。F1〜F4 が閉じたこと、`DynamicLibrary.open` と `lookupFunction` の失敗が
+  どちらも `ArgumentError` で3通りの探し方が落ちないこと、M692 がコンパイルは通って assertion で落ちること、M686〜M692 の再現(7 KILLED)、
+  照会 command と手順書の一致、`flutter test` 1255 PASS・analyze・format・workspace check を確認。
+- 連鎖: `57c8e0e..a86cc92` PASS → `a86cc92..267e75b` PASS。以後の記録だけの差分は SELF-CHECK。
 
 
 ## Current state / handoff
@@ -86,5 +90,5 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータで harness を走らせ、`DATE_ADDED` を照会する)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜4
-- Evidence revision: harness は branch `asdd/010-photo-video-source/T01-define-capture-date` の HEAD
+- Evidence revision: harness(`integration_test/creation_time_probe*.dart`)が `267e75b` と同一
 - Next Agent action: 出力を読み、btime・`DATE_ADDED` のどちらが使えるかを記録して `T01` へ渡す
