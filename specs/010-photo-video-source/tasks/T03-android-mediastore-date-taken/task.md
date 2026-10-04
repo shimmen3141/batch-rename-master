@@ -29,11 +29,37 @@ Android で、中身から日時を取れなかったファイルについて、
 - [ ] エミュレータで、カメラで撮った写真・動画が撮影日時の順に並び、日時トークンで撮影日が名前に入る。ダウンロードしたファイル・スクリーンショットにも作成日時が入る。
   - 証拠: [manual-verification.md](manual-verification.md)。
 
+## machine検証範囲と引き受け先
+
+- machine(CI): channel の写像(`DATE_TAKEN` ミリ秒・`DATE_ADDED` 秒を端末の時刻帯へ、0 と想定外の値と失敗は「無い」)、Android の読み込みでの
+  順位(①が②③より先、②が③より先、どれも無ければ不明)、①がある file を照会も上書きもしないこと、補っても他の項目を変えないこと、照会の失敗で
+  読み込みを止めないこと、開き直し(REQ-021)でも補うこと、`fileSourceFor` が照会を渡すこと、channel 名が Kotlin 側にあること。
+- 端末(この task の manual): **Kotlin の照会そのもの**(container では build できない)、実際の写真・動画・ダウンロード相当の file で値が入ること、
+  改名して読み込み直しても変わらないこと(代表例 50)、`createPlatformFileSource` が Android で照会を渡す結線(composition root。test が通らない)。
+
 ## 作業記録
+
+- Kotlin: `MainActivity.kt` に channel `com.example.batch_rename_master/media_dates`(`datesOf`)。`MediaStore.Files`(`VOLUME_EXTERNAL`)を
+  `_data IN (…)` で 500 件ずつ照会し、`DATE_TAKEN`(ミリ秒)・`DATE_ADDED`(秒)を返す。main thread から外す(既存の pool)。API 29 未満は空。
+  **container に Android SDK が無いので Kotlin は build していない** — manual の `flutter run` が最初の build になる。
+- Dart: `lib/data/file_source/media_dates.dart`(port と channel 実装)、`AndroidFileSource._withMediaDates`(①の無い file だけをまとめて照会)、
+  `fileSourceFor` / `createPlatformFileSource` の結線。
+- 検証: `flutter test` 1286 PASS、`flutter analyze` No issues、`dart format` 0 changed。
+- mutation(範囲付き `flutter test test/spec_004_file_source`): M104(find を追随)・M707〜M716。初回 M709(①があっても上書き)が SURVIVED
+  → ①だけの file では照会が起きなかったため、①の無い file を混ぜた test にし、fake が尋ねられていない path も返すようにした。
+
+```text
+M104 | KILLED / M707 | KILLED / M708 | KILLED / M709 | KILLED(直した後)/ M710 | KILLED / M711 | KILLED
+M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
+```
+
+- 残余risk(安全網の穴。受容): `createPlatformFileSource` が `MethodChannelMediaDates` を渡す行は test が通らない(Linux では Android の
+  分岐に入らない)。外れると②③が黙って無くなる(不明が増えるだけで、データ損失・無断置換・偽の成功・権限・互換性のどれでもない)。
+  引き受け先: この task の manual(手順1の `download.txt`)。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 実装・test・mutation(2026-10-04)。Kotlin は未 build
 - Blocker category: none
-- Evidence revision: none
-- Next Agent action: T02 の完了を待ち、Kotlin の MediaStore 照会を足す
+- Evidence revision: `lib/`・`android/` は branch `asdd/010-photo-video-source/T03-android-mediastore-date-taken` の HEAD
+- Next Agent action: 独立review を走らせ、PASS なら manual を依頼する
