@@ -112,11 +112,19 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 - 連鎖: `ca12916..da6efd7` PASS → `da6efd7..da379ef` PASS。以後の記録だけの差分は SELF-CHECK。
 - 残余risk の更新: `RuleBuilderWorkspace` の結線は上で test に入った。残るのは `main.dart` の結線だけ(作業記録の残余risk のとおり)。
 
+### 実機確認(2026-10-04)
+
+- 対象: `lib/` が `29d77d3` と同一の build(branch HEAD `b2e93ba`。`git diff --stat 29d77d3 HEAD -- lib hook src pubspec.yaml pubspec.lock android` が空)
+- 実施: 開発者(Android エミュレータ)。手順 0〜6
+- 結果: **OK**(「確認事項について、動作は問題ありませんでした」)
+- 帯と folder 行の名前の重複・見た目: 「UIについては改善の余地がありそうですが、今のところは思いつかないのでひとまずOK」。
+  今は直さない。
+- 開発者から出た案: 「＋ 追加」一つで足すことも外すこともできるなら、一覧の**除去のための選択モード**(002 REQ-018)は
+  要らないのではないか(出し入れする場所と、改名される一覧を見る場所を分けられる)。この task の範囲外の仕様変更なので、
+  ここでは記録だけにする。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 PASS(`ca12916..da379ef` を連鎖で覆う)。code を `29d77d3` で凍結し、実機確認を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順0〜6を行い、結果を会話で伝える
-- Evidence revision: `lib/` が `29d77d3` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認 OK(2026-10-04、`29d77d3` の build)。review 連鎖 `ca12916..da379ef` PASS、以後は記録だけ
+- Status: done
+- Next Agent action: なし(PR #214 を ready にして merge する)
