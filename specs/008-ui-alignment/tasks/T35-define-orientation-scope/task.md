@@ -75,11 +75,44 @@
   (大画面での向きと大きさの制限の廃止)。したがって manifest で縦に固定すると、**固定されるのは電話だけで、
   タブレット・折りたたみの展開時は回転できる**。上の表のとおり、その大きさでは縞模様は出ない。
 
+## 決定(2026-10-04)
+
+開発者の判断(原文):
+
+> 横向きのUIでも、ルール設定画面を毎回開きなおさずに編集できるという点で価値がゼロではないと考え直しました。ただ、優先度は低いので、横向きのUIは残しつつ縦向きに固定し、横向きのUIの調整まで行うかは将来候補としておくことは可能ですか。
+
+- **(a) 電話では縦に固定する。** `android/app/src/main/AndroidManifest.xml` の `MainActivity` に
+  `android:screenOrientation="portrait"` を足した。
+- **横向きの UI は消さない。** 2ペイン(一覧とルールを並べる)は**向きではなく幅**(`RuleBuilderWorkspace.breakpoint` = 840)で
+  切り替わるので、タブレット・折りたたみの展開時(Android 16 以降は固定が無視される)と desktop では今までどおり使われる。
+- **電話の横向きを解禁するか**(2か所の溢れを直し、横向き × 文字倍率を検査に加える)は**将来候補**へ送った
+  (`specs/product-map.md`)。
+- (b)・(c) は採らない。
+
+## 作業記録
+
+- manifest の変更と、固定を source から確かめる test(`test/tooling/android_orientation_test.dart`。`tooling` タグは付けず、
+  mutation の command に含まれる)を足した(`feat(asdd-008/T35)` の commit)。
+- mutation **M684**(固定を外す)。範囲付き(`flutter test test/tooling/android_orientation_test.dart`)、1件:
+
+```text
+command: flutter test test/tooling/android_orientation_test.dart
+ID | STATUS | FILE | NOTE | DETAIL
+--- | --- | --- | --- | ---
+M684 | KILLED | android/app/src/main/AndroidManifest.xml | 008:T35 電話の縦固定を外す | exit 1
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter analyze` No issues、`dart format` 0 changed、`flutter test` **1241 PASS**、`check_mutation_finds.py` PASS(628)。
+- **machine 検証の範囲**: manifest に固定が書かれていること。**回転しないこと**(電話)は実機確認が引き受ける
+  ([manual-verification.md](manual-verification.md))。タブレットで固定が無視されることは、手元にその端末の確認手段が無ければ確かめない
+  (Android の仕様であり、この task の受け入れには含めない)。
+
 ## Current state / handoff
 
-- Last checkpoint: 縞模様の出どころを特定した(2026-10-04)。横向きの電話 × 文字倍率 1.6〜1.9 以上で、一覧または右のルールの固定部分が溢れる
-- Blocker category: human-decision
-- Waiting for: 開発者((a) 縦に固定 / (b) 横向きも対象にする)
-- Requested action: 会話で示した選択肢から選ぶ
-- Evidence revision: 調査は dev `a2fd19c` の `lib/`
-- Next Agent action: (a) なら manifest に `screenOrientation="portrait"` を足して実機確認を依頼する。(b) なら横向き × 文字倍率の格子を test に加え、2か所を直す
+- Last checkpoint: 電話を縦に固定した(manifest)。test・mutation・full regression PASS
+- Blocker category: (独立review の後に) manual-evidence
+- Waiting for: 独立review、その後に開発者のエミュレータ確認
+- Requested action: なし(review の後に依頼する)
+- Evidence revision: 未確定(review の後に凍結する)
+- Next Agent action: 独立review を走らせ、PASS なら実機確認を依頼する
