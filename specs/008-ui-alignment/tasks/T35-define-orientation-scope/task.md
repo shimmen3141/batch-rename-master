@@ -51,16 +51,35 @@
 - (b) なら縞模様の出どころが特定され、直っていることを widget test が固定し、
   横向きの格子が検査に入っている。
 
+## 縞模様の出どころ(2026-10-04 着手。widget test で特定)
+
+開発者の指示で着手した(原文: 「008 の T35 に着手してください。」)。
+
+**方法**: `DemoApp`(起動直後の demo data・空のルール)を、画面の大きさと `TextScaler.linear` を変えて pump し、
+`FlutterError.onError` で overflow を集めた使い捨ての probe(repository には残していない)。
+起動直後のメイン画面だけを見ており、browser・modal・sheet は見ていない。
+
+| 画面(dp) | 配置 | overflow が出始める倍率 | 溢れる widget |
+|---|---|---|---|
+| 640×360(横・狭) | 1ペイン | **1.6**(1.6 で 2px、2.0 で 44px) | 一覧の `Column`(`lib/ui/file_list/file_list_view.dart:300`。見出し・警告帯・folder 行の固定部分が、上の読み込み帯と下部の帯を引いた高さに入らない) |
+| 800×360(横・狭) | 1ペイン | **1.9**(2px)、2.0 で 44px | 同上 |
+| 915×412(横・幅 ≥ 840) | 2ペイン | **1.9**(54px)、2.0 で 71px | 右のルールの `Column`(`lib/ui/rule_builder/rule_builder_view.dart:78`。案内・点線の枠などの固定の高さ) |
+| 360×800(縦) | 1ペイン | 2.0 まで出ない | — |
+| 1280×800・960×600・1024×600(横・タブレット)、600×960(縦) | — | 2.0 まで出ない | — |
+
+- **下部の帯ではなかった。** 1ペインでは一覧の固定部分、2ペインでは右のルールの固定部分が溢れる。
+- 縞模様は**横向きの電話の高さ(360〜412dp)× 文字倍率 1.6〜1.9 以上**でだけ出る。Android 14 以降の文字サイズ最大(200%)は
+  非線形に拡大されるので、本文の実効倍率はこの範囲に入る(実機で出たことと矛盾しない)。
+- **高さが 600dp 以上なら 2.0 でも出ない** — タブレットの横向きは今のままで成り立っている。
+- `targetSdk` は Flutter 3.44.6 の既定 36。**Android 16 以降は、画面の短辺が 600dp 以上の端末で manifest の向きの固定を無視する**
+  (大画面での向きと大きさの制限の廃止)。したがって manifest で縦に固定すると、**固定されるのは電話だけで、
+  タブレット・折りたたみの展開時は回転できる**。上の表のとおり、その大きさでは縞模様は出ない。
+
 ## Current state / handoff
 
-- Last checkpoint: `T30` の2回目の実機確認で受領した観測をtask化した(2026-09-19)
-- Blocker category: none(着手可能。**ただし開発者は「今回はこのままでよい」と判断している**)
-- Waiting for: なし
-- Requested action: なし
-- Touches: 未特定(縞模様の出どころ次第。有力なのは下部の帯)。判断次第で
-  `android/app/src/main/AndroidManifest.xml`(**`.github/workflows` ではないので Agent が触れる**)
-- 並行: 出どころが特定されるまで**触るfileが分からない**ので、他のtaskと同時に走らせるなら
-  最初の調査までに留める
-- Evidence revision: 未着手
-- Next Agent action: 着手するときは、まず**縞模様の出どころを widget test で特定**してから
-  (a)/(b) を開発者へ一問で確認する。**特定できていない状態で選択肢だけ出さない**
+- Last checkpoint: 縞模様の出どころを特定した(2026-10-04)。横向きの電話 × 文字倍率 1.6〜1.9 以上で、一覧または右のルールの固定部分が溢れる
+- Blocker category: human-decision
+- Waiting for: 開発者((a) 縦に固定 / (b) 横向きも対象にする)
+- Requested action: 会話で示した選択肢から選ぶ
+- Evidence revision: 調査は dev `a2fd19c` の `lib/`
+- Next Agent action: (a) なら manifest に `screenOrientation="portrait"` を足して実機確認を依頼する。(b) なら横向き × 文字倍率の格子を test に加え、2か所を直す
