@@ -4403,6 +4403,13 @@
       "find": "            android:screenOrientation=\"portrait\"\n",
       "replace": "",
       "note": "008:T35 電話の縦固定を外す"
+    },
+    {
+      "id": "M685",
+      "file": "android/app/src/main/AndroidManifest.xml",
+      "find": "        android:icon=\"@mipmap/ic_launcher\">\n        <!-- 電話では縦に固定する(`008:T35`、2026-10-04 開発者決定)。横向きの電話 × 大きな文字では\n             一覧とルールの固定部分が溢れるため。横向きの UI(幅で切り替わる2ペイン)は消さず、\n             電話の横向きを解禁するかは将来候補(specs/product-map.md)。Android 16 以降は、\n             短辺 600dp 以上の端末(タブレット・折りたたみの展開時)ではこの固定が無視されて回転できる。 -->\n        <activity\n            android:name=\".MainActivity\"\n            android:exported=\"true\"\n            android:launchMode=\"singleTop\"\n            android:screenOrientation=\"portrait\"\n            android:taskAffinity=\"\"",
+      "replace": "        android:icon=\"@mipmap/ic_launcher\"\n        android:screenOrientation=\"portrait\">\n        <!-- 電話では縦に固定する(`008:T35`、2026-10-04 開発者決定)。横向きの電話 × 大きな文字では\n             一覧とルールの固定部分が溢れるため。横向きの UI(幅で切り替わる2ペイン)は消さず、\n             電話の横向きを解禁するかは将来候補(specs/product-map.md)。Android 16 以降は、\n             短辺 600dp 以上の端末(タブレット・折りたたみの展開時)ではこの固定が無視されて回転できる。 -->\n        <activity\n            android:name=\".MainActivity\"\n            android:exported=\"true\"\n            android:launchMode=\"singleTop\"\n            android:taskAffinity=\"\"",
+      "note": "008:T35 縦固定を <activity> から <application> へ移す(独立review attempt 1 の対照 CM1)"
     }
   ]
 }
