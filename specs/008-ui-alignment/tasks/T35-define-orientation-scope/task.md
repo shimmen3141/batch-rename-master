@@ -126,11 +126,14 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
   同一であること、記録の整合を確認。
 - 連鎖: `a2fd19c..73068d0` PASS → `73068d0..bbc00e3` PASS。以後の記録だけの差分は SELF-CHECK。
 
+### 実機確認(2026-10-04)
+
+- 対象: `lib/`・`android/` が `727fae8` と同一の build(branch HEAD `992cbd2`。`git diff --stat 727fae8 HEAD -- lib android hook src pubspec.yaml pubspec.lock` が空)
+- 実施: 開発者(Android エミュレータ)。手順 1〜3
+- 結果: **OK**(「確認事項について、問題ありませんでした。」)
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review の連鎖 PASS(`a2fd19c..bbc00e3`)。code を `727fae8` で凍結し、実機確認を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜3を行い、結果を会話で伝える
-- Evidence revision: `lib/`・`android/` が `727fae8` と同一の build(以後の commit は `specs/`・`tool/` だけ)
-- Next Agent action: 結果を記録し、問題が無ければ `done` にして PR を ready にし、merge する
+- Last checkpoint: 実機確認 OK(2026-10-04、`727fae8` の build)。review 連鎖 `a2fd19c..bbc00e3` PASS、以後は記録だけ
+- Status: done
+- Next Agent action: なし(PR #216 を ready にして merge する)

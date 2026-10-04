@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T35",
   "title": "横向きを対象にするかを決める",
-  "status": "blocked",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
