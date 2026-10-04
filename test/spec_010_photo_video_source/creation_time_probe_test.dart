@@ -169,6 +169,28 @@ void main() {
       expect(report.btimeStable, isNull);
     });
 
+    test('btime が改名で変わったら、安定でないと報告する', () {
+      final at = DateTime.utc(2026);
+      CreationProbeStep step(DateTime btime) => CreationProbeStep(
+        label: 'x',
+        path: '/x',
+        at: at,
+        times: StatxTimes(btime: btime, mtime: at),
+      );
+      final report = CreationProbeReport(
+        directory: '/d',
+        statxAvailable: true,
+        steps: [step(at), step(at), step(at.add(const Duration(seconds: 3)))],
+        control: step(at),
+      );
+
+      expect(report.btimeStable, isFalse);
+      expect(
+        creationProbeReportText(report),
+        contains('btime が改名で変わらない: false'),
+      );
+    });
+
     test('DATE_ADDED の照会は、観測した directory の下だけを読む', () {
       expect(
         dateAddedQueryCommand('/storage/emulated/0/Download/brm-010-probe'),
