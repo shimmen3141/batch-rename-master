@@ -27,6 +27,7 @@ class RuleBuilderWorkspace extends StatefulWidget {
     this.renameExecution,
     this.filePreview,
     this.removalSelection,
+    this.onReopenFolder,
     this.breakpoint = 840,
   });
 
@@ -40,6 +41,9 @@ class RuleBuilderWorkspace extends StatefulWidget {
   /// 一覧の**除去のための選択モード**(002 REQ-018)。読み込み帯と共有するため
   /// composition root から通す(`008:T29`)。ここでは中身を見ず、一覧へ渡すだけである。
   final RemovalSelection? removalSelection;
+
+  /// 一覧の folder 行から同じ folder を開き直す(004 REQ-021)。[FileListView] へ渡す。
+  final Future<void> Function()? onReopenFolder;
 
   /// モバイル/デスクトップの境界幅(dp)。既定 840(003 spec 決定済み)。
   final double breakpoint;
@@ -205,6 +209,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             renameExecution: widget.renameExecution,
             filePreview: widget.filePreview,
             removalSelection: widget.removalSelection,
+            onReopenFolder: widget.onReopenFolder,
             // ルールビルダーが右ペインに常時見えているので、下部バーには
             // 実行だけを置く(ルール設定への導線は重複させない)。
           ),
@@ -247,6 +252,7 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       renameExecution: widget.renameExecution,
       filePreview: widget.filePreview,
       removalSelection: widget.removalSelection,
+      onReopenFolder: widget.onReopenFolder,
       onEditRule: _openRuleSheet,
     );
   }

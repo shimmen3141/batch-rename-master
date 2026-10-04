@@ -598,9 +598,9 @@
     {
       "id": "M85",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "note": "読み込み前の権限確認を外す(013 REQ-001。未許可でも読み込める)",
-      "find": "    if (await _checkPermission() == StoragePermissionState.denied) return;",
-      "replace": "    await _checkPermission();"
+      "note": "読み込み前の権限確認を外す(013 REQ-001。未許可でも読み込める) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**",
+      "find": "  Future<void> _openKindSheet(BuildContext context) async {\n    if (await _checkPermission() == StoragePermissionState.denied) return;",
+      "replace": "  Future<void> _openKindSheet(BuildContext context) async {\n    await _checkPermission();"
     },
     {
       "id": "M86",
@@ -626,9 +626,9 @@
     {
       "id": "M89",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "note": "未許可でも設定画面を自動で開く(013 REQ-003が禁じている押し付け)",
-      "find": "    if (await _checkPermission() == StoragePermissionState.denied) return;",
-      "replace": "    if (await _checkPermission() == StoragePermissionState.denied) {\n      await _openSettings();\n      return;\n    }"
+      "note": "未許可でも設定画面を自動で開く(013 REQ-003が禁じている押し付け) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**",
+      "find": "  Future<void> _openKindSheet(BuildContext context) async {\n    if (await _checkPermission() == StoragePermissionState.denied) return;",
+      "replace": "  Future<void> _openKindSheet(BuildContext context) async {\n    if (await _checkPermission() == StoragePermissionState.denied) {\n      await _openSettings();\n      return;\n    }"
     },
     {
       "id": "M90",
@@ -731,8 +731,8 @@
     {
       "id": "M104",
       "file": "lib/data/file_source/platform_file_source.dart",
-      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015)",
-      "find": "  if (isAndroid) {\n    return AndroidFileSource(pick: pick, locationNameOf: locationNameOf);\n  }",
+      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**",
+      "find": "  if (isAndroid) {\n    return AndroidFileSource(\n      pick: pick,\n      reopen: reopen,\n      locationNameOf: locationNameOf,\n    );\n  }",
       "replace": ""
     },
     {
@@ -1158,9 +1158,9 @@
     {
       "id": "M166",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      removalSelection: widget.removalSelection,\n      onEditRule: _openRuleSheet,\n    );",
-      "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      removalSelection: widget.removalSelection,\n      onEditRule: _openRuleSheet,\n    );",
-      "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加)"
+      "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      removalSelection: widget.removalSelection,\n      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,\n    );",
+      "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      removalSelection: widget.removalSelection,\n      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,\n    );",
+      "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**"
     },
     {
       "id": "M167",
@@ -2461,9 +2461,9 @@
     {
       "id": "M397",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        maintainSize: true,",
-      "replace": "        maintainSize: false,",
-      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**。**008:T42でフッターの大きさを固定し(2つを重ねて高い方に揃える)、末尾余白の仕組みを外したので、この保証(選択開始で行が跳ばない)を守る箇所へ移した**: 見えている方だけを置くとモードの出入りでフッターの大きさが変わる。**独立review attempt 2 のP2で「通常のフッターが大きさを決める」へ直したので、隠した通常のフッターが場所を取る箇所へ移した**: 場所を取らないとモードの出入りでフッターの大きさが変わる"
+      "find": "        visible: !showRemovalMode,\n        maintainSize: true,",
+      "replace": "        visible: !showRemovalMode,\n        maintainSize: false,",
+      "note": "008:T31 選択開始時に消える下部 UI の末尾余白を除く。最下段開始行が下へ跳ぶ。**008:T25で一覧を通知の置き場(`ToastHost`)で包み、字下げ・整形が変わったので`find`を追随させた**。**008:T42でフッターの大きさを固定し(2つを重ねて高い方に揃える)、末尾余白の仕組みを外したので、この保証(選択開始で行が跳ばない)を守る箇所へ移した**: 見えている方だけを置くとモードの出入りでフッターの大きさが変わる。**独立review attempt 2 のP2で「通常のフッターが大きさを決める」へ直したので、隠した通常のフッターが場所を取る箇所へ移した**: 場所を取らないとモードの出入りでフッターの大きさが変わる **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**"
     },
     {
       "id": "M398",
@@ -3525,9 +3525,9 @@
     {
       "id": "M550",
       "file": "lib/ui/file_list/file_list_controller.dart",
-      "find": "    _replace(entries, applySort: true);",
-      "replace": "    _replace(entries, applySort: false);",
-      "note": "008:T02 読み込み直しで並び順を当てはめない — `008:T01` が観測した不具合(表示は名前順・中身は読み込み順。代表例22/23)が戻る"
+      "find": "      _sortDirection = SortDirection.ascending;\n    }\n    _replace(entries, applySort: true);",
+      "replace": "      _sortDirection = SortDirection.ascending;\n    }\n    _replace(entries, applySort: false);",
+      "note": "008:T02 読み込み直しで並び順を当てはめない — `008:T01` が観測した不具合(表示は名前順・中身は読み込み順。代表例22/23)が戻る **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**"
     },
     {
       "id": "M551",
@@ -3819,9 +3819,9 @@
     {
       "id": "M598",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        border: Border(bottom: BorderSide(color: colors.rowDivider)),",
-      "replace": "        border: Border(bottom: BorderSide(color: colors.border)),",
-      "note": "008:T10 行の区切り線を他の境界線と同じ濃さに戻す(2026-09-02 の要望10「もう少しだけ濃く」)"
+      "find": "            : (selecting && marked ? colors.selectedSurface : null),\n        border: Border(bottom: BorderSide(color: colors.rowDivider)),",
+      "replace": "            : (selecting && marked ? colors.selectedSurface : null),\n        border: Border(bottom: BorderSide(color: colors.border)),",
+      "note": "008:T10 行の区切り線を他の境界線と同じ濃さに戻す(2026-09-02 の要望10「もう少しだけ濃く」) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**"
     },
     {
       "id": "M599",
@@ -4291,6 +4291,111 @@
       "find": "      lineHeight(_valueStyle, strut: _valueStrut(base));",
       "replace": "      lineHeight(_valueStyle);",
       "note": "008:T55 列の高さを strut 無しで測る — 描く行の高さ(strut)と測った高さが食い違う。**SURVIVED を受容**: test のフォントは字形ごとの差が無く、strut の有無で行の高さが変わらないので区別できない。実機確認(T55 の manual)で見る"
+    },
+    {
+      "id": "M669",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "    if (_sortMode != FileSortMode.custom) {\n      _replace(entries, applySort: true);\n      return;\n    }",
+      "replace": "    if (true) {\n      setFiles(entries);\n      return;\n    }",
+      "note": "008:T56 開き直しの確定を setFiles と同じにする — 手で並べた一覧が名前順へ戻る(002 REQ-021。代表例 28)"
+    },
+    {
+      "id": "M670",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "      ...stableSorted(fresh, comparatorFor(FileSortMode.name)),",
+      "replace": "      ...fresh,",
+      "note": "008:T56 新しく入った item を名前の昇順に並べない(002 REQ-021。代表例 28 は e,d の順で渡す)"
+    },
+    {
+      "id": "M671",
+      "file": "lib/ui/file_list/file_list_controller.dart",
+      "find": "      final entry = incoming.remove(item.sourceHandle);\n      if (entry != null) kept.add(entry);",
+      "replace": "      final entry = incoming.remove(item.sourceHandle);\n      if (entry != null) kept.add(item);",
+      "note": "008:T56 custom で前の item の値を残す — 開き直したときの更新日時やサイズが反映されない"
+    },
+    {
+      "id": "M672",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      widget.controller.reselectFiles,",
+      "replace": "      widget.controller.setFiles,",
+      "note": "008:T56 帯の開き直しが reselectFiles を使わない — 手で並べた順が失われる(002 REQ-021)"
+    },
+    {
+      "id": "M673",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    final messenger = ScaffoldMessenger.maybeOf(context);\n    if (await _checkPermission() == StoragePermissionState.denied) return;\n    final selected",
+      "replace": "    final messenger = ScaffoldMessenger.maybeOf(context);\n    final selected",
+      "note": "008:T56 開き直す前に権限を確かめない(013 REQ-004。未許可でも browser を開く)"
+    },
+    {
+      "id": "M674",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    final selected = {for (final item in items) ?item.sourceHandle};",
+      "replace": "    final selected = <String>{};",
+      "note": "008:T56 一覧の状態を初期値に渡さない — 開き直すと何も選ばれていない(004 REQ-021。代表例 36)"
+    },
+    {
+      "id": "M675",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                      onAdd: selecting ? null : widget.onReopenFolder,",
+      "replace": "                      onAdd: widget.onReopenFolder,",
+      "note": "008:T56 選択モード中も「＋ 追加」を出す(004 REQ-021 / 002 REQ-018)"
+    },
+    {
+      "id": "M676",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                  if (widget.onReopenFolder != null && soleFolder != null)",
+      "replace": "                  if (soleFolder != null)",
+      "note": "008:T56 開き直せない画面(desktop)にも folder 行を出す"
+    },
+    {
+      "id": "M677",
+      "file": "lib/ui/file_source/same_folder_reopen.dart",
+      "find": "    if (folder != null && folder != own) return null;\n",
+      "replace": "",
+      "note": "008:T56 所属 folder が2つに分かれていても入口を出す(004 REQ-021 は1つのときだけ)"
+    },
+    {
+      "id": "M678",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "    final owner = initialFolder == null\n        ? null\n        : locationContaining(locations, initialFolder);",
+      "replace": "    final StorageLocation? owner = null;",
+      "note": "008:T56 起点を無視して保存場所から始める(004 REQ-021 / REQ-015。代表例 36)"
+    },
+    {
+      "id": "M679",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "        _selectableFiles.map((e) => e.path).where(select.contains),",
+      "replace": "        select,",
+      "note": "008:T56 folder に無い path も選択に数える — 件数と見えている選択が食い違い、確定に消えた path が混ざる"
+    },
+    {
+      "id": "M680",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "      if (!await Directory(folder).exists()) {",
+      "replace": "      if (false) {",
+      "note": "008:T56 folder が無くても browser を開く(004 REQ-021。代表例 42)"
+    },
+    {
+      "id": "M681",
+      "file": "lib/data/file_source/storage_browser.dart",
+      "find": "    if (normalized == root || p.isWithin(root, normalized)) return location;",
+      "replace": "    if (normalized == root) return location;",
+      "note": "008:T56 保存場所の root より下の folder を含むと判定しない — 開き直しが保存場所から始まる"
+    },
+    {
+      "id": "M682",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,",
+      "replace": "      onEditRule: _openRuleSheet,",
+      "note": "008:T56 狭幅(mobile)の一覧へ入口を渡さない — folder 行が製品で出ない。**独立review attempt 1 の reviewer が設計した対照(REV1)。当時は SURVIVED で、結線の test を足して KILLED にした**"
+    },
+    {
+      "id": "M683",
+      "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
+      "find": "            removalSelection: widget.removalSelection,\n            onReopenFolder: widget.onReopenFolder,",
+      "replace": "            removalSelection: widget.removalSelection,",
+      "note": "008:T56 広幅の一覧へ入口を渡さない(M682 の広幅側。独立review attempt 1 の P2-1 で足した)"
     }
   ]
 }

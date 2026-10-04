@@ -20,6 +20,7 @@ import 'ui/file_list/file_list_controller.dart';
 import 'ui/file_list/folder_names_sync.dart';
 import 'ui/file_list/removal_selection.dart';
 import 'ui/file_source/file_source_bar.dart';
+import 'ui/file_source/same_folder_reopen.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
 import 'ui/rule_builder/rule_controller.dart';
@@ -115,6 +116,27 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     return selection;
   }
 
+  /// 一覧の所属 [folder] を、[selected] を選択済みにして browser で開き直す(004 REQ-021)。
+  ///
+  /// 権限の確認は [FileSourceBar] の側で済んでいる([SameFolderReopen] 経由)。
+  Future<BrowserSelection?> _reopenInBrowser(
+    String folder,
+    Set<String> selected,
+  ) => Navigator.of(context).push<BrowserSelection>(
+    MaterialPageRoute(
+      builder: (_) => StorageBrowserView(
+        browser: const AndroidStorageBrowser(),
+        onLocationName: (folder, name) => _locationNames[folder] = name,
+        preview: CachedFilePreview(const KindRoutingFilePreview()),
+        initialFolder: folder,
+        initialSelection: selected,
+      ),
+    ),
+  );
+
+  /// 一覧の folder 行と読み込み帯を結ぶ(004 REQ-021。`008:T56`)。
+  final SameFolderReopen _reopen = SameFolderReopen();
+
   /// browser が確定した保存場所の名前。行の「場所」に使う(004 REQ-009)。
   ///
   /// **root の basename は `0` になって意味を持たない**ので、保存場所名へ
@@ -126,6 +148,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   late final FileSource _source = createPlatformFileSource(
     pick: _pickInBrowser,
+    reopen: _reopenInBrowser,
     locationNameOf: _locationNameOf,
   );
 
@@ -181,6 +204,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
               permission: _permission,
               kinds: fileKindsFor(isAndroid: Platform.isAndroid),
               removalSelection: _removalSelection,
+              reopen: _reopen,
               // 歯車(`008:T43`)は folder の帯の右端へ移した(2026-10-01 の決定 A)。
               // 有効な設定が無い端末(Android)では何も出さない。
               trailing: RenameSettingsButton(execution: _renameExecution),
@@ -192,6 +216,11 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
                 renameExecution: _renameExecution,
                 filePreview: _filePreview,
                 removalSelection: _removalSelection,
+                // **開き直せる source にだけ入口を出す**(desktop の OS picker は
+                // 選択の初期値を持てない。004 REQ-021)。
+                onReopenFolder: _source is FolderReopenSource
+                    ? _reopen.call
+                    : null,
               ),
             ),
           ],

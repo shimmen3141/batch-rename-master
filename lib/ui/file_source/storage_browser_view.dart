@@ -76,9 +76,24 @@ class StorageBrowserView extends StatefulWidget {
     required this.browser,
     this.onLocationName,
     this.preview,
+    this.initialFolder,
+    this.initialSelection = const {},
   });
 
   final StorageBrowserPort browser;
+
+  /// 一覧の所属 folder を開き直すときの起点(004 REQ-021 / REQ-015)。
+  ///
+  /// `null` なら**保存場所から始まる**(REQ-015。「別フォルダへ」もこちら)。
+  /// 渡されたときは、その folder を含む保存場所へ入り、その folder を表示する。
+  /// 含む保存場所が無ければ保存場所から始める(呼ぶ側が folder の実在を確かめている)。
+  final String? initialFolder;
+
+  /// [initialFolder] で選択済みにする path(一覧にあるファイルのハンドル)。
+  ///
+  /// **folder に実在するものだけを選ぶ。** 一覧にあっても folder から消えたファイルは
+  /// 並ばないので、選択に数えると件数と見えている選択が食い違う。
+  final Set<String> initialSelection;
 
   /// file 行の preview(`008:T13`)。`null` なら種別アイコンだけを出す。
   ///
@@ -150,6 +165,20 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       );
     }
     if (!mounted) return;
+    // **開き直しは一覧の所属 folder から始まる**(REQ-021 / REQ-015)。
+    final initialFolder = widget.initialFolder;
+    final owner = initialFolder == null
+        ? null
+        : locationContaining(locations, initialFolder);
+    if (owner != null) {
+      setState(() => _locations = locations);
+      await _enter(
+        owner,
+        folder: initialFolder,
+        select: widget.initialSelection,
+      );
+      return;
+    }
     // **保存場所が1つだけなら一覧を挟まない**(REQ-015)。
     final sole = soleLocation(locations);
     if (sole != null) {
@@ -170,7 +199,13 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   /// 出るだけの空振りになるためで、これは `T11` が U1 で消した無駄な1手と同じものである。
   bool get _canSwitchLocation => (_locations?.locations.length ?? 0) >= 2;
 
-  Future<void> _enter(StorageLocation location, {String? folder}) async {
+  /// [location] の [folder] へ入る。[select] は表示した folder に実在するものだけを選ぶ
+  /// (REQ-021 の初期値)。
+  Future<void> _enter(
+    StorageLocation location, {
+    String? folder,
+    Set<String> select = const {},
+  }) async {
     _dragSelection.finish();
     setState(() {
       _loading = true;
@@ -189,6 +224,9 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     setState(() {
       _listing = listing;
       _loading = false;
+      _selected.addAll(
+        _selectableFiles.map((e) => e.path).where(select.contains),
+      );
     });
   }
 

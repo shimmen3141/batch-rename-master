@@ -265,6 +265,31 @@ void main() {
         );
       });
 
+      test('開き直せる(004 REQ-021)のは Android だけで、渡した browser を使う', () async {
+        String? opened;
+        final android = fileSourceFor(
+          isAndroid: true,
+          isDesktop: false,
+          pick: noPick,
+          reopen: (folder, selected) async {
+            opened = folder;
+            return null;
+          },
+        );
+        expect(android, isA<FolderReopenSource>());
+        await (android as FolderReopenSource).reopenFolder(
+          Directory.systemTemp.path,
+          selected: const {},
+        );
+        expect(opened, Directory.systemTemp.path);
+
+        expect(
+          fileSourceFor(isAndroid: false, isDesktop: true, pick: noPick),
+          isNot(isA<FolderReopenSource>()),
+          reason: 'OS picker は選択の初期値を持てない',
+        );
+      });
+
       test('どちらでもない platform は Failed を返す実装', () {
         expect(
           fileSourceFor(isAndroid: false, isDesktop: false, pick: noPick),

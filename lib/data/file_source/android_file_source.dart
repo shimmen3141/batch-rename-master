@@ -21,6 +21,11 @@ class BrowserSelection {
 /// browser を開いて選択を待つ。`null` は「決定していない」(004 REQ-001)。
 typedef BrowserPicker = Future<BrowserSelection?> Function();
 
+/// browser を [folder] で開き、[selected] を選択済みにして選択を待つ(004 REQ-021)。
+/// `null` は「決定していない」。
+typedef BrowserReopener =
+    Future<BrowserSelection?> Function(String folder, Set<String> selected);
+
 /// Android の [FileSource]。**元場所ハンドルは絶対 path** である(004 REQ-002)。
 ///
 /// SAF の document URI は使わない。全ファイルアクセスがあれば共有ストレージは
@@ -30,10 +35,18 @@ typedef BrowserPicker = Future<BrowserSelection?> Function();
 ///
 /// 選択 UI 自体はここに持たない。[BrowserPicker] を受け取るだけで、画面は UI 層が
 /// 供給する — port が `Navigator` を知ると test が widget を要るようになる。
-class AndroidFileSource implements FileSource {
-  const AndroidFileSource({required this.pick, this.locationNameOf});
+class AndroidFileSource implements FileSource, FolderReopenSource {
+  const AndroidFileSource({
+    required this.pick,
+    this.reopen,
+    this.locationNameOf,
+  });
 
   final BrowserPicker pick;
+
+  /// 一覧の所属 folder を開き直す browser(004 REQ-021)。`null` なら開き直せない
+  /// ([reopenFolder] は [Failed] を返す)。
+  final BrowserReopener? reopen;
 
   /// 表示用の場所の名前(004 REQ-009: **人間可読の文字列**)。
   ///
@@ -47,9 +60,39 @@ class AndroidFileSource implements FileSource {
   /// 無く、拡張子で絞る判定も新設しない(004 REQ-011 / REQ-017)。
   @override
   Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
+    return _resultOf(pick);
+  }
+
+  /// 一覧の所属 [folder] を、[selected] を選択済みにして開き直す(004 REQ-021)。
+  ///
+  /// **folder が無ければ browser を開かない。** SD カードを抜いた・folder が消えた
+  /// ときに、空の browser や保存場所の一覧へ落とすと、何が起きたか分からない。
+  @override
+  Future<PickResult> reopenFolder(
+    String folder, {
+    required Set<String> selected,
+  }) async {
+    final reopen = this.reopen;
+    if (reopen == null) {
+      return const Failed(PickError(PickErrorKind.unknown, 'このフォルダは開き直せません'));
+    }
+    try {
+      if (!await Directory(folder).exists()) {
+        return const Failed(PickError(PickErrorKind.io, 'フォルダが見つかりません'));
+      }
+    } catch (error) {
+      return Failed(PickError(PickErrorKind.unknown, error.toString()));
+    }
+    return _resultOf(() => reopen(folder, selected));
+  }
+
+  /// browser の確定を [PickResult] にする。
+  Future<PickResult> _resultOf(
+    Future<BrowserSelection?> Function() open,
+  ) async {
     final BrowserSelection? selection;
     try {
-      selection = await pick();
+      selection = await open();
     } catch (error) {
       return Failed(PickError(PickErrorKind.unknown, error.toString()));
     }
