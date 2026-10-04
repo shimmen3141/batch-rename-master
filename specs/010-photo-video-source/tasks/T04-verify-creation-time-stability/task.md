@@ -55,6 +55,31 @@ M690 | KILLED | integration_test/creation_time_probe.dart | 010:T04 btime が読
 5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
 ```
 
+- 独立review attempt 1 の指摘を直した後の範囲付き実行(7件):
+
+```text
+M686〜M690 | KILLED(上と同じ)
+M691 | KILLED | integration_test/creation_time_probe.dart | 010:T04 statx へ STATX_BTIME を要求しない(独立review attempt 1 の対照 CM-R1) | exit 1
+M692 | KILLED | integration_test/creation_time_probe.dart | 010:T04 DATE_ADDED の照会 command の引用を落とす(独立review attempt 1 の対照 CM-R2) | exit 1
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `57c8e0e..a86cc92` — **PASS** — P0/P1 なし
+  - 確認できた点: `struct statx` の位置と定数(Linux の `uapi/linux/stat.h`・`fcntl.h` と照合)、FFI の型、bionic の `libc.map.txt` に `statx` が
+    公開されていること、照会 command が手順書と1文字も違わないこと、観測の設計(対照の file・各段階の epoch 秒・3秒の間隔)、
+    R-001 の一次資料との一致、製品と同じ改名を呼んでいること、M686〜M690 の再現、analyze・format・`flutter test` 1253 PASS・workspace check。
+  - F1(安全網の穴, P2): statx へ渡す要求から `STATX_BTIME` が落ちても検出できない(filesystem が要求しなくても返すため。対照 CM-R1 が SURVIVED)
+    → 要求を `requestedStatxMask` として出し、値を test で確かめた。CM-R1 を **M691** として取り込んだ。
+  - F2(安全網の穴, P2): 照会 command の引用が崩れても検出できない(対照 CM-R2 が SURVIVED)→ 完全一致の test を足した。**M692**。
+  - F3(記録, P3): T01 の handoff が `in_progress` なのに「未着手」 → 言い直した。
+  - F4(提案, P3): `DynamicLibrary.process()` で `statx` が見つからないときの保険 → `libc.so` を直接開く探し方を足した。
+  - 直した commit: `test(asdd-010/T04): 独立reviewの指摘…`。`integration_test/`・`test/`・`tool/` に差分があるので、差分review を行う。
+
+
 ## Current state / handoff
 
 - Last checkpoint: harness を作り、host で働くことを確かめた(2026-10-04)

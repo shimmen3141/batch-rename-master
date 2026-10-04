@@ -41,7 +41,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手(plan を作った。2026-10-04)
+- Last checkpoint: 着手した(plan を作り、時刻帯・呼び名・作成日時の意味を開発者が決めた。2026-10-04)。③は `T04` 待ち
 - Blocker category: none
 - Evidence revision: none
 - Next Agent action: `T04` の結果を待つ間に、③に依らない部分(①②・時刻帯・形式)の spec 差分を下書きする
