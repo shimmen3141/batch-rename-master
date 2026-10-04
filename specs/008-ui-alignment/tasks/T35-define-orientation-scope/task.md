@@ -108,11 +108,24 @@ M684 | KILLED | android/app/src/main/AndroidManifest.xml | 008:T35 電話の縦�
   ([manual-verification.md](manual-verification.md))。タブレットで固定が無視されることは、手元にその端末の確認手段が無ければ確かめない
   (Android の仕様であり、この task の受け入れには含めない)。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `a2fd19c..73068d0` — **PASS** — P0/P1 なし。情報2件(P3 相当)
+  - 確認できた点: manifest の変更の正しさ(XML として妥当、`MainActivity` の属性)、2ペインが幅だけで切り替わること
+    (`lib/` に向きの分岐が無い)、M684 の再現(KILLED)、probe 表の代表2点の再現(640×360×1.6 で overflow、360×800×2.0 で無し)、
+    targetSdk 36 の出所、記録の整合、analyze・format・`flutter test` 1241 PASS・workspace check。
+  - reviewer の対照 **CM1**(固定を `<application>` へ移す)→ KILLED。**M685** として表へ取り込んだ(`5afb323`)。
+  - 情報: `task.json` の `pullRequest` が null → 216 を記録した(`5afb323`)。
+  - 情報: Android 16 の大画面で向きの固定が無視されることは、sandbox から一次資料で確かめられなかった。受け入れに含めていないので
+    残余riskとしない。
+
 ## Current state / handoff
 
-- Last checkpoint: 電話を縦に固定した(manifest)。test・mutation・full regression PASS
-- Blocker category: (独立review の後に) manual-evidence
-- Waiting for: 独立review、その後に開発者のエミュレータ確認
-- Requested action: なし(review の後に依頼する)
-- Evidence revision: 未確定(review の後に凍結する)
-- Next Agent action: 独立review を走らせ、PASS なら実機確認を依頼する
+- Last checkpoint: 独立review attempt 1 PASS(`a2fd19c..73068d0`)。対照 M685 を取り込んだ(`5afb323`)
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認)。並行して `73068d0..` の差分review(`tool/mutations.json` に差分があるため)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜3を行い、結果を会話で伝える
+- Evidence revision: `lib/`・`android/` が `727fae8` と同一の build(以後の commit は `specs/`・`tool/` だけ)
+- Next Agent action: 結果と差分reviewを記録し、問題が無ければ `done` にして PR を ready にし、merge する
