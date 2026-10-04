@@ -50,11 +50,11 @@
   - **不明のときの案内は足さない(推奨)**: ③が使えるので、不明が残るのは MediaStore に載っていないファイル(この app が path で作ったものなど)と
     desktop だけになる。頻度を見てから考える。
 
+- 2026-10-04: 開発者が承認した(原文: 「承認します。続けてください。」)。不明のときの案内を足さない推奨も含めて承認された。
+
 ## Current state / handoff
 
-- Last checkpoint: 004 の spec 差分を書いた(2026-10-04)。`T04` の結論を反映
-- Blocker category: human-decision
-- Waiting for: 開発者(004 の差分の承認)
-- Requested action: `specs/004-file-source/spec.md` の REQ-003・REQ-010、代表例 11・12・44〜53、「010:T01 由来の更新」を読み、承認するか直す点を伝える
+- Last checkpoint: 004 の差分を開発者が承認した(2026-10-04)
+- Blocker category: none
 - Evidence revision: 差分は branch `asdd/010-photo-video-source/T01-define-capture-date` の HEAD
-- Next Agent action: 承認を記録して独立review を走らせ、PASS なら PR を作って merge し、`T02` に着手する
+- Next Agent action: 独立review を走らせ、PASS なら PR を作って merge する
