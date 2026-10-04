@@ -57,9 +57,23 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
   分岐に入らない)。外れると②③が黙って無くなる(不明が増えるだけで、データ損失・無断置換・偽の成功・権限・互換性のどれでもない)。
   引き受け先: この task の manual(手順1の `download.txt`)。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `95c2cb0..0c7b80a`(全範囲) — **PASS** — 指摘なし
+  - 確認できた点: Kotlin の import・API level の守り(API 29 未満は早期 return)・`while` の中の `continue`・SQLite の変数上限に対する 500 件ずつの照会・
+    main thread への応答と `destroyed` の守り・例外が `result.error` → Dart で空の結果になること、Dart の順位と単位の変換と失敗の扱い、
+    `_withCreatedAt` が `FileEntry` の全項目を写すこと、path の形(`/storage/emulated/0` 起点)が MediaStore の `_data` と合うこと、
+    manual の URL が届くこと・adb の構文・UI の文言(`ファイルを選ぶ`・`別フォルダへ`・`すべて`)の実在・表示形式と期待値の一致、
+    M104・M707〜M716 の再現(11 KILLED)、`flutter test` 1286 PASS・analyze・format・workspace check。
+  - 安全網の穴(`createPlatformFileSource` の結線)は task が記録したとおり3条件に当たらず、受容が妥当。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・test・mutation(2026-10-04)。Kotlin は未 build
-- Blocker category: none
-- Evidence revision: `lib/`・`android/` は branch `asdd/010-photo-video-source/T03-android-mediastore-date-taken` の HEAD
-- Next Agent action: 独立review を走らせ、PASS なら manual を依頼する
+- Last checkpoint: 独立review attempt 1 PASS(`95c2cb0..0c7b80a`)。code を凍結し、実機確認を待つ
+- Blocker category: manual-evidence
+- Waiting for: 開発者(Android エミュレータでの実機確認。Kotlin の最初の build を兼ねる)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
+- Evidence revision: `lib/`・`android/` が `0c7b80a` と同一の build
+- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を作り、merge する
