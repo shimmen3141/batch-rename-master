@@ -39,9 +39,22 @@
 
 ## 作業記録
 
+- 2026-10-04: 開発者の決定(plan.md の「人間の決定」)と `T04` の結論(③ = Android の `DATE_ADDED`)を受け、004 の spec へ差分を入れた
+  (REQ-010 を must で書き直し、REQ-003 に注記、代表例 11・12 の更新と 44〜53、自由とする点・対象外・検証の注記、
+  「010:T01 由来の更新」の節)。`flutter test test/tooling`(規範の書き写し検査を含む)PASS。
+- Agent が決めた点(承認の対象):
+  - **①を②より先にする**: 時刻帯の決定(撮影地の時刻)から。`DATE_TAKEN` は UTC で、撮影地の時刻にならない。
+  - **REQ-010 を must にする**: 順位・時刻・③の条件は、名前に入って残る値の意味を決めるので、自由にしない。どの形式を読むかは自由のまま。
+  - **形式**: ①で JPEG・HEIC の写真と MP4・MOV の動画を読む(`T02`)。自由とする点に書いた(要求ではない)。
+  - **001・002 は再承認しない**: 意味が変わらないため(spec の節に理由)。
+  - **不明のときの案内は足さない(推奨)**: ③が使えるので、不明が残るのは MediaStore に載っていないファイル(この app が path で作ったものなど)と
+    desktop だけになる。頻度を見てから考える。
+
 ## Current state / handoff
 
-- Last checkpoint: 着手した(plan を作り、時刻帯・呼び名・作成日時の意味を開発者が決めた。2026-10-04)。③は `T04` 待ち
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: `T04` の結果を待つ間に、③に依らない部分(①②・時刻帯・形式)の spec 差分を下書きする
+- Last checkpoint: 004 の spec 差分を書いた(2026-10-04)。`T04` の結論を反映
+- Blocker category: human-decision
+- Waiting for: 開発者(004 の差分の承認)
+- Requested action: `specs/004-file-source/spec.md` の REQ-003・REQ-010、代表例 11・12・44〜53、「010:T01 由来の更新」を読み、承認するか直す点を伝える
+- Evidence revision: 差分は branch `asdd/010-photo-video-source/T01-define-capture-date` の HEAD
+- Next Agent action: 承認を記録して独立review を走らせ、PASS なら PR を作って merge し、`T02` に着手する
