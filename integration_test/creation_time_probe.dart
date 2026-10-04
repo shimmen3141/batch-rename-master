@@ -22,6 +22,7 @@ import 'dart:typed_data';
 
 import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dart';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
 /// 置く file 名の接頭辞。**残骸をこれで判別できる。**
@@ -45,6 +46,13 @@ typedef _StatxNative =
     Int32 Function(Int32, Pointer<Utf8>, Int32, Uint32, Pointer<Uint8>);
 typedef _StatxDart = int Function(int, Pointer<Utf8>, int, int, Pointer<Uint8>);
 
+/// `statx` へ要求する項目(作成時刻と更新時刻)。
+///
+/// 要求しなくても filesystem が値を返すことがあるので、host の test では要求の
+/// 取り違えを観測できない。値そのものを test で確かめる(独立review attempt 1 の F1)。
+@visibleForTesting
+const requestedStatxMask = _statxBtime | _statxMtime;
+
 /// `statx` で読んだ時刻。
 class StatxTimes {
   const StatxTimes({required this.btime, required this.mtime});
@@ -60,24 +68,12 @@ class StatxTimes {
 /// `statx` という関数が process に無ければ `null`(Android 11 未満の bionic など)。
 /// 呼び出しが失敗したら [FileSystemException]。
 StatxTimes? readStatx(String path) {
-  final _StatxDart statx;
-  try {
-    statx = DynamicLibrary.process().lookupFunction<_StatxNative, _StatxDart>(
-      'statx',
-    );
-  } on ArgumentError {
-    return null;
-  }
+  final statx = _lookupStatx();
+  if (statx == null) return null;
   final buffer = calloc<Uint8>(_statxSize);
   final nativePath = path.toNativeUtf8();
   try {
-    final result = statx(
-      _atFdcwd,
-      nativePath,
-      0,
-      _statxBtime | _statxMtime,
-      buffer,
-    );
+    final result = statx(_atFdcwd, nativePath, 0, requestedStatxMask, buffer);
     if (result != 0) {
       throw FileSystemException('statx が失敗した', path);
     }
@@ -230,13 +226,25 @@ Future<CreationProbeReport> observeCreationTimes(
   );
 }
 
-bool _statxAvailable() {
-  try {
-    DynamicLibrary.process().lookup<NativeFunction<_StatxNative>>('statx');
-    return true;
-  } on ArgumentError {
-    return false;
+bool _statxAvailable() => _lookupStatx() != null;
+
+/// `statx` を探す。process の大域の symbol に無ければ libc を直接開く。
+///
+/// 端末で観測できる機会は少ないので、探し方の違いだけで btime を見損なわないよう
+/// 2通り試す(独立review attempt 1 の F4)。
+_StatxDart? _lookupStatx() {
+  for (final open in [
+    DynamicLibrary.process,
+    () => DynamicLibrary.open('libc.so'),
+    () => DynamicLibrary.open('libc.so.6'),
+  ]) {
+    try {
+      return open().lookupFunction<_StatxNative, _StatxDart>('statx');
+    } on ArgumentError {
+      continue;
+    }
   }
+  return null;
 }
 
 CreationProbeStep _stepOf(

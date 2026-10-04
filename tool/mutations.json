@@ -4445,6 +4445,20 @@
       "find": "    if (btimes.isEmpty || btimes.any((btime) => btime == null)) return null;",
       "replace": "    if (btimes.isEmpty) return null;",
       "note": "010:T04 btime が読めない段階があっても安定と言う"
+    },
+    {
+      "id": "M691",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "const requestedStatxMask = _statxBtime | _statxMtime;",
+      "replace": "const requestedStatxMask = _statxMtime;",
+      "note": "010:T04 statx へ STATX_BTIME を要求しない(独立review attempt 1 の対照 CM-R1)"
+    },
+    {
+      "id": "M692",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "String dateAddedQueryCommand(String directory) =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    \"\\\"content query --uri content://media/external/file \"\n    '--projection _display_name:date_added:date_modified:datetaken '\n    \"--where \\\\\\\"_data LIKE '$directory/%'\\\\\\\"\\\"\";",
+      "replace": "String dateAddedQueryCommand(String directory) =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    'content query --uri content://media/external/file '\n    '--projection _display_name:date_added:date_modified:datetaken '\n    \"--where _data LIKE '$directory/%'\";",
+      "note": "010:T04 DATE_ADDED の照会 command の引用を落とす(独立review attempt 1 の対照 CM-R2)"
     }
   ]
 }

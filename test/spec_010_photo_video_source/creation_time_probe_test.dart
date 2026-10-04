@@ -60,6 +60,12 @@ void main() {
   });
 
   group('readStatx', () {
+    test('statx へ作成時刻(STATX_BTIME)と更新時刻(STATX_MTIME)を要求する', () {
+      // 要求しなくても値を返す filesystem があるので、実ファイルでは確かめられない。
+      expect(requestedStatxMask & 0x800, 0x800);
+      expect(requestedStatxMask & 0x40, 0x40);
+    });
+
     test('host の libc に statx がある(このtestの前提)', () {
       final file = File(p.join(dir.path, 'x.txt'))..writeAsStringSync('x');
       expect(readStatx(file.path), isNotNull);
@@ -188,6 +194,17 @@ void main() {
       expect(
         creationProbeReportText(report),
         contains('btime が改名で変わらない: false'),
+      );
+    });
+
+    test('DATE_ADDED の照会 command は手順書と同じ形(PowerShell の引用を含む)', () {
+      const dir = '/storage/emulated/0/Download/brm-010-probe';
+      expect(
+        dateAddedQueryCommand(dir),
+        '& "\$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools\\adb.exe" shell '
+        '"content query --uri content://media/external/file '
+        '--projection _display_name:date_added:date_modified:datetaken '
+        '--where \\"_data LIKE \'$dir/%\'\\""',
       );
     });
 
