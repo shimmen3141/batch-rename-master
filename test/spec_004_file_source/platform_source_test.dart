@@ -12,6 +12,8 @@ import 'package:batch_rename_master/data/file_source/android_file_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saf_util/saf_util_platform_interface.dart';
 
+import 'support/content_fixtures.dart';
+
 SafDocumentFile _doc({
   required String name,
   required String uri,
@@ -161,13 +163,24 @@ void main() {
       expect(a.modifiedAt, isNotNull);
     });
 
-    test('作成日時は常に不明(FileStat に作成時刻が無い。更新日時で代替しない)', () {
+    test('中身に日時が無ければ作成日時は不明(FileStat に作成時刻が無い。更新日時で代替しない)', () {
       File('${dir.path}/a.txt').writeAsStringSync('hello');
 
       final entry = DesktopFileSource.entriesOfDirectory(dir).single;
 
       expect(entry.createdAt, isNull);
       expect(entry.modifiedAt, isNotNull);
+    });
+
+    test('動画に記録された日時が作成日時になる(REQ-010 ①。010:T02)', () {
+      final utc = DateTime.utc(2026, 7, 1, 1);
+      File(
+        '${dir.path}/clip.mp4',
+      ).writeAsBytesSync(mp4(creationSeconds1904: utcSeconds1904(utc)));
+
+      final entry = DesktopFileSource.entriesOfDirectory(dir).single;
+
+      expect(entry.createdAt, utc.toLocal());
     });
 
     test('表示用の場所は選んだフォルダ名(REQ-009)', () {

@@ -4466,6 +4466,97 @@
       "find": "  if (await File(p.join(directory, shellMadeName)).exists()) {",
       "replace": "  if (false) {",
       "note": "010:T04 shell で置いた file を改名しない(端末観測3回目の目的を落とす)"
+    },
+    {
+      "id": "M694",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    if (type == 0xE1) {",
+      "replace": "    if (type == 0xE2) {",
+      "note": "010:T02 JPEG の APP1 を探さない"
+    },
+    {
+      "id": "M695",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "  final entry = _ifdEntry(data, exifIfd, _tagDateTimeOriginal, endian);",
+      "replace": "  final entry = _ifdEntry(data, ifd0, 0x0132, endian);",
+      "note": "010:T02 DateTimeOriginal ではなく IFD0 の DateTime(更新)を読む"
+    },
+    {
+      "id": "M696",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "  if (value.month != month || value.day != day) return null; // 2月30日など",
+      "replace": "",
+      "note": "010:T02 実在しない日付(2月30日)を繰り上げて返す"
+    },
+    {
+      "id": "M697",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    if (seconds <= _mp4EpochOffsetSeconds) return null;",
+      "replace": "",
+      "note": "010:T02 動画の記録日時 0(記録していない)を日時として返す"
+    },
+    {
+      "id": "M698",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    final seconds = version == 1\n        ? data.getUint64(4, Endian.big)\n        : data.getUint32(4, Endian.big);",
+      "replace": "    final seconds = data.getUint32(4, Endian.big);",
+      "note": "010:T02 mvhd version 1(64 bit)を 32 bit で読む"
+    },
+    {
+      "id": "M699",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "      (seconds - _mp4EpochOffsetSeconds) * 1000,\n    );",
+      "replace": "      (seconds - _mp4EpochOffsetSeconds) * 1000,\n      isUtc: true,\n    );",
+      "note": "010:T02 動画の記録日時を端末の時刻帯へ直さず UTC で返す(代表例 46)"
+    },
+    {
+      "id": "M700",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    final start = 4 + skip;",
+      "replace": "    final start = 4;",
+      "note": "010:T02 HEIF の Exif item の前置き(TIFF までの offset)を飛ばさない"
+    },
+    {
+      "id": "M701",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "        : (data.getUint32(4, Endian.big), 10);",
+      "replace": "        : (data.getUint16(4, Endian.big), 8);",
+      "note": "010:T02 infe version 3 を version 2 として読む"
+    },
+    {
+      "id": "M702",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "      constructionMethod = data.getUint16(at, Endian.big) & 0x0F;\n      at += 2;",
+      "replace": "      constructionMethod = data.getUint16(at, Endian.big) & 0x0F;",
+      "note": "010:T02 iloc version 1 の construction_method を飛ばさない"
+    },
+    {
+      "id": "M703",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    position += 2 + length;",
+      "replace": "    position += length;",
+      "note": "010:T02 JPEG の次の segment の位置を読み違える"
+    },
+    {
+      "id": "M704",
+      "file": "lib/data/file_source/content_created_at.dart",
+      "find": "    endian = Endian.big; // \"MM\"",
+      "replace": "    endian = Endian.little; // \"MM\"",
+      "note": "010:T02 big endian の TIFF を little endian で読む"
+    },
+    {
+      "id": "M705",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "        createdAt: readContentCreatedAt(path),",
+      "replace": "        createdAt: null,",
+      "note": "010:T02 Android の読み込みで中身の日時を読まない"
+    },
+    {
+      "id": "M706",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "      createdAt: readContentCreatedAt(file.path),",
+      "replace": "      createdAt: null,",
+      "note": "010:T02 desktop の読み込みで中身の日時を読まない"
     }
   ]
 }

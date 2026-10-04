@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/rename_engine.dart';
+import 'content_created_at.dart';
 import 'file_source.dart';
 
 /// デスクトップ(Windows 等)の OS ピッカーを用いる [FileSource] 実装(T4)。
@@ -13,8 +14,9 @@ import 'file_source.dart';
 /// **絶対パス**とし、005 は `File.rename` で書き戻せる。
 ///
 /// 作成日時は `FileStat` に無い(`changed` は inode 変更時刻であって作成時刻では
-/// ない)ため**常に不明**(`null`)とする。NTFS の作成時刻を取るには FFI が要り、
-/// それは取得経路の拡張(004 REQ-010)として後続で足せる。
+/// ない)。**ファイルの中身に記録された日時(004 REQ-010 の①)だけ**を読み、
+/// 無ければ不明(`null`)とする。NTFS の作成時刻(③)を取るには FFI が要り、
+/// それは取得経路の拡張(004 REQ-010 が自由とする点)として後続で足せる。
 class DesktopFileSource implements FileSource {
   const DesktopFileSource();
 
@@ -101,8 +103,9 @@ class DesktopFileSource implements FileSource {
     final stat = file.statSync();
     return FileEntry(
       name: p.basename(file.path),
-      // FileStat に作成時刻は無い。取得できないので不明のままにする(REQ-003)。
-      createdAt: null,
+      // FileStat に作成時刻は無い。ファイルの中身に記録された日時だけを読む
+      // (004 REQ-010 の①)。読めなければ不明(REQ-003)。
+      createdAt: readContentCreatedAt(file.path),
       modifiedAt: stat.modified,
       size: stat.size,
       sourceHandle: file.absolute.path,
