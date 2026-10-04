@@ -21,12 +21,24 @@ void main() {
   debugPrint = debugPrintSynchronously;
 
   testWidgets('改名の前後で作成時刻が変わるかを観測する', (tester) async {
-    final report = await tester.runAsync(
-      () => observeCreationTimes(deviceCreationProbeDirectory),
-    );
-    debugPrint(creationProbeReportText(report!));
+    // **失敗も報告として出す。** 2回目の観測では書き込みが権限で落ち、報告が1行も
+    // 出ないまま null の扱いで2つ目の例外になった。
+    Object? failure;
+    final report = await tester.runAsync(() async {
+      try {
+        return await observeCreationTimes(deviceCreationProbeDirectory);
+      } catch (error) {
+        failure = error;
+        return null;
+      }
+    });
+    if (report == null) {
+      debugPrint('=== 010:T04 作成時刻の観測: 途中で失敗した ===\n$failure');
+      fail('観測が途中で失敗した: $failure');
+    }
+    debugPrint(creationProbeReportText(report));
     debugPrint('--- DATE_ADDED を読む command(このあと手で実行する)');
-    debugPrint(dateAddedQueryCommand(deviceCreationProbeDirectory));
+    debugPrint(dateAddedQueryCommand());
 
     // 改名できなければ、何も観測していない。
     expect(report.renamed, isTrue, reason: '改名に失敗した。上の出力を読むこと');

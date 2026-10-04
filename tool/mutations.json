@@ -4456,9 +4456,16 @@
     {
       "id": "M692",
       "file": "integration_test/creation_time_probe.dart",
-      "find": "String dateAddedQueryCommand(String directory) =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    \"'content query --uri content://media/external/file \"\n    '--projection _display_name:date_added:date_modified:datetaken '\n    \"--where _data\\\\ LIKE\\\\ \\\\''$directory/%\\\\'''\";",
-      "replace": "String dateAddedQueryCommand(String directory) =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    '\"content query --uri content://media/external/file '\n    '--projection _display_name:date_added:date_modified:datetaken '\n    \"--where \\\\\\\"_data LIKE '$directory/%'\\\\\\\"\\\"\";",
+      "find": "String dateAddedQueryCommand() =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    \"'content query --uri content://media/external/file \"\n    '--projection _display_name:_data:date_added:date_modified:datetaken '\n    r\"--where _display_name\\ LIKE\\ \\''brm%\\'''\";",
+      "replace": "String dateAddedQueryCommand() =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    '\"content query --uri content://media/external/file '\n    '--projection _display_name:_data:date_added:date_modified:datetaken '\n    \"--where \\\\\\\"_display_name LIKE 'brm%'\\\\\\\"\\\"\";",
       "note": "010:T04 DATE_ADDED の照会 command を、端末で no closing quote になった二重引用符の形へ戻す(独立review attempt 1 の対照 CM-R2 を1回目の観測で改めた)"
+    },
+    {
+      "id": "M693",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "  if (await File(p.join(directory, shellMadeName)).exists()) {",
+      "replace": "  if (false) {",
+      "note": "010:T04 shell で置いた file を改名しない(端末観測3回目の目的を落とす)"
     }
   ]
 }

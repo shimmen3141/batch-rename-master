@@ -105,11 +105,39 @@ statx: あり
   host で端末の shell の語の分け方を `sh -c` で再現し、`_data LIKE '…/%'` が1語になることを確かめた。置いた file は残っているので、
   照会だけをやり直してもらう。
 
+### 端末での観測 2回目(2026-10-04、開発者・emulator-5554)
+
+直した照会(場所で探す)を実行 → `No result found.`。原因を見分けるため、harness の再実行・`ls`・場所と名前の2通りの照会を依頼した。
+
+```text
+flutter test …creation_time_probe_test.dart → PathAccessException: Cannot open file '…/brm-010-control.txt' (Permission denied, errno = 13)
+  → runner が null の報告で2つ目の例外(Null check operator)
+ls -l …/brm-010-probe → brm-010-a-renamed-2.txt と brm-010-control.txt(13:07、u0_a209 media_rw)
+場所で照会 → No result found.
+名前で照会 → Row: 0 _display_name=brm-010-probe, _data=/storage/emulated/0/Download/brm-010-probe, date_added=NULL
+```
+
+- **app が path で書いた file は MediaStore に載らなかった。** directory の行(`date_added=NULL`)だけがあり、1回目に置いた2つの file の行は無い。
+  したがって、この app が作った file の `DATE_ADDED` は観測できない。**製品にとっての意味**: 製品が path で改名した file を MediaStore が
+  どう扱うかは別に見る必要がある(下の3回目)。
+- 2回目の harness の失敗は**手順の欠陥**: `flutter test` は既定で終わるとアプリを消す(`flutter_tools` の `--[no-]uninstall`。既定は消す)。
+  再インストールで「すべてのファイルへのアクセス」が外れ、前回の(別の uid の)file を開けなかった。1回目が通ったのは、前から入っていたアプリに
+  権限があったためと考えられる。→ 手順で先に `flutter install --debug` と `appops set` を行い、`--no-uninstall` で走らせる。
+- runner が失敗を報告せず null で落ちた → 失敗を報告として出すようにした。
+- 照会は名前(`brm%`)で探し `_data` も出す形にした(場所で探すと、載っていないのか条件の誤りかを見分けられなかった)。
+
+### 3回目の設計
+
+`adb shell` で `brm010-shell.txt` を置く(shell は MediaProvider を通るので載る見込み。手順3で載ったことを確かめる)。harness はそれがあれば
+製品と同じ改名を3秒おきに2回行う(接頭辞が違うので後片付けで消えない)。改名の前と後の `DATE_ADDED`・`_data` を比べる。
+- `DATE_ADDED` が置いた時刻のままで `_data` が新しい名前 → MediaStore は改名を追い、`DATE_ADDED` は使える。
+- `DATE_ADDED` が改名した時刻に変わる、または行が消える/古い名前のまま → 使えない(古い名前のままなら、ギャラリーとずれることも分かる)。
+
 ## Current state / handoff
 
-- Last checkpoint: 端末での観測 1回目(2026-10-04)。btime は返らない。`DATE_ADDED` の照会は command の引用の欠陥で失敗し、直した
+- Last checkpoint: 端末での観測 2回目(2026-10-04)。app が書いた file は MediaStore に載らない。3回目(shell で置いた file を app が改名する)を用意した
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータで harness を走らせ、`DATE_ADDED` を照会する)
-- Requested action: [manual-verification.md](manual-verification.md) の手順3(直した照会)と手順4
-- Evidence revision: btime の観測は harness `267e75b`。照会 command は直した後の HEAD
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜6(3回目)
+- Evidence revision: btime の観測は harness `267e75b`。3回目は直した後の HEAD
 - Next Agent action: 出力を読み、btime・`DATE_ADDED` のどちらが使えるかを記録して `T01` へ渡す

@@ -8,6 +8,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:batch_rename_master/data/rename_exec/native_exclusive_rename.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -141,6 +142,48 @@ void main() {
     });
   });
 
+  group('shell で置いた file', () {
+    test('あれば2回改名して各段階を報告し、後片付けで消さない', () async {
+      File(p.join(dir.path, shellMadeName)).writeAsStringSync('x');
+
+      final report = await observeCreationTimes(
+        dir.path,
+        gap: const Duration(milliseconds: 50),
+      );
+
+      expect(report.shellSteps.map((step) => p.basename(step.path)), [
+        'brm010-shell.txt',
+        'brm010-shell-renamed-1.txt',
+        'brm010-shell-renamed-2.txt',
+      ]);
+      expect(
+        report.shellSteps.skip(1).map((step) => step.renameResult),
+        everyElement(NativeRenameResult.success),
+      );
+      expect(
+        File(p.join(dir.path, 'brm010-shell-renamed-2.txt')).existsSync(),
+        isTrue,
+      );
+      expect(
+        creationProbeReportText(report),
+        contains('shell で置いた file: 2回目の改名の後: brm010-shell-renamed-2.txt'),
+      );
+    });
+
+    test('無ければ無いと報告する', () async {
+      final report = await observeCreationTimes(
+        dir.path,
+        gap: const Duration(milliseconds: 50),
+      );
+
+      expect(report.shellSteps, isEmpty);
+      expect(
+        creationProbeReportText(report),
+        contains('shell で置いた file(brm010-shell.txt): 無し'),
+      );
+    });
+  });
+
   group('報告', () {
     test('人間が貼る範囲と、まとめの3行を持つ', () async {
       final report = await observeCreationTimes(
@@ -200,22 +243,16 @@ void main() {
     test('DATE_ADDED の照会 command は手順書と同じ形(PowerShell の引用を含む)', () {
       // 端末の shell へ渡す文字列に二重引用符を入れない(1回目の観測で
       // `no closing quote` になった)。PowerShell の単一引用符と、端末の `\` の escape。
-      const dir = '/storage/emulated/0/Download/brm-010-probe';
+      // 名前で探し `_data` も出す(2回目の観測で、場所で探すと「登録されていない」と
+      // 「条件の誤り」を見分けられなかった)。
       expect(
-        dateAddedQueryCommand(dir),
+        dateAddedQueryCommand(),
         '& "\$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools\\adb.exe" shell '
         "'content query --uri content://media/external/file "
-        '--projection _display_name:date_added:date_modified:datetaken '
-        "--where _data\\ LIKE\\ \\''$dir/%\\'''",
+        '--projection _display_name:_data:date_added:date_modified:datetaken '
+        r"--where _display_name\ LIKE\ \''brm%\'''",
       );
-      expect(dateAddedQueryCommand(dir), isNot(contains(r'\"')));
-    });
-
-    test('DATE_ADDED の照会は、観測した directory の下だけを読む', () {
-      expect(
-        dateAddedQueryCommand('/storage/emulated/0/Download/brm-010-probe'),
-        contains(r"\''/storage/emulated/0/Download/brm-010-probe/%\'''"),
-      );
+      expect(dateAddedQueryCommand(), isNot(contains(r'\"')));
     });
   });
 }

@@ -28,6 +28,14 @@ import 'package:path/path.dart' as p;
 /// 置く file 名の接頭辞。**残骸をこれで判別できる。**
 const creationProbePrefix = 'brm-010-';
 
+/// 人間が `adb shell` で置く file の名前。**接頭辞 [creationProbePrefix] を持たない**
+/// ので、始める前の後片付けで消えない。
+///
+/// app が path で書いた file は MediaStore に登録されなかった(2026-10-04 の端末観測
+/// 2回目)。`adb shell` で書いた file は MediaProvider を通るので登録される見込みで、
+/// **MediaStore に載っている file をこの app が改名したとき**の `DATE_ADDED` を見るために使う。
+const shellMadeName = 'brm010-shell.txt';
+
 /// 端末で観測に使う directory。ダウンロードしたファイルが置かれる場所である。
 const deviceCreationProbeDirectory =
     '/storage/emulated/0/Download/brm-010-probe';
@@ -141,6 +149,7 @@ class CreationProbeReport {
     required this.statxAvailable,
     required this.steps,
     required this.control,
+    this.shellSteps = const [],
   });
 
   final String directory;
@@ -153,6 +162,9 @@ class CreationProbeReport {
 
   /// 改名しない対照の file。`DATE_ADDED` が作った時刻になることを見比べるためにある。
   final CreationProbeStep control;
+
+  /// [shellMadeName] があったときだけ、その file の各段階(改名する前と2回の改名の後)。
+  final List<CreationProbeStep> shellSteps;
 
   /// 改名の前後で btime が変わらなかったか。btime が1度でも読めなければ `null`。
   bool? get btimeStable {
@@ -218,11 +230,33 @@ Future<CreationProbeReport> observeCreationTimes(
     steps.add(_stepOf('$i回目の改名の後', to, renameResult: result));
   }
 
+  final shellSteps = <CreationProbeStep>[];
+  final shellNames = [
+    shellMadeName,
+    'brm010-shell-renamed-1.txt',
+    'brm010-shell-renamed-2.txt',
+  ];
+  if (await File(p.join(directory, shellMadeName)).exists()) {
+    shellSteps.add(
+      _stepOf('shell で置いた file: 改名する前', p.join(directory, shellNames[0])),
+    );
+    for (var i = 1; i < shellNames.length; i++) {
+      await Future<void>.delayed(gap);
+      final from = p.join(directory, shellNames[i - 1]);
+      final to = p.join(directory, shellNames[i]);
+      final result = renameFileWithoutOverwrite(from, to);
+      shellSteps.add(
+        _stepOf('shell で置いた file: $i回目の改名の後', to, renameResult: result),
+      );
+    }
+  }
+
   return CreationProbeReport(
     directory: directory,
     statxAvailable: statxAvailable,
     steps: steps,
     control: control,
+    shellSteps: shellSteps,
   );
 }
 
@@ -283,7 +317,10 @@ String creationProbeReportText(CreationProbeReport report) {
     ..writeln('=== 010:T04 作成時刻の観測 ===')
     ..writeln('directory: ${report.directory}')
     ..writeln('statx: ${report.statxAvailable ? 'あり' : '無し'}');
-  for (final step in [report.control, ...report.steps]) {
+  if (report.shellSteps.isEmpty) {
+    buffer.writeln('shell で置いた file($shellMadeName): 無し');
+  }
+  for (final step in [report.control, ...report.steps, ...report.shellSteps]) {
     buffer
       ..writeln('--- ${step.label}: ${p.basename(step.path)}')
       ..writeln('  時刻(UTC 秒): ${_epoch(step.at)}')
@@ -310,8 +347,11 @@ String creationProbeReportText(CreationProbeReport report) {
 /// 1回目の観測)。PowerShell の単一引用符で囲み(中の `'` は `''`)、空白と `'` は
 /// 端末の shell の `\` で escape する。PowerShell の版による引数の渡し方の違いにも
 /// 左右されない形である。
-String dateAddedQueryCommand(String directory) =>
+///
+/// **名前(`brm` で始まるもの)で探し、`_data` も出す。** 場所で探すと、登録されて
+/// いない file と条件の誤りを見分けられなかった(2回目の観測)。
+String dateAddedQueryCommand() =>
     '& "\$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools\\adb.exe" shell '
     "'content query --uri content://media/external/file "
-    '--projection _display_name:date_added:date_modified:datetaken '
-    "--where _data\\ LIKE\\ \\''$directory/%\\'''";
+    '--projection _display_name:_data:date_added:date_modified:datetaken '
+    r"--where _display_name\ LIKE\ \''brm%\'''";
