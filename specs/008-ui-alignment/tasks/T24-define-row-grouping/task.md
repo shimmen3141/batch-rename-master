@@ -121,6 +121,17 @@ Windows desktop の picker も folder を跨げない
 - 1 folder の folder 行で、行全体のタップを空けておく理由(折りたたみ)は無くなった。行全体のタップに何かを割り当てるかは
   決めていない(必要になったら別 task にする)。
 
+## 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。決定の記録は Claude Opus 5.5。
+
+- Review attempt 1: `5645ab2..3e6524b` — **PASS** — P0/P1 なし。P3 が1件
+  - 確認できた点: 決定の引用と task.md・plan.md・product-map.md・task.json の一致、002/004 の must を変えていないこと、
+    002 REQ-010・代表例 7c・004 REQ-016/021・T56 done の事実、workspace check PASS、`flutter test test/tooling` 6 PASS。
+  - P3(成果物の欠陥・記録): T26・T56 の task.md に「`T24` の折りたたみのために空ける」「`T24` で束ねるときは一覧の中へ移す」が
+    注記なしで残っていた → 両方へ決定の注記を足した(SELF-CHECK、次の commit)。
+- 連鎖: `5645ab2..3e6524b` PASS → 以後は記録だけの差分で SELF-CHECK。
+
 ## Current state / handoff
 
 - Last checkpoint: 決定を記録した(2026-10-04)。束ねない・折りたたまない。`010` へ申し送った
