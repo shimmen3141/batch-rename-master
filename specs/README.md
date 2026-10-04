@@ -5,6 +5,7 @@
 ## 現在の開発
 
 - [008 UIと主要操作の整合](008-ui-alignment/plan.md)
+- [010 写真・動画の撮影日時と読み込み](010-photo-video-source/plan.md)
 
 ## 既存能力
 

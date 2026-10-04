@@ -1,0 +1,16 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T03",
+  "title": "Android で MediaStore の撮影日時を補う",
+  "status": "pending",
+  "dependsOn": [
+    "T01",
+    "T02"
+  ],
+  "covers": [
+    "004:REQ-010"
+  ],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

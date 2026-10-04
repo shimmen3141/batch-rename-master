@@ -1,0 +1,15 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "010",
+  "title": "写真・動画の撮影日時と読み込み",
+  "risk": "strict",
+  "issue": null,
+  "dependsOn": [
+    "004"
+  ],
+  "tasks": [
+    "tasks/T01-define-capture-date",
+    "tasks/T02-read-content-capture-date",
+    "tasks/T03-android-mediastore-date-taken"
+  ]
+}
