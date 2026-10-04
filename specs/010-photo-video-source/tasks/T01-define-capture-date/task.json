@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "撮影日時の取り方を仕様にする",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [],
   "covers": [
     "004:REQ-003",

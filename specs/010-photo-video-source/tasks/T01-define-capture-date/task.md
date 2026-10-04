@@ -6,7 +6,7 @@
 
 ## 入力と依存
 
-- [plan.md](../../plan.md) の「人間の決定」(撮影日時を先にする / 中身の撮影日時と `DATE_TAKEN` を使い、`DATE_ADDED` は使わない)。
+- [plan.md](../../plan.md) の「人間の決定」(撮影日時を先にする / 作成日時は ① 中身 → ② `DATE_TAKEN` → ③ この端末に作られた時刻。③は `T04` で `DATE_ADDED` に決まった)。
 - [R-001](../../decisions/R-001-mediastore-date-taken-source.md)(`DATE_TAKEN` の作られ方と、時刻帯のずれ)。
 - 004 REQ-003(作成日時は取れたときだけ。代替しない)・REQ-010(経路の優先順位)・代表例 10。
 - 001 の日時トークンと INV-006、002 REQ-002 / REQ-011 / REQ-013(作成日時の並び・不明の警告・行の表示)。
@@ -65,10 +65,12 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。spec 
   - P2: plan の目的が「撮影日時のみ」のまま → 書き直した。
   - P2: 代表例 51 が Android 限定か曖昧 → 「(Android)」「MediaStore に載っている」と明記した。
   - P3: product-map の要約に③が無い → 足した。
+- Review attempt 2(差分): `113f7a2..dbfc824` — **PASS** — attempt 1 の4件が閉じたことを確認。P2(T03 の受け入れ条件で証拠の行が②の下から③の下へずれて重複)・
+  P3(T01 の入力の要約が古い)→ 直した(SELF-CHECK。`d4ba4f8` と次の commit)。workspace check・`flutter test test/tooling` PASS。
+- 連鎖: `57c8e0e..113f7a2` FAIL(P1)→ `113f7a2..dbfc824` PASS(P1 が閉じたことを確認)→ 以後の記録だけの差分は SELF-CHECK。
 
 ## Current state / handoff
 
-- Last checkpoint: 004 の差分を開発者が承認した(2026-10-04)
-- Blocker category: none
-- Evidence revision: 差分は branch `asdd/010-photo-video-source/T01-define-capture-date` の HEAD
-- Next Agent action: attempt 1 の指摘を直した差分を差分review にかけ、PASS なら PR を作って merge する
+- Last checkpoint: 独立review の連鎖が `57c8e0e..dbfc824` を覆い、最後の区間が PASS(2026-10-04)
+- Status: done
+- Next Agent action: なし(PR を作って merge し、`T02` に着手する)
