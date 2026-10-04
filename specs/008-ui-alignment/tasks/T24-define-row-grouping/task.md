@@ -88,13 +88,25 @@ Windows desktop の picker も folder を跨げない
   行全体のタップは開かず、この task の折りたたみのために空けてある)。
 - この task に残るのは**複数 folder を束ねる表示**(並び替えとの両立、折りたたみ、選択の数え方)で、優先度は低いまま。
 
+## 着手(2026-10-04)
+
+開発者の指示(原文):
+
+> T24に進んでください。現状の単一フォルダでの+追加ボタンがある帯を複数フォルダにも適用する形になると思います。
+
+### 着手時に確かめた前提
+
+- **複数 folder の一覧は、実データでは今も作れない。** Android は 004 REQ-016 で確定が1 folder に限られ、
+  `＋ 追加`(004 REQ-021)も確定で一覧を置き換える。複数 folder になるのは demo data(`main.dart` の2 folder)だけで、
+  demo data の folder は実在しないので `＋ 追加` は「フォルダが見つかりません」になる。desktop は REQ-021 の対象外。
+- したがって「folder ごとの `＋ 追加`」は、**複数 folder を製品経路から作れるようにしない限り**(2026-09-18 の決定の見直し)、
+  実データで使われる場面が無い。どちらにするかを開発者に尋ねる。
+
 ## Current state / handoff
 
-- Last checkpoint: **1 folder でも folder 行を出す案**を受領し、前提が変わった(2026-09-19)。
-  製品経路に常に載るので、低優先度の理由(到達できない)は消えた
-- Blocker category: none(着手可能だが**優先度が低い**)
-- Waiting for: なし
-- Requested action: なし
-- Evidence revision: 未着手(観測は `008:T08` の2回目の実機確認、足場は `008:T23` のdemo data)
-- Next Agent action: 他に実行可能なtaskが無いとき、または開発者が指示したときに着手する。
-  採否と 002 の改訂案(並び替えとの両立、選択の数え方)を書くところから始める
+- Last checkpoint: 着手(2026-10-04)。複数 folder の一覧が実データで作れないことを確かめた
+- Blocker category: human-decision
+- Waiting for: 開発者(複数 folder を製品経路から作れるようにするか)
+- Requested action: 会話で示した選択肢から選ぶ
+- Evidence revision: なし(仕様定義の task)
+- Next Agent action: 決定に沿って 002/004 の改訂案を書く
