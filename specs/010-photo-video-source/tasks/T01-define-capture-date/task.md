@@ -52,9 +52,23 @@
 
 - 2026-10-04: 開発者が承認した(原文: 「承認します。続けてください。」)。不明のときの案内を足さない推奨も含めて承認された。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。spec の判定に触れる task なので、既定(実装と同等以上)と食い違うが、開発者の指定に従う。
+
+- Review attempt 1: `57c8e0e..113f7a2`(spec の判定を変えたので全範囲) — **FAIL** — P1 が1件
+  - 確認できた点: REQ-010 の内部の無矛盾と代表例 44〜53 の検算、`T04` の観測との一致、R-001 と一次資料の一致、001・002 の意味が変わらないこと
+    (001 は作成日時の年月日時分秒をそのまま整形し、時刻帯の概念を持たない)、plan の決定表の上書きの明示、task の状態、
+    format・`flutter test test/tooling`・analyze・`flutter test` 1256 PASS・workspace check。
+  - P1(成果物の欠陥): REQ-010 の③(`DATE_ADDED`)を実装・検証する task が無かった(T03 は②だけ、plan の受け入れ条件も①②だけ)
+    → T03 を②③にし(題・目的・範囲・受け入れ条件・manual の下書き)、plan の目的と受け入れ条件に③を足した。
+  - P2: plan の目的が「撮影日時のみ」のまま → 書き直した。
+  - P2: 代表例 51 が Android 限定か曖昧 → 「(Android)」「MediaStore に載っている」と明記した。
+  - P3: product-map の要約に③が無い → 足した。
+
 ## Current state / handoff
 
 - Last checkpoint: 004 の差分を開発者が承認した(2026-10-04)
 - Blocker category: none
 - Evidence revision: 差分は branch `asdd/010-photo-video-source/T01-define-capture-date` の HEAD
-- Next Agent action: 独立review を走らせ、PASS なら PR を作って merge する
+- Next Agent action: attempt 1 の指摘を直した差分を差分review にかけ、PASS なら PR を作って merge する
