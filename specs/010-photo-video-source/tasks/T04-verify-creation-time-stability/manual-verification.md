@@ -75,7 +75,7 @@ flutter test integration_test\creation_time_probe_test.dart -d <device_id> --no-
 手順4の出力の最後に出た command(下と同じもの)を実行する。
 
 ```powershell
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell 'content query --uri content://media/external/file --projection _display_name:_data:date_added:date_modified:datetaken --where _display_name\ LIKE\ \''brm%\'''
+
 ```
 
 **出力をそのまま貼ってほしい。**

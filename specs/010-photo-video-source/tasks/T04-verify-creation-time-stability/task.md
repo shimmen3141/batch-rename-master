@@ -146,11 +146,35 @@ ls -l …/brm-010-probe → brm-010-a-renamed-2.txt と brm-010-control.txt(13:0
 - `DATE_ADDED` が置いた時刻のままで `_data` が新しい名前 → MediaStore は改名を追い、`DATE_ADDED` は使える。
 - `DATE_ADDED` が改名した時刻に変わる、または行が消える/古い名前のまま → 使えない(古い名前のままなら、ギャラリーとずれることも分かる)。
 
+### 端末での観測 3回目(2026-10-04、開発者・emulator-5554。harness は `55ee859`)
+
+```text
+手順3(shell で置いた直後):
+Row: 1 _display_name=brm010-shell.txt, _data=…/brm010-shell.txt, date_added=1791123760
+手順4(要点): statx あり / btime はどの file でも (無し) / mtime は改名で不変
+  shell で置いた file: 改名する前 1791123963、1回目の改名の後 1791123966(success)、2回目の改名の後 1791123969(success)
+  app で作った file: 改名は2回とも success
+手順5(改名の後):
+Row: 1 _display_name=brm010-shell-renamed-2.txt, _data=…/brm010-shell-renamed-2.txt, date_added=1791123760
+(app で作った brm-010-*.txt の行は無い)
+```
+
+## 結論
+
+- **`DATE_ADDED` は使える。** MediaStore に載っている file をこの app が改名(`renameat2`)すると、**MediaStore の行が名前と `_data` を
+  追って更新され、`DATE_ADDED` は置いた時刻(1791123760)のまま**だった(改名は 1791123966・1791123969)。改名が MediaProvider の FUSE を
+  通っているためと考えられる。
+- **btime は使えない。** 共有ストレージは `statx` に作成時刻を返さない(3回とも)。
+- この app が path で作った file は MediaStore に載らない(2回目・3回目)。ダウンロード・スクリーンショット・カメラの file は他の app が作るので
+  載っている見込みで、③の対象になる。**載っていない file は③が無く、①②も無ければ「不明」**のまま。
+- 副産物: 改名で MediaStore の名前が追従するので、**ギャラリーと名前がずれる心配は、この観測の範囲では無い**(plan の対象外に書いた
+  「改名した後に MediaStore へ知らせること」は、少なくとも MediaStore に載っている file では不要だった)。
+- 観測したのは emulator(sdk gphone16k x86 64)の1台だけである。端末・版による差は確かめていない。
+
+→ `T01` は③を **Android の `DATE_ADDED`** として仕様にする。
+
 ## Current state / handoff
 
-- Last checkpoint: 端末での観測 2回目(2026-10-04)。app が書いた file は MediaStore に載らない。3回目を用意し、独立review attempt 3 PASS
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータで harness を走らせ、`DATE_ADDED` を照会する)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜6(3回目)
-- Evidence revision: btime の観測は harness `267e75b`。3回目は harness が `55ee859` と同一
-- Next Agent action: 出力を読み、btime・`DATE_ADDED` のどちらが使えるかを記録して `T01` へ渡す
+- Last checkpoint: 端末での観測 3回目(2026-10-04)。`DATE_ADDED` は改名で変わらず、btime は返らない。結論を `T01` へ渡した
+- Status: done
+- Next Agent action: なし
