@@ -84,11 +84,32 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 - 連鎖: `57c8e0e..a86cc92` PASS → `a86cc92..267e75b` PASS。以後の記録だけの差分は SELF-CHECK。
 
 
+### 端末での観測 1回目(2026-10-04、開発者・Android エミュレータ emulator-5554)
+
+harness は `267e75b` と同一。出力(開発者が貼ったもの、要点):
+
+```text
+statx: あり
+--- 対照(改名しない): brm-010-control.txt   btime: (無し)  mtime: 1791119240
+--- 作った直後: brm-010-a.txt                 時刻 1791119240  btime: (無し)  mtime: 1791119240
+--- 1回目の改名の後: brm-010-a-renamed-1.txt  時刻 1791119244  btime: (無し)  mtime: 1791119240  改名の結果: success
+--- 2回目の改名の後: brm-010-a-renamed-2.txt  時刻 1791119247  btime: (無し)  mtime: 1791119240  改名の結果: success
+改名: 2回とも成功 / btime が改名で変わらない: 読めない / mtime が改名で変わらない: true
+```
+
+- **btime は使えない。** `statx` は見つかったが、共有ストレージ(MediaProvider の FUSE)は `STATX_BTIME` を返さなかった。
+- 更新時刻は、この app の改名(`renameat2`)で変わらなかった。
+- `DATE_ADDED` の照会は `/system/bin/sh: no closing quote` で失敗した。**harness の欠陥**: 照会 command に二重引用符を入れ子にしており、
+  PowerShell は `\"` を escape として扱わない。独立review は生成した文字列が手順書と一致することを確かめたが、PowerShell がそれをどう渡すかは
+  確かめていなかった。→ 端末の shell へ渡す文字列から二重引用符を無くした(PowerShell の単一引用符 + 端末の `\` の escape)。
+  host で端末の shell の語の分け方を `sh -c` で再現し、`_data LIKE '…/%'` が1語になることを確かめた。置いた file は残っているので、
+  照会だけをやり直してもらう。
+
 ## Current state / handoff
 
-- Last checkpoint: harness を作り、host で働くことを確かめた(2026-10-04)
+- Last checkpoint: 端末での観測 1回目(2026-10-04)。btime は返らない。`DATE_ADDED` の照会は command の引用の欠陥で失敗し、直した
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータで harness を走らせ、`DATE_ADDED` を照会する)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜4
-- Evidence revision: harness(`integration_test/creation_time_probe*.dart`)が `267e75b` と同一
+- Requested action: [manual-verification.md](manual-verification.md) の手順3(直した照会)と手順4
+- Evidence revision: btime の観測は harness `267e75b`。照会 command は直した後の HEAD
 - Next Agent action: 出力を読み、btime・`DATE_ADDED` のどちらが使えるかを記録して `T01` へ渡す

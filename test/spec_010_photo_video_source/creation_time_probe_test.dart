@@ -198,20 +198,23 @@ void main() {
     });
 
     test('DATE_ADDED の照会 command は手順書と同じ形(PowerShell の引用を含む)', () {
+      // 端末の shell へ渡す文字列に二重引用符を入れない(1回目の観測で
+      // `no closing quote` になった)。PowerShell の単一引用符と、端末の `\` の escape。
       const dir = '/storage/emulated/0/Download/brm-010-probe';
       expect(
         dateAddedQueryCommand(dir),
         '& "\$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools\\adb.exe" shell '
-        '"content query --uri content://media/external/file '
+        "'content query --uri content://media/external/file "
         '--projection _display_name:date_added:date_modified:datetaken '
-        '--where \\"_data LIKE \'$dir/%\'\\""',
+        "--where _data\\ LIKE\\ \\''$dir/%\\'''",
       );
+      expect(dateAddedQueryCommand(dir), isNot(contains(r'\"')));
     });
 
     test('DATE_ADDED の照会は、観測した directory の下だけを読む', () {
       expect(
         dateAddedQueryCommand('/storage/emulated/0/Download/brm-010-probe'),
-        contains("_data LIKE '/storage/emulated/0/Download/brm-010-probe/%'"),
+        contains(r"\''/storage/emulated/0/Download/brm-010-probe/%\'''"),
       );
     });
   });

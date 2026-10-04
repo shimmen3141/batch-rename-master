@@ -45,9 +45,12 @@ flutter test integration_test\creation_time_probe_test.dart -d <device_id>
 ## 手順3 — DATE_ADDED を読む
 
 手順2の出力の最後に出た command を、**そのまま** PowerShell で実行する(下と同じもの)。
+**手順2をやり直さなくてよい** — 置いた file は残っている(手順4の後片付けをしていなければ)。
+
+2026-10-04 の1回目は、二重引用符の入った command が `/system/bin/sh: no closing quote` で失敗した。下はそれを直したものである。
 
 ```powershell
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell "content query --uri content://media/external/file --projection _display_name:date_added:date_modified:datetaken --where \"_data LIKE '/storage/emulated/0/Download/brm-010-probe/%'\""
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" shell 'content query --uri content://media/external/file --projection _display_name:date_added:date_modified:datetaken --where _data\ LIKE\ \''/storage/emulated/0/Download/brm-010-probe/%\'''
 ```
 
 **期待**: `Row: 0 _display_name=brm-010-control.txt, date_added=…` のような行が2行(`brm-010-control.txt` と

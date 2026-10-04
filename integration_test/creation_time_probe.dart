@@ -304,8 +304,14 @@ String creationProbeReportText(CreationProbeReport report) {
 }
 
 /// 人間が `DATE_ADDED` を読むための command(Windows の PowerShell 向け)。
+///
+/// **端末の shell へ渡す文字列に二重引用符を入れない。** PowerShell は `\"` を
+/// 引用の escape として扱わず、端末側で `no closing quote` になった(2026-10-04 の
+/// 1回目の観測)。PowerShell の単一引用符で囲み(中の `'` は `''`)、空白と `'` は
+/// 端末の shell の `\` で escape する。PowerShell の版による引数の渡し方の違いにも
+/// 左右されない形である。
 String dateAddedQueryCommand(String directory) =>
     '& "\$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools\\adb.exe" shell '
-    "\"content query --uri content://media/external/file "
+    "'content query --uri content://media/external/file "
     '--projection _display_name:date_added:date_modified:datetaken '
-    "--where \\\"_data LIKE '$directory/%'\\\"\"";
+    "--where _data\\ LIKE\\ \\''$directory/%\\'''";
