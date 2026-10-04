@@ -93,15 +93,19 @@ void main() {
       File(
         photo,
       ).writeAsBytesSync(jpeg(tiff(dateTimeOriginal: '2020:01:02 03:04:05')));
+      // ①の無い file を混ぜ、照会そのものは起きるようにする。
+      final download = await makeFile('doc.pdf');
       final port = _FakeMediaDates({
         photo: MediaDates(taken: taken, added: added),
+        download: MediaDates(added: added),
       });
 
-      final byName = await load([photo], port);
+      final byName = await load([photo, download], port);
 
       expect(byName['photo.jpg']!.createdAt, DateTime(2020, 1, 2, 3, 4, 5));
+      expect(byName['doc.pdf']!.createdAt, added);
       // ①がある file は照会しない。
-      expect(port.asked, isEmpty);
+      expect(port.asked.single, [download]);
     });
 
     test('①が無ければ DATE_TAKEN(②。代表例 48)、それも無ければ DATE_ADDED(③。代表例 49)', () async {
