@@ -440,9 +440,8 @@ class _FakeMediaDates implements MediaDatesPort {
   Future<Map<String, MediaDates>> datesOf(List<String> paths) async {
     asked.add(paths);
     if (fails) throw StateError('照会できない');
-    return {
-      for (final path in paths)
-        if (dates.containsKey(path)) path: dates[path]!,
-    };
+    // 尋ねられていない path の値も返す。①がある file を照会しないことと、
+    // 返ってきても上書きしないことを、別々に確かめるためである。
+    return dates;
   }
 }

@@ -4620,6 +4620,13 @@
       "find": "      locationNameOf: locationNameOf,\n      mediaDates: mediaDates,",
       "replace": "      locationNameOf: locationNameOf,",
       "note": "010:T03 fileSourceFor が MediaStore の照会を渡さない"
+    },
+    {
+      "id": "M716",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "        if (entry.createdAt == null) entry.sourceHandle!,",
+      "replace": "        entry.sourceHandle!,",
+      "note": "010:T03 ①がある file も MediaStore に照会する"
     }
   ]
 }
