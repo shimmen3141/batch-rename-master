@@ -69,9 +69,27 @@ M694〜M706 | 13 mutations: 13 KILLED, 0 SURVIVED, 0 SKIPPED
   一部のカメラは `mvhd` に UTC ではなくその土地の時刻を書く — 仕様は UTC として扱うと決めており、ずれる。引き受け先: なし(頻度を見て 004 の
   自由とする点の中で足せる)。
 
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `048c79f..d0f4401`(全範囲) — **PASS** — P0/P1 なし
+  - 確認できた点: JPEG の marker の辿り方、TIFF(II/MM、IFD、ASCII の inline と offset)、HEIF(meta の FullBox、iinf v0/v1、infe v2/v3、
+    iloc v0/v1/v2 の各大きさと construction_method、box の順に依らないこと)、ISO BMFF(size 0・1、moov の前後、mvhd v0/v1、1904 起点)が
+    ISO/IEC 14496-12・23008-12・EXIF の記述と一致、例外が外へ出ないこと、時刻(EXIF は書かれたまま、mvhd は端末の時刻帯。`DateTime` の
+    `==` が `isUtc` も比べるので UTC のまま返す実装を検出できる)、`TZ=Asia/Tokyo`・`Pacific/Honolulu` での再実行、M694〜M706 の再現(13 KILLED)、
+    reviewer の対照(iloc v2、size==1、size==0 は読める)、**実在のサンプル6件を取り直して記録の表と全件一致**(null の2件は Python で
+    構造を読み直して「①が無い」ためと確認)、`flutter test` 1275 PASS・analyze・format・workspace check。
+  - P2(気づき): Android の `_entryOf` は async だが中身の読みは同期 I/O。複雑な HEIF でも1件 1.6ms 程度(host)で、数百件で累積数百 ms〜1秒
+    UI を止めうる。**直さない**: REQ-010 は性能を要求せず、読み込みは今も1件ずつ順に `stat` している。目立てば isolate へ移す。
+    引き受け先: なし(実機で遅さが観測されたら新しい task)。
+  - P3: JPEG の marker の前の詰め物の 0xFF を読み飛ばさない(挟まると `null`)。**直さない**: 実在のカメラのサンプルでは起きず、起きても
+    ①が無いだけで②③へ流れる(REQ-010 の「読めなければ不明」の範囲)。
+  - P3: top-level に `moov` があれば `meta` を見ない。**直さない**: 両方を持つ file は実務上ほぼ無い。
+  - 対照は一時 test で走らせたもので、表(`tool/mutations.json`)へ入れる mutation は無い(どれも find/replace の形ではなく fixture の追加)。
+
 ## Current state / handoff
 
-- Last checkpoint: 実装・test・mutation(13 KILLED)・実在のサンプルでの確認(2026-10-04)
-- Blocker category: none
-- Evidence revision: `lib/` は branch `asdd/010-photo-video-source/T02-read-content-capture-date` の HEAD
-- Next Agent action: 独立review を走らせる。manual は `T03` が引き受ける(この task 単独の manual は無い)
+- Last checkpoint: 独立review attempt 1 PASS(`048c79f..d0f4401`)。P2/P3 は直さない理由を記録した
+- Status: done(端末での確認は `T03` の manual が引き受ける)
+- Next Agent action: なし(PR を作って merge し、`T03` に着手する)

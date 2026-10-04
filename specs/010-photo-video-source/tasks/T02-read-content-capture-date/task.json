@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "ファイルの中身から撮影日時を読む",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [
     "T01"
   ],
