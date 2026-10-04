@@ -13,6 +13,8 @@ import 'package:batch_rename_master/data/file_source/file_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/content_fixtures.dart';
+
 void main() {
   late Directory dir;
 
@@ -30,6 +32,44 @@ void main() {
     return file.path;
   }
 
+  group('REQ-010 ①: ファイルの中身の日時を作成日時にする(010:T02)', () {
+    test('EXIF の撮影日時を持つ写真は、その日時が作成日時になる(代表例 10・44)', () async {
+      final photo = p.join(dir.path, 'photo.jpg');
+      File(
+        photo,
+      ).writeAsBytesSync(jpeg(tiff(dateTimeOriginal: '2026:07:01 10:00:00')));
+      final source = AndroidFileSource(
+        pick: () async => BrowserSelection(folder: dir.path, paths: [photo]),
+      );
+
+      final result = await source.pickFiles() as Picked;
+
+      expect(result.entries.single.createdAt, DateTime(2026, 7, 1, 10));
+    });
+
+    test('壊れたファイルが混ざっても読み込みは成功し、そのファイルだけ不明(代表例 52)', () async {
+      final good = p.join(dir.path, 'good.jpg');
+      File(
+        good,
+      ).writeAsBytesSync(jpeg(tiff(dateTimeOriginal: '2026:07:01 10:00:00')));
+      final broken = p.join(dir.path, 'broken.jpg');
+      File(broken).writeAsBytesSync(
+        jpeg(tiff(dateTimeOriginal: '2026:07:01 10:00:00')).sublist(0, 30),
+      );
+      final source = AndroidFileSource(
+        pick: () async =>
+            BrowserSelection(folder: dir.path, paths: [good, broken]),
+      );
+
+      final result = await source.pickFiles() as Picked;
+
+      final byName = {for (final e in result.entries) e.name: e};
+      expect(byName.keys, {'good.jpg', 'broken.jpg'});
+      expect(byName['good.jpg']!.createdAt, DateTime(2026, 7, 1, 10));
+      expect(byName['broken.jpg']!.createdAt, isNull);
+    });
+  });
+
   group('REQ-002 / REQ-013: 元場所ハンドルは絶対pathで、所属folderを保持する', () {
     test('選んだfileが絶対pathのハンドルと所属folderを持つ', () async {
       final a = await makeFile('a.txt', 'hello');
@@ -46,7 +86,7 @@ void main() {
       expect(entry.sourceFolder, dir.path, reason: '所属 folder を保持する');
       expect(entry.size, 5);
       expect(entry.modifiedAt, isNotNull);
-      // POSIX の `stat` に作成時刻が無いので取得できない(004 REQ-003)。
+      // 中身に日時が無く、POSIX の `stat` にも作成時刻が無い(004 REQ-003)。
       expect(entry.createdAt, isNull);
     });
 

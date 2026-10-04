@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../../core/rename_engine.dart';
+import 'content_created_at.dart';
 import 'file_source.dart';
 
 /// app 内 browser が確定した選択(004 REQ-015 / REQ-016)。
@@ -135,15 +136,16 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
 
   /// 実 file から [FileEntry] を作る。読めなければ `null`。
   ///
-  /// **作成日時は取得できない。** POSIX の `stat` に作成時刻が無いためで、
-  /// SAF に列が無かったのと**結論は同じだが理由が違う**(004 REQ-003)。
+  /// 作成日時は、ファイルの中身に記録された日時(004 REQ-010 の①)だけを読む。
+  /// POSIX の `stat` には作成時刻が無く(004 REQ-003)、MediaStore の②③は
+  /// `010:T03` が足す。
   Future<FileEntry?> _entryOf(String path, {required String folder}) async {
     try {
       final stat = await File(path).stat();
       if (stat.type == FileSystemEntityType.notFound) return null;
       return FileEntry(
         name: p.basename(path),
-        createdAt: null,
+        createdAt: readContentCreatedAt(path),
         modifiedAt: stat.modified,
         size: stat.size,
         sourceHandle: path,

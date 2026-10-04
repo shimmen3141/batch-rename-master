@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "ファイルの中身から撮影日時を読む",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T01"
   ],
@@ -10,6 +10,6 @@
     "004:REQ-010"
   ],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 218,
   "manualVerification": null
 }
