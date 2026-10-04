@@ -4396,6 +4396,13 @@
       "find": "            removalSelection: widget.removalSelection,\n            onReopenFolder: widget.onReopenFolder,",
       "replace": "            removalSelection: widget.removalSelection,",
       "note": "008:T56 広幅の一覧へ入口を渡さない(M682 の広幅側。独立review attempt 1 の P2-1 で足した)"
+    },
+    {
+      "id": "M684",
+      "file": "android/app/src/main/AndroidManifest.xml",
+      "find": "            android:screenOrientation=\"portrait\"\n",
+      "replace": "",
+      "note": "008:T35 電話の縦固定を外す"
     }
   ]
 }
