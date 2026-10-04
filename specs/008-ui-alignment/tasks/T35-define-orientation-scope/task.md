@@ -121,11 +121,16 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
   - 情報: Android 16 の大画面で向きの固定が無視されることは、sandbox から一次資料で確かめられなかった。受け入れに含めていないので
     残余riskとしない。
 
+- Review attempt 2(差分): `73068d0..bbc00e3` — **PASS** — 指摘なし。M685 が CM1 の意図どおりで find が1回だけ一致すること
+  (`check_mutation_finds.py` 629 PASS)、M684/M685 の再現(2 KILLED)、`flutter test` 1241 PASS、`lib/`・`android/` が `727fae8` と
+  同一であること、記録の整合を確認。
+- 連鎖: `a2fd19c..73068d0` PASS → `73068d0..bbc00e3` PASS。以後の記録だけの差分は SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`a2fd19c..73068d0`)。対照 M685 を取り込んだ(`5afb323`)
+- Last checkpoint: 独立review の連鎖 PASS(`a2fd19c..bbc00e3`)。code を `727fae8` で凍結し、実機確認を待つ
 - Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認)。並行して `73068d0..` の差分review(`tool/mutations.json` に差分があるため)
+- Waiting for: 開発者(Android エミュレータでの実機確認)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜3を行い、結果を会話で伝える
 - Evidence revision: `lib/`・`android/` が `727fae8` と同一の build(以後の commit は `specs/`・`tool/` だけ)
-- Next Agent action: 結果と差分reviewを記録し、問題が無ければ `done` にして PR を ready にし、merge する
+- Next Agent action: 結果を記録し、問題が無ければ `done` にして PR を ready にし、merge する
