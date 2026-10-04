@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T04",
+  "title": "改名しても作成時刻が変わらないかを端末で確かめる",
+  "status": "done",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": 217,
+  "manualVerification": "manual-verification.md"
+}

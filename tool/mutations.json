@@ -4410,6 +4410,62 @@
       "find": "        android:icon=\"@mipmap/ic_launcher\">\n        <!-- 電話では縦に固定する(`008:T35`、2026-10-04 開発者決定)。横向きの電話 × 大きな文字では\n             一覧とルールの固定部分が溢れるため。横向きの UI(幅で切り替わる2ペイン)は消さず、\n             電話の横向きを解禁するかは将来候補(specs/product-map.md)。Android 16 以降は、\n             短辺 600dp 以上の端末(タブレット・折りたたみの展開時)ではこの固定が無視されて回転できる。 -->\n        <activity\n            android:name=\".MainActivity\"\n            android:exported=\"true\"\n            android:launchMode=\"singleTop\"\n            android:screenOrientation=\"portrait\"\n            android:taskAffinity=\"\"",
       "replace": "        android:icon=\"@mipmap/ic_launcher\"\n        android:screenOrientation=\"portrait\">\n        <!-- 電話では縦に固定する(`008:T35`、2026-10-04 開発者決定)。横向きの電話 × 大きな文字では\n             一覧とルールの固定部分が溢れるため。横向きの UI(幅で切り替わる2ペイン)は消さず、\n             電話の横向きを解禁するかは将来候補(specs/product-map.md)。Android 16 以降は、\n             短辺 600dp 以上の端末(タブレット・折りたたみの展開時)ではこの固定が無視されて回転できる。 -->\n        <activity\n            android:name=\".MainActivity\"\n            android:exported=\"true\"\n            android:launchMode=\"singleTop\"\n            android:taskAffinity=\"\"",
       "note": "008:T35 縦固定を <activity> から <application> へ移す(独立review attempt 1 の対照 CM1)"
+    },
+    {
+      "id": "M686",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "const _btimeOffset = 80;",
+      "replace": "const _btimeOffset = 96;",
+      "note": "010:T04 btime の位置を ctime と読み違える"
+    },
+    {
+      "id": "M687",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "const _mtimeOffset = 112;",
+      "replace": "const _mtimeOffset = 96;",
+      "note": "010:T04 mtime の位置を読み違える"
+    },
+    {
+      "id": "M688",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "    btime: mask & _statxBtime == 0 ? null : _timestampAt(data, _btimeOffset),",
+      "replace": "    btime: _timestampAt(data, _btimeOffset),",
+      "note": "010:T04 btime を返さない filesystem でも値を読む(mask を見ない)"
+    },
+    {
+      "id": "M689",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "    return btimes.every((btime) => btime == btimes.first);",
+      "replace": "    return true;",
+      "note": "010:T04 btime が変わっても安定と報告する"
+    },
+    {
+      "id": "M690",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "    if (btimes.isEmpty || btimes.any((btime) => btime == null)) return null;",
+      "replace": "    if (btimes.isEmpty) return null;",
+      "note": "010:T04 btime が読めない段階があっても安定と言う"
+    },
+    {
+      "id": "M691",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "const requestedStatxMask = _statxBtime | _statxMtime;",
+      "replace": "const requestedStatxMask = _statxMtime;",
+      "note": "010:T04 statx へ STATX_BTIME を要求しない(独立review attempt 1 の対照 CM-R1)"
+    },
+    {
+      "id": "M692",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "String dateAddedQueryCommand() =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    \"'content query --uri content://media/external/file \"\n    '--projection _display_name:_data:date_added:date_modified:datetaken '\n    r\"--where _display_name\\ LIKE\\ \\''brm%\\'''\";",
+      "replace": "String dateAddedQueryCommand() =>\n    '& \"\\$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" shell '\n    '\"content query --uri content://media/external/file '\n    '--projection _display_name:_data:date_added:date_modified:datetaken '\n    \"--where \\\\\\\"_display_name LIKE 'brm%'\\\\\\\"\\\"\";",
+      "note": "010:T04 DATE_ADDED の照会 command を、端末で no closing quote になった二重引用符の形へ戻す(独立review attempt 1 の対照 CM-R2 を1回目の観測で改めた)"
+    },
+    {
+      "id": "M693",
+      "file": "integration_test/creation_time_probe.dart",
+      "find": "  if (await File(p.join(directory, shellMadeName)).exists()) {",
+      "replace": "  if (false) {",
+      "note": "010:T04 shell で置いた file を改名しない(端末観測3回目の目的を落とす)"
     }
   ]
 }

@@ -16,6 +16,7 @@
 | 007 ルール永続化 | 直近のルールを保存し、process再起動後に復元できる | [`007-rule-persistence/`](007-rule-persistence/) |
 | 008 UIと主要操作の整合 | 005完了を受けて計画済み。並び順control、選択と除去、token追加、行と警告の情報階層、読み込み導線、表示mode、余白・typographyに加え、app内file browserの提示、modalの見せ方、警告の提示をtaskへ分解してある。**今後のUI調整の受け皿**であり、実機確認で出た指摘はこのplanへtaskとして足す。taskの一覧と状態は[`008-ui-alignment/plan.md`](008-ui-alignment/plan.md)と`plan.json`が正本 | [`008-ui-alignment/`](008-ui-alignment/) |
 | 013 Android安全rename | **Androidで実renameできるようになった**(contract revision 6、2026-08-24)。**実機で `renameat2(RENAME_NOREPLACE)` が効くことを確認済み**(2026-08-26、emulator API 37)。**SDカードも保存場所として並び、そこでも`renameat2`が効く**(`T12`、2026-08-26。下位はvfat)。実機確認は`T08`が持つ。`renameat2(RENAME_NOREPLACE)`による対応を採用と決め(ADR-002)、権限導線・app内file browser・契約更新・占有名・再採番・保存場所の列挙をT02〜T08 / T10〜T12へ分解した(`T09`は削除済み) | [`013-safe-android-rename/`](013-safe-android-rename/) |
+| 010 写真・動画の撮影日時と読み込み | **計画済み**(2026-10-04)。作成日時(ファイルの中身の撮影日時 → MediaStoreの`DATE_TAKEN` → `DATE_ADDED`。004 REQ-010)を先に作り、アルバム・全件から選ぶ画面は後にする。taskと状態は[`010-photo-video-source/plan.md`](010-photo-video-source/plan.md)と`plan.json`が正本 | [`010-photo-video-source/`](010-photo-video-source/) |
 | 014 連番のゼロ埋めと桁数の下限 | **完了**(2026-09-29、`008:T21`の決定から)。ゼロ埋めなしの連番を選べ、ゼロ埋めでは開始・増分・件数から決まる桁未満を選べない(下回れば自動で引き上げる)。既存の保存はゼロ埋めありとして復元する(保存の版は1のまま)。エディタの見た目の改善は`008:T44` | [`014-sequence-zero-padding/`](014-sequence-zero-padding/) |
 
 ## 主な依存
@@ -35,7 +36,7 @@
 |---|---|---|
 | 006 Windows Explorer D&D | Explorerからfileを一覧へ追加する | 002/004の置換・追加境界とWindows host証拠を定義する |
 | 009 名前付きルールpreset | 複数の名前付きruleを保存・選択する | 007を再利用し、011の要否を先に決める |
-| 010 写真・動画source | MediaStoreの全件・album選択と撮影日時を提供する | 004完了。日時の意味変更は001/002を再承認する。**`008:T24`からの申し送り(2026-10-04)**: 全件・albumの一覧はfolderをまたぐが、**folderで行を束ねない**(撮影日時で全体を並べて通しの連番を振る使い方と両立しない)。どのfolderのfileかは行の場所(002 REQ-010)で見分ける。一覧の先頭の行を「どこから読み込んだか」と読み替え、**読み込み元(album・全件)を、一覧を選択済みにして開き直す入口**を設ける(1 folderのfolder行(004 REQ-021)はその特別な場合)。002 REQ-021の並びの規則が読み込み元の単位でも成り立つかを確かめる |
+| 010 写真・動画source | MediaStoreの全件・album選択と撮影日時を提供する | **2026-10-04に[`010-photo-video-source/`](010-photo-video-source/plan.md)として計画した** — 以後はplanが正本で、この行は出所の記録である。004完了。日時の意味変更は001/002を再承認する。**`008:T24`からの申し送り(2026-10-04)**: 全件・albumの一覧はfolderをまたぐが、**folderで行を束ねない**(撮影日時で全体を並べて通しの連番を振る使い方と両立しない)。どのfolderのfileかは行の場所(002 REQ-010)で見分ける。一覧の先頭の行を「どこから読み込んだか」と読み替え、**読み込み元(album・全件)を、一覧を選択済みにして開き直す入口**を設ける(1 folderのfolder行(004 REQ-021)はその特別な場合)。002 REQ-021の並びの規則が読み込み元の単位でも成り立つかを確かめる |
 | 011 保存schema移行 | 保存済みruleをschema変更後も失わず変換する | 利用者資産を増やす前に必要性を判断する |
 | 012 隠し・system file filter | 識別可能なplatformで対象外fileを除外する | 信頼できるAPIとfallbackが必要 |
 | 元名のcase変換 | keep/upper/lowerをtokenへ追加する | 001 Strict contractの意味変更と人間承認が必要 |
