@@ -9,6 +9,7 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.os.storage.StorageManager
+import android.provider.MediaStore
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -33,6 +34,7 @@ class MainActivity : FlutterActivity() {
     private val volumesChannelName = "com.example.batch_rename_master/storage_volumes"
     private val videoThumbnailChannelName =
         "com.example.batch_rename_master/video_thumbnail"
+    private val mediaDatesChannelName = "com.example.batch_rename_master/media_dates"
 
     /**
      * 動画の frame 取り出しを main thread から外す(008:T07)。
@@ -78,6 +80,81 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaDatesChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "datesOf" -> mediaDates(call, result)
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /**
+     * path ごとに MediaStore の `DATE_TAKEN`(ミリ秒)と `DATE_ADDED`(秒)を返す
+     * (004 REQ-010 の②③。010:T03)。どちらも UTC で、端末の時刻帯へ直すのは Dart 側。
+     *
+     * **MediaStore に載っていない path は結果に含めない。** この app が path で
+     * 作った file は載らない(010:T04 の端末観測)。値が無い列は `null`。
+     *
+     * 照会は main thread から外す(件数が多いと数十 ms を超えうる)。SQLite の
+     * 変数の上限(999)を超えないよう、path を分けて照会する。
+     */
+    private fun mediaDates(call: MethodCall, result: MethodChannel.Result) {
+        // `MediaColumns.DATE_TAKEN` は API 29 から。全ファイルアクセス権限は API 30
+        // からで、それが無ければ読み込めない(013 REQ-001)ので、通常は到達しない。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            result.success(emptyMap<String, Any?>())
+            return
+        }
+        val paths = call.argument<List<String>>("paths") ?: emptyList()
+        thumbnailExecutor.execute {
+            val response = try {
+                DatesResponse.Success(queryMediaDates(paths))
+            } catch (error: Exception) {
+                DatesResponse.Failure(error.message ?: error.toString())
+            }
+            mainHandler.post {
+                if (destroyed) return@post
+                when (response) {
+                    is DatesResponse.Success -> result.success(response.dates)
+                    is DatesResponse.Failure -> result.error("failed", response.message, null)
+                }
+            }
+        }
+    }
+
+    private sealed class DatesResponse {
+        class Success(val dates: Map<String, Map<String, Long?>>) : DatesResponse()
+        class Failure(val message: String) : DatesResponse()
+    }
+
+    private fun queryMediaDates(paths: List<String>): Map<String, Map<String, Long?>> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return emptyMap()
+        val dates = mutableMapOf<String, Map<String, Long?>>()
+        val uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val projection = arrayOf(
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.DATE_TAKEN,
+            MediaStore.MediaColumns.DATE_ADDED,
+        )
+        for (chunk in paths.distinct().chunked(500)) {
+            val selection = MediaStore.MediaColumns.DATA +
+                " IN (" + chunk.joinToString(",") { "?" } + ")"
+            contentResolver.query(uri, projection, selection, chunk.toTypedArray(), null)
+                ?.use { cursor ->
+                    val data = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+                    val taken = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
+                    val added = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+                    while (cursor.moveToNext()) {
+                        val path = cursor.getString(data) ?: continue
+                        dates[path] = mapOf(
+                            "taken" to if (cursor.isNull(taken)) null else cursor.getLong(taken),
+                            "added" to if (cursor.isNull(added)) null else cursor.getLong(added),
+                        )
+                    }
+                }
+        }
+        return dates
     }
 
     override fun onDestroy() {

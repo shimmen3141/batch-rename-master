@@ -8,8 +8,10 @@
 // `013:T08`** が引き受ける(`task.md` の宣言表)。
 import 'dart:io';
 
+import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/data/file_source/android_file_source.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
+import 'package:batch_rename_master/data/file_source/media_dates.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -67,6 +69,96 @@ void main() {
       expect(byName.keys, {'good.jpg', 'broken.jpg'});
       expect(byName['good.jpg']!.createdAt, DateTime(2026, 7, 1, 10));
       expect(byName['broken.jpg']!.createdAt, isNull);
+    });
+  });
+
+  group('REQ-010 ②③: MediaStore の日時で補う(010:T03)', () {
+    final taken = DateTime(2026, 7, 1, 10);
+    final added = DateTime(2026, 9, 1, 12);
+
+    Future<Map<String, FileEntry>> load(
+      List<String> paths,
+      _FakeMediaDates port,
+    ) async {
+      final source = AndroidFileSource(
+        pick: () async => BrowserSelection(folder: dir.path, paths: paths),
+        mediaDates: port,
+      );
+      final result = await source.pickFiles() as Picked;
+      return {for (final e in result.entries) e.name: e};
+    }
+
+    test('中身の日時(①)があれば MediaStore より先(代表例 47)', () async {
+      final photo = p.join(dir.path, 'photo.jpg');
+      File(
+        photo,
+      ).writeAsBytesSync(jpeg(tiff(dateTimeOriginal: '2020:01:02 03:04:05')));
+      final port = _FakeMediaDates({
+        photo: MediaDates(taken: taken, added: added),
+      });
+
+      final byName = await load([photo], port);
+
+      expect(byName['photo.jpg']!.createdAt, DateTime(2020, 1, 2, 3, 4, 5));
+      // ①がある file は照会しない。
+      expect(port.asked, isEmpty);
+    });
+
+    test('①が無ければ DATE_TAKEN(②。代表例 48)、それも無ければ DATE_ADDED(③。代表例 49)', () async {
+      final shot = await makeFile('shot.png');
+      final download = await makeFile('doc.pdf');
+      final own = await makeFile('own.txt');
+      final port = _FakeMediaDates({
+        shot: MediaDates(taken: taken, added: added),
+        download: MediaDates(added: added),
+        // own.txt は MediaStore に載っていない(この app が作った file)。
+      });
+
+      final byName = await load([shot, download, own], port);
+
+      expect(byName['shot.png']!.createdAt, taken);
+      expect(byName['doc.pdf']!.createdAt, added);
+      expect(
+        byName['own.txt']!.createdAt,
+        isNull,
+        reason: '①〜③が無ければ不明(代表例 53)',
+      );
+      expect(port.asked.single, unorderedEquals([shot, download, own]));
+    });
+
+    test('補っても他の項目は変えない', () async {
+      final download = await makeFile('doc.pdf', 'hello');
+      final port = _FakeMediaDates({download: MediaDates(added: added)});
+
+      final entry = (await load([download], port))['doc.pdf']!;
+
+      expect(entry.sourceHandle, download);
+      expect(entry.sourceFolder, dir.path);
+      expect(entry.size, 5);
+      expect(entry.selected, isTrue);
+    });
+
+    test('照会が失敗しても読み込みは成功し、不明のまま', () async {
+      final download = await makeFile('doc.pdf');
+
+      final byName = await load([download], _FakeMediaDates.failing());
+
+      expect(byName['doc.pdf']!.createdAt, isNull);
+    });
+
+    test('開き直し(REQ-021)でも補う', () async {
+      final download = await makeFile('doc.pdf');
+      final source = AndroidFileSource(
+        pick: () async => null,
+        reopen: (folder, selected) async =>
+            BrowserSelection(folder: folder, paths: [download]),
+        mediaDates: _FakeMediaDates({download: MediaDates(added: added)}),
+      );
+
+      final result =
+          await source.reopenFolder(dir.path, selected: const {}) as Picked;
+
+      expect(result.entries.single.createdAt, added);
     });
   });
 
@@ -334,4 +426,23 @@ void main() {
       );
     });
   });
+}
+
+class _FakeMediaDates implements MediaDatesPort {
+  _FakeMediaDates(this.dates) : fails = false;
+  _FakeMediaDates.failing() : dates = const {}, fails = true;
+
+  final Map<String, MediaDates> dates;
+  final bool fails;
+  final asked = <List<String>>[];
+
+  @override
+  Future<Map<String, MediaDates>> datesOf(List<String> paths) async {
+    asked.add(paths);
+    if (fails) throw StateError('照会できない');
+    return {
+      for (final path in paths)
+        if (dates.containsKey(path)) path: dates[path]!,
+    };
+  }
 }

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T03",
   "title": "Android で MediaStore の撮影日時と追加日時を補う",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T01",
     "T02"

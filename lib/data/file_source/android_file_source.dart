@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import '../../core/rename_engine.dart';
 import 'content_created_at.dart';
 import 'file_source.dart';
+import 'media_dates.dart';
 
 /// app 内 browser が確定した選択(004 REQ-015 / REQ-016)。
 ///
@@ -41,6 +42,7 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
     required this.pick,
     this.reopen,
     this.locationNameOf,
+    this.mediaDates,
   });
 
   final BrowserPicker pick;
@@ -56,6 +58,10 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
   /// (独立review attempt 1 の P2-8)。browser は保存場所の名前を知っているので、
   /// composition root がそれを渡す。渡されなければ basename を使う。
   final String Function(String folder)? locationNameOf;
+
+  /// MediaStore の日時(004 REQ-010 の②`DATE_TAKEN`・③`DATE_ADDED`)。`null` なら
+  /// 中身の日時(①)だけを使う。
+  final MediaDatesPort? mediaDates;
 
   /// **`mimeTypes` は使わない。** Android の browser には MIME filter の手段が
   /// 無く、拡張子で絞る判定も新設しない(004 REQ-011 / REQ-017)。
@@ -106,7 +112,53 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
       // よう、読めたものだけを Picked にする(004 REQ-001)。
       if (entry != null) entries.add(entry);
     }
-    return Picked(entries);
+    return Picked(await _withMediaDates(entries));
+  }
+
+  /// ①(中身の日時)が無いファイルを、MediaStore の ②`DATE_TAKEN` → ③`DATE_ADDED`
+  /// の順で補う(004 REQ-010)。どれも無ければ不明のまま。
+  ///
+  /// ③ `DATE_ADDED` は、この app の改名(`renameat2`)で変わらないことを端末で
+  /// 確かめてある(`010:T04`)。改名した後に読み込み直しても作成日時は変わらない
+  /// (代表例 50)。
+  Future<List<FileEntry>> _withMediaDates(List<FileEntry> entries) async {
+    final port = mediaDates;
+    if (port == null) return entries;
+    final missing = [
+      for (final entry in entries)
+        if (entry.createdAt == null) entry.sourceHandle!,
+    ];
+    if (missing.isEmpty) return entries;
+    final Map<String, MediaDates> dates;
+    try {
+      dates = await port.datesOf(missing);
+    } catch (_) {
+      // 引けなくても読み込みは止めない。不明のままにする(REQ-003)。
+      return entries;
+    }
+    return [
+      for (final entry in entries)
+        if (entry.createdAt != null) entry else _withCreatedAt(entry, dates),
+    ];
+  }
+
+  static FileEntry _withCreatedAt(
+    FileEntry entry,
+    Map<String, MediaDates> dates,
+  ) {
+    final media = dates[entry.sourceHandle];
+    final createdAt = media?.taken ?? media?.added;
+    if (createdAt == null) return entry;
+    return FileEntry(
+      name: entry.name,
+      createdAt: createdAt,
+      modifiedAt: entry.modifiedAt,
+      size: entry.size,
+      selected: entry.selected,
+      sourceHandle: entry.sourceHandle,
+      sourceLocation: entry.sourceLocation,
+      sourceFolder: entry.sourceFolder,
+    );
   }
 
   /// [folder] の**実在 entry 名**(004 REQ-014)。
@@ -136,9 +188,9 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
 
   /// 実 file から [FileEntry] を作る。読めなければ `null`。
   ///
-  /// 作成日時は、ファイルの中身に記録された日時(004 REQ-010 の①)だけを読む。
-  /// POSIX の `stat` には作成時刻が無く(004 REQ-003)、MediaStore の②③は
-  /// `010:T03` が足す。
+  /// 作成日時は、ここではファイルの中身に記録された日時(004 REQ-010 の①)だけを
+  /// 読む。POSIX の `stat` には作成時刻が無い(004 REQ-003)。MediaStore の②③は
+  /// [_withMediaDates] がまとめて補う。
   Future<FileEntry?> _entryOf(String path, {required String folder}) async {
     try {
       final stat = await File(path).stat();

@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:batch_rename_master/data/file_source/desktop_file_source.dart';
 import 'package:batch_rename_master/data/file_source/file_source.dart';
+import 'package:batch_rename_master/data/file_source/media_dates.dart';
 import 'package:batch_rename_master/data/file_source/platform_file_source.dart';
 import 'package:batch_rename_master/data/file_source/saf_file_source.dart';
 import 'package:batch_rename_master/data/file_source/android_file_source.dart';
@@ -269,6 +270,17 @@ void main() {
           fileSourceFor(isAndroid: true, isDesktop: false, pick: noPick),
           isA<AndroidFileSource>(),
         );
+      });
+
+      test('Android は渡した MediaStore の照会を使う(004 REQ-010 ②③。010:T03)', () {
+        const port = MethodChannelMediaDates();
+        final android = fileSourceFor(
+          isAndroid: true,
+          isDesktop: false,
+          pick: noPick,
+          mediaDates: port,
+        );
+        expect((android as AndroidFileSource).mediaDates, same(port));
       });
 
       test('desktop は OS ピッカーのまま(013 は desktop を変えない)', () {

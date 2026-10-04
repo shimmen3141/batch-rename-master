@@ -731,8 +731,8 @@
     {
       "id": "M104",
       "file": "lib/data/file_source/platform_file_source.dart",
-      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**",
-      "find": "  if (isAndroid) {\n    return AndroidFileSource(\n      pick: pick,\n      reopen: reopen,\n      locationNameOf: locationNameOf,\n    );\n  }",
+      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。** **010:T03 で `mediaDates` の引数が増えたので `find` を追随させた。**",
+      "find": "  if (isAndroid) {\n    return AndroidFileSource(\n      pick: pick,\n      reopen: reopen,\n      locationNameOf: locationNameOf,\n      mediaDates: mediaDates,\n    );\n  }",
       "replace": ""
     },
     {
@@ -4557,6 +4557,69 @@
       "find": "      createdAt: readContentCreatedAt(file.path),",
       "replace": "      createdAt: null,",
       "note": "010:T02 desktop の読み込みで中身の日時を読まない"
+    },
+    {
+      "id": "M707",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "    final createdAt = media?.taken ?? media?.added;",
+      "replace": "    final createdAt = media?.added ?? media?.taken;",
+      "note": "010:T03 ③DATE_ADDED を②DATE_TAKEN より先に使う"
+    },
+    {
+      "id": "M708",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "    final createdAt = media?.taken ?? media?.added;",
+      "replace": "    final createdAt = media?.taken;",
+      "note": "010:T03 ③DATE_ADDED で補わない"
+    },
+    {
+      "id": "M709",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "        if (entry.createdAt != null) entry else _withCreatedAt(entry, dates),",
+      "replace": "        _withCreatedAt(entry, dates),",
+      "note": "010:T03 ①があっても MediaStore の値で上書きする"
+    },
+    {
+      "id": "M710",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "    return Picked(await _withMediaDates(entries));",
+      "replace": "    return Picked(entries);",
+      "note": "010:T03 MediaStore で補わない"
+    },
+    {
+      "id": "M711",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "      size: entry.size,\n      selected: entry.selected,",
+      "replace": "      size: 0,\n      selected: entry.selected,",
+      "note": "010:T03 補うときに他の項目を落とす"
+    },
+    {
+      "id": "M712",
+      "file": "lib/data/file_source/media_dates.dart",
+      "find": "            : DateTime.fromMillisecondsSinceEpoch(added * 1000),",
+      "replace": "            : DateTime.fromMillisecondsSinceEpoch(added),",
+      "note": "010:T03 DATE_ADDED(秒)をミリ秒として読む"
+    },
+    {
+      "id": "M713",
+      "file": "lib/data/file_source/media_dates.dart",
+      "find": "      value is int && value > 0 ? value : null;",
+      "replace": "      value is int ? value : null;",
+      "note": "010:T03 0(記録していない)を日時として返す"
+    },
+    {
+      "id": "M714",
+      "file": "lib/data/file_source/media_dates.dart",
+      "find": "    } catch (_) {\n      return const {};\n    }\n    if (raw == null) return const {};",
+      "replace": "    } catch (_) {\n      rethrow;\n    }\n    if (raw == null) return const {};",
+      "note": "010:T03 照会の失敗を投げる"
+    },
+    {
+      "id": "M715",
+      "file": "lib/data/file_source/platform_file_source.dart",
+      "find": "      locationNameOf: locationNameOf,\n      mediaDates: mediaDates,",
+      "replace": "      locationNameOf: locationNameOf,",
+      "note": "010:T03 fileSourceFor が MediaStore の照会を渡さない"
     }
   ]
 }
