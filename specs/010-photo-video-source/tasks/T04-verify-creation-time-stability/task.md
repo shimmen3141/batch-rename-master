@@ -82,6 +82,19 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
   どちらも `ArgumentError` で3通りの探し方が落ちないこと、M692 がコンパイルは通って assertion で落ちること、M686〜M692 の再現(7 KILLED)、
   照会 command と手順書の一致、`flutter test` 1255 PASS・analyze・format・workspace check を確認。
 - 連鎖: `57c8e0e..a86cc92` PASS → `a86cc92..267e75b` PASS。以後の記録だけの差分は SELF-CHECK。
+- Review attempt 3(差分): `75732fa..55ee859` — **PASS** — P0/P1 なし。端末観測1・2回目で見つかった harness と手順の欠陥を直した範囲
+  (`267e75b..75732fa` は記録だけで SELF-CHECK)。
+  - 確認できた点: 生成した照会 command と手順書の byte 一致、PowerShell の単一引用符の解釈と端末の `sh -c` の語分けを再現して `--where` の値が
+    1語になること(二重引用符を含まないので PowerShell 5.1 / 7 の引数の渡し方の差が出ない)、`flutter test` の `--uninstall` の既定が真で
+    `--no-uninstall` で消さないこと、`flutter test` の install は `adb install -t -r`(データを保つ)であること、shell で置いた file が
+    後片付けの接頭辞に当たらないこと、M686〜M693 の再現(8 KILLED)、`flutter test` 1256 PASS・analyze・format・workspace check。
+  - F1(記録, P3): 3回目の Evidence revision が「HEAD」で曖昧 → `55ee859` と書いた。
+  - F2(安全網の穴, P3): `flutter install --debug` の APK と `flutter test` の APK の署名・版が食い違うと、`adb install -r` が失敗して
+    アンインストールからの入れ直しになり、権限が外れうる。同じ machine・同じ debug keystore では起きない。**残余riskとして受容**
+    (引き受け先: この task。3回目で権限の失敗が出たらこれを疑う)。
+  - F3(P3): 手順3の照会は MediaProvider の登録より先に走りうる → 手順3は「行が無くてもそのまま貼る」としてあり、手順5の照会が主の証拠なので、
+    記録だけにする。
+- 連鎖: `57c8e0e..a86cc92` PASS → `a86cc92..267e75b` PASS → `267e75b..75732fa` 記録だけ(SELF-CHECK) → `75732fa..55ee859` PASS。
 
 
 ### 端末での観測 1回目(2026-10-04、開発者・Android エミュレータ emulator-5554)
@@ -135,9 +148,9 @@ ls -l …/brm-010-probe → brm-010-a-renamed-2.txt と brm-010-control.txt(13:0
 
 ## Current state / handoff
 
-- Last checkpoint: 端末での観測 2回目(2026-10-04)。app が書いた file は MediaStore に載らない。3回目(shell で置いた file を app が改名する)を用意した
+- Last checkpoint: 端末での観測 2回目(2026-10-04)。app が書いた file は MediaStore に載らない。3回目を用意し、独立review attempt 3 PASS
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータで harness を走らせ、`DATE_ADDED` を照会する)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜6(3回目)
-- Evidence revision: btime の観測は harness `267e75b`。3回目は直した後の HEAD
+- Evidence revision: btime の観測は harness `267e75b`。3回目は harness が `55ee859` と同一
 - Next Agent action: 出力を読み、btime・`DATE_ADDED` のどちらが使えるかを記録して `T01` へ渡す
