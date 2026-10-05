@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T11",
   "title": "「写真・動画」の選択画面の日付を作成日時に揃え、決め方を ⓘ で説明する",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T07"
   ],

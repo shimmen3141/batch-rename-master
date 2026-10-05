@@ -30,7 +30,7 @@
   - 証拠: unit / widget test(port を差し替える)、端末の manual(ダウンロードした古い写真)。
 - [x] 種類とアルバムの絞り込み、選択の保持、範囲 drag・全選択・解除・確定は従来どおり動く。
 - [x] 題名の横の ⓘ でダイアログが開き、開発者の文言を示す。閉じても選択と絞り込みは変わらない(代表例 69)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS(attempt 1)。
 
 ## machine検証範囲と引き受け先
 
@@ -97,9 +97,21 @@ M757 | SURVIVED | 010:T11 絞り込みを変えても前の絞り込みのまま
 - machine: 日付の決め方と並び順、中身を読むのが `DATE_TAKEN` の無い item だけ、覚え方の鍵、並べ終わるまで格子を出さない、絞り込みと選択、ダイアログの文言と閉じても選択が変わらないこと。
 - 端末(この task の manual): Kotlin の `list`、実際の写真で並ぶ見出し(代表例 67)、開く速さ、ダイアログの見た目。
 
+### 独立review
+
+- attempt 1: range `537c8d2..a4e23d7`(全範囲。spec の差分を含む)。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。**判定 PASS、指摘なし。**
+  - 確認できた点: 実装と承認済みの REQ-022・代表例 67〜69 の一致、ダイアログの文言が仕様と一字一句同じ、isolate へ渡す値が送れる型であること、キャッシュの鍵、`_load` の generation と mounted、並べ終わるまで格子を出さないこと、T07 の対策(位置の key・サムネイルの上限)が残っていること、Kotlin の `page` → `list` に残骸が無いこと、spec・plan・task・mutation の表の記録の整合(M757 が等価であることもコードで確認)。reviewer 自身が `flutter test`(+1344)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(698)・`check_normative_terms.py`・`workspace.py check` と、mutation 28件(28 KILLED)を回した。
+
+### 実機確認
+
+- 対象: `lib/`・`android/` が `6086f77` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T11-align-picker-dates/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T11-align-picker-dates/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-05)。
+
 ## Current state / handoff
 
-- Last checkpoint: verification(実装 `6086f77`)。machine の検証と mutation が PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`537c8d2..a4e23d7`)
+- Blocker category: manual-evidence
 - Evidence revision: `6086f77`
-- Next Agent action: 独立review(base `537c8d2`..head)を起動する。PASS なら manual を依頼する
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
+- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
