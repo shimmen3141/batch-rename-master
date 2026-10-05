@@ -203,6 +203,31 @@ class MainActivity : FlutterActivity() {
         probe("eq", MediaStore.MediaColumns.DATA + " = ?", arrayOf(path))
         probe("name", MediaStore.MediaColumns.DISPLAY_NAME + " = ?", arrayOf(name))
         probe("parent", MediaStore.MediaColumns.DATA + " LIKE ?", arrayOf("$parent/%"))
+        for (folder in listOf("Download", "DCIM", "Pictures", "Movies")) {
+            probe(folder, MediaStore.MediaColumns.DATA + " LIKE ?", arrayOf("/storage/emulated/0/$folder/%"))
+        }
+        // 見えている「ファイル」(folder ではない行)の持ち主と種類。
+        try {
+            contentResolver.query(
+                uri,
+                arrayOf(
+                    MediaStore.MediaColumns.DATA,
+                    MediaStore.MediaColumns.OWNER_PACKAGE_NAME,
+                    MediaStore.MediaColumns.MIME_TYPE,
+                ),
+                MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
+                null,
+                null,
+            )?.use { cursor ->
+                val rows = mutableListOf<String>()
+                while (cursor.moveToNext() && rows.size < 10) {
+                    rows.add("${cursor.getString(0)}|${cursor.getString(1)}|${cursor.getString(2)}")
+                }
+                Log.i(logTag, "diag files: count=${cursor.count} rows=$rows")
+            }
+        } catch (error: Exception) {
+            Log.w(logTag, "diag files: failed", error)
+        }
         try {
             val single = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             contentResolver.query(single, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
