@@ -315,6 +315,34 @@ void main() {
         );
       });
 
+      test(
+        '写真・動画の選択画面(004 REQ-022)は Android だけが持ち、渡した画面を使う(010:T07)',
+        () async {
+          var opened = 0;
+          final android = fileSourceFor(
+            isAndroid: true,
+            isDesktop: false,
+            pick: noPick,
+            pickMedia: () async {
+              opened++;
+              return null;
+            },
+          );
+          expect(android, isA<MediaPickSource>());
+          expect(
+            await (android as MediaPickSource).pickMedia(),
+            isA<Cancelled>(),
+          );
+          expect(opened, 1);
+
+          // desktop の「写真・動画」は OS の選択画面を絞り込む(`010:T10`)。
+          expect(
+            fileSourceFor(isAndroid: false, isDesktop: true, pick: noPick),
+            isNot(isA<MediaPickSource>()),
+          );
+        },
+      );
+
       test('どちらでもない platform は Failed を返す実装', () {
         expect(
           fileSourceFor(isAndroid: false, isDesktop: false, pick: noPick),

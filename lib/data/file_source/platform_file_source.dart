@@ -15,11 +15,13 @@ import 'media_dates.dart';
 /// **純関数として切り出してある。** `Platform.isAndroid` を条件式へ直接書くと、
 /// この写像を Linux 上の test で固定できない(ADR-003)。
 ///
-/// [pick] は Android の browser を開く操作。UI 層が供給する。
+/// [pick] は Android の browser を開く操作、[pickMedia] は写真・動画の選択画面を
+/// 開く操作(004 REQ-022)。どちらも UI 層が供給する。
 FileSource fileSourceFor({
   required bool isAndroid,
   required bool isDesktop,
   required BrowserPicker pick,
+  MediaPicker? pickMedia,
   BrowserReopener? reopen,
   String Function(String folder)? locationNameOf,
   MediaDatesPort? mediaDates,
@@ -27,6 +29,7 @@ FileSource fileSourceFor({
   if (isAndroid) {
     return AndroidFileSource(
       pick: pick,
+      pickMediaPaths: pickMedia,
       reopen: reopen,
       locationNameOf: locationNameOf,
       mediaDates: mediaDates,
@@ -39,12 +42,14 @@ FileSource fileSourceFor({
 /// 実行中のプラットフォームに合う [FileSource] を返す。
 FileSource createPlatformFileSource({
   required BrowserPicker pick,
+  MediaPicker? pickMedia,
   BrowserReopener? reopen,
   String Function(String folder)? locationNameOf,
 }) => fileSourceFor(
   isAndroid: Platform.isAndroid,
   isDesktop: Platform.isWindows || Platform.isLinux || Platform.isMacOS,
   pick: pick,
+  pickMedia: pickMedia,
   reopen: reopen,
   locationNameOf: locationNameOf,
   // 004 REQ-010 の②③。channel の相手は Android の `MainActivity` だけで、

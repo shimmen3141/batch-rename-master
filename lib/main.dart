@@ -6,7 +6,10 @@ import 'core/rename_engine.dart';
 import 'dart:io';
 import 'data/file_source/android_file_source.dart';
 import 'data/file_source/android_storage_browser.dart';
+import 'data/file_source/media_library.dart';
+import 'data/file_source/storage_browser.dart';
 import 'ui/file_source/file_kind.dart';
+import 'ui/file_source/media_picker_view.dart';
 import 'ui/file_source/storage_browser_view.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
@@ -116,6 +119,40 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     return selection;
   }
 
+  /// 写真・動画の選択画面を開く(004 REQ-022 / REQ-023。`010:T07`)。
+  ///
+  /// 権限の確認は [FileSourceBar] の側で済んでいる(REQ-022 は付与されていない間は
+  /// 開かない)。確定したら、選んだファイルの folder の場所の名前を覚える
+  /// (REQ-009: 「保存場所名 + root からの相対」。browser と同じ形)。
+  Future<List<String>?> _pickMedia() async {
+    final paths = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) =>
+            const MediaPickerView(library: MethodChannelMediaLibrary()),
+      ),
+    );
+    if (paths != null) await _rememberLocationNames(paths);
+    return paths;
+  }
+
+  /// [paths] の親 folder の場所の名前を [_locationNames] へ入れる(004 REQ-009)。
+  ///
+  /// 保存場所を取れない・含む保存場所が無い folder は入れない(basename で示す)。
+  Future<void> _rememberLocationNames(List<String> paths) async {
+    final folders = {for (final path in paths) p.dirname(path)};
+    if (folders.isEmpty) return;
+    final StorageLocations locations;
+    try {
+      locations = await const AndroidStorageBrowser().locations();
+    } catch (_) {
+      return;
+    }
+    for (final folder in folders) {
+      final owner = locationContaining(locations, folder);
+      if (owner != null) _locationNames[folder] = displayPathOf(owner, folder);
+    }
+  }
+
   /// 一覧の所属 [folder] を、[selected] を選択済みにして browser で開き直す(004 REQ-021)。
   ///
   /// 権限の確認は [FileSourceBar] の側で済んでいる([SameFolderReopen] 経由)。
@@ -148,6 +185,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
 
   late final FileSource _source = createPlatformFileSource(
     pick: _pickInBrowser,
+    pickMedia: _pickMedia,
     reopen: _reopenInBrowser,
     locationNameOf: _locationNameOf,
   );

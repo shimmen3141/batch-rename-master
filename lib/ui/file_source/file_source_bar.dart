@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/file_entry.dart';
 import '../../data/file_source/file_loading.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/permission/storage_permission.dart';
@@ -16,13 +17,14 @@ import '../theme/app_typography.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
 ///
-/// 「ファイルを選ぶ」→ **種類を選ぶ**(desktop は画像 / 動画 / 文書 / すべて、
-/// **Android は文書を除く3つ**。004 REQ-011)→
-/// 種類に応じた選択 UI(Android は app 内 browser)で**フォルダを辿って
-/// ファイルを複数選択** → 確定した集合で
+/// 「ファイルを選ぶ」→ **種類を選ぶ**(desktop は写真・動画 / 文書 / すべて、
+/// **Android は文書を除く2つ**。004 REQ-011)→
+/// 種類に応じた選択 UI(Android の「写真・動画」は選択画面、「すべて」は app 内
+/// browser)で**ファイルを複数選択** → 確定した集合で
 /// 002 のリストを**置き換える**(蓄積しない)。
 /// [Cancelled] はリスト無変化・通知なし、[Failed] は無変化のまま理由を通知する。
-/// 選択が**複数の親フォルダに跨っていたら警告**する(REQ-012)。
+/// 選択が**複数の親フォルダに跨っていたら警告**する(REQ-012。写真・動画の選択画面
+/// からの読み込みを除く)。
 ///
 /// **Android では全ファイルアクセスが要る**(013 REQ-001)。権限が無い間は
 /// 読み込ませず、この位置に理由の説明と設定導線を出す。
@@ -64,7 +66,7 @@ class FileSourceBar extends StatefulWidget {
 
   /// このplatformで出す種類(004 REQ-011)。
   ///
-  /// **Android は3つ、desktop は4つ。** 判定は composition root が行う —
+  /// **Android は2つ、desktop は3つ。** 判定は composition root が行う —
   /// ここが platform を見ない。
   final List<FileKind> kinds;
 
@@ -166,11 +168,16 @@ class _FileSourceBarState extends State<FileSourceBar>
     // 登録するのは、設定画面から**戻ってきたとき**に気づくためである。
     WidgetsBinding.instance.addObserver(this);
     widget.reopen?.attach(_reopenSameFolder);
+    widget.controller.addListener(_closeWarningIfSingleFolder);
   }
 
   @override
   void didUpdateWidget(FileSourceBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_closeWarningIfSingleFolder);
+      widget.controller.addListener(_closeWarningIfSingleFolder);
+    }
     if (oldWidget.reopen != widget.reopen) {
       oldWidget.reopen?.detach(_reopenSameFolder);
       widget.reopen?.attach(_reopenSameFolder);
@@ -179,6 +186,7 @@ class _FileSourceBarState extends State<FileSourceBar>
 
   @override
   void dispose() {
+    widget.controller.removeListener(_closeWarningIfSingleFolder);
     widget.reopen?.detach(_reopenSameFolder);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -244,27 +252,76 @@ class _FileSourceBarState extends State<FileSourceBar>
     setState(() => _settingsUnavailable = !opened);
   }
 
+  /// [kind] の読み込みをこの source が持っているか(REQ-011)。
+  ///
+  /// 「写真・動画」は選択画面を持つ source([MediaPickSource]。Android)だけが
+  /// 読み込める。**desktop の「写真・動画」は `010:T10` で OS の選択画面を絞り込む**
+  /// までは未対応として示す。
+  bool _supports(FileKind kind) =>
+      kind != FileKind.media || widget.source is MediaPickSource;
+
+  /// 出している複数フォルダの警告(REQ-012)。閉じたら `null`。
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?
+  _multiFolderWarning;
+
+  /// 警告の本文に付ける key。**本文が描かれている = 警告がいま出ている**ことを
+  /// 確かめるのに使う(表示待ちの通知は描かれない)。
+  final GlobalKey _multiFolderWarningContent = GlobalKey();
+
+  /// 前の一覧についての警告を閉じる(REQ-012)。
+  ///
+  /// この警告はエラーと同じく**閉じるまで残る**(2026-09-28 の決定)ので、一覧が
+  /// 変わっても残り続け、もう当てはまらない警告を出したままになっていた
+  /// (2026-10-05 の `010:T07` の実機確認で見つかった)。
+  ///
+  /// **いま出ているときだけ閉じる。** `close` は先頭の通知を下げるので、表示待ちの
+  /// ときに呼ぶと別の通知を下げてしまう。
+  void _closeMultiFolderWarning() {
+    final warning = _multiFolderWarning;
+    _multiFolderWarning = null;
+    if (warning == null) return;
+    if (_multiFolderWarningContent.currentContext != null) warning.close();
+  }
+
+  /// 一覧が単一フォルダ(または空)になったら警告を閉じる。除去・全消去・開き直しで
+  /// 一覧が変わったときも、当てはまらない警告を残さない。
+  void _closeWarningIfSingleFolder() {
+    if (_multiFolderWarning == null) return;
+    if (FileSourceBar.distinctLocationCount(widget.controller) <= 1) {
+      _closeMultiFolderWarning();
+    }
+  }
+
   Future<void> _load(BuildContext context, FileKind kind) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
 
-    // 画像・動画は枠のみ(中身は写真機能)。未実装であることを伝える(REQ-011)。
-    if (!kind.isImplemented) {
+    if (!_supports(kind)) {
       if (messenger != null) {
         showAppToast(
           messenger,
           key: const Key('file-kind-unimplemented'),
           tone: ToastTone.info,
-          content: Text('「${kind.label}」の読み込みは写真機能で対応予定です'),
+          content: Text('「${kind.label}」の読み込みはこの端末では対応予定です'),
         );
       }
       return;
     }
 
-    final error = await loadFilesInto(
-      widget.source,
-      widget.controller.setFiles,
-      mimeTypes: kind.mimeTypes,
-    );
+    final source = widget.source;
+    final fromMediaPicker = kind == FileKind.media && source is MediaPickSource;
+    // **置き換えたかどうかを持つ。** `applyPick` は確定と `Cancelled` のどちらも
+    // `null` を返すので、それだけでは区別できない。
+    var replaced = false;
+    void setFiles(List<FileEntry> entries) {
+      replaced = true;
+      widget.controller.setFiles(entries);
+    }
+
+    final error = fromMediaPicker
+        ? await applyPick((source as MediaPickSource).pickMedia, setFiles)
+        : await loadFilesInto(source, setFiles, mimeTypes: kind.mimeTypes);
+    // 一覧を置き換えたら、前の一覧についての警告は当てはまらない。
+    if (replaced) _closeMultiFolderWarning();
     if (messenger == null) return;
     // Cancelled と成功は通知しない(REQ-008)。
     if (error != null) {
@@ -277,13 +334,30 @@ class _FileSourceBarState extends State<FileSourceBar>
       return;
     }
     // 複数の親フォルダに跨っていたら警告する(REQ-012)。読み込み自体は行う。
-    if (FileSourceBar.distinctLocationCount(widget.controller) > 1) {
-      showAppToast(
+    // **写真・動画の選択画面から読み込んだときは警告しない** — 跨いで選ぶことが
+    // その画面の目的であり、どの folder のファイルかは行の場所で分かる
+    // (REQ-012。2026-10-05 開発者の決定)。
+    //
+    // **`Cancelled` では警告しない**(REQ-008: 無変化・通知なし)。一覧が初めから
+    // 複数フォルダ(デモの初期値など)のとき、何も選ばずに戻っただけで警告が出ていた
+    // (2026-10-05 の `010:T07` の実機確認で見つかった)。
+    if (replaced &&
+        !fromMediaPicker &&
+        FileSourceBar.distinctLocationCount(widget.controller) > 1) {
+      _multiFolderWarning = showAppToast(
         messenger,
         key: const Key('multi-folder-warning'),
         tone: ToastTone.danger,
-        content: const Text('複数のフォルダのファイルが含まれています。リネームしても同じ場所には集まりません。'),
+        content: Text(
+          key: _multiFolderWarningContent,
+          '複数のフォルダのファイルが含まれています。リネームしても同じ場所には集まりません。',
+        ),
       );
+      final warning = _multiFolderWarning!;
+      // 利用者が閉じたら忘れる。
+      warning.closed.then((_) {
+        if (identical(_multiFolderWarning, warning)) _multiFolderWarning = null;
+      });
     }
   }
 
@@ -326,11 +400,11 @@ class _FileSourceBarState extends State<FileSourceBar>
                     style: TextStyle(color: colors.textPrimary),
                   ),
                   subtitle: Text(
-                    kind.isImplemented
+                    _supports(kind)
                         ? kind.description
                         : '${kind.description}（未実装）',
                     style: TextStyle(
-                      color: kind.isImplemented
+                      color: _supports(kind)
                           ? colors.textSecondary
                           : colors.textDisabled,
                       fontSize: AppFontSize.label,
@@ -349,8 +423,7 @@ class _FileSourceBarState extends State<FileSourceBar>
   }
 
   static IconData _iconOf(FileKind kind) => switch (kind) {
-    FileKind.image => Icons.image_outlined,
-    FileKind.video => Icons.movie_outlined,
+    FileKind.media => Icons.photo_library_outlined,
     FileKind.document => Icons.description_outlined,
     FileKind.all => Icons.folder_open,
   };

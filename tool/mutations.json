@@ -731,8 +731,8 @@
     {
       "id": "M104",
       "file": "lib/data/file_source/platform_file_source.dart",
-      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。** **010:T03 で `mediaDates` の引数が増えたので `find` を追随させた。**",
-      "find": "  if (isAndroid) {\n    return AndroidFileSource(\n      pick: pick,\n      reopen: reopen,\n      locationNameOf: locationNameOf,\n      mediaDates: mediaDates,\n    );\n  }",
+      "note": "AndroidでもOSピッカーを使う(app内browserが製品経路から消える。004 REQ-015) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。** **010:T03 で `mediaDates` の引数が増えたので `find` を追随させた。** **010:T07 で `pickMediaPaths` の引数が増えたので `find` を追随させた。**",
+      "find": "  if (isAndroid) {\n    return AndroidFileSource(\n      pick: pick,\n      pickMediaPaths: pickMedia,\n      reopen: reopen,\n      locationNameOf: locationNameOf,\n      mediaDates: mediaDates,\n    );\n  }",
       "replace": ""
     },
     {
@@ -829,15 +829,15 @@
     {
       "id": "M119",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "表示用の場所を辿ったfolderではなくrootへ紐づける(どのfolderから読み込んでも同じ表示になる。004 REQ-009。attempt 2 のRV05)",
-      "find": "    widget.onLocationName?.call(target, _displayPathOf(location, target));",
+      "note": "表示用の場所を辿ったfolderではなくrootへ紐づける(どのfolderから読み込んでも同じ表示になる。004 REQ-009。attempt 2 のRV05) **010:T07 で `_displayPathOf` を `storage_browser.dart` の `displayPathOf` へ移した(写真・動画の選択画面と共有)ので `find` を追随させた。**",
+      "find": "    widget.onLocationName?.call(target, displayPathOf(location, target));",
       "replace": "    widget.onLocationName?.call(location.root, location.name);"
     },
     {
       "id": "M120",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "表示用の場所を一切知らせない(行の場所がbasenameへ落ち、rootが「0」になる。attempt 2 のRV06)",
-      "find": "    widget.onLocationName?.call(target, _displayPathOf(location, target));\n",
+      "note": "表示用の場所を一切知らせない(行の場所がbasenameへ落ち、rootが「0」になる。attempt 2 のRV06) **010:T07 で `_displayPathOf` を `storage_browser.dart` の `displayPathOf` へ移した(写真・動画の選択画面と共有)ので `find` を追随させた。**",
+      "find": "    widget.onLocationName?.call(target, displayPathOf(location, target));\n",
       "replace": ""
     },
     {
@@ -4704,6 +4704,160 @@
       "find": "      debugPrint('media_library: thumbnail failed: $error');\n      return null;",
       "replace": "      rethrow;",
       "note": "010:T06 サムネイルの失敗を投げる"
+    },
+    {
+      "id": "M728",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "        !fromMediaPicker &&\n        FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
+      "replace": "        FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
+      "note": "010:T07 写真・動画の選択画面からの読み込みでも複数フォルダの警告を出す(004 REQ-012) **同じ T07 の実機確認の修正で条件の先頭に `replaced &&` が入ったので `find` を追随させた。**"
+    },
+    {
+      "id": "M729",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    final fromMediaPicker = kind == FileKind.media && source is MediaPickSource;",
+      "replace": "    final fromMediaPicker = false;",
+      "note": "010:T07 「写真・動画」でも browser(pickFiles)を開く(004 REQ-011)"
+    },
+    {
+      "id": "M730",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      kind != FileKind.media || widget.source is MediaPickSource;",
+      "replace": "      true;",
+      "note": "010:T07 選択画面を持たない source でも「写真・動画」を対応済みとして見せる(004 REQ-011)"
+    },
+    {
+      "id": "M731",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "    return _picked([for (final path in paths) (path, p.dirname(path))]);",
+      "replace": "    return _picked([\n      for (final path in paths) (path, p.dirname(paths.first)),\n    ]);",
+      "note": "010:T07 選択画面の所属 folder を最初のファイルの folder に揃える(004 REQ-013 / REQ-023)"
+    },
+    {
+      "id": "M732",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "    if (paths == null) return const Cancelled();",
+      "replace": "    if (paths == null) return const Picked([]);",
+      "note": "010:T07 選択画面を閉じたのを空の確定にする(004 REQ-008)"
+    },
+    {
+      "id": "M733",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "      _filter = filter;\n      _generation++;",
+      "replace": "      _filter = filter;\n      _selected.clear();\n      _generation++;",
+      "note": "010:T07 絞り込みを変えると選択を捨てる(004 REQ-022)"
+    },
+    {
+      "id": "M734",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "      if (generation == _generation && !_hasMore && _failure == null) {",
+      "replace": "      if (generation == _generation) {",
+      "note": "010:T07 すべて選択で読み切れなくても読んだ分だけ選ぶ(004 REQ-023)"
+    },
+    {
+      "id": "M735",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    setState(_selected.clear);",
+      "replace": "    setState(() => _selected.removeAll(_items.map((item) => item.path)));",
+      "note": "010:T07 すべて解除で見えている選択だけを外す(004 REQ-023)"
+    },
+    {
+      "id": "M736",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    Navigator.of(context).pop(_selected.toList());",
+      "replace": "    Navigator.of(context).pop([\n      for (final item in _items)\n        if (_selected.contains(item.path)) item.path,\n    ]);",
+      "note": "010:T07 確定で見えている選択だけを返す(004 REQ-023 / 代表例 57)"
+    },
+    {
+      "id": "M737",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "            onPressed: _hasSelection ? _confirm : null,",
+      "replace": "            onPressed: _confirm,",
+      "note": "010:T07 0件でも確定できる(004 REQ-023 / 代表例 60)"
+    },
+    {
+      "id": "M738",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "        displayOrder: () => [for (final item in _items) item.path],\n",
+      "replace": "",
+      "note": "010:T07 格子の drag を指が通った item だけにする(004 REQ-023 の表示順の範囲)"
+    },
+    {
+      "id": "M739",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "            MediaFilter(kind: selection.single, albumId: _filter.albumId),",
+      "replace": "            MediaFilter(kind: _filter.kind, albumId: _filter.albumId),",
+      "note": "010:T07 種類の切り替えを絞り込みに渡さない(004 REQ-022)"
+    },
+    {
+      "id": "M740",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "  return day.year == now.year ? monthDay : '${day.year}年$monthDay';",
+      "replace": "  return monthDay;",
+      "note": "010:T07 今年以外の見出しにも年を出さない"
+    },
+    {
+      "id": "M741",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    if (groups.isNotEmpty && groups.last.$1 == day) {",
+      "replace": "    if (groups.isNotEmpty) {",
+      "note": "010:T07 日ごとに見出しを分けない(004 REQ-022)"
+    },
+    {
+      "id": "M742",
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "    for (final left in _range.difference(next)) {\n      if (!_baseline.contains(left)) deselect(left);\n    }",
+      "replace": "    for (final left in _range.difference(next)) {\n      deselect(left);\n    }",
+      "note": "010:T07 範囲 drag で戻ると drag 前から選択済みの item も外す(004 REQ-023)"
+    },
+    {
+      "id": "M743",
+      "file": "lib/data/file_source/platform_file_source.dart",
+      "find": "      pickMediaPaths: pickMedia,\n",
+      "replace": "",
+      "note": "010:T07 Android の source に写真・動画の選択画面を渡さない(「写真・動画」が常に失敗する。004 REQ-022)"
+    },
+    {
+      "id": "M744",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    while (_cache.length > maxEntries) {\n      _cache.remove(_cache.keys.first);\n    }\n",
+      "replace": "",
+      "note": "010:T07 サムネイルを上限なく覚える(独立review attempt 1 の S-2)"
+    },
+    {
+      "id": "M745",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    final cached = _cache.remove(item.id);",
+      "replace": "    final cached = _cache[item.id];",
+      "note": "010:T07 使い直したサムネイルを新しい側へ移さない(古い順に捨てられない)"
+    },
+    {
+      "id": "M746",
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "  void forgetRows() => _rowGeometryKeys.clear();",
+      "replace": "  void forgetRows() {}",
+      "note": "010:T07 位置の key を捨てない(独立review attempt 1 の S-1)"
+    },
+    {
+      "id": "M747",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (replaced &&\n        !fromMediaPicker &&",
+      "replace": "    if (!fromMediaPicker &&",
+      "note": "010:T07 実機確認 何も選ばずに戻っても複数フォルダの警告を出す(004 REQ-008)"
+    },
+    {
+      "id": "M748",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (replaced) _closeMultiFolderWarning();\n",
+      "replace": "",
+      "note": "010:T07 実機確認 一覧を置き換えても前の警告を閉じない(004 REQ-012)"
+    },
+    {
+      "id": "M749",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    widget.controller.addListener(_closeWarningIfSingleFolder);\n  }\n",
+      "replace": "  }\n",
+      "note": "010:T07 実機確認 一覧が単一フォルダになっても警告を閉じない(004 REQ-012)"
     }
   ]
 }

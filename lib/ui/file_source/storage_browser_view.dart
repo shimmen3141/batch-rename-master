@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 
 import '../../data/file_source/android_file_source.dart';
 import '../../core/file_entry.dart';
@@ -220,7 +219,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     // **場所は「保存場所名 + rootからの相対」**である(004 REQ-009)。
     // 保存場所名だけにすると、どのfolderから読み込んでも同じ表示になる
     // (独立review attempt 2 のP2-1)。root の basename `0` も出さない。
-    widget.onLocationName?.call(target, _displayPathOf(location, target));
+    widget.onLocationName?.call(target, displayPathOf(location, target));
     setState(() {
       _listing = listing;
       _loading = false;
@@ -517,12 +516,6 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
         child: label,
       ),
     );
-  }
-
-  /// 表示用の場所。root は保存場所の名前に置き換える(生の path を主役にしない)。
-  static String _displayPathOf(StorageLocation location, String folder) {
-    if (folder == location.root) return location.name;
-    return '${location.name}/${p.relative(folder, from: location.root)}';
   }
 
   Widget _body(AppColors colors) {
