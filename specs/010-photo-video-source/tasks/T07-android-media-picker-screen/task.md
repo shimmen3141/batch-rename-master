@@ -125,13 +125,18 @@ M746 | KILLED | drag_selection_controller.dart | 010:T07 位置の key を捨て
   - 手順2の「(確かめるなら)」: Chrome でダウンロードした写真を読み込むと、作成日時は 2008/5/30 15:56(中身の EXIF)。選択画面では今日の見出し。期待値どおり。
 - attempt 2(2026-10-05、build は `6a760fd` と同じ `lib/`・`android/`。手順書は `b53b270`): **PASS。** 開発者の報告「確認事項は問題ありませんでした」。手順1〜8(release build の lint を含む)と、追加の確認(何も選ばずに戻っても警告が出ない・選び直すと警告が消える)がすべて期待どおり。
   - `T06` の残り(Kotlin の build、並び順の式と `LIMIT`/`OFFSET`、`loadThumbnail`、release build の lint = S-1)もこれで確かめられた。
-  - 開発者の所感: 選択画面の日付と読み込み後の作成日時がずれることがあるのは直感的でない。扱いを相談中(下の handoff)。
+  - 開発者の所感: 選択画面の日付と読み込み後の作成日時がずれることがあるのは直感的でない。
+  - **開発者の決定(2026-10-05)**: 作成日時(004 REQ-010: ① 中身 → ② `DATE_TAKEN` → ③ `DATE_ADDED`)は変えず、**選択画面の日付と並びをこれに揃える**。あわせて選択画面の題名の横に **i マーク**を置き、「ダウンロードしたファイルなどは中身に記録された日時が使われる」旨を示す。新しい task にして仕様の相談から始める。
+    - 検討して選ばなかった案: 優先度の入れ替え(② → ③ → ①)は、デジカメや PC から移した写真が移し方しだいで移した日になる・別の時刻帯で撮った写真が端末の時刻帯になる・Android と desktop で食い違う、ので選ばなかった。日付の種類をルールで選べるようにする案は、概念の区別を見せることになるので選ばなかった。選択画面の中の並び替え(端末に入った順など)は、見出しの日付と作成日時がまたずれるので、今は足さない(将来候補)。
+  - T07 は承認済みの仕様どおりなので、今の形で merge する。
+
+### SELF-CHECK
+
+- range `325d514..` 以降(attempt 3 の head より後)は `specs/` の記録だけ(review・実機確認・判断の記録、手順書の期待値、status、PR 番号)。`lib/`・`test/`・`tool/`・`android/`・依存に差分は無く、PASS した判定を書き換えていない。PR #222 の CI(`32f03e8`)PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1〜3 PASS(`4f1d75c..325d514` を連鎖で覆う。以後は記録だけ)、実機確認 attempt 2 PASS
-- Blocker category: decision
+- Last checkpoint: handoff。独立review attempt 1〜3 PASS(`4f1d75c..325d514` を連鎖で覆う)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 2 PASS。done
+- Blocker category: なし
 - Evidence revision: `6a760fd`
-- Waiting for: 開発者(選択画面の日付と作成日時のずれの扱い)
-- Requested action: 会話で示した案から選ぶ。T07 を今の仕様のまま merge してよいかも含む
-- Next Agent action: 判断を記録する。T07 をそのまま merge するなら merge 条件を確かめて merge し、選んだ案を新しい task(spec の差分を含む)にする
+- Next Agent action: なし(選択画面の日付を作成日時に揃える件は、010 に新しい task を足して仕様の相談から始める)
