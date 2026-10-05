@@ -4708,9 +4708,9 @@
     {
       "id": "M728",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "    if (!fromMediaPicker &&\n        FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
-      "replace": "    if (FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
-      "note": "010:T07 写真・動画の選択画面からの読み込みでも複数フォルダの警告を出す(004 REQ-012)"
+      "find": "        !fromMediaPicker &&\n        FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
+      "replace": "        FileSourceBar.distinctLocationCount(widget.controller) > 1) {",
+      "note": "010:T07 写真・動画の選択画面からの読み込みでも複数フォルダの警告を出す(004 REQ-012) **同じ T07 の実機確認の修正で条件の先頭に `replaced &&` が入ったので `find` を追随させた。**"
     },
     {
       "id": "M729",

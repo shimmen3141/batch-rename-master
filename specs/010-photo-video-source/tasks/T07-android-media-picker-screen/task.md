@@ -115,13 +115,18 @@ M746 | KILLED | drag_selection_controller.dart | 010:T07 位置の key を捨て
 ### 実機確認
 
 - 対象: `lib/`・`android/` が `25a19bf` と同一の build(branch HEAD `d4684da` 以降の記録だけの commit を含んでよい)。手順は [/workspace/specs/010-photo-video-source/tasks/T07-android-media-picker-screen/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T07-android-media-picker-screen/manual-verification.md)。
-- attempt 1: 依頼中(2026-10-05)。
+- attempt 1(2026-10-05、build は `25a19bf` と同じ `lib/`・`android/`): 途中の報告。
+  - 手順2: **Chrome でダウンロードした Canon_40D.jpg は「2008年5月30日」ではなく今日の見出しに入った。** 見立て: EXIF の撮影日時に時差が無く、ファイルの更新日時(今日)と大きく離れるため、MediaStore が `DATE_TAKEN` を入れず、`DATE_ADDED`(今日)で並んだ。仕様(004 REQ-022: `DATE_TAKEN`、無ければ `DATE_ADDED`)どおりで、**手順書の期待値の誤り**と見ている。`datetaken` の確認と、扱い(A: 受け入れて期待値を直す・B: 中身を読む・C: 日付不明にまとめる)の判断を開発者に依頼中。
+  - 手順外で見つかった不具合: **一覧が複数フォルダのとき、「別フォルダへ」から何も選ばずに戻ると複数フォルダの警告が出て、単一フォルダで選び直しても消えない。** `T07` より前からの不具合(004 REQ-008 / REQ-012)。`6a760fd` で直した([/workspace/development-findings/2026-10-05-multi-folder-warning-on-cancel-and-stale-after-reload.md](/workspace/development-findings/2026-10-05-multi-folder-warning-on-cancel-and-stale-after-reload.md))。
+    - 検証: `ui_entry_test` PASS(+26。追加5件)、`flutter test` PASS(+1330、exit 0)、`flutter analyze` No issues、`check_mutation_finds.py` PASS(693)。mutation(範囲 `flutter test test/spec_004_file_source/ui_entry_test.dart`): `M747 | KILLED`・`M748 | KILLED`・`M749 | KILLED`(`3 mutations: 3 KILLED`)。条件が変わった M728 の `find` を追随させ `M728 | KILLED`。
+    - 残余risk: 警告が表示待ち(別の残る通知の後ろ)のときは閉じない。そのとき古い警告が後から出うる。データ損失などには当たらず、受容する。
+    - **code が変わったので、この後の実機確認は新しい build で行う**(手順1〜8をやり直す)。
 
 ## Current state / handoff
 
 - Last checkpoint: evidence。独立review attempt 1 PASS(`4f1d75c..b753a23`)、差分review attempt 2 PASS(`b753a23..d4684da`)
 - Blocker category: manual-evidence
-- Evidence revision: `25a19bf`
+- Evidence revision: `6a760fd`
 - Waiting for: 開発者(Android エミュレータでの実機確認。`T06` の Kotlin の最初の build を兼ねる)
 - Requested action: [manual-verification.md](manual-verification.md) の準備と手順1〜8を行い、結果を会話で伝える
 - Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
