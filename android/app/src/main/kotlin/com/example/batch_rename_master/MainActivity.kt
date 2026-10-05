@@ -95,8 +95,10 @@ class MainActivity : FlutterActivity() {
      * path ごとに MediaStore の `DATE_TAKEN`(ミリ秒)と `DATE_ADDED`(秒)を返す
      * (004 REQ-010 の②③。010:T03)。どちらも UTC で、端末の時刻帯へ直すのは Dart 側。
      *
-     * **MediaStore に載っていない path は結果に含めない。** この app が path で
-     * 作った file は載らない(010:T04 の端末観測)。値が無い列は `null`。
+     * **MediaStore に載っていない・この app から見えない path は結果に含めない。**
+     * この app が path で作った file は載らない(010:T04)。`adb push` など shell が
+     * 置いた file は、載っていても全ファイルアクセス権限の app から見えない
+     * (010:T03 の端末観測。カメラ・スクリーンショットは見える)。値が無い列は `null`。
      *
      * 照会は main thread から外す(件数が多いと数十 ms を超えうる)。SQLite の
      * 変数の上限(999)を超えないよう、path を分けて照会する。
@@ -111,13 +113,9 @@ class MainActivity : FlutterActivity() {
         val paths = call.argument<List<String>>("paths") ?: emptyList()
         thumbnailExecutor.execute {
             // Dart は失敗を「②③が無い」として黙って扱う(読み込みを止めない)ので、
-            // 引けたか・なぜ引けなかったかは logcat にだけ残す(010:T03 の切り分け)。
+            // なぜ引けなかったかは logcat にだけ残す。
             val response = try {
-                val dates = queryMediaDates(paths)
-                Log.i(logTag, "datesOf: ${paths.size} paths, ${dates.size} found")
-                // TODO(010:T03): 切り分け用の一時的な診断。原因が分かったら消す。
-                if (dates.size < paths.distinct().size) diagnoseMediaDates(paths - dates.keys)
-                DatesResponse.Success(dates)
+                DatesResponse.Success(queryMediaDates(paths))
             } catch (error: Exception) {
                 Log.w(logTag, "datesOf failed", error)
                 DatesResponse.Failure(error.message ?: error.toString())
@@ -164,77 +162,6 @@ class MainActivity : FlutterActivity() {
                 }
         }
         return dates
-    }
-
-    // TODO(010:T03): 切り分け用の一時的な診断。原因が分かったら消す。
-    private fun diagnoseMediaDates(missing: List<String>) {
-        val uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        val manager = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-            Environment.isExternalStorageManager()
-        Log.i(
-            logTag,
-            "diag: sdk=${Build.VERSION.SDK_INT} " +
-                "target=${applicationInfo.targetSdkVersion} manager=$manager",
-        )
-        fun probe(label: String, selection: String?, args: Array<String>?) {
-            try {
-                contentResolver.query(
-                    uri,
-                    arrayOf(MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.DATE_ADDED),
-                    selection,
-                    args,
-                    null,
-                )?.use { cursor ->
-                    val rows = mutableListOf<String>()
-                    while (cursor.moveToNext() && rows.size < 5) {
-                        rows.add("${cursor.getString(0)}|${cursor.getString(1)}")
-                    }
-                    Log.i(logTag, "diag $label: count=${cursor.count} rows=$rows")
-                } ?: Log.i(logTag, "diag $label: cursor=null")
-            } catch (error: Exception) {
-                Log.w(logTag, "diag $label: failed", error)
-            }
-        }
-        val path = missing.first()
-        val name = path.substringAfterLast('/')
-        val parent = path.substringBeforeLast('/')
-        Log.i(logTag, "diag path=[$path]")
-        probe("all", null, null)
-        probe("eq", MediaStore.MediaColumns.DATA + " = ?", arrayOf(path))
-        probe("name", MediaStore.MediaColumns.DISPLAY_NAME + " = ?", arrayOf(name))
-        probe("parent", MediaStore.MediaColumns.DATA + " LIKE ?", arrayOf("$parent/%"))
-        for (folder in listOf("Download", "DCIM", "Pictures", "Movies")) {
-            probe(folder, MediaStore.MediaColumns.DATA + " LIKE ?", arrayOf("/storage/emulated/0/$folder/%"))
-        }
-        // 見えている「ファイル」(folder ではない行)の持ち主と種類。
-        try {
-            contentResolver.query(
-                uri,
-                arrayOf(
-                    MediaStore.MediaColumns.DATA,
-                    MediaStore.MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaStore.MediaColumns.MIME_TYPE,
-                ),
-                MediaStore.MediaColumns.MIME_TYPE + " IS NOT NULL",
-                null,
-                null,
-            )?.use { cursor ->
-                val rows = mutableListOf<String>()
-                while (cursor.moveToNext() && rows.size < 10) {
-                    rows.add("${cursor.getString(0)}|${cursor.getString(1)}|${cursor.getString(2)}")
-                }
-                Log.i(logTag, "diag files: count=${cursor.count} rows=$rows")
-            }
-        } catch (error: Exception) {
-            Log.w(logTag, "diag files: failed", error)
-        }
-        try {
-            val single = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            contentResolver.query(single, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
-                ?.use { Log.i(logTag, "diag primary all: count=${it.count}") }
-        } catch (error: Exception) {
-            Log.w(logTag, "diag primary: failed", error)
-        }
     }
 
     override fun onDestroy() {

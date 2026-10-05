@@ -16,8 +16,9 @@ class MediaDates {
 /// path から MediaStore の日時を引く port(004 REQ-010 の②③)。
 ///
 /// **引けなかった path は結果に含めない。** MediaStore に載っていない
-/// (この app が path で作った file は載らない。`010:T04`)・照会に失敗した、は
-/// どちらも「②③が無い」であって、読み込みの失敗ではない。
+/// (この app が path で作った file は載らない。`010:T04`)・この app から見えない
+/// (`adb push` など shell が置いた file。`010:T03`)・照会に失敗した、は
+/// どれも「②③が無い」であって、読み込みの失敗ではない。
 abstract interface class MediaDatesPort {
   Future<Map<String, MediaDates>> datesOf(List<String> paths);
 }
