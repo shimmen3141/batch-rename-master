@@ -83,10 +83,11 @@ M727 | KILLED | 010:T06 サムネイルの失敗を投げる
 - attempt 1: range `27d7a03..c188bb6`(全範囲)。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。**判定 PASS。**
   - 確認できた点: Dart の写像(時刻帯・`DATE_TAKEN`→`DATE_ADDED`・失敗と空の区別・`hasMore`・形の崩れた行)、Kotlin の絞り込み・並び・保存場所・ゴミ箱と保存途中の除外・main thread 外の実行・失敗を `error` で返すこと、compile できそうなこと、task.md の記録が実際と合うこと。reviewer 自身が related test・`flutter analyze`・M717〜M727(11 KILLED)を回し直して一致した。
   - S-1(P3・成果物の欠陥寄り): `mediaUri()` が `MediaStore.VOLUME_EXTERNAL`(API 29)を使うのに `@TargetApi(R)` が無い。**直さない。** 呼ぶのは `@TargetApi(R)` の関数と API 30 判定の後だけで、既存の `queryMediaDates` も同じ形で `010:T03` の端末で build・動作している。release build の lint で落ちたら `T07` で `@TargetApi` を足す(引き受け先 `T07`。端末で確かめる点に入れてある)。
+- SELF-CHECK: range `c188bb6..28102fd` は `specs/` の記録だけ(review の記録、status、PR 番号)。`lib/`・`test/`・`tool/`・依存・build 設定・Kotlin に差分は無く、PASS した判定を書き換えていない。PR #221 の CI(`28102fd`)PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: verification。独立review attempt 1 PASS(`27d7a03..c188bb6`)。以後は記録だけの差分(SELF-CHECK)
+- Last checkpoint: handoff。独立review attempt 1 PASS(`27d7a03..c188bb6`)と SELF-CHECK(`c188bb6..28102fd`)。CI PASS。done
 - Blocker category: なし
 - Evidence revision: `d467d28`
-- Next Agent action: PR #221 の CI が通れば auto-merge の条件を確かめて merge する
+- Next Agent action: なし(T07 が端末で、Kotlin の build と照会そのものを確かめる)
