@@ -457,19 +457,20 @@ void main() {
       await tester.pump();
       expect(_title(tester), '9件選択中');
 
-      // p4 まで戻る: p5〜p9 は外れ、p3 は drag の前から選ばれていたので残る。
-      await gesture.moveTo(tester.getCenter(_item(items[4])));
+      // p2 まで戻る: p3〜p9 は範囲から外れる。drag が足した p4〜p9 は外れ、
+      // **p3 は drag の前から選ばれていたので残る**。
+      await gesture.moveTo(tester.getCenter(_item(items[2])));
       await tester.pump();
       await gesture.up();
       await tester.pump();
-      expect(_title(tester), '4件選択中');
+      expect(_title(tester), '3件選択中');
 
       await tester.tap(find.byKey(mediaPickerConfirmKey));
       await tester.pumpAndSettle();
       expect(
         harness.result,
         unorderedEquals([
-          for (final i in [1, 2, 3, 4]) items[i].path,
+          for (final i in [1, 2, 3]) items[i].path,
         ]),
       );
     });
