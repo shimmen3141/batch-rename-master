@@ -60,13 +60,20 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
 ### 実機確認
 
 - Manual attempt 1(2026-10-05、Android エミュレータ、build は `lib/`・`android/` = `0c7b80a`)— **FAIL(③が入らない)**
-  - `flutter run` の build は通った(Kotlin の最初の build)。端末の `date`: `Mon Oct  5 01:38:11 GMT 2026`(時刻帯 GMT)。
+  - 報告に build の成否は無い(Kotlin を含む build でやり直したかは未確認)。端末の `date`: `Mon Oct  5 01:38:11 GMT 2026`(時刻帯 GMT)。
   - 手順1: `canon_2008.jpg` = `2008/5/30 15:56`(OK)、`movie_2010.mp4` = `2010/6/1 16:08`(GMT の端末なので期待どおり。OK)、
     **`download.txt` = `不明`(NG。期待は置いた時刻)**。
   - 手順2: 写真 → 動画 → `download.txt` の順(`download.txt` が不明のため末尾)。
   - 手順3: 3つとも改名前と同じ値(OK。`download.txt` は不明のまま)。
   - 手順4: 未確認(開発者が後で行う)。手順5: 未報告。
   - ①(T02)は端末で値が入った。②③の経路(channel → Kotlin の照会 → Dart)のどこで値が落ちたかは未特定。
+  - 切り分け(同日、開発者が `adb shell content query`): MediaStore には改名後の3つの行があり、`download_r.txt` は
+    `date_added=1791164289`(2026-10-05 01:38:09 UTC。置いた時刻)。`canon_2008_r.jpg`・`movie_2010_r.mp4` も `datetaken=NULL`。
+    → **端末は③を持っている。app 側の照会で落ちている。** code を読んだ範囲では結線・channel 名・path の形・型の変換に誤りは見つからない。
+    候補: (a) Kotlin を含まない古い APK のまま(hot restart)で、channel が無い、(b) Kotlin の照会が例外になる、(c) 照会が 0 行を返す。
+  - 次の観測のため、照会の成否を logcat に残す変更を入れた(`95cd9e3`)。Kotlin は `BatchRenameMaster` tag で
+    `datesOf: N paths, M found` または `datesOf failed`(例外付き)、Dart は失敗を `media_dates: datesOf failed: …` で出す。
+    M714 の find を追随(範囲付き `flutter test test/spec_004_file_source` で 1件 KILLED)。
 
 ### 独立review
 
@@ -82,7 +89,7 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 
 ## Current state / handoff
 
-- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。原因を切り分け中
+- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。MediaStore は値を持つので app 側。logcat の観測を待つ
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータでの実機確認。Kotlin の最初の build を兼ねる)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
