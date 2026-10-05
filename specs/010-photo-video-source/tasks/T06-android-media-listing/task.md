@@ -89,4 +89,4 @@ M727 | KILLED | 010:T06 サムネイルの失敗を投げる
 - Last checkpoint: verification。独立review attempt 1 PASS(`27d7a03..c188bb6`)。以後は記録だけの差分(SELF-CHECK)
 - Blocker category: なし
 - Evidence revision: `d467d28`
-- Next Agent action: PR を作り、CI が通れば auto-merge の条件を確かめて merge する
+- Next Agent action: PR #221 の CI が通れば auto-merge の条件を確かめて merge する
