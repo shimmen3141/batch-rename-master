@@ -41,15 +41,15 @@
 
 ## 全体の受け入れ条件
 
-- [ ] EXIF に撮影日時を持つ写真・撮影日時を持つ動画を読み込むと、作成日時に撮影日時が入り、並び替えと日時トークンに使われる(Android と desktop)。
+- [x] EXIF に撮影日時を持つ写真・撮影日時を持つ動画を読み込むと、作成日時に撮影日時が入り、並び替えと日時トークンに使われる(Android と desktop)。
   - 証拠: unit test(fixture のファイルから読む。T02)、Android エミュレータの manual(T03)。
-- [ ] 中身に撮影日時が無く、MediaStore が `DATE_TAKEN` を持つファイルでは、その値が入る(Android)。
+- [x] 中身に撮影日時が無く、MediaStore が `DATE_TAKEN` を持つファイルでは、その値が入る(Android)。
   - 証拠: Kotlin と Dart の境界の test、Android エミュレータの manual(T03)。
-- [ ] 中身に日時が無く `DATE_TAKEN` も無いが、MediaStore が `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)では、その値が入る。この app で改名しても変わらない(Android)。
+- [x] 中身に日時が無く `DATE_TAKEN` も無いが、MediaStore が `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)では、その値が入る。この app で改名しても変わらない(Android)。
   - 証拠: Kotlin と Dart の境界の test、Android エミュレータの manual(T03)。改名で変わらないことは `T04` の端末観測。
-- [ ] ①〜③のどれも取れないファイルは「不明」のままで、既存の警告が出る。
+- [x] ①〜③のどれも取れないファイルは「不明」のままで、既存の警告が出る。
   - 証拠: unit / widget test(T02・T03)。
-- [ ] 004(と連動する 001・002)の spec 差分を開発者が承認している。
+- [x] 004(と連動する 001・002)の spec 差分を開発者が承認している。
   - 証拠: T01 の task.md の承認記録。
 
 ## 人間の決定

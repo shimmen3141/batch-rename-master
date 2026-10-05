@@ -9,6 +9,7 @@
 
 import 'dart:io';
 
+import 'package:batch_rename_master/data/file_source/media_dates.dart';
 import 'package:batch_rename_master/data/file_source/storage_volumes.dart';
 import 'package:batch_rename_master/data/permission/android_storage_permission.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,6 +27,13 @@ void main() {
     expect(
       source.readAsStringSync(),
       contains('"${MethodChannelStorageVolumes.channel.name}"'),
+    );
+  });
+
+  test('MediaStore の日時の channel 名が Kotlin 側にある(004 REQ-010。010:T03)', () {
+    expect(
+      source.readAsStringSync(),
+      contains('"${MethodChannelMediaDates.channel.name}"'),
     );
   });
 

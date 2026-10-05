@@ -20,20 +20,112 @@ Android で、中身から日時を取れなかったファイルについて、
 
 ## 受け入れ条件
 
-- [ ] 中身に撮影日時が無く `DATE_TAKEN` を持つファイルで、その値が入る。中身から取れたファイルは中身の値のまま(代表例 47・48)。
+- [x] 中身に撮影日時が無く `DATE_TAKEN` を持つファイルで、その値が入る。中身から取れたファイルは中身の値のまま(代表例 47・48)。
   - 証拠: Dart 側の test(channel を差し替える)、channel 名の突き合わせ test、Android エミュレータの manual。
-- [ ] ①②が無く `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)で、その値が入る(代表例 11・49・51)。この app で改名した後に読み込み直しても変わらない(代表例 50)。
+- [x] ①②が無く `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)で、その値が入る(代表例 11・49・51)。この app で改名した後に読み込み直しても変わらない(代表例 50)。
   - 証拠: Dart 側の test(channel を差し替える)、Android エミュレータの manual。
-- [ ] MediaStore に無いファイル・引けないときは「不明」のままで、読み込みは失敗しない。
+- [x] MediaStore に無いファイル・引けないときは「不明」のままで、読み込みは失敗しない。
   - 証拠: test、manual。
-- [ ] エミュレータで、カメラで撮った写真・動画が撮影日時の順に並び、日時トークンで撮影日が名前に入る。ダウンロードしたファイル・スクリーンショットにも作成日時が入る。
+- [x] エミュレータで、カメラで撮った写真・動画が撮影日時の順に並び、日時トークンで撮影日が名前に入る。ダウンロードしたファイル・スクリーンショットにも作成日時が入る。
   - 証拠: [manual-verification.md](manual-verification.md)。
+
+## machine検証範囲と引き受け先
+
+- machine(CI): channel の写像(`DATE_TAKEN` ミリ秒・`DATE_ADDED` 秒を端末の時刻帯へ、0 と想定外の値と失敗は「無い」)、Android の読み込みでの
+  順位(①が②③より先、②が③より先、どれも無ければ不明)、①がある file を照会も上書きもしないこと、補っても他の項目を変えないこと、照会の失敗で
+  読み込みを止めないこと、開き直し(REQ-021)でも補うこと、`fileSourceFor` が照会を渡すこと、channel 名が Kotlin 側にあること。
+- 端末(この task の manual): **Kotlin の照会そのもの**(container では build できない)、実際の写真・動画・ダウンロード相当の file で値が入ること、
+  改名して読み込み直しても変わらないこと(代表例 50)、`createPlatformFileSource` が Android で照会を渡す結線(composition root。test が通らない)。
 
 ## 作業記録
 
+- Kotlin: `MainActivity.kt` に channel `com.example.batch_rename_master/media_dates`(`datesOf`)。`MediaStore.Files`(`VOLUME_EXTERNAL`)を
+  `_data IN (…)` で 500 件ずつ照会し、`DATE_TAKEN`(ミリ秒)・`DATE_ADDED`(秒)を返す。main thread から外す(既存の pool)。API 29 未満は空。
+  **container に Android SDK が無いので Kotlin は build していない** — manual の `flutter run` が最初の build になる。
+- Dart: `lib/data/file_source/media_dates.dart`(port と channel 実装)、`AndroidFileSource._withMediaDates`(①の無い file だけをまとめて照会)、
+  `fileSourceFor` / `createPlatformFileSource` の結線。
+- 検証: `flutter test` 1286 PASS、`flutter analyze` No issues、`dart format` 0 changed。
+- mutation(範囲付き `flutter test test/spec_004_file_source`): M104(find を追随)・M707〜M716。初回 M709(①があっても上書き)が SURVIVED
+  → ①だけの file では照会が起きなかったため、①の無い file を混ぜた test にし、fake が尋ねられていない path も返すようにした。
+
+```text
+M104 | KILLED / M707 | KILLED / M708 | KILLED / M709 | KILLED(直した後)/ M710 | KILLED / M711 | KILLED
+M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
+```
+
+- 残余risk(安全網の穴。受容): `createPlatformFileSource` が `MethodChannelMediaDates` を渡す行は test が通らない(Linux では Android の
+  分岐に入らない)。外れると②③が黙って無くなる(不明が増えるだけで、データ損失・無断置換・偽の成功・権限・互換性のどれでもない)。
+  引き受け先: この task の manual(手順1の、Chrome でダウンロードした `.mhtml`)。
+
+### 実機確認
+
+- Manual attempt 1(2026-10-05、Android エミュレータ、build は `lib/`・`android/` = `0c7b80a`)— **FAIL(③が入らない)**
+  - 報告に build の成否は無い(Kotlin を含む build でやり直したかは未確認)。端末の `date`: `Mon Oct  5 01:38:11 GMT 2026`(時刻帯 GMT)。
+  - 手順1: `canon_2008.jpg` = `2008/5/30 15:56`(OK)、`movie_2010.mp4` = `2010/6/1 16:08`(GMT の端末なので期待どおり。OK)、
+    **`download.txt` = `不明`(NG。期待は置いた時刻)**。
+  - 手順2: 写真 → 動画 → `download.txt` の順(`download.txt` が不明のため末尾)。
+  - 手順3: 3つとも改名前と同じ値(OK。`download.txt` は不明のまま)。
+  - 手順4: 未確認(開発者が後で行う)。手順5: 未報告。
+  - ①(T02)は端末で値が入った。②③の経路(channel → Kotlin の照会 → Dart)のどこで値が落ちたかは未特定。
+  - 切り分け(同日、開発者が `adb shell content query`): MediaStore には改名後の3つの行があり、`download_r.txt` は
+    `date_added=1791164289`(2026-10-05 01:38:09 UTC。置いた時刻)。`canon_2008_r.jpg`・`movie_2010_r.mp4` も `datetaken=NULL`。
+    → **端末は③を持っている。app 側の照会で落ちている。** code を読んだ範囲では結線・channel 名・path の形・型の変換に誤りは見つからない。
+    候補: (a) Kotlin を含まない古い APK のまま(hot restart)で、channel が無い、(b) Kotlin の照会が例外になる、(c) 照会が 0 行を返す。
+  - 次の観測のため、照会の成否を logcat に残す変更を入れた(`95cd9e3`)。Kotlin は `BatchRenameMaster` tag で
+    `datesOf: N paths, M found` または `datesOf failed`(例外付き)、Dart は失敗を `media_dates: datesOf failed: …` で出す。
+    M714 の find を追随(範囲付き `flutter test test/spec_004_file_source` で 1件 KILLED)。
+  - 観測2(同日、`95cd9e3` を `flutter run` でやり直した build、端末は `sdk gphone16k x86 64`): `download_r.txt` は不明のまま。
+    logcat は `datesOf: 1 paths, 0 found` → **候補 (c): Kotlin の照会は例外なく動き、0 行を返す**((a) 古い APK、(b) 例外は否定)。
+    shell の `content query` では同じ path の行が見えるので、app から見える行か、`_data IN (?)` の一致のどちらかで落ちている。
+  - 一時的な診断を入れた(`c6806b1`、`TODO(010:T03)`。原因が分かったら消す): 0 件のとき、権限・SDK、条件なし・`_data =`・
+    `_display_name =`・親 folder の `LIKE` の件数を logcat に出す。
+  - 観測3(同日、`c6806b1` の build): `sdk=37 target=36 manager=true`。条件なしで 345 行見える(先頭は folder の行)が、
+    `_data =`・`_display_name =`・親 folder の `LIKE` はどれも **0 行**。→ 照会の書き方ではなく、**全ファイルアクセス権限があっても
+    adb で置いた file の行が app から見えない**。どの行が見えるか(folder 別・持ち主・種類)を診断に足した(`162e590`)。
+  - 観測4(同日、`162e590` の build): エミュレータで撮ったスクリーンショットを読み込むと `作成日時: 2026/10/5 05:27`、
+    logcat は `datesOf: 1 paths, 1 found`(誤って先に選んだカメラの写真は①で埋まるので照会しない。`datesOf` は1行だけ)。
+    → **app が作った・持ち主が別 app の普通の file は MediaStore から引ける。見えないのは adb(shell)で置いた file だけ。**
+    照会の仕方は変えない。
+  - 対応(`c5320d5`): 一時的な診断と成功時の log を外し、失敗時の logcat 出力(Kotlin `Log.w`、Dart `debugPrint`)だけ残した。
+    「shell が置いた file は見えない」を Kotlin と `MediaDatesPort` の doc に書いた。照会・Dart の写像は `0c7b80a` と同じ。
+    `flutter test` 1286 PASS、`flutter analyze`・`dart format`・`check_mutation_finds`(660)PASS。Kotlin の build は container で not-run。
+  - manual を直した: ③の確認を adb で置いた `download.txt` から、**エミュレータの Chrome で本当にダウンロードした `.mhtml`** に替えた。
+    写真・動画は①で埋まるので adb で置いたままにした。動画の期待値は端末の時刻帯で書いた(この端末は GMT)。
+    finding: [/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md](/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md)
+- Manual attempt 2(2026-10-05、Android エミュレータ `sdk gphone16k x86 64`、build は `ee104cf` = `lib/`・`android/` が `c5320d5` と同一)— **PASS**
+  - 端末の `date`: `Mon Oct  5 05:50:06 GMT 2026`(時刻帯 GMT。開発者の時計は日本時間で、表示は9時間前になるのが正しい)。
+  - 手順1: `canon_2008.jpg` = `2008/5/30 15:56`、`movie_2010.mp4` = `2010/6/1 16:08`、Chrome でダウンロードした `.mhtml` = `2026/10/05 05:53`
+    (ダウンロードは日本時間 14:54 = GMT 05:54。③。OK)。
+  - 手順2: 写真 → 動画の順、不明の警告なし(OK)。
+  - 手順3: `.mhtml` と2つを改名して読み込み直しても、どれも手順1と同じ(代表例 50。OK)。
+  - 手順4: カメラの写真(撮影 JST 15:03)= `2026/10/5 06:03`、動画(JST 15:04。保存先は `DCIM/Camera` ではなく `Movies`)= `2026/10/5 06:04`、
+    スクリーンショット(JST 15:05)= `2026/10/5 06:05`。日時トークン `[日時 作成 YYYYMMDD_HHmmss]` で撮った時刻が名前に入った(OK)。
+  - 手順5: 報告なし(後片付けは結果に影響しない)。
+  - manual の「動画は `DCIM/Camera` に入る」を、この観測に合わせて「`Movies` に入ることもある」と直した(記録のみ)。
+
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
+
+- Review attempt 1: `95c2cb0..0c7b80a`(全範囲) — **PASS** — 指摘なし
+  - 確認できた点: Kotlin の import・API level の守り(API 29 未満は早期 return)・`while` の中の `continue`・SQLite の変数上限に対する 500 件ずつの照会・
+    main thread への応答と `destroyed` の守り・例外が `result.error` → Dart で空の結果になること、Dart の順位と単位の変換と失敗の扱い、
+    `_withCreatedAt` が `FileEntry` の全項目を写すこと、path の形(`/storage/emulated/0` 起点)が MediaStore の `_data` と合うこと、
+    manual の URL が届くこと・adb の構文・UI の文言(`ファイルを選ぶ`・`別フォルダへ`・`すべて`)の実在・表示形式と期待値の一致、
+    M104・M707〜M716 の再現(11 KILLED)、`flutter test` 1286 PASS・analyze・format・workspace check。
+  - 安全網の穴(`createPlatformFileSource` の結線)は task が記録したとおり3条件に当たらず、受容が妥当。
+- Review attempt 2: `0c7b80a..afa443a`(差分。manual attempt 1 の切り分けと対応) — **PASS** — 指摘なし
+  - 確認できた点: 一時的な診断が残っていないこと、照会と Dart の写像が `0c7b80a` と同じで差分が失敗時の log と doc だけであること、
+    Kotlin の import・構文、M714 の find の一致と再現(範囲付き `flutter test test/spec_004_file_source` で 1 KILLED)、
+    `flutter test` 1286 PASS・analyze・format・workspace check、manual の改訂(件数・期待値・手順3の③の安定・UI 文言の実在・PowerShell)、
+    task.md の観測1〜4 と finding が commit と食い違わないこと、Evidence revision `c5320d5`。
+- SELF-CHECK: `afa443a..` 以降(attempt 2 の後)は `specs/` だけの記録(manual attempt 2 の結果、受け入れ条件の check、
+  manual の「動画は `Movies` に入ることもある」、status `done`、PR 番号)。`lib/`・`test/`・`tool/`・`android/`・依存・build 設定に差分なし。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手
-- Blocker category: none
-- Evidence revision: none
-- Next Agent action: T02 の完了を待ち、Kotlin の MediaStore 照会を足す
+- Last checkpoint: Manual attempt 2 PASS(build `ee104cf`)。受け入れ条件をすべて満たした
+- Blocker category: なし
+- Waiting for: なし
+- Evidence revision: `lib/`・`android/` が `c5320d5` と同一の build
+- Next Agent action: PR を作り、CI の後に merge する。010 のアルバム・全件から選ぶ画面は plan.md の「対象外」のとおり、開発者の指示で task を足す

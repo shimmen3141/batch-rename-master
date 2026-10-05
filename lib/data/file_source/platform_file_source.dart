@@ -3,6 +3,7 @@ import 'dart:io';
 import 'android_file_source.dart';
 import 'desktop_file_source.dart';
 import 'file_source.dart';
+import 'media_dates.dart';
 
 /// どの platform がどの [FileSource] を使うかの写像(004 REQ-011 / REQ-015)。
 ///
@@ -21,12 +22,14 @@ FileSource fileSourceFor({
   required BrowserPicker pick,
   BrowserReopener? reopen,
   String Function(String folder)? locationNameOf,
+  MediaDatesPort? mediaDates,
 }) {
   if (isAndroid) {
     return AndroidFileSource(
       pick: pick,
       reopen: reopen,
       locationNameOf: locationNameOf,
+      mediaDates: mediaDates,
     );
   }
   if (isDesktop) return const DesktopFileSource();
@@ -44,6 +47,9 @@ FileSource createPlatformFileSource({
   pick: pick,
   reopen: reopen,
   locationNameOf: locationNameOf,
+  // 004 REQ-010 の②③。channel の相手は Android の `MainActivity` だけで、
+  // 他の platform では `fileSourceFor` が使わない。
+  mediaDates: const MethodChannelMediaDates(),
 );
 
 /// 未対応プラットフォーム用の [FileSource]。常に [Failed] を返す(REQ-001/008)。
