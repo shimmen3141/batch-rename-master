@@ -1,0 +1,22 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T05",
+  "title": "「画像」「動画」から選ぶ画面を仕様にする",
+  "status": "done",
+  "dependsOn": [
+    "T03",
+    "T04"
+  ],
+  "covers": [
+    "004:REQ-011",
+    "004:REQ-012",
+    "004:REQ-016",
+    "004:REQ-021",
+    "004:REQ-022",
+    "004:REQ-023",
+    "004:REQ-024"
+  ],
+  "issue": null,
+  "pullRequest": 220,
+  "manualVerification": null
+}
