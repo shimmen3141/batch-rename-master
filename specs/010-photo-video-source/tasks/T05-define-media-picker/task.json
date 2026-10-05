@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T05",
   "title": "「画像」「動画」から選ぶ画面を仕様にする",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T03"
   ],

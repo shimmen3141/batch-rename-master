@@ -49,4 +49,6 @@
 - Last checkpoint: task を作った。入口の形を開発者に尋ねている
 - Blocker category: human-decision
 - Waiting for: 開発者(入口の形の選択)
+- Requested action: 会話で示した入口の形の選択肢から1つ選ぶ
+- Evidence revision: なし(code を変えない仕様の task)
 - Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
