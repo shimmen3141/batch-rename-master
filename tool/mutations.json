@@ -4809,6 +4809,13 @@
       "find": "    for (final left in _range.difference(next)) {\n      if (!_baseline.contains(left)) deselect(left);\n    }",
       "replace": "    for (final left in _range.difference(next)) {\n      deselect(left);\n    }",
       "note": "010:T07 範囲 drag で戻ると drag 前から選択済みの item も外す(004 REQ-023)"
+    },
+    {
+      "id": "M743",
+      "file": "lib/data/file_source/platform_file_source.dart",
+      "find": "      pickMediaPaths: pickMedia,\n",
+      "replace": "",
+      "note": "010:T07 Android の source に写真・動画の選択画面を渡さない(「写真・動画」が常に失敗する。004 REQ-022)"
     }
   ]
 }
