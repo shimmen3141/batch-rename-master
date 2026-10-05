@@ -104,12 +104,17 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
     manual の URL が届くこと・adb の構文・UI の文言(`ファイルを選ぶ`・`別フォルダへ`・`すべて`)の実在・表示形式と期待値の一致、
     M104・M707〜M716 の再現(11 KILLED)、`flutter test` 1286 PASS・analyze・format・workspace check。
   - 安全網の穴(`createPlatformFileSource` の結線)は task が記録したとおり3条件に当たらず、受容が妥当。
+- Review attempt 2: `0c7b80a..afa443a`(差分。manual attempt 1 の切り分けと対応) — **PASS** — 指摘なし
+  - 確認できた点: 一時的な診断が残っていないこと、照会と Dart の写像が `0c7b80a` と同じで差分が失敗時の log と doc だけであること、
+    Kotlin の import・構文、M714 の find の一致と再現(範囲付き `flutter test test/spec_004_file_source` で 1 KILLED)、
+    `flutter test` 1286 PASS・analyze・format・workspace check、manual の改訂(件数・期待値・手順3の③の安定・UI 文言の実在・PowerShell)、
+    task.md の観測1〜4 と finding が commit と食い違わないこと、Evidence revision `c5320d5`。
 
 ## Current state / handoff
 
-- Last checkpoint: Manual attempt 1 FAIL の原因は手順の fixture(adb で置いた file は app から見えない)。診断を外し、manual を直した。独立review(差分)の後に manual attempt 2
+- Last checkpoint: 独立review attempt 2 PASS(`0c7b80a..afa443a`)。manual attempt 2 を待つ
 - Blocker category: manual-evidence
-- Waiting for: 独立review(差分 `0c7b80a..HEAD`)、その後 開発者(Android エミュレータでの実機確認)
+- Waiting for: 開発者(Android エミュレータでの実機確認 attempt 2)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
 - Evidence revision: `lib/`・`android/` が `c5320d5` と同一の build
 - Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を作り、merge する
