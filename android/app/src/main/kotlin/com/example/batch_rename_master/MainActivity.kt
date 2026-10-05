@@ -115,6 +115,8 @@ class MainActivity : FlutterActivity() {
             val response = try {
                 val dates = queryMediaDates(paths)
                 Log.i(logTag, "datesOf: ${paths.size} paths, ${dates.size} found")
+                // TODO(010:T03): 切り分け用の一時的な診断。原因が分かったら消す。
+                if (dates.size < paths.distinct().size) diagnoseMediaDates(paths - dates.keys)
                 DatesResponse.Success(dates)
             } catch (error: Exception) {
                 Log.w(logTag, "datesOf failed", error)
@@ -162,6 +164,52 @@ class MainActivity : FlutterActivity() {
                 }
         }
         return dates
+    }
+
+    // TODO(010:T03): 切り分け用の一時的な診断。原因が分かったら消す。
+    private fun diagnoseMediaDates(missing: List<String>) {
+        val uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val manager = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            Environment.isExternalStorageManager()
+        Log.i(
+            logTag,
+            "diag: sdk=${Build.VERSION.SDK_INT} " +
+                "target=${applicationInfo.targetSdkVersion} manager=$manager",
+        )
+        fun probe(label: String, selection: String?, args: Array<String>?) {
+            try {
+                contentResolver.query(
+                    uri,
+                    arrayOf(MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.DATE_ADDED),
+                    selection,
+                    args,
+                    null,
+                )?.use { cursor ->
+                    val rows = mutableListOf<String>()
+                    while (cursor.moveToNext() && rows.size < 5) {
+                        rows.add("${cursor.getString(0)}|${cursor.getString(1)}")
+                    }
+                    Log.i(logTag, "diag $label: count=${cursor.count} rows=$rows")
+                } ?: Log.i(logTag, "diag $label: cursor=null")
+            } catch (error: Exception) {
+                Log.w(logTag, "diag $label: failed", error)
+            }
+        }
+        val path = missing.first()
+        val name = path.substringAfterLast('/')
+        val parent = path.substringBeforeLast('/')
+        Log.i(logTag, "diag path=[$path]")
+        probe("all", null, null)
+        probe("eq", MediaStore.MediaColumns.DATA + " = ?", arrayOf(path))
+        probe("name", MediaStore.MediaColumns.DISPLAY_NAME + " = ?", arrayOf(name))
+        probe("parent", MediaStore.MediaColumns.DATA + " LIKE ?", arrayOf("$parent/%"))
+        try {
+            val single = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            contentResolver.query(single, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
+                ?.use { Log.i(logTag, "diag primary all: count=${it.count}") }
+        } catch (error: Exception) {
+            Log.w(logTag, "diag primary: failed", error)
+        }
     }
 
     override fun onDestroy() {
