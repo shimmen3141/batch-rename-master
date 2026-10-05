@@ -93,9 +93,27 @@ M742 | SURVIVED | drag_selection_controller.dart | 010:T07 範囲 drag で戻る
 - machine(上の test): 種類の一覧、選択画面の並び(見出しの下の item・再生時間)、絞り込みと選択の保持、押す・範囲 drag・全選択・解除・確定・閉じる、空と失敗の区別、少しずつ読む範囲、帯の分岐と警告を出さないこと、Android の source の結果。
 - 端末(この task の manual): 実際の写真・動画とアルバムが MediaStore から並ぶこと(`T06` の Kotlin の照会・並び順の式・`LIMIT`/`OFFSET`・`loadThumbnail` を含む)、サムネイル、スクロールと drag の操作感、改名後に新しい名前で並ぶこと、adb で置いたファイルが並ばないこと、release build の lint(`T06` の S-1)。
 
+### 独立review
+
+- attempt 1: range `4f1d75c..b753a23`(全範囲)。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。**判定 PASS。**
+  - 確認できた点: 種類の統合と旧参照の残りが無いこと、帯の分岐(選択画面のときだけ警告を抑え、他の経路は従来どおり)、`DragSelectionController` の既存の利用者(002 の一覧・browser)は `displayOrder` を渡しておらず、1列の方式のロジックは変わっていないこと、`pickMedia` と composition root の結線(場所の名前を覚えてから読み込む順序)、選択の保持・全選択・解除・確定・`_generation` の扱い。reviewer 自身が M104・M119・M120・M728〜M743 の19件を回し直して全件 KILLED、`flutter analyze` も確認した。
+  - S-1(P3): 位置の key が絞り込みを変えても捨てられず溜まる。**直した**(`25a19bf`: `DragSelectionController.forgetRows` を足し、絞り込みを変えたら呼ぶ)。
+  - S-2(P3): サムネイルを上限なく覚える。**直した**(`25a19bf`: `MediaThumbnailCache` が最近使った 400 件までを覚える)。
+  - S-3(P3): 範囲 drag の `indexOf` が指を動かすたびに全件を探す。**直さない。** 数千件でも1回の探索は軽く、操作感は manual の手順5で見る。遅ければこの task で直す。
+  - `25a19bf` の検証: `media_picker_view_test` PASS(+19)、`flutter test` PASS(+1325)、`flutter analyze` No issues、`check_mutation_finds.py` PASS(690)。mutation M744〜M746 を足し、範囲 `flutter test test/spec_004_file_source/media_picker_view_test.dart` で回した:
+
+```text
+M744 | KILLED | media_picker_view.dart | 010:T07 サムネイルを上限なく覚える
+M745 | KILLED | media_picker_view.dart | 010:T07 使い直したサムネイルを新しい側へ移さない
+M746 | KILLED | drag_selection_controller.dart | 010:T07 位置の key を捨てない
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  - 残余risk: 絞り込みの切り替えで `forgetRows` を**呼ぶこと**は test が見ていない(呼び出しを消しても落ちない)。外れても起きるのはメモリの増加だけで、データ損失・偽の成功などには当たらないので受容する。
+
 ## Current state / handoff
 
-- Last checkpoint: verification(実装 `f9f9790`、test `b6cde20`)。machine の検証と mutation が PASS
+- Last checkpoint: implementation(`25a19bf`。review attempt 1 の S-1・S-2 を直した)。machine の検証と mutation が PASS
 - Blocker category: なし
-- Evidence revision: `f9f9790`(`lib/`・`android/` はこれ以後変わっていない)
-- Next Agent action: 独立review(base `4f1d75c`..head)を起動する。PASS なら manual を依頼する
+- Evidence revision: `25a19bf`
+- Next Agent action: 差分review attempt 2(`b753a23..head`)を起動する。PASS なら manual を依頼する
