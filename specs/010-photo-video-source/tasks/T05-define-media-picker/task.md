@@ -43,12 +43,13 @@
 ## 作業記録
 
 - 2026-10-05 開発者が「仕様の相談から始めてください」と指示。task を作り、論点を一つずつ尋ねる。
+- 2026-10-05 入口の形: 開発者が案A(全件から始め、アルバムで絞る)を選んだ(plan.md の「人間の決定」)。
 
 ## Current state / handoff
 
-- Last checkpoint: task を作った。入口の形を開発者に尋ねている
+- Last checkpoint: 入口の形が決まった(案A)。画像と動画を分けるかを尋ねている
 - Blocker category: human-decision
-- Waiting for: 開発者(入口の形の選択)
-- Requested action: 会話で示した入口の形の選択肢から1つ選ぶ
+- Waiting for: 開発者(画像と動画を分けるかの選択)
+- Requested action: 会話で示した選択肢から1つ選ぶ
 - Evidence revision: なし(code を変えない仕様の task)
 - Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
