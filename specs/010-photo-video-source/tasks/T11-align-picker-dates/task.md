@@ -101,17 +101,17 @@ M757 | SURVIVED | 010:T11 絞り込みを変えても前の絞り込みのまま
 
 - attempt 1: range `537c8d2..a4e23d7`(全範囲。spec の差分を含む)。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。**判定 PASS、指摘なし。**
   - 確認できた点: 実装と承認済みの REQ-022・代表例 67〜69 の一致、ダイアログの文言が仕様と一字一句同じ、isolate へ渡す値が送れる型であること、キャッシュの鍵、`_load` の generation と mounted、並べ終わるまで格子を出さないこと、T07 の対策(位置の key・サムネイルの上限)が残っていること、Kotlin の `page` → `list` に残骸が無いこと、spec・plan・task・mutation の表の記録の整合(M757 が等価であることもコードで確認)。reviewer 自身が `flutter test`(+1344)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(698)・`check_normative_terms.py`・`workspace.py check` と、mutation 28件(28 KILLED)を回した。
+- SELF-CHECK: range `a4e23d7..` 以降は `specs/` の記録だけ(review・実機確認の記録、status、PR 番号)。`lib/`・`test/`・`tool/`・`android/`・依存に差分は無く、PASS した判定を書き換えていない。
 
 ### 実機確認
 
 - 対象: `lib/`・`android/` が `6086f77` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T11-align-picker-dates/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T11-align-picker-dates/manual-verification.md)。
-- attempt 1: 依頼中(2026-10-05)。
+- attempt 1(2026-10-05、build は `6086f77` と同じ `lib/`・`android/`): **PASS。** 開発者の報告「確認事項について、問題ありませんでした」。手順1〜5(ダウンロードした古い写真が 2008/5/30 の見出しに並び作成日時も同じ・カメラとスクリーンショットは今日・ⓘ とダイアログ・従来の操作・開く速さ)がすべて期待どおり。
+  - 開発者の所感(この task とは無関係): 「別フォルダへ」は画面右上、選択画面・browser の「← リネーム画面へ」は左下にあり、画面を切り替える同じ種類の操作なのに場所が違って一瞬迷う。扱いは会話で相談中(この task の受け入れには影響しない)。
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1 PASS(`537c8d2..a4e23d7`)
-- Blocker category: manual-evidence
+- Last checkpoint: handoff。独立review attempt 1 PASS(`537c8d2..a4e23d7`)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 1 PASS
+- Blocker category: なし
 - Evidence revision: `6086f77`
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
-- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
+- Next Agent action: PR の CI が通れば merge 条件を確かめて merge する
