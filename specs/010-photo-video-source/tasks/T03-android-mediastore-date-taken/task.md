@@ -79,6 +79,9 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
     shell の `content query` では同じ path の行が見えるので、app から見える行か、`_data IN (?)` の一致のどちらかで落ちている。
   - 一時的な診断を入れた(`c6806b1`、`TODO(010:T03)`。原因が分かったら消す): 0 件のとき、権限・SDK、条件なし・`_data =`・
     `_display_name =`・親 folder の `LIKE` の件数を logcat に出す。
+  - 観測3(同日、`c6806b1` の build): `sdk=37 target=36 manager=true`。条件なしで 345 行見える(先頭は folder の行)が、
+    `_data =`・`_display_name =`・親 folder の `LIKE` はどれも **0 行**。→ 照会の書き方ではなく、**全ファイルアクセス権限があっても
+    adb で置いた file の行が app から見えない**。どの行が見えるか(folder 別・持ち主・種類)を診断に足した。
 
 ### 独立review
 
@@ -94,7 +97,7 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 
 ## Current state / handoff
 
-- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。app の照会が 0 行を返す。診断 build の logcat を待つ
+- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。app から対象の行が見えない。見える範囲の診断を待つ
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータでの実機確認。Kotlin の最初の build を兼ねる)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
