@@ -25,7 +25,7 @@
 
 ## 受け入れ条件
 
-- [ ] 004 の spec 差分を開発者が承認している。
+- [x] 004 の spec 差分を開発者が承認している(2026-10-05、「承認します。続けてください。」)。
 - [ ] `DATE_TAKEN` が無く中身に日時を持つ item は、中身の日時の見出しに、その順で並ぶ(代表例 67)。中身にも日時が無ければ `DATE_ADDED`(代表例 68)。`DATE_TAKEN` がある item は従来どおり。
   - 証拠: unit / widget test(port を差し替える)、端末の manual(ダウンロードした古い写真)。
 - [ ] 種類とアルバムの絞り込み、選択の保持、範囲 drag・全選択・解除・確定は従来どおり動く。
@@ -44,9 +44,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: spec 差分を書いた(承認待ち)
-- Blocker category: decision
+- Last checkpoint: spec 差分の承認(2026-10-05)
+- Blocker category: なし
 - Evidence revision: なし
-- Waiting for: 開発者(004 の spec 差分の承認)
-- Requested action: spec.md の REQ-022 の差分、代表例 67〜69、「010:T11 由来の更新」を読み、承認か修正を伝える
-- Next Agent action: 承認を記録して実装に入る
+- Next Agent action: 実装(全件の一覧を受け取り、`DATE_TAKEN` が無い item だけ中身を読んで app の側で並べる。ⓘ とダイアログ)
