@@ -46,14 +46,14 @@
 - 2026-10-05 入口の形: 開発者が案A(全件から始め、アルバムで絞る)を選んだ(plan.md の「人間の決定」)。
 - 2026-10-05 画像と動画: 開発者が案A(「写真・動画」の1つにまとめ、画面の中で絞る)を選んだ。
 - 2026-10-05 見せ方: 開発者が案A(格子 + 日付の見出し)を選び、「見出しを押すとその日をまとめて選ぶ」を足した。実装の task は分ける(plan.md)。
+- 2026-10-05 desktop: 開発者が案A(「写真・動画」で OS のファイル選択画面を絞り込む)を選んだ。
 - 既定として仕様に書く(尋ねない。従来の振る舞いに揃える): 選び方は app 内 browser の REQ-020 と揃える(1件ずつ・長押し drag の範囲・
   全選択・まとめて解除。全選択の範囲は今の絞り込みとアルバム)、確定は REQ-004 の置き換え、開き直しは `008:T24` の申し送りどおり読み込み元を選択済みで開く。
 
 ## Current state / handoff
 
-- Last checkpoint: 入口・まとめ方・見せ方が決まった。desktop の扱いを尋ねている
-- Blocker category: human-decision
-- Waiting for: 開発者(desktop の扱いの選択)
-- Requested action: 会話で示した選択肢から1つ選ぶ
+- Last checkpoint: 開発者に尋ねる論点が決まった。004 の spec 差分を書いている
+- Blocker category: なし
+- Waiting for: なし
 - Evidence revision: なし(code を変えない仕様の task)
 - Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
