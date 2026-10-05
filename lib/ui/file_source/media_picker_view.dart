@@ -48,11 +48,19 @@ Key mediaPickerKindSegmentKey(MediaKindFilter kind) =>
 /// 格子の1件。key は path で作る(表示中の item を test が特定するため)。
 Key mediaPickerItemKey(String path) => Key('media-picker-item-$path');
 
-/// 日付の見出し。`day` が `null` なら「日付不明」。
+/// 日付の見出し。`day` が `null` なら「日付不明」。押すとその日をまとめて選ぶ・外す
+/// (`010:T08`)。
 Key mediaPickerDayHeaderKey(DateTime? day) => Key(
   day == null
       ? 'media-picker-day-unknown'
       : 'media-picker-day-${day.year}-${day.month}-${day.day}',
+);
+
+/// 日付の見出しの右端の印(その日がすべて選ばれているか。`010:T08`)。
+Key mediaPickerDayCheckKey(DateTime? day) => Key(
+  day == null
+      ? 'media-picker-day-check-unknown'
+      : 'media-picker-day-check-${day.year}-${day.month}-${day.day}',
 );
 
 /// 動画の再生時間の表示。
@@ -108,8 +116,8 @@ String mediaDurationLabel(Duration duration) {
 /// **形は app 内 browser に揃える**(`T07` の task.md の想定。2026-10-05 に開発者が
 /// 「いったんこの案で」とした): header に `×`(選択中だけ)・題名・ケバブ、その下に
 /// アルバムと種類の切り替え、日付の見出しの下にサムネイルの格子、footer に
-/// 「← リネーム画面へ」と「確定」。**日付の見出しを押してその日をまとめて選ぶ
-/// 操作は `T08`** で足す。
+/// 「← リネーム画面へ」と「確定」。日付の見出しを押すと、その日をまとめて選ぶ・
+/// 外す(`T08`)。
 class MediaPickerView extends StatefulWidget {
   const MediaPickerView({
     super.key,
@@ -267,6 +275,70 @@ class _MediaPickerViewState extends State<MediaPickerView> {
     barrierColor: designDialogBarrierColor,
     builder: (dialogContext) => const MediaDateHelpDialog(),
   );
+
+  /// 見出しの日の item(**今の絞り込みで並んでいるもの**)をまとめて選ぶ。それらが
+  /// すべて選択済みなら、まとめて解除する(REQ-023。代表例 58・59。`010:T08`)。
+  ///
+  /// **絞り込みで見えていない同じ日の選択には触れない** — 見えていないものを
+  /// 見出しの1押しで外すと、何が外れたか分からない。
+  void _toggleDay(List<MediaItem> items) {
+    _dragSelection.finish();
+    final paths = [for (final item in items) item.path];
+    setState(() {
+      if (paths.every(_selected.contains)) {
+        _selected.removeAll(paths);
+      } else {
+        _selected.addAll(paths);
+      }
+    });
+  }
+
+  /// 日付の見出し。**押すとその日をまとめて選ぶ・外す**(`010:T08`)。右端の丸い印は、
+  /// その日の item がすべて選ばれているかを示す(選択の印は item と同じ部品)。
+  Widget _dayHeader(
+    AppColors colors,
+    DateTime? day,
+    List<MediaItem> items, {
+    required DateTime now,
+  }) {
+    final label = mediaDayLabel(day, now: now);
+    final allSelected = items.every((item) => _selected.contains(item.path));
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        hint: allSelected ? 'この日の選択をまとめて解除' : 'この日をまとめて選ぶ',
+        child: InkWell(
+          key: mediaPickerDayHeaderKey(day),
+          onTap: () => _toggleDay(items),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 6, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                // 押下は見出し全体で受ける(印だけ押させない)。
+                IgnorePointer(
+                  child: SelectionCheckbox(
+                    key: mediaPickerDayCheckKey(day),
+                    value: allSelected,
+                    onChanged: (_) {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 選択をすべて解除する。**絞り込みで見えていない選択も外す**(REQ-023)。
   void _clearSelection() {
@@ -577,20 +649,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
         controller: _scrollController,
         slivers: [
           for (final (day, items) in _groupByDay(_items)) ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                key: mediaPickerDayHeaderKey(day),
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-                child: Text(
-                  mediaDayLabel(day, now: now),
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: AppFontSize.bodyLarge,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
+            SliverToBoxAdapter(child: _dayHeader(colors, day, items, now: now)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               sliver: SliverGrid.builder(

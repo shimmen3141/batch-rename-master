@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T08",
   "title": "「写真・動画」の選択画面で見出しを押してその日をまとめて選ぶ",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [
     "T07",
     "T11"

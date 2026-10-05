@@ -4893,6 +4893,34 @@
       "find": "        all = await withDisplayDates(items, widget.contentDates);",
       "replace": "        all = sortedByDate(items);",
       "note": "010:T11 中身の日時を読まずに並べる(DATE_TAKEN が無い item が DATE_ADDED で並ぶ。004 REQ-022 / 代表例 67)"
+    },
+    {
+      "id": "M761",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "      if (paths.every(_selected.contains)) {",
+      "replace": "      if (paths.any(_selected.contains)) {",
+      "note": "010:T08 一部だけ選んだ日の見出しで、まとめて外す(004 REQ-023 / 代表例 59)"
+    },
+    {
+      "id": "M762",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "        _selected.removeAll(paths);",
+      "replace": "        _selected.clear();",
+      "note": "010:T08 見出しで外すと、見えていない選択も外す(004 REQ-023)"
+    },
+    {
+      "id": "M763",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    final allSelected = items.every((item) => _selected.contains(item.path));",
+      "replace": "    final allSelected = items.any((item) => _selected.contains(item.path));",
+      "note": "010:T08 一部だけ選んだ日にも見出しの印を付ける"
+    },
+    {
+      "id": "M764",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "          onTap: () => _toggleDay(items),",
+      "replace": "          onTap: () => _toggleDay(_items),",
+      "note": "010:T08 見出しで、その日ではなく並んでいる全件を選ぶ(004 REQ-023 / 代表例 58)"
     }
   ]
 }
