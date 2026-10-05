@@ -57,6 +57,17 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
   分岐に入らない)。外れると②③が黙って無くなる(不明が増えるだけで、データ損失・無断置換・偽の成功・権限・互換性のどれでもない)。
   引き受け先: この task の manual(手順1の `download.txt`)。
 
+### 実機確認
+
+- Manual attempt 1(2026-10-05、Android エミュレータ、build は `lib/`・`android/` = `0c7b80a`)— **FAIL(③が入らない)**
+  - `flutter run` の build は通った(Kotlin の最初の build)。端末の `date`: `Mon Oct  5 01:38:11 GMT 2026`(時刻帯 GMT)。
+  - 手順1: `canon_2008.jpg` = `2008/5/30 15:56`(OK)、`movie_2010.mp4` = `2010/6/1 16:08`(GMT の端末なので期待どおり。OK)、
+    **`download.txt` = `不明`(NG。期待は置いた時刻)**。
+  - 手順2: 写真 → 動画 → `download.txt` の順(`download.txt` が不明のため末尾)。
+  - 手順3: 3つとも改名前と同じ値(OK。`download.txt` は不明のまま)。
+  - 手順4: 未確認(開発者が後で行う)。手順5: 未報告。
+  - ①(T02)は端末で値が入った。②③の経路(channel → Kotlin の照会 → Dart)のどこで値が落ちたかは未特定。
+
 ### 独立review
 
 reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。
@@ -71,7 +82,7 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`95c2cb0..0c7b80a`)。code を凍結し、実機確認を待つ
+- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。原因を切り分け中
 - Blocker category: manual-evidence
 - Waiting for: 開発者(Android エミュレータでの実機確認。Kotlin の最初の build を兼ねる)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
