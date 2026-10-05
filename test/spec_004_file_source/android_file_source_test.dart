@@ -283,6 +283,81 @@ void main() {
     });
   });
 
+  group('REQ-022 / REQ-023: 写真・動画の選択画面から読み込む(010:T07)', () {
+    test('folder をまたいで選べ、所属 folder はファイルごとの親 folder になる', () async {
+      final camera = Directory(p.join(dir.path, 'DCIM', 'Camera'))
+        ..createSync(recursive: true);
+      final shots = Directory(p.join(dir.path, 'Pictures', 'Screenshots'))
+        ..createSync(recursive: true);
+      final a = p.join(camera.path, 'a.jpg');
+      final b = p.join(shots.path, 'b.png');
+      File(a).writeAsStringSync('x');
+      File(b).writeAsStringSync('y');
+      final source = AndroidFileSource(
+        pick: () async => null,
+        pickMediaPaths: () async => [a, b],
+        locationNameOf: (folder) => 'loc:${p.basename(folder)}',
+      );
+
+      final result = await source.pickMedia();
+
+      final entries = (result as Picked).entries;
+      expect(entries.map((e) => e.sourceHandle), [a, b]);
+      expect(entries.map((e) => e.sourceFolder), [camera.path, shots.path]);
+      expect(entries.map((e) => e.sourceLocation), [
+        'loc:Camera',
+        'loc:Screenshots',
+      ]);
+    });
+
+    test('作成日時は browser と同じく MediaStore の日時で補う(REQ-010)', () async {
+      final path = await makeFile('shot.png');
+      final added = DateTime(2026, 10, 5, 14, 54);
+      final source = AndroidFileSource(
+        pick: () async => null,
+        pickMediaPaths: () async => [path],
+        mediaDates: _FakeMediaDates({path: MediaDates(added: added)}),
+      );
+
+      final entries = ((await source.pickMedia()) as Picked).entries;
+
+      expect(entries.single.createdAt, added);
+    });
+
+    test('選んだ後に消えたファイルは結果に含めない(REQ-023 / REQ-001)', () async {
+      final kept = await makeFile('kept.jpg');
+      final source = AndroidFileSource(
+        pick: () async => null,
+        pickMediaPaths: () async => [kept, p.join(dir.path, 'gone.jpg')],
+      );
+
+      final entries = ((await source.pickMedia()) as Picked).entries;
+
+      expect(entries.map((e) => e.name), ['kept.jpg']);
+    });
+
+    test('閉じたら Cancelled、投げたら Failed、画面が無ければ Failed', () async {
+      expect(
+        await AndroidFileSource(
+          pick: () async => null,
+          pickMediaPaths: () async => null,
+        ).pickMedia(),
+        isA<Cancelled>(),
+      );
+      expect(
+        await AndroidFileSource(
+          pick: () async => null,
+          pickMediaPaths: () async => throw StateError('boom'),
+        ).pickMedia(),
+        isA<Failed>(),
+      );
+      expect(
+        await AndroidFileSource(pick: () async => null).pickMedia(),
+        isA<Failed>(),
+      );
+    });
+  });
+
   group('004 REQ-001: 決定していない / 失敗を型で区別する', () {
     test('browserを閉じたら Cancelled', () async {
       final source = AndroidFileSource(pick: () async => null);

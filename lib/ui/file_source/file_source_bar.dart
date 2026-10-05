@@ -16,13 +16,14 @@ import '../theme/app_typography.dart';
 
 /// ファイルの読み込み入口(004 REQ-007/008/011/012)。
 ///
-/// 「ファイルを選ぶ」→ **種類を選ぶ**(desktop は画像 / 動画 / 文書 / すべて、
-/// **Android は文書を除く3つ**。004 REQ-011)→
-/// 種類に応じた選択 UI(Android は app 内 browser)で**フォルダを辿って
-/// ファイルを複数選択** → 確定した集合で
+/// 「ファイルを選ぶ」→ **種類を選ぶ**(desktop は写真・動画 / 文書 / すべて、
+/// **Android は文書を除く2つ**。004 REQ-011)→
+/// 種類に応じた選択 UI(Android の「写真・動画」は選択画面、「すべて」は app 内
+/// browser)で**ファイルを複数選択** → 確定した集合で
 /// 002 のリストを**置き換える**(蓄積しない)。
 /// [Cancelled] はリスト無変化・通知なし、[Failed] は無変化のまま理由を通知する。
-/// 選択が**複数の親フォルダに跨っていたら警告**する(REQ-012)。
+/// 選択が**複数の親フォルダに跨っていたら警告**する(REQ-012。写真・動画の選択画面
+/// からの読み込みを除く)。
 ///
 /// **Android では全ファイルアクセスが要る**(013 REQ-001)。権限が無い間は
 /// 読み込ませず、この位置に理由の説明と設定導線を出す。
@@ -64,7 +65,7 @@ class FileSourceBar extends StatefulWidget {
 
   /// このplatformで出す種類(004 REQ-011)。
   ///
-  /// **Android は3つ、desktop は4つ。** 判定は composition root が行う —
+  /// **Android は2つ、desktop は3つ。** 判定は composition root が行う —
   /// ここが platform を見ない。
   final List<FileKind> kinds;
 
@@ -244,27 +245,41 @@ class _FileSourceBarState extends State<FileSourceBar>
     setState(() => _settingsUnavailable = !opened);
   }
 
+  /// [kind] の読み込みをこの source が持っているか(REQ-011)。
+  ///
+  /// 「写真・動画」は選択画面を持つ source([MediaPickSource]。Android)だけが
+  /// 読み込める。**desktop の「写真・動画」は `010:T10` で OS の選択画面を絞り込む**
+  /// までは未対応として示す。
+  bool _supports(FileKind kind) =>
+      kind != FileKind.media || widget.source is MediaPickSource;
+
   Future<void> _load(BuildContext context, FileKind kind) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
 
-    // 画像・動画は枠のみ(中身は写真機能)。未実装であることを伝える(REQ-011)。
-    if (!kind.isImplemented) {
+    if (!_supports(kind)) {
       if (messenger != null) {
         showAppToast(
           messenger,
           key: const Key('file-kind-unimplemented'),
           tone: ToastTone.info,
-          content: Text('「${kind.label}」の読み込みは写真機能で対応予定です'),
+          content: Text('「${kind.label}」の読み込みはこの端末では対応予定です'),
         );
       }
       return;
     }
 
-    final error = await loadFilesInto(
-      widget.source,
-      widget.controller.setFiles,
-      mimeTypes: kind.mimeTypes,
-    );
+    final source = widget.source;
+    final fromMediaPicker = kind == FileKind.media && source is MediaPickSource;
+    final error = fromMediaPicker
+        ? await applyPick(
+            (source as MediaPickSource).pickMedia,
+            widget.controller.setFiles,
+          )
+        : await loadFilesInto(
+            source,
+            widget.controller.setFiles,
+            mimeTypes: kind.mimeTypes,
+          );
     if (messenger == null) return;
     // Cancelled と成功は通知しない(REQ-008)。
     if (error != null) {
@@ -277,7 +292,11 @@ class _FileSourceBarState extends State<FileSourceBar>
       return;
     }
     // 複数の親フォルダに跨っていたら警告する(REQ-012)。読み込み自体は行う。
-    if (FileSourceBar.distinctLocationCount(widget.controller) > 1) {
+    // **写真・動画の選択画面から読み込んだときは警告しない** — 跨いで選ぶことが
+    // その画面の目的であり、どの folder のファイルかは行の場所で分かる
+    // (REQ-012。2026-10-05 開発者の決定)。
+    if (!fromMediaPicker &&
+        FileSourceBar.distinctLocationCount(widget.controller) > 1) {
       showAppToast(
         messenger,
         key: const Key('multi-folder-warning'),
@@ -326,11 +345,11 @@ class _FileSourceBarState extends State<FileSourceBar>
                     style: TextStyle(color: colors.textPrimary),
                   ),
                   subtitle: Text(
-                    kind.isImplemented
+                    _supports(kind)
                         ? kind.description
                         : '${kind.description}（未実装）',
                     style: TextStyle(
-                      color: kind.isImplemented
+                      color: _supports(kind)
                           ? colors.textSecondary
                           : colors.textDisabled,
                       fontSize: AppFontSize.label,
@@ -349,8 +368,7 @@ class _FileSourceBarState extends State<FileSourceBar>
   }
 
   static IconData _iconOf(FileKind kind) => switch (kind) {
-    FileKind.image => Icons.image_outlined,
-    FileKind.video => Icons.movie_outlined,
+    FileKind.media => Icons.photo_library_outlined,
     FileKind.document => Icons.description_outlined,
     FileKind.all => Icons.folder_open,
   };

@@ -265,7 +265,9 @@ void main() {
     expect(controller.items.map((e) => e.name), ['b.txt']);
   });
 
-  testWidgets('種類「画像」「動画」は枠のみで、未実装であることを示す(REQ-011)', (tester) async {
+  testWidgets('選択画面を持たない source(desktop)の「写真・動画」は未対応として示す(REQ-011。T10 まで)', (
+    tester,
+  ) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
@@ -274,15 +276,71 @@ void main() {
     );
     await _pump(tester, source, controller);
 
-    await _pickKind(tester, FileKind.image);
+    await tester.tap(_pickFiles);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('（未実装）'), findsOneWidget);
+    await tester.tap(find.byKey(Key('file-kind-${FileKind.media.name}')));
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('file-kind-unimplemented')), findsOneWidget);
-    expect(find.textContaining('写真機能で対応予定'), findsOneWidget);
     // **案内の見せ方**(`008:T25`。以前の青い全面背景を置き換えた)。
     expect(find.byKey(toastToneIconKey(ToastTone.info)), findsOneWidget);
     // 読み込みは行われない(ソースも呼ばれない)。
     expect(controller.items, isEmpty);
     expect(source.fileCallCount, 0);
+  });
+
+  testWidgets('例56: 「写真・動画」は選択画面から読み込み、フォルダが跨っても警告しない(REQ-012 / REQ-023)', (
+    tester,
+  ) async {
+    final controller = FileListController(
+      files: [_entry('old.txt', handle: 'h:o')],
+    );
+    final source = _MediaFakeSource([
+      Picked([
+        _entry('a.jpg', handle: '/s/DCIM/Camera/a.jpg', location: 'Camera'),
+        _entry(
+          'b.png',
+          handle: '/s/Pictures/Screenshots/b.png',
+          location: 'Screenshots',
+        ),
+      ]),
+    ]);
+    await _pump(tester, source, controller);
+
+    await tester.tap(_pickFiles);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('（未実装）'), findsNothing);
+    await tester.tap(find.byKey(Key('file-kind-${FileKind.media.name}')));
+    await tester.pumpAndSettle();
+
+    expect(source.mediaCallCount, 1);
+    // browser(pickFiles)は開かない。
+    expect(source.fileCallCount, 0);
+    // 置き換え(REQ-004)。
+    expect(controller.items.map((e) => e.name), ['a.jpg', 'b.png']);
+    expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+  });
+
+  testWidgets('「写真・動画」の Cancelled は無変化、Failed は理由を通知する(REQ-008)', (
+    tester,
+  ) async {
+    final controller = FileListController(
+      files: [_entry('old.txt', handle: 'h:o')],
+    );
+    final source = _MediaFakeSource([
+      const Cancelled(),
+      const Failed(PickError(PickErrorKind.unknown, '開けません')),
+    ]);
+    await _pump(tester, source, controller);
+
+    await _pickKind(tester, FileKind.media);
+    expect(controller.items.map((e) => e.name), ['old.txt']);
+    expect(find.byKey(const Key('file-source-error')), findsNothing);
+
+    await _pickKind(tester, FileKind.media);
+    expect(controller.items.map((e) => e.name), ['old.txt']);
+    expect(find.byKey(const Key('file-source-error')), findsOneWidget);
   });
 
   testWidgets('種類「文書」は MIME フィルタを渡して読み込む(REQ-011)', (tester) async {
@@ -387,4 +445,21 @@ void main() {
     expect(find.text('IMG_01.jpg'), findsOneWidget);
     expect(find.text('IMG_02.jpg'), findsOneWidget);
   });
+}
+
+/// 写真・動画の選択画面を持つ fake(Android の source の代わり)。
+class _MediaFakeSource extends FakeFileSource implements MediaPickSource {
+  _MediaFakeSource(List<PickResult> mediaResults)
+    : _mediaResults = List.of(mediaResults);
+
+  final List<PickResult> _mediaResults;
+  int mediaCallCount = 0;
+
+  @override
+  Future<PickResult> pickMedia() async {
+    mediaCallCount++;
+    return _mediaResults.isEmpty
+        ? const Cancelled()
+        : _mediaResults.removeAt(0);
+  }
 }

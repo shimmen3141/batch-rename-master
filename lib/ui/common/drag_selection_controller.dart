@@ -13,6 +13,7 @@ class DragSelectionController<T> {
     required this.select,
     required this.deselect,
     required this.isMounted,
+    this.displayOrder,
     this.autoScrollEdgeExtent = 48,
     this.autoScrollStep = 4,
     this.maxAutoScrollMultiplier = 4,
@@ -23,6 +24,13 @@ class DragSelectionController<T> {
   final void Function(T item) select;
   final void Function(T item) deselect;
   final bool Function() isMounted;
+
+  /// 表示順。渡すと**開始 item から指の下の item までの表示順の範囲**を選ぶ
+  /// (004 REQ-023。写真・動画の格子)。
+  ///
+  /// `null` なら**指が通った行**を選ぶ(1列の一覧。002 REQ-018 / 004 REQ-020)。
+  /// 格子では指が縦に動くと1列しか通らないので、範囲で選ぶ必要がある。
+  final List<T> Function()? displayOrder;
   final double autoScrollEdgeExtent;
   final double autoScrollStep;
   final double maxAutoScrollMultiplier;
@@ -30,7 +38,7 @@ class DragSelectionController<T> {
   final Map<T, GlobalKey> _rowGeometryKeys = <T, GlobalKey>{};
   final Map<int, Offset> _pointerPositions = <int, Offset>{};
 
-  _DragSelectionPath<T>? _session;
+  _DragSession<T>? _session;
   int? _activePointer;
   Timer? _autoScrollTimer;
   double _autoScrollPixelsPerTick = 0;
@@ -45,7 +53,9 @@ class DragSelectionController<T> {
     final pointer = _nearestPointerTo(position);
     finish();
     _activePointer = pointer;
-    final session = _DragSelectionPath<T>(baseline, position);
+    final session = displayOrder == null
+        ? _DragSelectionPath<T>(baseline, position)
+        : _DragSelectionRange<T>(baseline, position, anchor: item);
     _session = session;
     session.visit(item, select: select, deselect: deselect);
     _updateAutoScroll(position);
@@ -99,11 +109,35 @@ class DragSelectionController<T> {
     return result;
   }
 
-  void _traceSelection(_DragSelectionPath<T> session, Offset position) {
-    for (final crossing in _rowsCrossed(session.pointer, position)) {
-      session.visit(crossing.item, select: select, deselect: deselect);
+  void _traceSelection(_DragSession<T> session, Offset position) {
+    if (session is _DragSelectionRange<T>) {
+      // **item の間(見出し・余白)では範囲を変えない。** 直前の範囲を保つ。
+      final item = _itemAt(position);
+      if (item != null) {
+        session.extendTo(
+          item,
+          displayOrder!(),
+          select: select,
+          deselect: deselect,
+        );
+      }
+    } else if (session is _DragSelectionPath<T>) {
+      for (final crossing in _rowsCrossed(session.pointer, position)) {
+        session.visit(crossing.item, select: select, deselect: deselect);
+      }
     }
     session.pointer = position;
+  }
+
+  /// [position] の下にある item。描画されている item の実矩形で決める。
+  T? _itemAt(Offset position) {
+    for (final entry in _rowGeometryKeys.entries) {
+      final renderObject = entry.value.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) continue;
+      final origin = renderObject.localToGlobal(Offset.zero);
+      if ((origin & renderObject.size).contains(position)) return entry.key;
+    }
+    return null;
   }
 
   List<_RowCrossing<T>> _rowsCrossed(Offset from, Offset to) {
@@ -210,14 +244,69 @@ class DragSelectionController<T> {
   }
 }
 
-class _DragSelectionPath<T> {
-  _DragSelectionPath(Set<T> baseline, this.pointer)
-    : _baseline = Set<T>.of(baseline);
+/// 1回の長押し drag。
+sealed class _DragSession<T> {
+  _DragSession(Set<T> baseline, this.pointer) : _baseline = Set<T>.of(baseline);
 
+  /// drag 開始前から選択済みだった item。**drag はこれを解除しない。**
   final Set<T> _baseline;
-  final List<T> _path = <T>[];
   Offset pointer;
 
+  void visit(
+    T item, {
+    required void Function(T item) select,
+    required void Function(T item) deselect,
+  });
+}
+
+/// 表示順で開始 item から今の item までの範囲を選ぶ(004 REQ-023)。
+///
+/// 範囲が縮んだら、**この drag が足した item だけ**を解除する。
+final class _DragSelectionRange<T> extends _DragSession<T> {
+  _DragSelectionRange(super.baseline, super.pointer, {required this.anchor});
+
+  final T anchor;
+  Set<T> _range = <T>{};
+
+  @override
+  void visit(
+    T item, {
+    required void Function(T item) select,
+    required void Function(T item) deselect,
+  }) {
+    _range = {item};
+    select(item);
+  }
+
+  void extendTo(
+    T end,
+    List<T> order, {
+    required void Function(T item) select,
+    required void Function(T item) deselect,
+  }) {
+    final from = order.indexOf(anchor);
+    final to = order.indexOf(end);
+    if (from < 0 || to < 0) return;
+    final next = order
+        .sublist(from < to ? from : to, (from < to ? to : from) + 1)
+        .toSet();
+    for (final left in _range.difference(next)) {
+      if (!_baseline.contains(left)) deselect(left);
+    }
+    for (final entered in next.difference(_range)) {
+      select(entered);
+    }
+    _range = next;
+  }
+}
+
+/// 指が通った行を選ぶ(1列の一覧)。
+final class _DragSelectionPath<T> extends _DragSession<T> {
+  _DragSelectionPath(super.baseline, super.pointer);
+
+  final List<T> _path = <T>[];
+
+  @override
   void visit(
     T item, {
     required void Function(T item) select,

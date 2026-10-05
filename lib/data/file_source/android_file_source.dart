@@ -28,6 +28,11 @@ typedef BrowserPicker = Future<BrowserSelection?> Function();
 typedef BrowserReopener =
     Future<BrowserSelection?> Function(String folder, Set<String> selected);
 
+/// 写真・動画の選択画面を開いて選択を待つ(004 REQ-022 / REQ-023)。
+///
+/// 確定した写真・動画の絶対 path を返す。`null` は「決定していない」(004 REQ-001)。
+typedef MediaPicker = Future<List<String>?> Function();
+
 /// Android の [FileSource]。**元場所ハンドルは絶対 path** である(004 REQ-002)。
 ///
 /// SAF の document URI は使わない。全ファイルアクセスがあれば共有ストレージは
@@ -37,15 +42,21 @@ typedef BrowserReopener =
 ///
 /// 選択 UI 自体はここに持たない。[BrowserPicker] を受け取るだけで、画面は UI 層が
 /// 供給する — port が `Navigator` を知ると test が widget を要るようになる。
-class AndroidFileSource implements FileSource, FolderReopenSource {
+class AndroidFileSource
+    implements FileSource, FolderReopenSource, MediaPickSource {
   const AndroidFileSource({
     required this.pick,
+    this.pickMediaPaths,
     this.reopen,
     this.locationNameOf,
     this.mediaDates,
   });
 
   final BrowserPicker pick;
+
+  /// 写真・動画の選択画面(004 REQ-022)。`null` なら開けない([pickMedia] は
+  /// [Failed] を返す)。
+  final MediaPicker? pickMediaPaths;
 
   /// 一覧の所属 folder を開き直す browser(004 REQ-021)。`null` なら開き直せない
   /// ([reopenFolder] は [Failed] を返す)。
@@ -68,6 +79,26 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
   @override
   Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
     return _resultOf(pick);
+  }
+
+  /// 写真・動画の選択画面から読み込む(004 REQ-022 / REQ-023)。
+  ///
+  /// **所属 folder はファイルごとに親 folder である** — folder をまたいで選べる
+  /// (REQ-023)。作成日時の補い方(REQ-010)は browser と同じ。
+  @override
+  Future<PickResult> pickMedia() async {
+    final pickMediaPaths = this.pickMediaPaths;
+    if (pickMediaPaths == null) {
+      return const Failed(PickError(PickErrorKind.unknown, '写真・動画の選択画面を開けません'));
+    }
+    final List<String>? paths;
+    try {
+      paths = await pickMediaPaths();
+    } catch (error) {
+      return Failed(PickError(PickErrorKind.unknown, error.toString()));
+    }
+    if (paths == null) return const Cancelled();
+    return _picked([for (final path in paths) (path, p.dirname(path))]);
   }
 
   /// 一覧の所属 [folder] を、[selected] を選択済みにして開き直す(004 REQ-021)。
@@ -104,10 +135,16 @@ class AndroidFileSource implements FileSource, FolderReopenSource {
       return Failed(PickError(PickErrorKind.unknown, error.toString()));
     }
     if (selection == null) return const Cancelled();
+    return _picked([
+      for (final path in selection.paths) (path, selection.folder),
+    ]);
+  }
 
+  /// 選んだ (path, 所属 folder) を [Picked] にする。
+  Future<PickResult> _picked(List<(String, String)> selection) async {
     final entries = <FileEntry>[];
-    for (final path in selection.paths) {
-      final entry = await _entryOf(path, folder: selection.folder);
+    for (final (path, folder) in selection) {
+      final entry = await _entryOf(path, folder: folder);
       // 選んだ直後に消えている場合がある。**空リストで「決定した」と混同しない**
       // よう、読めたものだけを Picked にする(004 REQ-001)。
       if (entry != null) entries.add(entry);

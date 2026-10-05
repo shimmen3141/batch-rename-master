@@ -106,6 +106,15 @@ StorageLocation? locationContaining(StorageLocations locations, String folder) {
   return null;
 }
 
+/// 表示用の場所(004 REQ-009: 「保存場所名 + root からの相対」)。root は保存場所の
+/// 名前に置き換える(生の path を主役にしない。root の basename `0` も出さない)。
+///
+/// app 内 browser と写真・動画の選択画面(REQ-022)が同じ形で使う。
+String displayPathOf(StorageLocation location, String folder) {
+  if (p.normalize(folder) == p.normalize(location.root)) return location.name;
+  return '${location.name}/${p.relative(folder, from: location.root)}';
+}
+
 /// [folder] から1つ上へ辿れるか(004 REQ-015: 上限は保存場所の root)。
 ///
 /// **root そのものからは辿れない。** `/storage` や `/` へは到達経路が無い —

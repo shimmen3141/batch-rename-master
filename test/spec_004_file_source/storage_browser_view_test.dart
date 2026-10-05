@@ -287,18 +287,15 @@ void main() {
   group('004 REQ-011: 種類はplatformで異なる', () {
     // **Android に「文書」は出さない** — app 内 browser には MIME filter の手段が
     // 無く、拡張子で絞る判定を新設しない(REQ-017)。
-    test('Android は3つで、文書を含まない', () {
-      expect(fileKindsFor(isAndroid: true), [
-        FileKind.image,
-        FileKind.video,
-        FileKind.all,
-      ]);
+    // 2026-10-05 `010:T05` で「画像」「動画」を「写真・動画」の1つにまとめた。
+    test('Android は2つ(写真・動画・すべて)で、文書を含まない(代表例 27)', () {
+      expect(fileKindsFor(isAndroid: true), [FileKind.media, FileKind.all]);
+      expect(FileKind.media.label, '写真・動画');
     });
 
-    test('desktop は4つで、文書を含む(013 は desktop を変えない)', () {
+    test('desktop は3つで、文書を含む(代表例 28)', () {
       expect(fileKindsFor(isAndroid: false), [
-        FileKind.image,
-        FileKind.video,
+        FileKind.media,
         FileKind.document,
         FileKind.all,
       ]);

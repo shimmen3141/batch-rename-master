@@ -126,6 +126,19 @@ abstract interface class FolderReopenSource {
   });
 }
 
+/// 写真・動画の選択画面(004 REQ-022 / REQ-023)から読み込める [FileSource]。
+///
+/// **Android だけが持つ。** UI はこの型を持つ source にだけ「写真・動画」の選択画面を
+/// 出す — platform を自分で判定しない([FolderReopenSource] と同じ形)。
+abstract interface class MediaPickSource {
+  /// 選択画面を開き、確定した写真・動画を返す。
+  ///
+  /// 結果は [FileSource.pickFiles] と同じく [Picked] / [Cancelled] / [Failed] で、
+  /// **例外を投げない**。**folder をまたいで選べる**(REQ-023)ので、[Picked] の
+  /// ファイルの所属 folder は1つとは限らない。
+  Future<PickResult> pickMedia();
+}
+
 /// あらかじめ与えた結果を返す [FileSource] 実装(サンドボックス検証用の fake)。
 ///
 /// [fileResults] を順に返し、尽きたら [exhausted] を返す
