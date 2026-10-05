@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T06",
   "title": "Android で MediaStore から写真・動画とアルバムの一覧を取る",
-  "status": "in_progress",
+  "status": "in_review",
   "dependsOn": [
     "T05"
   ],
