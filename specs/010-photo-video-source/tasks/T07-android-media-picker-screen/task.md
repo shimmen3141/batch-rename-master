@@ -110,10 +110,18 @@ M746 | KILLED | drag_selection_controller.dart | 010:T07 位置の key を捨て
 ```
 
   - 残余risk: 絞り込みの切り替えで `forgetRows` を**呼ぶこと**は test が見ていない(呼び出しを消しても落ちない)。外れても起きるのはメモリの増加だけで、データ損失・偽の成功などには当たらないので受容する。
+- attempt 2(差分): range `b753a23..d4684da`。model: Sonnet。**判定 PASS、指摘なし。** S-1・S-2 が閉じたこと(`forgetRows` は drag を終えた後・再描画の前に呼ばれ、既存の利用者は呼ばない。LRU は同じ Future を末尾へ移すので取り直しは起きない)、追加の test が本物であること、残余risk の受容の根拠を確かめた。reviewer 自身が `flutter test`(+1325)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(690)・M744〜M746(3 KILLED)を回した。
+
+### 実機確認
+
+- 対象: `lib/`・`android/` が `25a19bf` と同一の build(branch HEAD `d4684da` 以降の記録だけの commit を含んでよい)。手順は [/workspace/specs/010-photo-video-source/tasks/T07-android-media-picker-screen/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T07-android-media-picker-screen/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-05)。
 
 ## Current state / handoff
 
-- Last checkpoint: implementation(`25a19bf`。review attempt 1 の S-1・S-2 を直した)。machine の検証と mutation が PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`4f1d75c..b753a23`)、差分review attempt 2 PASS(`b753a23..d4684da`)
+- Blocker category: manual-evidence
 - Evidence revision: `25a19bf`
-- Next Agent action: 差分review attempt 2(`b753a23..head`)を起動する。PASS なら manual を依頼する
+- Waiting for: 開発者(Android エミュレータでの実機確認。`T06` の Kotlin の最初の build を兼ねる)
+- Requested action: [manual-verification.md](manual-verification.md) の準備と手順1〜8を行い、結果を会話で伝える
+- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
