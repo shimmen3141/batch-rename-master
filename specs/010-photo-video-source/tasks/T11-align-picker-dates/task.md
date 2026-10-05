@@ -111,7 +111,7 @@ M757 | SURVIVED | 010:T11 絞り込みを変えても前の絞り込みのまま
 
 ## Current state / handoff
 
-- Last checkpoint: handoff。独立review attempt 1 PASS(`537c8d2..a4e23d7`)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 1 PASS
+- Last checkpoint: handoff。独立review attempt 1 PASS(`537c8d2..a4e23d7`)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 1 PASS。done
 - Blocker category: なし
 - Evidence revision: `6086f77`
-- Next Agent action: PR の CI が通れば merge 条件を確かめて merge する
+- Next Agent action: なし(PR #223。CI の PASS と merge 条件を確かめて merge する)
