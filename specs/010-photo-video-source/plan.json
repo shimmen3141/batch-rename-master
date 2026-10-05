@@ -17,6 +17,7 @@
     "tasks/T07-android-media-picker-screen",
     "tasks/T08-media-picker-day-select",
     "tasks/T09-media-picker-source-and-reopen",
-    "tasks/T10-desktop-media-filter"
+    "tasks/T10-desktop-media-filter",
+    "tasks/T11-align-picker-dates"
   ]
 }
