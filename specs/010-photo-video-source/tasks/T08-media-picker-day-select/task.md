@@ -19,7 +19,7 @@
 - [x] 見出しを押すと、その日の今の絞り込みで並んでいる item をまとめて選ぶ。すべて選択済みならまとめて解除する(代表例 58・59)。
   - 証拠: widget test、端末の manual。
 - [x] 見出しが、その日が選ばれているかを示す。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS(attempt 1)。
 
 ## machine検証範囲と引き受け先
 
@@ -54,9 +54,20 @@ M764 | KILLED | 010:T08 見出しで、その日ではなく並んでいる全�
 
 - **未実施**: Android の build(AI container に Android SDK が無い)。
 
+### 独立review
+
+- attempt 1: range `0976eb5..329a8ec`(全範囲。product-map の1行を含む)。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。**判定 PASS、指摘なし。** REQ-023・代表例 58・59 への適合(対象は今の絞り込みで並ぶその日の item だけ、見えていない選択に触れない)、印の判定、drag との干渉が無いこと(`_dragSelection.finish()`)、「日付不明」、支援技術への見せ方、記録と手順書と product-map の行の整合を確かめた。reviewer 自身が related test(+26)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(702)・M761〜M764(4 KILLED)を回した。
+
+### 実機確認
+
+- 対象: `lib/`・`android/` が `ea8be91` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T08-media-picker-day-select/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T08-media-picker-day-select/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-05)。
+
 ## Current state / handoff
 
-- Last checkpoint: verification(実装 `ea8be91`)。machine の検証と mutation が PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`0976eb5..329a8ec`)
+- Blocker category: manual-evidence
 - Evidence revision: `ea8be91`
-- Next Agent action: 独立review(base `0976eb5`..head)を起動する。PASS なら manual を依頼する
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜4を行い、結果を会話で伝える
+- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
