@@ -11,6 +11,7 @@
     "tasks/T01-define-capture-date",
     "tasks/T02-read-content-capture-date",
     "tasks/T03-android-mediastore-date-taken",
-    "tasks/T04-verify-creation-time-stability"
+    "tasks/T04-verify-creation-time-stability",
+    "tasks/T05-define-media-picker"
   ]
 }
