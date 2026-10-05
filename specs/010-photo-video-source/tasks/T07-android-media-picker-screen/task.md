@@ -111,6 +111,7 @@ M746 | KILLED | drag_selection_controller.dart | 010:T07 位置の key を捨て
 
   - 残余risk: 絞り込みの切り替えで `forgetRows` を**呼ぶこと**は test が見ていない(呼び出しを消しても落ちない)。外れても起きるのはメモリの増加だけで、データ損失・偽の成功などには当たらないので受容する。
 - attempt 2(差分): range `b753a23..d4684da`。model: Sonnet。**判定 PASS、指摘なし。** S-1・S-2 が閉じたこと(`forgetRows` は drag を終えた後・再描画の前に呼ばれ、既存の利用者は呼ばない。LRU は同じ Future を末尾へ移すので取り直しは起きない)、追加の test が本物であること、残余risk の受容の根拠を確かめた。reviewer 自身が `flutter test`(+1325)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(690)・M744〜M746(3 KILLED)を回した。
+- attempt 3(差分): range `d4684da..325d514`(実機確認で見つかった警告の不具合の修正)。model: Sonnet。**判定 PASS、指摘なし。** REQ-008・REQ-012 への適合、listener の付け外しの対称、`close()` を呼ぶ条件(表示中 = 先頭だけが build されるので `assert` を踏まない)、追加 test の実効を確かめた。reviewer 自身が `flutter test`(+1330)・`flutter analyze`・`dart format`・M728・M747〜M749(4 KILLED)を回した。
 
 ### 実機確認
 
