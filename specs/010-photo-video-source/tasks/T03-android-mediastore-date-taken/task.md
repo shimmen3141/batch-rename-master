@@ -55,7 +55,7 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
 
 - 残余risk(安全網の穴。受容): `createPlatformFileSource` が `MethodChannelMediaDates` を渡す行は test が通らない(Linux では Android の
   分岐に入らない)。外れると②③が黙って無くなる(不明が増えるだけで、データ損失・無断置換・偽の成功・権限・互換性のどれでもない)。
-  引き受け先: この task の manual(手順1の `download.txt`)。
+  引き受け先: この task の manual(手順1の、Chrome でダウンロードした `.mhtml`)。
 
 ### 実機確認
 
@@ -81,7 +81,17 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
     `_display_name =`・親 folder の `LIKE` の件数を logcat に出す。
   - 観測3(同日、`c6806b1` の build): `sdk=37 target=36 manager=true`。条件なしで 345 行見える(先頭は folder の行)が、
     `_data =`・`_display_name =`・親 folder の `LIKE` はどれも **0 行**。→ 照会の書き方ではなく、**全ファイルアクセス権限があっても
-    adb で置いた file の行が app から見えない**。どの行が見えるか(folder 別・持ち主・種類)を診断に足した。
+    adb で置いた file の行が app から見えない**。どの行が見えるか(folder 別・持ち主・種類)を診断に足した(`162e590`)。
+  - 観測4(同日、`162e590` の build): エミュレータで撮ったスクリーンショットを読み込むと `作成日時: 2026/10/5 05:27`、
+    logcat は `datesOf: 1 paths, 1 found`(誤って先に選んだカメラの写真は①で埋まるので照会しない。`datesOf` は1行だけ)。
+    → **app が作った・持ち主が別 app の普通の file は MediaStore から引ける。見えないのは adb(shell)で置いた file だけ。**
+    照会の仕方は変えない。
+  - 対応(`c5320d5`): 一時的な診断と成功時の log を外し、失敗時の logcat 出力(Kotlin `Log.w`、Dart `debugPrint`)だけ残した。
+    「shell が置いた file は見えない」を Kotlin と `MediaDatesPort` の doc に書いた。照会・Dart の写像は `0c7b80a` と同じ。
+    `flutter test` 1286 PASS、`flutter analyze`・`dart format`・`check_mutation_finds`(660)PASS。Kotlin の build は container で not-run。
+  - manual を直した: ③の確認を adb で置いた `download.txt` から、**エミュレータの Chrome で本当にダウンロードした `.mhtml`** に替えた。
+    写真・動画は①で埋まるので adb で置いたままにした。動画の期待値は端末の時刻帯で書いた(この端末は GMT)。
+    finding: [/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md](/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md)
 
 ### 独立review
 
@@ -97,9 +107,9 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 
 ## Current state / handoff
 
-- Last checkpoint: Manual attempt 1 FAIL(`download.txt` の作成日時が不明)。app から対象の行が見えない。見える範囲の診断を待つ
+- Last checkpoint: Manual attempt 1 FAIL の原因は手順の fixture(adb で置いた file は app から見えない)。診断を外し、manual を直した。独立review(差分)の後に manual attempt 2
 - Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認。Kotlin の最初の build を兼ねる)
+- Waiting for: 独立review(差分 `0c7b80a..HEAD`)、その後 開発者(Android エミュレータでの実機確認)
 - Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
-- Evidence revision: `lib/`・`android/` が `0c7b80a` と同一の build
+- Evidence revision: `lib/`・`android/` が `c5320d5` と同一の build
 - Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を作り、merge する
