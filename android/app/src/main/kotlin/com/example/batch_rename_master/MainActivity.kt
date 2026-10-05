@@ -1,10 +1,14 @@
 package com.example.batch_rename_master
 
+import android.annotation.TargetApi
+import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -12,6 +16,7 @@ import android.os.storage.StorageManager
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
+import android.util.Size
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -36,6 +41,7 @@ class MainActivity : FlutterActivity() {
     private val videoThumbnailChannelName =
         "com.example.batch_rename_master/video_thumbnail"
     private val mediaDatesChannelName = "com.example.batch_rename_master/media_dates"
+    private val mediaLibraryChannelName = "com.example.batch_rename_master/media_library"
     private val logTag = "BatchRenameMaster"
 
     /**
@@ -89,6 +95,247 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaLibraryChannelName)
+            .setMethodCallHandler { call, result ->
+                // 一覧は全ファイルアクセス権限(API 30 以降)を前提にする(004 REQ-022 は
+                // 付与されていない間は開かない)。query args の `LIMIT`・`OFFSET` も
+                // API 30 から MediaStore が受け付ける。**通常は到達しない。**
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                    result.error("unsupported", "この Android では写真・動画を一覧できません", null)
+                    return@setMethodCallHandler
+                }
+                when (call.method) {
+                    "page" -> onBackground(result, "page") { mediaPage(call) }
+                    "albums" -> onBackground(result, "albums") { mediaAlbums() }
+                    "thumbnail" -> onBackground(result, "thumbnail") { mediaThumbnail(call) }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /**
+     * [work] を main thread の外で走らせ、結果を main thread から返す(010:T06)。
+     *
+     * **失敗は `error` で返す。** Dart 側は一覧・アルバムの失敗を「無い」と区別して
+     * 画面に理由を出す(004 REQ-022)。理由は logcat にも残す。
+     */
+    private fun onBackground(
+        result: MethodChannel.Result,
+        name: String,
+        work: () -> Any?,
+    ) {
+        thumbnailExecutor.execute {
+            val response = try {
+                Answer.Success(work())
+            } catch (error: Exception) {
+                Log.w(logTag, "media_library: $name failed", error)
+                Answer.Failure(error.message ?: error.toString())
+            }
+            mainHandler.post {
+                if (destroyed) return@post
+                when (response) {
+                    is Answer.Success -> result.success(response.value)
+                    is Answer.Failure -> result.error("failed", response.message, null)
+                }
+            }
+        }
+    }
+
+    private sealed class Answer {
+        class Success(val value: Any?) : Answer()
+        class Failure(val message: String) : Answer()
+    }
+
+    /** 写真・動画の列(010:T06)。日時はどれも UTC で、端末の時刻帯へ直すのは Dart 側。 */
+    private val mediaProjection = arrayOf(
+        MediaStore.MediaColumns._ID,
+        MediaStore.MediaColumns.DATA,
+        MediaStore.Files.FileColumns.MEDIA_TYPE,
+        MediaStore.MediaColumns.DATE_TAKEN,
+        MediaStore.MediaColumns.DATE_ADDED,
+        MediaStore.MediaColumns.DURATION,
+        MediaStore.MediaColumns.BUCKET_ID,
+        MediaStore.MediaColumns.BUCKET_DISPLAY_NAME,
+    )
+
+    /**
+     * 新しい順(004 REQ-022: `DATE_TAKEN`、無ければ `DATE_ADDED`)。`DATE_TAKEN` は
+     * ミリ秒、`DATE_ADDED` は秒なので揃えてから比べる。同じ時刻は id の大きい順にして、
+     * 少しずつ取る間に並びが揺れないようにする。
+     */
+    private val mediaSortOrder = "COALESCE(" + MediaStore.MediaColumns.DATE_TAKEN + ", " +
+        MediaStore.MediaColumns.DATE_ADDED + " * 1000) DESC, " +
+        MediaStore.MediaColumns._ID + " DESC"
+
+    /**
+     * 種類とアルバムで絞った写真・動画を、新しい順に `offset` 件目から最大 `limit` 件
+     * 返す(004 REQ-022。010:T06)。
+     *
+     * **すべての保存場所を含む。** `VOLUME_EXTERNAL` は内部共有ストレージと SD カード等を
+     * まとめて指す。**ゴミ箱・保存途中は含めない** — API 30 以降の MediaStore は既定で
+     * 除くが、明示しておく。**この app から見えない行は返らない**(`adb push` で置いた
+     * file など。010:T03)ので、それ以上の判定は作らない。
+     */
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun mediaPage(call: MethodCall): List<Map<String, Any?>> {
+        val kind = call.argument<String>("kind") ?: "all"
+        val albumId = call.argument<Number>("albumId")?.toLong()
+        val offset = call.argument<Int>("offset") ?: 0
+        val limit = call.argument<Int>("limit") ?: 0
+        if (limit <= 0) return emptyList()
+        val (selection, selectionArgs) = mediaSelection(kind, albumId)
+        val args = mediaQueryArgs(selection, selectionArgs).apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, mediaSortOrder)
+            putInt(ContentResolver.QUERY_ARG_LIMIT, limit)
+            putInt(ContentResolver.QUERY_ARG_OFFSET, offset)
+        }
+        val items = mutableListOf<Map<String, Any?>>()
+        contentResolver.query(mediaUri(), mediaProjection, args, null)?.use { cursor ->
+            val columns = MediaColumns(cursor)
+            while (cursor.moveToNext()) {
+                columns.itemOf(cursor)?.let(items::add)
+            }
+        } ?: throw IllegalStateException("MediaStore が応答しませんでした")
+        return items
+    }
+
+    /**
+     * アルバム(写真・動画のある folder。MediaStore のバケット)の一覧を、いちばん新しい
+     * item が新しい順に返す(004 REQ-022。010:T06)。
+     *
+     * MediaStore の `GROUP BY` には頼らない(selection へ書き込む抜け道は API 29 で
+     * 塞がれ、それ以降の扱いも版で揃っていない)。新しい順に全件を歩いて集める。
+     */
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun mediaAlbums(): List<Map<String, Any?>> {
+        val (selection, selectionArgs) = mediaSelection("all", null)
+        val args = mediaQueryArgs(selection, selectionArgs).apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, mediaSortOrder)
+        }
+        val albums = linkedMapOf<Long, MutableMap<String, Any?>>()
+        contentResolver.query(mediaUri(), mediaProjection, args, null)?.use { cursor ->
+            val columns = MediaColumns(cursor)
+            while (cursor.moveToNext()) {
+                if (cursor.isNull(columns.bucket)) continue
+                val bucket = cursor.getLong(columns.bucket)
+                val album = albums[bucket]
+                if (album != null) {
+                    album["count"] = (album["count"] as Int) + 1
+                    continue
+                }
+                // 最初に出会う行がいちばん新しい。代表の item と場所はそこから取る。
+                val cover = columns.itemOf(cursor) ?: continue
+                val path = cover["path"] as String
+                albums[bucket] = mutableMapOf(
+                    "id" to bucket,
+                    "name" to cursor.getString(columns.bucketName),
+                    "folder" to (java.io.File(path).parent ?: path),
+                    "count" to 1,
+                    "cover" to cover,
+                )
+            }
+        } ?: throw IllegalStateException("MediaStore が応答しませんでした")
+        return albums.values.toList()
+    }
+
+    /**
+     * MediaStore のサムネイルを JPEG で返す(010:T06)。作れなければ `null`。
+     *
+     * `loadThumbnail` は写真も動画も扱え、system が作ったものを使い回す。
+     */
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun mediaThumbnail(call: MethodCall): ByteArray? {
+        val id = call.argument<Number>("id")?.toLong()
+            ?: throw IllegalArgumentException("id が指定されていません")
+        val maxEdge = call.argument<Int>("maxEdge") ?: 256
+        val base = when (call.argument<String>("kind")) {
+            "video" -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            else -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        }
+        val uri = ContentUris.withAppendedId(base, id)
+        val bitmap = try {
+            contentResolver.loadThumbnail(uri, Size(maxEdge, maxEdge), null)
+        } catch (error: java.io.IOException) {
+            // 壊れた file・消えた行。選ぶことはできるので、サムネイルが無いだけにする。
+            Log.w(logTag, "media_library: no thumbnail for $uri", error)
+            return null
+        }
+        try {
+            return ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                stream.toByteArray()
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun mediaUri(): Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+
+    /** 写真・動画だけ、種類([kind])とアルバム([albumId])で絞る条件。 */
+    private fun mediaSelection(kind: String, albumId: Long?): Pair<String, Array<String>> {
+        val image = MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString()
+        val video = MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString()
+        val types = when (kind) {
+            "photos" -> listOf(image)
+            "videos" -> listOf(video)
+            "all" -> listOf(image, video)
+            else -> throw IllegalArgumentException("種類が分かりません: $kind")
+        }
+        val clauses = mutableListOf(
+            MediaStore.Files.FileColumns.MEDIA_TYPE + " IN (" +
+                types.joinToString(",") { "?" } + ")",
+        )
+        val args = types.toMutableList()
+        if (albumId != null) {
+            clauses += MediaStore.MediaColumns.BUCKET_ID + " = ?"
+            args += albumId.toString()
+        }
+        return clauses.joinToString(" AND ") to args.toTypedArray()
+    }
+
+    @TargetApi(Build.VERSION_CODES.R)
+    private fun mediaQueryArgs(selection: String, selectionArgs: Array<String>): Bundle =
+        Bundle().apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection)
+            putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs)
+            putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_EXCLUDE)
+            putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE)
+        }
+
+    /** cursor の列番号と、1行を Dart へ渡す形にする写像。 */
+    private class MediaColumns(cursor: android.database.Cursor) {
+        val id = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+        val data = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+        val type = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE)
+        val taken = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
+        val added = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+        val duration = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
+        val bucket = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_ID)
+        val bucketName =
+            cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
+
+        /** path か種類が無い行は `null`(並べても読み込めない)。 */
+        fun itemOf(cursor: android.database.Cursor): Map<String, Any?>? {
+            val path = cursor.getString(data) ?: return null
+            val kind = when (cursor.getInt(type)) {
+                MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE -> "photo"
+                MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO -> "video"
+                else -> return null
+            }
+            return mapOf(
+                "id" to cursor.getLong(id),
+                "path" to path,
+                "kind" to kind,
+                "taken" to longOrNull(cursor, taken),
+                "added" to longOrNull(cursor, added),
+                "duration" to longOrNull(cursor, duration),
+                "albumId" to longOrNull(cursor, bucket),
+            )
+        }
+
+        private fun longOrNull(cursor: android.database.Cursor, column: Int): Long? =
+            if (cursor.isNull(column)) null else cursor.getLong(column)
     }
 
     /**

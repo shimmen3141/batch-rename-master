@@ -4627,6 +4627,83 @@
       "find": "        if (entry.createdAt == null) entry.sourceHandle!,",
       "replace": "        entry.sourceHandle!,",
       "note": "010:T03 ①がある file も MediaStore に照会する"
+    },
+    {
+      "id": "M717",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "    return MediaPage(items, hasMore: raw.length >= limit);",
+      "replace": "    return MediaPage(items, hasMore: items.length >= limit);",
+      "note": "010:T06 続きの有無を落とした後の行数で決める"
+    },
+    {
+      "id": "M718",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "    } catch (error) {\n      return MediaPageFailed('写真・動画を取得できませんでした: $error');\n    }",
+      "replace": "    } catch (error) {\n      return const MediaPage([], hasMore: false);\n    }",
+      "note": "010:T06 一覧の失敗を空の一覧にする"
+    },
+    {
+      "id": "M719",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "      return const MediaPageFailed('写真・動画を取得できませんでした: 応答がありません');",
+      "replace": "      return const MediaPage([], hasMore: false);",
+      "note": "010:T06 応答なしを空の一覧にする"
+    },
+    {
+      "id": "M720",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "        'kind': filter.kind.name,",
+      "replace": "        'kind': 'all',",
+      "note": "010:T06 種類の絞り込みを渡さない"
+    },
+    {
+      "id": "M721",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "        'albumId': filter.albumId,",
+      "replace": "        'albumId': null,",
+      "note": "010:T06 アルバムの絞り込みを渡さない"
+    },
+    {
+      "id": "M722",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "          : DateTime.fromMillisecondsSinceEpoch(added * 1000),",
+      "replace": "          : DateTime.fromMillisecondsSinceEpoch(added),",
+      "note": "010:T06 DATE_ADDED の秒をミリ秒として読む"
+    },
+    {
+      "id": "M723",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "      duration: kind == MediaKind.video && duration != null",
+      "replace": "      duration: duration != null",
+      "note": "010:T06 写真にも再生時間を付ける"
+    },
+    {
+      "id": "M724",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "  DateTime? get date => taken ?? added;",
+      "replace": "  DateTime? get date => added ?? taken;",
+      "note": "010:T06 並びの日付で DATE_ADDED を優先する"
+    },
+    {
+      "id": "M725",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "      return MediaAlbumsFailed('アルバムを取得できませんでした: $error');",
+      "replace": "      return const MediaAlbumsListed([]);",
+      "note": "010:T06 アルバムの失敗を空の一覧にする"
+    },
+    {
+      "id": "M726",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "          name: name is String && name.isNotEmpty ? name : p.basename(folder),",
+      "replace": "          name: name is String && name.isNotEmpty ? name : folder,",
+      "note": "010:T06 名前が無いアルバムに folder の path 全体を見せる"
+    },
+    {
+      "id": "M727",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "      debugPrint('media_library: thumbnail failed: $error');\n      return null;",
+      "replace": "      rethrow;",
+      "note": "010:T06 サムネイルの失敗を投げる"
     }
   ]
 }
