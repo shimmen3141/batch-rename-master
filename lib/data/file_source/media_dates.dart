@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
 
 /// MediaStore が持つ、1つのファイルの日時(004 REQ-010 の②③)。
@@ -47,7 +48,9 @@ class MethodChannelMediaDates implements MediaDatesPort {
       raw = await channel.invokeMethod<Map<Object?, Object?>>('datesOf', {
         'paths': paths,
       });
-    } catch (_) {
+    } catch (error) {
+      // 失敗は画面に出さない(作成日時が不明になるだけ)ので、logcat にだけ残す。
+      debugPrint('media_dates: datesOf failed: $error');
       return const {};
     }
     if (raw == null) return const {};

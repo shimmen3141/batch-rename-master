@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.storage.StorageManager
 import android.provider.MediaStore
 import android.provider.Settings
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -35,6 +36,7 @@ class MainActivity : FlutterActivity() {
     private val videoThumbnailChannelName =
         "com.example.batch_rename_master/video_thumbnail"
     private val mediaDatesChannelName = "com.example.batch_rename_master/media_dates"
+    private val logTag = "BatchRenameMaster"
 
     /**
      * 動画の frame 取り出しを main thread から外す(008:T07)。
@@ -108,9 +110,14 @@ class MainActivity : FlutterActivity() {
         }
         val paths = call.argument<List<String>>("paths") ?: emptyList()
         thumbnailExecutor.execute {
+            // Dart は失敗を「②③が無い」として黙って扱う(読み込みを止めない)ので、
+            // 引けたか・なぜ引けなかったかは logcat にだけ残す(010:T03 の切り分け)。
             val response = try {
-                DatesResponse.Success(queryMediaDates(paths))
+                val dates = queryMediaDates(paths)
+                Log.i(logTag, "datesOf: ${paths.size} paths, ${dates.size} found")
+                DatesResponse.Success(dates)
             } catch (error: Exception) {
+                Log.w(logTag, "datesOf failed", error)
                 DatesResponse.Failure(error.message ?: error.toString())
             }
             mainHandler.post {

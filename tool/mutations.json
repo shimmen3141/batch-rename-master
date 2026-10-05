@@ -4610,8 +4610,8 @@
     {
       "id": "M714",
       "file": "lib/data/file_source/media_dates.dart",
-      "find": "    } catch (_) {\n      return const {};\n    }\n    if (raw == null) return const {};",
-      "replace": "    } catch (_) {\n      rethrow;\n    }\n    if (raw == null) return const {};",
+      "find": "      debugPrint('media_dates: datesOf failed: $error');\n      return const {};\n    }\n    if (raw == null) return const {};",
+      "replace": "      debugPrint('media_dates: datesOf failed: $error');\n      rethrow;\n    }\n    if (raw == null) return const {};",
       "note": "010:T03 照会の失敗を投げる"
     },
     {
