@@ -16,9 +16,9 @@
 
 ## 受け入れ条件
 
-- [ ] 見出しを押すと、その日の今の絞り込みで並んでいる item をまとめて選ぶ。すべて選択済みならまとめて解除する(代表例 58・59)。
+- [x] 見出しを押すと、その日の今の絞り込みで並んでいる item をまとめて選ぶ。すべて選択済みならまとめて解除する(代表例 58・59)。
   - 証拠: widget test、端末の manual。
-- [ ] 見出しが、その日が選ばれているかを示す。
+- [x] 見出しが、その日が選ばれているかを示す。
 - [ ] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
@@ -31,9 +31,32 @@
 - 2026-10-05 `T05` が spec(004 REQ-011・012・016・021〜024)の承認を受けて足した。
 - 端末の manual が要る。`manual-verification.md` は実装のときに書き、`task.json` の `manualVerification` に入れる。
 
+- 2026-10-05 着手(branch `asdd/010-photo-video-source/T08-media-picker-day-select`、base `0976eb5`)。実装 `ea8be91`。
+
+### 作ったもの
+
+- [/workspace/lib/ui/file_source/media_picker_view.dart](/workspace/lib/ui/file_source/media_picker_view.dart): 日付の見出しを押せるようにした(`_dayHeader`・`_toggleDay`)。その日の item(今の絞り込みで並んでいるもの)が**すべて選ばれていれば外し、そうでなければ選ぶ**。**見えていない同じ日の選択には触れない**(見出しの1押しで見えないものを外すと、何が外れたか分からない)。
+- 見出しの右端に、その日がすべて選ばれているかを示す丸い印(item と同じ `SelectionCheckbox`。押下は見出し全体で受ける)。一部だけ選ばれている日は印を付けない(3つ目の状態は作らない)。支援技術には button と、押すと何が起きるかの hint を渡す。
+- 同じ PR で、`specs/product-map.md` の将来候補に「画面を切り替えるbuttonの位置を揃える」を足した(`T11` の実機確認での開発者の指摘と決定: 案A、010 の残りの後)。
+
+### 検証(`ea8be91`)
+
+- `flutter test`: PASS(+1348、exit 0)。related: `media_picker_view_test` PASS(+26。代表例 58・59、絞り込みとの関係、「日付不明」の見出しの4件を追加)。`flutter analyze`: No issues。`dart format`: PASS。`check_mutation_finds.py`: PASS(702)。
+- mutation(範囲 `flutter test test/spec_004_file_source/media_picker_view_test.dart`。M761〜M764 を足した。**M757 は `T11` で等価として外した番号なので使い回さない**):
+
+```text
+M761 | KILLED | 010:T08 一部だけ選んだ日の見出しで、まとめて外す
+M762 | KILLED | 010:T08 見出しで外すと、見えていない選択も外す
+M763 | KILLED | 010:T08 一部だけ選んだ日にも見出しの印を付ける
+M764 | KILLED | 010:T08 見出しで、その日ではなく並んでいる全件を選ぶ
+4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **未実施**: Android の build(AI container に Android SDK が無い)。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: verification(実装 `ea8be91`)。machine の検証と mutation が PASS
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る
+- Evidence revision: `ea8be91`
+- Next Agent action: 独立review(base `0976eb5`..head)を起動する。PASS なら manual を依頼する
