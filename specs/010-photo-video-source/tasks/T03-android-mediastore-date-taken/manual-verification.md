@@ -70,7 +70,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/web-platform-tests/wpt/maste
 
 ## 4. カメラとスクリーンショット
 
-1. エミュレータのカメラで写真を1枚、動画を1本撮る(`DCIM/Camera` に入る)。スクリーンショットを1枚撮る(`Pictures/Screenshots`)。
+1. エミュレータのカメラで写真を1枚、動画を1本撮る(`DCIM/Camera` に入る。動画は `Movies` に入ることもある)。スクリーンショットを1枚撮る(`Pictures/Screenshots`)。
 2. それぞれの folder を開いて読み込み、`作成日時:` を見る。
 
 - どれも撮った時刻で、`不明` ではない。

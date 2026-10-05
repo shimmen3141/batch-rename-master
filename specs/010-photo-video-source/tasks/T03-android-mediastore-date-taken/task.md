@@ -20,13 +20,13 @@ Android で、中身から日時を取れなかったファイルについて、
 
 ## 受け入れ条件
 
-- [ ] 中身に撮影日時が無く `DATE_TAKEN` を持つファイルで、その値が入る。中身から取れたファイルは中身の値のまま(代表例 47・48)。
+- [x] 中身に撮影日時が無く `DATE_TAKEN` を持つファイルで、その値が入る。中身から取れたファイルは中身の値のまま(代表例 47・48)。
   - 証拠: Dart 側の test(channel を差し替える)、channel 名の突き合わせ test、Android エミュレータの manual。
-- [ ] ①②が無く `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)で、その値が入る(代表例 11・49・51)。この app で改名した後に読み込み直しても変わらない(代表例 50)。
+- [x] ①②が無く `DATE_ADDED` を持つファイル(ダウンロード・スクリーンショットなど)で、その値が入る(代表例 11・49・51)。この app で改名した後に読み込み直しても変わらない(代表例 50)。
   - 証拠: Dart 側の test(channel を差し替える)、Android エミュレータの manual。
-- [ ] MediaStore に無いファイル・引けないときは「不明」のままで、読み込みは失敗しない。
+- [x] MediaStore に無いファイル・引けないときは「不明」のままで、読み込みは失敗しない。
   - 証拠: test、manual。
-- [ ] エミュレータで、カメラで撮った写真・動画が撮影日時の順に並び、日時トークンで撮影日が名前に入る。ダウンロードしたファイル・スクリーンショットにも作成日時が入る。
+- [x] エミュレータで、カメラで撮った写真・動画が撮影日時の順に並び、日時トークンで撮影日が名前に入る。ダウンロードしたファイル・スクリーンショットにも作成日時が入る。
   - 証拠: [manual-verification.md](manual-verification.md)。
 
 ## machine検証範囲と引き受け先
@@ -92,6 +92,16 @@ M712 | KILLED / M713 | KILLED / M714 | KILLED / M715 | KILLED / M716 | KILLED
   - manual を直した: ③の確認を adb で置いた `download.txt` から、**エミュレータの Chrome で本当にダウンロードした `.mhtml`** に替えた。
     写真・動画は①で埋まるので adb で置いたままにした。動画の期待値は端末の時刻帯で書いた(この端末は GMT)。
     finding: [/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md](/workspace/development-findings/2026-10-05-adb-placed-files-hidden-from-app-mediastore.md)
+- Manual attempt 2(2026-10-05、Android エミュレータ `sdk gphone16k x86 64`、build は `ee104cf` = `lib/`・`android/` が `c5320d5` と同一)— **PASS**
+  - 端末の `date`: `Mon Oct  5 05:50:06 GMT 2026`(時刻帯 GMT。開発者の時計は日本時間で、表示は9時間前になるのが正しい)。
+  - 手順1: `canon_2008.jpg` = `2008/5/30 15:56`、`movie_2010.mp4` = `2010/6/1 16:08`、Chrome でダウンロードした `.mhtml` = `2026/10/05 05:53`
+    (ダウンロードは日本時間 14:54 = GMT 05:54。③。OK)。
+  - 手順2: 写真 → 動画の順、不明の警告なし(OK)。
+  - 手順3: `.mhtml` と2つを改名して読み込み直しても、どれも手順1と同じ(代表例 50。OK)。
+  - 手順4: カメラの写真(撮影 JST 15:03)= `2026/10/5 06:03`、動画(JST 15:04。保存先は `DCIM/Camera` ではなく `Movies`)= `2026/10/5 06:04`、
+    スクリーンショット(JST 15:05)= `2026/10/5 06:05`。日時トークン `[日時 作成 YYYYMMDD_HHmmss]` で撮った時刻が名前に入った(OK)。
+  - 手順5: 報告なし(後片付けは結果に影響しない)。
+  - manual の「動画は `DCIM/Camera` に入る」を、この観測に合わせて「`Movies` に入ることもある」と直した(記録のみ)。
 
 ### 独立review
 
@@ -112,9 +122,8 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
 
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 PASS(`0c7b80a..afa443a`)。manual attempt 2 を待つ
-- Blocker category: manual-evidence
-- Waiting for: 開発者(Android エミュレータでの実機確認 attempt 2)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜5を行い、結果を会話で伝える
+- Last checkpoint: Manual attempt 2 PASS(build `ee104cf`)。受け入れ条件をすべて満たした
+- Blocker category: なし
+- Waiting for: なし
 - Evidence revision: `lib/`・`android/` が `c5320d5` と同一の build
-- Next Agent action: 結果を作業記録へ書き、問題が無ければ `done` にして PR を作り、merge する
+- Next Agent action: PR を作り、CI の後に merge する。010 のアルバム・全件から選ぶ画面は plan.md の「対象外」のとおり、開発者の指示で task を足す
