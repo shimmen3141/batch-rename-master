@@ -4,7 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../data/file_source/media_content_dates.dart';
 import '../../data/file_source/media_library.dart';
+import '../common/design_dialog.dart';
 import '../common/drag_selection_controller.dart';
 import '../common/selection_checkbox.dart';
 import '../theme/app_colors.dart';
@@ -56,6 +58,13 @@ Key mediaPickerDayHeaderKey(DateTime? day) => Key(
 /// 動画の再生時間の表示。
 Key mediaPickerDurationKey(String path) => Key('media-picker-duration-$path');
 
+/// 題名の横の ⓘ。並び順と日付の決め方の説明を開く(REQ-022。`010:T11`)。
+const Key mediaPickerDateHelpKey = Key('media-picker-date-help');
+
+/// 並び順と日付の説明のダイアログと、その「閉じる」。
+const Key mediaDateHelpDialogKey = Key('media-date-help-dialog');
+const Key mediaDateHelpCloseKey = Key('media-date-help-close');
+
 /// 一覧を取れなかったときの表示と、やり直しの button。
 const Key mediaPickerFailedKey = Key('media-picker-failed');
 const Key mediaPickerRetryKey = Key('media-picker-retry');
@@ -105,14 +114,15 @@ class MediaPickerView extends StatefulWidget {
   const MediaPickerView({
     super.key,
     required this.library,
-    this.pageSize = 120,
+    this.contentDates = const IsolateMediaContentDates(),
     this.now,
   });
 
   final MediaLibraryPort library;
 
-  /// 1回に取る件数。少しずつ読む(004「自由とする点」)。
-  final int pageSize;
+  /// 中身の日時を読む port(REQ-022: `DATE_TAKEN` が無い item の並びと日付)。
+  /// composition root は覚えておく実装([CachedMediaContentDates])を渡す。
+  final MediaContentDatesPort contentDates;
 
   /// 見出しの「今年」の判定に使う(test 用)。`null` なら現在時刻。
   final DateTime Function()? now;
@@ -124,22 +134,17 @@ class MediaPickerView extends StatefulWidget {
 class _MediaPickerViewState extends State<MediaPickerView> {
   MediaFilter _filter = const MediaFilter();
 
-  /// 今の絞り込みで読み込んだ item(新しい順)。
-  final List<MediaItem> _items = [];
-  bool _hasMore = true;
-  bool _loadingPage = false;
+  /// 全件(並び順に並べたもの)。読んでいる間は `null`。
+  List<MediaItem>? _all;
 
-  /// 最初の1ページの前か(読み込み中の表示に使う)。
-  bool _firstPagePending = true;
+  /// 今の絞り込みで並ぶ item(並び順)。
+  List<MediaItem> _items = const [];
 
-  /// 今の絞り込みの一覧を取れなかった理由。
+  /// 一覧を取れなかった理由。
   String? _failure;
 
-  /// 絞り込みを変えるたびに増やす。古い絞り込みの応答を捨てるため。
+  /// 読み直すたびに増やす。古い応答を捨てるため。
   int _generation = 0;
-
-  /// 「すべて選択」のために残りを読んでいる間。
-  bool _selectingAll = false;
 
   MediaAlbumsResult? _albums;
 
@@ -166,8 +171,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_maybeLoadMore);
-    _loadNextPage();
+    _load();
     _loadAlbums();
   }
 
@@ -188,72 +192,54 @@ class _MediaPickerViewState extends State<MediaPickerView> {
     if (mounted) setState(() => _albums = albums);
   }
 
-  /// 次のページを読む。読めたら `true`。
-  Future<bool> _loadNextPage() async {
-    if (_loadingPage || !_hasMore) return false;
-    final generation = _generation;
-    setState(() => _loadingPage = true);
-    MediaPageResult result;
+  /// 全件を受け取り、`DATE_TAKEN` が無い item だけ中身の日時を読んで並べる
+  /// (REQ-022。`010:T11`)。**並べ終わるまで格子を出さない** — 先に出すと、中身の
+  /// 日時が届いたときに item が別の見出しへ跳ぶ。
+  Future<void> _load() async {
+    final generation = ++_generation;
+    setState(() {
+      _all = null;
+      _failure = null;
+    });
+    MediaListResult result;
     try {
-      result = await widget.library.page(
-        _filter,
-        offset: _items.length,
-        limit: widget.pageSize,
-      );
+      result = await widget.library.list();
     } catch (error) {
       // **port が投げても読み込み中で止まらない**(browser と同じ。約束に頼らない)。
-      result = MediaPageFailed('写真・動画を取得できませんでした: $error');
+      result = MediaListFailed('写真・動画を取得できませんでした: $error');
     }
-    if (!mounted || generation != _generation) return false;
+    final List<MediaItem> all;
+    switch (result) {
+      case MediaListed(:final items):
+        all = await withDisplayDates(items, widget.contentDates);
+      case MediaListFailed(:final reason):
+        if (mounted && generation == _generation) {
+          setState(() => _failure = reason);
+        }
+        return;
+    }
+    if (!mounted || generation != _generation) return;
     setState(() {
-      _loadingPage = false;
-      _firstPagePending = false;
-      switch (result) {
-        case MediaPage(:final items, :final hasMore):
-          _items.addAll(items);
-          _hasMore = hasMore;
-          _failure = null;
-        case MediaPageFailed(:final reason):
-          _failure = reason;
-      }
+      _all = all;
+      _items = all.where(_filter.matches).toList();
     });
-    if (result is MediaPageFailed) return false;
-    // 画面を埋めきらないうちは続けて読む。
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLoadMore());
-    return true;
-  }
-
-  /// 末尾に近づいたら続きを読む。
-  void _maybeLoadMore() {
-    if (!mounted || _failure != null || _selectingAll) return;
-    if (!_scrollController.hasClients) return;
-    if (_scrollController.position.extentAfter < 800) _loadNextPage();
   }
 
   /// 絞り込みを変える。**選択は保つ**(REQ-022)。
   void _changeFilter(MediaFilter filter) {
     _dragSelection.finish();
     // 前の絞り込みの item の位置の key を捨てる。残すと切り替えるたびに溜まる
-    // (独立review attempt 1 の S-1)。
+    // (`T07` の独立review attempt 1 の S-1)。
     _dragSelection.forgetRows();
     setState(() {
       _filter = filter;
-      _generation++;
-      _items.clear();
-      _hasMore = true;
-      _loadingPage = false;
-      _firstPagePending = true;
-      _failure = null;
+      _items = (_all ?? const <MediaItem>[]).where(filter.matches).toList();
     });
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
-    _loadNextPage();
   }
 
   /// 取れなかった一覧を読み直す。
-  void _retry() {
-    setState(() => _failure = null);
-    _loadNextPage();
-  }
+  void _retry() => _load();
 
   void _toggle(MediaItem item) {
     setState(() {
@@ -270,28 +256,17 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   }
 
   /// **今の絞り込みで並ぶ item をすべて**選択に足す(REQ-023)。
-  ///
-  /// まだ読んでいない分があれば読み切ってから足す — 「並んでいる」は画面に
-  /// 描いた分ではなく、今の絞り込みに当たる item である。読み切れなければ足さない
-  /// (一部だけ選んで「すべて」と見せない)。
-  Future<void> _selectAll() async {
-    final generation = _generation;
-    setState(() => _selectingAll = true);
-    while (_hasMore && mounted && generation == _generation) {
-      if (_loadingPage) {
-        await Future<void>.delayed(const Duration(milliseconds: 16));
-        continue;
-      }
-      if (!await _loadNextPage()) break;
-    }
-    if (!mounted) return;
-    setState(() {
-      _selectingAll = false;
-      if (generation == _generation && !_hasMore && _failure == null) {
-        _selected.addAll(_items.map((item) => item.path));
-      }
-    });
+  void _selectAll() {
+    setState(() => _selected.addAll(_items.map((item) => item.path)));
   }
+
+  /// 並び順と日付の決め方を説明する(REQ-022。文言は 004 の「010:T11 由来の
+  /// 更新」で開発者が決めたもの)。**選択と絞り込みは変えない。**
+  Future<void> _showDateHelp() => showDialog<void>(
+    context: context,
+    barrierColor: designDialogBarrierColor,
+    builder: (dialogContext) => const MediaDateHelpDialog(),
+  );
 
   /// 選択をすべて解除する。**絞り込みで見えていない選択も外す**(REQ-023)。
   void _clearSelection() {
@@ -302,10 +277,8 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   bool get _hasSelection => _selected.isNotEmpty;
 
   bool get _canSelectAll =>
-      !_selectingAll &&
-      _failure == null &&
       _items.isNotEmpty &&
-      (_hasMore || !_items.every((item) => _selected.contains(item.path)));
+      !_items.every((item) => _selected.contains(item.path));
 
   void _confirm() {
     Navigator.of(context).pop(_selected.toList());
@@ -433,10 +406,30 @@ class _MediaPickerViewState extends State<MediaPickerView> {
                 onPressed: _clearSelection,
               )
             : null,
-        title: Text(
-          key: mediaPickerTitleKey,
-          _hasSelection ? '${_selected.length}件選択中' : '写真・動画',
-          overflow: TextOverflow.ellipsis,
+        // **ⓘ は題名のすぐ右**(2026-10-05 開発者の決定)。選択中に題名が
+        // 「N件選択中」へ変わっても同じ位置に残す。
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                key: mediaPickerTitleKey,
+                _hasSelection ? '${_selected.length}件選択中' : '写真・動画',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              key: mediaPickerDateHelpKey,
+              icon: Icon(
+                Icons.info_outline,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              tooltip: '並び順と日付について',
+              visualDensity: VisualDensity.compact,
+              onPressed: _showDateHelp,
+            ),
+          ],
         ),
         actions: [_menu(colors)],
       ),
@@ -527,13 +520,13 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   );
 
   Widget _body(AppColors colors) {
-    if (_firstPagePending && _failure == null) {
+    final failure = _failure;
+    if (_all == null && failure == null) {
       return const Center(
         child: CircularProgressIndicator(key: Key('media-picker-loading')),
       );
     }
-    final failure = _failure;
-    if (failure != null && _items.isEmpty) {
+    if (failure != null) {
       return Center(
         key: mediaPickerFailedKey,
         child: Padding(
@@ -611,44 +604,10 @@ class _MediaPickerViewState extends State<MediaPickerView> {
               ),
             ),
           ],
-          SliverToBoxAdapter(child: _tail(colors)),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
         ],
       ),
     );
-  }
-
-  /// 一覧の末尾。続きを読んでいる間・続きを取れなかったとき。
-  Widget _tail(AppColors colors) {
-    final failure = _failure;
-    if (failure != null) {
-      return Padding(
-        key: mediaPickerFailedKey,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              failure,
-              style: TextStyle(color: colors.danger),
-              textAlign: TextAlign.center,
-            ),
-            TextButton(
-              key: mediaPickerRetryKey,
-              onPressed: _retry,
-              child: const Text('もう一度読み込む'),
-            ),
-          ],
-        ),
-      );
-    }
-    // **読んでいる間だけ回す。** 続きがあるだけで回すと、画面外(先読みの範囲)で
-    // 回り続ける。
-    if (_loadingPage) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    return SizedBox(height: _hasMore ? 64 : 16);
   }
 
   Widget _tile(AppColors colors, MediaItem item) {
@@ -770,6 +729,143 @@ List<(DateTime?, List<MediaItem>)> _groupByDay(List<MediaItem> items) {
     }
   }
   return groups;
+}
+
+/// 並び順と日付の決め方の説明(004 REQ-022。`010:T11`)。
+///
+/// **文言は開発者が決めたもの**(004 の「010:T11 由来の更新」)。見た目は自由で、
+/// 既存のダイアログの枠に、2つの場合をそれぞれ角丸の枠(左に色の帯とアイコン)で
+/// 並べ、例を小さく薄い箇条書きにした(開発者の要望「視覚的にメリハリ」)。
+class MediaDateHelpDialog extends StatelessWidget {
+  const MediaDateHelpDialog({super.key});
+
+  static const title = '並び順と日付について';
+  static const intro = '写真・動画は撮影日時の新しい順に、日付ごとにまとめて並びます。';
+  static const contentCase = '端末が撮影日時を把握できないものは、ファイル内部に記録された作成日時で並びます。';
+  static const contentExamples = ['ダウンロードしたファイルなど'];
+  static const savedCase = '撮影日時・ファイル内部の作成日時のどちらも無いものは、この端末に保存された日時で並びます。';
+  static const savedExamples = ['多くのスクリーンショットなど'];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return DesignDialog(
+      key: mediaDateHelpDialogKey,
+      title: title,
+      body: [
+        Text(
+          intro,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: AppFontSize.body,
+            height: 1.6,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _DateCaseCard(
+          icon: Icons.insert_drive_file_outlined,
+          accent: colors.primary,
+          text: contentCase,
+          examples: contentExamples,
+        ),
+        const SizedBox(height: 8),
+        _DateCaseCard(
+          icon: Icons.smartphone_outlined,
+          accent: colors.info,
+          text: savedCase,
+          examples: savedExamples,
+        ),
+      ],
+      actions: [
+        Expanded(
+          child: DialogButton(
+            key: mediaDateHelpCloseKey,
+            label: '閉じる',
+            background: colors.surfaceElevated,
+            foreground: colors.textPrimary,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 説明の1つの場合(角丸の枠、左の色の帯、アイコン、本文、例の箇条書き)。
+class _DateCaseCard extends StatelessWidget {
+  const _DateCaseCard({
+    required this.icon,
+    required this.accent,
+    required this.text,
+    required this.examples,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String text;
+  final List<String> examples;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 3, color: accent),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(icon, size: 16, color: accent),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            text,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: AppFontSize.bodySmall,
+                              height: 1.6,
+                            ),
+                          ),
+                          for (final example in examples)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '・$example',
+                                style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: AppFontSize.label,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// サムネイルを同時に頼みすぎないよう数を絞り、作ったものを覚えておく。

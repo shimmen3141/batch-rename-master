@@ -45,13 +45,10 @@ void main() {
     );
   });
 
-  // **種類は文字列で渡る。** Dart の enum 名を変えると Kotlin 側が「分からない種類」
-  // として失敗する(絞り込み)か、行を落とす(一覧が空になる)。
+  // **種類は文字列で渡る。** Dart の enum 名を変えると Kotlin 側の行を落とす
+  // (一覧が空になる)。絞り込みは `010:T11` から Dart の側で行う。
   test('種類の文字列が Kotlin 側と一致する(004 REQ-022。010:T06)', () {
     final kotlin = source.readAsStringSync();
-    for (final filter in MediaKindFilter.values) {
-      expect(kotlin, contains('"${filter.name}" ->'), reason: '絞り込み $filter');
-    }
     for (final kind in MediaKind.values) {
       expect(kotlin, contains('-> "${kind.name}"'), reason: '行の種類 $kind');
     }

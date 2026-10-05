@@ -41,47 +41,25 @@ void main() {
     'albumId': -12345,
   };
 
-  group('page', () {
-    test('種類・アルバム・範囲を渡す', () async {
-      final received = <MethodCall>[];
+  group('list', () {
+    test('全件を頼む(絞り込みと並べ替えは app の側。010:T11)', () async {
+      MethodCall? received;
       answerWith((call) async {
-        received.add(call);
+        received = call;
         return <Object?>[];
       });
 
-      await port.page(
-        const MediaFilter(kind: MediaKindFilter.videos, albumId: 7),
-        offset: 40,
-        limit: 20,
-      );
-      await port.page(const MediaFilter(), offset: 0, limit: 10);
-      await port.page(
-        const MediaFilter(kind: MediaKindFilter.photos),
-        offset: 0,
-        limit: 10,
-      );
+      await port.list();
 
-      expect(received.map((call) => call.method), everyElement('page'));
-      expect(received[0].arguments, {
-        'kind': 'videos',
-        'albumId': 7,
-        'offset': 40,
-        'limit': 20,
-      });
-      // 既定は「すべて」「すべてのアルバム」(004 REQ-022: 最初は全件)。
-      expect(received[1].arguments, {
-        'kind': 'all',
-        'albumId': null,
-        'offset': 0,
-        'limit': 10,
-      });
-      expect((received[2].arguments as Map)['kind'], 'photos');
+      expect(received!.method, 'list');
+      expect(received!.arguments, isNull);
     });
 
     test('日時は端末の時刻帯、動画には再生時間、アルバムの id は負でも保つ', () async {
+      final modified = DateTime.utc(2026, 10, 5, 3);
       answerWith(
         (call) async => [
-          photoRow(),
+          {...photoRow(), 'modified': modified.millisecondsSinceEpoch ~/ 1000},
           {
             'id': 2,
             'path': '/v/b.mp4',
@@ -94,9 +72,9 @@ void main() {
         ],
       );
 
-      final result = await port.page(const MediaFilter(), offset: 0, limit: 10);
+      final result = await port.list();
 
-      final items = (result as MediaPage).items;
+      final items = (result as MediaListed).items;
       expect(items, hasLength(2));
       final photo = items[0];
       expect(photo.id, 1);
@@ -104,6 +82,8 @@ void main() {
       expect(photo.kind, MediaKind.photo);
       expect(photo.taken, taken.toLocal());
       expect(photo.added, added.toLocal());
+      expect(photo.modified, modified.toLocal());
+      expect(photo.content, isNull, reason: '中身の日時は channel からは来ない');
       expect(photo.duration, isNull);
       expect(photo.albumId, -12345);
       // 並び順と見出しの日付は DATE_TAKEN(REQ-022)。
@@ -112,7 +92,8 @@ void main() {
       final video = items[1];
       expect(video.kind, MediaKind.video);
       expect(video.duration, const Duration(milliseconds: 83500));
-      // DATE_TAKEN が無ければ DATE_ADDED(REQ-022)。
+      expect(video.modified, isNull);
+      // DATE_TAKEN が無く、中身の日時もまだ無ければ DATE_ADDED(REQ-022)。
       expect(video.taken, isNull);
       expect(video.date, added.toLocal());
     });
@@ -125,10 +106,7 @@ void main() {
         ],
       );
 
-      final items =
-          ((await port.page(const MediaFilter(), offset: 0, limit: 10))
-                  as MediaPage)
-              .items;
+      final items = ((await port.list()) as MediaListed).items;
 
       expect(items[0].duration, isNull);
       expect(items[0].taken, isNull);
@@ -138,7 +116,7 @@ void main() {
       expect(items[1].albumId, isNull);
     });
 
-    test('形の崩れた行は落とすが、続きの有無は届いた行数で決める', () async {
+    test('形の崩れた行は落とす', () async {
       answerWith(
         (call) async => [
           photoRow(),
@@ -149,52 +127,92 @@ void main() {
         ],
       );
 
-      final result = await port.page(const MediaFilter(), offset: 0, limit: 5);
+      final items = ((await port.list()) as MediaListed).items;
 
-      final page = result as MediaPage;
-      expect(page.items.map((item) => item.id), [1]);
-      expect(page.hasMore, isTrue);
+      expect(items.map((item) => item.id), [1]);
     });
 
-    test('limit に満たなければ続きは無い・空でも「取れた」', () async {
-      answerWith((call) async => [photoRow()]);
-      final short = await port.page(const MediaFilter(), offset: 0, limit: 2);
-      expect((short as MediaPage).hasMore, isFalse);
-
+    test('空でも「取れた」', () async {
       answerWith((call) async => <Object?>[]);
-      final empty = await port.page(const MediaFilter(), offset: 0, limit: 2);
-      expect(empty, isA<MediaPage>());
-      expect((empty as MediaPage).items, isEmpty);
-      expect(empty.hasMore, isFalse);
+      final empty = await port.list();
+      expect(empty, isA<MediaListed>());
+      expect((empty as MediaListed).items, isEmpty);
     });
 
     test('失敗・応答なし・想定外の値・channel が無いは「取れなかった」(空と混同しない)', () async {
       answerWith((call) async => throw PlatformException(code: 'failed'));
-      expect(
-        await port.page(const MediaFilter(), offset: 0, limit: 2),
-        isA<MediaPageFailed>(),
-      );
+      expect(await port.list(), isA<MediaListFailed>());
 
       answerWith((call) async => null);
-      expect(
-        await port.page(const MediaFilter(), offset: 0, limit: 2),
-        isA<MediaPageFailed>(),
-      );
+      expect(await port.list(), isA<MediaListFailed>());
 
       answerWith((call) async => {'not': 'a list'});
-      expect(
-        await port.page(const MediaFilter(), offset: 0, limit: 2),
-        isA<MediaPageFailed>(),
-      );
+      expect(await port.list(), isA<MediaListFailed>());
 
       // 相手が居ない(MissingPluginException)。
       messenger.setMockMethodCallHandler(
         MethodChannelMediaLibrary.channel,
         null,
       );
-      final missing = await port.page(const MediaFilter(), offset: 0, limit: 2);
-      expect(missing, isA<MediaPageFailed>());
-      expect((missing as MediaPageFailed).reason, contains('写真・動画'));
+      final missing = await port.list();
+      expect(missing, isA<MediaListFailed>());
+      expect((missing as MediaListFailed).reason, contains('写真・動画'));
+    });
+  });
+
+  group('並び順と絞り込み(app の側。004 REQ-022)', () {
+    MediaItem item(
+      int id, {
+      DateTime? taken,
+      DateTime? content,
+      DateTime? added,
+      MediaKind kind = MediaKind.photo,
+      int? albumId,
+    }) => MediaItem(
+      id: id,
+      path: '/p$id',
+      kind: kind,
+      taken: taken,
+      added: added,
+      albumId: albumId,
+    ).withContent(content);
+
+    test('日付は DATE_TAKEN → 中身の日時 → DATE_ADDED', () {
+      final t = DateTime(2026, 10, 5);
+      final c = DateTime(2008, 5, 30);
+      final a = DateTime(2026, 10, 4);
+      expect(item(1, taken: t, content: c, added: a).date, t);
+      expect(item(2, content: c, added: a).date, c);
+      expect(item(3, added: a).date, a);
+      expect(item(4).date, isNull);
+    });
+
+    test('新しい順、日時の無いものは最後、同じ日時は id の大きい順', () {
+      final day = DateTime(2026, 10, 5);
+      final sorted = sortedByDate([
+        item(1, added: day),
+        item(2),
+        item(3, content: DateTime(2008, 5, 30)),
+        item(4, taken: DateTime(2026, 10, 6)),
+        item(5, added: day),
+      ]);
+      expect(sorted.map((e) => e.id), [4, 5, 1, 3, 2]);
+    });
+
+    test('種類とアルバムで絞る', () {
+      final photo = item(1, albumId: 7);
+      final video = item(2, kind: MediaKind.video, albumId: 8);
+      expect(const MediaFilter().matches(photo), isTrue);
+      expect(
+        const MediaFilter(kind: MediaKindFilter.photos).matches(video),
+        isFalse,
+      );
+      expect(
+        const MediaFilter(kind: MediaKindFilter.videos).matches(video),
+        isTrue,
+      );
+      expect(const MediaFilter(albumId: 7).matches(photo), isTrue);
+      expect(const MediaFilter(albumId: 7).matches(video), isFalse);
     });
   });
 

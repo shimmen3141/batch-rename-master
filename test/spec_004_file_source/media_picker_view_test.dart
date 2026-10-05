@@ -3,8 +3,10 @@
 // 一覧は fake の port から渡す。MediaStore の照会そのものは `010:T07` の端末確認が
 // 引き受ける(task.md の宣言)。日の見出しを押すまとめ選択は `010:T08`。
 
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:batch_rename_master/data/file_source/media_content_dates.dart';
 import 'package:batch_rename_master/data/file_source/media_library.dart';
 import 'package:batch_rename_master/ui/common/drag_selection_controller.dart';
 import 'package:batch_rename_master/ui/file_source/media_picker_view.dart';
@@ -74,38 +76,24 @@ class _FakeLibrary implements MediaLibraryPort {
             ),
           ];
 
-  /// 新しい順。
+  /// 新しい順で書く(fake は逆順で返す)。
   final List<MediaItem> items;
   final List<MediaAlbum> albumList;
 
-  /// 次の [page] を失敗させる回数。
-  int failPages = 0;
+  /// 次の [list] を失敗させる回数。
+  int failLists = 0;
   bool failAlbums = false;
-  final calls = <(MediaFilter, int, int)>[];
+  int listCalls = 0;
 
+  /// 並べずに返す(並べるのは選択画面の側。010:T11)。
   @override
-  Future<MediaPageResult> page(
-    MediaFilter filter, {
-    required int offset,
-    required int limit,
-  }) async {
-    calls.add((filter, offset, limit));
-    if (failPages > 0) {
-      failPages--;
-      return const MediaPageFailed('写真・動画を取得できませんでした: テスト');
+  Future<MediaListResult> list() async {
+    listCalls++;
+    if (failLists > 0) {
+      failLists--;
+      return const MediaListFailed('写真・動画を取得できませんでした: テスト');
     }
-    final matching = [
-      for (final item in items)
-        if ((filter.albumId == null || item.albumId == filter.albumId) &&
-            switch (filter.kind) {
-              MediaKindFilter.all => true,
-              MediaKindFilter.photos => item.kind == MediaKind.photo,
-              MediaKindFilter.videos => item.kind == MediaKind.video,
-            })
-          item,
-    ];
-    final slice = matching.skip(offset).take(limit).toList();
-    return MediaPage(slice, hasMore: slice.length >= limit);
+    return MediaListed(items.reversed.toList());
   }
 
   @override
@@ -127,7 +115,7 @@ class _Harness {
 Future<_Harness> _open(
   WidgetTester tester,
   MediaLibraryPort library, {
-  int pageSize = 120,
+  MediaContentDatesPort contentDates = const _NoContentDates(),
 }) async {
   final harness = _Harness();
   await tester.pumpWidget(
@@ -141,7 +129,7 @@ Future<_Harness> _open(
                 MaterialPageRoute(
                   builder: (_) => MediaPickerView(
                     library: library,
-                    pageSize: pageSize,
+                    contentDates: contentDates,
                     now: () => DateTime(2026, 10, 5, 12),
                   ),
                 ),
@@ -216,10 +204,15 @@ void main() {
       await _open(tester, library);
 
       // **最初は全件**(種類「すべて」・すべてのアルバム)。
-      final (filter, offset, _) = library.calls.first;
-      expect(filter.kind, MediaKindFilter.all);
-      expect(filter.albumId, isNull);
-      expect(offset, 0);
+      expect(library.listCalls, 1);
+      expect(
+        tester
+            .widget<SegmentedButton<MediaKindFilter>>(
+              find.byKey(mediaPickerKindKey),
+            )
+            .selected,
+        {MediaKindFilter.all},
+      );
 
       final day5 = find.byKey(mediaPickerDayHeaderKey(DateTime(2026, 10, 5)));
       final day4 = find.byKey(mediaPickerDayHeaderKey(DateTime(2026, 10, 4)));
@@ -278,7 +271,7 @@ void main() {
     });
 
     testWidgets('取れなかったときは「無い」とは別に理由を示し、読み直せる', (tester) async {
-      final library = _FakeLibrary([_a])..failPages = 1;
+      final library = _FakeLibrary([_a])..failLists = 1;
       await _open(tester, library);
 
       expect(find.byKey(mediaPickerFailedKey), findsOneWidget);
@@ -306,21 +299,108 @@ void main() {
       expect(find.byKey(mediaPickerAllAlbumsKey), findsOneWidget);
     });
 
-    testWidgets('少しずつ読む: 続きがあれば次の範囲を頼む', (tester) async {
-      final items = [
-        for (var i = 0; i < 5; i++)
-          _photo('/s/DCIM/Camera/p$i.jpg', DateTime(2026, 10, 5, 10 - i)),
-      ];
-      final library = _FakeLibrary(items);
-      await _open(tester, library, pageSize: 2);
+    testWidgets('絞り込みを変えても一覧を取り直さない(全件を受け取り app の側で絞る)', (tester) async {
+      final library = _FakeLibrary([_a, _b, _c]);
+      await _open(tester, library);
 
-      expect(
-        [for (final (_, offset, limit) in library.calls) (offset, limit)],
-        [(0, 2), (2, 2), (4, 2)],
+      await _kind(tester, MediaKindFilter.videos);
+      await _album(tester, mediaPickerAlbumKey(_screenshots));
+
+      expect(library.listCalls, 1);
+    });
+  });
+
+  group('REQ-022: 日付を作成日時に揃える(010:T11)', () {
+    testWidgets('例67: DATE_TAKEN が無いダウンロードは、中身の撮影日の見出しに並ぶ', (tester) async {
+      final download = MediaItem(
+        id: 99,
+        path: '/s/Download/Canon_40D.jpg',
+        kind: MediaKind.photo,
+        added: DateTime(2026, 10, 5, 14, 54),
+        albumId: _download,
       );
-      for (final item in items) {
-        expect(_item(item), findsOneWidget);
-      }
+      await _open(
+        tester,
+        _FakeLibrary([_a, download]),
+        contentDates: _FixedContentDates({99: DateTime(2008, 5, 30, 15, 56)}),
+      );
+
+      final day2008 = find.byKey(
+        mediaPickerDayHeaderKey(DateTime(2008, 5, 30)),
+      );
+      expect(day2008, findsOneWidget);
+      expect(find.text('2008年5月30日(金)'), findsOneWidget);
+      expect(_itemsUnder(tester, [_a, download], day2008, null), [download]);
+      // 今日(10/5)の見出しには a だけ。
+      final today = find.byKey(mediaPickerDayHeaderKey(DateTime(2026, 10, 5)));
+      expect(_itemsUnder(tester, [_a, download], today, day2008), [_a]);
+    });
+
+    testWidgets('並べ終わるまでは格子を出さない(item が後から別の見出しへ跳ばない)', (tester) async {
+      final gate = Completer<Map<int, DateTime>>();
+      final download = MediaItem(
+        id: 99,
+        path: '/s/Download/x.jpg',
+        kind: MediaKind.photo,
+        added: DateTime(2026, 10, 5, 14, 54),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaPickerView(
+            library: _FakeLibrary([download]),
+            contentDates: _GatedContentDates(gate),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const Key('media-picker-loading')), findsOneWidget);
+      expect(_item(download), findsNothing);
+
+      gate.complete({99: DateTime(2008, 5, 30)});
+      await tester.pumpAndSettle();
+      expect(_item(download), findsOneWidget);
+    });
+
+    testWidgets('例69: ⓘ で説明が開き、閉じても選択と絞り込みは変わらない', (tester) async {
+      await _open(tester, _FakeLibrary([_a, _b, _c]));
+      await tester.tap(_item(_a));
+      await tester.pump();
+      await _kind(tester, MediaKindFilter.photos);
+
+      await tester.tap(find.byKey(mediaPickerDateHelpKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(mediaDateHelpDialogKey), findsOneWidget);
+      expect(find.text('並び順と日付について'), findsOneWidget);
+      expect(find.text(MediaDateHelpDialog.intro), findsOneWidget);
+      expect(find.text(MediaDateHelpDialog.contentCase), findsOneWidget);
+      expect(find.text('・ダウンロードしたファイルなど'), findsOneWidget);
+      expect(find.text(MediaDateHelpDialog.savedCase), findsOneWidget);
+      expect(find.text('・多くのスクリーンショットなど'), findsOneWidget);
+
+      await tester.tap(find.byKey(mediaDateHelpCloseKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(mediaDateHelpDialogKey), findsNothing);
+      expect(_title(tester), '1件選択中');
+      expect(_item(_c), findsNothing, reason: '写真に絞ったまま');
+    });
+
+    test('説明の文言は開発者が決めたもの(004「010:T11 由来の更新」)', () {
+      expect(MediaDateHelpDialog.title, '並び順と日付について');
+      expect(MediaDateHelpDialog.intro, '写真・動画は撮影日時の新しい順に、日付ごとにまとめて並びます。');
+      expect(
+        MediaDateHelpDialog.contentCase,
+        '端末が撮影日時を把握できないものは、ファイル内部に記録された作成日時で並びます。',
+      );
+      expect(MediaDateHelpDialog.contentExamples, ['ダウンロードしたファイルなど']);
+      expect(
+        MediaDateHelpDialog.savedCase,
+        '撮影日時・ファイル内部の作成日時のどちらも無いものは、この端末に保存された日時で並びます。',
+      );
+      expect(MediaDateHelpDialog.savedExamples, ['多くのスクリーンショットなど']);
     });
   });
 
@@ -371,48 +451,31 @@ void main() {
       expect(harness.result, unorderedEquals([_a.path, _b.path]));
     });
 
-    testWidgets('すべて選択は今の絞り込みで並ぶ item を足す(まだ読んでいない分も)', (tester) async {
+    testWidgets('すべて選択は今の絞り込みで並ぶ item を足す(画面の外のものも)', (tester) async {
       final photos = [
-        for (var i = 0; i < 5; i++)
-          _photo('/s/DCIM/Camera/p$i.jpg', DateTime(2026, 10, 5, 10 - i)),
+        for (var i = 0; i < 60; i++)
+          _photo(
+            '/s/DCIM/Camera/p$i.jpg',
+            DateTime(2026, 10, 5).subtract(Duration(days: i)),
+          ),
       ];
-      final video = _video('/s/Download/v.mp4', DateTime(2026, 10, 1));
-      // 1ページ目の後に止めて、読んでいない分があるようにする。
-      final library = _FakeLibrary([...photos, video]);
-      final harness = await _open(tester, library, pageSize: 2);
+      final video = _video('/s/Download/v.mp4', DateTime(2026, 10, 6));
+      final harness = await _open(tester, _FakeLibrary([video, ...photos]));
       await tester.tap(_item(video));
       await tester.pump();
       await _kind(tester, MediaKindFilter.photos);
+      expect(_item(photos.last), findsNothing, reason: '画面の外');
 
       await _menu(tester, mediaPickerSelectAllKey);
 
-      // 写真5件 + 先に選んでいた動画(足すので消えない)。
-      expect(_title(tester), '6件選択中');
+      // 写真60件 + 先に選んでいた動画(足すので消えない)。
+      expect(_title(tester), '61件選択中');
       await tester.tap(find.byKey(mediaPickerConfirmKey));
       await tester.pumpAndSettle();
       expect(
         harness.result,
         unorderedEquals([...photos.map((e) => e.path), video.path]),
       );
-    });
-
-    testWidgets('すべて選択は、読み切れなければ一部だけを選ばない', (tester) async {
-      final photos = [
-        for (var i = 0; i < 300; i++)
-          _photo(
-            '/s/DCIM/Camera/p$i.jpg',
-            DateTime(2026, 9, 1).subtract(Duration(hours: i)),
-          ),
-      ];
-      final library = _FakeLibrary(photos);
-      await _open(tester, library, pageSize: 100);
-      final asked = library.calls.length;
-      library.failPages = 1;
-
-      await _menu(tester, mediaPickerSelectAllKey);
-
-      expect(library.calls.length, greaterThan(asked));
-      expect(_title(tester), '写真・動画');
     });
 
     testWidgets('すべて解除は見えていない選択も外す(× とケバブの両方)', (tester) async {
@@ -561,4 +624,29 @@ class _CountingLibrary extends _FakeLibrary {
     asked.add(item.id);
     return null;
   }
+}
+
+class _NoContentDates implements MediaContentDatesPort {
+  const _NoContentDates();
+
+  @override
+  Future<Map<int, DateTime>> datesOf(List<MediaItem> items) async => const {};
+}
+
+class _FixedContentDates implements MediaContentDatesPort {
+  _FixedContentDates(this.dates);
+
+  final Map<int, DateTime> dates;
+
+  @override
+  Future<Map<int, DateTime>> datesOf(List<MediaItem> items) async => dates;
+}
+
+class _GatedContentDates implements MediaContentDatesPort {
+  _GatedContentDates(this.gate);
+
+  final Completer<Map<int, DateTime>> gate;
+
+  @override
+  Future<Map<int, DateTime>> datesOf(List<MediaItem> items) => gate.future;
 }

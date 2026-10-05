@@ -6,6 +6,7 @@ import 'core/rename_engine.dart';
 import 'dart:io';
 import 'data/file_source/android_file_source.dart';
 import 'data/file_source/android_storage_browser.dart';
+import 'data/file_source/media_content_dates.dart';
 import 'data/file_source/media_library.dart';
 import 'data/file_source/storage_browser.dart';
 import 'ui/file_source/file_kind.dart';
@@ -119,6 +120,12 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     return selection;
   }
 
+  /// 選択画面の並びに使う中身の日時(004 REQ-022。`010:T11`)。**app が生きている間
+  /// 覚えておく** — 開くたびにスクリーンショットなどを読み直さないため。
+  final MediaContentDatesPort _mediaContentDates = CachedMediaContentDates(
+    const IsolateMediaContentDates(),
+  );
+
   /// 写真・動画の選択画面を開く(004 REQ-022 / REQ-023。`010:T07`)。
   ///
   /// 権限の確認は [FileSourceBar] の側で済んでいる(REQ-022 は付与されていない間は
@@ -127,8 +134,10 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   Future<List<String>?> _pickMedia() async {
     final paths = await Navigator.of(context).push<List<String>>(
       MaterialPageRoute(
-        builder: (_) =>
-            const MediaPickerView(library: MethodChannelMediaLibrary()),
+        builder: (_) => MediaPickerView(
+          library: const MethodChannelMediaLibrary(),
+          contentDates: _mediaContentDates,
+        ),
       ),
     );
     if (paths != null) await _rememberLocationNames(paths);
