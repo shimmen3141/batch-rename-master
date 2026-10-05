@@ -4816,6 +4816,27 @@
       "find": "      pickMediaPaths: pickMedia,\n",
       "replace": "",
       "note": "010:T07 Android の source に写真・動画の選択画面を渡さない(「写真・動画」が常に失敗する。004 REQ-022)"
+    },
+    {
+      "id": "M744",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    while (_cache.length > maxEntries) {\n      _cache.remove(_cache.keys.first);\n    }\n",
+      "replace": "",
+      "note": "010:T07 サムネイルを上限なく覚える(独立review attempt 1 の S-2)"
+    },
+    {
+      "id": "M745",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "    final cached = _cache.remove(item.id);",
+      "replace": "    final cached = _cache[item.id];",
+      "note": "010:T07 使い直したサムネイルを新しい側へ移さない(古い順に捨てられない)"
+    },
+    {
+      "id": "M746",
+      "file": "lib/ui/common/drag_selection_controller.dart",
+      "find": "  void forgetRows() => _rowGeometryKeys.clear();",
+      "replace": "  void forgetRows() {}",
+      "note": "010:T07 位置の key を捨てない(独立review attempt 1 の S-1)"
     }
   ]
 }

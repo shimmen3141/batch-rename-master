@@ -6,6 +6,7 @@
 import 'dart:typed_data';
 
 import 'package:batch_rename_master/data/file_source/media_library.dart';
+import 'package:batch_rename_master/ui/common/drag_selection_controller.dart';
 import 'package:batch_rename_master/ui/file_source/media_picker_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
@@ -488,6 +489,46 @@ void main() {
     });
   });
 
+  group('絞り込みを繰り返しても溜め込まない(独立review attempt 1 の S-1・S-2)', () {
+    test('サムネイルは最近使った上限件数までだけ覚え、捨てたものは頼み直す', () async {
+      final library = _CountingLibrary();
+      final cache = MediaThumbnailCache(library, maxEntries: 2);
+      final items = [
+        for (var i = 0; i < 3; i++)
+          MediaItem(id: i, path: '/p$i.jpg', kind: MediaKind.photo),
+      ];
+
+      await cache.of(items[0]);
+      await cache.of(items[1]);
+      await cache.of(items[0]); // 0 を使い直す(1 が最も古くなる)
+      await cache.of(items[2]); // 1 が捨てられる
+
+      expect(cache.length, 2);
+      expect(library.asked, [0, 1, 2]);
+      await cache.of(items[0]);
+      expect(library.asked, [0, 1, 2], reason: '0 は覚えている');
+      await cache.of(items[1]);
+      expect(library.asked, [0, 1, 2, 1], reason: '1 は捨てたので頼み直す');
+    });
+
+    testWidgets('絞り込みを変えると、前の item の位置の key を捨てる', (tester) async {
+      final controller = DragSelectionController<String>(
+        scrollController: ScrollController(),
+        viewportKey: GlobalKey(),
+        select: (_) {},
+        deselect: (_) {},
+        isMounted: () => true,
+      );
+      controller.rowGeometryKey('a');
+      controller.rowGeometryKey('b');
+      expect(controller.rowCount, 2);
+
+      controller.forgetRows();
+
+      expect(controller.rowCount, 0);
+    });
+  });
+
   group('見出しと再生時間の書き方', () {
     test('今年なら年を省き、日時が無ければ「日付不明」', () {
       final now = DateTime(2026, 10, 5);
@@ -508,4 +549,16 @@ void main() {
       );
     });
   });
+}
+
+class _CountingLibrary extends _FakeLibrary {
+  _CountingLibrary() : super(const []);
+
+  final asked = <int>[];
+
+  @override
+  Future<Uint8List?> thumbnail(MediaItem item, {required int maxEdge}) async {
+    asked.add(item.id);
+    return null;
+  }
 }

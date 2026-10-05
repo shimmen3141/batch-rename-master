@@ -159,7 +159,9 @@ class _MediaPickerViewState extends State<MediaPickerView> {
         displayOrder: () => [for (final item in _items) item.path],
       );
 
-  late final _ThumbnailLoader _thumbnails = _ThumbnailLoader(widget.library);
+  late final MediaThumbnailCache _thumbnails = MediaThumbnailCache(
+    widget.library,
+  );
 
   @override
   void initState() {
@@ -231,6 +233,9 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   /// 絞り込みを変える。**選択は保つ**(REQ-022)。
   void _changeFilter(MediaFilter filter) {
     _dragSelection.finish();
+    // 前の絞り込みの item の位置の key を捨てる。残すと切り替えるたびに溜まる
+    // (独立review attempt 1 の S-1)。
+    _dragSelection.forgetRows();
     setState(() {
       _filter = filter;
       _generation++;
@@ -771,19 +776,36 @@ List<(DateTime?, List<MediaItem>)> _groupByDay(List<MediaItem> items) {
 ///
 /// 速く scroll すると数百件を一度に頼むことになる。Kotlin 側は thread pool で
 /// 受けるので、ここで同時に走る数を抑える。
-class _ThumbnailLoader {
-  _ThumbnailLoader(this.library);
+///
+/// **覚えるのは最近使った [maxEntries] 件まで**(古いものから捨てる)。写真の多い端末で
+/// 絞り込みを何度も切り替えると、上限が無ければ 256px の bytes が際限なく溜まる
+/// (独立review attempt 1 の S-2)。
+class MediaThumbnailCache {
+  MediaThumbnailCache(this.library, {this.maxEntries = 400});
 
   final MediaLibraryPort library;
+  final int maxEntries;
   static const _maxConcurrent = 6;
   static const _maxEdge = 256;
 
-  final Map<int, Future<Uint8List?>> _cache = {};
+  /// 挿入順 = 使った順(使うたびに末尾へ移す)。
+  final LinkedHashMap<int, Future<Uint8List?>> _cache = LinkedHashMap();
   final List<Completer<void>> _waiting = [];
   int _running = 0;
 
-  Future<Uint8List?> of(MediaItem item) =>
-      _cache.putIfAbsent(item.id, () => _load(item));
+  /// 今覚えている件数。
+  @visibleForTesting
+  int get length => _cache.length;
+
+  Future<Uint8List?> of(MediaItem item) {
+    final cached = _cache.remove(item.id);
+    final future = cached ?? _load(item);
+    _cache[item.id] = future;
+    while (_cache.length > maxEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    return future;
+  }
 
   Future<Uint8List?> _load(MediaItem item) async {
     if (_running >= _maxConcurrent) {
@@ -807,7 +829,7 @@ class _Thumbnail extends StatelessWidget {
   const _Thumbnail({required this.item, required this.loader});
 
   final MediaItem item;
-  final _ThumbnailLoader loader;
+  final MediaThumbnailCache loader;
 
   @override
   Widget build(BuildContext context) {

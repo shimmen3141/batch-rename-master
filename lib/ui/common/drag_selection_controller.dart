@@ -90,6 +90,15 @@ class DragSelectionController<T> {
     _stopAutoScroll();
   }
 
+  /// 登録した item の位置の key をすべて捨てる。並ぶ item が丸ごと入れ替わるとき
+  /// (写真・動画の絞り込みの切り替え)に呼ぶ。描画中の item は次の build で
+  /// [rowGeometryKey] が登録し直す。
+  void forgetRows() => _rowGeometryKeys.clear();
+
+  /// 登録している item の位置の key の数。
+  @visibleForTesting
+  int get rowCount => _rowGeometryKeys.length;
+
   void dispose() {
     finish();
     _pointerPositions.clear();
