@@ -404,6 +404,89 @@ void main() {
     expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
   });
 
+  group('複数フォルダの警告の出し方と閉じ方(REQ-008 / REQ-012。010:T07 の実機確認)', () {
+    List<FileEntry> twoFolders() => [
+      _entry('a.txt', handle: 'h:a', location: '写真'),
+      _entry('b.txt', handle: 'h:b', location: 'ダウンロード'),
+    ];
+
+    testWidgets('一覧が複数フォルダでも、何も選ばずに戻ったら警告しない(Cancelled は通知なし)', (tester) async {
+      final controller = FileListController(files: twoFolders());
+      final source = FakeFileSource(fileResults: [const Cancelled()]);
+      await _pump(tester, source, controller);
+
+      await _pickAll(tester);
+
+      expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+      expect(controller.items, hasLength(2));
+    });
+
+    testWidgets('警告の後に単一フォルダで選び直すと、前の警告は消える', (tester) async {
+      final controller = FileListController(files: const []);
+      final source = FakeFileSource(
+        fileResults: [
+          Picked(twoFolders()),
+          Picked([_entry('c.txt', handle: 'h:c', location: '写真')]),
+        ],
+      );
+      await _pump(tester, source, controller);
+
+      await _pickAll(tester);
+      expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+
+      await _pickAll(tester);
+
+      expect(controller.items.map((e) => e.name), ['c.txt']);
+      expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+    });
+
+    testWidgets('警告の後に何も選ばずに戻ったら、警告は残る(一覧は変わらず当てはまる)', (tester) async {
+      final controller = FileListController(files: const []);
+      final source = FakeFileSource(
+        fileResults: [Picked(twoFolders()), const Cancelled()],
+      );
+      await _pump(tester, source, controller);
+      await _pickAll(tester);
+
+      await _pickAll(tester);
+
+      expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+    });
+
+    testWidgets('一覧が単一フォルダになったら(除去・全消去など)警告は消える', (tester) async {
+      final controller = FileListController(files: const []);
+      final source = FakeFileSource(fileResults: [Picked(twoFolders())]);
+      await _pump(tester, source, controller);
+      await _pickAll(tester);
+      expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+
+      controller.clearFiles();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+    });
+
+    testWidgets('写真・動画の選択画面で選び直したときも、前の警告は消える(REQ-012)', (tester) async {
+      final controller = FileListController(files: const []);
+      final source = _MediaFakeSource([
+        Picked([
+          _entry('x.jpg', handle: '/s/A/x.jpg', location: 'A'),
+          _entry('y.jpg', handle: '/s/B/y.jpg', location: 'B'),
+        ]),
+      ]);
+      source.exhaustedResult = Picked(twoFolders());
+      await _pump(tester, source, controller);
+      await _pickAll(tester);
+      expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
+
+      await _pickKind(tester, FileKind.media);
+
+      // 選択画面からの一覧は複数フォルダのままだが、警告は出さない。
+      expect(controller.items.map((e) => e.name), ['x.jpg', 'y.jpg']);
+      expect(find.byKey(const Key('multi-folder-warning')), findsNothing);
+    });
+  });
+
   testWidgets('2回目の選択は前回を残さず置き換える(蓄積しない。REQ-004)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
@@ -451,6 +534,17 @@ void main() {
 class _MediaFakeSource extends FakeFileSource implements MediaPickSource {
   _MediaFakeSource(List<PickResult> mediaResults)
     : _mediaResults = List.of(mediaResults);
+
+  /// `pickFiles`(「すべて」)の結果。`null` なら [FakeFileSource] のまま。
+  PickResult? exhaustedResult;
+
+  @override
+  Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
+    final result = exhaustedResult;
+    if (result == null) return super.pickFiles(mimeTypes: mimeTypes);
+    fileCallCount++;
+    return result;
+  }
 
   final List<PickResult> _mediaResults;
   int mediaCallCount = 0;

@@ -4837,6 +4837,27 @@
       "find": "  void forgetRows() => _rowGeometryKeys.clear();",
       "replace": "  void forgetRows() {}",
       "note": "010:T07 位置の key を捨てない(独立review attempt 1 の S-1)"
+    },
+    {
+      "id": "M747",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (replaced &&\n        !fromMediaPicker &&",
+      "replace": "    if (!fromMediaPicker &&",
+      "note": "010:T07 実機確認 何も選ばずに戻っても複数フォルダの警告を出す(004 REQ-008)"
+    },
+    {
+      "id": "M748",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (replaced) _closeMultiFolderWarning();\n",
+      "replace": "",
+      "note": "010:T07 実機確認 一覧を置き換えても前の警告を閉じない(004 REQ-012)"
+    },
+    {
+      "id": "M749",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    widget.controller.addListener(_closeWarningIfSingleFolder);\n  }\n",
+      "replace": "  }\n",
+      "note": "010:T07 実機確認 一覧が単一フォルダになっても警告を閉じない(004 REQ-012)"
     }
   ]
 }
