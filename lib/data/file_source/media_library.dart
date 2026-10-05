@@ -16,6 +16,8 @@ class MediaItem {
     required this.kind,
     this.taken,
     this.added,
+    this.modified,
+    this.content,
     this.duration,
     this.albumId,
   });
@@ -34,16 +36,37 @@ class MediaItem {
   /// `DATE_ADDED`。端末の時刻帯の [DateTime]。無ければ `null`。
   final DateTime? added;
 
+  /// `DATE_MODIFIED`。中身の日時を覚えておくときの鍵に使う(中身が変われば変わる)。
+  final DateTime? modified;
+
+  /// ファイルの中身の日時(004 REQ-010 の①)。**`DATE_TAKEN` が無い item だけ**読んで
+  /// 入れる(REQ-022。[withContent])。読んでいない・取れなければ `null`。
+  final DateTime? content;
+
   /// 動画の再生時間。写真・記録の無い動画は `null`。
   final Duration? duration;
 
   /// 属するアルバム(MediaStore のバケット)の id。無ければ `null`。
   final int? albumId;
 
-  /// 並び順と見出しの日付(004 REQ-022: `DATE_TAKEN`、無ければ `DATE_ADDED`)。
+  /// 並び順と見出しの日付(004 REQ-022: `DATE_TAKEN`、無ければ中身の日時、それも
+  /// 無ければ `DATE_ADDED`)。
   ///
-  /// **読み込んだ後の作成日時(REQ-010)とは別物である。** 中身の日時は読まない。
-  DateTime? get date => taken ?? added;
+  /// `DATE_TAKEN` が無い item では、読み込んだ後の作成日時(REQ-010)と同じになる。
+  DateTime? get date => taken ?? content ?? added;
+
+  /// 中身の日時を入れた写し。
+  MediaItem withContent(DateTime? content) => MediaItem(
+    id: id,
+    path: path,
+    kind: kind,
+    taken: taken,
+    added: added,
+    modified: modified,
+    content: content,
+    duration: duration,
+    albumId: albumId,
+  );
 }
 
 /// アルバム(写真・動画のある folder の1つ。MediaStore のバケット)。
@@ -79,37 +102,60 @@ class MediaFilter {
 
   /// `null` は「すべてのアルバム」。
   final int? albumId;
+
+  /// [item] がこの絞り込みで並ぶか。
+  bool matches(MediaItem item) =>
+      (albumId == null || item.albumId == albumId) &&
+      switch (kind) {
+        MediaKindFilter.all => true,
+        MediaKindFilter.photos => item.kind == MediaKind.photo,
+        MediaKindFilter.videos => item.kind == MediaKind.video,
+      };
 }
 
-/// [MediaLibraryPort.page] の結果。
+/// [MediaLibraryPort.list] の結果。
 ///
 /// **「取れなかった」と「1件も無い」を型で区別する。** 空の一覧へ落とすと、
 /// 照会に失敗したときに「写真・動画が無い」と見せてしまう(004 REQ-022 は
 /// 無いときに無いことを示す)。
-sealed class MediaPageResult {
-  const MediaPageResult();
+sealed class MediaListResult {
+  const MediaListResult();
 }
 
 /// 取れた。**空でも「取れた」である。**
-class MediaPage extends MediaPageResult {
-  const MediaPage(this.items, {required this.hasMore});
+class MediaListed extends MediaListResult {
+  const MediaListed(this.items);
 
-  /// 新しい順(`DATE_TAKEN`、無ければ `DATE_ADDED`)。
+  /// 並びは決めていない。並べるのは [sortedByDate]。
   final List<MediaItem> items;
-
-  /// 続きがありうる。`false` ならこれで終わり。
-  final bool hasMore;
 }
 
-/// 取れなかった。**空の [MediaPage] と混同しない。**
-class MediaPageFailed extends MediaPageResult {
-  const MediaPageFailed(this.reason);
+/// 取れなかった。**空の [MediaListed] と混同しない。**
+class MediaListFailed extends MediaListResult {
+  const MediaListFailed(this.reason);
 
   /// 利用者と開発者の両方が読める理由。
   final String reason;
 }
 
-/// [MediaLibraryPort.albums] の結果。[MediaPageResult] と同じ区別を持つ。
+/// [items] を並び順(004 REQ-022)に並べる: [MediaItem.date] の新しい順、日時の無い
+/// ものは最後、同じ日時は id の大きい順(並びが揺れないように)。
+List<MediaItem> sortedByDate(Iterable<MediaItem> items) {
+  final sorted = items.toList();
+  sorted.sort((a, b) {
+    final x = a.date;
+    final y = b.date;
+    if (x != y) {
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return y.compareTo(x);
+    }
+    return b.id.compareTo(a.id);
+  });
+  return sorted;
+}
+
+/// [MediaLibraryPort.albums] の結果。[MediaListResult] と同じ区別を持つ。
 sealed class MediaAlbumsResult {
   const MediaAlbumsResult();
 }
@@ -133,12 +179,9 @@ class MediaAlbumsFailed extends MediaAlbumsResult {
 /// `adb push` など shell が置いた file は載っていても見えない(`010:T03`)。
 /// ゴミ箱に入ったもの・保存途中のものは含まない。
 abstract interface class MediaLibraryPort {
-  /// [filter] で絞った一覧の、新しい順で [offset] 件目から最大 [limit] 件。
-  Future<MediaPageResult> page(
-    MediaFilter filter, {
-    required int offset,
-    required int limit,
-  });
+  /// 写真・動画の全件。絞り込みと並べ替えは app の側で行う — 並び順に中身の日時が
+  /// 要る(REQ-022)ので、MediaStore には並べさせられない(`010:T11`)。
+  Future<MediaListResult> list();
 
   /// アルバムの一覧。
   Future<MediaAlbumsResult> albums();
@@ -161,33 +204,21 @@ class MethodChannelMediaLibrary implements MediaLibraryPort {
   );
 
   /// **失敗を握りつぶさない。** channel が無い・Kotlin 側が失敗した・想定外の
-  /// 値が返った、はどれも [MediaPageFailed] である。
+  /// 値が返った、はどれも [MediaListFailed] である。
   ///
   /// 形の崩れた行(id・path・種類が無い)は落とす。並べても読み込めない。
   @override
-  Future<MediaPageResult> page(
-    MediaFilter filter, {
-    required int offset,
-    required int limit,
-  }) async {
+  Future<MediaListResult> list() async {
     final List<Object?>? raw;
     try {
-      raw = await channel.invokeMethod<List<Object?>>('page', {
-        'kind': filter.kind.name,
-        'albumId': filter.albumId,
-        'offset': offset,
-        'limit': limit,
-      });
+      raw = await channel.invokeMethod<List<Object?>>('list');
     } catch (error) {
-      return MediaPageFailed('写真・動画を取得できませんでした: $error');
+      return MediaListFailed('写真・動画を取得できませんでした: $error');
     }
     if (raw == null) {
-      return const MediaPageFailed('写真・動画を取得できませんでした: 応答がありません');
+      return const MediaListFailed('写真・動画を取得できませんでした: 応答がありません');
     }
-    final items = [for (final row in raw) ?_itemOf(row)];
-    // **落とした行も数える。** 数えないと、形の崩れた行があるだけで続きを
-    // 取りに行かなくなる。
-    return MediaPage(items, hasMore: raw.length >= limit);
+    return MediaListed([for (final row in raw) ?_itemOf(row)]);
   }
 
   @override
@@ -239,8 +270,8 @@ class MethodChannelMediaLibrary implements MediaLibraryPort {
     }
   }
 
-  /// 値は UTC の時刻(`DATE_TAKEN` はミリ秒、`DATE_ADDED` は秒、`DURATION` は
-  /// ミリ秒)で届く。日時は**端末の時刻帯へ直す**(004 REQ-022)。
+  /// 値は UTC の時刻(`DATE_TAKEN` はミリ秒、`DATE_ADDED`・`DATE_MODIFIED` は秒、
+  /// `DURATION` はミリ秒)で届く。日時は**端末の時刻帯へ直す**(004 REQ-022)。
   static MediaItem? _itemOf(Object? row) {
     if (row is! Map) return null;
     final id = row['id'];
@@ -255,6 +286,7 @@ class MethodChannelMediaLibrary implements MediaLibraryPort {
     }
     final taken = _positive(row['taken']);
     final added = _positive(row['added']);
+    final modified = _positive(row['modified']);
     final duration = _positive(row['duration']);
     final albumId = row['albumId'];
     return MediaItem(
@@ -265,6 +297,9 @@ class MethodChannelMediaLibrary implements MediaLibraryPort {
       added: added == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(added * 1000),
+      modified: modified == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(modified * 1000),
       duration: kind == MediaKind.video && duration != null
           ? Duration(milliseconds: duration)
           : null,

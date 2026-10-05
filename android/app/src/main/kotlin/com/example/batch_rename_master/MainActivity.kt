@@ -105,7 +105,7 @@ class MainActivity : FlutterActivity() {
                     return@setMethodCallHandler
                 }
                 when (call.method) {
-                    "page" -> onBackground(result, "page") { mediaPage(call) }
+                    "list" -> onBackground(result, "list") { mediaList() }
                     "albums" -> onBackground(result, "albums") { mediaAlbums() }
                     "thumbnail" -> onBackground(result, "thumbnail") { mediaThumbnail(call) }
                     else -> result.notImplemented()
@@ -153,23 +153,26 @@ class MainActivity : FlutterActivity() {
         MediaStore.Files.FileColumns.MEDIA_TYPE,
         MediaStore.MediaColumns.DATE_TAKEN,
         MediaStore.MediaColumns.DATE_ADDED,
+        MediaStore.MediaColumns.DATE_MODIFIED,
         MediaStore.MediaColumns.DURATION,
         MediaStore.MediaColumns.BUCKET_ID,
         MediaStore.MediaColumns.BUCKET_DISPLAY_NAME,
     )
 
     /**
-     * 新しい順(004 REQ-022: `DATE_TAKEN`、無ければ `DATE_ADDED`)。`DATE_TAKEN` は
-     * ミリ秒、`DATE_ADDED` は秒なので揃えてから比べる。同じ時刻は id の大きい順にして、
-     * 少しずつ取る間に並びが揺れないようにする。
+     * アルバムの代表(いちばん新しい item)を選ぶための順(010:T06)。`DATE_TAKEN` は
+     * ミリ秒、`DATE_ADDED` は秒なので揃えてから比べる。**選択画面の並び順ではない** —
+     * それは中身の日時も使うので Dart の側で決める(004 REQ-022。010:T11)。代表が
+     * 選択画面の先頭と違うことはありうる(代表は見分けるための絵で、並びの約束ではない)。
      */
     private val mediaSortOrder = "COALESCE(" + MediaStore.MediaColumns.DATE_TAKEN + ", " +
         MediaStore.MediaColumns.DATE_ADDED + " * 1000) DESC, " +
         MediaStore.MediaColumns._ID + " DESC"
 
     /**
-     * 種類とアルバムで絞った写真・動画を、新しい順に `offset` 件目から最大 `limit` 件
-     * 返す(004 REQ-022。010:T06)。
+     * 写真・動画の全件を返す(004 REQ-022。010:T11)。**並べない・絞らない** —
+     * 並び順に中身の日時が要る(`DATE_TAKEN` が無い item)ので、Dart の側で並べ、
+     * 種類とアルバムでも Dart の側で絞る。
      *
      * **すべての保存場所を含む。** `VOLUME_EXTERNAL` は内部共有ストレージと SD カード等を
      * まとめて指す。**ゴミ箱・保存途中は含めない** — API 30 以降の MediaStore は既定で
@@ -177,18 +180,9 @@ class MainActivity : FlutterActivity() {
      * file など。010:T03)ので、それ以上の判定は作らない。
      */
     @TargetApi(Build.VERSION_CODES.R)
-    private fun mediaPage(call: MethodCall): List<Map<String, Any?>> {
-        val kind = call.argument<String>("kind") ?: "all"
-        val albumId = call.argument<Number>("albumId")?.toLong()
-        val offset = call.argument<Int>("offset") ?: 0
-        val limit = call.argument<Int>("limit") ?: 0
-        if (limit <= 0) return emptyList()
-        val (selection, selectionArgs) = mediaSelection(kind, albumId)
-        val args = mediaQueryArgs(selection, selectionArgs).apply {
-            putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, mediaSortOrder)
-            putInt(ContentResolver.QUERY_ARG_LIMIT, limit)
-            putInt(ContentResolver.QUERY_ARG_OFFSET, offset)
-        }
+    private fun mediaList(): List<Map<String, Any?>> {
+        val (selection, selectionArgs) = mediaSelection()
+        val args = mediaQueryArgs(selection, selectionArgs)
         val items = mutableListOf<Map<String, Any?>>()
         contentResolver.query(mediaUri(), mediaProjection, args, null)?.use { cursor ->
             val columns = MediaColumns(cursor)
@@ -208,7 +202,7 @@ class MainActivity : FlutterActivity() {
      */
     @TargetApi(Build.VERSION_CODES.R)
     private fun mediaAlbums(): List<Map<String, Any?>> {
-        val (selection, selectionArgs) = mediaSelection("all", null)
+        val (selection, selectionArgs) = mediaSelection()
         val args = mediaQueryArgs(selection, selectionArgs).apply {
             putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER, mediaSortOrder)
         }
@@ -272,26 +266,13 @@ class MainActivity : FlutterActivity() {
 
     private fun mediaUri(): Uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
 
-    /** 写真・動画だけ、種類([kind])とアルバム([albumId])で絞る条件。 */
-    private fun mediaSelection(kind: String, albumId: Long?): Pair<String, Array<String>> {
-        val image = MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString()
-        val video = MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString()
-        val types = when (kind) {
-            "photos" -> listOf(image)
-            "videos" -> listOf(video)
-            "all" -> listOf(image, video)
-            else -> throw IllegalArgumentException("種類が分かりません: $kind")
-        }
-        val clauses = mutableListOf(
-            MediaStore.Files.FileColumns.MEDIA_TYPE + " IN (" +
-                types.joinToString(",") { "?" } + ")",
+    /** 写真・動画だけを選ぶ条件。 */
+    private fun mediaSelection(): Pair<String, Array<String>> {
+        val types = arrayOf(
+            MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString(),
+            MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString(),
         )
-        val args = types.toMutableList()
-        if (albumId != null) {
-            clauses += MediaStore.MediaColumns.BUCKET_ID + " = ?"
-            args += albumId.toString()
-        }
-        return clauses.joinToString(" AND ") to args.toTypedArray()
+        return MediaStore.Files.FileColumns.MEDIA_TYPE + " IN (?,?)" to types
     }
 
     @TargetApi(Build.VERSION_CODES.R)
@@ -310,6 +291,7 @@ class MainActivity : FlutterActivity() {
         val type = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MEDIA_TYPE)
         val taken = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_TAKEN)
         val added = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+        val modified = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
         val duration = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
         val bucket = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.BUCKET_ID)
         val bucketName =
@@ -329,6 +311,7 @@ class MainActivity : FlutterActivity() {
                 "kind" to kind,
                 "taken" to longOrNull(cursor, taken),
                 "added" to longOrNull(cursor, added),
+                "modified" to longOrNull(cursor, modified),
                 "duration" to longOrNull(cursor, duration),
                 "albumId" to longOrNull(cursor, bucket),
             )

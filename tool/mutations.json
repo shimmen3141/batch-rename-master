@@ -4629,39 +4629,32 @@
       "note": "010:T03 ①がある file も MediaStore に照会する"
     },
     {
-      "id": "M717",
-      "file": "lib/data/file_source/media_library.dart",
-      "find": "    return MediaPage(items, hasMore: raw.length >= limit);",
-      "replace": "    return MediaPage(items, hasMore: items.length >= limit);",
-      "note": "010:T06 続きの有無を落とした後の行数で決める"
-    },
-    {
       "id": "M718",
       "file": "lib/data/file_source/media_library.dart",
-      "find": "    } catch (error) {\n      return MediaPageFailed('写真・動画を取得できませんでした: $error');\n    }",
-      "replace": "    } catch (error) {\n      return const MediaPage([], hasMore: false);\n    }",
-      "note": "010:T06 一覧の失敗を空の一覧にする"
+      "find": "      return MediaListFailed('写真・動画を取得できませんでした: $error');",
+      "replace": "      return const MediaListed([]);",
+      "note": "010:T06 一覧の失敗を空の一覧にする **010:T11 で `page`(絞り込みと少しずつ読む)を `list`(全件。絞り込みと並べ替えは app の側)へ変えたので追随させた。**"
     },
     {
       "id": "M719",
       "file": "lib/data/file_source/media_library.dart",
-      "find": "      return const MediaPageFailed('写真・動画を取得できませんでした: 応答がありません');",
-      "replace": "      return const MediaPage([], hasMore: false);",
-      "note": "010:T06 応答なしを空の一覧にする"
+      "find": "      return const MediaListFailed('写真・動画を取得できませんでした: 応答がありません');",
+      "replace": "      return const MediaListed([]);",
+      "note": "010:T06 応答なしを空の一覧にする **010:T11 で `page`(絞り込みと少しずつ読む)を `list`(全件。絞り込みと並べ替えは app の側)へ変えたので追随させた。**"
     },
     {
       "id": "M720",
       "file": "lib/data/file_source/media_library.dart",
-      "find": "        'kind': filter.kind.name,",
-      "replace": "        'kind': 'all',",
-      "note": "010:T06 種類の絞り込みを渡さない"
+      "find": "        MediaKindFilter.photos => item.kind == MediaKind.photo,",
+      "replace": "        MediaKindFilter.photos => true,",
+      "note": "010:T06 種類の絞り込みが効かない(004 REQ-022) **010:T11 で `page`(絞り込みと少しずつ読む)を `list`(全件。絞り込みと並べ替えは app の側)へ変えたので追随させた。** 以前は「種類を channel へ渡さない」"
     },
     {
       "id": "M721",
       "file": "lib/data/file_source/media_library.dart",
-      "find": "        'albumId': filter.albumId,",
-      "replace": "        'albumId': null,",
-      "note": "010:T06 アルバムの絞り込みを渡さない"
+      "find": "      (albumId == null || item.albumId == albumId) &&",
+      "replace": "      true &&",
+      "note": "010:T06 アルバムの絞り込みが効かない(004 REQ-022) **010:T11 で `page`(絞り込みと少しずつ読む)を `list`(全件。絞り込みと並べ替えは app の側)へ変えたので追随させた。** 以前は「アルバムを channel へ渡さない」"
     },
     {
       "id": "M722",
@@ -4680,9 +4673,9 @@
     {
       "id": "M724",
       "file": "lib/data/file_source/media_library.dart",
-      "find": "  DateTime? get date => taken ?? added;",
-      "replace": "  DateTime? get date => added ?? taken;",
-      "note": "010:T06 並びの日付で DATE_ADDED を優先する"
+      "find": "  DateTime? get date => taken ?? content ?? added;",
+      "replace": "  DateTime? get date => added ?? taken ?? content;",
+      "note": "010:T06 並びの日付で DATE_ADDED を優先する **010:T11 で 日付に中身の日時が入ったので追随させた。**"
     },
     {
       "id": "M725",
@@ -4743,16 +4736,9 @@
     {
       "id": "M733",
       "file": "lib/ui/file_source/media_picker_view.dart",
-      "find": "      _filter = filter;\n      _generation++;",
-      "replace": "      _filter = filter;\n      _selected.clear();\n      _generation++;",
-      "note": "010:T07 絞り込みを変えると選択を捨てる(004 REQ-022)"
-    },
-    {
-      "id": "M734",
-      "file": "lib/ui/file_source/media_picker_view.dart",
-      "find": "      if (generation == _generation && !_hasMore && _failure == null) {",
-      "replace": "      if (generation == _generation) {",
-      "note": "010:T07 すべて選択で読み切れなくても読んだ分だけ選ぶ(004 REQ-023)"
+      "find": "      _filter = filter;\n      _items = (_all",
+      "replace": "      _filter = filter;\n      _selected.clear();\n      _items = (_all",
+      "note": "010:T07 絞り込みを変えると選択を捨てる(004 REQ-022) **010:T11 で `page`(絞り込みと少しずつ読む)を `list`(全件。絞り込みと並べ替えは app の側)へ変えたので追随させた。**"
     },
     {
       "id": "M735",
@@ -4858,6 +4844,55 @@
       "find": "    widget.controller.addListener(_closeWarningIfSingleFolder);\n  }\n",
       "replace": "  }\n",
       "note": "010:T07 実機確認 一覧が単一フォルダになっても警告を閉じない(004 REQ-012)"
+    },
+    {
+      "id": "M750",
+      "file": "lib/data/file_source/media_content_dates.dart",
+      "find": "      if (item.taken == null) item,\n",
+      "replace": "      item,\n",
+      "note": "010:T11 DATE_TAKEN がある item の中身も読む(開くのが遅くなる。004 REQ-022)"
+    },
+    {
+      "id": "M751",
+      "file": "lib/data/file_source/media_content_dates.dart",
+      "find": "      if (dates[item.id] case final date? when item.taken == null)",
+      "replace": "      if (dates[item.id] case final date?)",
+      "note": "010:T11 DATE_TAKEN がある item にも中身の日時を入れる(004 REQ-022)"
+    },
+    {
+      "id": "M752",
+      "file": "lib/data/file_source/media_content_dates.dart",
+      "find": "      (item.path, item.modified);",
+      "replace": "      (item.path, null);",
+      "note": "010:T11 中身が変わっても(DATE_MODIFIED が変わっても)覚えた日時を使う"
+    },
+    {
+      "id": "M753",
+      "file": "lib/data/file_source/media_content_dates.dart",
+      "find": "        _cache[_keyOf(item)] = read[item.id];",
+      "replace": "        if (read[item.id] != null) _cache[_keyOf(item)] = read[item.id];",
+      "note": "010:T11 取れなかったことを覚えない(開くたびに読み直す)"
+    },
+    {
+      "id": "M754",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "      if (x == null) return 1;\n      if (y == null) return -1;",
+      "replace": "      if (x == null) return -1;\n      if (y == null) return 1;",
+      "note": "010:T11 日時の無い item を先頭に並べる"
+    },
+    {
+      "id": "M755",
+      "file": "lib/data/file_source/media_library.dart",
+      "find": "    return b.id.compareTo(a.id);",
+      "replace": "    return a.id.compareTo(b.id);",
+      "note": "010:T11 同じ日時の並びを id の小さい順にする"
+    },
+    {
+      "id": "M756",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "        all = await withDisplayDates(items, widget.contentDates);",
+      "replace": "        all = sortedByDate(items);",
+      "note": "010:T11 中身の日時を読まずに並べる(DATE_TAKEN が無い item が DATE_ADDED で並ぶ。004 REQ-022 / 代表例 67)"
     }
   ]
 }
