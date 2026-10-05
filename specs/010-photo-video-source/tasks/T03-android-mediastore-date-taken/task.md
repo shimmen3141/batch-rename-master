@@ -119,6 +119,8 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
     Kotlin の import・構文、M714 の find の一致と再現(範囲付き `flutter test test/spec_004_file_source` で 1 KILLED)、
     `flutter test` 1286 PASS・analyze・format・workspace check、manual の改訂(件数・期待値・手順3の③の安定・UI 文言の実在・PowerShell)、
     task.md の観測1〜4 と finding が commit と食い違わないこと、Evidence revision `c5320d5`。
+- SELF-CHECK: `afa443a..` 以降(attempt 2 の後)は `specs/` だけの記録(manual attempt 2 の結果、受け入れ条件の check、
+  manual の「動画は `Movies` に入ることもある」、status `done`、PR 番号)。`lib/`・`test/`・`tool/`・`android/`・依存・build 設定に差分なし。
 
 ## Current state / handoff
 
