@@ -51,6 +51,14 @@
   - 証拠: unit / widget test(T02・T03)。
 - [x] 004(と連動する 001・002)の spec 差分を開発者が承認している。
   - 証拠: T01 の task.md の承認記録。
+- [ ] Android の「写真・動画」で、端末の写真・動画を撮影日の見出し付きの格子で見渡し、種類とアルバムで絞り、folder をまたいで選んで読み込める。見出しでその日をまとめて選べる。
+  - 証拠: widget test、Android エミュレータの manual(T07・T08)。
+- [ ] 「写真・動画」から読み込んだ一覧を、選択済みで選択画面に開き直せる。帯が「写真・動画」を示す。
+  - 証拠: widget test、Android エミュレータの manual(T09)。
+- [ ] desktop の「写真・動画」で、写真・動画に絞った OS のファイル選択画面が開く。
+  - 証拠: unit / widget test、開発者の Windows での確認(T10)。
+- [x] 写真・動画の選択画面の spec 差分(004 REQ-011・012・016・021〜024)を開発者が承認している。
+  - 証拠: T05 の task.md の承認記録。
 
 ## 人間の決定
 
@@ -83,5 +91,10 @@
 | T03 | [task.md](tasks/T03-android-mediastore-date-taken/task.md) |
 | T04 | [task.md](tasks/T04-verify-creation-time-stability/task.md) |
 | T05 | [task.md](tasks/T05-define-media-picker/task.md) |
+| T06 | [task.md](tasks/T06-android-media-listing/task.md) |
+| T07 | [task.md](tasks/T07-android-media-picker-screen/task.md) |
+| T08 | [task.md](tasks/T08-media-picker-day-select/task.md) |
+| T09 | [task.md](tasks/T09-media-picker-source-and-reopen/task.md) |
+| T10 | [task.md](tasks/T10-desktop-media-filter/task.md) |
 
 この表は人間向けのリンクだけを持つ。status、依存、Issue番号などの状態を複製しない。

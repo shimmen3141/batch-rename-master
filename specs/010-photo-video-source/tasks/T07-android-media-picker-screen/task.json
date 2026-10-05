@@ -1,20 +1,17 @@
 {
   "schema": "asdd.task/v1",
-  "id": "T05",
-  "title": "「画像」「動画」から選ぶ画面を仕様にする",
-  "status": "in_review",
+  "id": "T07",
+  "title": "Android の「写真・動画」の選択画面を作る",
+  "status": "pending",
   "dependsOn": [
-    "T03",
-    "T04"
+    "T06"
   ],
   "covers": [
     "004:REQ-011",
     "004:REQ-012",
     "004:REQ-016",
-    "004:REQ-021",
     "004:REQ-022",
-    "004:REQ-023",
-    "004:REQ-024"
+    "004:REQ-023"
   ],
   "issue": null,
   "pullRequest": null,

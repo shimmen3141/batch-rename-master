@@ -33,11 +33,11 @@
 
 ## 受け入れ条件
 
-- [ ] 上の「決めること」が spec の差分になり、代表例で観測できる形になっている。
+- [x] 上の「決めること」が spec の差分になり、代表例で観測できる形になっている。
   - 証拠: spec の差分、`flutter test test/tooling` PASS。
 - [x] 開発者が差分を承認している。
   - 証拠: この task.md の承認記録。
-- [ ] 実装の task(Android の一覧の取得・画面・manual)が plan に足されている。
+- [x] 実装の task(Android の一覧の取得・画面・manual)が plan に足されている。
 - [ ] 独立review が PASS。
 
 ## 作業記録
@@ -55,10 +55,26 @@
 - 既定として仕様に書く(尋ねない。従来の振る舞いに揃える): 選び方は app 内 browser の REQ-020 と揃える(1件ずつ・長押し drag の範囲・
   全選択・まとめて解除。全選択の範囲は今の絞り込みとアルバム)、確定は REQ-004 の置き換え、開き直しは `008:T24` の申し送りどおり読み込み元を選択済みで開く。
 
+- 2026-10-05 実装の task を足した: `T06`(MediaStore の一覧の取得)、`T07`(選択画面。種類の変更・格子・絞り込み・選択・確定)、
+  `T08`(見出しで日をまとめて選ぶ)、`T09`(読み込み元と開き直し)、`T10`(desktop の絞り込み)。plan の全体の受け入れ条件にも足した。
+  画面の形(種類は3つの切り替え、アルバムは下から出る一覧)は開発者へ案として示し、`T07` の入力に書いた。
+
+### 独立review
+
+reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実装は Claude Opus 5.5。**AGENTS.md の既定では、仕様の判定に触れる task は
+実装と同等以上の model で review する**が、開発者の指定(2026-10-02)に従った。
+
+- Review attempt 1: `ae5f57f..84340df`(全範囲) — **PASS**
+  - 確認できた点: plan の5つの決定が spec へ漏れなく反映され、Agent が決めた点が節に明記されていること、REQ-004・012・015〜021・019・010 との整合、
+    代表例 54〜66 が REQ から一意に導けること、規範の場所に古い「画像」「動画」「未実装」が残っていないこと、002 の要求が不変で 001 に波及が無いこと、
+    task.md・plan.md・task.json の記録、`check_normative_terms` PASS・`flutter test test/tooling` PASS・workspace check PASS、`lib/`・`test/`・`tool/` に差分なし。
+  - P3(成果物の欠陥): `task.json` の `dependsOn` に `T04` が無い → 足した。
+  - P3(成果物の欠陥): `covers` に範囲を変えた REQ-016・REQ-021 が無い → 足した。
+
 ## Current state / handoff
 
-- Last checkpoint: spec 差分を開発者が承認した。独立review の後に実装の task を足す
+- Last checkpoint: review attempt 1 PASS。P3 を閉じ、実装の task を足した。差分の review を待つ
 - Blocker category: なし
-- Waiting for: 独立review
+- Waiting for: 独立review(差分 `84340df..HEAD`。実装の task の追加)
 - Evidence revision: なし(code を変えない仕様の task)
 - Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
