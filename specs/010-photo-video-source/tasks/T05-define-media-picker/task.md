@@ -38,7 +38,7 @@
 - [x] 開発者が差分を承認している。
   - 証拠: この task.md の承認記録。
 - [x] 実装の task(Android の一覧の取得・画面・manual)が plan に足されている。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## 作業記録
 
@@ -70,11 +70,16 @@ reviewer は Sonnet 5(Agent tool、`model: sonnet`。開発者の指定)。実�
     task.md・plan.md・task.json の記録、`check_normative_terms` PASS・`flutter test test/tooling` PASS・workspace check PASS、`lib/`・`test/`・`tool/` に差分なし。
   - P3(成果物の欠陥): `task.json` の `dependsOn` に `T04` が無い → 足した。
   - P3(成果物の欠陥): `covers` に範囲を変えた REQ-016・REQ-021 が無い → 足した。
+- Review attempt 2: `84340df..12843af`(差分。P3 の対応と実装の task の追加) — **PASS**
+  - 確認できた点: P3 の2件が閉じたこと、T06〜T10 が REQ-011・012・016・021〜024 を漏れなく引き受け依存に循環が無いこと、T07/T08 の分け方が plan の決定に合うこと、
+    各 task の machine 検証範囲の宣言、T07 の画面の形の想定が「自由とする点」の範囲内で規範の書き写しでないこと、plan の受け入れ条件の追加、
+    workspace check・`check_normative_terms`・`flutter test test/tooling` PASS。
+  - P3(成果物の欠陥): 代表例 65(adb で置いたファイルは並ばない)がどの task の受け入れ条件にも無い → `T07` の受け入れ条件に足した。
+- SELF-CHECK: `12843af..` 以降は `specs/` だけの記録(上の P3 の対応、review の記録、status `done`、PR 番号)。`lib/`・`test/`・`tool/` に差分なし。
 
 ## Current state / handoff
 
-- Last checkpoint: review attempt 1 PASS。P3 を閉じ、実装の task を足した。差分の review を待つ
+- Last checkpoint: review attempt 2 PASS。P3 を閉じた。T05 完了
 - Blocker category: なし
-- Waiting for: 独立review(差分 `84340df..HEAD`。実装の task の追加)
 - Evidence revision: なし(code を変えない仕様の task)
-- Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
+- Next Agent action: PR を作り、CI の後に merge する。次は `T06`(と並行できる `T10`)
