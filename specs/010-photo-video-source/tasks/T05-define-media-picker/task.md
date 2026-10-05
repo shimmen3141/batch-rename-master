@@ -47,13 +47,18 @@
 - 2026-10-05 画像と動画: 開発者が案A(「写真・動画」の1つにまとめ、画面の中で絞る)を選んだ。
 - 2026-10-05 見せ方: 開発者が案A(格子 + 日付の見出し)を選び、「見出しを押すとその日をまとめて選ぶ」を足した。実装の task は分ける(plan.md)。
 - 2026-10-05 desktop: 開発者が案A(「写真・動画」で OS のファイル選択画面を絞り込む)を選んだ。
+- 2026-10-05 複数フォルダの警告: 開発者が案A(「写真・動画」から読み込んだときは出さない。帯は「写真・動画」)を選んだ。
+- 2026-10-05 spec 差分を書いた: 004(REQ-011・012・016・021 の更新、REQ-022〜024 の追加、代表例 13・27・28 の更新と 54〜66、自由・対象外・検証、
+  「010:T05 由来の更新」の節)、002(操作表と REQ-021 の呼び出し元の括弧書きだけ。要求は不変)。
+  `python3 tool/check_normative_terms.py` PASS(0 violations)、`flutter test test/tooling` PASS(9)、workspace check PASS。
 - 既定として仕様に書く(尋ねない。従来の振る舞いに揃える): 選び方は app 内 browser の REQ-020 と揃える(1件ずつ・長押し drag の範囲・
   全選択・まとめて解除。全選択の範囲は今の絞り込みとアルバム)、確定は REQ-004 の置き換え、開き直しは `008:T24` の申し送りどおり読み込み元を選択済みで開く。
 
 ## Current state / handoff
 
-- Last checkpoint: 開発者に尋ねる論点が決まった。004 の spec 差分を書いている
-- Blocker category: なし
-- Waiting for: なし
+- Last checkpoint: 004・002 の spec 差分を書いた。開発者の承認を待つ
+- Blocker category: human-decision
+- Waiting for: 開発者(004・002 の spec 差分の承認)
+- Requested action: 会話で示した差分の要約を読み、承認するか直す点を伝える
 - Evidence revision: なし(code を変えない仕様の task)
 - Next Agent action: 回答を plan.md の「人間の決定」に記録し、次の論点を尋ねる
