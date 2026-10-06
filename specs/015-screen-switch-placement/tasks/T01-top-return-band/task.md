@@ -62,9 +62,20 @@ M789 | KILLED
 
 - **未実施**: Android の build(AI container に Android SDK が無い)。
 
+### 独立review
+
+- Review attempt 1: `7f14151..605dff2` — PASS — none(指摘なし)。全範囲。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。plan の決定との一致(帯・矢印なし・header と footer の不変・同じ部品)、押すと `pop()`(決定していない)で選択中も同じこと、システムバックが変わらないこと、`ReturnBandAppBar` の高さ(Scaffold が appBar の領域へ足す status bar の分と、帯の `SafeArea` が足す分が一致する)、例61 の test の変更が assertion を緩めていないこと、手順書と見比べ用 worktree を確かめた。reviewer 自身が related(111)・`flutter test --exclude-tags tooling`(+1380。全件の +1383 との差は tooling タグの3件)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(726)・M785〜M789(5 KILLED)を回し、文字倍率1.3・幅320dp で帯が溢れないことを一時 test で確かめた(表には入れていない)。
+
+### 実機確認(見比べ)
+
+- 対象: `lib/`・`android/` が `f302e35` と同一の build。見比べ用の今の配置は `.worktrees/015-T01-compare-dev`(`dev` の `7f14151`)。手順は [/workspace/specs/015-screen-switch-placement/tasks/T01-top-return-band/manual-verification.md](/workspace/specs/015-screen-switch-placement/tasks/T01-top-return-band/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-06)。
+
 ## Current state / handoff
 
-- Last checkpoint: implementation(`f302e35`)。自動検証 PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`7f14151..605dff2`)
+- Blocker category: manual-evidence
 - Evidence revision: `f302e35`
-- Next Agent action: 独立review attempt 1 を依頼する
+- Waiting for: 開発者(Android エミュレータでの見比べと採否)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜4を行い、採るか・気になる点・footer の希望を会話で伝える
+- Next Agent action: 結果を「実機確認(見比べ)」へ記録する。採るなら PR を ready にし merge 条件を確かめる。採らないなら PR を merge せずに閉じ、plan.md の「人間の決定」と product-map の行へ理由を残す。どちらでも見比べ用 worktree を消す

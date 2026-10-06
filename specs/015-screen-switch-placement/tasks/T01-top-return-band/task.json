@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T01",
   "title": "browser と写真・動画の選択画面の最上部に「リネーム画面へ戻る」の帯を足す",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
