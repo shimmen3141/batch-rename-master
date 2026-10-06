@@ -15,10 +15,11 @@ desktop の種類を「写真・動画」「文書」「すべて」にし、「
 
 ## 受け入れ条件
 
-- [ ] desktop の種類が「写真・動画」「文書」「すべて」の3つになる(代表例 28)。
-- [ ] 「写真・動画」で、写真と動画のファイルに絞った選択画面が開き、選んだファイルを読み込める(代表例 13)。
+- [x] desktop の種類が「写真・動画」「文書」「すべて」の3つになる(代表例 28)。
+- [x] 「写真・動画」で、写真と動画のファイルに絞った選択画面が開き、選んだファイルを読み込める(代表例 13)。
   - 証拠: unit / widget test。Windows の実際の絞り込みは開発者の確認(host)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS(attempt 1)。
+- [x] 開発者の Windows での確認が PASS(attempt 1、2026-10-06)。
 
 ## machine検証範囲と引き受け先
 
@@ -81,13 +82,11 @@ M784 | KILLED
 ### Windows での確認
 
 - 対象: `lib/` が `c2238e5` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T10-desktop-media-filter/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T10-desktop-media-filter/manual-verification.md)。
-- attempt 1: 依頼中(2026-10-06)。
+- attempt 1(2026-10-06、host の Windows で `flutter run -d windows`、build は `c2238e5` と同じ `lib/`): **PASS。** 開発者の報告「確認事項について、問題ありませんでした」。手順1〜3(種類が3つで「（未実装）」が無いこと、「写真・動画」で写真と動画だけが並び読み込めること、「文書」がエラーにならず文書だけに絞られること、「すべて」は絞らないこと)がすべて期待どおり。**直す前の「文書」が Windows で失敗していたかは観測していない**(直した後の build だけを見た)。
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1 PASS(`5d7d2d8..68c1d01`)、以後は mutation の表だけ(SELF-CHECK)
-- Blocker category: manual-evidence
+- Last checkpoint: handoff。独立review attempt 1 PASS(`5d7d2d8..68c1d01`)、以後は mutation の表と記録だけ(SELF-CHECK)、Windows での確認 attempt 1 PASS。done
+- Blocker category: なし
 - Evidence revision: `c2238e5`
-- Waiting for: 開発者(Windows での確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜3を行い、結果を会話で伝える
-- Next Agent action: 結果を「Windows での確認」へ記録する。PASS なら PR を ready にし merge 条件を確かめる。違いがあれば原因を調べて直す
+- Next Agent action: なし(PR #226。CI の PASS と merge 条件を確かめて merge する)
