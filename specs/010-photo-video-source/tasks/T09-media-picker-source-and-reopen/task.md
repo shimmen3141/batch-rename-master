@@ -15,12 +15,13 @@
 
 ## 受け入れ条件
 
-- [ ] 「写真・動画」から読み込んだ一覧では、帯が「写真・動画」を示し、REQ-021 の browser の入口は出ない(代表例 64)。
-- [ ] 一覧から選択画面を、一覧にあるファイルを選択済みにして、全件・絞り込み無しで開き直せる。確定は置き換えで、並びは 002 REQ-021(代表例 61・62)。
-- [ ] 改名した後に開き直すと、改名後のファイルが選択済みで始まる(代表例 63)。
-- [ ] 「すべて」で読み込み直すと、帯と入口が browser の規則に戻る(代表例 66)。
+- [x] 「写真・動画」から読み込んだ一覧では、帯が「写真・動画」を示し、REQ-021 の browser の入口は出ない(代表例 64)。
+- [x] 一覧から選択画面を、一覧にあるファイルを選択済みにして、全件・絞り込み無しで開き直せる。確定は置き換えで、並びは 002 REQ-021(代表例 61・62)。
+- [x] 改名した後に開き直すと、改名後のファイルが選択済みで始まる(代表例 63)。
+- [x] 「すべて」で読み込み直すと、帯と入口が browser の規則に戻る(代表例 66)。
   - 証拠: widget test、端末の manual。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS(attempt 1)。
+- [x] 端末の manual が PASS(attempt 1、2026-10-06)。
 
 ## machine検証範囲と引き受け先
 
@@ -100,13 +101,11 @@ M166 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart
 ### 実機確認
 
 - 対象: `lib/`・`android/` が `40f3ab4` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T09-media-picker-source-and-reopen/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T09-media-picker-source-and-reopen/manual-verification.md)。
-- attempt 1: 依頼中(2026-10-06)。
+- attempt 1(2026-10-06、build は `40f3ab4` と同じ `lib/`・`android/`): **PASS。** 開発者の報告「確認事項について、すべて問題ありませんでした」。手順1〜7(帯の「写真・動画」と警告が出ないこと、選択済みで開き直して足す、閉じても無変化、改名後の照合、選択モード中の入口、1フォルダでも選択画面を開くこと、「すべて」で folder の規則に戻ること)がすべて期待どおり。
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1 PASS(`3fdf76b..a054e51`)
-- Blocker category: manual-evidence
+- Last checkpoint: handoff。独立review attempt 1 PASS(`3fdf76b..a054e51`)、以後は記録だけ(SELF-CHECK: P3-2 を `4c9f805` で閉じた)、実機確認 attempt 1 PASS。done
+- Blocker category: なし
 - Evidence revision: `40f3ab4`
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜7を行い、結果を会話で伝える
-- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を ready にし merge 条件を確かめる。違いがあれば原因を調べて直す
+- Next Agent action: なし(PR #225。CI の PASS と merge 条件を確かめて merge する)

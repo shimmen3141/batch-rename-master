@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T09",
   "title": "「写真・動画」から読み込んだ一覧の読み込み元を示し、選択済みで開き直す",
-  "status": "blocked",
+  "status": "done",
   "dependsOn": [
     "T07"
   ],
