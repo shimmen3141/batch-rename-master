@@ -32,11 +32,64 @@
 - 2026-10-05 `T05` が spec(004 REQ-011・012・016・021〜024)の承認を受けて足した。
 - 端末の manual が要る。`manual-verification.md` は実装のときに書き、`task.json` の `manualVerification` に入れる。
 
-- 2026-10-06 着手(branch `asdd/010-photo-video-source/T09-media-picker-source-and-reopen`、base `3fdf76b`)。
+- 2026-10-06 着手(branch `asdd/010-photo-video-source/T09-media-picker-source-and-reopen`、base `3fdf76b`)。 実装 `40f3ab4`。
+
+### 作ったもの
+
+- [/workspace/lib/ui/file_source/list_origin.dart](/workspace/lib/ui/file_source/list_origin.dart): 読み込み元(`ListOrigin`: browser・写真・動画の選択画面・desktop の OS の選択画面)を一覧とは別の値で持つ(`ListOriginState`)。読み込み帯が一覧を置き換える**直前**に記録し、**一覧が空の間は読み込み元が無い**(`current` が `null`)。
+- [/workspace/lib/ui/file_source/file_source_bar.dart](/workspace/lib/ui/file_source/file_source_bar.dart): 読み込み・開き直しのたびに読み込み元を記録する。読み込み元が選択画面なら帯は「写真・動画」(写真のアイコン)。一覧の先頭の行から呼ばれる開き直しを、読み込み元で振り分ける(選択画面なら `_reopenMediaPicker`、そうでなければ今までの `_reopenSameFolder`)。選択画面の開き直しも、権限の確認・`reselectFiles`(002 REQ-021)・`Cancelled`・`Failed` の通知を folder の開き直しと同じにした。
+- [/workspace/lib/ui/file_list/file_list_view.dart](/workspace/lib/ui/file_list/file_list_view.dart): 読み込み元が選択画面なら、先頭の行は**所属 folder の数に依らず**「写真・動画」と「＋ 追加」を出す(REQ-021 の folder の入口は出さない)。選択モード中は「＋ 追加」を隠す(行は残す)。`onReopenFolder` を `onReopen` へ改名した(`rule_builder_workspace.dart` も)。
+- [/workspace/lib/ui/file_source/media_picker_view.dart](/workspace/lib/ui/file_source/media_picker_view.dart): `initialSelection` で選択済みのまま始める(絞り込みの初期値は全件のまま)。**一覧を読み終えたら、並ばない初期選択を外す**(MediaStore から見えなくなったものが確定に残らない)。**読み終えるまでは確定できない**。
+- `MediaPickSource.pickMedia({selected})` と `MediaPicker` の typedef に初期選択を通した(`AndroidFileSource`、`main.dart`)。
+
+### Agent が決めた点(spec の「自由とする点」の範囲)
+
+- **読み込み元は一覧とは別の値で持つ。** 一覧(002 の controller)は読み込み元を知らなくてよく、帯と一覧の先頭の行が読む。
+- **除去の取り消し(002 REQ-017)で空の一覧を戻すと、読み込み元も戻る。** REQ-024 は読み込み元を「最後に一覧を置き換えた読み込み」と定め、「空になると無くなる」とする。取り消しは読み込みではないので、最後に置き換えた読み込みは変わらない、と読んだ(空の間は `null`)。取り消して戻した写真・動画の一覧の帯が「複数のフォルダ」になり入口が消えるほうが、利用者には不自然である。
+- **読み込み元が無い一覧(デモの初期値)は、今までどおり REQ-021 の規則で入口を出す。** 読み込み元が browser でないと REQ-021 の入口を出さない、を字義どおり当てはめると、デモの一覧で既存の振る舞いが変わる。デモは製品の読み込み経路に載らない。
+- 一覧から開き直したときに、読み終えるまで「確定」を押せなくした(読み終える前の選択には並ばないものが残っているため)。
+
+### 検証(`40f3ab4`)
+
+- `flutter test`: PASS(+1368、exit 0)。related: `media_picker_reopen_test` PASS(+15。代表例 56・61〜64・66、選択モード、空になったとき・取り消したとき、空の確定、失敗、権限)、`media_picker_view_test` PASS(+30。うち REQ-024 の4件)、`android_file_source_test`(初期選択の受け渡し1件を追加)。`flutter analyze`: No issues。`dart format`: PASS。`check_mutation_finds.py`: PASS(715)。
+- mutation: `find` を追随させた M166・M672〜676・M682・M683・M737 と、足した M765〜M777。範囲 `flutter test test/spec_004_file_source`(22件)で回し、SURVIVED の M166 だけ全件(`flutter test --exclude-tags tooling`)で回し直した。
+
+```text
+command: flutter test test/spec_004_file_source
+M166 | SURVIVED | lib/ui/rule_builder/rule_builder_workspace.dart
+M672 | KILLED | lib/ui/file_source/file_source_bar.dart
+M673 | KILLED | lib/ui/file_source/file_source_bar.dart
+M674 | KILLED | lib/ui/file_source/file_source_bar.dart
+M675 | KILLED | lib/ui/file_list/file_list_view.dart
+M676 | KILLED | lib/ui/file_list/file_list_view.dart
+M682 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart
+M683 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart
+M737 | KILLED | lib/ui/file_source/media_picker_view.dart
+M765 | KILLED | lib/ui/file_source/file_source_bar.dart
+M766 | KILLED | lib/ui/file_source/file_source_bar.dart
+M767 | KILLED | lib/ui/file_source/file_source_bar.dart
+M768 | KILLED | lib/ui/file_source/file_source_bar.dart
+M769 | KILLED | lib/ui/file_source/file_source_bar.dart
+M770 | KILLED | lib/ui/file_source/file_source_bar.dart
+M771 | KILLED | lib/ui/file_source/file_source_bar.dart
+M772 | KILLED | lib/ui/file_source/list_origin.dart
+M773 | KILLED | lib/ui/file_list/file_list_view.dart
+M774 | KILLED | lib/ui/file_source/media_picker_view.dart
+M775 | KILLED | lib/ui/file_source/media_picker_view.dart
+M776 | KILLED | lib/ui/file_source/media_picker_view.dart
+M777 | KILLED | lib/data/file_source/android_file_source.dart
+22 mutations: 21 KILLED, 1 SURVIVED, 0 SKIPPED
+
+command: flutter test --exclude-tags tooling
+M166 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **未実施**: Android の build(AI container に Android SDK が無い)。
 
 ## Current state / handoff
 
-- Last checkpoint: 着手(branch `asdd/010-photo-video-source/T09-media-picker-source-and-reopen`、base `3fdf76b`)
+- Last checkpoint: implementation(`40f3ab4`)。自動検証 PASS
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 読み込み元の持ち方・帯・入口・選択画面の初期選択を実装し、widget test を足す
+- Evidence revision: `40f3ab4`
+- Next Agent action: 独立review attempt 1 を依頼する
