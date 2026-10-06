@@ -7,6 +7,7 @@ import '../file_list/file_list_controller.dart';
 import '../file_list/removal_selection.dart';
 import '../file_list/file_list_view.dart';
 import '../file_list/row_view.dart';
+import '../file_source/list_origin.dart';
 import '../rename_exec/rename_execution_controller.dart';
 import '../theme/app_colors.dart';
 import 'rule_builder_view.dart';
@@ -27,7 +28,8 @@ class RuleBuilderWorkspace extends StatefulWidget {
     this.renameExecution,
     this.filePreview,
     this.removalSelection,
-    this.onReopenFolder,
+    this.onReopen,
+    this.listOrigin,
     this.breakpoint = 840,
   });
 
@@ -42,8 +44,11 @@ class RuleBuilderWorkspace extends StatefulWidget {
   /// composition root から通す(`008:T29`)。ここでは中身を見ず、一覧へ渡すだけである。
   final RemovalSelection? removalSelection;
 
-  /// 一覧の folder 行から同じ folder を開き直す(004 REQ-021)。[FileListView] へ渡す。
-  final Future<void> Function()? onReopenFolder;
+  /// 一覧の先頭の行から読み込み元を開き直す(004 REQ-021 / REQ-024)。[FileListView] へ渡す。
+  final Future<void> Function()? onReopen;
+
+  /// 一覧の読み込み元(004 REQ-024)。[FileListView] へ渡す。
+  final ListOriginState? listOrigin;
 
   /// モバイル/デスクトップの境界幅(dp)。既定 840(003 spec 決定済み)。
   final double breakpoint;
@@ -209,7 +214,8 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
             renameExecution: widget.renameExecution,
             filePreview: widget.filePreview,
             removalSelection: widget.removalSelection,
-            onReopenFolder: widget.onReopenFolder,
+            onReopen: widget.onReopen,
+            listOrigin: widget.listOrigin,
             // ルールビルダーが右ペインに常時見えているので、下部バーには
             // 実行だけを置く(ルール設定への導線は重複させない)。
           ),
@@ -252,7 +258,8 @@ class _RuleBuilderWorkspaceState extends State<RuleBuilderWorkspace> {
       renameExecution: widget.renameExecution,
       filePreview: widget.filePreview,
       removalSelection: widget.removalSelection,
-      onReopenFolder: widget.onReopenFolder,
+      onReopen: widget.onReopen,
+      listOrigin: widget.listOrigin,
       onEditRule: _openRuleSheet,
     );
   }

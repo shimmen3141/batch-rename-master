@@ -550,7 +550,7 @@ class _MediaFakeSource extends FakeFileSource implements MediaPickSource {
   int mediaCallCount = 0;
 
   @override
-  Future<PickResult> pickMedia() async {
+  Future<PickResult> pickMedia({Set<String> selected = const {}}) async {
     mediaCallCount++;
     return _mediaResults.isEmpty
         ? const Cancelled()

@@ -1158,9 +1158,9 @@
     {
       "id": "M166",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      removalSelection: widget.removalSelection,\n      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,\n    );",
-      "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      removalSelection: widget.removalSelection,\n      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,\n    );",
-      "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。**"
+      "find": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      filePreview: widget.filePreview,\n      removalSelection: widget.removalSelection,\n      onReopen: widget.onReopen,\n      listOrigin: widget.listOrigin,\n      onEditRule: _openRuleSheet,\n    );",
+      "replace": "    return FileListView(\n      controller: widget.fileList,\n      renameExecution: widget.renameExecution,\n      removalSelection: widget.removalSelection,\n      onReopen: widget.onReopen,\n      listOrigin: widget.listOrigin,\n      onEditRule: _openRuleSheet,\n    );",
+      "note": "008:T07 合成でpreview portを配り忘れる — productionの行からpreviewが消える(独立reviewが追加) **008:T56 で同じ文字列が開き直しの経路(帯の `_reopenSameFolder`・folder 行・`reselectFiles`・`fileSourceFor` の `reopen`)にも現れたので、`find` を前後の行を含めて一意にした。** **`010:T09` で `onReopenFolder` を `onReopen` へ改名し `listOrigin` を足したので追随させた。**"
     },
     {
       "id": "M167",
@@ -4316,37 +4316,37 @@
     {
       "id": "M672",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "      widget.controller.reselectFiles,",
-      "replace": "      widget.controller.setFiles,",
-      "note": "008:T56 帯の開き直しが reselectFiles を使わない — 手で並べた順が失われる(002 REQ-021)"
+      "find": "      (entries) {\n        widget.listOrigin?.record(ListOrigin.browser);\n        widget.controller.reselectFiles(entries);",
+      "replace": "      (entries) {\n        widget.listOrigin?.record(ListOrigin.browser);\n        widget.controller.setFiles(entries);",
+      "note": "008:T56 帯の開き直しが reselectFiles を使わない — 手で並べた順が失われる(002 REQ-021) **`010:T09` で読み込み元の記録を足したので追随させた。**"
     },
     {
       "id": "M673",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "    final messenger = ScaffoldMessenger.maybeOf(context);\n    if (await _checkPermission() == StoragePermissionState.denied) return;\n    final selected",
-      "replace": "    final messenger = ScaffoldMessenger.maybeOf(context);\n    final selected",
-      "note": "008:T56 開き直す前に権限を確かめない(013 REQ-004。未許可でも browser を開く)"
+      "find": "    final reopener = source as FolderReopenSource;\n    final messenger = ScaffoldMessenger.maybeOf(context);\n    if (await _checkPermission() == StoragePermissionState.denied) return;\n",
+      "replace": "    final reopener = source as FolderReopenSource;\n    final messenger = ScaffoldMessenger.maybeOf(context);\n",
+      "note": "008:T56 開き直す前に権限を確かめない(013 REQ-004。未許可でも browser を開く) **`010:T09` で写真・動画の開き直しに同じ行ができたので、前の行を含めて一意にした。**"
     },
     {
       "id": "M674",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "    final selected = {for (final item in items) ?item.sourceHandle};",
-      "replace": "    final selected = <String>{};",
-      "note": "008:T56 一覧の状態を初期値に渡さない — 開き直すと何も選ばれていない(004 REQ-021。代表例 36)"
+      "find": "    final selected = {for (final item in items) ?item.sourceHandle};\n    final error = await applyPick(\n      () => reopener.reopenFolder(",
+      "replace": "    final selected = <String>{};\n    final error = await applyPick(\n      () => reopener.reopenFolder(",
+      "note": "008:T56 一覧の状態を初期値に渡さない — 開き直すと何も選ばれていない(004 REQ-021。代表例 36) **`010:T09` で写真・動画の開き直しに同じ行ができたので、後の行を含めて一意にした。**"
     },
     {
       "id": "M675",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                      onAdd: selecting ? null : widget.onReopenFolder,",
-      "replace": "                      onAdd: widget.onReopenFolder,",
-      "note": "008:T56 選択モード中も「＋ 追加」を出す(004 REQ-021 / 002 REQ-018)"
+      "find": "                      onAdd: selecting ? null : widget.onReopen,",
+      "replace": "                      onAdd: widget.onReopen,",
+      "note": "008:T56 選択モード中も「＋ 追加」を出す(004 REQ-021 / 002 REQ-018) **`010:T09` で改名に追随させた。**"
     },
     {
       "id": "M676",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  if (widget.onReopenFolder != null && soleFolder != null)",
-      "replace": "                  if (soleFolder != null)",
-      "note": "008:T56 開き直せない画面(desktop)にも folder 行を出す"
+      "find": "                  if (widget.onReopen != null &&\n                      (fromMediaPicker || soleFolder != null))",
+      "replace": "                  if (fromMediaPicker || soleFolder != null)",
+      "note": "008:T56 開き直せない画面(desktop)にも folder 行を出す **`010:T09` で改名と写真・動画の入口に追随させた。**"
     },
     {
       "id": "M677",
@@ -4386,16 +4386,16 @@
     {
       "id": "M682",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "      onReopenFolder: widget.onReopenFolder,\n      onEditRule: _openRuleSheet,",
-      "replace": "      onEditRule: _openRuleSheet,",
-      "note": "008:T56 狭幅(mobile)の一覧へ入口を渡さない — folder 行が製品で出ない。**独立review attempt 1 の reviewer が設計した対照(REV1)。当時は SURVIVED で、結線の test を足して KILLED にした**"
+      "find": "      onReopen: widget.onReopen,\n      listOrigin: widget.listOrigin,\n      onEditRule: _openRuleSheet,",
+      "replace": "      listOrigin: widget.listOrigin,\n      onEditRule: _openRuleSheet,",
+      "note": "008:T56 狭幅(mobile)の一覧へ入口を渡さない — folder 行が製品で出ない。**独立review attempt 1 の reviewer が設計した対照(REV1)。当時は SURVIVED で、結線の test を足して KILLED にした** **`010:T09` で改名に追随させた。**"
     },
     {
       "id": "M683",
       "file": "lib/ui/rule_builder/rule_builder_workspace.dart",
-      "find": "            removalSelection: widget.removalSelection,\n            onReopenFolder: widget.onReopenFolder,",
+      "find": "            removalSelection: widget.removalSelection,\n            onReopen: widget.onReopen,",
       "replace": "            removalSelection: widget.removalSelection,",
-      "note": "008:T56 広幅の一覧へ入口を渡さない(M682 の広幅側。独立review attempt 1 の P2-1 で足した)"
+      "note": "008:T56 広幅の一覧へ入口を渡さない(M682 の広幅側。独立review attempt 1 の P2-1 で足した) **`010:T09` で改名に追随させた。**"
     },
     {
       "id": "M684",
@@ -4757,9 +4757,9 @@
     {
       "id": "M737",
       "file": "lib/ui/file_source/media_picker_view.dart",
-      "find": "            onPressed: _hasSelection ? _confirm : null,",
+      "find": "            onPressed: _canConfirm ? _confirm : null,",
       "replace": "            onPressed: _confirm,",
-      "note": "010:T07 0件でも確定できる(004 REQ-023 / 代表例 60)"
+      "note": "010:T07 0件でも確定できる(004 REQ-023 / 代表例 60) **`010:T09` で確定の条件を `_canConfirm`(読み終えたか)にまとめたので追随させた。**"
     },
     {
       "id": "M738",
@@ -4921,6 +4921,97 @@
       "find": "          onTap: () => _toggleDay(items),",
       "replace": "          onTap: () => _toggleDay(_items),",
       "note": "010:T08 見出しで、その日ではなく並んでいる全件を選ぶ(004 REQ-023 / 代表例 58)"
+    },
+    {
+      "id": "M765",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      widget.listOrigin?.record(ListOrigin.mediaPicker);\n      widget.controller.reselectFiles(entries);",
+      "replace": "      widget.listOrigin?.record(ListOrigin.mediaPicker);\n      widget.controller.setFiles(entries);",
+      "note": "010:T09 選択画面の開き直しが reselectFiles を使わない — 手で並べた順が失われる(002 REQ-021)"
+    },
+    {
+      "id": "M766",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (items.isEmpty) return;\n    final messenger = ScaffoldMessenger.maybeOf(context);\n    if (await _checkPermission() == StoragePermissionState.denied) return;\n",
+      "replace": "    if (items.isEmpty) return;\n    final messenger = ScaffoldMessenger.maybeOf(context);\n",
+      "note": "010:T09 選択画面を開き直す前に権限を確かめない(013 REQ-004)"
+    },
+    {
+      "id": "M767",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    final selected = {for (final item in items) ?item.sourceHandle};\n    final error = await applyPick(() => picker.pickMedia(",
+      "replace": "    final selected = <String>{};\n    final error = await applyPick(() => picker.pickMedia(",
+      "note": "010:T09 一覧のハンドルを選択画面へ渡さない — 開き直すと何も選ばれていない(004 REQ-024 / 代表例 61)"
+    },
+    {
+      "id": "M768",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "  Future<void> _reopen() => widget.listOrigin?.current == ListOrigin.mediaPicker\n",
+      "replace": "  Future<void> _reopen() => false\n",
+      "note": "010:T09 読み込み元が選択画面でも browser で開き直す(004 REQ-024 / 代表例 64)"
+    },
+    {
+      "id": "M769",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "    if (origin == ListOrigin.mediaPicker) return mediaPickerOriginLabel;\n",
+      "replace": "",
+      "note": "010:T09 帯が読み込み元を見ない — 「写真・動画」ではなく folder 名・「複数のフォルダ」を出す(004 REQ-024 / 代表例 56・64)"
+    },
+    {
+      "id": "M770",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "        fromMediaPicker\n            ? ListOrigin.mediaPicker",
+      "replace": "        true\n            ? ListOrigin.mediaPicker",
+      "note": "010:T09 「すべて」で読み込んでも読み込み元を写真・動画にする(004 REQ-024 / 代表例 66)"
+    },
+    {
+      "id": "M771",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "      widget.listOrigin?.record(ListOrigin.mediaPicker);\n      widget.controller.reselectFiles(entries);",
+      "replace": "      widget.listOrigin?.record(ListOrigin.browser);\n      widget.controller.reselectFiles(entries);",
+      "note": "010:T09 選択画面を開き直して確定すると読み込み元が browser に変わる(004 REQ-024)"
+    },
+    {
+      "id": "M772",
+      "file": "lib/ui/file_source/list_origin.dart",
+      "find": "  ListOrigin? get current => _files.items.isEmpty ? null : _last;",
+      "replace": "  ListOrigin? get current => _last;",
+      "note": "010:T09 一覧が空でも読み込み元が残る(004 REQ-024: 空になると無くなる)"
+    },
+    {
+      "id": "M773",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        final fromMediaPicker =\n            widget.listOrigin?.current == ListOrigin.mediaPicker;",
+      "replace": "        final fromMediaPicker = false;",
+      "note": "010:T09 一覧の先頭の行が読み込み元を見ない — 選択画面から読み込んだ一覧に REQ-021 の folder の入口を出す(004 REQ-024 / 代表例 56・64)"
+    },
+    {
+      "id": "M774",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "      _selected.retainWhere(listed.contains);\n",
+      "replace": "",
+      "note": "010:T09 並ばない初期選択を外さない — MediaStore から見えなくなったファイルが確定に残る(004 REQ-024)"
+    },
+    {
+      "id": "M775",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "  bool get _canConfirm => _hasSelection && _all != null;",
+      "replace": "  bool get _canConfirm => _hasSelection;",
+      "note": "010:T09 読み終える前に確定できる — 並ばない初期選択が確定に残る(004 REQ-024)"
+    },
+    {
+      "id": "M776",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "  late final LinkedHashSet<String> _selected = LinkedHashSet<String>.of(\n    widget.initialSelection,\n  );",
+      "replace": "  late final LinkedHashSet<String> _selected = LinkedHashSet<String>();",
+      "note": "010:T09 初期選択を受け取らない — 開き直すと何も選ばれていない(004 REQ-024 / 代表例 61)"
+    },
+    {
+      "id": "M777",
+      "file": "lib/data/file_source/android_file_source.dart",
+      "find": "      paths = await pickMediaPaths(selected);",
+      "replace": "      paths = await pickMediaPaths(const {});",
+      "note": "010:T09 port が初期選択を選択画面へ渡さない(004 REQ-024)"
     }
   ]
 }

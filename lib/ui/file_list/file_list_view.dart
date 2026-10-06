@@ -5,6 +5,7 @@ import '../../core/rename_engine.dart';
 import '../../data/file_source/file_source.dart';
 import '../../data/preview/file_preview.dart';
 import '../../data/rename_exec/rename_execution.dart';
+import '../file_source/list_origin.dart';
 import '../file_source/same_folder_reopen.dart';
 import '../file_source/source_path_text.dart';
 import '../common/app_toast.dart';
@@ -94,17 +95,25 @@ class FileListView extends StatefulWidget {
     this.onEditRule,
     this.filePreview,
     this.removalSelection,
-    this.onReopenFolder,
+    this.onReopen,
+    this.listOrigin,
   });
 
   final FileListController controller;
 
-  /// 一覧の所属 folder を、一覧の状態を初期値にして開き直す(004 REQ-021。`008:T56`)。
+  /// 一覧の読み込み元を、一覧の状態を初期値にして開き直す(004 REQ-021。`008:T56` /
+  /// REQ-024。`010:T09`)。読み込み元が写真・動画の選択画面なら選択画面を、そうで
+  /// なければ所属 folder を browser で開き直す(振り分けは読み込み帯が行う)。
   ///
-  /// **`null` なら folder 行を出さない。** 開き直せない platform(desktop)や、
+  /// **`null` なら先頭の行を出さない。** 開き直せない platform(desktop)や、
   /// 一覧だけを描く画面では入口が無い。製品では composition root が
   /// [SameFolderReopen] を渡し、読み込み帯の結線(権限・通知)に載せる。
-  final Future<void> Function()? onReopenFolder;
+  final Future<void> Function()? onReopen;
+
+  /// 一覧の読み込み元(004 REQ-024)。写真・動画の選択画面なら、先頭の行は所属
+  /// folder の数に依らず「写真・動画」を示す。`null` なら読み込み元を見ない
+  /// (REQ-021 の規則だけで出す)。
+  final ListOriginState? listOrigin;
   final RenameExecutionController? renameExecution;
 
   /// 行の preview の供給元(008:T07)。`null` なら種別アイコンだけを出す。
@@ -224,6 +233,7 @@ class _FileListViewState extends State<FileListView> {
         widget.controller,
         _selection,
         ?widget.renameExecution,
+        ?widget.listOrigin,
       ]),
       builder: (context, _) {
         // 行データと警告は同じ検証から作れる。ビルド1回につき一度だけ評価する
@@ -260,6 +270,10 @@ class _FileListViewState extends State<FileListView> {
         // 実測した)。`build` の中では `setState` を呼べないので frame の後に回す。
         final selecting = _selection.selecting && rows.isNotEmpty;
         final soleFolder = soleFolderOf(rows.map((r) => r.source));
+        // 読み込み元が写真・動画の選択画面なら、REQ-021 の folder の入口は出さず、
+        // 選択画面を開き直す入口を出す(004 REQ-024。所属 folder が1つでも)。
+        final fromMediaPicker =
+            widget.listOrigin?.current == ListOrigin.mediaPicker;
         if (_selection.selecting && rows.isEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _selection.selecting) _selection.exit();
@@ -325,15 +339,22 @@ class _FileListViewState extends State<FileListView> {
                   // **一覧の所属 folder が1つのときだけ**、一覧の先頭に folder 行を置く
                   // (004 REQ-021 の入口。`008:T26` の決定)。一覧の外に置くので、
                   // スクロールしても先頭に残る。
-                  if (widget.onReopenFolder != null && soleFolder != null)
+                  if (widget.onReopen != null &&
+                      (fromMediaPicker || soleFolder != null))
                     _FolderRow(
-                      label: folderLabelOf(
-                        rows.map((r) => r.source),
-                        soleFolder,
-                      ),
-                      // **モード中は入口を出さない**(004 REQ-021 / 002 REQ-018)。
-                      // 行は残す — 消すと一覧が跳ねる(`008:T30` の帯と同じ理由)。
-                      onAdd: selecting ? null : widget.onReopenFolder,
+                      label: fromMediaPicker
+                          ? mediaPickerOriginLabel
+                          : folderLabelOf(
+                              rows.map((r) => r.source),
+                              soleFolder!,
+                            ),
+                      icon: fromMediaPicker
+                          ? Icons.photo_library_outlined
+                          : Icons.folder_open_outlined,
+                      // **モード中は入口を出さない**(004 REQ-021 / REQ-024 /
+                      // 002 REQ-018)。行は残す — 消すと一覧が跳ねる(`008:T30` の
+                      // 帯と同じ理由)。
+                      onAdd: selecting ? null : widget.onReopen,
                     ),
                   Expanded(
                     child: Listener(
@@ -478,13 +499,15 @@ class _FileListViewState extends State<FileListView> {
   }
 }
 
-/// 一覧の先頭の folder 行(`008:T56`。004 REQ-021 の入口の置き場所)。
+/// 一覧の先頭の folder 行(`008:T56`。004 REQ-021 の入口の置き場所)。読み込み元が
+/// 写真・動画の選択画面なら、同じ行が選択画面を開き直す入口になる(REQ-024。`010:T09`)。
 const Key folderRowKey = Key('folder-row');
 
 /// folder 行の名前。
 const Key folderRowLabelKey = Key('folder-row-label');
 
-/// folder 行の右端の `＋ 追加`。**同じ folder を一覧の状態で開き直す**(004 REQ-021)。
+/// folder 行の右端の `＋ 追加`。**同じ folder(読み込み元が写真・動画の選択画面なら
+/// 選択画面)を一覧の状態で開き直す**(004 REQ-021 / REQ-024)。
 const Key folderRowAddKey = Key('folder-row-add');
 
 /// 一覧の先頭の folder 行(`008:T56`)。
@@ -494,9 +517,14 @@ const Key folderRowAddKey = Key('folder-row-add');
 /// [onAdd] が `null`(選択モード中)なら `＋ 追加` を描かないが、**場所は残す** —
 /// 行の高さを変えない。
 class _FolderRow extends StatelessWidget {
-  const _FolderRow({required this.label, required this.onAdd});
+  const _FolderRow({
+    required this.label,
+    required this.icon,
+    required this.onAdd,
+  });
 
   final String label;
+  final IconData icon;
   final Future<void> Function()? onAdd;
 
   @override
@@ -512,7 +540,7 @@ class _FolderRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.folder_open_outlined, size: 16, color: colors.textMuted),
+          Icon(icon, size: 16, color: colors.textMuted),
           const SizedBox(width: 6),
           Expanded(
             // 入りきらない分は**先頭側**を省略し、判別に効く末尾を残す(帯と同じ)。

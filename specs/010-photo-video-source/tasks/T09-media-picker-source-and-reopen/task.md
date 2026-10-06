@@ -32,9 +32,11 @@
 - 2026-10-05 `T05` が spec(004 REQ-011・012・016・021〜024)の承認を受けて足した。
 - 端末の manual が要る。`manual-verification.md` は実装のときに書き、`task.json` の `manualVerification` に入れる。
 
+- 2026-10-06 着手(branch `asdd/010-photo-video-source/T09-media-picker-source-and-reopen`、base `3fdf76b`)。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 着手(branch `asdd/010-photo-video-source/T09-media-picker-source-and-reopen`、base `3fdf76b`)
 - Blocker category: なし
 - Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る
+- Next Agent action: 読み込み元の持ち方・帯・入口・選択画面の初期選択を実装し、widget test を足す

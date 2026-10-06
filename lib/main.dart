@@ -24,6 +24,7 @@ import 'ui/file_list/file_list_controller.dart';
 import 'ui/file_list/folder_names_sync.dart';
 import 'ui/file_list/removal_selection.dart';
 import 'ui/file_source/file_source_bar.dart';
+import 'ui/file_source/list_origin.dart';
 import 'ui/file_source/same_folder_reopen.dart';
 import 'ui/rule_builder/persistent_rule_controller.dart';
 import 'ui/rule_builder/rule_builder_workspace.dart';
@@ -86,8 +87,12 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// モード中は帯の `別フォルダへ` と下部の帯も隠れるためである(`008:T29`)。
   final RemovalSelection _removalSelection = RemovalSelection();
 
+  /// 一覧の読み込み元(004 REQ-024。`010:T09`)。帯が記録し、帯と一覧の入口が読む。
+  late final ListOriginState _listOrigin = ListOriginState(_files);
+
   @override
   void dispose() {
+    _listOrigin.dispose();
     _folderNamesSync.dispose();
     _renameExecution.dispose();
     _removalSelection.dispose();
@@ -131,12 +136,16 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// 権限の確認は [FileSourceBar] の側で済んでいる(REQ-022 は付与されていない間は
   /// 開かない)。確定したら、選んだファイルの folder の場所の名前を覚える
   /// (REQ-009: 「保存場所名 + root からの相対」。browser と同じ形)。
-  Future<List<String>?> _pickMedia() async {
+  ///
+  /// 一覧から開き直すとき(REQ-024)は、一覧のファイルを [selected] に受けて
+  /// 選択済みで始める。
+  Future<List<String>?> _pickMedia(Set<String> selected) async {
     final paths = await Navigator.of(context).push<List<String>>(
       MaterialPageRoute(
         builder: (_) => MediaPickerView(
           library: const MethodChannelMediaLibrary(),
           contentDates: _mediaContentDates,
+          initialSelection: selected,
         ),
       ),
     );
@@ -252,6 +261,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
               kinds: fileKindsFor(isAndroid: Platform.isAndroid),
               removalSelection: _removalSelection,
               reopen: _reopen,
+              listOrigin: _listOrigin,
               // 歯車(`008:T43`)は folder の帯の右端へ移した(2026-10-01 の決定 A)。
               // 有効な設定が無い端末(Android)では何も出さない。
               trailing: RenameSettingsButton(execution: _renameExecution),
@@ -264,10 +274,9 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
                 filePreview: _filePreview,
                 removalSelection: _removalSelection,
                 // **開き直せる source にだけ入口を出す**(desktop の OS picker は
-                // 選択の初期値を持てない。004 REQ-021)。
-                onReopenFolder: _source is FolderReopenSource
-                    ? _reopen.call
-                    : null,
+                // 選択の初期値を持てない。004 REQ-021 / REQ-024)。
+                onReopen: _source is FolderReopenSource ? _reopen.call : null,
+                listOrigin: _listOrigin,
               ),
             ),
           ],

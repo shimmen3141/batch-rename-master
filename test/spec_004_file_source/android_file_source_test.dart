@@ -295,7 +295,7 @@ void main() {
       File(b).writeAsStringSync('y');
       final source = AndroidFileSource(
         pick: () async => null,
-        pickMediaPaths: () async => [a, b],
+        pickMediaPaths: (_) async => [a, b],
         locationNameOf: (folder) => 'loc:${p.basename(folder)}',
       );
 
@@ -310,12 +310,29 @@ void main() {
       ]);
     });
 
+    test('開き直すときは、一覧のハンドルを選択画面へ渡す(REQ-024。`010:T09`)', () async {
+      Set<String>? given;
+      final source = AndroidFileSource(
+        pick: () async => null,
+        pickMediaPaths: (selected) async {
+          given = selected;
+          return null;
+        },
+      );
+
+      await source.pickMedia(selected: {'/s/DCIM/Camera/a.jpg'});
+      expect(given, {'/s/DCIM/Camera/a.jpg'});
+
+      await source.pickMedia();
+      expect(given, isEmpty, reason: '新しく読み込むときは何も選ばずに始める');
+    });
+
     test('作成日時は browser と同じく MediaStore の日時で補う(REQ-010)', () async {
       final path = await makeFile('shot.png');
       final added = DateTime(2026, 10, 5, 14, 54);
       final source = AndroidFileSource(
         pick: () async => null,
-        pickMediaPaths: () async => [path],
+        pickMediaPaths: (_) async => [path],
         mediaDates: _FakeMediaDates({path: MediaDates(added: added)}),
       );
 
@@ -328,7 +345,7 @@ void main() {
       final kept = await makeFile('kept.jpg');
       final source = AndroidFileSource(
         pick: () async => null,
-        pickMediaPaths: () async => [kept, p.join(dir.path, 'gone.jpg')],
+        pickMediaPaths: (_) async => [kept, p.join(dir.path, 'gone.jpg')],
       );
 
       final entries = ((await source.pickMedia()) as Picked).entries;
@@ -340,14 +357,14 @@ void main() {
       expect(
         await AndroidFileSource(
           pick: () async => null,
-          pickMediaPaths: () async => null,
+          pickMediaPaths: (_) async => null,
         ).pickMedia(),
         isA<Cancelled>(),
       );
       expect(
         await AndroidFileSource(
           pick: () async => null,
-          pickMediaPaths: () async => throw StateError('boom'),
+          pickMediaPaths: (_) async => throw StateError('boom'),
         ).pickMedia(),
         isA<Failed>(),
       );

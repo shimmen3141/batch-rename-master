@@ -107,7 +107,7 @@ Future<void> _pump(
               child: FileListView(
                 controller: controller,
                 removalSelection: removalSelection,
-                onReopenFolder: withEntry ? reopen.call : null,
+                onReopen: withEntry ? reopen.call : null,
               ),
             ),
           ],
@@ -367,7 +367,7 @@ void main() {
               body: RuleBuilderWorkspace(
                 fileList: FileListController(files: [_f('a')]),
                 rule: RuleController(),
-                onReopenFolder: () async => calls++,
+                onReopen: () async => calls++,
               ),
             ),
           ),

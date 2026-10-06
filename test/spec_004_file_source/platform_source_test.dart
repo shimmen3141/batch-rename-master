@@ -323,7 +323,7 @@ void main() {
             isAndroid: true,
             isDesktop: false,
             pick: noPick,
-            pickMedia: () async {
+            pickMedia: (_) async {
               opened++;
               return null;
             },

@@ -30,8 +30,10 @@ typedef BrowserReopener =
 
 /// 写真・動画の選択画面を開いて選択を待つ(004 REQ-022 / REQ-023)。
 ///
+/// [selected](絶対 path)を選択済みにして始める。一覧から開き直すとき(REQ-024)に
+/// 一覧のファイルを渡し、新しく読み込むときは空。
 /// 確定した写真・動画の絶対 path を返す。`null` は「決定していない」(004 REQ-001)。
-typedef MediaPicker = Future<List<String>?> Function();
+typedef MediaPicker = Future<List<String>?> Function(Set<String> selected);
 
 /// Android の [FileSource]。**元場所ハンドルは絶対 path** である(004 REQ-002)。
 ///
@@ -81,19 +83,19 @@ class AndroidFileSource
     return _resultOf(pick);
   }
 
-  /// 写真・動画の選択画面から読み込む(004 REQ-022 / REQ-023)。
+  /// 写真・動画の選択画面から読み込む(004 REQ-022 / REQ-023 / REQ-024)。
   ///
   /// **所属 folder はファイルごとに親 folder である** — folder をまたいで選べる
   /// (REQ-023)。作成日時の補い方(REQ-010)は browser と同じ。
   @override
-  Future<PickResult> pickMedia() async {
+  Future<PickResult> pickMedia({Set<String> selected = const {}}) async {
     final pickMediaPaths = this.pickMediaPaths;
     if (pickMediaPaths == null) {
       return const Failed(PickError(PickErrorKind.unknown, '写真・動画の選択画面を開けません'));
     }
     final List<String>? paths;
     try {
-      paths = await pickMediaPaths();
+      paths = await pickMediaPaths(selected);
     } catch (error) {
       return Failed(PickError(PickErrorKind.unknown, error.toString()));
     }

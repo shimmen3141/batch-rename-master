@@ -11,6 +11,7 @@ import '../file_list/removal_selection.dart';
 import '../permission/storage_permission_notice.dart';
 import '../theme/app_colors.dart';
 import 'file_kind.dart';
+import 'list_origin.dart';
 import 'same_folder_reopen.dart';
 import 'source_path_text.dart';
 import '../theme/app_typography.dart';
@@ -41,14 +42,21 @@ class FileSourceBar extends StatefulWidget {
     this.removalSelection,
     this.trailing,
     this.reopen,
+    this.listOrigin,
   });
 
-  /// 一覧の folder 行から同じ folder を開き直す受け口(004 REQ-021。`008:T56`)。
+  /// 一覧の先頭の行から読み込み元を開き直す受け口(004 REQ-021。`008:T56` /
+  /// REQ-024。`010:T09`)。
   ///
   /// 帯が**自分の開き直しの処理を登録する**。権限の確認と説明・失敗の通知を
-  /// 読み込みと同じ経路に載せるためで、folder 行はこれを呼ぶだけである。
-  /// [source] が [FolderReopenSource] でなければ(desktop)何もしない。
+  /// 読み込みと同じ経路に載せるためで、先頭の行はこれを呼ぶだけである。
+  /// 読み込み元が写真・動画の選択画面なら選択画面を、そうでなければ同じ folder を
+  /// browser で開き直す。[source] が開き直せなければ(desktop)何もしない。
   final SameFolderReopen? reopen;
+
+  /// 一覧の読み込み元(004 REQ-024)。帯が一覧を置き換えるたびに記録する。
+  /// `null` なら記録せず、場所の表示も読み込み元を見ない。
+  final ListOriginState? listOrigin;
 
   /// 帯の右端、読み込み button の右に置くもの(`008:T10`)。
   ///
@@ -114,13 +122,19 @@ class FileSourceBar extends StatefulWidget {
   /// 帯に出す「いま何がどこから入っているか」(008:T08 要望11・12)。
   ///
   /// - 読み込み前: `未選択`
+  /// - 写真・動画の選択画面から読み込んだ一覧: `写真・動画`(004 REQ-024。folder 名や
+  ///   `複数のフォルダ` ではない)
   /// - 場所が1つ: **その folder 名**。行側は出さない(002 の決定。`008:T22`)
   /// - 場所が2つ以上: **具体名を出さず**複数であることだけを示す(要望12)。
   ///   どの行がどの folder かは行側が示す
   /// - ファイルはあるが場所を持たない(デモデータ等): **`null`**。
   ///   **嘘の場所も `未選択` も出さない** — ファイルは入っているので `未選択` は誤りである
-  static String? locationLabelOf(FileListController controller) {
+  static String? locationLabelOf(
+    FileListController controller, {
+    ListOrigin? origin,
+  }) {
     if (controller.items.isEmpty) return '未選択';
+    if (origin == ListOrigin.mediaPicker) return mediaPickerOriginLabel;
     final names = controller.items
         .map((item) => item.sourceLocation)
         .whereType<String>()
@@ -167,7 +181,7 @@ class _FileSourceBarState extends State<FileSourceBar>
     // **ここでは確認しない**(013 REQ-002: 起動しただけでは確認も遷移もしない)。
     // 登録するのは、設定画面から**戻ってきたとき**に気づくためである。
     WidgetsBinding.instance.addObserver(this);
-    widget.reopen?.attach(_reopenSameFolder);
+    widget.reopen?.attach(_reopen);
     widget.controller.addListener(_closeWarningIfSingleFolder);
   }
 
@@ -179,17 +193,47 @@ class _FileSourceBarState extends State<FileSourceBar>
       widget.controller.addListener(_closeWarningIfSingleFolder);
     }
     if (oldWidget.reopen != widget.reopen) {
-      oldWidget.reopen?.detach(_reopenSameFolder);
-      widget.reopen?.attach(_reopenSameFolder);
+      oldWidget.reopen?.detach(_reopen);
+      widget.reopen?.attach(_reopen);
     }
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_closeWarningIfSingleFolder);
-    widget.reopen?.detach(_reopenSameFolder);
+    widget.reopen?.detach(_reopen);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// 一覧の読み込み元を、一覧の状態を初期値にして開き直す(004 REQ-021 / REQ-024)。
+  ///
+  /// 読み込み元が写真・動画の選択画面なら選択画面を、そうでなければ所属 folder を
+  /// browser で開き直す。
+  Future<void> _reopen() => widget.listOrigin?.current == ListOrigin.mediaPicker
+      ? _reopenMediaPicker()
+      : _reopenSameFolder();
+
+  /// 写真・動画の選択画面を、一覧にあるファイルを選択済みにして開き直す(004 REQ-024)。
+  ///
+  /// 権限・確定(置き換え。並びは 002 REQ-021)・`Cancelled`・`Failed` の扱いは
+  /// [_reopenSameFolder] と同じ。
+  Future<void> _reopenMediaPicker() async {
+    final source = widget.source;
+    if (source is! MediaPickSource) return;
+    final picker = source as MediaPickSource;
+    final items = widget.controller.items;
+    if (items.isEmpty) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (await _checkPermission() == StoragePermissionState.denied) return;
+    final selected = {for (final item in items) ?item.sourceHandle};
+    final error = await applyPick(() => picker.pickMedia(selected: selected), (
+      entries,
+    ) {
+      widget.listOrigin?.record(ListOrigin.mediaPicker);
+      widget.controller.reselectFiles(entries);
+    });
+    _notifyError(messenger, error);
   }
 
   /// 一覧の所属 folder を、一覧の状態を初期値にして開き直す(004 REQ-021)。
@@ -209,8 +253,16 @@ class _FileSourceBarState extends State<FileSourceBar>
     final selected = {for (final item in items) ?item.sourceHandle};
     final error = await applyPick(
       () => reopener.reopenFolder(folder, selected: selected),
-      widget.controller.reselectFiles,
+      (entries) {
+        widget.listOrigin?.record(ListOrigin.browser);
+        widget.controller.reselectFiles(entries);
+      },
     );
+    _notifyError(messenger, error);
+  }
+
+  /// 開き直しの失敗を通知する(004 REQ-008)。
+  void _notifyError(ScaffoldMessengerState? messenger, PickError? error) {
     if (error == null || messenger == null) return;
     showAppToast(
       messenger,
@@ -314,6 +366,16 @@ class _FileSourceBarState extends State<FileSourceBar>
     var replaced = false;
     void setFiles(List<FileEntry> entries) {
       replaced = true;
+      // 読み込み元は置き換える**前に**記録する(置き換えた結果が空なら読み込み元は
+      // 無い。REQ-024)。app 内 browser を持つ source(Android)なら browser、
+      // そうでなければ OS のファイル選択画面である。
+      widget.listOrigin?.record(
+        fromMediaPicker
+            ? ListOrigin.mediaPicker
+            : source is FolderReopenSource
+            ? ListOrigin.browser
+            : ListOrigin.systemPicker,
+      );
       widget.controller.setFiles(entries);
     }
 
@@ -435,13 +497,18 @@ class _FileSourceBarState extends State<FileSourceBar>
       listenable: Listenable.merge([
         widget.controller,
         ?widget.removalSelection,
+        ?widget.listOrigin,
       ]),
       builder: (context, _) {
         final hasFiles = widget.controller.items.isNotEmpty;
         // 一覧が空ならモードは成り立たない(一覧側と同じ判定。002 REQ-018)。
         final selecting =
             (widget.removalSelection?.selecting ?? false) && hasFiles;
-        final locationLabel = FileSourceBar.locationLabelOf(widget.controller);
+        final origin = widget.listOrigin?.current;
+        final locationLabel = FileSourceBar.locationLabelOf(
+          widget.controller,
+          origin: origin,
+        );
         return Column(
           mainAxisSize: MainAxisSize.min,
           // **`stretch` が要る。** 既定の `center` だと帯が中身の幅しか持たず、
@@ -492,7 +559,9 @@ class _FileSourceBarState extends State<FileSourceBar>
                                 // folder のアイコンは残す(2026-10-01 に消したのは
                                 // 読み込み button のアイコンだけ)。
                                 Icon(
-                                  Icons.folder_outlined,
+                                  origin == ListOrigin.mediaPicker
+                                      ? Icons.photo_library_outlined
+                                      : Icons.folder_outlined,
                                   size: 14,
                                   color: colors.textMuted,
                                 ),

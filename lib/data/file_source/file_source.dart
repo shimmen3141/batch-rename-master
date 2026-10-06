@@ -133,10 +133,13 @@ abstract interface class FolderReopenSource {
 abstract interface class MediaPickSource {
   /// 選択画面を開き、確定した写真・動画を返す。
   ///
+  /// [selected](元場所ハンドル)を選択済みにして始める(一覧から開き直すとき。
+  /// REQ-024)。選択画面に並ばないハンドルは選択に残らない。
+  ///
   /// 結果は [FileSource.pickFiles] と同じく [Picked] / [Cancelled] / [Failed] で、
   /// **例外を投げない**。**folder をまたいで選べる**(REQ-023)ので、[Picked] の
   /// ファイルの所属 folder は1つとは限らない。
-  Future<PickResult> pickMedia();
+  Future<PickResult> pickMedia({Set<String> selected = const {}});
 }
 
 /// あらかじめ与えた結果を返す [FileSource] 実装(サンドボックス検証用の fake)。
