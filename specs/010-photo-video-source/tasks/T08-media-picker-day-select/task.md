@@ -69,4 +69,4 @@ M764 | KILLED | 010:T08 見出しで、その日ではなく並んでいる全�
 - Last checkpoint: handoff。独立review attempt 1 PASS(`0976eb5..329a8ec`)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 1 PASS。done
 - Blocker category: なし
 - Evidence revision: `ea8be91`
-- Next Agent action: なし(PR を作り、CI の PASS と merge 条件を確かめて merge する)
+- Next Agent action: なし(PR #224。CI の PASS と merge 条件を確かめて merge する)
