@@ -33,9 +33,9 @@ integration test で、製品と同じ改名(`renameFileWithoutOverwrite`)を使
 
 ## 受け入れ条件
 
-- [ ] harness が host で働く。
+- [x] harness が host で働く。
   - 証拠: `flutter test test/spec_010_photo_video_source`、mutation M686〜M690。
-- [ ] エミュレータで、btime の有無と改名の前後、`DATE_ADDED` の改名の前後が分かっている。
+- [x] エミュレータで、btime の有無と改名の前後、`DATE_ADDED` の改名の前後が分かっている。
   - 証拠: [manual-verification.md](manual-verification.md) の出力を貼った記録。
 
 ## 作業記録

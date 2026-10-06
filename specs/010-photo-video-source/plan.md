@@ -87,6 +87,12 @@
 | 2026-10-05 | `T11` の分け方と順番 | **仕様の差分と実装を1つの task(`T11`)にし、`T08` より先に入れる**(案A)。`T08` の「その日」は見出しの日付で、`T11` が見出しの日付を変えるため。`T09`・`T10` は並行してよい | 開発者 |
 | 2026-10-05 | 004 の spec 差分(`T11`) | **承認**。REQ-022 の並び順と見出しの日付を `DATE_TAKEN` → 中身の日時 → `DATE_ADDED` に、説明を一操作で示せる要求、代表例 67〜69、説明の文言。Agent が決めた点(`DATE_TAKEN` がある item の中身は読まない・読めなければ `DATE_ADDED`・説明を閉じても選択は変わらない)を含む | 開発者 |
 
+## plan 完了 review
+
+- 2026-10-06: range `57c8e0e..16b8f9a`(PR #217〜#226 の全部。全範囲)— **PASS** — P0/P1 なし。model: Sonnet(Agent tool の code-reviewer。開発者の指定 2026-10-02)。全体の受け入れ条件と各 task の証拠、REQ-010・011・022〜024 と実装の一致、task をまたいだ整合、各 task の review の連鎖が `57c8e0e..16b8f9a` を切れ目なく覆うことを確かめた。reviewer が `dev` の worktree で full `flutter test`(+1377)・`flutter analyze`・`dart format`・`workspace.py check`(10 plans, 123 tasks)と、核心の判定を守る mutation 13件(M707〜M711・M716・M724・M750〜M755。13 KILLED)を回した。
+- 指摘は記録だけ(P2×2・P3×1)で、所有 Agent が直した(SELF-CHECK。`lib/`・`test/`・`tool/` の差分なし): `product-map.md` の 010 の行が「計画済み」のまま(P2)、`specs/README.md` の「現在の開発」に 010 が残っていた(P2)、`T01`・`T02`・`T04`・`T07` の受け入れ条件の checkbox が未更新だった(P3。各 task の承認・review・端末観測・実機確認の記録で満たされていることを確かめてから付けた)。
+- plan の外へ残すもの: 「画面を切り替えるbuttonの位置を揃える」(`T11` の実機確認での開発者の決定。`product-map.md` の将来候補)。
+
 ## タスク
 
 タスクのID・依存・状態は`plan.json`と各`tasks/*/task.json`が正本。詳細は各`task.md`を読む。番号は安定した識別子であり、実行順や優先順位ではない。

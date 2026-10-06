@@ -31,11 +31,11 @@
 
 ## 受け入れ条件
 
-- [ ] 上の「決めること」が spec の差分になり、代表例で観測できる形になっている。
+- [x] 上の「決めること」が spec の差分になり、代表例で観測できる形になっている。
   - 証拠: spec の差分、`python3 tool/check_normative_terms.py`(`flutter test test/tooling`)PASS。
-- [ ] 開発者が差分を承認している。
+- [x] 開発者が差分を承認している。
   - 証拠: この task.md の承認記録。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## 作業記録
 
