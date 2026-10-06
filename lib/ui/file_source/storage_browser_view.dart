@@ -10,6 +10,7 @@ import '../common/selection_checkbox.dart';
 import '../file_list/row_preview_view.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import 'return_band.dart';
 
 /// 現在folderのfileだけを一操作で選ぶ(004 REQ-020)。ケバブの項目である。
 const Key browserSelectAllKey = Key('browser-select-all');
@@ -312,17 +313,23 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Scaffold(
-      appBar: AppBar(
-        // **暗黙の戻るを出さない。** header 左は `←` と `×` が共有する位置で、
-        // 画面を閉じる導線は footer の「← リネーム画面へ」だけにする(`008:T38`)。
-        automaticallyImplyLeading: false,
-        leading: _leading(),
-        title: Text(
-          key: browserTitleKey,
-          _title,
-          overflow: TextOverflow.ellipsis,
+      // header の上に「リネーム画面へ戻る」の帯を置く(`015:T01`)。footer の
+      // 「← リネーム画面へ」と同じく、決定していない(004 REQ-001)で閉じる。
+      appBar: ReturnBandAppBar(
+        onReturn: () => Navigator.of(context).pop(),
+        appBar: AppBar(
+          primary: false,
+          // **暗黙の戻るを出さない。** header 左は `←` と `×` が共有する位置で
+          // (`008:T38`)、画面を閉じる導線は上の帯と footer の「← リネーム画面へ」。
+          automaticallyImplyLeading: false,
+          leading: _leading(),
+          title: Text(
+            key: browserTitleKey,
+            _title,
+            overflow: TextOverflow.ellipsis,
+          ),
+          actions: [_menu(colors)],
         ),
-        actions: [_menu(colors)],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -38,10 +38,11 @@ Android の app 内 browser と写真・動画の選択画面の**いちばん�
 ## 作業記録
 
 - 2026-10-06 plan 015 の作成で足した。
+- 2026-10-06 着手(branch `asdd/015-screen-switch-placement/T01-top-return-band`、base `7f14151`)。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 着手(base `7f14151`)
 - Blocker category: なし
 - Evidence revision: なし
 - Next Agent action: 着手時に `in_progress` へ変え、branch を作る。手順書には今の配置(`dev`)のスクリーンショットを撮る手順も入れる

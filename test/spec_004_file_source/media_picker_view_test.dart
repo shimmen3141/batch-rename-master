@@ -12,6 +12,7 @@ import 'package:batch_rename_master/data/file_source/media_library.dart';
 import 'package:batch_rename_master/ui/common/drag_selection_controller.dart';
 import 'package:batch_rename_master/ui/common/selection_checkbox.dart';
 import 'package:batch_rename_master/ui/file_source/media_picker_view.dart';
+import 'package:batch_rename_master/ui/file_source/return_band.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:flutter/material.dart';
@@ -556,6 +557,41 @@ void main() {
     });
   });
 
+  group('015:T01 上部の「リネーム画面へ戻る」の帯', () {
+    testWidgets('browser と同じ部品で、header より上・左端にある', (tester) async {
+      await _open(tester, _FakeLibrary([_a]));
+
+      expect(find.byType(ReturnBandAppBar), findsOneWidget);
+      final band = tester.getRect(find.byKey(returnToRenameBandKey));
+      expect(
+        band.bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(AppBar)).top),
+      );
+      expect(
+        tester.getRect(find.byKey(returnToRenameButtonKey)).left,
+        lessThan(band.width / 4),
+      );
+      // header(題名・ⓘ・ケバブ)と footer は今のまま。
+      expect(find.byKey(mediaPickerTitleKey), findsOneWidget);
+      expect(find.byKey(mediaPickerDateHelpKey), findsOneWidget);
+      expect(find.byKey(mediaPickerMenuKey), findsOneWidget);
+      expect(find.byKey(mediaPickerBackKey), findsOneWidget);
+    });
+
+    testWidgets('選択中に押しても「決定していない」(null)で閉じる(REQ-008)', (tester) async {
+      final harness = await _open(tester, _FakeLibrary([_a]));
+      await tester.tap(_item(_a));
+      await tester.pump();
+      expect(_title(tester), '1件選択中');
+
+      await tester.tap(find.byKey(returnToRenameButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(harness.closed, isTrue);
+      expect(harness.result, isNull);
+    });
+  });
+
   group('REQ-023: 見出しを押してその日をまとめて選ぶ(010:T08)', () {
     final day5 = DateTime(2026, 10, 5);
     // 10/5 に a と d(動画)、10/4 に b。
@@ -719,6 +755,9 @@ void main() {
       expect(_item(_b), findsOneWidget);
       expect(_item(_c), findsOneWidget);
 
+      // 上部の帯(`015:T01`)の分だけ格子が下がり、c は footer の陰にある。
+      await tester.ensureVisible(_item(_c));
+      await tester.pumpAndSettle();
       await tester.tap(_item(_c));
       await tester.pump();
       expect(_title(tester), '3件選択中');

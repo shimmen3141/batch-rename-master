@@ -22,6 +22,7 @@ import 'package:batch_rename_master/data/file_source/storage_browser.dart';
 import 'package:batch_rename_master/data/preview/file_preview.dart';
 import 'package:batch_rename_master/ui/file_list/row_preview_view.dart';
 import 'package:batch_rename_master/ui/file_source/file_kind.dart';
+import 'package:batch_rename_master/ui/file_source/return_band.dart';
 import 'package:batch_rename_master/ui/file_source/storage_browser_view.dart';
 import 'package:batch_rename_master/ui/theme/app_colors.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
@@ -862,6 +863,84 @@ void main() {
 
       expect(result.closed, isTrue);
       expect(result.value, isNull, reason: '選んでいても、閉じたら確定しない');
+    });
+
+    group('015:T01 上部の「リネーム画面へ戻る」の帯', () {
+      Future<_Result> openInFolder(WidgetTester tester) => _open(
+        tester,
+        _FakeBrowser(
+          tree: {
+            _root: [_dir(_root, 'A')],
+            '$_root/A': [_file('$_root/A', 'a.txt')],
+          },
+        ),
+        initialFolder: '$_root/A',
+      );
+
+      testWidgets('帯は header より上にあり、button は左端にある。矢印は付けない', (tester) async {
+        await openInFolder(tester);
+
+        final band = tester.getRect(find.byKey(returnToRenameBandKey));
+        final header = tester.getRect(find.byType(AppBar));
+        expect(band.bottom, lessThanOrEqualTo(header.top));
+        final button = tester.getRect(find.byKey(returnToRenameButtonKey));
+        expect(button.left, lessThan(band.width / 4));
+        expect(
+          find.descendant(
+            of: find.byKey(returnToRenameBandKey),
+            matching: find.text(returnToRenameLabel),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(returnToRenameBandKey),
+            matching: find.byType(Icon),
+          ),
+          findsNothing,
+          reason: 'header の ←(上のフォルダへ)と取り違えない',
+        );
+        // header の ← はそのまま(`008:T38`)。
+        expect(find.byKey(const Key('browser-up')), findsOneWidget);
+      });
+
+      testWidgets('帯は header と色で見分けられる', (tester) async {
+        await openInFolder(tester);
+
+        final band =
+            tester
+                    .widget<Container>(find.byKey(returnToRenameBandKey))
+                    .decoration!
+                as BoxDecoration;
+        final header = tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byType(AppBar),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        expect(band.color, isNot(header.color));
+      });
+
+      testWidgets('選択中に押しても「決定していない」で閉じる(004 REQ-001)', (tester) async {
+        final result = await openInFolder(tester);
+        await tester.tap(find.byKey(const Key('browser-file-a.txt')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(browserClearSelectionKey), findsOneWidget);
+
+        await tester.tap(find.byKey(returnToRenameButtonKey));
+        await tester.pumpAndSettle();
+
+        expect(result.closed, isTrue);
+        expect(result.value, isNull);
+      });
+
+      testWidgets('footer の「← リネーム画面へ」も残す(`T02` まで)', (tester) async {
+        await openInFolder(tester);
+
+        expect(find.byKey(browserBackToRenameKey), findsOneWidget);
+      });
     });
 
     testWidgets('システムバックは「リネーム画面へ」と同じ(`008:T38`)', (tester) async {

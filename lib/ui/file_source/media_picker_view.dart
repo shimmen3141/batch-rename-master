@@ -11,6 +11,7 @@ import '../common/drag_selection_controller.dart';
 import '../common/selection_checkbox.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import 'return_band.dart';
 
 /// header 中央。選択が無ければ「写真・動画」、あれば「N件選択中」。
 const Key mediaPickerTitleKey = Key('media-picker-title');
@@ -485,43 +486,48 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Scaffold(
-      appBar: AppBar(
-        // **暗黙の戻るを出さない**(browser と同じ。閉じるのは footer だけ)。
-        automaticallyImplyLeading: false,
-        leading: _hasSelection
-            ? IconButton(
-                key: mediaPickerClearSelectionKey,
-                icon: const Icon(Icons.close),
-                tooltip: '選択をすべて解除',
-                onPressed: _clearSelection,
-              )
-            : null,
-        // **ⓘ は題名のすぐ右**(2026-10-05 開発者の決定)。選択中に題名が
-        // 「N件選択中」へ変わっても同じ位置に残す。
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                key: mediaPickerTitleKey,
-                _hasSelection ? '${_selected.length}件選択中' : '写真・動画',
-                overflow: TextOverflow.ellipsis,
+      // header の上に「リネーム画面へ戻る」の帯を置く(browser と同じ部品。`015:T01`)。
+      appBar: ReturnBandAppBar(
+        onReturn: () => Navigator.of(context).pop(),
+        appBar: AppBar(
+          primary: false,
+          // **暗黙の戻るを出さない**(browser と同じ。閉じるのは上の帯と footer)。
+          automaticallyImplyLeading: false,
+          leading: _hasSelection
+              ? IconButton(
+                  key: mediaPickerClearSelectionKey,
+                  icon: const Icon(Icons.close),
+                  tooltip: '選択をすべて解除',
+                  onPressed: _clearSelection,
+                )
+              : null,
+          // **ⓘ は題名のすぐ右**(2026-10-05 開発者の決定)。選択中に題名が
+          // 「N件選択中」へ変わっても同じ位置に残す。
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  key: mediaPickerTitleKey,
+                  _hasSelection ? '${_selected.length}件選択中' : '写真・動画',
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            IconButton(
-              key: mediaPickerDateHelpKey,
-              icon: Icon(
-                Icons.info_outline,
-                size: 20,
-                color: colors.textSecondary,
+              IconButton(
+                key: mediaPickerDateHelpKey,
+                icon: Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: colors.textSecondary,
+                ),
+                tooltip: '並び順と日付について',
+                visualDensity: VisualDensity.compact,
+                onPressed: _showDateHelp,
               ),
-              tooltip: '並び順と日付について',
-              visualDensity: VisualDensity.compact,
-              onPressed: _showDateHelp,
-            ),
-          ],
+            ],
+          ),
+          actions: [_menu(colors)],
         ),
-        actions: [_menu(colors)],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
