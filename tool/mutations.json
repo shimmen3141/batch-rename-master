@@ -5040,6 +5040,20 @@
       "find": "    'image/*': [",
       "replace": "    'image/x-unknown': [",
       "note": "010:T10 写真の MIME 型の拡張子を知らない — Windows で写真が絞り込みから漏れる(004 REQ-011)"
+    },
+    {
+      "id": "M783",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "        mimeTypes: mimeTypes,\n",
+      "replace": "        mimeTypes: const [],\n",
+      "note": "010:T10 選択画面へ MIME 型を渡さない — MIME 型で絞る OS(Linux・macOS)で拡張子の表に無い形式が漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R1)。KILLED**"
+    },
+    {
+      "id": "M784",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'docx',\n    ],",
+      "replace": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'doc',\n    ],",
+      "note": "010:T10 docx の拡張子を知らない — Windows で docx が「文書」の絞り込みから漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R2)。KILLED**"
     }
   ]
 }
