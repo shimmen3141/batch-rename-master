@@ -71,13 +71,75 @@ class DesktopFileSource implements FileSource {
     }
   }
 
+  /// MIME 型ごとの拡張子(004 REQ-011。`010:T10`)。
+  ///
+  /// **Windows の選択画面は拡張子でしか絞れない。** `file_selector` の Windows 実装は
+  /// 拡張子の無い絞り込みを `ArgumentError` で断る(MIME 型は使わない)。そこで
+  /// MIME 型と一緒に拡張子を渡す。拡張子を使う OS(Windows・Linux)は大文字の拡張子も
+  /// 同じものとして扱う(Linux は MIME 型でも一致する)。
+  ///
+  /// 写真・動画は、`010` が中身の撮影日時を読む形式(JPEG・HEIC・MP4・MOV)を含め、
+  /// カメラや端末がよく作る形式を並べる。
+  static const Map<String, List<String>> extensionsByMimeType = {
+    'image/*': [
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'heic',
+      'heif',
+      'bmp',
+      'tif',
+      'tiff',
+      'dng',
+    ],
+    'video/*': [
+      'mp4',
+      'mov',
+      'm4v',
+      '3gp',
+      'avi',
+      'mkv',
+      'webm',
+      'wmv',
+      'mts',
+      'm2ts',
+    ],
+    'application/pdf': ['pdf'],
+    'application/msword': ['doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+      'docx',
+    ],
+    'application/vnd.ms-excel': ['xls'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [
+      'xlsx',
+    ],
+    'text/plain': ['txt'],
+  };
+
+  /// [mimeTypes] で絞り込む選択画面の絞り込み(空なら絞り込まない)。
+  ///
+  /// 拡張子を知らない MIME 型は、拡張子では絞れない(MIME 型を使う OS だけで効く)。
+  /// 種類が渡す MIME 型はすべて [extensionsByMimeType] にある(test で固定する)。
+  static List<XTypeGroup> typeGroupsFor(List<String> mimeTypes) {
+    if (mimeTypes.isEmpty) return const [];
+    return [
+      XTypeGroup(
+        label: '対象の種類',
+        mimeTypes: mimeTypes,
+        extensions: [
+          for (final mimeType in mimeTypes) ...?extensionsByMimeType[mimeType],
+        ],
+      ),
+    ];
+  }
+
   @override
   Future<PickResult> pickFiles({List<String> mimeTypes = const []}) async {
     try {
       final files = await openFiles(
-        acceptedTypeGroups: mimeTypes.isEmpty
-            ? const []
-            : [XTypeGroup(label: '対象の種類', mimeTypes: mimeTypes)],
+        acceptedTypeGroups: typeGroupsFor(mimeTypes),
       );
       // 空はキャンセル(`file_selector` はキャンセル時に空リストを返す)。
       if (files.isEmpty) return const Cancelled();

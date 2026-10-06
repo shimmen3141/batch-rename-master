@@ -28,10 +28,11 @@ desktop の種類を「写真・動画」「文書」「すべて」にし、「
 ## 作業記録
 
 - 2026-10-05 `T05` が spec(004 REQ-011・012・016・021〜024)の承認を受けて足した。
+- 2026-10-06 着手(branch `asdd/010-photo-video-source/T10-desktop-media-filter`、base `5d7d2d8`)。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 着手(branch `asdd/010-photo-video-source/T10-desktop-media-filter`、base `5d7d2d8`)
 - Blocker category: なし
 - Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る
+- Next Agent action: 種類ごとの絞り込み(MIME 型と拡張子)を desktop の選択画面へ渡す実装と test

@@ -265,29 +265,45 @@ void main() {
     expect(controller.items.map((e) => e.name), ['b.txt']);
   });
 
-  testWidgets('選択画面を持たない source(desktop)の「写真・動画」は未対応として示す(REQ-011。T10 まで)', (
-    tester,
-  ) async {
+  testWidgets(
+    '例13: 選択画面を持たない source(desktop)の「写真・動画」は、写真・動画の MIME で絞って読み込む(REQ-011。010:T10)',
+    (tester) async {
+      final controller = FileListController(files: const []);
+      final source = FakeFileSource(
+        fileResults: [
+          Picked([_entry('a.jpg', handle: 'h:a')]),
+        ],
+      );
+      await _pump(tester, source, controller);
+
+      await tester.tap(_pickFiles);
+      await tester.pumpAndSettle();
+      expect(find.text('写真・動画のファイルから選ぶ'), findsOneWidget);
+      expect(find.textContaining('（未実装）'), findsNothing);
+      await tester.tap(find.byKey(Key('file-kind-${FileKind.media.name}')));
+      await tester.pumpAndSettle();
+
+      expect(source.fileCallCount, 1);
+      expect(source.lastMimeTypes, ['image/*', 'video/*']);
+      expect(controller.items.map((e) => e.name), ['a.jpg']);
+    },
+  );
+
+  testWidgets('desktop の「写真・動画」でも、親フォルダが跨れば警告する(REQ-012)', (tester) async {
     final controller = FileListController(files: const []);
     final source = FakeFileSource(
       fileResults: [
-        Picked([_entry('a.txt', handle: 'h:a')]),
+        Picked([
+          _entry('a.jpg', handle: '/A/a.jpg', location: 'A'),
+          _entry('b.jpg', handle: '/B/b.jpg', location: 'B'),
+        ]),
       ],
     );
     await _pump(tester, source, controller);
 
-    await tester.tap(_pickFiles);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('（未実装）'), findsOneWidget);
-    await tester.tap(find.byKey(Key('file-kind-${FileKind.media.name}')));
-    await tester.pumpAndSettle();
+    await _pickKind(tester, FileKind.media);
 
-    expect(find.byKey(const Key('file-kind-unimplemented')), findsOneWidget);
-    // **案内の見せ方**(`008:T25`。以前の青い全面背景を置き換えた)。
-    expect(find.byKey(toastToneIconKey(ToastTone.info)), findsOneWidget);
-    // 読み込みは行われない(ソースも呼ばれない)。
-    expect(controller.items, isEmpty);
-    expect(source.fileCallCount, 0);
+    expect(find.byKey(const Key('multi-folder-warning')), findsOneWidget);
   });
 
   testWidgets('例56: 「写真・動画」は選択画面から読み込み、フォルダが跨っても警告しない(REQ-012 / REQ-023)', (
