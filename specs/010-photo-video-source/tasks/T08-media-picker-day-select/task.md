@@ -20,6 +20,7 @@
   - 証拠: widget test、端末の manual。
 - [x] 見出しが、その日が選ばれているかを示す。
 - [x] 独立review が PASS(attempt 1)。
+- [x] 端末の manual が PASS(attempt 1、2026-10-06)。
 
 ## machine検証範囲と引き受け先
 
@@ -61,13 +62,11 @@ M764 | KILLED | 010:T08 見出しで、その日ではなく並んでいる全�
 ### 実機確認
 
 - 対象: `lib/`・`android/` が `ea8be91` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T08-media-picker-day-select/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T08-media-picker-day-select/manual-verification.md)。
-- attempt 1: 依頼中(2026-10-05)。
+- attempt 1(2026-10-06、build は `ea8be91` と同じ `lib/`・`android/`): **PASS。** 開発者の報告「確認事項について、問題ありませんでした」。手順1〜4(見出しでまとめて選ぶ・外す、一部だけ選んだ日はすべて選ぶ、絞り込み中は見えていない動画を外さず印も付かない、2008年5月30日(金)の見出し、範囲選択・ⓘ・確定)がすべて期待どおり。押しやすさ・印の見え方への指摘なし。
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1 PASS(`0976eb5..329a8ec`)
-- Blocker category: manual-evidence
+- Last checkpoint: handoff。独立review attempt 1 PASS(`0976eb5..329a8ec`)、以後は記録だけ(SELF-CHECK)、実機確認 attempt 1 PASS。done
+- Blocker category: なし
 - Evidence revision: `ea8be91`
-- Waiting for: 開発者(Android エミュレータでの実機確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜4を行い、結果を会話で伝える
-- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を作り merge 条件を確かめる。違いがあれば原因を調べて直す
+- Next Agent action: なし(PR を作り、CI の PASS と merge 条件を確かめて merge する)
