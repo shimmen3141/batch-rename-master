@@ -304,14 +304,6 @@ class _FileSourceBarState extends State<FileSourceBar>
     setState(() => _settingsUnavailable = !opened);
   }
 
-  /// [kind] の読み込みをこの source が持っているか(REQ-011)。
-  ///
-  /// 「写真・動画」は選択画面を持つ source([MediaPickSource]。Android)だけが
-  /// 読み込める。**desktop の「写真・動画」は `010:T10` で OS の選択画面を絞り込む**
-  /// までは未対応として示す。
-  bool _supports(FileKind kind) =>
-      kind != FileKind.media || widget.source is MediaPickSource;
-
   /// 出している複数フォルダの警告(REQ-012)。閉じたら `null`。
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>?
   _multiFolderWarning;
@@ -346,18 +338,6 @@ class _FileSourceBarState extends State<FileSourceBar>
 
   Future<void> _load(BuildContext context, FileKind kind) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
-
-    if (!_supports(kind)) {
-      if (messenger != null) {
-        showAppToast(
-          messenger,
-          key: const Key('file-kind-unimplemented'),
-          tone: ToastTone.info,
-          content: Text('「${kind.label}」の読み込みはこの端末では対応予定です'),
-        );
-      }
-      return;
-    }
 
     final source = widget.source;
     final fromMediaPicker = kind == FileKind.media && source is MediaPickSource;
@@ -462,13 +442,13 @@ class _FileSourceBarState extends State<FileSourceBar>
                     style: TextStyle(color: colors.textPrimary),
                   ),
                   subtitle: Text(
-                    _supports(kind)
-                        ? kind.description
-                        : '${kind.description}（未実装）',
+                    // 「写真・動画」は選択画面を持つ source(Android)かどうかで
+                    // 開くものが違う(REQ-011 / REQ-022)。
+                    kind.descriptionFor(
+                      mediaPicker: widget.source is MediaPickSource,
+                    ),
                     style: TextStyle(
-                      color: _supports(kind)
-                          ? colors.textSecondary
-                          : colors.textDisabled,
+                      color: colors.textSecondary,
                       fontSize: AppFontSize.label,
                     ),
                   ),

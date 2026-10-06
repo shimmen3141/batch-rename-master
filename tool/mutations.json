@@ -4713,13 +4713,6 @@
       "note": "010:T07 「写真・動画」でも browser(pickFiles)を開く(004 REQ-011)"
     },
     {
-      "id": "M730",
-      "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "      kind != FileKind.media || widget.source is MediaPickSource;",
-      "replace": "      true;",
-      "note": "010:T07 選択画面を持たない source でも「写真・動画」を対応済みとして見せる(004 REQ-011)"
-    },
-    {
       "id": "M731",
       "file": "lib/data/file_source/android_file_source.dart",
       "find": "    return _picked([for (final path in paths) (path, p.dirname(path))]);",
@@ -5012,6 +5005,55 @@
       "find": "      paths = await pickMediaPaths(selected);",
       "replace": "      paths = await pickMediaPaths(const {});",
       "note": "010:T09 port が初期選択を選択画面へ渡さない(004 REQ-024)"
+    },
+    {
+      "id": "M778",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "        extensions: [\n          for (final mimeType in mimeTypes) ...?extensionsByMimeType[mimeType],\n        ],\n",
+      "replace": "",
+      "note": "010:T10 選択画面へ拡張子を渡さない — Windows が絞り込みを ArgumentError で断り、「写真・動画」「文書」が読み込めない(004 REQ-011)"
+    },
+    {
+      "id": "M779",
+      "file": "lib/ui/file_source/file_kind.dart",
+      "find": "    FileKind.media => const ['image/*', 'video/*'],\n",
+      "replace": "",
+      "note": "010:T10 desktop の「写真・動画」が絞り込まない(004 REQ-011 / 代表例 13)"
+    },
+    {
+      "id": "M780",
+      "file": "lib/ui/file_source/file_kind.dart",
+      "find": "    FileKind.media => mediaPicker ? '撮影日の新しい順に写真・動画から選ぶ' : '写真・動画のファイルから選ぶ',",
+      "replace": "    FileKind.media => '撮影日の新しい順に写真・動画から選ぶ',",
+      "note": "010:T10 desktop の「写真・動画」の説明が、開かない撮影日順の選択画面を示す"
+    },
+    {
+      "id": "M781",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                      mediaPicker: widget.source is MediaPickSource,",
+      "replace": "                      mediaPicker: true,",
+      "note": "010:T10 種類のシートが source を見ずに「写真・動画」の説明を出す(desktop で撮影日順の選択画面を示す)"
+    },
+    {
+      "id": "M782",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "    'image/*': [",
+      "replace": "    'image/x-unknown': [",
+      "note": "010:T10 写真の MIME 型の拡張子を知らない — Windows で写真が絞り込みから漏れる(004 REQ-011)"
+    },
+    {
+      "id": "M783",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "        mimeTypes: mimeTypes,\n",
+      "replace": "        mimeTypes: const [],\n",
+      "note": "010:T10 選択画面へ MIME 型を渡さない — MIME 型で絞る OS(Linux・macOS)で拡張子の表に無い形式が漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R1)。KILLED**"
+    },
+    {
+      "id": "M784",
+      "file": "lib/data/file_source/desktop_file_source.dart",
+      "find": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'docx',\n    ],",
+      "replace": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'doc',\n    ],",
+      "note": "010:T10 docx の拡張子を知らない — Windows で docx が「文書」の絞り込みから漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R2)。KILLED**"
     }
   ]
 }

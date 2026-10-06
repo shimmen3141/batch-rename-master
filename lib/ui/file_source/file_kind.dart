@@ -3,7 +3,9 @@
 /// 種類ごとに適した選択 UI へ分岐する。2026-10-05 `010:T05` で「画像」「動画」を
 /// 「写真・動画」の1つにまとめた。
 enum FileKind {
-  /// 写真・動画。Android は写真・動画の選択画面(004 REQ-022)を開く。
+  /// 写真・動画。Android は写真・動画の選択画面(004 REQ-022)を、desktop は
+  /// システムのファイル選択画面を写真・動画のファイルに絞り込んで開く(REQ-011。
+  /// `010:T10`)。
   media,
 
   /// 文書。システムのファイル選択画面を文書系の MIME で絞り込んで開く。
@@ -37,14 +39,22 @@ extension FileKindLabel on FileKind {
   };
 
   /// 補足説明(選択 UI が何を開くか)。
-  String get description => switch (this) {
-    FileKind.media => '撮影日の新しい順に写真・動画から選ぶ',
+  ///
+  /// 「写真・動画」は、写真・動画の選択画面を持つ([mediaPicker]。Android)なら
+  /// 撮影日順の選択画面、持たない(desktop)ならシステムのファイル選択画面である。
+  String descriptionFor({required bool mediaPicker}) => switch (this) {
+    FileKind.media => mediaPicker ? '撮影日の新しい順に写真・動画から選ぶ' : '写真・動画のファイルから選ぶ',
     FileKind.document => '文書ファイルから選ぶ',
     FileKind.all => 'フォルダを辿ってファイルを選ぶ',
   };
 
-  /// 選択 UI に渡す MIME フィルタ(空なら絞り込まない)。
+  /// システムのファイル選択画面に渡す MIME フィルタ(空なら絞り込まない)。
+  ///
+  /// Android の「写真・動画」は選択画面(REQ-022)を開くので使わない。desktop の
+  /// 選択画面が MIME 型で絞れない OS(Windows)では、`DesktopFileSource` が
+  /// 拡張子へ直して渡す。
   List<String> get mimeTypes => switch (this) {
+    FileKind.media => const ['image/*', 'video/*'],
     FileKind.document => const [
       'application/pdf',
       'application/msword',
