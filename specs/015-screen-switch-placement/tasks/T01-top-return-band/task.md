@@ -38,11 +38,33 @@ Android の app 内 browser と写真・動画の選択画面の**いちばん�
 ## 作業記録
 
 - 2026-10-06 plan 015 の作成で足した。
-- 2026-10-06 着手(branch `asdd/015-screen-switch-placement/T01-top-return-band`、base `7f14151`)。
+- 2026-10-06 着手(branch `asdd/015-screen-switch-placement/T01-top-return-band`、base `7f14151`)。 実装 `f302e35`。
+
+### 作ったもの
+
+- [/workspace/lib/ui/file_source/return_band.dart](/workspace/lib/ui/file_source/return_band.dart): header の上に帯を重ねる `ReturnBandAppBar`。帯はアクセント色を薄く敷き下端にアクセント色の線を引いて header(`colors.bar`)と見分ける。左に矢印の無い「リネーム画面へ戻る」。status bar は帯が避ける(header は `primary: false`)。
+- [/workspace/lib/ui/file_source/storage_browser_view.dart](/workspace/lib/ui/file_source/storage_browser_view.dart)・[/workspace/lib/ui/file_source/media_picker_view.dart](/workspace/lib/ui/file_source/media_picker_view.dart): 同じ部品で帯を足した。押すと footer と同じく `pop()`(決定していない)。header と footer は変えていない。
+
+### 検証(`f302e35`)
+
+- `flutter test`: PASS(+1383、exit 0)。related: `storage_browser_view_test`(帯の位置・矢印が無いこと・header の `←` が残ること・色・選択中に押して `null`・footer が残ること)、`media_picker_view_test`(同じ部品・位置・header と footer が残ること・選択中に押して `null`)。**既存の test を1件だけ直した**: 例61 の test で、帯の分だけ格子が下がり item c が footer の陰になったので、押す前に `ensureVisible` で見える所へ送った(期待値は変えていない)。`flutter analyze`: No issues。`dart format`: PASS。`check_mutation_finds.py`: PASS(726)。
+- mutation(足した M785〜M789):
+
+```text
+command: flutter test test/spec_004_file_source/storage_browser_view_test.dart test/spec_004_file_source/media_picker_view_test.dart
+M785 | KILLED
+M786 | KILLED
+M787 | KILLED
+M788 | KILLED
+M789 | KILLED
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **未実施**: Android の build(AI container に Android SDK が無い)。
 
 ## Current state / handoff
 
-- Last checkpoint: 着手(base `7f14151`)
+- Last checkpoint: implementation(`f302e35`)。自動検証 PASS
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る。手順書には今の配置(`dev`)のスクリーンショットを撮る手順も入れる
+- Evidence revision: `f302e35`
+- Next Agent action: 独立review attempt 1 を依頼する
