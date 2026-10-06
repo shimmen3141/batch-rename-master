@@ -5,10 +5,10 @@
 ## 現在の開発
 
 - [008 UIと主要操作の整合](008-ui-alignment/plan.md)
-- [010 写真・動画の撮影日時と読み込み](010-photo-video-source/plan.md)
 
 ## 既存能力
 
+- [010 写真・動画の撮影日時と読み込み](010-photo-video-source/plan.md) — 全体の受け入れ条件は埋まった(2026-10-06)
 - [013 Androidの安全なrename境界](013-safe-android-rename/plan.md) — 全体の受け入れ条件は埋まった(2026-08-26)。**2026-09-25に見つかったrelease buildを作れない欠陥は、`T13`で直した(2026-09-27)。****Playの審査は未提出**だが、これは実装で閉じられない外部riskで、却下時は[ADR-002 の「退避の手順」](013-safe-android-rename/decisions/ADR-002-android-rename-storage-boundary.md)へ落とす
 - [014 連番のゼロ埋めの有無と桁数の下限](014-sequence-zero-padding/plan.md)
 - [001 コア命名エンジン](001-rename-core/plan.md)
