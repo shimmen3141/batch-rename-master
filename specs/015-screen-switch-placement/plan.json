@@ -1,0 +1,14 @@
+{
+  "schema": "asdd.plan/v1",
+  "id": "015",
+  "title": "画面を切り替えるbuttonの位置を揃える",
+  "risk": "standard",
+  "issue": null,
+  "dependsOn": [
+    "004"
+  ],
+  "tasks": [
+    "tasks/T01-top-return-band",
+    "tasks/T02-decide-footer-return"
+  ]
+}

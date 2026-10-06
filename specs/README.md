@@ -5,6 +5,7 @@
 ## 現在の開発
 
 - [008 UIと主要操作の整合](008-ui-alignment/plan.md)
+- [015 画面を切り替えるbuttonの位置を揃える](015-screen-switch-placement/plan.md)
 
 ## 既存能力
 
