@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import 'package:batch_rename_master/data/file_source/media_content_dates.dart';
 import 'package:batch_rename_master/data/file_source/media_library.dart';
 import 'package:batch_rename_master/ui/common/drag_selection_controller.dart';
+import 'package:batch_rename_master/ui/common/selection_checkbox.dart';
 import 'package:batch_rename_master/ui/file_source/media_picker_view.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
@@ -549,6 +550,93 @@ void main() {
 
       expect(harness.closed, isTrue);
       expect(harness.result, isNull);
+    });
+  });
+
+  group('REQ-023: 見出しを押してその日をまとめて選ぶ(010:T08)', () {
+    final day5 = DateTime(2026, 10, 5);
+    // 10/5 に a と d(動画)、10/4 に b。
+    final d = _video(
+      '/s/DCIM/Camera/d.mp4',
+      DateTime(2026, 10, 5, 8),
+      album: _camera,
+    );
+    Finder header(DateTime? day) => find.byKey(mediaPickerDayHeaderKey(day));
+    bool checked(WidgetTester tester, DateTime? day) => tester
+        .widget<SelectionCheckbox>(find.byKey(mediaPickerDayCheckKey(day)))
+        .value;
+
+    testWidgets('例58: 何も選んでいない日の見出しを押すとその日が選ばれ、もう一度押すと外れる', (tester) async {
+      final harness = await _open(tester, _FakeLibrary([_a, d, _b]));
+      expect(checked(tester, day5), isFalse);
+
+      await tester.tap(header(day5));
+      await tester.pump();
+
+      expect(_title(tester), '2件選択中');
+      expect(checked(tester, day5), isTrue);
+      // 別の日(10/4 の b)は選ばれない。
+      expect(checked(tester, DateTime(2026, 10, 4)), isFalse);
+
+      await tester.tap(header(day5));
+      await tester.pump();
+      expect(_title(tester), '写真・動画');
+      expect(checked(tester, day5), isFalse);
+
+      await tester.tap(header(day5));
+      await tester.pump();
+      await tester.tap(find.byKey(mediaPickerConfirmKey));
+      await tester.pumpAndSettle();
+      expect(harness.result, unorderedEquals([_a.path, d.path]));
+    });
+
+    testWidgets('例59: 一部だけ選んでいる日の見出しを押すと、その日がすべて選ばれる', (tester) async {
+      await _open(tester, _FakeLibrary([_a, d, _b]));
+      await tester.tap(_item(_a));
+      await tester.pump();
+      expect(checked(tester, day5), isFalse, reason: '一部だけでは印を付けない');
+
+      await tester.tap(header(day5));
+      await tester.pump();
+
+      expect(_title(tester), '2件選択中');
+      expect(checked(tester, day5), isTrue);
+    });
+
+    testWidgets('対象は今の絞り込みで並んでいる item だけ。見えていない同じ日の選択には触れない', (tester) async {
+      await _open(tester, _FakeLibrary([_a, d, _b]));
+      // d(動画)を選んでから写真に絞る。
+      await tester.tap(_item(d));
+      await tester.pump();
+      await _kind(tester, MediaKindFilter.photos);
+
+      // 10/5 に並ぶのは a だけ → a を選ぶ。
+      await tester.tap(header(day5));
+      await tester.pump();
+      expect(_title(tester), '2件選択中');
+
+      // a はすべて選ばれているので、押すと a だけ外れる(見えていない d は残る)。
+      await tester.tap(header(day5));
+      await tester.pump();
+      expect(_title(tester), '1件選択中');
+      await _kind(tester, MediaKindFilter.all);
+      expect(checked(tester, day5), isFalse, reason: 'a が外れ、d だけが選ばれている');
+    });
+
+    testWidgets('「日付不明」の見出しも押せる', (tester) async {
+      const unknown = MediaItem(
+        id: 7,
+        path: '/s/Download/x.jpg',
+        kind: MediaKind.photo,
+      );
+      await _open(tester, _FakeLibrary([_a, unknown]));
+      await tester.scrollUntilVisible(header(null), 100);
+
+      await tester.tap(header(null));
+      await tester.pump();
+
+      expect(_title(tester), '1件選択中');
+      expect(checked(tester, null), isTrue);
     });
   });
 
