@@ -64,9 +64,30 @@ M782 | KILLED
 
 - **未実施**: Windows の build と実際の選択画面(AI container は Linux)。開発者の Windows での確認が引き受ける(手順は [manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T10-desktop-media-filter/manual-verification.md))。
 
+### 独立review
+
+- Review attempt 1: `5d7d2d8..68c1d01` — PASS — none(指摘なし)。全範囲。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。REQ-011 への適合と Android を変えていないこと、`file_selector_windows` の `ArgumentError` の調査、Linux(GTK の filter に拡張子と MIME 型を両方足す = 和集合)・macOS(`allowedContentTypes` に両方を連結 = 和集合)で両方を渡しても絞り込みが壊れないこと、「決めた点」(「文書」の拡張子、M730 を外した理由、`T09` の残余 risk)を確かめた。reviewer 自身が related(+369)・full `flutter test`(+1377)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(719)・M778〜M782(5 KILLED)を回した。
+- reviewer が設計した対照 R1・R2(どちらも KILLED)を M783・M784 として `tool/mutations.json` へ取り込んだ(`c5121a5`。R2 は「docx を外す」を「docx を doc に変える」形で書いた)。取り込んだ後の範囲付きの実行:
+
+```text
+command: flutter test test/spec_004_file_source
+M783 | KILLED
+M784 | KILLED
+2 mutations: 2 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- SELF-CHECK(`68c1d01..c5121a5`): 差分は `tool/mutations.json` の2件の追加だけで `lib/`・`test/` は変わらない。`check_mutation_finds.py` PASS(721)、full `flutter test` PASS(+1377)。
+
+### Windows での確認
+
+- 対象: `lib/` が `c2238e5` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T10-desktop-media-filter/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T10-desktop-media-filter/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-06)。
+
 ## Current state / handoff
 
-- Last checkpoint: implementation(`c2238e5`)。自動検証 PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`5d7d2d8..68c1d01`)、以後は mutation の表だけ(SELF-CHECK)
+- Blocker category: manual-evidence
 - Evidence revision: `c2238e5`
-- Next Agent action: 独立review attempt 1 を依頼する
+- Waiting for: 開発者(Windows での確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜3を行い、結果を会話で伝える
+- Next Agent action: 結果を「Windows での確認」へ記録する。PASS なら PR を ready にし merge 条件を確かめる。違いがあれば原因を調べて直す

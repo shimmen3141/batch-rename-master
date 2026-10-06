@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T10",
   "title": "desktop の「写真・動画」で OS のファイル選択画面を写真・動画に絞り込む",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [
     "T05"
   ],
