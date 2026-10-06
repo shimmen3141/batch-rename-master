@@ -2,6 +2,7 @@
 //
 // 一覧は fake の port から渡す。MediaStore の照会そのものは `010:T07` の端末確認が
 // 引き受ける(task.md の宣言)。日の見出しを押すまとめ選択は `010:T08`。
+// 一覧から選択済みで開き直したときの始まり方(REQ-024)は `010:T09`。
 
 import 'dart:async';
 import 'dart:typed_data';
@@ -117,6 +118,7 @@ Future<_Harness> _open(
   WidgetTester tester,
   MediaLibraryPort library, {
   MediaContentDatesPort contentDates = const _NoContentDates(),
+  Set<String> initialSelection = const {},
 }) async {
   final harness = _Harness();
   await tester.pumpWidget(
@@ -132,6 +134,7 @@ Future<_Harness> _open(
                     library: library,
                     contentDates: contentDates,
                     now: () => DateTime(2026, 10, 5, 12),
+                    initialSelection: initialSelection,
                   ),
                 ),
               );
@@ -698,6 +701,86 @@ void main() {
         mediaDurationLabel(const Duration(hours: 1, minutes: 2, seconds: 3)),
         '1:02:03',
       );
+    });
+  });
+  group('REQ-024: 一覧から選択済みで開き直す(010:T09)', () {
+    testWidgets('例61: 一覧のファイルを選択済みにして、全件・絞り込み無しで始まる。足して確定すると全部が返る', (
+      tester,
+    ) async {
+      final harness = await _open(
+        tester,
+        _FakeLibrary([_a, _b, _c]),
+        initialSelection: {_a.path, _b.path},
+      );
+
+      expect(_title(tester), '2件選択中');
+      // 全件・絞り込み無し: 3件とも並ぶ。
+      expect(_item(_a), findsOneWidget);
+      expect(_item(_b), findsOneWidget);
+      expect(_item(_c), findsOneWidget);
+
+      await tester.tap(_item(_c));
+      await tester.pump();
+      expect(_title(tester), '3件選択中');
+      await tester.tap(find.byKey(mediaPickerConfirmKey));
+      await tester.pumpAndSettle();
+
+      expect(harness.result, unorderedEquals([_a.path, _b.path, _c.path]));
+    });
+
+    testWidgets('並ばないもの(MediaStore から見えなくなったもの)は選択に残らず、確定しても返らない', (
+      tester,
+    ) async {
+      final harness = await _open(
+        tester,
+        _FakeLibrary([_a, _b]),
+        initialSelection: {_a.path, '/s/DCIM/Camera/gone.jpg'},
+      );
+
+      expect(_title(tester), '1件選択中');
+      await tester.tap(find.byKey(mediaPickerConfirmKey));
+      await tester.pumpAndSettle();
+
+      expect(harness.result, [_a.path]);
+    });
+
+    testWidgets('並ぶものが1つも無ければ、選択は空で確定できない', (tester) async {
+      await _open(
+        tester,
+        _FakeLibrary([_a]),
+        initialSelection: {'/s/DCIM/Camera/gone.jpg'},
+      );
+
+      expect(_title(tester), '写真・動画');
+      expect(_confirmEnabled(tester), isFalse);
+    });
+
+    testWidgets('一覧を読み終えるまでは確定できない(並ばないものを返さない)', (tester) async {
+      final gate = Completer<Map<int, DateTime>>();
+      final download = MediaItem(
+        id: 99,
+        path: '/s/Download/x.jpg',
+        kind: MediaKind.photo,
+        added: DateTime(2026, 10, 5, 14, 54),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: appDarkTheme(),
+          home: MediaPickerView(
+            library: _FakeLibrary([download]),
+            contentDates: _GatedContentDates(gate),
+            initialSelection: {download.path, '/s/Download/gone.jpg'},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(_confirmEnabled(tester), isFalse);
+
+      gate.complete(const {});
+      await tester.pumpAndSettle();
+      expect(_title(tester), '1件選択中');
+      expect(_confirmEnabled(tester), isTrue);
     });
   });
 }

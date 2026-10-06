@@ -124,9 +124,17 @@ class MediaPickerView extends StatefulWidget {
     required this.library,
     this.contentDates = const IsolateMediaContentDates(),
     this.now,
+    this.initialSelection = const {},
   });
 
   final MediaLibraryPort library;
+
+  /// 選択済みで始める path(一覧から開き直すとき。004 REQ-024。`010:T09`)。
+  ///
+  /// **並ばないもの(MediaStore から見えなくなったもの)は、一覧を読み終えたときに
+  /// 選択から外す** — 見えない選択が確定に残ると、一覧から外れるはずのファイルが
+  /// 残る(REQ-024)。開き直しは全件・絞り込み無しで始まる(絞り込みの初期値のまま)。
+  final Set<String> initialSelection;
 
   /// 中身の日時を読む port(REQ-022: `DATE_TAKEN` が無い item の並びと日付)。
   /// composition root は覚えておく実装([CachedMediaContentDates])を渡す。
@@ -157,7 +165,9 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   MediaAlbumsResult? _albums;
 
   /// **選択は path で持ち、絞り込みを変えても保つ**(REQ-022)。
-  final LinkedHashSet<String> _selected = LinkedHashSet<String>();
+  late final LinkedHashSet<String> _selected = LinkedHashSet<String>.of(
+    widget.initialSelection,
+  );
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _viewportKey = GlobalKey();
@@ -227,7 +237,11 @@ class _MediaPickerViewState extends State<MediaPickerView> {
         return;
     }
     if (!mounted || generation != _generation) return;
+    final listed = {for (final item in all) item.path};
     setState(() {
+      // 並ばない選択(開き直したときの、MediaStore から見えなくなったもの)を外す
+      // (REQ-024)。
+      _selected.retainWhere(listed.contains);
       _all = all;
       _items = all.where(_filter.matches).toList();
     });
@@ -347,6 +361,10 @@ class _MediaPickerViewState extends State<MediaPickerView> {
   }
 
   bool get _hasSelection => _selected.isNotEmpty;
+
+  /// 確定できるか(REQ-023: 1件以上選んでいる)。**一覧を読み終えるまでは確定させない**
+  /// — 開き直したとき(REQ-024)、読み終える前の選択には並ばないものが残っている。
+  bool get _canConfirm => _hasSelection && _all != null;
 
   bool get _canSelectAll =>
       _items.isNotEmpty &&
@@ -766,7 +784,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
           const SizedBox(width: 8),
           FilledButton(
             key: mediaPickerConfirmKey,
-            onPressed: _hasSelection ? _confirm : null,
+            onPressed: _canConfirm ? _confirm : null,
             child: const Text('確定'),
           ),
         ],
