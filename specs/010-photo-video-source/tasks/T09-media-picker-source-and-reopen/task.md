@@ -87,9 +87,26 @@ M166 | KILLED | lib/ui/rule_builder/rule_builder_workspace.dart
 
 - **未実施**: Android の build(AI container に Android SDK が無い)。
 
+### 独立review
+
+- Review attempt 1: `3fdf76b..a054e51` — PASS — none(P0/P1 なし)。全範囲。model: Sonnet(Agent tool の code-reviewer)。実装は Opus で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。REQ-024・代表例 56・61〜66 への適合、「Agent が決めた点」と仕様の両立、008:T56 の開き直し・REQ-012 の警告・権限の確認を壊していないことを確かめた。reviewer 自身が `flutter test test/spec_004_file_source`(360件)・`flutter analyze`・`dart format`・full `flutter test`(+1368)を回した。
+- reviewer が設計した対照(範囲 `flutter test test/spec_004_file_source`。どちらも SURVIVED。**`tool/mutations.json` には入れない** — 今の製品経路では振る舞いが変わらない等価な変異で、入れると毎回 SURVIVED が出る。`T11` の M757 と同じ扱い):
+  - REV-A: `list_origin.dart` の `record()` の `if (_last == origin) return;` を消す — 通知が増えるだけで振る舞いは同じ。
+  - REV-B: `main.dart` の入口の条件を `_source is FolderReopenSource || _source is MediaPickSource` へ広げる — `AndroidFileSource` が両方を実装するので今は同じ。
+- 指摘(どちらも P3。所有 Agent の扱い):
+  - P3-1(安全網の穴): `main.dart` の `onReopen` は `FolderReopenSource` のときだけ渡すので、将来「選択画面だけを持ち browser を持たない」source を足すと REQ-024 の入口が出ない。**直さず残余 risk として受容する。** 今そういう source は無く、desktop の「写真・動画」(`T10`)は OS の選択画面で、選択の初期値を持てないので `MediaPickSource` の開き直しにも当たらない。AGENTS.md の3条件の2(データ損失等)に当たらない。引き受け先: そうした source を足す task(今は無い。`T10` で desktop の扱いを決めるときに見直す)。
+  - P3-2(記録): review 中も `task.json` が `in_progress` だった。この記録で実機確認待ちの `blocked` へ進めた。
+
+### 実機確認
+
+- 対象: `lib/`・`android/` が `40f3ab4` と同一の build。手順は [/workspace/specs/010-photo-video-source/tasks/T09-media-picker-source-and-reopen/manual-verification.md](/workspace/specs/010-photo-video-source/tasks/T09-media-picker-source-and-reopen/manual-verification.md)。
+- attempt 1: 依頼中(2026-10-06)。
+
 ## Current state / handoff
 
-- Last checkpoint: implementation(`40f3ab4`)。自動検証 PASS
-- Blocker category: なし
+- Last checkpoint: evidence。独立review attempt 1 PASS(`3fdf76b..a054e51`)
+- Blocker category: manual-evidence
 - Evidence revision: `40f3ab4`
-- Next Agent action: 独立review attempt 1 を依頼する
+- Waiting for: 開発者(Android エミュレータでの実機確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順1〜7を行い、結果を会話で伝える
+- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR を ready にし merge 条件を確かめる。違いがあれば原因を調べて直す
