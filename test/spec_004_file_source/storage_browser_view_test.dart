@@ -1579,6 +1579,20 @@ void main() {
       expect(message.dx, closeTo(screen.center.dx, 1), reason: '横の中央');
     });
 
+    // 2026-10-07 の確認で「キャンセル」と「確定」の間に不自然な隙間があった(`015:T03`)。
+    testWidgets('footer の2つの button は同じ幅で横いっぱいに並ぶ', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+
+      final cancel = tester.getRect(find.byKey(browserBackToRenameKey));
+      final confirm = tester.getRect(find.byKey(const Key('browser-confirm')));
+      expect(cancel.left, closeTo(12, 0.5), reason: '左端は footer の余白だけ');
+      expect(confirm.right, closeTo(400 - 12, 0.5), reason: '右端も余白だけ');
+      expect(confirm.left - cancel.right, closeTo(8, 0.5), reason: '間は 8 だけ');
+      expect(cancel.width, closeTo(confirm.width, 0.5), reason: '同じ幅');
+    });
+
     // 2026-09-23 の確認(当時の文言「← リネーム画面へ」が切れた)を、2026-10-07 の
     // 文言「キャンセル」(`015:T03`)で確かめる。文字倍率 1.3 でも切れない。
     testWidgets('「キャンセル」は狭い幅でも文言が切れず、矢印を付けない', (tester) async {

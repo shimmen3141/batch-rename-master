@@ -765,10 +765,10 @@ class _MediaPickerViewState extends State<MediaPickerView> {
     ),
     child: SafeArea(
       top: false,
+      // browser と同じく、2つの button を同じ幅で横いっぱいに並べる(`015:T03`)。
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(
+          Expanded(
             child: OutlinedButton(
               key: mediaPickerBackKey,
               style: OutlinedButton.styleFrom(
@@ -782,10 +782,12 @@ class _MediaPickerViewState extends State<MediaPickerView> {
             ),
           ),
           const SizedBox(width: 8),
-          FilledButton(
-            key: mediaPickerConfirmKey,
-            onPressed: _canConfirm ? _confirm : null,
-            child: const Text('確定'),
+          Expanded(
+            child: FilledButton(
+              key: mediaPickerConfirmKey,
+              onPressed: _canConfirm ? _confirm : null,
+              child: const Text('確定'),
+            ),
           ),
         ],
       ),

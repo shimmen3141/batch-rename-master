@@ -717,7 +717,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     sourceHandle: entry.path,
   );
 
-  /// footer。**左下の「← リネーム画面へ」が画面を閉じる唯一の導線**(`008:T38`)。
+  /// footer。**左下の「キャンセル」が画面を閉じる唯一の導線**(`008:T38`、`015:T03`)。
   ///
   /// 状態表のすべての行に出る。「確定」は選択があるときだけ押せる。
   Widget _footer(AppColors colors) => Container(
@@ -726,13 +726,12 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       color: colors.bar,
       border: Border(top: BorderSide(color: colors.border)),
     ),
-    // **「確定」の残りを全部「キャンセル」が使える**ようにする。`Spacer`と
-    // 分け合うと半分の幅しか無く、通常の文字サイズでも当時の文言「リネーム画面へ」が
-    // 「リネーム画面...」と切れていた(2026-09-23 のエミュレータ確認)。
+    // **2つの button を同じ幅で横いっぱいに並べる**(間に不自然な隙間を作らない。
+    // 2026-10-07 の開発者の確認。`015:T03`)。`Spacer` を挟むと「キャンセル」の幅が
+    // 減り、2026-09-23 には当時の文言「リネーム画面へ」が「リネーム画面...」と切れた。
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Flexible(
+        Expanded(
           child: OutlinedButton(
             key: browserBackToRenameKey,
             style: OutlinedButton.styleFrom(
@@ -751,10 +750,12 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
           ),
         ),
         const SizedBox(width: 8),
-        FilledButton(
-          key: const Key('browser-confirm'),
-          onPressed: _hasSelection ? _confirm : null,
-          child: const Text('確定'),
+        Expanded(
+          child: FilledButton(
+            key: const Key('browser-confirm'),
+            onPressed: _hasSelection ? _confirm : null,
+            child: const Text('確定'),
+          ),
         ),
       ],
     ),
