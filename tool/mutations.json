@@ -5180,6 +5180,48 @@
       "find": "  Widget _rowName(AppColors colors, BrowserEntry entry) => Text(\n    entry.name,\n    maxLines: 1,\n    overflow: TextOverflow.ellipsis,\n    style: TextStyle(\n      color: colors.textPrimary,\n      fontSize: AppFontSize.titleLarge,\n    ),\n  );",
       "replace": "  Widget _rowName(AppColors colors, BrowserEntry entry) => Text(\n    entry.name,\n    maxLines: 1,\n    overflow: TextOverflow.ellipsis,\n    style: TextStyle(color: colors.textPrimary),\n  );",
       "note": "008:T58 名前の大きさを指定しない — ListTile の既定に戻り、folder とファイルで大きさが揃わない(以前は 16 と 13)"
+    },
+    {
+      "id": "M815",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        color: colors.rowSubInfoSurface,\n        borderRadius: BorderRadius.circular(4),",
+      "replace": "        borderRadius: BorderRadius.circular(4),",
+      "note": "008:T59 補足情報の帯を塗らない — 名前と補足が見た目で分かれない(2026-10-07 の決定 案A)"
+    },
+    {
+      "id": "M816",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      margin: const EdgeInsets.only(top: rowSubInfoGap),\n",
+      "replace": "",
+      "note": "008:T59 帯と変更後の名前の間を空けない — 名前の2段と補足情報がくっつく"
+    },
+    {
+      "id": "M817",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowNewNameFontSize = AppFontSize.title;",
+      "replace": "const double rowNewNameFontSize = AppFontSize.bodyLarge;",
+      "note": "008:T59 変更後の名前を以前の 13 に戻す — 案A の「名前を少し強める」が消える"
+    },
+    {
+      "id": "M818",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      key: rowSubInfoKey,\n      width: double.infinity,\n",
+      "replace": "      key: rowSubInfoKey,\n",
+      "note": "008:T59 帯を中身の幅に縮める — 行ごとに帯の右端が揃わない"
+    },
+    {
+      "id": "M819",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),",
+      "replace": "      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),",
+      "note": "[対照] 008:T59 帯の左右の余白を 6 にする — 320dp × 文字倍率 2.0 で大きさ(`1023.0 MB`)が削られる(`T48` の保証。`row_file_size_test.dart` が捕まえる)"
+    },
+    {
+      "id": "M820",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        style: TextStyle(color: colors.textMuted, fontSize: rowNewNameFontSize),",
+      "replace": "        style: TextStyle(color: colors.textMuted, fontSize: AppFontSize.bodyLarge),",
+      "note": "008:T59 「変更なし」だけ以前の大きさに残す — 同じ位置の文字の大きさが行によって揃わない"
     }
   ]
 }

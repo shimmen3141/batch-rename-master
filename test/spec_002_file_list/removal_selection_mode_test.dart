@@ -446,7 +446,10 @@ void main() {
     await tester.pump();
     // Timer tick ごとに固定された指位置で新しく表示された行を同じ経路として追う。
     // widget test では frame を刻み、実機の連続 frame と同じ timer tick を流す。
-    for (var tick = 0; tick < 260; tick++) {
+    // **刻む回数は行の高さに余裕を持たせる**(`008:T59` で行が 9px 高くなり、260 回
+    // (約4.2秒)では末尾まで届かなくなった。実測で 269 回目に届く)。届いた後も刻み
+    // 続けるので、末尾で止まることも長く見る。
+    for (var tick = 0; tick < 600; tick++) {
       await tester.pump(const Duration(milliseconds: 16));
     }
     await gesture.up();
