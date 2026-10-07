@@ -45,19 +45,19 @@ Agent の推奨(preview 56dp・行 72dp、folder を先にしてそれぞれ新�
 
 ## 受け入れ条件
 
-- [ ] ファイル行と folder 行の preview 枠が同じ大きさ(56dp)で、行の高さが揃う。
+- [x] ファイル行と folder 行の preview 枠が同じ大きさ(56dp)で、行の高さが揃う。
   - 証拠: widget test(枠と行の寸法)。
-- [ ] folder は塗った四角、preview を出せないファイルは線で囲んだ四角で、見分けられる。preview がある画像は今と同じく絵が出る。
+- [x] folder は塗った四角、preview を出せないファイルは線で囲んだ四角で、見分けられる。preview がある画像は今と同じく絵が出る。
   - 証拠: widget test(装飾の違い)、manual。
-- [ ] 2行目に更新日時(ファイルは大きさも)が出る。読めなかった entry は2行目が無く、行は残る。
+- [x] 2行目に更新日時(ファイルは大きさも)が出る。読めなかった entry は2行目が無く、行は残る。
   - 証拠: widget test、`AndroidStorageBrowser` の test(一時 folder に日時の違うファイルを作る)。
-- [ ] folder が先、それぞれ更新日時の新しい順、同時刻は名前順、読めない entry は群の最後。
+- [x] folder が先、それぞれ更新日時の新しい順、同時刻は名前順、読めない entry は群の最後。
   - 証拠: `AndroidStorageBrowser` の test。
-- [ ] 狭幅 × 文字倍率で overflow しない。範囲選択・全選択・一括解除の既存 test が PASS。
+- [x] 狭幅 × 文字倍率で overflow しない。範囲選択・全選択・一括解除の既存 test が PASS。
   - 証拠: widget test。
-- [ ] Android エミュレータで、1画面に並ぶ行の数・見た目・件数の多い folder を開く時間を確かめる。
+- [x] Android エミュレータで、1画面に並ぶ行の数・見た目・件数の多い folder を開く時間を確かめる。 **数値(行数・時間)は受け取っていない。** 開発者の報告は attempt 1「動作は問題ありませんでした」、attempt 3「問題ありませんでした」で、見た目の指摘は直した。開くまでの時間が目立って遅いという報告は無い。
   - 証拠: [manual-verification.md](manual-verification.md)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -125,11 +125,11 @@ M822 | KILLED | lib/ui/file_source/storage_browser_view.dart
 - folder・保存場所の四角に載せるアイコンを、四角の一辺の 55% から **45%** にした(`browserTileIconRatio`。56 の四角で約 31 → 約 25)。開発者「四角に対して大きすぎると不格好に見えるので、少しだけ一回り小さく」。preview を出せないファイルの線の四角(`RowPreviewView`、リネーム画面と共通)は対象外とし 55% のまま。
 - test: `browser_row_look_test.dart` で folder・保存場所のアイコンの大きさを固定。mutation M824(55% に戻す)KILLED(`T59` の記録の出力)。
 
+- エミュレータ確認 attempt 3(`2960b35`): **PASS**(開発者「問題ありませんでした。」)。記録は `T57` の task.md。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
-- Blocker category: manual-evidence
-- Evidence revision: `2960b35`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 3)
-- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
-- Next Agent action: 差分review attempt 3 は PASS(`T57` に記録)。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
+- Last checkpoint: エミュレータ確認 attempt 3 PASS(`2960b35`)。PR #232
+- Blocker category: なし
+- Evidence revision: `2960b35`
+- Next Agent action: なし(done)

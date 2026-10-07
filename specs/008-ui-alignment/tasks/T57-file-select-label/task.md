@@ -18,13 +18,13 @@ Agent が「読み込む前の「ファイルを選ぶ」も「ファイル選�
 
 ## 受け入れ条件
 
-- [ ] 読み込む前も後も、帯のbuttonが「ファイル選択」と読める。押すと今と同じ種類選択が開く。
+- [x] 読み込む前も後も、帯のbuttonが「ファイル選択」と読める。押すと今と同じ種類選択が開く。
   - 証拠: widget test(`load_affordance_test.dart` の文言の主張を更新。読み込み前後の両方)。
-- [ ] 帯の幅が狭い端末(320dp)と文字倍率 2.0 で、folder 名とbuttonが今と同じく収まる。
+- [x] 帯の幅が狭い端末(320dp)と文字倍率 2.0 で、folder 名とbuttonが今と同じく収まる。
   - 証拠: 既存の帯の overflow test が PASS。
-- [ ] Android エミュレータで見え方を確かめる。
+- [x] Android エミュレータで見え方を確かめる。
   - 証拠: [manual-verification.md](manual-verification.md)。`T58`・`T59` と同じ build で確かめてよい。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -131,11 +131,14 @@ M163 | KILLED | M824 | KILLED | M825 | KILLED
 - P2 を閉じた: `45883d9` は attempt 2 で**確認した build**で誤りではないが、結果欄を「確認した build」と「直しの commit」に書き分け、対象 commit の行を attempt 3(`2960b35` 以後)に直した(`specs/` だけ。再reviewは起動しない)。
 - review の連鎖: `73006f1..649d8e1` PASS(luna)→ `649d8e1..cddcd30` PASS(Sonnet)→ `cddcd30..75c4bf1` SELF-CHECK → `75c4bf1..8f973cf` PASS(luna)→ `8f973cf..` SELF-CHECK。
 
+### エミュレータ確認 attempt 3(build `2960b35`)
+
+- 開発者の結果(2026-10-07、原文): 「問題ありませんでした。」→ **PASS**。`2960b35` の後の commit は test 1件(`e293662`)と `specs/` の記録だけで、code・依存・build 設定は変わっていない。
+- 同じ返答で、補足情報の別の見せ方は**案A**(並び順やルールで使う日時だけを出す)を選び、「作成日時:」「更新日時:」を「作成:」「更新:」に短くする案と、作成と更新が一致するときは「作成・更新:」とまとめる案を挙げた。→ 別 task で扱う(この PR では扱わない)。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
-- Blocker category: manual-evidence
-- Evidence revision: `2960b35`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 3)
-- Requested action: [manual-verification.md](manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
-- Next Agent action: 差分review attempt 3 は PASS(`T57` に記録)。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
+- Last checkpoint: エミュレータ確認 attempt 3 PASS(`2960b35`)。review の連鎖 `73006f1..8f973cf` は PASS と SELF-CHECK で途切れず覆う。PR #232
+- Blocker category: なし
+- Evidence revision: `2960b35`
+- Next Agent action: なし(done)。補足情報の案A は新しい task で扱う

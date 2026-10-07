@@ -36,15 +36,15 @@ Agent が3案を示した。**開発者は案Aを選んだ**(「2 のメリハ�
 
 ## 受け入れ条件
 
-- [ ] ~~補足情報が名前の2段と分かれた帯に入り、~~変更後の名前が一段大きい。**帯は不採用**(attempt 2 で消した)。補足情報は帯の前と同じ見え方。
+- [x] ~~補足情報が名前の2段と分かれた帯に入り、~~変更後の名前が一段大きい。**帯は不採用**(attempt 2 で消した)。補足情報は帯の前と同じ見え方。
   - 証拠: widget test(名前の大きさ・補足情報を塗った面で包まない)。
-- [ ] 上の「守ること」が成り立つ(既存の test が変更なしで PASS。変えた値を主張する test だけ更新する)。
+- [x] 上の「守ること」が成り立つ(既存の test が変更なしで PASS。変えた値を主張する test だけ更新する)。 **例外1件**: `removal_selection_mode_test.dart` の刻む回数(260 → 600)。主張は変えていない(checkpoint 1)。
   - 証拠: widget test。
-- [ ] 狭幅 × 文字倍率と 2ペインで overflow しない。
+- [x] 狭幅 × 文字倍率と 2ペインで overflow しない。
   - 証拠: widget test。
-- [ ] 開発者が Android エミュレータで見て、メリハリと1画面の行数を確かめている。
+- [x] 開発者が Android エミュレータで見て、メリハリと1画面の行数を確かめている。 帯は attempt 2 で不採用となり、行の高さは帯の前とほぼ同じ(変更後の名前 +1)に戻ったので、**行数の数値は受け取っていない**。attempt 3 は「問題ありませんでした」。
   - 証拠: [manual-verification.md](manual-verification.md)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -129,11 +129,11 @@ M825 | KILLED | lib/ui/file_list/file_list_view.dart
 
 - `flutter test`(全件)@`2960b35`: `01:18 +1421: All tests passed!`。`e293662` は test 1件の修正で、その file は PASS。
 
+- エミュレータ確認 attempt 3(`2960b35`): **PASS**(開発者「問題ありませんでした。」)。記録は `T57` の task.md。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
-- Blocker category: manual-evidence
-- Evidence revision: `2960b35`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 3)
-- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
-- Next Agent action: 差分review attempt 3 は PASS(`T57` に記録)。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
+- Last checkpoint: エミュレータ確認 attempt 3 PASS(`2960b35`)。PR #232
+- Blocker category: なし
+- Evidence revision: `2960b35`
+- Next Agent action: なし(done)。補足情報の別の見せ方(案A)は新しい task で扱う
