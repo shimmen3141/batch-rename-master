@@ -11,6 +11,7 @@ import 'data/file_source/media_library.dart';
 import 'data/file_source/storage_browser.dart';
 import 'ui/file_source/file_kind.dart';
 import 'ui/file_source/media_picker_view.dart';
+import 'ui/file_source/modal_screen_route.dart';
 import 'ui/file_source/storage_browser_view.dart';
 import 'data/file_source/file_source.dart';
 import 'data/file_source/platform_file_source.dart';
@@ -112,7 +113,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   Future<BrowserSelection?> _pickInBrowser() async {
     final navigator = Navigator.of(context);
     final selection = await navigator.push<BrowserSelection>(
-      MaterialPageRoute(
+      ModalScreenRoute(
         builder: (_) => StorageBrowserView(
           browser: const AndroidStorageBrowser(),
           onLocationName: (folder, name) => _locationNames[folder] = name,
@@ -141,7 +142,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   /// 選択済みで始める。
   Future<List<String>?> _pickMedia(Set<String> selected) async {
     final paths = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(
+      ModalScreenRoute(
         builder: (_) => MediaPickerView(
           library: const MethodChannelMediaLibrary(),
           contentDates: _mediaContentDates,
@@ -178,7 +179,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
     String folder,
     Set<String> selected,
   ) => Navigator.of(context).push<BrowserSelection>(
-    MaterialPageRoute(
+    ModalScreenRoute(
       builder: (_) => StorageBrowserView(
         browser: const AndroidStorageBrowser(),
         onLocationName: (folder, name) => _locationNames[folder] = name,

@@ -5082,6 +5082,41 @@
       "find": "          Expanded(\n            child: OutlinedButton(\n              key: mediaPickerBackKey,",
       "replace": "          Flexible(\n            child: OutlinedButton(\n              key: mediaPickerBackKey,",
       "note": "015:T03 選択画面の「キャンセル」を横に伸ばさない — browser と並びが食い違う"
+    },
+    {
+      "id": "M798",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "super(fullscreenDialog: true);",
+      "replace": "super(fullscreenDialog: false);",
+      "note": "015:T04 fullscreenDialog を外す — 下のリネーム画面が退場の動き(縮む)をしてしまう"
+    },
+    {
+      "id": "M799",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "Tween(begin: const Offset(0, 1), end: Offset.zero)",
+      "replace": "Tween(begin: const Offset(1, 0), end: Offset.zero)",
+      "note": "015:T04 横から出す — 下から出て下へ戻る動きにならない(2026-10-07 の開発者の決定に反する)"
+    },
+    {
+      "id": "M800",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;",
+      "replace": "if (MediaQuery.maybeDisableAnimationsOf(context) == null) return child;",
+      "note": "015:T04 端末の「アニメーションを削除」を無視して動かす"
+    },
+    {
+      "id": "M801",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "Duration exitDuration = Duration(milliseconds: 250);",
+      "replace": "Duration exitDuration = Duration(milliseconds: 600);",
+      "note": "015:T04 閉じる動きを長くする(キャンセルしてから戻るまで待たせる)"
+    },
+    {
+      "id": "M802",
+      "file": "lib/main.dart",
+      "find": "      ModalScreenRoute(\n        builder: (_) => MediaPickerView(",
+      "replace": "      MaterialPageRoute(\n        builder: (_) => MediaPickerView(",
+      "note": "015:T04 写真・動画の選択画面だけ今までの開き方に戻す — browser と動きが食い違う"
     }
   ]
 }
