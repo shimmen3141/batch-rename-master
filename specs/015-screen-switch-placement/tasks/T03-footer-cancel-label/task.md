@@ -24,7 +24,7 @@ Android の app 内 browser と写真・動画の選択画面で、footer 左下
   - 証拠: widget test(browser の状態表の全行で文言、狭い幅・文字倍率1.3で切れず矢印が無いこと、選択画面の文言と矢印が無いこと)。mutation M794・M795。
 - [x] 押すと選択を捨てて戻り、一覧は変わらない(今までと同じ)。
   - 証拠: 既存の widget test(閉じると `null`)が key を変えずに PASS。
-- [ ] Android エミュレータで、2つの画面の footer が「キャンセル」「確定」に見え、押して戻れる。
+- [x] Android エミュレータで、2つの画面の footer が「キャンセル」「確定」に見え、押して戻れる。
   - 証拠: [manual-verification.md](manual-verification.md) の結果。
 - [ ] 独立review が PASS。
 
@@ -63,6 +63,8 @@ M795 | KILLED
 - Attempt 1(`e1c56ab`、2026-10-07): **動作は PASS**(手順2・3で戻り方は期待どおり)。**見た目に直しが要る**: 「キャンセル」と「確定」の間に不自然な隙間がある → 2つを横に伸ばす。あわせて開発者から、選択画面をモーダルらしく見せるため下から出て下へ戻るアニメーションの案が出た(開発者は案Aを選び、`T04` として同じ PR に入れた)。
 - 直し `01814c5`: 2つの button を `Expanded` にし、footer の余白12と間8を除いた幅を半分ずつ使う(browser・選択画面とも)。test: 2つの画面それぞれで「左右の端が余白だけ・間が8・同じ幅」を見る test を足した。M423 の `find` を新しい形へ追随させ、M796(browser の「確定」を伸ばさない)・M797(選択画面の「キャンセル」を伸ばさない)を足した。
 
+- Attempt 2(build: branch HEAD `5618d53`。`lib/` は `22ee3d6` と同一、2026-10-07): **PASS**。開発者が [manual-verification.md](manual-verification.md) の確認事項(下からせり上がって開く・後ろが動かない、footer の2つが同じ幅で隙間が無い、フォルダ移動は今までどおり、キャンセル・確定・システムバックで下へ下がって戻る、写真・動画も同じ)を行い「問題ありませんでした」。
+
 ### 検証(`01814c5`)
 
 - `flutter test`: PASS(+1380)。related `flutter test test/spec_004_file_source`: PASS(+372)。`flutter analyze`: No issues。`dart format`: PASS。`check_mutation_finds.py`: PASS(725)。
@@ -79,10 +81,7 @@ M797 | KILLED
 
 ## Current state / handoff
 
-- Last checkpoint: implementation(実機確認 attempt 1 の直し `01814c5`)。独立review attempt 1 PASS(`7f14151..31fa269`)、Draft PR #230
-- Blocker category: manual-evidence
-- Evidence revision: `01814c5`
-- Waiting for: 開発者(Android エミュレータの再確認。`T04` と同じ build)
-- Requested action: [manual-verification.md](manual-verification.md) の手順を `T04` の Evidence revision を含む build で行い、結果を会話で伝える
-- Review pending: `31fa269..` の差分review(`lib/`・`test/`・`tool/` に差分があるため。`T04` と合わせて ready 化の前に行う)
-- Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR #230 を ready にし、CI と merge 条件を確かめて merge する。plan 015 の全 task が閉じるので、plan 完了の review へ進む。直しが要れば直して再確認を頼む
+- Last checkpoint: evidence(実機確認 attempt 2 PASS。`5618d53`)
+- Blocker category: なし
+- Evidence revision: `22ee3d6`(`lib/` は `01814c5` 以降 `T04` の変更だけ)
+- Next Agent action: `31fa269..head` の差分review(`T04` と合わせて1回)。PASS なら PR #230 を ready にし、CI と merge 条件を確かめて merge する

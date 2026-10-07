@@ -33,7 +33,7 @@
   - 証拠: widget test。mutation M800。
 - [x] browser・開き直し・写真・動画の3か所すべてがこの開き方を使う。
   - 証拠: `lib/main.dart` の source を見る test(main.dart の結線は実際の platform を使うので widget test で開けない)。mutation M802。
-- [ ] Android エミュレータで、開く・「キャンセル」・「確定」・システムバックの動きが自然に見える。
+- [x] Android エミュレータで、開く・「キャンセル」・「確定」・システムバックの動きが自然に見える。
   - 証拠: [`T03` の manual-verification.md](../T03-footer-cancel-label/manual-verification.md)(同じ build で1回にまとめる)。
 - [ ] 独立review が PASS。
 
@@ -68,13 +68,11 @@ M802 | KILLED
 
 ### 実機確認
 
-- 未実施。
+- Attempt 1(`T03` の attempt 2 と同じ確認。build: branch HEAD `5618d53`。`lib/` は `22ee3d6` と同一、2026-10-07): **PASS**。開発者が [manual-verification.md](../T03-footer-cancel-label/manual-verification.md) の確認事項(下からせり上がって開く・後ろが動かない、footer の2つが同じ幅で隙間が無い、フォルダ移動は今までどおり、キャンセル・確定・システムバックで下へ下がって戻る、写真・動画も同じ)を行い「問題ありませんでした」。
 
 ## Current state / handoff
 
-- Last checkpoint: implementation(`22ee3d6`)
-- Blocker category: manual-evidence
+- Last checkpoint: evidence(実機確認 attempt 1 PASS。`5618d53`)
+- Blocker category: なし
 - Evidence revision: `22ee3d6`
-- Waiting for: 開発者(Android エミュレータの確認。`T03` と同じ build)
-- Requested action: [`T03` の manual-verification.md](../T03-footer-cancel-label/manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を記録する。PASS なら `31fa269..head` の差分review を行い、PR #230 を ready にして merge する。plan 015 の完了 review へ進む
+- Next Agent action: `31fa269..head` の差分review(`T03` と合わせて1回)。PASS なら PR #230 を ready にし、merge して plan 015 の完了 review へ進む
