@@ -12,7 +12,7 @@ Agent が3案を示した。**開発者は案Aを選んだ**(「2 のメリハ�
 
 | 案 | 内容 | 扱い |
 |---|---|---|
-| **A** | 名前の2段と補足情報の間を空け、補足情報を薄い面(角丸の帯)に入れる。変更後の名前を少し大きくする | **採用** |
+| **A** | 名前の2段と補足情報の間を空け、補足情報を薄い面(角丸の帯)に入れる。変更後の名前を少し大きくする | **採用**。ただし**帯は 2026-10-07 のエミュレータ確認 attempt 2 で消した**(「あまりわかりやすくなりませんでした」)。変更後の名前の大きさだけ残す |
 | B | 「変更前:」「変更後:」の見出しを付ける | 不採用。見出しが横幅を 3〜4 文字分取り、狭幅・大きい文字倍率で名前の省略が増える。矢印で読み方は伝わっている |
 | C | 補足情報を「作成日時:」の文字からアイコンへ変えて短くする | 不採用。赤で出す「作成日時: 不明」(`T50`)が文字で読めなくなる |
 
@@ -36,8 +36,8 @@ Agent が3案を示した。**開発者は案Aを選んだ**(「2 のメリハ�
 
 ## 受け入れ条件
 
-- [ ] 補足情報が名前の2段と分かれた帯に入り、変更後の名前が一段大きい。
-  - 証拠: widget test(帯が補足情報だけを囲む・名前の大きさ)。
+- [ ] ~~補足情報が名前の2段と分かれた帯に入り、~~変更後の名前が一段大きい。**帯は不採用**(attempt 2 で消した)。補足情報は帯の前と同じ見え方。
+  - 証拠: widget test(名前の大きさ・補足情報を塗った面で包まない)。
 - [ ] 上の「守ること」が成り立つ(既存の test が変更なしで PASS。変えた値を主張する test だけ更新する)。
   - 証拠: widget test。
 - [ ] 狭幅 × 文字倍率と 2ペインで overflow しない。
@@ -104,11 +104,36 @@ M816 | KILLED | lib/ui/file_list/file_list_view.dart
 - `flutter test`(全件)@`45883d9`: `01:17 +1422: All tests passed!`
 - 差分review attempt 2: **PASS**(`649d8e1..cddcd30`、Sonnet。luna が利用上限のため)。P3 ×1 と M823 の取り込みは SELF-CHECK 済み。記録は `T57` の task.md。
 
+### checkpoint 3: 帯を消す(`2960b35`、test の修正 `e293662`)
+
+- エミュレータ確認 attempt 2 の開発者の判断「補足情報を枠に収めてみるアプローチでは、あまりわかりやすくなりませんでした。枠は消し、別のアプローチを考えます」により、`_DateSubInfo` を帯の前の形(`Padding(top: 2)`)に戻し、`rowSubInfoKey`・`rowSubInfoGap`・テーマの `rowSubInfoSurface` を消した。**変更後の名前の大きさ 14 は残した**(指摘の対象外で、開発者が挙げた「変更前後の名前の方を強調する」方向と合う)。
+- **別の見せ方は、開発者が挙げた案(補足情報をソートやルールのチップに合わせて減らす、名前を強調する)を相談してから別 task にする。** この task では扱わない。
+- mutation: 帯を守っていた M815・M816・M818・M819・M823 は**守る対象が無くなったので外した**。帯が戻ることを捕まえる M825 を足した。`removal_selection_mode_test.dart` の刻む回数 600 は、行の高さに左右されない余裕として残した(コメントを直した)。
+- test: `row_emphasis_test.dart` の帯の test を「補足情報を塗った面で包まない」に置き換えた。最初は `DecoratedBox` だけを見ていて **M825(`Container(color:)` = `ColoredBox`)が SURVIVED** したので、`ColoredBox` も見るように直した(`e293662`)。範囲付き(`flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`、対象 `2960b35`):
+
+```text
+M163 | KILLED   | lib/ui/file_list/file_list_view.dart
+M817 | KILLED   | lib/ui/file_list/file_list_view.dart
+M820 | KILLED   | lib/ui/file_list/file_list_view.dart
+M824 | KILLED   | lib/ui/file_source/storage_browser_view.dart
+M825 | SURVIVED | lib/ui/file_list/file_list_view.dart
+5 mutations: 4 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+  `e293662` の後に M825 を回し直した:
+
+```text
+M825 | KILLED | lib/ui/file_list/file_list_view.dart
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`2960b35`: `01:18 +1421: All tests passed!`。`e293662` は test 1件の修正で、その file は PASS。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
+- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
 - Blocker category: manual-evidence
-- Evidence revision: `45883d9`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 2)
-- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む
+- Evidence revision: `2960b35`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 3。差分review `75c4bf1..` の後)
+- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
+- Next Agent action: 差分review(gpt-6-luna)`75c4bf1..` を起動し、記録する。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする

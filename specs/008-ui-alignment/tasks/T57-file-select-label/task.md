@@ -107,11 +107,18 @@ M823 | KILLED | lib/ui/theme/app_colors.dart
   `lib/`・`test/` は変えておらず、表へ reviewer 自身が確かめた対照を足しただけなので、再reviewは起動しない。
 - review の連鎖: `73006f1..649d8e1` PASS(luna)→ `649d8e1..cddcd30` PASS(Sonnet)→ `cddcd30..` SELF-CHECK。
 
+### エミュレータ確認 attempt 2(build `45883d9`)
+
+- 開発者の結果(2026-10-07、原文): 「いくつか修正点があります。lunaが2分後には使えるので、レビューはsonnetから切り替えてください。」
+  - 「ファイル選択画面のフォルダのマークやsdcardのマークが四角に対して大きすぎると不格好に見えるので、少しだけ一回り小さくしてください。」→ `T58`(アイコンを四角の 55% → 45%)
+  - 「補足情報を枠に収めてみるアプローチでは、あまりわかりやすくなりませんでした。枠は消し、別のアプローチを考えます。補足情報自体の情報量を減らす(ソートやリネームのチップによって表示するものを変える)ことや、変更前後の名前の方を強調するなどが考えられそうです。」→ `T59`(帯を消す。別の見せ方は相談して別 task にする)
+- 直し `2960b35`(test の修正 `e293662`)。review は gpt-6-luna に戻す。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
+- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
 - Blocker category: manual-evidence
-- Evidence revision: `45883d9`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 2)
-- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む
+- Evidence revision: `2960b35`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 3。差分review `75c4bf1..` の後)
+- Requested action: [manual-verification.md](manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
+- Next Agent action: 差分review(gpt-6-luna)`75c4bf1..` を起動し、記録する。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする

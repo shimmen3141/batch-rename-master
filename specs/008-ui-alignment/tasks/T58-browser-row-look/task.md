@@ -120,11 +120,16 @@ M822 | KILLED | lib/ui/file_source/storage_browser_view.dart
 - `flutter test`(全件)@`45883d9`: `01:17 +1422: All tests passed!`
 - 差分review attempt 2: **PASS**(`649d8e1..cddcd30`、Sonnet。luna が利用上限のため)。P3 ×1 と M823 の取り込みは SELF-CHECK 済み。記録は `T57` の task.md。
 
+### checkpoint 3: エミュレータ確認 attempt 2 の直し(`2960b35`)
+
+- folder・保存場所の四角に載せるアイコンを、四角の一辺の 55% から **45%** にした(`browserTileIconRatio`。56 の四角で約 31 → 約 25)。開発者「四角に対して大きすぎると不格好に見えるので、少しだけ一回り小さく」。preview を出せないファイルの線の四角(`RowPreviewView`、リネーム画面と共通)は対象外とし 55% のまま。
+- test: `browser_row_look_test.dart` で folder・保存場所のアイコンの大きさを固定。mutation M824(55% に戻す)KILLED(`T59` の記録の出力)。
+
 ## Current state / handoff
 
-- Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
+- Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
 - Blocker category: manual-evidence
-- Evidence revision: `45883d9`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 2)
-- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む
+- Evidence revision: `2960b35`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 3。差分review `75c4bf1..` の後)
+- Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
+- Next Agent action: 差分review(gpt-6-luna)`75c4bf1..` を起動し、記録する。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
