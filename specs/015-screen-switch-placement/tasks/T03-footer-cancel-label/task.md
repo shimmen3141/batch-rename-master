@@ -60,13 +60,29 @@ M795 | KILLED
 
 ### 実機確認
 
-- 未実施。
+- Attempt 1(`e1c56ab`、2026-10-07): **動作は PASS**(手順2・3で戻り方は期待どおり)。**見た目に直しが要る**: 「キャンセル」と「確定」の間に不自然な隙間がある → 2つを横に伸ばす。あわせて開発者から、選択画面をモーダルらしく見せるため下から出て下へ戻るアニメーションの案が出た(採るかは開発者の判断待ち。決まるまでこの task の範囲に入れない)。
+- 直し `01814c5`: 2つの button を `Expanded` にし、footer の余白12と間8を除いた幅を半分ずつ使う(browser・選択画面とも)。test: 2つの画面それぞれで「左右の端が余白だけ・間が8・同じ幅」を見る test を足した。M423 の `find` を新しい形へ追随させ、M796(browser の「確定」を伸ばさない)・M797(選択画面の「キャンセル」を伸ばさない)を足した。
+
+### 検証(`01814c5`)
+
+- `flutter test`: PASS(+1380)。related `flutter test test/spec_004_file_source`: PASS(+372)。`flutter analyze`: No issues。`dart format`: PASS。`check_mutation_finds.py`: PASS(725)。
+
+```text
+command: flutter test test/spec_004_file_source
+M423 | KILLED
+M794 | KILLED
+M795 | KILLED
+M796 | KILLED
+M797 | KILLED
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
 
 ## Current state / handoff
 
-- Last checkpoint: evidence。独立review attempt 1 PASS(`7f14151..31fa269`)、Draft PR #230
-- Blocker category: manual-evidence
-- Evidence revision: `e1c56ab`
-- Waiting for: 開発者(Android エミュレータの確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順1〜4を行い、結果を会話で伝える
+- Last checkpoint: implementation(実機確認 attempt 1 の直し `01814c5`)。独立review attempt 1 PASS(`7f14151..31fa269`)、Draft PR #230
+- Blocker category: manual-evidence / human-decision
+- Evidence revision: `01814c5`
+- Waiting for: 開発者(アニメーション案を採るかの判断と、Android エミュレータの再確認)
+- Requested action: アニメーション案への回答。[manual-verification.md](manual-verification.md) の手順1〜4を `01814c5` で行い、結果を会話で伝える
+- Review pending: `31fa269..` の差分review(`lib/`・`test/`・`tool/` に差分があるため。ready 化の前に行う)
 - Next Agent action: 結果を「実機確認」へ記録する。PASS なら PR #230 を ready にし、CI と merge 条件を確かめて merge する。plan 015 の全 task が閉じるので、plan 完了の review へ進む。直しが要れば直して再確認を頼む
