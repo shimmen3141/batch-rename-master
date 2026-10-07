@@ -35,7 +35,7 @@
   - 証拠: `lib/main.dart` の source を見る test(main.dart の結線は実際の platform を使うので widget test で開けない)。mutation M802。
 - [x] Android エミュレータで、開く・「キャンセル」・「確定」・システムバックの動きが自然に見える。
   - 証拠: [`T03` の manual-verification.md](../T03-footer-cancel-label/manual-verification.md)(同じ build で1回にまとめる)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -64,7 +64,8 @@ M802 | KILLED
 
 ### 独立review
 
-- 未実施(`T03` の差分と合わせ、`31fa269..` を ready 化の前に行う)。
+- Review attempt 1(`T03` の attempt 2 と同じ review): `31fa269..c70761f` — **PASS** — none(指摘なし)。差分review(`T03` の直しと `T04` を1回で)。model: Sonnet 5(Agent tool の code-reviewer。開発者は 2026-10-07 に「次からは gpt-6-luna」と指定したが、このreviewは指定の前に始めていたので Sonnet のまま最後まで流した)。fullscreenDialog の副作用(両画面とも `automaticallyImplyLeading: false`、アルバムのシートやダイアログは別 route で影響なし)、閉じたときの結果が変わらないこと、main.dart の source 検査が意味を持つこと、記録の整合を確かめた。reviewer 自身が `flutter test`(+1385)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(730)・`workspace.py check`(127 tasks)と、M423・M796〜M802(8 KILLED、`flutter test test/spec_004_file_source`)を回した。
+- 連鎖: `7f14151..31fa269` PASS(attempt 1)→ `31fa269..c70761f` PASS(attempt 2)で `7f14151..c70761f` を覆う。以後の差分はこの記録だけ。
 
 ### 実機確認
 
@@ -72,7 +73,7 @@ M802 | KILLED
 
 ## Current state / handoff
 
-- Last checkpoint: evidence(実機確認 attempt 1 PASS。`5618d53`)
+- Last checkpoint: handoff(実機確認 PASS・独立review PASS。`c70761f` まで)
 - Blocker category: なし
 - Evidence revision: `22ee3d6`
-- Next Agent action: `31fa269..head` の差分review(`T03` と合わせて1回)。PASS なら PR #230 を ready にし、merge して plan 015 の完了 review へ進む
+- Next Agent action: なし(PR #230 の merge で完了。plan 015 の完了 review は plan.md 側で行う)

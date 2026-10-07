@@ -26,7 +26,7 @@ Android の app 内 browser と写真・動画の選択画面で、footer 左下
   - 証拠: 既存の widget test(閉じると `null`)が key を変えずに PASS。
 - [x] Android エミュレータで、2つの画面の footer が「キャンセル」「確定」に見え、押して戻れる。
   - 証拠: [manual-verification.md](manual-verification.md) の結果。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -58,6 +58,9 @@ M795 | KILLED
 
 - Review attempt 1: `7f14151..31fa269` — **PASS** — none(指摘なし)。全範囲。model: Sonnet 5(Agent tool の code-reviewer)。実装は Opus 5.5 で、既定の「一段軽いもの」と開発者の指定(2026-10-02)のどちらとも一致する。決定との一致(矢印を外し文言だけ変え、key・形・`pop()` で決定していないこと・システムバックは不変)、test が緩んでいないこと、記録の相互整合を確かめた。reviewer 自身が related(+370)・`flutter test --exclude-tags tooling`(+1378)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(723)・M423/M794/M795(3 KILLED)・`workspace.py check`(PASS)を回した。
 
+- Review attempt 2: `31fa269..c70761f` — **PASS** — none(指摘なし)。差分review(`T03` の直しと `T04` を1回で)。model: Sonnet 5(Agent tool の code-reviewer。開発者は 2026-10-07 に「次からは gpt-6-luna」と指定したが、このreviewは指定の前に始めていたので Sonnet のまま最後まで流した)。fullscreenDialog の副作用(両画面とも `automaticallyImplyLeading: false`、アルバムのシートやダイアログは別 route で影響なし)、閉じたときの結果が変わらないこと、main.dart の source 検査が意味を持つこと、記録の整合を確かめた。reviewer 自身が `flutter test`(+1385)・`flutter analyze`・`dart format`・`check_mutation_finds.py`(730)・`workspace.py check`(127 tasks)と、M423・M796〜M802(8 KILLED、`flutter test test/spec_004_file_source`)を回した。
+- 連鎖: `7f14151..31fa269` PASS(attempt 1)→ `31fa269..c70761f` PASS(attempt 2)で `7f14151..c70761f` を覆う。以後の差分はこの記録だけ。
+
 ### 実機確認
 
 - Attempt 1(`e1c56ab`、2026-10-07): **動作は PASS**(手順2・3で戻り方は期待どおり)。**見た目に直しが要る**: 「キャンセル」と「確定」の間に不自然な隙間がある → 2つを横に伸ばす。あわせて開発者から、選択画面をモーダルらしく見せるため下から出て下へ戻るアニメーションの案が出た(開発者は案Aを選び、`T04` として同じ PR に入れた)。
@@ -81,7 +84,7 @@ M797 | KILLED
 
 ## Current state / handoff
 
-- Last checkpoint: evidence(実機確認 attempt 2 PASS。`5618d53`)
+- Last checkpoint: handoff(実機確認 PASS・独立review PASS。`c70761f` まで)
 - Blocker category: なし
-- Evidence revision: `22ee3d6`(`lib/` は `01814c5` 以降 `T04` の変更だけ)
-- Next Agent action: `31fa269..head` の差分review(`T04` と合わせて1回)。PASS なら PR #230 を ready にし、CI と merge 条件を確かめて merge する
+- Evidence revision: `22ee3d6`
+- Next Agent action: なし(PR #230 の merge で完了。plan 015 の完了 review は plan.md 側で行う)

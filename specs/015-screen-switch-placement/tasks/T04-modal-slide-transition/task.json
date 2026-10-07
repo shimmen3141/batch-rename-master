@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T04",
   "title": "browser と写真・動画の選択画面を下からせり上げて開き、閉じると下へ下げる",
-  "status": "in_review",
+  "status": "done",
   "dependsOn": [
     "T03"
   ],
