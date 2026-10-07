@@ -89,7 +89,7 @@ class FileSourceBar extends StatefulWidget {
 
   /// 一覧の**除去のための選択モード**(002 REQ-018)。`null` なら常に通常表示として扱う。
   ///
-  /// **モード中は `別フォルダへ` を隠す**(2026-09-19 の要望7)。外す作業の最中に
+  /// **モード中は `ファイル選択` を隠す**(2026-09-19 の要望7)。外す作業の最中に
   /// 読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる操作(004 REQ-004)と
   /// 取り違えやすい。**帯そのもの(場所の表示)は隠さない** — いまどこを扱っているかは
   /// モード中こそ読みたい。
@@ -144,14 +144,12 @@ class FileSourceBar extends StatefulWidget {
     return '複数のフォルダ';
   }
 
-  /// 読み込み button の文言(要望11)。
+  /// 読み込み button の文言。**読み込む前も後も同じ**(`008:T57`)。
   ///
-  /// **読み込み済みなら `別フォルダへ`。** 将来「同じ folder から追加する」button が
-  /// できたときに使い分けられるよう、開発者が指定した文言である。
-  /// **「選択されていないとき」は一覧が空のとき**と読む — 行の checkbox を全部外しても
-  /// ファイルは入っているので、そこから読み込み先を選び直す導線は `別フォルダへ` のままが正しい。
-  static String pickLabelOf(FileListController controller) =>
-      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';
+  /// 以前は読み込む前を「ファイルを選ぶ」、読み込んだ後を「別フォルダへ」と言い分けていた
+  /// (要望11)。2026-10-07 に開発者が「ファイル選択」へ変えると決め、Agent の推奨で
+  /// 読み込む前も揃えた — 「ファイル選択」はどちらの状態でも意味が通り、言い分ける理由が無い。
+  static const String pickLabel = 'ファイル選択';
 }
 
 /// 帯の場所の提示。
@@ -581,7 +579,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                       //
                       // **描画と hit test と semantics は出している側だけ**である
                       // (`IndexedStack` は index の子しか辿らない)。モード中に
-                      // `別フォルダへ` を押せず、読み上げもされず、既定の finder からも
+                      // `ファイル選択` を押せず、読み上げもされず、既定の finder からも
                       // 見つからない。
                       //
                       child: IndexedStack(
@@ -614,7 +612,7 @@ class _FileSourceBarState extends State<FileSourceBar>
                                   ),
                                 ),
                                 child: Text(
-                                  FileSourceBar.pickLabelOf(widget.controller),
+                                  FileSourceBar.pickLabel,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),

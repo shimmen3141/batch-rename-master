@@ -733,7 +733,7 @@ void main() {
       expect(_isChecked(tester, 'x.txt'), isTrue);
     });
 
-    testWidgets('代表例 43: 起点を渡さなければ保存場所から始まる(「別フォルダへ」)', (tester) async {
+    testWidgets('代表例 43: 起点を渡さなければ保存場所から始まる(「ファイル選択」)', (tester) async {
       final browser = _FakeBrowser(tree: tree);
       await _open(tester, browser);
 

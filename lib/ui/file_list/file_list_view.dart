@@ -16,6 +16,7 @@ import '../rule_builder/rule_chip_strip.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_size_format.dart';
+import 'row_date_format.dart';
 import 'file_sort.dart';
 import 'header_metrics.dart';
 import 'removal_selection.dart';
@@ -132,7 +133,7 @@ class FileListView extends StatefulWidget {
   ///
   /// **`null` なら自分で1つ持つ。** 一覧だけを描く画面(testや部分的な組み立て)では
   /// それで足りる。**製品では composition root が1つ作って読み込み帯とも共有する** —
-  /// モード中は帯の `別フォルダへ` と下部の帯も隠れるためである(`008:T29`)。
+  /// モード中は帯の `ファイル選択` と下部の帯も隠れるためである(`008:T29`)。
   final RemovalSelection? removalSelection;
 
   @override
@@ -2246,11 +2247,6 @@ class _DateSubInfo extends StatelessWidget {
   /// 場所を出すか(一覧に複数の場所が混ざっているときだけ真)。
   final bool showLocation;
 
-  static String _format(DateTime dt) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${dt.year}/${dt.month}/${dt.day} ${two(dt.hour)}:${two(dt.minute)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -2267,6 +2263,8 @@ class _DateSubInfo extends StatelessWidget {
       color: colors.textMuted,
       fontSize: AppFontSize.caption,
     );
+    // 補足情報を薄い面の帯に入れる案(`008:T59` の案A)は、2026-10-07 のエミュレータ
+    // 確認で「あまりわかりやすくならなかった」ので**消した**。別の見せ方は開発者と相談する。
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Column(
@@ -2313,7 +2311,7 @@ class _DateSubInfo extends StatelessWidget {
                   // ほど狭いとき(極端な font scale など)に、はみ出させない。
                   Flexible(
                     child: Text(
-                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',
                       key: rowCreatedAtKey,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2326,7 +2324,7 @@ class _DateSubInfo extends StatelessWidget {
               ),
               // 入りきらなければ**次の行へ落ちる**。作成日時を削らない。
               Text(
-                '更新日時: ${_format(file.modifiedAt)}',
+                '更新日時: ${formatRowDateTime(file.modifiedAt)}',
                 key: rowModifiedAtKey,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -2377,7 +2375,7 @@ class _NewName extends StatelessWidget {
         '—',
         style: TextStyle(
           color: colors.textDisabled,
-          fontSize: AppFontSize.bodyLarge,
+          fontSize: rowNewNameFontSize,
         ),
       );
     }
@@ -2390,10 +2388,7 @@ class _NewName extends StatelessWidget {
         key: rowUnchangedKey,
         overflow: TextOverflow.ellipsis,
         // **強調しない**(参考designも `（変更なし）` を弱い色で置いている)。
-        style: TextStyle(
-          color: colors.textMuted,
-          fontSize: AppFontSize.bodyLarge,
-        ),
+        style: TextStyle(color: colors.textMuted, fontSize: rowNewNameFontSize),
       );
     }
     return Text(
@@ -2404,7 +2399,7 @@ class _NewName extends StatelessWidget {
       // 正常なら success、警告対象なら danger(2026-09-02 の要望7)。
       style: TextStyle(
         color: hasWarning ? colors.danger : colors.success,
-        fontSize: AppFontSize.bodyLarge,
+        fontSize: rowNewNameFontSize,
         fontWeight: rowNewNameFontWeight,
       ),
     );
@@ -2426,6 +2421,11 @@ const Key rowCurrentNameKey = Key('row-current-name');
 /// 行の preview の一辺(`008:T10`。2026-10-01 の要望)。参考designのリッチな行は
 /// 52 で、以前の 40 では写真が小さかった。
 const double rowPreviewSize = 52;
+
+/// 変更後名の文字の大きさ(「変更なし」・未選択の `—` も同じ)。**`008:T59` で
+/// 13 → 14 にした**(2026-10-07 の開発者の決定 案A: 名前を少し強める)。案Aの補足情報の
+/// 帯は同日のエミュレータ確認で消したが、この大きさは残した(名前を強める方向と合う)。
+const double rowNewNameFontSize = AppFontSize.title;
 
 /// 現在名の文字の大きさ。**変更後名より小さい**(参考design: 11.5 と 13)。
 const double rowCurrentNameFontSize = AppFontSize.label;

@@ -66,6 +66,10 @@ class AppColors extends ThemeExtension<AppColors> {
   /// 選択の印(チェックの円)。上に載せるチェックは [onPrimary] を使う。
   final Color selectionMark;
 
+  /// preview の枠の灰色(`008:T58`)。folder はこの色で塗った四角、preview を出せない
+  /// ファイルはこの色の線で囲んだ四角にする(2026-10-07 の開発者の要望「暗めのグレーの四角」)。
+  final Color previewTile;
+
   const AppColors({
     required this.background,
     required this.surface,
@@ -85,6 +89,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.info,
     required this.selectedSurface,
     required this.selectionMark,
+    required this.previewTile,
   });
 
   /// 参考デザイン準拠のダークテーマ配色。
@@ -114,6 +119,7 @@ class AppColors extends ThemeExtension<AppColors> {
     // accent 側へ寄せた(2026-09-19 の開発者の判断。見づらければ指定色で試す)。
     selectedSurface: Color(0xFF1A333B),
     selectionMark: Color(0xFF22D3EE),
+    previewTile: Color(0xFF2A2F36),
   );
 
   @override
@@ -136,6 +142,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? info,
     Color? selectedSurface,
     Color? selectionMark,
+    Color? previewTile,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -156,6 +163,7 @@ class AppColors extends ThemeExtension<AppColors> {
       info: info ?? this.info,
       selectedSurface: selectedSurface ?? this.selectedSurface,
       selectionMark: selectionMark ?? this.selectionMark,
+      previewTile: previewTile ?? this.previewTile,
     );
   }
 
@@ -181,6 +189,7 @@ class AppColors extends ThemeExtension<AppColors> {
       info: Color.lerp(info, other.info, t)!,
       selectedSurface: Color.lerp(selectedSurface, other.selectedSurface, t)!,
       selectionMark: Color.lerp(selectionMark, other.selectionMark, t)!,
+      previewTile: Color.lerp(previewTile, other.previewTile, t)!,
     );
   }
 }

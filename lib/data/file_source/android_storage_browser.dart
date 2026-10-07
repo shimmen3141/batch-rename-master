@@ -89,25 +89,17 @@ class AndroidStorageBrowser implements StorageBrowserPort {
 
   /// **絞り込まない**(004 REQ-017)。隠しファイルもサブフォルダもそのまま返す。
   ///
-  /// 並びは「フォルダが先、その中で名前順」。判定を新設しているのではなく、
-  /// 辿るための並べ替えである。
+  /// 各 entry の更新日時と大きさを `stat` で読む(`008:T58`)。読めない entry も
+  /// **外さず**、日時と大きさを空にして返す。並びは [compareBrowserEntries]。
   @override
   Future<DirectoryListing> list(String folder) async {
     try {
-      final entries = <BrowserEntry>[];
-      await for (final entity in Directory(folder).list(followLinks: false)) {
-        entries.add(
-          BrowserEntry(
-            name: p.basename(entity.path),
-            path: entity.path,
-            isDirectory: entity is Directory,
-          ),
-        );
-      }
-      entries.sort((a, b) {
-        if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
+      final entities = await Directory(
+        folder,
+      ).list(followLinks: false).toList();
+      // **1件ずつ待たない。** 件数の多い folder で開くまでの時間が件数ぶん伸びる。
+      final entries = await Future.wait(entities.map(_entryOf));
+      entries.sort(compareBrowserEntries);
       return DirectoryListed(entries);
     } on PathAccessException catch (error) {
       return DirectoryListingFailed(
@@ -122,4 +114,43 @@ class AndroidStorageBrowser implements StorageBrowserPort {
       );
     }
   }
+
+  static Future<BrowserEntry> _entryOf(FileSystemEntity entity) async {
+    final isDirectory = entity is Directory;
+    FileStat? stat;
+    try {
+      stat = await entity.stat();
+    } on FileSystemException {
+      stat = null;
+    }
+    // 壊れた link・列挙の後に消えたものは `notFound` になる。日時は意味を持たない。
+    final readable = stat != null && stat.type != FileSystemEntityType.notFound;
+    return BrowserEntry(
+      name: p.basename(entity.path),
+      path: entity.path,
+      isDirectory: isDirectory,
+      modifiedAt: readable ? stat.modified : null,
+      size: readable && !isDirectory ? stat.size : null,
+    );
+  }
+}
+
+/// browser の並び(`008:T58`。2026-10-07 の開発者の要望)。判定を新設しているのでは
+/// なく、見つけやすくするための並べ替えである(004 は並びを決めていない)。
+///
+/// 1. **folder が先**(辿る操作と選ぶ操作を混ぜない)。
+/// 2. それぞれの中で**更新日時の新しい順**。
+/// 3. 同じ日時なら名前順(大文字・小文字を区別しない)。
+/// 4. **日時を読めなかった entry は、それぞれの群の最後**に名前順で置く。
+int compareBrowserEntries(BrowserEntry a, BrowserEntry b) {
+  if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;
+  final am = a.modifiedAt;
+  final bm = b.modifiedAt;
+  if (am != null && bm != null) {
+    final byDate = bm.compareTo(am);
+    if (byDate != 0) return byDate;
+  } else if (am != null || bm != null) {
+    return am == null ? 1 : -1;
+  }
+  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
 }
