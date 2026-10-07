@@ -33,11 +33,33 @@ Agent が「読み込む前の「ファイルを選ぶ」も「ファイル選�
 
 ## 作業記録
 
-- 2026-10-07 開発者の要望から登録した。
+- 2026-10-07 開発者の要望から登録した(`5c1449a`)。
+- 2026-10-07 着手。branch `asdd/008-ui-alignment/T57-file-select-label`(起点 `dev`@`73006f1`)。**`T58`・`T59` も同じ branch・同じ PR に載せる** — 同じ要望から出た隣接する見た目の変更で、エミュレータの確認を1回で済ませるため(`015` の `T03`・`T04` と同じ扱い)。
+
+### checkpoint 1: 文言(`a2b8516`)
+
+- `FileSourceBar.pickLabelOf(controller)`(一覧が空かで言い分け)を定数 `FileSourceBar.pickLabel = 'ファイル選択'` にした。現在の状態を説明するコメント(`main.dart`・`file_list_view.dart`・`removal_selection.dart`・`file_source_bar.dart`・`storage_browser_view.dart`)の「別フォルダへ」も言い換えた。`test/widget_test.dart` の要望の原文の引用は当時の言葉なので残した。
+- **browser の見出し「ファイルを選ぶ」(保存場所の一覧のときの題名)は変えていない。** 帯の button ではなく、要望の対象外。
+- test: `load_affordance_test.dart` の文言の主張を「ファイル選択」にし、**以前の言い分けへ戻していないこと**(読み込む前に「ファイルを選ぶ」、読み込んだ後に「別フォルダへ」が出ない)を足した。
+- mutation: 言い分けを守っていた M268・M269・M274 は**守る対象が無くなったので外した**。代わりに M803(読み込んだ後だけ「別フォルダへ」へ戻す)・M804(定数を「ファイルを選ぶ」にする)を足した。M614(button にアイコンを戻す)は `find` を追随させた。
+- 範囲付き mutation(`flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`、対象 `a2b8516`、3件):
+
+```text
+M614 | KILLED | lib/ui/file_source/file_source_bar.dart
+M803 | KILLED | lib/ui/file_source/file_source_bar.dart
+M804 | KILLED | lib/ui/file_source/file_source_bar.dart
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`a2b8516`: `01:16 +1385: All tests passed!`。`flutter analyze`: No issues found。
+
+### checkpoint 2: 004 の代表例(`de47cae`)
+
+- 004 `spec.md` の代表例 43・66 の「別フォルダへ」を「ファイル選択」へ言い換え、Status 行に記録を足した。要求(must)と結果は変えていないので再承認は求めていない。日付の付いた「由来の更新」節(425〜441 行あたり)と 002 の更新記録は当時の記録なので残した。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: `de47cae`(文言と仕様の言い換え)
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る。manual-verification.md を作る
+- Evidence revision: `a2b8516`(全件 test・mutation)
+- Next Agent action: `T59` まで実装したら、PR の範囲で独立review(gpt-6-luna)を起動する。manual-verification.md の対象 commit を埋める

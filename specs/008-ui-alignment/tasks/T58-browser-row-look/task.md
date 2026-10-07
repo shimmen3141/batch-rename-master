@@ -66,11 +66,46 @@ Agent の推奨(preview 56dp・行 72dp、folder を先にしてそれぞれ新�
 
 ## 作業記録
 
-- 2026-10-07 開発者の要望から登録した。
+- 2026-10-07 開発者の要望から登録した(`5c1449a`)。
+- 2026-10-07 着手。`T57` と同じ branch・PR(`T57` の作業記録を参照)。
+
+### checkpoint 1: 行の見た目・2行目・並び(`cb1fcb4`)
+
+- **データ**: `BrowserEntry` に `modifiedAt`・`size`(どちらも省略可)を足した。`AndroidStorageBrowser.list` は列挙を `toList` してから **`Future.wait` でまとめて `stat`** する(1件ずつ待つと件数ぶん遅くなる)。`stat` が投げた・`notFound`(壊れた link、列挙の後に消えたもの)なら日時と大きさを `null` にし、**行は残す**(REQ-017)。folder の大きさは常に `null`。
+- **並び**: `compareBrowserEntries` — folder が先、それぞれ更新日時の新しい順、同時刻は名前順(大小を区別しない)、日時を読めない entry は群の最後に名前順。
+- **行**: folder 行・ファイル行とも `ListTile(minTileHeight: 72)`。ファイル行の `dense` を外した。preview 枠 56(`browserPreviewSize`)。名前は folder・ファイルとも `AppFontSize.titleLarge`(15)で1行省略 — **以前は ListTile の既定のままで、folder 16・ファイル 13(dense)と揃っていなかった**。2行目は `textMuted`・`bodySmall`(12)で `2026/10/1 09:05 · 2.4 MB`(folder は日時だけ)。日時の書式はリネーム画面の行と共通の `formatRowDateTime`(`row_date_format.dart`)へ出した。
+- **四角**: テーマに `previewTile`(`#2A2F36`)を足した。folder はこの色で塗った四角 + 今の色(`textSecondary`)の folder アイコン。`RowPreviewView` の preview を出せないときの枠を、同じ色の**線**の四角にした(リネーム画面の行も同じ見た目になる)。
+- `_previewEntryOf` は読めた日時と大きさを渡すようにした。`CachedFilePreview` のキーに更新日時が入るので、ファイルが変わったときに古い絵を出さず、リネーム画面の行とも同じキーになる。
+- **写真・動画の選択画面の格子は変えていない**(登録時の決定)。
+- test:
+  - `android_storage_browser_test.dart`: 新しい順・folder が先、同時刻は名前順、ファイルは日時と大きさ・folder は日時だけ、壊れた link は外さず最後、`compareBrowserEntries` の群の境界。**既存の「folderが先、その中で名前順」は「集合は変えない」へ書き換え**(並びの主張は新しい test へ移した)、**「rootの列挙は既知の名前のfolderを1回だけ返す」は順序を問わない比較にした**(この test が見るのは二重に並ばないことで、並びではない)。
+  - `browser_row_look_test.dart`(新規): 行 72・枠 56、塗りと線の違い・絵があれば線が無い、2行目の内容と色、名前の大きさ、画面で並べ替えない、320/360/411dp × 文字倍率 1.0/1.3/2.0 で溢れない。
+  - 既存の browser の test(範囲選択・自動スクロール・全選択・一括解除を含む)は変更なしで PASS。
+- mutation: 足した M805〜M814。`find` を追随させた M115(隠しファイルを絞り込む対照)・M163(作成日時の下限)・M431(preview の枠を外す)・M434(読めないファイルを出せないファイルと同じアイコンにする対照)。範囲付き(`flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`、対象 `cb1fcb4`、14件):
+
+```text
+M115 | KILLED | lib/data/file_source/android_storage_browser.dart
+M163 | KILLED | lib/ui/file_list/file_list_view.dart
+M431 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M434 | KILLED | lib/ui/file_list/row_preview_view.dart
+M805 | KILLED | lib/data/file_source/android_storage_browser.dart
+M806 | KILLED | lib/data/file_source/android_storage_browser.dart
+M807 | KILLED | lib/data/file_source/android_storage_browser.dart
+M808 | KILLED | lib/data/file_source/android_storage_browser.dart
+M809 | KILLED | lib/data/file_source/android_storage_browser.dart
+M810 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M811 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M812 | KILLED | lib/ui/file_list/row_preview_view.dart
+M813 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M814 | KILLED | lib/ui/file_source/storage_browser_view.dart
+14 mutations: 14 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- **開くまでの時間は未計測**(端末が要る)。manual 手順 3 で比べる。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: `cb1fcb4`
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る。変更前の端末の見え方を比べられるよう、manual に `dev` のスクリーンショットを撮る手順を入れる
+- Evidence revision: `cb1fcb4`(範囲付き test・mutation)。全件 test は `T59` の後にまとめて流す
+- Next Agent action: 独立review、エミュレータ確認([manual-verification.md](manual-verification.md))

@@ -53,11 +53,51 @@ Agent が3案を示した。**開発者は案Aを選んだ**(「2 のメリハ�
 
 ## 作業記録
 
-- 2026-10-07 開発者の決定(案A)から登録した。
+- 2026-10-07 開発者の決定(案A)から登録した(`5c1449a`)。
+- 2026-10-07 着手。`T57` と同じ branch・PR(`T57` の作業記録を参照)。
+
+### checkpoint 1: 帯と名前の大きさ(`2a19665`、test の修正 `bc98865`)
+
+- `_DateSubInfo` を `Container(key: rowSubInfoKey)` にし、**行幅いっぱい**(`width: double.infinity`)・上に間 4(`rowSubInfoGap`)・内側の余白 左右 4 / 上下 3・角丸 4・面の色 `rowSubInfoSurface` にした。
+  - 面の色はテーマに足した `rowSubInfoSurface`(`0x0FFFFFFF` = 白を 6% 重ねる)。**不透明な色にしなかった**のは、選ばれた行(`selectedSurface`)・掴んでいる行(`surface`)の面の上でも一段明るく見せるため。
+  - **左右の余白は最初 6 で、`row_file_size_test.dart` の「320dp × 文字倍率 2.0 で大きさが削られない」(`T48` の保証)が落ちた**ので 4 にした。test は緩めていない。M819 がこの対照。
+- 変更後の名前を `rowNewNameFontSize = AppFontSize.title`(14。以前は 13)にした。「変更なし」と未選択の `—` も同じ大きさ(同じ位置の文字が行で揃うように)。変更前の名前は 11.5 のまま。
+- 中身(場所は複数の場所のときだけ・日時の `Wrap`・`作成日時: 不明` の赤・大きさ)は変えていない。
+- **行の高さ(測定)**: 一時 test(commit していない)で、2件の一覧の1行目と2行目の現在名の `top` の差を測った。test の字体 Ahem(1文字 = 1em)なので実際の字体より日時が多く折り返す:
+
+```text
+変更前(cb1fcb4): w=360.0 rowPitch=95.0 / w=411.0 rowPitch=95.0 / w=1200.0 rowPitch=65.0
+変更後(2a19665): w=360.0 rowPitch=104.0 / w=411.0 rowPitch=104.0 / w=1200.0 rowPitch=74.0
+```
+
+  増えた 9 = 間 +2(以前の `top: 2` → 4)、帯の上下の余白 +6、変更後の名前 +1。**1画面の行数は manual で数える**(開発者の要望)。
+- test: `row_emphasis_test.dart`(新規): 帯に入るのは補足情報だけ、帯の色・角丸・行幅いっぱい・**塗った面**と変更後の名前の間、変更後の名前と「変更なし」の大きさ、`作成日時: 不明` の赤が帯の中で保たれる、320/360/411/1200dp × 文字倍率 1.0/1.3/2.0 で溢れない。
+- **既存 test の変更 1件**: `removal_selection_mode_test.dart` の「端の保持で実在する行だけを連続して選びながらスクロールする」で、刻む回数を 260 → 600 にした。**主張は変えていない。** 行が高くなって一覧が長くなり、260 回(約4.2秒)では末尾の行に届かなかった。一時的に刻むごとに見て、**269 回目に末尾の行(`h:11`)が選ばれる**ことを確かめた(止まっていたのではない)。届いた後も刻み続けるので、末尾で止まることも長く見る。
+- mutation: M815〜M820 を足した。範囲付き(`flutter test test/spec_002_file_list test/spec_005_rename_exec test/widget_test.dart`、対象 `2a19665`、7件):
+
+```text
+M163 | KILLED   | lib/ui/file_list/file_list_view.dart
+M815 | KILLED   | lib/ui/file_list/file_list_view.dart
+M816 | SURVIVED | lib/ui/file_list/file_list_view.dart
+M817 | KILLED   | lib/ui/file_list/file_list_view.dart
+M818 | KILLED   | lib/ui/file_list/file_list_view.dart
+M819 | KILLED   | lib/ui/file_list/file_list_view.dart
+M820 | KILLED   | lib/ui/file_list/file_list_view.dart
+7 mutations: 6 KILLED, 1 SURVIVED, 0 SKIPPED
+```
+
+  **M816(帯と名前の間を空けない)が SURVIVED。** test が間を「`Container` の矩形の上端 + 4」で計算しており、`margin` を消しても同じ値になっていた。塗った面(`DecoratedBox`)の上端を測る形に直し(`bc98865`)、M816 だけ回し直した:
+
+```text
+M816 | KILLED | lib/ui/file_list/file_list_view.dart
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`2a19665`: `01:19 +1421: All tests passed!`。`bc98865` は test 1件の修正だけで、その file は PASS。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: `bc98865`
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る。変更前の行の高さを先に測っておく
+- Evidence revision: `2a19665`(全件 test)、`bc98865`(M816)
+- Next Agent action: 独立review、エミュレータ確認([`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) にまとめた)。値(面の濃さ・間・大きさ)は確認の結果で詰める

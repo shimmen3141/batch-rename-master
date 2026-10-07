@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T58",
   "title": "app内browserの行を大きくし、2行目に更新日時と大きさを出して新しい順に並べる",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [],
   "covers": [],
   "issue": null,

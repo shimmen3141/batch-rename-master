@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T59",
   "title": "リネーム画面の行で、名前と補足情報にメリハリを付ける",
-  "status": "pending",
+  "status": "in_progress",
   "dependsOn": [],
   "covers": [],
   "issue": null,
