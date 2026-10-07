@@ -134,6 +134,6 @@ M825 | KILLED | lib/ui/file_list/file_list_view.dart
 - Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
 - Blocker category: manual-evidence
 - Evidence revision: `2960b35`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 3。差分review `75c4bf1..` の後)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 3)
 - Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
-- Next Agent action: 差分review(gpt-6-luna)`75c4bf1..` を起動し、記録する。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
+- Next Agent action: 差分review attempt 3 は PASS(`T57` に記録)。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする

@@ -3,7 +3,7 @@
 3つの task を**同じ build で1回に**確かめる。`T58`・`T59` の manual-verification.md はここを指す。
 
 - 対象 branch: `asdd/008-ui-alignment/T57-file-select-label`
-- 対象 commit(code): **attempt 2 は `45883d9` 以後**(attempt 1 は `bc98865`)
+- 対象 commit(code): **attempt 3 は `2960b35` 以後**(attempt 1 は `bc98865`、attempt 2 は `45883d9`)
 - 起動手順: [`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。branch の移動は不要(`/workspace` がこの branch にある)
 
 ## 0. 変更前を撮る(今の端末に入っている build で)
@@ -56,6 +56,6 @@
 
 ## 結果
 
-- attempt 1(`bc98865`): 動作 PASS。見た目の2点(保存場所の一覧、帯の色)を直す。記録は `T57` の task.md。
-- attempt 2(`45883d9`): アイコンを一回り小さく、補足情報の帯は消す(別の見せ方を考える)。記録は `T57` の task.md。
+- attempt 1(確認した build は `bc98865`): 動作 PASS。見た目の2点(保存場所の一覧、帯の色)を直す。記録は `T57` の task.md。
+- attempt 2(確認した build は `45883d9`): アイコンを一回り小さく、補足情報の帯は消す(別の見せ方を考える)。直しは `2960b35`(test `e293662`)で、attempt 3 はその build を見る。記録は `T57` の task.md。
 - attempt 3: 未実施。

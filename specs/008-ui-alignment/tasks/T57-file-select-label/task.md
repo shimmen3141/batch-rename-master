@@ -114,11 +114,28 @@ M823 | KILLED | lib/ui/theme/app_colors.dart
   - 「補足情報を枠に収めてみるアプローチでは、あまりわかりやすくなりませんでした。枠は消し、別のアプローチを考えます。補足情報自体の情報量を減らす(ソートやリネームのチップによって表示するものを変える)ことや、変更前後の名前の方を強調するなどが考えられそうです。」→ `T59`(帯を消す。別の見せ方は相談して別 task にする)
 - 直し `2960b35`(test の修正 `e293662`)。review は gpt-6-luna に戻す。
 
+### 差分review attempt 3
+
+- range `75c4bf1..8f973cf`(attempt 2 の直し)。reviewer: Codex **gpt-6-luna**(開発者の指示で Sonnet から戻した)。
+- 判定: **PASS**。P0/P1 なし。`flutter test` `01:08 +1421: All tests passed!`、`flutter analyze` No issues、`dart format` PASS、`workspace.py check` PASS。`_DateSubInfo` が `73006f1` と同じ形に戻り、帯の残骸が無いこと、M815・M816・M818・M819・M823 の削除と M824・M825 の追加が妥当なことを確かめた。reviewer が回した mutation(範囲付き):
+
+```text
+M163 | KILLED | M824 | KILLED | M825 | KILLED
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 指摘 P2 ×1(成果物の欠陥・記録): manual-verification.md の結果欄 attempt 2 の `45883d9` が、直しの commit(`2960b35`)と食い違って読める。
+
+### SELF-CHECK(attempt 3 の後)
+
+- P2 を閉じた: `45883d9` は attempt 2 で**確認した build**で誤りではないが、結果欄を「確認した build」と「直しの commit」に書き分け、対象 commit の行を attempt 3(`2960b35` 以後)に直した(`specs/` だけ。再reviewは起動しない)。
+- review の連鎖: `73006f1..649d8e1` PASS(luna)→ `649d8e1..cddcd30` PASS(Sonnet)→ `cddcd30..75c4bf1` SELF-CHECK → `75c4bf1..8f973cf` PASS(luna)→ `8f973cf..` SELF-CHECK。
+
 ## Current state / handoff
 
 - Last checkpoint: エミュレータ確認 attempt 2 の直し(`2960b35`、test `e293662`)。Draft PR #232
 - Blocker category: manual-evidence
 - Evidence revision: `2960b35`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 3。差分review `75c4bf1..` の後)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 3)
 - Requested action: [manual-verification.md](manual-verification.md) の「attempt 3 で見ること」を行い、結果を会話で伝える
-- Next Agent action: 差分review(gpt-6-luna)`75c4bf1..` を起動し、記録する。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
+- Next Agent action: 差分review attempt 3 は PASS(`T57` に記録)。確認が PASS なら PR #232 を ready にして merge する。補足情報の別の見せ方は相談して別 task にする
