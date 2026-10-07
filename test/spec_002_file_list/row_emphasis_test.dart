@@ -51,17 +51,24 @@ Future<List<String>> _pump(
   return errors;
 }
 
-/// [target] を包む、色で塗った面(`DecoratedBox` の `BoxDecoration.color`)。
+/// [target] を包む、色で塗った面(`DecoratedBox` の `BoxDecoration.color` と
+/// `ColoredBox` の両方。`Container(color:)` は後者になる)。画面の背景と透明な面は数えない。
 /// 選ばれていない行には無い。
-Iterable<Color> _paintedAncestorsOf(WidgetTester tester, Finder target) =>
-    tester
-        .widgetList<DecoratedBox>(
-          find.ancestor(of: target, matching: find.byType(DecoratedBox)),
-        )
-        .map((box) => box.decoration)
-        .whereType<BoxDecoration>()
-        .map((d) => d.color)
-        .whereType<Color>();
+Iterable<Color> _paintedAncestorsOf(WidgetTester tester, Finder target) => [
+  ...tester
+      .widgetList<DecoratedBox>(
+        find.ancestor(of: target, matching: find.byType(DecoratedBox)),
+      )
+      .map((box) => box.decoration)
+      .whereType<BoxDecoration>()
+      .map((d) => d.color)
+      .whereType<Color>(),
+  ...tester
+      .widgetList<ColoredBox>(
+        find.ancestor(of: target, matching: find.byType(ColoredBox)),
+      )
+      .map((box) => box.color),
+].where((c) => c.a > 0 && c != AppColors.dark.background);
 
 void main() {
   testWidgets('補足情報は帯に入れない(2026-10-07 のエミュレータ確認で消した)', (tester) async {
