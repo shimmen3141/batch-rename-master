@@ -5264,6 +5264,13 @@
       "find": "          text: '作成: ${created ?? '不明'}',",
       "replace": "          text: '作成日時: ${created ?? '不明'}',",
       "note": "008:T61 見出しを以前の「作成日時:」に戻す — 2026-10-07 の開発者の指定「作成:」に反する"
+    },
+    {
+      "id": "M832",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        created == null && (sortMode == FileSortMode.createdAt || dateWarned);",
+      "replace": "        created == null && (dateWarned);",
+      "note": "[reviewer追加][対照] 008:T61 作成日時ソートの強調を落とし、ルールの警告の強調だけ残す — 002 代表例 15 が逆向きの条件として捕まえる(T60/T61 の独立review attempt 1 が置いた対照。M624 と逆向き)"
     }
   ]
 }
