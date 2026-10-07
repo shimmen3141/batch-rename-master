@@ -5236,6 +5236,13 @@
       "find": "          key: Key('browser-location-${location.name}'),\n          minTileHeight: browserRowHeight,\n",
       "replace": "          key: Key('browser-location-${location.name}'),\n",
       "note": "008:T58 保存場所の行だけ以前の高さに戻す — folder・ファイルの行と大きさが揃わない(2026-10-07 の要望)"
+    },
+    {
+      "id": "M823",
+      "file": "lib/ui/theme/app_colors.dart",
+      "find": "    rowSubInfoSurface: Color(0xFF221F2B),",
+      "replace": "    rowSubInfoSurface: Color(0x0FFFFFFF),",
+      "note": "[reviewer追加 MR01][対照] 008:T59 帯の色を attempt 1 の白 6% の重ねへ戻す — 2026-10-07 の要望「グレーか紫がかったグレー」に反する(差分review attempt 2 が置いた対照)"
     }
   ]
 }
