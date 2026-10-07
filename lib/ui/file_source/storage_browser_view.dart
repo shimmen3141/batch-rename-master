@@ -23,7 +23,8 @@ const Key browserMenuClearSelectionKey = Key('browser-menu-clear-selection');
 
 /// header 左の `×`。**選択中だけ出し、全解除だけを意味する**(`008:T38`)。
 ///
-/// **画面は閉じない。** 閉じるのは [browserBackToRenameKey] だけである。
+/// **画面は閉じない。** 閉じるのは上部の帯の「リネーム画面へ戻る」
+/// ([returnToRenameButtonKey])と Android のシステムバックである。
 const Key browserClearSelectionKey = Key('browser-clear-selection');
 
 /// header 右端のケバブ。**選択の有無にかかわらず常に同じ位置に出る**(`008:T38`)。
@@ -34,13 +35,6 @@ const Key browserTitleKey = Key('browser-title');
 
 /// 現在地の帯(パンくず)。末尾以外の区切りは tap でその folder へ移る(`008:T40`)。
 const Key browserBreadcrumbKey = Key('browser-breadcrumb');
-
-/// footer 左下の「← リネーム画面へ」。**画面を閉じる唯一の導線**(`008:T38`)。
-///
-/// 文言は2026-09-23 のエミュレータ確認で「リネーム画面に戻る」から短くした。
-///
-/// 未確定の選択は捨て、「決定していない」を返す(004 REQ-001)。
-const Key browserBackToRenameKey = Key('browser-cancel');
 
 /// パンくずの [index] 番目の区切り(0 が保存場所の root)。
 Key browserBreadcrumbSegmentKey(int index) => Key('browser-breadcrumb-$index');
@@ -69,7 +63,8 @@ Key browserBreadcrumbSeparatorKey(int index) =>
 ///
 /// **header・現在地の帯・footer の提示は `008:T38` の操作状態表が正本**である。
 /// 要点: header 左の位置を `←` と `×` が共有し(選択中は `×` = 全解除)、ケバブは
-/// 常に右端、画面を閉じるのは footer の「← リネーム画面へ」だけ。
+/// 常に右端。画面を閉じる導線は、`015` で footer 左下の「← リネーム画面へ」から
+/// いちばん上の帯の「リネーム画面へ戻る」へ移した(2026-10-07 の開発者の決定)。
 class StorageBrowserView extends StatefulWidget {
   const StorageBrowserView({
     super.key,
@@ -313,14 +308,15 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Scaffold(
-      // header の上に「リネーム画面へ戻る」の帯を置く(`015:T01`)。footer の
-      // 「← リネーム画面へ」と同じく、決定していない(004 REQ-001)で閉じる。
+      // header の上に「リネーム画面へ戻る」の帯を置く(`015:T01`)。**決定して
+      // いない**(004 REQ-001)で閉じる — `null` を返し、未確定の選択は捨てる。
+      // rename 画面の既存状態は呼び出し側が保つ。
       appBar: ReturnBandAppBar(
         onReturn: () => Navigator.of(context).pop(),
         appBar: AppBar(
           primary: false,
           // **暗黙の戻るを出さない。** header 左は `←` と `×` が共有する位置で
-          // (`008:T38`)、画面を閉じる導線は上の帯と footer の「← リネーム画面へ」。
+          // (`008:T38`)、画面を閉じる導線は上の帯の「リネーム画面へ戻る」。
           automaticallyImplyLeading: false,
           leading: _leading(),
           title: Text(
@@ -719,39 +715,18 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     sourceHandle: entry.path,
   );
 
-  /// footer。**左下の「← リネーム画面へ」が画面を閉じる唯一の導線**(`008:T38`)。
-  ///
-  /// 状態表のすべての行に出る。「確定」は選択があるときだけ押せる。
+  /// footer。**「確定」だけ**を右に置く(`015:T02`。2026-10-07 の開発者の決定。
+  /// 左下にあった「← リネーム画面へ」は、いちばん上の帯の「リネーム画面へ戻る」へ
+  /// 移した)。状態表のすべての行に出る。「確定」は選択があるときだけ押せる。
   Widget _footer(AppColors colors) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
       color: colors.bar,
       border: Border(top: BorderSide(color: colors.border)),
     ),
-    // **「確定」の残りを全部「リネーム画面へ」が使える**ようにする。`Spacer`と
-    // 分け合うと半分の幅しか無く、通常の文字サイズでも「リネーム画面...」と
-    // 切れていた(2026-09-23 のエミュレータ確認)。
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Flexible(
-          child: OutlinedButton.icon(
-            key: browserBackToRenameKey,
-            style: OutlinedButton.styleFrom(
-              backgroundColor: colors.background,
-              foregroundColor: colors.primary,
-              side: BorderSide(color: colors.primary),
-            ),
-            // **決定していない**(004 REQ-001)。`null` を返し、未確定の選択は捨てる。
-            // rename 画面の既存状態は呼び出し側が保つ。
-            onPressed: () => Navigator.of(context).pop(),
-            // **`←`付きの短い文言**(2026-09-23 の開発者の決定。`T38`の
-            // 「リネーム画面に戻る」を置き換えた)。
-            icon: const Icon(Icons.arrow_back, size: 18),
-            label: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),
-          ),
-        ),
-        const SizedBox(width: 8),
         FilledButton(
           key: const Key('browser-confirm'),
           onPressed: _hasSelection ? _confirm : null,

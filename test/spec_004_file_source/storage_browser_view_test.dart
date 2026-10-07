@@ -232,12 +232,13 @@ Future<void> _expectRow(
     expect(_breadcrumb(tester), breadcrumb);
   }
 
-  // footer: 「← リネーム画面へ」は常に押せ、「確定」は選択があるときだけ押せる。
+  // 上部の帯の「リネーム画面へ戻る」は常に押せる(`015`。閉じる導線は footer から
+  // ここへ移した)。footer は「確定」だけで、選択があるときだけ押せる。
   expect(
-    tester.widget<OutlinedButton>(find.byKey(browserBackToRenameKey)).enabled,
+    tester.widget<OutlinedButton>(find.byKey(returnToRenameButtonKey)).enabled,
     isTrue,
   );
-  expect(find.text('リネーム画面へ'), findsOneWidget);
+  expect(find.text('リネーム画面へ'), findsNothing);
   expect(
     tester
         .widget<FilledButton>(find.byKey(const Key('browser-confirm')))
@@ -848,7 +849,7 @@ void main() {
       expect(selection.paths, ['$_root/A/a1.txt', '$_root/A/a2.txt']);
     });
 
-    testWidgets('「リネーム画面へ」は「決定していない」を返す(004 REQ-001)', (tester) async {
+    testWidgets('「リネーム画面へ戻る」は「決定していない」を返す(004 REQ-001)', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_file(_root, 'r.txt')],
@@ -858,7 +859,7 @@ void main() {
 
       await tester.tap(find.byKey(const Key('browser-file-r.txt')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(browserBackToRenameKey));
+      await tester.tap(find.byKey(returnToRenameButtonKey));
       await tester.pumpAndSettle();
 
       expect(result.closed, isTrue);
@@ -949,14 +950,32 @@ void main() {
         expect(result.value, isNull);
       });
 
-      testWidgets('footer の「← リネーム画面へ」も残す(`T02` まで)', (tester) async {
+      testWidgets('footer は「確定」だけ(`015:T02`)', (tester) async {
         await openInFolder(tester);
 
-        expect(find.byKey(browserBackToRenameKey), findsOneWidget);
+        final footerRow = find
+            .ancestor(
+              of: find.byKey(const Key('browser-confirm')),
+              matching: find.byType(Row),
+            )
+            .first;
+        expect(
+          find.descendant(
+            of: footerRow,
+            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+          ),
+          findsOneWidget,
+          reason: '「← リネーム画面へ」は上部の帯へ移した',
+        );
+        expect(
+          find.byIcon(Icons.arrow_back),
+          findsOneWidget,
+          reason: 'header の ← だけ',
+        );
       });
     });
 
-    testWidgets('システムバックは「リネーム画面へ」と同じ(`008:T38`)', (tester) async {
+    testWidgets('システムバックは「リネーム画面へ戻る」と同じ(`008:T38`)', (tester) async {
       final browser = _FakeBrowser(
         tree: {
           _root: [_dir(_root, 'A')],
@@ -1471,8 +1490,8 @@ void main() {
       final up = tester.getSemantics(find.byKey(const Key('browser-up')));
       expect(up.tooltip, '上のフォルダへ');
       expect(up.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-      final back = tester.getSemantics(find.byKey(browserBackToRenameKey));
-      expect(back.label, 'リネーム画面へ');
+      final back = tester.getSemantics(find.byKey(returnToRenameButtonKey));
+      expect(back.label, returnToRenameLabel);
       expect(back.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
       await tester.tap(find.byKey(const Key('browser-file-a1.txt')));
@@ -1659,34 +1678,32 @@ void main() {
 
       final message = tester.getCenter(find.text('このフォルダにファイルはありません'));
       final top = tester.getRect(find.byKey(browserBreadcrumbKey)).bottom;
-      final bottom = tester.getRect(find.byKey(browserBackToRenameKey)).top - 8;
+      final bottom =
+          tester.getRect(find.byKey(const Key('browser-confirm'))).top - 8;
       expect(message.dy, closeTo((top + bottom) / 2, 12), reason: '縦の中央');
       final screen = tester.getRect(find.byType(Scaffold));
       expect(message.dx, closeTo(screen.center.dx, 1), reason: '横の中央');
     });
 
-    testWidgets('「← リネーム画面へ」は狭い幅でも文言が切れない(2026-09-23)', (tester) async {
+    // 2026-09-23 に footer の「← リネーム画面へ」で確かめたことを、移した先の
+    // 上部の帯の button で確かめる(`015`)。文字倍率 1.3 でも切れない。
+    testWidgets('「リネーム画面へ戻る」は狭い幅でも文言が切れない(2026-09-23)', (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 480));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await _open(tester, _FakeBrowser(tree: _stateTree()));
 
-      expect(
-        find.descendant(
-          of: find.byKey(browserBackToRenameKey),
-          matching: find.byIcon(Icons.arrow_back),
-        ),
-        findsOneWidget,
-      );
       final label = tester.renderObject<RenderParagraph>(
         find.descendant(
           of: find.descendant(
-            of: find.byKey(browserBackToRenameKey),
-            matching: find.text('リネーム画面へ'),
+            of: find.byKey(returnToRenameButtonKey),
+            matching: find.text(returnToRenameLabel),
           ),
           matching: find.byType(RichText),
         ),
       );
-      expect(label.text.toPlainText(), 'リネーム画面へ');
+      expect(label.text.toPlainText(), returnToRenameLabel);
       expect(label.didExceedMaxLines, isFalse);
       // **文言の本来の幅が、描かれた幅に収まっている**(「リネーム画面...」と切れない)。
       expect(

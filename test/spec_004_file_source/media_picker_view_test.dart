@@ -549,7 +549,7 @@ void main() {
 
       await tester.tap(_item(_a));
       await tester.pump();
-      await tester.tap(find.byKey(mediaPickerBackKey));
+      await tester.tap(find.byKey(returnToRenameButtonKey));
       await tester.pumpAndSettle();
 
       expect(harness.closed, isTrue);
@@ -571,11 +571,30 @@ void main() {
         tester.getRect(find.byKey(returnToRenameButtonKey)).left,
         lessThan(band.width / 4),
       );
-      // header(題名・ⓘ・ケバブ)と footer は今のまま。
+      // header(題名・ⓘ・ケバブ)は今のまま。
       expect(find.byKey(mediaPickerTitleKey), findsOneWidget);
       expect(find.byKey(mediaPickerDateHelpKey), findsOneWidget);
       expect(find.byKey(mediaPickerMenuKey), findsOneWidget);
-      expect(find.byKey(mediaPickerBackKey), findsOneWidget);
+    });
+
+    testWidgets('footer は「確定」だけ(`015:T02`)', (tester) async {
+      await _open(tester, _FakeLibrary([_a]));
+
+      final footerRow = find
+          .ancestor(
+            of: find.byKey(mediaPickerConfirmKey),
+            matching: find.byType(Row),
+          )
+          .first;
+      expect(
+        find.descendant(
+          of: footerRow,
+          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+        ),
+        findsOneWidget,
+        reason: '「← リネーム画面へ」は上部の帯へ移した',
+      );
+      expect(find.text('リネーム画面へ'), findsNothing);
     });
 
     testWidgets('選択中に押しても「決定していない」(null)で閉じる(REQ-008)', (tester) async {
