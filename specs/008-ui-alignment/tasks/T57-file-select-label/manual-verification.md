@@ -3,7 +3,7 @@
 3つの task を**同じ build で1回に**確かめる。`T58`・`T59` の manual-verification.md はここを指す。
 
 - 対象 branch: `asdd/008-ui-alignment/T57-file-select-label`
-- 対象 commit(code): `bc98865` 以後(この後の commit は `specs/` の記録だけ)
+- 対象 commit(code): **attempt 2 は `45883d9` 以後**(attempt 1 は `bc98865`)
 - 起動手順: [`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。branch の移動は不要(`/workspace` がこの branch にある)
 
 ## 0. 変更前を撮る(今の端末に入っている build で)
@@ -44,6 +44,12 @@
 - 帯の濃さ(今は白を 6% 重ねる)、帯と名前の間(4dp)、変更後の名前の大きさ(14)。
 - browser の名前の大きさ(15)、2行目の大きさ(12)、四角の灰色。
 
+## attempt 2 で見ること(attempt 1 の直し)
+
+1. 保存場所が2つ以上ある状態で「すべて」を開く。内部共有ストレージ・SD カードの行が folder の行と同じ高さで、**シアンの線だけの四角**に SD カードのマーク、名前が folder と同じ大きさ。
+2. リネーム画面の補足情報の帯が**紫がかった灰色**で、補足の文字と同化せず読める。選んだ行の上でも帯が見分けられる。
+
 ## 結果
 
-未実施。結果は会話で自由に伝えてもらい、Agent が task.md へ記録する。
+- attempt 1(`bc98865`): 動作 PASS。見た目の2点(保存場所の一覧、帯の色)を直す。記録は `T57` の task.md。
+- attempt 2: 未実施。

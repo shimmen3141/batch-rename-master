@@ -105,11 +105,25 @@ M814 | KILLED | lib/ui/file_source/storage_browser_view.dart
 
 - 独立review attempt 1: **PASS**(`73006f1..649d8e1`、gpt-6-luna)。記録は `T57` の task.md。
 
+### checkpoint 2: エミュレータ確認 attempt 1 の直し(`45883d9`)
+
+- 保存場所の一覧(「すべて」で保存場所が2つ以上あるときの最初の画面)の行も、folder・ファイルの行と同じにした: 行 72、56 の四角(**シアン `primary` の線だけ、塗らない**)に今の `sd_storage` アイコン(シアン)、名前 15 で1行省略。開発者の要望(`T57` の記録)。
+- test: `browser_row_look_test.dart` に保存場所の一覧の行を足した。mutation M821(四角を塗る)・M822(行の高さを戻す)。範囲付き(`flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart`、対象 `45883d9`):
+
+```text
+M815 | KILLED | lib/ui/file_list/file_list_view.dart
+M821 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M822 | KILLED | lib/ui/file_source/storage_browser_view.dart
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`45883d9`: `01:17 +1422: All tests passed!`
+
 ## Current state / handoff
 
-- Last checkpoint: handoff(`649d8e1`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
+- Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
 - Blocker category: manual-evidence
-- Evidence revision: `bc98865`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの確認。`T57`・`T58`・`T59` を同じ build で1回)
+- Evidence revision: `45883d9`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 2。差分review `649d8e1..` の後)
 - Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の手順を行い、結果を会話で伝える
 - Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む
