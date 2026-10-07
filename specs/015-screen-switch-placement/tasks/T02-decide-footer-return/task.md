@@ -30,9 +30,11 @@
 
 - 2026-10-06 plan 015 の作成で足した。`manual-verification.md` は外すと決まったときに書く。
 
+- 2026-10-07 **不要として閉じた。** `T01` を採らないため(この task の「入力と依存」の取り決め)。一度は外すと決め、PR #229 の branch で `1676715` として外したが、帯ごと採らないことになり merge しない。footer 左下の button は**残し、文言を「キャンセル」にする**(`T03`)。
+
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 完了(不要。2026-10-07)
 - Blocker category: なし
 - Evidence revision: なし
-- Next Agent action: `T01` の採否を確かめ、開発者に footer の扱いを尋ねる
+- Next Agent action: なし(不要として閉じた)

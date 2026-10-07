@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T02",
   "title": "footer の「← リネーム画面へ」を残すか外すかを決めて反映する",
-  "status": "pending",
+  "status": "done",
   "dependsOn": [
     "T01"
   ],
