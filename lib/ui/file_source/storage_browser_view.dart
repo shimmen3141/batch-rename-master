@@ -681,7 +681,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
             child: Icon(
               Icons.sd_storage,
               color: colors.primary,
-              size: browserPreviewSize * 0.55,
+              size: browserPreviewSize * browserTileIconRatio,
             ),
           ),
           title: Text(
@@ -741,7 +741,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     child: Icon(
       Icons.folder,
       color: colors.textSecondary,
-      size: browserPreviewSize * 0.55,
+      size: browserPreviewSize * browserTileIconRatio,
     ),
   );
 
@@ -840,6 +840,10 @@ const double browserPreviewSize = 56;
 
 /// browser の行の高さ(folder もファイルも同じ)。preview 枠 + 上下 8。
 const double browserRowHeight = 72;
+
+/// folder・保存場所の四角に載せるアイコンの、四角の一辺に対する割合。**0.55 から
+/// 一回り小さくした**(2026-10-07 のエミュレータ確認「四角に対して大きすぎると不格好」)。
+const double browserTileIconRatio = 0.45;
 
 /// folder の塗った四角。
 const Key browserFolderTileKey = Key('browser-folder-tile');

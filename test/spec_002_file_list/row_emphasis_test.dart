@@ -1,8 +1,8 @@
 // 008:T59 リネーム画面の行のメリハリ(2026-10-07 の開発者の決定 案A)。
 //
-// 「リネーム前後の名前と補足情報では重要度が異なるが、ほぼ文字の色でしか区別されて
-// いない」→ 補足情報(場所・日時・大きさ)を薄い面の帯に入れて名前の2段と間を空け、
-// 変更後の名前を一段大きくする。補足情報の中身と強調(`T50`・`T22`・`T48`)は変えない。
+// 変更後の名前を一段大きくする。案Aの「補足情報を薄い面の帯に入れる」は同日の
+// エミュレータ確認で「あまりわかりやすくならなかった」ので消した(帯が無いことを見る)。
+// 補足情報の中身と強調(`T50`・`T22`・`T48`)は変えない。
 import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
@@ -51,12 +51,20 @@ Future<List<String>> _pump(
   return errors;
 }
 
-Finder _inBand(Finder target) =>
-    find.descendant(of: find.byKey(rowSubInfoKey).first, matching: target);
+/// [target] を包む、色で塗った面(`DecoratedBox` の `BoxDecoration.color`)。
+/// 選ばれていない行には無い。
+Iterable<Color> _paintedAncestorsOf(WidgetTester tester, Finder target) =>
+    tester
+        .widgetList<DecoratedBox>(
+          find.ancestor(of: target, matching: find.byType(DecoratedBox)),
+        )
+        .map((box) => box.decoration)
+        .whereType<BoxDecoration>()
+        .map((d) => d.color)
+        .whereType<Color>();
 
 void main() {
-  testWidgets('補足情報(場所・日時・大きさ)だけが帯に入り、名前は入らない', (tester) async {
-    // 場所が2つ混ざると場所も出る(`T22`)。
+  testWidgets('補足情報は帯に入れない(2026-10-07 のエミュレータ確認で消した)', (tester) async {
     await _pump(
       tester,
       FileListController(
@@ -67,58 +75,18 @@ void main() {
       ),
     );
 
-    expect(find.byKey(rowSubInfoKey), findsNWidgets(2));
     for (final key in [
       rowLocationKey,
       rowCreatedAtKey,
       rowModifiedAtKey,
       rowSizeKey,
     ]) {
-      expect(_inBand(find.byKey(key)), findsOneWidget, reason: '$key');
+      expect(
+        _paintedAncestorsOf(tester, find.byKey(key).first),
+        isEmpty,
+        reason: '$key を塗った面で包まない',
+      );
     }
-    expect(_inBand(find.byKey(rowCurrentNameKey)), findsNothing);
-    expect(_inBand(find.byKey(rowNewNameKey)), findsNothing);
-  });
-
-  testWidgets('帯は薄い面で、変更後の名前との間を空け、行幅いっぱいに取る', (tester) async {
-    await _pump(
-      tester,
-      FileListController(
-        files: [_entry('a.jpg')],
-        rule: const RenameRule([LiteralToken('x')]),
-      ),
-    );
-
-    final band = tester.widget<Container>(find.byKey(rowSubInfoKey));
-    final decoration = band.decoration! as BoxDecoration;
-    expect(decoration.color, AppColors.dark.rowSubInfoSurface);
-    // 紫がかった灰色の不透明な面(2026-10-07 のエミュレータ確認の要望)。
-    expect(AppColors.dark.rowSubInfoSurface, const Color(0xFF221F2B));
-    expect(decoration.borderRadius, BorderRadius.circular(4));
-
-    final bandRect = tester.getRect(find.byKey(rowSubInfoKey));
-    final newName = tester.getRect(find.byKey(rowNewNameKey));
-    final currentName = tester.getRect(find.byKey(rowCurrentNameKey));
-    // **塗った面そのもの**の上端と、変更後の名前の下端の間を測る(`Container` の
-    // key の矩形は `margin` を含むので、それでは間が消えても分からない)。
-    final painted = tester.getRect(
-      find
-          .descendant(
-            of: find.byKey(rowSubInfoKey),
-            matching: find.byType(DecoratedBox),
-          )
-          .first,
-    );
-    expect(painted.top - newName.bottom, greaterThanOrEqualTo(rowSubInfoGap));
-    expect(rowSubInfoGap, 4);
-    // 名前の列と同じ幅(中身の幅に縮めない)。
-    expect(bandRect.left, currentName.left);
-    expect(bandRect.width, greaterThanOrEqualTo(newName.width));
-    expect(
-      bandRect.width,
-      greaterThan(tester.getRect(find.byKey(rowSizeKey)).right - bandRect.left),
-      reason: '中身より広い = 行幅いっぱい',
-    );
   });
 
   testWidgets('変更後の名前は一段大きく(14)、変更前の名前より大きい', (tester) async {
@@ -142,16 +110,28 @@ void main() {
     expect(unchanged.style!.fontSize, rowNewNameFontSize);
   });
 
-  testWidgets('作成日時が不明なら、帯の中で赤く強調する(`T50`・002 REQ-013 を変えない)', (tester) async {
+  testWidgets('作成日時が不明なら赤く強調する(`T50`・002 REQ-013 を変えない)', (tester) async {
     final c = FileListController(files: [_entry('a.jpg', createdKnown: false)]);
     await _pump(tester, c);
     c.setSortMode(FileSortMode.createdAt);
     await tester.pump();
 
-    final created = tester.widget<Text>(_inBand(find.byKey(rowCreatedAtKey)));
+    final created = tester.widget<Text>(find.byKey(rowCreatedAtKey));
     expect(created.data, '作成日時: 不明');
     expect(created.style!.color, AppColors.dark.danger);
-    expect(_inBand(find.byIcon(Icons.warning_amber_rounded)), findsOneWidget);
+    // 一覧上部の警告帯にも同じアイコンがあるので、作成日時と同じ `Row` の中を見る。
+    expect(
+      find.descendant(
+        of: find
+            .ancestor(
+              of: find.byKey(rowCreatedAtKey),
+              matching: find.byType(Row),
+            )
+            .first,
+        matching: find.byIcon(Icons.warning_amber_rounded),
+      ),
+      findsOneWidget,
+    );
   });
 
   for (final width in [320.0, 360.0, 411.0, 1200.0]) {

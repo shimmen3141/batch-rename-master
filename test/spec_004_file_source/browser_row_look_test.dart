@@ -164,6 +164,11 @@ void main() {
       _in(_row('DCIM', folder: true), find.byIcon(Icons.folder)),
     );
     expect(folderIcon.color, colors.textSecondary, reason: 'アイコンの色は変えない');
+    expect(
+      folderIcon.size,
+      browserPreviewSize * 0.45,
+      reason: '四角に対して大きすぎない(2026-10-07 のエミュレータ確認)',
+    );
 
     final outline = _decorationOf(
       tester,
@@ -244,10 +249,9 @@ void main() {
       final decoration = _decorationOf(tester, tile);
       expect(decoration.color, isNull, reason: '塗らない');
       expect(decoration.border, Border.all(color: colors.primary));
-      expect(
-        tester.widget<Icon>(_in(row, find.byIcon(Icons.sd_storage))).color,
-        colors.primary,
-      );
+      final icon = tester.widget<Icon>(_in(row, find.byIcon(Icons.sd_storage)));
+      expect(icon.color, colors.primary);
+      expect(icon.size, browserPreviewSize * 0.45);
       expect(
         tester.widget<Text>(_in(row, find.text(name))).style!.fontSize,
         AppFontSize.titleLarge,

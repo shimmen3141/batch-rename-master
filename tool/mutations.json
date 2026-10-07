@@ -5182,39 +5182,11 @@
       "note": "008:T58 名前の大きさを指定しない — ListTile の既定に戻り、folder とファイルで大きさが揃わない(以前は 16 と 13)"
     },
     {
-      "id": "M815",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        color: colors.rowSubInfoSurface,\n        borderRadius: BorderRadius.circular(4),",
-      "replace": "        borderRadius: BorderRadius.circular(4),",
-      "note": "008:T59 補足情報の帯を塗らない — 名前と補足が見た目で分かれない(2026-10-07 の決定 案A)"
-    },
-    {
-      "id": "M816",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      margin: const EdgeInsets.only(top: rowSubInfoGap),\n",
-      "replace": "",
-      "note": "008:T59 帯と変更後の名前の間を空けない — 名前の2段と補足情報がくっつく"
-    },
-    {
       "id": "M817",
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "const double rowNewNameFontSize = AppFontSize.title;",
       "replace": "const double rowNewNameFontSize = AppFontSize.bodyLarge;",
       "note": "008:T59 変更後の名前を以前の 13 に戻す — 案A の「名前を少し強める」が消える"
-    },
-    {
-      "id": "M818",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      key: rowSubInfoKey,\n      width: double.infinity,\n",
-      "replace": "      key: rowSubInfoKey,\n",
-      "note": "008:T59 帯を中身の幅に縮める — 行ごとに帯の右端が揃わない"
-    },
-    {
-      "id": "M819",
-      "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),",
-      "replace": "      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),",
-      "note": "[対照] 008:T59 帯の左右の余白を 6 にする — 320dp × 文字倍率 2.0 で大きさ(`1023.0 MB`)が削られる(`T48` の保証。`row_file_size_test.dart` が捕まえる)"
     },
     {
       "id": "M820",
@@ -5238,11 +5210,18 @@
       "note": "008:T58 保存場所の行だけ以前の高さに戻す — folder・ファイルの行と大きさが揃わない(2026-10-07 の要望)"
     },
     {
-      "id": "M823",
-      "file": "lib/ui/theme/app_colors.dart",
-      "find": "    rowSubInfoSurface: Color(0xFF221F2B),",
-      "replace": "    rowSubInfoSurface: Color(0x0FFFFFFF),",
-      "note": "[reviewer追加 MR01][対照] 008:T59 帯の色を attempt 1 の白 6% の重ねへ戻す — 2026-10-07 の要望「グレーか紫がかったグレー」に反する(差分review attempt 2 が置いた対照)"
+      "id": "M824",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "const double browserTileIconRatio = 0.45;",
+      "replace": "const double browserTileIconRatio = 0.55;",
+      "note": "008:T58 folder・保存場所のアイコンを以前の大きさへ戻す — 2026-10-07 のエミュレータ確認「四角に対して大きすぎると不格好」"
+    },
+    {
+      "id": "M825",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    return Padding(\n      padding: const EdgeInsets.only(top: 2),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
+      "replace": "    return Container(\n      padding: const EdgeInsets.only(top: 2),\n      color: const Color(0xFF221F2B),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
+      "note": "008:T59 補足情報を塗った面で包む — 2026-10-07 のエミュレータ確認で消した帯が戻る"
     }
   ]
 }

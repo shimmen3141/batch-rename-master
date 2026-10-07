@@ -2263,21 +2263,10 @@ class _DateSubInfo extends StatelessWidget {
       color: colors.textMuted,
       fontSize: AppFontSize.caption,
     );
-    // **補足情報は薄い面の帯に入れ、名前の2段と間を空ける**(`008:T59`。2026-10-07 の
-    // 開発者の決定 案A)。読むべき名前と、確かめるための補足を見た目で分ける。以前は
-    // 文字の大きさと色だけで分けていた(要望「ほぼ文字の色でしか区別されていない」)。
-    // 帯は行幅いっぱいに取る — 中身の幅に合わせると行ごとに帯の右端が揃わない。
-    return Container(
-      key: rowSubInfoKey,
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: rowSubInfoGap),
-      // 左右は 4 に留める。320dp × 文字倍率 2.0 で大きさ(`1023.0 MB`)が削られない
-      // 幅を残すため(`T48` の保証。6 では削られた)。
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-      decoration: BoxDecoration(
-        color: colors.rowSubInfoSurface,
-        borderRadius: BorderRadius.circular(4),
-      ),
+    // 補足情報を薄い面の帯に入れる案(`008:T59` の案A)は、2026-10-07 のエミュレータ
+    // 確認で「あまりわかりやすくならなかった」ので**消した**。別の見せ方は開発者と相談する。
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -2434,14 +2423,9 @@ const Key rowCurrentNameKey = Key('row-current-name');
 const double rowPreviewSize = 52;
 
 /// 変更後名の文字の大きさ(「変更なし」・未選択の `—` も同じ)。**`008:T59` で
-/// 13 → 14 にした**(2026-10-07 の開発者の決定 案A: 名前を少し強める)。
+/// 13 → 14 にした**(2026-10-07 の開発者の決定 案A: 名前を少し強める)。案Aの補足情報の
+/// 帯は同日のエミュレータ確認で消したが、この大きさは残した(名前を強める方向と合う)。
 const double rowNewNameFontSize = AppFontSize.title;
-
-/// 補足情報の帯と、その上の名前の2段との間(`008:T59`)。
-const double rowSubInfoGap = 4;
-
-/// 補足情報の帯(`008:T59`)。
-const Key rowSubInfoKey = Key('row-sub-info');
 
 /// 現在名の文字の大きさ。**変更後名より小さい**(参考design: 11.5 と 13)。
 const double rowCurrentNameFontSize = AppFontSize.label;
