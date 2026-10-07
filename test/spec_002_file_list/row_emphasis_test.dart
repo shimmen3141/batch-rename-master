@@ -97,10 +97,18 @@ void main() {
     final bandRect = tester.getRect(find.byKey(rowSubInfoKey));
     final newName = tester.getRect(find.byKey(rowNewNameKey));
     final currentName = tester.getRect(find.byKey(rowCurrentNameKey));
-    // `margin` の外側の上端 = 変更後の名前の行の下端。帯の面はそこから [rowSubInfoGap] 下。
-    expect(bandRect.top, greaterThanOrEqualTo(newName.bottom));
-    final paintedTop = bandRect.top + rowSubInfoGap;
-    expect(paintedTop - newName.bottom, greaterThanOrEqualTo(rowSubInfoGap));
+    // **塗った面そのもの**の上端と、変更後の名前の下端の間を測る(`Container` の
+    // key の矩形は `margin` を含むので、それでは間が消えても分からない)。
+    final painted = tester.getRect(
+      find
+          .descendant(
+            of: find.byKey(rowSubInfoKey),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(painted.top - newName.bottom, greaterThanOrEqualTo(rowSubInfoGap));
+    expect(rowSubInfoGap, 4);
     // 名前の列と同じ幅(中身の幅に縮めない)。
     expect(bandRect.left, currentName.left);
     expect(bandRect.width, greaterThanOrEqualTo(newName.width));
