@@ -646,7 +646,8 @@ class _RemovalModeBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    // **app内browserの「← リネーム画面へ」(`008:T39`)と同じ形。**
+    // **app内browserの footer 左下の button(`008:T39`)と同じ形。** そちらは
+    // 2026-10-07 に矢印なしの「キャンセル」になった(`015:T03`)が、枠と色は同じ。
     final back = OutlinedButton.icon(
       key: removalModeBackKey,
       style: OutlinedButton.styleFrom(

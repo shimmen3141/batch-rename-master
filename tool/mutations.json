@@ -5054,6 +5054,20 @@
       "find": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'docx',\n    ],",
       "replace": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'doc',\n    ],",
       "note": "010:T10 docx の拡張子を知らない — Windows で docx が「文書」の絞り込みから漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R2)。KILLED**"
+    },
+    {
+      "id": "M794",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "const String browserCancelLabel = 'キャンセル';",
+      "replace": "const String browserCancelLabel = 'リネーム画面へ';",
+      "note": "015:T03 browser の footer 左下を「キャンセル」以外の文言に戻す(2026-10-07 の開発者の決定に反する)"
+    },
+    {
+      "id": "M795",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "child: const Text('キャンセル', overflow: TextOverflow.ellipsis),",
+      "replace": "child: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),",
+      "note": "015:T03 選択画面の footer 左下を browser と違う文言にする"
     }
   ]
 }

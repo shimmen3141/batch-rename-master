@@ -554,6 +554,27 @@ void main() {
       expect(harness.closed, isTrue);
       expect(harness.result, isNull);
     });
+
+    testWidgets('閉じる button は browser と同じ「キャンセル」で、矢印を付けない(015:T03)', (
+      tester,
+    ) async {
+      await _open(tester, _FakeLibrary([_a]));
+
+      expect(
+        find.descendant(
+          of: find.byKey(mediaPickerBackKey),
+          matching: find.text('キャンセル'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(mediaPickerBackKey),
+          matching: find.byType(Icon),
+        ),
+        findsNothing,
+      );
+    });
   });
 
   group('REQ-023: 見出しを押してその日をまとめて選ぶ(010:T08)', () {

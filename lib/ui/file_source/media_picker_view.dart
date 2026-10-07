@@ -80,7 +80,8 @@ const Key mediaPickerRetryKey = Key('media-picker-retry');
 /// 並ぶものが無いときの表示。
 const Key mediaPickerEmptyKey = Key('media-picker-empty');
 
-/// footer 左下の「← リネーム画面へ」。閉じると「決定していない」(REQ-008)。
+/// footer 左下の「キャンセル」(browser と同じ文言。`015:T03`)。閉じると
+/// 「決定していない」(REQ-008)。
 const Key mediaPickerBackKey = Key('media-picker-back');
 
 /// footer 右下の「確定」。1件以上選んでいるときだけ押せる(REQ-023)。
@@ -116,7 +117,7 @@ String mediaDurationLabel(Duration duration) {
 /// **形は app 内 browser に揃える**(`T07` の task.md の想定。2026-10-05 に開発者が
 /// 「いったんこの案で」とした): header に `×`(選択中だけ)・題名・ケバブ、その下に
 /// アルバムと種類の切り替え、日付の見出しの下にサムネイルの格子、footer に
-/// 「← リネーム画面へ」と「確定」。日付の見出しを押すと、その日をまとめて選ぶ・
+/// 「キャンセル」と「確定」。日付の見出しを押すと、その日をまとめて選ぶ・
 /// 外す(`T08`)。
 class MediaPickerView extends StatefulWidget {
   const MediaPickerView({
@@ -755,7 +756,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
     );
   }
 
-  /// footer(browser と同じ形)。閉じる導線は「← リネーム画面へ」だけ。
+  /// footer(browser と同じ形)。閉じる導線は「キャンセル」だけ。
   Widget _footer(AppColors colors) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
@@ -768,7 +769,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
-            child: OutlinedButton.icon(
+            child: OutlinedButton(
               key: mediaPickerBackKey,
               style: OutlinedButton.styleFrom(
                 backgroundColor: colors.background,
@@ -777,8 +778,7 @@ class _MediaPickerViewState extends State<MediaPickerView> {
               ),
               // **決定していない**(REQ-008)。未確定の選択は捨てる。
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back, size: 18),
-              label: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),
+              child: const Text('キャンセル', overflow: TextOverflow.ellipsis),
             ),
           ),
           const SizedBox(width: 8),
