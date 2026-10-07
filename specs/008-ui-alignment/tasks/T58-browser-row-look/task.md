@@ -118,12 +118,13 @@ M822 | KILLED | lib/ui/file_source/storage_browser_view.dart
 ```
 
 - `flutter test`(全件)@`45883d9`: `01:17 +1422: All tests passed!`
+- 差分review attempt 2: **PASS**(`649d8e1..cddcd30`、Sonnet。luna が利用上限のため)。P3 ×1 と M823 の取り込みは SELF-CHECK 済み。記録は `T57` の task.md。
 
 ## Current state / handoff
 
 - Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
 - Blocker category: manual-evidence
 - Evidence revision: `45883d9`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 2。差分review `649d8e1..` の後)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 2)
 - Requested action: [`T57` の manual-verification.md](../T57-file-select-label/manual-verification.md) の手順を行い、結果を会話で伝える
 - Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む

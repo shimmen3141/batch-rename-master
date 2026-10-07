@@ -79,11 +79,39 @@ M813 | KILLED | M816 | KILLED | M819 | KILLED
   - 「リネーム画面の補足情報の枠の色はグレーか紫がかったグレーにしたい(文字が白よりのグレーなので同化しないように注意)。」→ `T59`
 - 動作は PASS。見た目の2点を直す(`45883d9`)。1画面の行数・開くまでの時間の数値は受け取っていない(動作に問題なしとの報告)。
 
+### 差分review attempt 2
+
+- range `649d8e1..cddcd30`(attempt 1 の直し)。**reviewer: Sonnet(Claude Code の subagent)** — 既定の Codex gpt-6-luna が利用上限に達して起動できなかったため(`ERROR: You've hit your usage limit ... try again at 8:08 PM`)。開発者の指定(luna)と食い違うので記録する。
+- 判定: **PASS**。full regression `01:19 +1422: All tests passed!`、`flutter analyze` No issues、`dart format` PASS、`workspace.py check` PASS。帯の色と `textMuted` の明るさの比を計算し(約 2.65:1、白 6% の重ねを選ばれた行に載せたときの 1.82〜2.34 より高い)、記録の値と一致すると確かめた。選ばれた行・掴んでいる行との見分けは数値で示せないので manual に回していることも確かめた。
+- reviewer が回した mutation:
+
+```text
+M821 | KILLED | lib/ui/file_source/storage_browser_view.dart
+M822 | KILLED | lib/ui/file_source/storage_browser_view.dart
+MR01 | KILLED | lib/ui/theme/app_colors.dart | reviewer control: revert band color to old 6% white overlay
+3 mutations: 3 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 指摘 P3 ×1(成果物の欠陥・記録): manual-verification.md の「調整できる値」に帯の古い色(白 6%)が残っていた。
+
+### SELF-CHECK(attempt 2 の後)
+
+- P3 を閉じた: manual-verification.md の該当行を新しい色に直した(`specs/` だけ)。
+- reviewer の対照 MR01 を **M823** として `tool/mutations.json` へ取り込んだ(`edf1418`。AGENTS.md「独立reviewが足したmutationは取り込む」)。`find` の一致 PASS(748)、`flutter test test/tooling` PASS、M823 を範囲付き(`flutter test test/spec_002_file_list`)で回した:
+
+```text
+M823 | KILLED | lib/ui/theme/app_colors.dart
+1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+  `lib/`・`test/` は変えておらず、表へ reviewer 自身が確かめた対照を足しただけなので、再reviewは起動しない。
+- review の連鎖: `73006f1..649d8e1` PASS(luna)→ `649d8e1..cddcd30` PASS(Sonnet)→ `cddcd30..` SELF-CHECK。
+
 ## Current state / handoff
 
 - Last checkpoint: エミュレータ確認 attempt 1 の直し(`45883d9`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
 - Blocker category: manual-evidence
 - Evidence revision: `45883d9`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの再確認 attempt 2。差分review `649d8e1..` の後)
+- Waiting for: 開発者(Android エミュレータの再確認 attempt 2)
 - Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
 - Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む
