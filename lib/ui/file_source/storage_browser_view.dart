@@ -7,6 +7,8 @@ import '../../data/file_source/storage_browser.dart';
 import '../../data/preview/file_preview.dart';
 import '../common/drag_selection_controller.dart';
 import '../common/selection_checkbox.dart';
+import '../file_list/file_size_format.dart';
+import '../file_list/row_date_format.dart';
 import '../file_list/row_preview_view.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -583,15 +585,10 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
               // checkbox は持たない — 全選択の対象でもない(REQ-020)。
               ListTile(
                 key: Key('browser-folder-${entry.name}'),
-                leading: Icon(
-                  Icons.folder,
-                  color: colors.textSecondary,
-                  size: 20,
-                ),
-                title: Text(
-                  entry.name,
-                  style: TextStyle(color: colors.textPrimary),
-                ),
+                minTileHeight: browserRowHeight,
+                leading: _folderTile(colors),
+                title: _rowName(colors, entry),
+                subtitle: _rowDetail(colors, entry),
                 trailing: Icon(
                   Icons.chevron_right,
                   color: colors.textMuted,
@@ -689,15 +686,17 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     final selected = _selected.contains(entry.path);
     return MergeSemantics(
       child: ListTile(
-        dense: true,
+        minTileHeight: browserRowHeight,
         tileColor: selected ? colors.selectedSurface : null,
         // **preview は一覧の行と同じ部品**(`008:T13`)。出せない file・まだ届かない
         // file は種別アイコンになり、**行を隠しも並べ替えもしない**(004 REQ-017)。
         leading: RowPreviewView(
           file: _previewEntryOf(entry),
           preview: widget.preview,
+          size: browserPreviewSize,
         ),
-        title: Text(entry.name, style: TextStyle(color: colors.textPrimary)),
+        title: _rowName(colors, entry),
+        subtitle: _rowDetail(colors, entry),
         trailing: SelectionCheckbox(
           value: selected,
           onChanged: (_) => _toggle(entry),
@@ -707,13 +706,65 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     );
   }
 
+  /// folder の preview 枠。**ファイルの preview と同じ大きさの、灰色で塗った四角**に
+  /// 今の色の folder アイコンを載せる(`008:T58`。2026-10-07 の開発者の要望)。
+  /// preview を出せないファイルは同じ色の**線**の四角なので、塗りかどうかで見分けられる。
+  Widget _folderTile(AppColors colors) => Container(
+    key: browserFolderTileKey,
+    width: browserPreviewSize,
+    height: browserPreviewSize,
+    decoration: BoxDecoration(
+      color: colors.previewTile,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Icon(
+      Icons.folder,
+      color: colors.textSecondary,
+      size: browserPreviewSize * 0.55,
+    ),
+  );
+
+  /// 行の名前。folder もファイルも同じ大きさで、1行で省略する(`008:T58`)。
+  Widget _rowName(AppColors colors, BrowserEntry entry) => Text(
+    entry.name,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+      color: colors.textPrimary,
+      fontSize: AppFontSize.titleLarge,
+    ),
+  );
+
+  /// 行の2行目: 更新日時と、ファイルなら大きさ(`008:T58`)。書式はリネーム画面の行と
+  /// 同じ。**日時を読めなかった entry では出さない**(行は残す。REQ-017)。
+  Widget? _rowDetail(AppColors colors, BrowserEntry entry) {
+    final modifiedAt = entry.modifiedAt;
+    if (modifiedAt == null) return null;
+    final size = entry.size;
+    return Text(
+      [
+        formatRowDateTime(modifiedAt),
+        if (size != null) formatFileSize(size),
+      ].join(' · '),
+      key: browserRowDetailKey,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: colors.textMuted,
+        fontSize: AppFontSize.bodySmall,
+      ),
+    );
+  }
+
   /// preview の port へ渡す形。**port が読むのは名前と元場所ハンドル(path)だけ**で、
-  /// 日時と大きさは使わない。browser は列挙のときに stat しない(件数の多い folder を
-  /// 開く速さを保つ)ので、ここでは埋め草を入れる。
+  /// 日時と大きさは使わない。一覧を作るときに読めた値があればそれを渡し、読めなかった
+  /// entry には埋め草を入れる(`008:T58` までは列挙のときに stat しなかった)。
+  /// 更新日時は `CachedFilePreview` のキーに入るので、実際の値を渡すとファイルが
+  /// 変わったときに古い絵を出さず、リネーム画面の行とも同じキーになる。
   static FileEntry _previewEntryOf(BrowserEntry entry) => FileEntry(
     name: entry.name,
-    modifiedAt: DateTime.fromMicrosecondsSinceEpoch(0),
-    size: 0,
+    modifiedAt: entry.modifiedAt ?? DateTime.fromMicrosecondsSinceEpoch(0),
+    size: entry.size ?? 0,
     sourceHandle: entry.path,
   );
 
@@ -761,3 +812,16 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     ),
   );
 }
+
+/// browser の行の preview 枠の一辺(`008:T58`)。ファイルアプリと同じく1画面に約10行並ぶ
+/// 大きさにする(2026-10-07 の開発者の要望「画像が縦に10~11個程度並ぶ」)。
+const double browserPreviewSize = 56;
+
+/// browser の行の高さ(folder もファイルも同じ)。preview 枠 + 上下 8。
+const double browserRowHeight = 72;
+
+/// folder の塗った四角。
+const Key browserFolderTileKey = Key('browser-folder-tile');
+
+/// 行の2行目(更新日時・大きさ)。
+const Key browserRowDetailKey = Key('browser-row-detail');

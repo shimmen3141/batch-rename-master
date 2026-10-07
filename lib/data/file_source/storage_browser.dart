@@ -42,11 +42,20 @@ class BrowserEntry {
     required this.name,
     required this.path,
     required this.isDirectory,
+    this.modifiedAt,
+    this.size,
   });
 
   final String name;
   final String path;
   final bool isDirectory;
+
+  /// 更新日時(`008:T58`。行の2行目と並び順に使う)。**読めなかったら `null`**
+  /// (壊れた link、列挙の後に消えたものなど)。`null` でも行は残す(REQ-017)。
+  final DateTime? modifiedAt;
+
+  /// 大きさ(byte)。**folder と、読めなかった entry では `null`。**
+  final int? size;
 }
 
 /// [StorageBrowserPort.list] の結果。

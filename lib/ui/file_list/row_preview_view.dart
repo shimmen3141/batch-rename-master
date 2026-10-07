@@ -105,23 +105,36 @@ class _RowPreviewViewState extends State<RowPreviewView> {
             gaplessPlayback: true,
             // decode 済みの thumbnail なので、ここで更に縮めない。
             errorBuilder: (context, error, stack) =>
-                _icon(Icons.broken_image_outlined, colors.textMuted),
+                _icon(colors, Icons.broken_image_outlined),
           ),
         ),
         // 読めなかった行は、preview の無い行と**別のアイコン**にする。改名でも
         // 触れない file である可能性があり、黙って同じ見た目にしない。
-        PreviewFailed() => _icon(Icons.broken_image_outlined, colors.textMuted),
+        PreviewFailed() => _icon(colors, Icons.broken_image_outlined),
         // 対象外(文書・書庫、退避中の SAF ハンドル)と、まだ届いていない行。
         PreviewUnsupported() ||
-        null => _icon(fileTypeIconOf(widget.file.name), colors.textMuted),
+        null => _icon(colors, fileTypeIconOf(widget.file.name)),
       },
     );
   }
 
-  Widget _icon(IconData icon, Color color) => Center(
-    child: Icon(icon, size: widget.size * 0.55, color: color),
+  /// preview を出せないときの枠。**灰色の線で囲んだ四角**に種別アイコンを置く
+  /// (`008:T58`。2026-10-07 の開発者の要望)。browser の folder は同じ色で**塗った**
+  /// 四角なので、線か塗りかで見分けられる。リネーム画面の行も同じ見た目になる。
+  Widget _icon(AppColors colors, IconData icon) => DecoratedBox(
+    key: rowPreviewOutlineKey,
+    decoration: BoxDecoration(
+      border: Border.all(color: colors.previewTile),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Center(
+      child: Icon(icon, size: widget.size * 0.55, color: colors.textMuted),
+    ),
   );
 }
 
 /// 行の preview 枠。**preview の有無に関わらず必ず在る**(行の高さが揺れない)。
 const Key rowPreviewKey = Key('row-preview');
+
+/// preview を出せないときの線の枠(`008:T58`)。絵が出ているときは無い。
+const Key rowPreviewOutlineKey = Key('row-preview-outline');

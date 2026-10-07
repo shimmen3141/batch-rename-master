@@ -808,9 +808,9 @@
     {
       "id": "M115",
       "file": "lib/data/file_source/android_storage_browser.dart",
-      "note": "[対照] 実portが隠しfileを絞り込む(004 REQ-017が禁じた絞り込み。attempt 1 のRV03)",
-      "find": "        entries.add(\n          BrowserEntry(",
-      "replace": "        if (p.basename(entity.path).startsWith('.')) continue;\n        entries.add(\n          BrowserEntry("
+      "note": "[対照] 実portが隠しfileを絞り込む(004 REQ-017が禁じた絞り込み。attempt 1 のRV03)  **008:T58 で列挙を `toList` してから stat する形にしたので `find` を追随させた**",
+      "find": "      final entities = await Directory(\n        folder,\n      ).list(followLinks: false).toList();\n",
+      "replace": "      final entities = await Directory(\n        folder,\n      ).list(followLinks: false).toList();\n      entities.removeWhere((e) => p.basename(e.path).startsWith('.'));\n"
     },
     {
       "id": "M117",
@@ -1137,9 +1137,9 @@
     {
       "id": "M163",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  Flexible(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
-      "replace": "                  SizedBox(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,",
-      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる"
+      "find": "                  Flexible(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
+      "replace": "                  SizedBox(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,",
+      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる  **008:T58 で日時の書式を `formatRowDateTime` へ出したので `find` を追随させた**"
     },
     {
       "id": "M164",
@@ -2678,8 +2678,8 @@
     {
       "id": "M431",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "008:T13 browserのfile行からpreviewの枠を外す — 画像の中身が行から分からない(013:T07のU4)",
-      "find": "        leading: RowPreviewView(\n          file: _previewEntryOf(entry),\n          preview: widget.preview,\n        ),\n",
+      "note": "008:T13 browserのfile行からpreviewの枠を外す — 画像の中身が行から分からない(013:T07のU4)  **008:T58 で枠の大きさを渡すようにしたので `find` を追随させた**",
+      "find": "        leading: RowPreviewView(\n          file: _previewEntryOf(entry),\n          preview: widget.preview,\n          size: browserPreviewSize,\n        ),\n",
       "replace": ""
     },
     {
@@ -2699,9 +2699,9 @@
     {
       "id": "M434",
       "file": "lib/ui/file_list/row_preview_view.dart",
-      "note": "[reviewer追加 R-T13-FAILED-VS-UNSUPPORTED][対照] 008:T13 読めなかったfileを「出せない」と同じアイコンにする — 読めなかったことが見えなくなる(browserの行で検出する)",
-      "find": "        PreviewFailed() => _icon(Icons.broken_image_outlined, colors.textMuted),",
-      "replace": "        PreviewFailed() => _icon(fileTypeIconOf(widget.file.name), colors.textMuted),"
+      "note": "[reviewer追加 R-T13-FAILED-VS-UNSUPPORTED][対照] 008:T13 読めなかったfileを「出せない」と同じアイコンにする — 読めなかったことが見えなくなる(browserの行で検出する)  **008:T58 で `_icon` の引数を変えたので `find` を追随させた**",
+      "find": "        PreviewFailed() => _icon(colors, Icons.broken_image_outlined),",
+      "replace": "        PreviewFailed() => _icon(colors, fileTypeIconOf(widget.file.name)),"
     },
     {
       "id": "M435",
@@ -5110,6 +5110,76 @@
       "find": "  static const String pickLabel = 'ファイル選択';",
       "replace": "  static const String pickLabel = 'ファイルを選ぶ';",
       "note": "008:T57 読み込む前の以前の文言に揃えてしまう — 開発者が指定した「ファイル選択」でなくなる"
+    },
+    {
+      "id": "M805",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "find": "    final byDate = bm.compareTo(am);",
+      "replace": "    final byDate = am.compareTo(bm);",
+      "note": "008:T58 古い順に並べる — 2026-10-07 の要望「更新日時の新しい順」に反する"
+    },
+    {
+      "id": "M806",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "find": "    return am == null ? 1 : -1;",
+      "replace": "    return am == null ? -1 : 1;",
+      "note": "008:T58 日時を読めなかった entry を群の先頭へ置く — 壊れた link などが一覧の頭に来る"
+    },
+    {
+      "id": "M807",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "find": "  if (a.isDirectory != b.isDirectory) return a.isDirectory ? -1 : 1;\n  final am",
+      "replace": "  final am",
+      "note": "008:T58 folder を先にしない — 辿る操作と選ぶ操作が混ざる"
+    },
+    {
+      "id": "M808",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "find": "      modifiedAt: readable ? stat.modified : null,",
+      "replace": "      modifiedAt: stat?.modified,",
+      "note": "008:T58 壊れた link の `notFound` の日時(意味の無い値)をそのまま使う — 2行目に嘘の日時が出て、並びの位置もずれる"
+    },
+    {
+      "id": "M809",
+      "file": "lib/data/file_source/android_storage_browser.dart",
+      "find": "      size: readable && !isDirectory ? stat.size : null,",
+      "replace": "      size: readable ? stat.size : null,",
+      "note": "008:T58 folder にも大きさを持たせる — folder の2行目に意味の無い大きさが出る"
+    },
+    {
+      "id": "M810",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "        minTileHeight: browserRowHeight,\n        tileColor:",
+      "replace": "        dense: true,\n        tileColor:",
+      "note": "008:T58 ファイル行を以前の dense に戻す — folder 行と高さが揃わず、1画面に並ぶ行が要望より多い"
+    },
+    {
+      "id": "M811",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "      color: colors.previewTile,\n      borderRadius: BorderRadius.circular(4),\n    ),\n    child: Icon(\n      Icons.folder,",
+      "replace": "      borderRadius: BorderRadius.circular(4),\n    ),\n    child: Icon(\n      Icons.folder,",
+      "note": "008:T58 folder の四角を塗らない — preview を出せないファイル(線の四角)と見分けにくくなる"
+    },
+    {
+      "id": "M812",
+      "file": "lib/ui/file_list/row_preview_view.dart",
+      "find": "      border: Border.all(color: colors.previewTile),",
+      "replace": "      color: colors.previewTile,",
+      "note": "008:T58 preview を出せないファイルを塗った四角にする — browser の folder と同じ見た目になる"
+    },
+    {
+      "id": "M813",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "        if (size != null) formatFileSize(size),\n",
+      "replace": "",
+      "note": "008:T58 2行目からファイルの大きさを落とす — 要望「ファイルならファイルサイズも」に反する"
+    },
+    {
+      "id": "M814",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "  Widget _rowName(AppColors colors, BrowserEntry entry) => Text(\n    entry.name,\n    maxLines: 1,\n    overflow: TextOverflow.ellipsis,\n    style: TextStyle(\n      color: colors.textPrimary,\n      fontSize: AppFontSize.titleLarge,\n    ),\n  );",
+      "replace": "  Widget _rowName(AppColors colors, BrowserEntry entry) => Text(\n    entry.name,\n    maxLines: 1,\n    overflow: TextOverflow.ellipsis,\n    style: TextStyle(color: colors.textPrimary),\n  );",
+      "note": "008:T58 名前の大きさを指定しない — ListTile の既定に戻り、folder とファイルで大きさが揃わない(以前は 16 と 13)"
     }
   ]
 }

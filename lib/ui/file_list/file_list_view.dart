@@ -16,6 +16,7 @@ import '../rule_builder/rule_chip_strip.dart';
 import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_size_format.dart';
+import 'row_date_format.dart';
 import 'file_sort.dart';
 import 'header_metrics.dart';
 import 'removal_selection.dart';
@@ -2246,11 +2247,6 @@ class _DateSubInfo extends StatelessWidget {
   /// 場所を出すか(一覧に複数の場所が混ざっているときだけ真)。
   final bool showLocation;
 
-  static String _format(DateTime dt) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${dt.year}/${dt.month}/${dt.day} ${two(dt.hour)}:${two(dt.minute)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -2313,7 +2309,7 @@ class _DateSubInfo extends StatelessWidget {
                   // ほど狭いとき(極端な font scale など)に、はみ出させない。
                   Flexible(
                     child: Text(
-                      '作成日時: ${unknown ? '不明' : _format(createdAt)}',
+                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',
                       key: rowCreatedAtKey,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2326,7 +2322,7 @@ class _DateSubInfo extends StatelessWidget {
               ),
               // 入りきらなければ**次の行へ落ちる**。作成日時を削らない。
               Text(
-                '更新日時: ${_format(file.modifiedAt)}',
+                '更新日時: ${formatRowDateTime(file.modifiedAt)}',
                 key: rowModifiedAtKey,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

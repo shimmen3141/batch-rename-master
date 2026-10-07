@@ -151,7 +151,11 @@ void main() {
 
       final listing = await browserOf().list(root) as DirectoryListed;
 
-      expect(listing.entries.map((e) => e.name), ['Download', 'Pictures']);
+      // 順序は問わない(並びは `008:T58` の test が見る)。**各1回**であることを見る。
+      expect(
+        listing.entries.map((e) => e.name),
+        unorderedEquals(['Download', 'Pictures']),
+      );
     });
   });
 
@@ -170,7 +174,7 @@ void main() {
       });
     });
 
-    test('folderが先、その中で名前順(集合は変えない)', () async {
+    test('集合は変えない(並べ替えても entry を足しも外しもしない)', () async {
       for (final name in ['b.txt', 'A.txt']) {
         await File(p.join(dir.path, name)).writeAsString('x');
       }
@@ -180,17 +184,121 @@ void main() {
 
       final listing = await browserOf().list(dir.path) as DirectoryListed;
 
-      expect(listing.entries.map((e) => e.name), [
+      expect(listing.entries.map((e) => e.name).toSet(), {
         'adir',
         'zdir',
         'A.txt',
         'b.txt',
+      });
+      expect(listing.entries.where((e) => e.isDirectory).length, 2);
+    });
+  });
+
+  // 008:T58 2行目の更新日時・大きさと、新しい順の並び(2026-10-07 の開発者の要望)。
+  group('008:T58: 更新日時と大きさ、新しい順', () {
+    /// 更新日時を [at] にする。folder には `setLastModified` が無いので `touch` を使う。
+    Future<void> touch(String path, DateTime at) async {
+      final stamp = (at.millisecondsSinceEpoch ~/ 1000).toString();
+      final result = await Process.run('touch', ['-m', '-d', '@$stamp', path]);
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+    }
+
+    final t1 = DateTime(2026, 1, 1, 9);
+    final t2 = DateTime(2026, 5, 1, 9);
+    final t3 = DateTime(2026, 9, 1, 9);
+
+    test('folder が先、それぞれ更新日時の新しい順', () async {
+      final files = {'old.txt': t1, 'new.txt': t3, 'mid.txt': t2};
+      for (final MapEntry(key: name, value: at) in files.entries) {
+        final path = p.join(dir.path, name);
+        await File(path).writeAsString('x');
+        await touch(path, at);
+      }
+      final dirs = {'adir': t1, 'zdir': t3};
+      for (final MapEntry(key: name, value: at) in dirs.entries) {
+        final path = p.join(dir.path, name);
+        await Directory(path).create();
+        await touch(path, at);
+      }
+
+      final listing = await browserOf().list(dir.path) as DirectoryListed;
+
+      expect(listing.entries.map((e) => e.name), [
+        'zdir',
+        'adir',
+        'new.txt',
+        'mid.txt',
+        'old.txt',
       ]);
-      expect(listing.entries.map((e) => e.isDirectory), [
-        true,
-        true,
-        false,
-        false,
+    });
+
+    test('同じ日時なら名前順(大文字・小文字を区別しない)', () async {
+      for (final name in ['b.txt', 'A.txt', 'c.txt']) {
+        final path = p.join(dir.path, name);
+        await File(path).writeAsString('x');
+        await touch(path, t2);
+      }
+
+      final listing = await browserOf().list(dir.path) as DirectoryListed;
+
+      expect(listing.entries.map((e) => e.name), ['A.txt', 'b.txt', 'c.txt']);
+    });
+
+    test('ファイルは更新日時と大きさ、folder は更新日時だけを持つ', () async {
+      final file = p.join(dir.path, 'photo.jpg');
+      await File(file).writeAsBytes(List.filled(2048, 0));
+      await touch(file, t2);
+      final sub = p.join(dir.path, 'sub');
+      await Directory(sub).create();
+      await touch(sub, t1);
+
+      final listing = await browserOf().list(dir.path) as DirectoryListed;
+      final byName = {for (final e in listing.entries) e.name: e};
+
+      expect(byName['photo.jpg']!.modifiedAt, t2);
+      expect(byName['photo.jpg']!.size, 2048);
+      expect(byName['sub']!.modifiedAt, t1);
+      expect(byName['sub']!.size, isNull, reason: 'folder の大きさは出さない');
+    });
+
+    test('読めない entry(壊れた link)も外さず、日時と大きさを空にして最後に置く', () async {
+      final file = p.join(dir.path, 'z.txt');
+      await File(file).writeAsString('x');
+      await touch(file, t1);
+      await Link(p.join(dir.path, 'a-broken')).create(p.join(dir.path, 'gone'));
+
+      final listing = await browserOf().list(dir.path) as DirectoryListed;
+
+      expect(listing.entries.map((e) => e.name), ['z.txt', 'a-broken']);
+      final broken = listing.entries.last;
+      expect(broken.isDirectory, isFalse);
+      expect(broken.modifiedAt, isNull);
+      expect(broken.size, isNull);
+    });
+  });
+
+  group('008:T58: compareBrowserEntries', () {
+    BrowserEntry e(String name, {bool dir = false, DateTime? at}) =>
+        BrowserEntry(
+          name: name,
+          path: '/x/$name',
+          isDirectory: dir,
+          modifiedAt: at,
+        );
+
+    test('日時を読めなかった folder は folder の群の最後で、ファイルより前', () {
+      final entries = [
+        e('f-old', at: DateTime(2020)),
+        e('d-unknown', dir: true),
+        e('d-new', dir: true, at: DateTime(2026)),
+        e('f-unknown'),
+      ]..sort(compareBrowserEntries);
+
+      expect(entries.map((x) => x.name), [
+        'd-new',
+        'd-unknown',
+        'f-old',
+        'f-unknown',
       ]);
     });
   });
