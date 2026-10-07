@@ -35,9 +35,14 @@
 
 - 2026-10-07 登録・着手。branch `asdd/008-ui-alignment/T60-define-sub-info-dates`(起点 `dev`@`f704d85`)。**`T61` も同じ branch・PR**。
 
+### checkpoint 1: 002 の更新(`8d63d6e`)
+
+- REQ-013 の後半(行 UI が提示する日時)を書き換え、代表例 14 を変え、14b〜14d を足し、15 の文言を見出しに依らない形にした。Status 行と「008 T60 由来の更新」節を足した。行データの供給・REQ-011・強調の条件・005 REQ-009 との境界は変えていない。
+- `T61` の `covers` に `002:REQ-013` を書いた。
+
 ## Current state / handoff
 
-- Last checkpoint: 002 `spec.md` の更新(未 commit)
+- Last checkpoint: `8d63d6e`
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: commit し、`T61` を実装する。同じ PR で独立review
+- Evidence revision: `8d63d6e`
+- Next Agent action: `T61` と同じ PR で独立review。PASS で done
