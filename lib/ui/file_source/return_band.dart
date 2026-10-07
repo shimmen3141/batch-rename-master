@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 
 /// リネーム画面へ戻る帯(`015:T01`)。
 const Key returnToRenameBandKey = Key('return-to-rename-band');
@@ -9,8 +8,8 @@ const Key returnToRenameBandKey = Key('return-to-rename-band');
 /// 帯の「リネーム画面へ戻る」。
 const Key returnToRenameButtonKey = Key('return-to-rename');
 
-/// 帯の高さ(status bar を除く)。
-const double returnBandHeight = 40;
+/// 帯の高さ(status bar を除く)。button の押せる高さ(48)に上下 4 を足す。
+const double returnBandHeight = 56;
 
 /// 帯の文言(2026-10-06 の開発者の決定。**矢印を付けない** — header の `←` は
 /// 「上のフォルダへ」のまま残すので、`←` が2つの意味を持たないようにする)。
@@ -54,7 +53,13 @@ class ReturnBandAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// 帯そのもの。**header と色で見分けられる**ようにする(開発者の決定: 帯は色などで
-/// しっかり区別する) — アクセント色を薄く敷き、下端にアクセント色の線を引く。
+/// しっかり区別する)。
+///
+/// 2026-10-07 のエミュレータ確認で開発者が見た目を決めた:
+/// - 帯の色は **header(`colors.bar`)より一段薄い [AppColors.barLight]**。シアンを
+///   薄く敷いた初めの案は違和感があった。
+/// - button は **footer にあった「← リネーム画面へ」の形をそのまま**(背景色の地に
+///   アクセント色の枠と文字)。文言は「リネーム画面へ戻る」のまま、矢印は付けない。
 class _ReturnBand extends StatelessWidget {
   const _ReturnBand({required this.onReturn});
 
@@ -66,34 +71,29 @@ class _ReturnBand extends StatelessWidget {
     return Container(
       key: returnToRenameBandKey,
       decoration: BoxDecoration(
-        color: Color.alphaBlend(
-          colors.primary.withValues(alpha: 0.18),
-          colors.background,
-        ),
-        border: Border(
-          bottom: BorderSide(color: colors.primary.withValues(alpha: 0.6)),
-        ),
+        color: colors.barLight,
+        border: Border(bottom: BorderSide(color: colors.border)),
       ),
       child: SafeArea(
         bottom: false,
         child: SizedBox(
           height: returnBandHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              key: returnToRenameButtonKey,
-              onPressed: onReturn,
-              style: TextButton.styleFrom(
-                foregroundColor: colors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                textStyle: const TextStyle(
-                  fontSize: AppFontSize.bodyLarge,
-                  fontWeight: FontWeight.w600,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                key: returnToRenameButtonKey,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: colors.background,
+                  foregroundColor: colors.primary,
+                  side: BorderSide(color: colors.primary),
                 ),
-              ),
-              child: const Text(
-                returnToRenameLabel,
-                overflow: TextOverflow.ellipsis,
+                onPressed: onReturn,
+                child: const Text(
+                  returnToRenameLabel,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),

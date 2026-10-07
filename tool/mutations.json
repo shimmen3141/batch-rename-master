@@ -5079,9 +5079,9 @@
     {
       "id": "M788",
       "file": "lib/ui/file_source/return_band.dart",
-      "find": "        color: Color.alphaBlend(\n          colors.primary.withValues(alpha: 0.18),\n          colors.background,\n        ),",
+      "find": "        color: colors.barLight,",
       "replace": "        color: colors.bar,",
-      "note": "015:T01 帯を header と同じ色にする — 帯を色で見分けられない(開発者の決定 案A)"
+      "note": "015:T01 帯を header と同じ色にする — 帯を色で見分けられない(開発者の決定 案A、2026-10-07 の色)"
     },
     {
       "id": "M789",
@@ -5089,6 +5089,20 @@
       "find": "            alignment: Alignment.centerLeft,",
       "replace": "            alignment: Alignment.centerRight,",
       "note": "015:T01 「リネーム画面へ戻る」を右端に置く(上部の左の決定に反する)"
+    },
+    {
+      "id": "M790",
+      "file": "lib/ui/theme/app_colors.dart",
+      "find": "    barLight: Color(0xFF3D3A4A),",
+      "replace": "    barLight: Color(0xFF2E2B38),",
+      "note": "015:T01 帯の色を header(bar)と同じ値にする — 一段薄くない"
+    },
+    {
+      "id": "M791",
+      "file": "lib/ui/file_source/return_band.dart",
+      "find": "                  side: BorderSide(color: colors.primary),\n",
+      "replace": "",
+      "note": "015:T01 帯の button から枠を外す — footer にあった「← リネーム画面へ」の形でない(2026-10-07)"
     }
   ]
 }

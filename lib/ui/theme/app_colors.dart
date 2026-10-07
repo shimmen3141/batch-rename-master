@@ -20,6 +20,11 @@ class AppColors extends ThemeExtension<AppColors> {
   /// スクロールでも変わらない。
   final Color bar;
 
+  /// [bar] より一段薄い帯の面。browser と写真・動画の選択画面のいちばん上にある
+  /// 「リネーム画面へ戻る」の帯(`015:T01`)に使い、すぐ下の header と見分ける
+  /// (2026-10-07 の開発者の指定「ケバブメニューがある帯より一段階薄い色」)。
+  final Color barLight;
+
   /// 面を仕切る細い境界線。
   final Color border;
 
@@ -71,6 +76,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.surface,
     required this.surfaceElevated,
     required this.bar,
+    required this.barLight,
     required this.border,
     required this.rowDivider,
     required this.primary,
@@ -96,6 +102,8 @@ class AppColors extends ThemeExtension<AppColors> {
     // 既定の効果(surface tint)でこの程度に明るく紫がかっていた。その見え方をスポイトした
     // 色に、ヘッダー・フッターとも固定する。
     bar: Color(0xFF2E2B38),
+    // `bar` と同じ色相のまま明るさだけを一段上げた値。
+    barLight: Color(0xFF3D3A4A),
     border: Color(0x14FFFFFF),
     rowDivider: Color(0x1FFFFFFF),
     primary: Color(0xFF22D3EE),
@@ -122,6 +130,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? surface,
     Color? surfaceElevated,
     Color? bar,
+    Color? barLight,
     Color? border,
     Color? rowDivider,
     Color? primary,
@@ -142,6 +151,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surface: surface ?? this.surface,
       surfaceElevated: surfaceElevated ?? this.surfaceElevated,
       bar: bar ?? this.bar,
+      barLight: barLight ?? this.barLight,
       border: border ?? this.border,
       rowDivider: rowDivider ?? this.rowDivider,
       primary: primary ?? this.primary,
@@ -167,6 +177,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       bar: Color.lerp(bar, other.bar, t)!,
+      barLight: Color.lerp(barLight, other.barLight, t)!,
       border: Color.lerp(border, other.border, t)!,
       rowDivider: Color.lerp(rowDivider, other.rowDivider, t)!,
       primary: Color.lerp(primary, other.primary, t)!,

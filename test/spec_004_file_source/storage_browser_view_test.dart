@@ -904,7 +904,7 @@ void main() {
         expect(find.byKey(const Key('browser-up')), findsOneWidget);
       });
 
-      testWidgets('帯は header と色で見分けられる', (tester) async {
+      testWidgets('帯は header より一段薄い色で見分けられる(2026-10-07)', (tester) async {
         await openInFolder(tester);
 
         final band =
@@ -921,6 +921,19 @@ void main() {
               .first,
         );
         expect(band.color, isNot(header.color));
+        expect(band.color, AppColors.dark.barLight);
+      });
+
+      testWidgets('button は footer にあった「← リネーム画面へ」の形(枠付き)', (tester) async {
+        await openInFolder(tester);
+
+        final button = tester.widget<OutlinedButton>(
+          find.byKey(returnToRenameButtonKey),
+        );
+        const colors = AppColors.dark;
+        expect(button.style!.backgroundColor!.resolve({}), colors.background);
+        expect(button.style!.foregroundColor!.resolve({}), colors.primary);
+        expect(button.style!.side!.resolve({})!.color, colors.primary);
       });
 
       testWidgets('選択中に押しても「決定していない」で閉じる(004 REQ-001)', (tester) async {
