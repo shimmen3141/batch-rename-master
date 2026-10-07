@@ -231,12 +231,18 @@ Future<void> _expectRow(
     expect(_breadcrumb(tester), breadcrumb);
   }
 
-  // footer: 「← リネーム画面へ」は常に押せ、「確定」は選択があるときだけ押せる。
+  // footer: 「キャンセル」は常に押せ、「確定」は選択があるときだけ押せる。
   expect(
     tester.widget<OutlinedButton>(find.byKey(browserBackToRenameKey)).enabled,
     isTrue,
   );
-  expect(find.text('リネーム画面へ'), findsOneWidget);
+  expect(
+    find.descendant(
+      of: find.byKey(browserBackToRenameKey),
+      matching: find.text('キャンセル'),
+    ),
+    findsOneWidget,
+  );
   expect(
     tester
         .widget<FilledButton>(find.byKey(const Key('browser-confirm')))
@@ -1380,7 +1386,7 @@ void main() {
       expect(up.tooltip, '上のフォルダへ');
       expect(up.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
       final back = tester.getSemantics(find.byKey(browserBackToRenameKey));
-      expect(back.label, 'リネーム画面へ');
+      expect(back.label, browserCancelLabel);
       expect(back.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
       await tester.tap(find.byKey(const Key('browser-file-a1.txt')));
@@ -1573,28 +1579,47 @@ void main() {
       expect(message.dx, closeTo(screen.center.dx, 1), reason: '横の中央');
     });
 
-    testWidgets('「← リネーム画面へ」は狭い幅でも文言が切れない(2026-09-23)', (tester) async {
+    // 2026-10-07 の確認で「キャンセル」と「確定」の間に不自然な隙間があった(`015:T03`)。
+    testWidgets('footer の2つの button は同じ幅で横いっぱいに並ぶ', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _open(tester, _FakeBrowser(tree: _stateTree()));
+
+      final cancel = tester.getRect(find.byKey(browserBackToRenameKey));
+      final confirm = tester.getRect(find.byKey(const Key('browser-confirm')));
+      expect(cancel.left, closeTo(12, 0.5), reason: '左端は footer の余白だけ');
+      expect(confirm.right, closeTo(400 - 12, 0.5), reason: '右端も余白だけ');
+      expect(confirm.left - cancel.right, closeTo(8, 0.5), reason: '間は 8 だけ');
+      expect(cancel.width, closeTo(confirm.width, 0.5), reason: '同じ幅');
+    });
+
+    // 2026-09-23 の確認(当時の文言「← リネーム画面へ」が切れた)を、2026-10-07 の
+    // 文言「キャンセル」(`015:T03`)で確かめる。文字倍率 1.3 でも切れない。
+    testWidgets('「キャンセル」は狭い幅でも文言が切れず、矢印を付けない', (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 480));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await _open(tester, _FakeBrowser(tree: _stateTree()));
 
       expect(
         find.descendant(
           of: find.byKey(browserBackToRenameKey),
-          matching: find.byIcon(Icons.arrow_back),
+          matching: find.byType(Icon),
         ),
-        findsOneWidget,
+        findsNothing,
+        reason: '画面を切り替える操作ではなく、選択をやめる操作として読ませる',
       );
       final label = tester.renderObject<RenderParagraph>(
         find.descendant(
           of: find.descendant(
             of: find.byKey(browserBackToRenameKey),
-            matching: find.text('リネーム画面へ'),
+            matching: find.text(browserCancelLabel),
           ),
           matching: find.byType(RichText),
         ),
       );
-      expect(label.text.toPlainText(), 'リネーム画面へ');
+      expect(label.text.toPlainText(), browserCancelLabel);
       expect(label.didExceedMaxLines, isFalse);
       // **文言の本来の幅が、描かれた幅に収まっている**(「リネーム画面...」と切れない)。
       expect(

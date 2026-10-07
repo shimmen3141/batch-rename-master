@@ -2643,9 +2643,9 @@
     {
       "id": "M423",
       "file": "lib/ui/file_source/storage_browser_view.dart",
-      "note": "008:T39 footerで「確定」との間に`Spacer`を戻す — 「リネーム画面へ」が半分の幅になり文言が切れる(2026-09-23のエミュレータ確認)",
-      "find": "        const SizedBox(width: 8),\n        FilledButton(",
-      "replace": "        const SizedBox(width: 8),\n        const Spacer(),\n        FilledButton("
+      "note": "008:T39 footerで「確定」との間に`Spacer`を戻す — 「リネーム画面へ」が半分の幅になり文言が切れる(2026-09-23のエミュレータ確認)。015:T03 で両方を Expanded にした後も、隙間ができて幅が揃わなくなる",
+      "find": "        const SizedBox(width: 8),\n        Expanded(\n          child: FilledButton(",
+      "replace": "        const SizedBox(width: 8),\n        const Spacer(),\n        Expanded(\n          child: FilledButton("
     },
     {
       "id": "M424",
@@ -5054,6 +5054,69 @@
       "find": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'docx',\n    ],",
       "replace": "    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [\n      'doc',\n    ],",
       "note": "010:T10 docx の拡張子を知らない — Windows で docx が「文書」の絞り込みから漏れる(004 REQ-011)。**独立review attempt 1 の reviewer が設計した対照(R2)。KILLED**"
+    },
+    {
+      "id": "M794",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "const String browserCancelLabel = 'キャンセル';",
+      "replace": "const String browserCancelLabel = 'リネーム画面へ';",
+      "note": "015:T03 browser の footer 左下を「キャンセル」以外の文言に戻す(2026-10-07 の開発者の決定に反する)"
+    },
+    {
+      "id": "M795",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "child: const Text('キャンセル', overflow: TextOverflow.ellipsis),",
+      "replace": "child: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),",
+      "note": "015:T03 選択画面の footer 左下を browser と違う文言にする"
+    },
+    {
+      "id": "M796",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "        Expanded(\n          child: FilledButton(\n            key: const Key('browser-confirm'),",
+      "replace": "        Flexible(\n          child: FilledButton(\n            key: const Key('browser-confirm'),",
+      "note": "015:T03 browser の「確定」を横に伸ばさない — 「キャンセル」との間に不自然な隙間が戻る(2026-10-07 のエミュレータ確認)"
+    },
+    {
+      "id": "M797",
+      "file": "lib/ui/file_source/media_picker_view.dart",
+      "find": "          Expanded(\n            child: OutlinedButton(\n              key: mediaPickerBackKey,",
+      "replace": "          Flexible(\n            child: OutlinedButton(\n              key: mediaPickerBackKey,",
+      "note": "015:T03 選択画面の「キャンセル」を横に伸ばさない — browser と並びが食い違う"
+    },
+    {
+      "id": "M798",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "super(fullscreenDialog: true);",
+      "replace": "super(fullscreenDialog: false);",
+      "note": "015:T04 fullscreenDialog を外す — 下のリネーム画面が退場の動き(縮む)をしてしまう"
+    },
+    {
+      "id": "M799",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "Tween(begin: const Offset(0, 1), end: Offset.zero)",
+      "replace": "Tween(begin: const Offset(1, 0), end: Offset.zero)",
+      "note": "015:T04 横から出す — 下から出て下へ戻る動きにならない(2026-10-07 の開発者の決定に反する)"
+    },
+    {
+      "id": "M800",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;",
+      "replace": "if (MediaQuery.maybeDisableAnimationsOf(context) == null) return child;",
+      "note": "015:T04 端末の「アニメーションを削除」を無視して動かす"
+    },
+    {
+      "id": "M801",
+      "file": "lib/ui/file_source/modal_screen_route.dart",
+      "find": "Duration exitDuration = Duration(milliseconds: 250);",
+      "replace": "Duration exitDuration = Duration(milliseconds: 600);",
+      "note": "015:T04 閉じる動きを長くする(キャンセルしてから戻るまで待たせる)"
+    },
+    {
+      "id": "M802",
+      "file": "lib/main.dart",
+      "find": "      ModalScreenRoute(\n        builder: (_) => MediaPickerView(",
+      "replace": "      MaterialPageRoute(\n        builder: (_) => MediaPickerView(",
+      "note": "015:T04 写真・動画の選択画面だけ今までの開き方に戻す — browser と動きが食い違う"
     }
   ]
 }

@@ -34,12 +34,17 @@ const Key browserTitleKey = Key('browser-title');
 /// 現在地の帯(パンくず)。末尾以外の区切りは tap でその folder へ移る(`008:T40`)。
 const Key browserBreadcrumbKey = Key('browser-breadcrumb');
 
-/// footer 左下の「← リネーム画面へ」。**画面を閉じる唯一の導線**(`008:T38`)。
+/// footer 左下の「キャンセル」。**画面を閉じる唯一の導線**(`008:T38`)。
 ///
-/// 文言は2026-09-23 のエミュレータ確認で「リネーム画面に戻る」から短くした。
+/// 文言は2026-09-23 のエミュレータ確認で「リネーム画面に戻る」から「← リネーム画面へ」
+/// へ短くし、2026-10-07 に開発者が**矢印なしの「キャンセル」**へ変えた(`015:T03`。
+/// 画面を切り替える操作ではなく、この選択をやめる操作として読ませる)。
 ///
 /// 未確定の選択は捨て、「決定していない」を返す(004 REQ-001)。
 const Key browserBackToRenameKey = Key('browser-cancel');
+
+/// footer 左下の button の文言。写真・動画の選択画面も同じ文言にする。
+const String browserCancelLabel = 'キャンセル';
 
 /// パンくずの [index] 番目の区切り(0 が保存場所の root)。
 Key browserBreadcrumbSegmentKey(int index) => Key('browser-breadcrumb-$index');
@@ -68,7 +73,7 @@ Key browserBreadcrumbSeparatorKey(int index) =>
 ///
 /// **header・現在地の帯・footer の提示は `008:T38` の操作状態表が正本**である。
 /// 要点: header 左の位置を `←` と `×` が共有し(選択中は `×` = 全解除)、ケバブは
-/// 常に右端、画面を閉じるのは footer の「← リネーム画面へ」だけ。
+/// 常に右端、画面を閉じるのは footer の「キャンセル」だけ。
 class StorageBrowserView extends StatefulWidget {
   const StorageBrowserView({
     super.key,
@@ -712,7 +717,7 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
     sourceHandle: entry.path,
   );
 
-  /// footer。**左下の「← リネーム画面へ」が画面を閉じる唯一の導線**(`008:T38`)。
+  /// footer。**左下の「キャンセル」が画面を閉じる唯一の導線**(`008:T38`、`015:T03`)。
   ///
   /// 状態表のすべての行に出る。「確定」は選択があるときだけ押せる。
   Widget _footer(AppColors colors) => Container(
@@ -721,14 +726,13 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
       color: colors.bar,
       border: Border(top: BorderSide(color: colors.border)),
     ),
-    // **「確定」の残りを全部「リネーム画面へ」が使える**ようにする。`Spacer`と
-    // 分け合うと半分の幅しか無く、通常の文字サイズでも「リネーム画面...」と
-    // 切れていた(2026-09-23 のエミュレータ確認)。
+    // **2つの button を同じ幅で横いっぱいに並べる**(間に不自然な隙間を作らない。
+    // 2026-10-07 の開発者の確認。`015:T03`)。`Spacer` を挟むと「キャンセル」の幅が
+    // 減り、2026-09-23 には当時の文言「リネーム画面へ」が「リネーム画面...」と切れた。
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Flexible(
-          child: OutlinedButton.icon(
+        Expanded(
+          child: OutlinedButton(
             key: browserBackToRenameKey,
             style: OutlinedButton.styleFrom(
               backgroundColor: colors.background,
@@ -738,17 +742,20 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
             // **決定していない**(004 REQ-001)。`null` を返し、未確定の選択は捨てる。
             // rename 画面の既存状態は呼び出し側が保つ。
             onPressed: () => Navigator.of(context).pop(),
-            // **`←`付きの短い文言**(2026-09-23 の開発者の決定。`T38`の
-            // 「リネーム画面に戻る」を置き換えた)。
-            icon: const Icon(Icons.arrow_back, size: 18),
-            label: const Text('リネーム画面へ', overflow: TextOverflow.ellipsis),
+            // **矢印の無い「キャンセル」**(2026-10-07 の開発者の決定。`015:T03`)。
+            child: const Text(
+              browserCancelLabel,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        FilledButton(
-          key: const Key('browser-confirm'),
-          onPressed: _hasSelection ? _confirm : null,
-          child: const Text('確定'),
+        Expanded(
+          child: FilledButton(
+            key: const Key('browser-confirm'),
+            onPressed: _hasSelection ? _confirm : null,
+            child: const Text('確定'),
+          ),
         ),
       ],
     ),

@@ -554,6 +554,42 @@ void main() {
       expect(harness.closed, isTrue);
       expect(harness.result, isNull);
     });
+
+    testWidgets('閉じる button は browser と同じ「キャンセル」で、矢印を付けない(015:T03)', (
+      tester,
+    ) async {
+      await _open(tester, _FakeLibrary([_a]));
+
+      expect(
+        find.descendant(
+          of: find.byKey(mediaPickerBackKey),
+          matching: find.text('キャンセル'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(mediaPickerBackKey),
+          matching: find.byType(Icon),
+        ),
+        findsNothing,
+      );
+    });
+  });
+
+  group('footer の並び(015:T03)', () {
+    testWidgets('「キャンセル」と「確定」は browser と同じく、同じ幅で横いっぱいに並ぶ', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _open(tester, _FakeLibrary([_a]));
+
+      final cancel = tester.getRect(find.byKey(mediaPickerBackKey));
+      final confirm = tester.getRect(find.byKey(mediaPickerConfirmKey));
+      expect(cancel.left, closeTo(12, 0.5), reason: '左端は footer の余白だけ');
+      expect(confirm.right, closeTo(400 - 12, 0.5), reason: '右端も余白だけ');
+      expect(confirm.left - cancel.right, closeTo(8, 0.5), reason: '間は 8 だけ');
+      expect(cancel.width, closeTo(confirm.width, 0.5), reason: '同じ幅');
+    });
   });
 
   group('REQ-023: 見出しを押してその日をまとめて選ぶ(010:T08)', () {

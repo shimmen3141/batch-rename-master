@@ -9,6 +9,8 @@
   ],
   "tasks": [
     "tasks/T01-top-return-band",
-    "tasks/T02-decide-footer-return"
+    "tasks/T02-decide-footer-return",
+    "tasks/T03-footer-cancel-label",
+    "tasks/T04-modal-slide-transition"
   ]
 }

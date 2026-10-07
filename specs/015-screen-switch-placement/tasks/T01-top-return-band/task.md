@@ -38,10 +38,13 @@ Android の app 内 browser と写真・動画の選択画面の**いちばん�
 ## 作業記録
 
 - 2026-10-06 plan 015 の作成で足した。
+- 2026-10-06 着手(branch `asdd/015-screen-switch-placement/T01-top-return-band`、base `7f14151`)。実装 `f302e35`、独立review attempt 1 PASS(`7f14151..605dff2`、Sonnet)、Draft PR #229。
+- 2026-10-07 見比べ attempt 1: 開発者が調整を求めた(footer を「確定」だけに、帯の button を footer の形に、帯の色を header より一段薄く)。`a525233`・`1676715`(`T02` の分)で直し、attempt 2 を頼んだ。
+- 2026-10-07 attempt 2 の前に、開発者が**帯を廃止**すると決めた(plan.md の「人間の決定」)。**不採用。** PR #229 は merge せずに閉じ、branch は残す(head `de62801`。作業の詳細な記録はその branch の task.md にある)。受け入れ条件のうち「開発者が見比べ、採るかを決めている」だけを満たし、残りは採らないため対象外とする。後継は `T03`。
 
 ## Current state / handoff
 
-- Last checkpoint: 未着手
+- Last checkpoint: 完了(不採用。2026-10-07)
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 着手時に `in_progress` へ変え、branch を作る。手順書には今の配置(`dev`)のスクリーンショットを撮る手順も入れる
+- Evidence revision: なし(`dev` へ入れない)
+- Next Agent action: なし。後継は `T03`
