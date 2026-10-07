@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T57",
   "title": "リネーム画面の読み込みbuttonの文言を「ファイル選択」にする",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 232,
   "manualVerification": "manual-verification.md"
 }

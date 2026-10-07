@@ -57,9 +57,26 @@ M804 | KILLED | lib/ui/file_source/file_source_bar.dart
 
 - 004 `spec.md` の代表例 43・66 の「別フォルダへ」を「ファイル選択」へ言い換え、Status 行に記録を足した。要求(must)と結果は変えていないので再承認は求めていない。日付の付いた「由来の更新」節(425〜441 行あたり)と 002 の更新記録は当時の記録なので残した。
 
+### 独立review attempt 1
+
+- range `73006f1..649d8e1`(全範囲。`T57`・`T58`・`T59` と登録 `5c1449a` をまとめて)。reviewer: Codex **gpt-6-luna**(2026-10-07 の開発者の指定。実装は Claude Opus 5.5)。
+- 判定: **PASS**。P0〜P3 の指摘なし。
+- 確かめた点(要約): 文言と 004 代表例の言い換えは要求を変えていない。`stat` の失敗は entry 単位で空にして行を残し(REQ-017)、例外は結果型へ変わる(REQ-001)。並びと読めない entry の位置。帯と名前の強調は範囲内で、`作成日時: 不明` の赤・日時と大きさの順・警告・選択とつまみの枠を保つ。`T48` の大きさの test は変えていない。既存 test の変更3件は主張を緩めていない。mutation の削除・追加・`find` の追随は妥当。
+- reviewer の実行結果: `flutter analyze` No issues found、`dart format` PASS、`flutter test test/spec_004_file_source test/spec_002_file_list test/widget_test.dart test/spec_005_rename_exec` 996 PASS、`workspace.py check specs` PASS。reviewer が回した mutation(範囲付き):
+
+```text
+M115 | KILLED | M805 | KILLED | M806 | KILLED | M808 | KILLED
+M813 | KILLED | M816 | KILLED | M819 | KILLED
+7 mutations: 7 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- reviewer が足した mutation は無い。
+
 ## Current state / handoff
 
-- Last checkpoint: `de47cae`(文言と仕様の言い換え)
-- Blocker category: なし
-- Evidence revision: `a2b8516`(全件 test・mutation)
-- Next Agent action: `T59` まで実装したら、PR の範囲で独立review(gpt-6-luna)を起動する。manual-verification.md の対象 commit を埋める
+- Last checkpoint: handoff(`649d8e1`)。独立review attempt 1 PASS(`73006f1..649d8e1`)、Draft PR #232
+- Blocker category: manual-evidence
+- Evidence revision: `bc98865`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの確認。`T57`・`T58`・`T59` を同じ build で1回)
+- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
+- Next Agent action: 結果を task.md へ記録する。PASS なら PR #232 を ready にし、CI と merge 条件を確かめて merge する。値の調整を頼まれたら直し、差分review(`649d8e1..`)の後に再確認を頼む

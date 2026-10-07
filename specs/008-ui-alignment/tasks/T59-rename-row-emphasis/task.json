@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T59",
   "title": "リネーム画面の行で、名前と補足情報にメリハリを付ける",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 232,
   "manualVerification": "manual-verification.md"
 }
