@@ -70,9 +70,31 @@ M831 | KILLED | lib/ui/file_list/file_list_view.dart
 
 - `flutter test`(全件)@`66f9c33`: `01:11 +1430: All tests passed!`。`flutter analyze` No issues、`dart format` PASS。
 
+### 独立review attempt 1
+
+- range `f704d85..d0e2725`(全範囲。`T60` と `T61`)。reviewer: Codex **gpt-6-luna**(開発者の指定。実装は Claude Opus 5.5)。
+- 判定: **PASS**。P0/P1 なし。仕様(REQ-013・代表例・更新節・Status 行)が承認の範囲どおりで、行データの供給・REQ-011・005 REQ-009 との境界を保つこと、日時を一覧で1回だけ決めること、表示上の比較と不明のときにまとめないこと、強調の条件(`T50` を含む)、`Flexible` の下限、既存 test の書き換えが主張を緩めていないことを確かめた。reviewer の実行結果: `flutter analyze` No issues、`dart format` PASS、`flutter test` `01:09 +1430: All tests passed!`、`workspace.py check` PASS。reviewer が回した mutation(範囲付き):
+
+```text
+M163 | KILLED | M624 | KILLED | M826 | KILLED | M827 | KILLED | M828 | KILLED
+M829 | KILLED | M830 | KILLED | M831 | KILLED
+M832 | KILLED | Reviewer control: keep rule warning emphasis but drop createdAt sort emphasis
+9 mutations: 9 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- 指摘 P2 ×1(成果物の欠陥・記録): `T60`・`T61` の `task.json` の `pullRequest` が `null`(PR #233)。
+
+### SELF-CHECK(attempt 1 の後)
+
+- P2 を閉じた: 両方の `task.json` に `pullRequest: 233` を書いた。
+- reviewer の対照を **M832** として取り込んだ。`find` の一致 PASS(752)、`flutter test test/tooling` PASS、範囲付き(`flutter test test/spec_002_file_list`)で `M832 | KILLED`、`1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED`。`lib/`・`test/` は変えていないので再reviewは起動しない。
+- review の連鎖: `f704d85..d0e2725` PASS → `d0e2725..` SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: `66f9c33`
-- Blocker category: なし
-- Evidence revision: `66f9c33`
-- Next Agent action: 独立review(gpt-6-luna)、エミュレータ確認([manual-verification.md](manual-verification.md))
+- Last checkpoint: 独立review attempt 1 PASS(`f704d85..d0e2725`)。Draft PR #233
+- Blocker category: manual-evidence
+- Evidence revision: `66f9c33`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
+- Next Agent action: 結果を記録する。PASS なら `T60`・`T61` を done にし、PR #233 を ready にして merge する

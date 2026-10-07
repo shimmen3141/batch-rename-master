@@ -45,4 +45,4 @@
 - Last checkpoint: `8d63d6e`
 - Blocker category: なし
 - Evidence revision: `8d63d6e`
-- Next Agent action: `T61` と同じ PR で独立review。PASS で done
+- Next Agent action: 独立review attempt 1 は PASS(`T61` に記録)。`T61` の確認の後、merge と一緒に done にする
