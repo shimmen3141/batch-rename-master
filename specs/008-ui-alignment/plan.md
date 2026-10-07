@@ -152,6 +152,7 @@
 | 2026-10-03 | 読み込んでいない同名との重複を、実行buttonを押す前から出す(`T54`) | **新しい task として登録する**。読み込み時にフォルダの名前を取り、占有名は評価のたびに引く方針。数千件のフォルダの所要時間を実機で計測する | 開発者 |
 | 2026-10-04 | folder で行を束ねる案(`T24`) | **束ねない。** folder 行は所属 folder が1つのときだけ出す(`T56` の形)。折りたたみも採らない。folder をまたぐ一覧は主に `010` から来て、撮影日時で全体を並べて通しの連番を振る使い方と束ねる形が両立しないため。複数 folder の一覧での開き直しの入口は、読み込み元(album・全件)の単位で `010` が設ける(`product-map.md` へ申し送り) | 開発者 |
 | 2026-10-04 | 横向きの扱い(`T35`) | **電話では縦に固定する**(manifest の `screenOrientation="portrait"`)。**横向きの UI(幅で切り替わる2ペイン)は消さない** — ルール設定を開き直さずに編集できる価値がある。電話の横向きを解禁するか(横向きの電話 × 文字倍率 1.6〜1.9 以上で一覧とルールの固定部分が溢れるのを直す)は**将来候補**へ送った(`product-map.md`)。Android 16 以降は短辺 600dp 以上の端末で固定が無視されるが、その大きさでは文字倍率 2.0 でも溢れない | 開発者 |
+| 2026-10-07 | 読み込みbuttonの文言・browser の行・リネーム画面の行(`T57`〜`T59`) | 開発者が 015 の後に挙げた4点を、**別 plan にせず 008 の task として足す**(このplanはUI調整の受け皿で、判定・契約・permission は動かない)。(1)「別フォルダへ」を「ファイル選択」にし、読み込む前の「ファイルを選ぶ」も揃える → `T57`。(2) browser の preview を 56dp・行を 72dp にし、folder は塗った灰色の四角・preview を出せないファイルは線の四角、名前を少し大きく、2行目に更新日時(ファイルは大きさも)、folder を先にしてそれぞれ新しい順 → `T58`。写真・動画の選択画面の格子は今のまま(列数の問いに答えが無かった)。(3) リネーム画面の行は**案A**: 補足情報を薄い面の帯に入れ、変更後の名前を少し大きくする(見出し「変更前:」「変更後:」の案B、アイコン化の案Cは採らなかった)→ `T59`。開発者の原文: 「2 のメリハリは、推奨の案Aで進めてください。」 | 開発者 |
 
 出典: `specs/product-map.md`の「008へ引き継いだ人間の決定(planへ反映済み)」節。原文は凍結した[`specs/history/asdd-0.x-discovery.md`](../history/asdd-0.x-discovery.md)の44〜48行。
 
@@ -226,3 +227,7 @@ T37のエミュレータ確認報告では範囲選択は概ね機能したが�
 | T53 | [task.md](tasks/T53-warning-detail-grouping/task.md) |
 | T54 | [task.md](tasks/T54-occupied-names-at-load/task.md) |
 | T55 | [task.md](tasks/T55-rule-chip-symbol-overflow/task.md) |
+| T56 | [task.md](tasks/T56-implement-same-folder-reselect/task.md) |
+| T57 | [task.md](tasks/T57-file-select-label/task.md) |
+| T58 | [task.md](tasks/T58-browser-row-look/task.md) |
+| T59 | [task.md](tasks/T59-rename-row-emphasis/task.md) |

@@ -59,6 +59,9 @@
     "tasks/T53-warning-detail-grouping",
     "tasks/T54-occupied-names-at-load",
     "tasks/T55-rule-chip-symbol-overflow",
-    "tasks/T56-implement-same-folder-reselect"
+    "tasks/T56-implement-same-folder-reselect",
+    "tasks/T57-file-select-label",
+    "tasks/T58-browser-row-look",
+    "tasks/T59-rename-row-emphasis"
   ]
 }
