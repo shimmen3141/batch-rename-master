@@ -2,10 +2,10 @@
   "schema": "asdd.task/v1",
   "id": "T03",
   "title": "footer 左下の「← リネーム画面へ」を矢印なしの「キャンセル」にする",
-  "status": "in_progress",
+  "status": "blocked",
   "dependsOn": [],
   "covers": [],
   "issue": null,
-  "pullRequest": null,
+  "pullRequest": 230,
   "manualVerification": "manual-verification.md"
 }
