@@ -5222,6 +5222,20 @@
       "find": "        style: TextStyle(color: colors.textMuted, fontSize: rowNewNameFontSize),",
       "replace": "        style: TextStyle(color: colors.textMuted, fontSize: AppFontSize.bodyLarge),",
       "note": "008:T59 「変更なし」だけ以前の大きさに残す — 同じ位置の文字の大きさが行によって揃わない"
+    },
+    {
+      "id": "M821",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "            decoration: BoxDecoration(\n              border: Border.all(color: colors.primary),",
+      "replace": "            decoration: BoxDecoration(\n              color: colors.primary,\n              border: Border.all(color: colors.primary),",
+      "note": "008:T58 保存場所の四角を塗る — 2026-10-07 の要望「塗りつぶさずに枠だけ」に反し、アイコンも見えなくなる"
+    },
+    {
+      "id": "M822",
+      "file": "lib/ui/file_source/storage_browser_view.dart",
+      "find": "          key: Key('browser-location-${location.name}'),\n          minTileHeight: browserRowHeight,\n",
+      "replace": "          key: Key('browser-location-${location.name}'),\n",
+      "note": "008:T58 保存場所の行だけ以前の高さに戻す — folder・ファイルの行と大きさが揃わない(2026-10-07 の要望)"
     }
   ]
 }

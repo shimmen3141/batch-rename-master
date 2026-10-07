@@ -22,13 +22,16 @@ import 'package:flutter_test/flutter_test.dart';
 const _root = '/storage/emulated/0';
 
 class _FakeBrowser implements StorageBrowserPort {
-  _FakeBrowser(this.entries);
+  _FakeBrowser(
+    this.entries, {
+    this.locationList = const [StorageLocation(name: '内部ストレージ', root: _root)],
+  });
 
   final List<BrowserEntry> entries;
+  final List<StorageLocation> locationList;
 
   @override
-  Future<StorageLocations> locations() async =>
-      const StorageLocations([StorageLocation(name: '内部ストレージ', root: _root)]);
+  Future<StorageLocations> locations() async => StorageLocations(locationList);
 
   @override
   Future<DirectoryListing> list(String folder) async =>
@@ -75,6 +78,7 @@ final _entries = [
 Future<void> _open(
   WidgetTester tester, {
   List<BrowserEntry>? entries,
+  List<StorageLocation>? locations,
   Size size = const Size(411, 900),
   double textScale = 1.0,
 }) async {
@@ -90,7 +94,9 @@ Future<void> _open(
         child: child!,
       ),
       home: StorageBrowserView(
-        browser: _FakeBrowser(entries ?? _entries),
+        browser: locations == null
+            ? _FakeBrowser(entries ?? _entries)
+            : _FakeBrowser(entries ?? _entries, locationList: locations),
         preview: FakeFilePreview(
           byHandle: {'$_root/photo.jpg': PreviewReady(_png)},
         ),
@@ -218,6 +224,35 @@ void main() {
       tester.getTopLeft(_row('broken-link')).dy,
     ];
     expect(tops, [...tops]..sort());
+  });
+
+  testWidgets('保存場所の一覧も同じ大きさ: 行 72・シアンの線の四角(塗らない)・名前 15', (tester) async {
+    await _open(
+      tester,
+      locations: const [
+        StorageLocation(name: '内部ストレージ', root: _root),
+        StorageLocation(name: 'SD カード', root: '/storage/1234-ABCD'),
+      ],
+    );
+    final colors = AppColors.dark;
+
+    for (final name in ['内部ストレージ', 'SD カード']) {
+      final row = find.byKey(Key('browser-location-$name'));
+      expect(tester.getSize(row).height, browserRowHeight, reason: name);
+      final tile = _in(row, find.byKey(browserLocationTileKey));
+      expect(tester.getSize(tile), const Size.square(browserPreviewSize));
+      final decoration = _decorationOf(tester, tile);
+      expect(decoration.color, isNull, reason: '塗らない');
+      expect(decoration.border, Border.all(color: colors.primary));
+      expect(
+        tester.widget<Icon>(_in(row, find.byIcon(Icons.sd_storage))).color,
+        colors.primary,
+      );
+      expect(
+        tester.widget<Text>(_in(row, find.text(name))).style!.fontSize,
+        AppFontSize.titleLarge,
+      );
+    }
   });
 
   for (final width in [320.0, 360.0, 411.0]) {

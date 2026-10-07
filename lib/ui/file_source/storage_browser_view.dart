@@ -665,12 +665,33 @@ class _StorageBrowserViewState extends State<StorageBrowserView> {
           ),
         ),
       for (final location in _locations?.locations ?? const <StorageLocation>[])
+        // **folder・ファイルの行と同じ大きさにする**(`008:T58`。2026-10-07 の
+        // エミュレータ確認の要望)。四角はアイコンと同じシアンの**線**だけ(塗らない)。
         ListTile(
           key: Key('browser-location-${location.name}'),
-          leading: Icon(Icons.sd_storage, color: colors.primary, size: 20),
+          minTileHeight: browserRowHeight,
+          leading: Container(
+            key: browserLocationTileKey,
+            width: browserPreviewSize,
+            height: browserPreviewSize,
+            decoration: BoxDecoration(
+              border: Border.all(color: colors.primary),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              Icons.sd_storage,
+              color: colors.primary,
+              size: browserPreviewSize * 0.55,
+            ),
+          ),
           title: Text(
             location.name,
-            style: TextStyle(color: colors.textPrimary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: AppFontSize.titleLarge,
+            ),
           ),
           onTap: () => _enter(location),
         ),
@@ -822,6 +843,9 @@ const double browserRowHeight = 72;
 
 /// folder の塗った四角。
 const Key browserFolderTileKey = Key('browser-folder-tile');
+
+/// 保存場所の一覧の、シアンの線の四角。
+const Key browserLocationTileKey = Key('browser-location-tile');
 
 /// 行の2行目(更新日時・大きさ)。
 const Key browserRowDetailKey = Key('browser-row-detail');

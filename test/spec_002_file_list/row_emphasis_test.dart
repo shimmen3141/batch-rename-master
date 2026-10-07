@@ -92,6 +92,8 @@ void main() {
     final band = tester.widget<Container>(find.byKey(rowSubInfoKey));
     final decoration = band.decoration! as BoxDecoration;
     expect(decoration.color, AppColors.dark.rowSubInfoSurface);
+    // 紫がかった灰色の不透明な面(2026-10-07 のエミュレータ確認の要望)。
+    expect(AppColors.dark.rowSubInfoSurface, const Color(0xFF221F2B));
     expect(decoration.borderRadius, BorderRadius.circular(4));
 
     final bandRect = tester.getRect(find.byKey(rowSubInfoKey));
