@@ -17,6 +17,7 @@ import '../theme/app_colors.dart';
 import 'file_list_controller.dart';
 import 'file_size_format.dart';
 import 'row_date_format.dart';
+import 'row_dates.dart';
 import 'file_sort.dart';
 import 'header_metrics.dart';
 import 'removal_selection.dart';
@@ -72,10 +73,12 @@ Key removalMarkKeyOf(String handle) => ValueKey('removal-mark:$handle');
 const Key rowLocationKey = Key('row-location');
 
 /// 行サブ情報の作成日時(002 REQ-013)。**並び順chipや代替警告と同じ語を含む**ため、
-/// testが行の中の日時だけを指せるようにkeyを持たせる。
+/// testが行の中の日時だけを指せるようにkeyを持たせる。作成日時を使っているときだけ
+/// 出る(`008:T61`)。表示上同じ更新日時と1つにまとめた「作成・更新:」もこの key。
 const Key rowCreatedAtKey = Key('row-created-at');
 
 /// 行サブ情報の更新日時。狭幅では作成日時より先に削られる側である(008:T07)。
+/// 更新日時を使っているときは「更新:」付き、日時を使っていないときは見出しなし(`008:T61`)。
 const Key rowModifiedAtKey = Key('row-modified-at');
 
 /// 行サブ情報のファイルの大きさ(`008:T48`)。
@@ -244,6 +247,11 @@ class _FileListViewState extends State<FileListView> {
         final warnings = preview.warnings;
         // 005 REQ-020: ルールが空なら警告を提示しない。**行にも出さない。**
         final ruleIsEmpty = widget.controller.isRuleEmpty;
+        // 行の補足情報に出す日時は**一覧で1回だけ**決める(002 REQ-013。`008:T61`)。
+        final dateUse = rowDateUseOf(
+          widget.controller.sortMode,
+          widget.controller.rule,
+        );
         // 002 の決定(2026-09-18 再承認・`008:T22`): 行が場所を表示するのは
         // **一覧に複数の場所が混ざっているときだけ**である。1つだけなら読み込み帯が
         // 一覧全体として示すので、全行へ同じ名前が並ぶのは冗長になる(代表例 7b・7c)。
@@ -410,6 +418,7 @@ class _FileListViewState extends State<FileListView> {
                             index: index,
                             row: row,
                             sortMode: widget.controller.sortMode,
+                            dateUse: dateUse,
                             showLocation: showRowLocation,
                             filePreview: widget.filePreview,
                             // 005 REQ-009 (1): 種別が**展開操作を経ずに**読める。
@@ -1962,6 +1971,7 @@ class _FileRow extends StatefulWidget {
     required this.index,
     required this.row,
     required this.sortMode,
+    required this.dateUse,
     required this.showLocation,
     required this.filePreview,
     required this.warnings,
@@ -1980,6 +1990,9 @@ class _FileRow extends StatefulWidget {
 
   /// 現在のソート種別(作成日時が不明な行の強調条件に使う。REQ-013)。
   final FileSortMode sortMode;
+
+  /// 補足情報に出す日時(002 REQ-013。`008:T61`)。
+  final RowDateUse dateUse;
 
   /// この行に場所(元フォルダ)を出すか。
   ///
@@ -2162,6 +2175,7 @@ class _FileRowState extends State<_FileRow> {
                         _DateSubInfo(
                           file: row.source,
                           sortMode: widget.sortMode,
+                          dateUse: widget.dateUse,
                           showLocation: widget.showLocation,
                           dateWarned: rowHasMissingCreatedAt(row),
                         ),
@@ -2219,24 +2233,29 @@ class _FileRowState extends State<_FileRow> {
   }
 }
 
-/// 行のサブ情報: 場所(元フォルダ)と、作成日時・更新日時の双方(REQ-010 / REQ-013)。
+/// 行のサブ情報: 場所(元フォルダ)と、**並び順またはルールが使っている日時**、大きさ
+/// (REQ-010 / REQ-013。`008:T61` で「作成日時・更新日時の双方」から変えた)。
 ///
 /// 場所を出すのは**一覧に複数の場所が混ざっているときだけ**である(002 の決定。
 /// 2026-09-18 に開発者が再承認。代表例 7b・7c)。混ざっていれば別フォルダの同名
 /// ファイルを見分ける手がかりになり、1つだけなら読み込み帯が一覧全体として示す。
-/// 作成日時が不明な行は「作成日時: 不明」を危険色+警告アイコンで
+/// 作成日時を出していて不明な行は「作成: 不明」を(条件を満たせば)危険色+警告アイコンで
 /// 示し、更新日時で代替されたことを行レベルで見分けられるようにする。見た目は
 /// 非規範だが、色は [AppColors] のセマンティック名から取る(生の色値を書かない)。
 class _DateSubInfo extends StatelessWidget {
   const _DateSubInfo({
     required this.file,
     required this.sortMode,
+    required this.dateUse,
     required this.showLocation,
     required this.dateWarned,
   });
 
+  /// 出す日時(002 REQ-013。`008:T61`)。**並び順またはルールが使っている日時だけ。**
+  final RowDateUse dateUse;
+
   /// この行に「作成日時が取れない」警告がある(`008:T50`)。行の右端には書かず、
-  /// **ここの `作成日時: 不明` を赤で強調して種類を読ませる**(005 REQ-009 (1))。
+  /// **ここの `作成: 不明` を赤で強調して種類を読ませる**(005 REQ-009 (1))。
   final bool dateWarned;
 
   final FileEntry file;
@@ -2247,18 +2266,40 @@ class _DateSubInfo extends StatelessWidget {
   /// 場所を出すか(一覧に複数の場所が混ざっているときだけ真)。
   final bool showLocation;
 
+  /// 出す日時を、出す順に並べる(002 REQ-013。`008:T61`)。見出しは
+  /// 「作成:」「更新:」、表示上同じなら「作成・更新:」、どちらも使っていなければ
+  /// 見出しなしの更新日時(2026-10-07 の開発者の決定)。
+  List<({Key key, String text, bool emphasize})> _dateItems() {
+    final createdAt = file.createdAt;
+    final modified = formatRowDateTime(file.modifiedAt);
+    if (dateUse.none) {
+      return [(key: rowModifiedAtKey, text: modified, emphasize: false)];
+    }
+    final created = createdAt == null ? null : formatRowDateTime(createdAt);
+    // 強調(警告色+アイコン)は、並び順で作成日時を使っているとき(002 REQ-013)と、
+    // **ルールが作成日時を使って警告が出ているとき**(`008:T50`)だけ。
+    final emphasize =
+        created == null && (sortMode == FileSortMode.createdAt || dateWarned);
+    if (dateUse.created && dateUse.modified && created == modified) {
+      return [
+        (key: rowCreatedAtKey, text: '作成・更新: $modified', emphasize: false),
+      ];
+    }
+    return [
+      if (dateUse.created)
+        (
+          key: rowCreatedAtKey,
+          text: '作成: ${created ?? '不明'}',
+          emphasize: emphasize,
+        ),
+      if (dateUse.modified)
+        (key: rowModifiedAtKey, text: '更新: $modified', emphasize: false),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final createdAt = file.createdAt;
-    final unknown = createdAt == null;
-    // 表示は常にするが、強調(警告色+アイコン)は作成日時ソートのときだけ
-    // (他のソートでは日時は単なる情報で、強調は不要な警告になる。REQ-013)。
-    // 並び順で作成日時を使っているとき(002 REQ-013)と、**ルールが作成日時を使って
-    // 警告が出ているとき**(`008:T50`)に強調する。ルールが作成日時を使っていなければ
-    // 不明でも問題は無いので、灰色のまま。
-    final emphasize =
-        unknown && (sortMode == FileSortMode.createdAt || dateWarned);
     final base = TextStyle(
       color: colors.textMuted,
       fontSize: AppFontSize.caption,
@@ -2285,51 +2326,46 @@ class _DateSubInfo extends StatelessWidget {
               textKey: rowLocationKey,
               style: base,
             ),
-          // **2つの日時は `Wrap` に置く。** 横に並びきらなければ更新日時が
-          // 次の行へ落ち、作成日時は丸ごと残る。
+          // **日時は `Wrap` に置く。** 横に並びきらなければ後ろの日時が次の行へ
+          // 落ち、前の日時は丸ごと残る。
           //
           // `Row` で作成日時を「縮まない側」に置くと、幅が足りなくなった瞬間に
           // 省略ではなく **overflow** になる(独立review attempt 1 の P1-1)。
-          // 更新日時を削るだけでは足りず、作成日時自身にも下限が要る。
+          // 後ろを削るだけでは足りず、前の日時自身にも下限が要る。
           // ここでも「優先順位ではなく行数で解く」を一段深く適用している。
           Wrap(
             spacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (emphasize) ...[
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 11,
-                      color: colors.danger,
-                    ),
-                    const SizedBox(width: 3),
-                  ],
-                  // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
-                  // ほど狭いとき(極端な font scale など)に、はみ出させない。
-                  Flexible(
-                    child: Text(
-                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',
-                      key: rowCreatedAtKey,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: base.copyWith(
-                        color: emphasize ? colors.danger : colors.textMuted,
+              for (final item in _dateItems())
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item.emphasize) ...[
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 11,
+                        color: colors.danger,
+                      ),
+                      const SizedBox(width: 3),
+                    ],
+                    // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
+                    // ほど狭いとき(極端な font scale など)に、はみ出させない。
+                    Flexible(
+                      child: Text(
+                        item.text,
+                        key: item.key,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: base.copyWith(
+                          color: item.emphasize
+                              ? colors.danger
+                              : colors.textMuted,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              // 入りきらなければ**次の行へ落ちる**。作成日時を削らない。
-              Text(
-                '更新日時: ${formatRowDateTime(file.modifiedAt)}',
-                key: rowModifiedAtKey,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: base,
-              ),
+                  ],
+                ),
               // **大きさは日時の後ろ、ラベル無し**(`008:T48`。2026-10-01 の開発者の
               // 決定 A。参考designも `2.4 MB · 8/4 16:00` とラベルを付けない)。
               // 短いので、日時が2行に分かれる幅では更新日時の横へ収まる。

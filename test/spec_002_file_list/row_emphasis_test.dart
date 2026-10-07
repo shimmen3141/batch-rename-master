@@ -82,12 +82,9 @@ void main() {
       ),
     );
 
-    for (final key in [
-      rowLocationKey,
-      rowCreatedAtKey,
-      rowModifiedAtKey,
-      rowSizeKey,
-    ]) {
+    // 並び順もルールも日時を使っていないので、日時は見出しなしの更新日時だけ
+    // (002 REQ-013。`008:T61`)。
+    for (final key in [rowLocationKey, rowModifiedAtKey, rowSizeKey]) {
       expect(
         _paintedAncestorsOf(tester, find.byKey(key).first),
         isEmpty,
@@ -124,7 +121,7 @@ void main() {
     await tester.pump();
 
     final created = tester.widget<Text>(find.byKey(rowCreatedAtKey));
-    expect(created.data, '作成日時: 不明');
+    expect(created.data, '作成: 不明');
     expect(created.style!.color, AppColors.dark.danger);
     // 一覧上部の警告帯にも同じアイコンがあるので、作成日時と同じ `Row` の中を見る。
     expect(

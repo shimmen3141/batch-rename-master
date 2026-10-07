@@ -41,9 +41,10 @@ List<String> _locations(WidgetTester tester) => tester
     .map((w) => w.data!)
     .toList();
 
-/// 各行のサブ情報が示す作成日時(表示順)。
-List<String> _createdAts(WidgetTester tester) => tester
-    .widgetList<Text>(find.byKey(rowCreatedAtKey))
+/// 各行のサブ情報が示す日時(表示順)。並び順もルールも日時を使っていないので、
+/// **見出しなしの更新日時**である(002 REQ-013。`008:T61`)。
+List<String> _dates(WidgetTester tester) => tester
+    .widgetList<Text>(find.byKey(rowModifiedAtKey))
     .map((w) => w.data!)
     .toList();
 
@@ -64,7 +65,7 @@ void main() {
     expect(locations[0], '写真');
     expect(locations[1], '書類');
     // 場所だけでなく日時も出ている(サブ情報として同格。REQ-010)。
-    expect(_createdAts(tester).first, startsWith('作成日時: '));
+    expect(_dates(tester).first, '2026/8/4 16:00');
   });
 
   testWidgets('代表例7b: 場所が1種類なら行には出ない(REQ-010)', (tester) async {
@@ -81,7 +82,7 @@ void main() {
 
     expect(find.byKey(rowLocationKey), findsNothing);
     // **場所が消えても日時は残る**(消したのは場所だけである)。
-    expect(_createdAts(tester), hasLength(2));
+    expect(_dates(tester), hasLength(2));
   });
 
   testWidgets('1件だけのときも行には出ない(場所は1種類である)', (tester) async {
@@ -91,7 +92,7 @@ void main() {
     );
 
     expect(find.byKey(rowLocationKey), findsNothing);
-    expect(_createdAts(tester).single, startsWith('作成日時: '));
+    expect(_dates(tester).single, '2026/8/4 16:00');
   });
 
   testWidgets('別フォルダの同名ファイルは場所で見分けられる(REQ-010)', (tester) async {
@@ -134,7 +135,7 @@ void main() {
 
     // 場所の行そのものが出ない。日時は出る。
     expect(find.byKey(rowLocationKey), findsNothing);
-    expect(_createdAts(tester).single, startsWith('作成日時: '));
+    expect(_dates(tester).single, '2026/8/4 16:00');
   });
 
   testWidgets('場所を持たない行が混ざっても、場所は1種類なので行には出さない', (tester) async {
