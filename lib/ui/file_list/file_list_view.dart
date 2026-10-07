@@ -132,7 +132,7 @@ class FileListView extends StatefulWidget {
   ///
   /// **`null` なら自分で1つ持つ。** 一覧だけを描く画面(testや部分的な組み立て)では
   /// それで足りる。**製品では composition root が1つ作って読み込み帯とも共有する** —
-  /// モード中は帯の `別フォルダへ` と下部の帯も隠れるためである(`008:T29`)。
+  /// モード中は帯の `ファイル選択` と下部の帯も隠れるためである(`008:T29`)。
   final RemovalSelection? removalSelection;
 
   @override

@@ -88,7 +88,7 @@ class StorageBrowserView extends StatefulWidget {
 
   /// 一覧の所属 folder を開き直すときの起点(004 REQ-021 / REQ-015)。
   ///
-  /// `null` なら**保存場所から始まる**(REQ-015。「別フォルダへ」もこちら)。
+  /// `null` なら**保存場所から始まる**(REQ-015。「ファイル選択」もこちら)。
   /// 渡されたときは、その folder を含む保存場所へ入り、その folder を表示する。
   /// 含む保存場所が無ければ保存場所から始める(呼ぶ側が folder の実在を確かめている)。
   final String? initialFolder;

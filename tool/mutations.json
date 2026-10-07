@@ -1779,20 +1779,6 @@
       "note": "008:T08 場所を持たない行だけのときに「未選択」を出す — ファイルは入っているので嘘になる。「出さない」と「未選択」を区別している"
     },
     {
-      "id": "M268",
-      "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
-      "replace": "      'ファイルを選ぶ';",
-      "note": "008:T08 読み込み済みでも button が「ファイルを選ぶ」のまま — 要望11の文言の使い分けが消える(将来の「同じfolderから追加」と区別できない)"
-    },
-    {
-      "id": "M269",
-      "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
-      "replace": "      '別フォルダへ';",
-      "note": "008:T08 読み込み前から button が「別フォルダへ」 — まだどこも選んでいないのに『別の』と言う。逆向きの対照"
-    },
-    {
       "id": "M270",
       "file": "lib/ui/file_list/file_list_view.dart",
       "find": "          if (showLocation && file.sourceLocation != null)",
@@ -1819,13 +1805,6 @@
       "find": "        final showRowLocation =\n            rows\n                .map((r) => r.source.sourceLocation)\n                .whereType<String>()\n                .toSet()\n                .length >\n            1;",
       "replace": "        final showRowLocation =\n            rows\n                .map((r) => r.source.sourceLocation)\n                .toSet()\n                .length >\n            1;",
       "note": "008:T08 行側: null を場所の一種として数える — 場所を持たない行が混ざるだけで集合が水増しされ、名前が1つしか無いのに行へ場所が出る。独立review attempt 1 が置いた対照(R1)"
-    },
-    {
-      "id": "M274",
-      "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "  static String pickLabelOf(FileListController controller) =>\n      controller.items.isEmpty ? 'ファイルを選ぶ' : '別フォルダへ';",
-      "replace": "  static String pickLabelOf(FileListController controller) =>\n      controller.selectedCount == 0 ? 'ファイルを選ぶ' : '別フォルダへ';",
-      "note": "008:T08 「選択されていないとき」を一覧が空ではなく選択0件と取り違える — 行の checkbox を全部外すと button が『ファイルを選ぶ』へ戻る。独立review attempt 1 が置いた対照(R2)"
     },
     {
       "id": "M275",
@@ -3924,9 +3903,9 @@
     {
       "id": "M614",
       "file": "lib/ui/file_source/file_source_bar.dart",
-      "find": "                                child: Text(\n                                  FileSourceBar.pickLabelOf(widget.controller),\n                                  maxLines: 1,\n                                  overflow: TextOverflow.ellipsis,\n                                ),\n                              ),",
-      "replace": "                                child: Row(\n                                  mainAxisSize: MainAxisSize.min,\n                                  children: [\n                                    const Icon(Icons.playlist_add, size: 16),\n                                    Text(\n                                      FileSourceBar.pickLabelOf(widget.controller),\n                                      maxLines: 1,\n                                      overflow: TextOverflow.ellipsis,\n                                    ),\n                                  ],\n                                ),\n                              ),",
-      "note": "008:T10 読み込み button にアイコンを戻す(2026-10-01 の要望「『別フォルダへ』のボタンにあるアイコンを削除」)"
+      "find": "                                child: Text(\n                                  FileSourceBar.pickLabel,\n                                  maxLines: 1,\n                                  overflow: TextOverflow.ellipsis,\n                                ),\n                              ),",
+      "replace": "                                child: Row(\n                                  mainAxisSize: MainAxisSize.min,\n                                  children: [\n                                    const Icon(Icons.playlist_add, size: 16),\n                                    Text(\n                                      FileSourceBar.pickLabel,\n                                      maxLines: 1,\n                                      overflow: TextOverflow.ellipsis,\n                                    ),\n                                  ],\n                                ),\n                              ),",
+      "note": "008:T10 読み込み button にアイコンを戻す(2026-10-01 の要望「『別フォルダへ』のボタンにあるアイコンを削除」)  **008:T57 で文言を定数 `pickLabel` にしたので `find` を追随させた**"
     },
     {
       "id": "M615",
@@ -5117,6 +5096,20 @@
       "find": "      ModalScreenRoute(\n        builder: (_) => MediaPickerView(",
       "replace": "      MaterialPageRoute(\n        builder: (_) => MediaPickerView(",
       "note": "015:T04 写真・動画の選択画面だけ今までの開き方に戻す — browser と動きが食い違う"
+    },
+    {
+      "id": "M803",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "                                  FileSourceBar.pickLabel,",
+      "replace": "                                  widget.controller.items.isEmpty\n                                      ? FileSourceBar.pickLabel\n                                      : '別フォルダへ',",
+      "note": "008:T57 読み込んだ後だけ以前の「別フォルダへ」へ戻す — 2026-10-07 の決定(読み込む前も後も「ファイル選択」)の前の言い分けに戻る。M268/M269/M274(言い分けを守っていたもの)は言い分けが無くなったので外した"
+    },
+    {
+      "id": "M804",
+      "file": "lib/ui/file_source/file_source_bar.dart",
+      "find": "  static const String pickLabel = 'ファイル選択';",
+      "replace": "  static const String pickLabel = 'ファイルを選ぶ';",
+      "note": "008:T57 読み込む前の以前の文言に揃えてしまう — 開発者が指定した「ファイル選択」でなくなる"
     }
   ]
 }

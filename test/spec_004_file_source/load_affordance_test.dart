@@ -53,7 +53,7 @@ Future<void> _pump(WidgetTester tester, FileListController controller) async {
 /// 帯と一覧を**製品と同じ組み合わせ**で描く(`008:T29`)。
 ///
 /// `一覧を空にする` は一覧のケバブ(`すべてをリネーム対象から外す`)へ移り、
-/// 選択モード中は帯の `別フォルダへ` が隠れるので、**両方が同じ
+/// 選択モード中は帯の `ファイル選択` が隠れるので、**両方が同じ
 /// [RemovalSelection] を読む**形でないと確かめられない。
 Widget _barAndList(FileListController controller, RemovalSelection shared) =>
     MaterialApp(
@@ -275,16 +275,16 @@ void main() {
     });
   });
 
-  testWidgets('読み込み前は「未選択」と「ファイルを選ぶ」(要望11)', (tester) async {
+  testWidgets('読み込み前は「未選択」と「ファイル選択」(要望11・008:T57)', (tester) async {
     await _pump(tester, FileListController(files: const []));
 
     expect(_location(tester), '未選択');
-    expect(_pickLabel(tester), 'ファイルを選ぶ');
-    // **逆向きも固定する。** 読み込み前に「別フォルダへ」が出てはならない。
-    expect(find.text('別フォルダへ'), findsNothing);
+    expect(_pickLabel(tester), 'ファイル選択');
+    // 以前の言い分け(読み込む前は「ファイルを選ぶ」)へ戻していない。
+    expect(find.text('ファイルを選ぶ'), findsNothing);
   });
 
-  testWidgets('場所が1つなら、その folder 名と「別フォルダへ」(要望11)', (tester) async {
+  testWidgets('場所が1つなら、その folder 名と「ファイル選択」(要望11・008:T57)', (tester) async {
     await _pump(
       tester,
       FileListController(
@@ -296,9 +296,9 @@ void main() {
     );
 
     expect(_location(tester), 'Camera');
-    expect(_pickLabel(tester), '別フォルダへ');
-    // 読み込み後に「ファイルを選ぶ」へ戻らない。
-    expect(find.text('ファイルを選ぶ'), findsNothing);
+    expect(_pickLabel(tester), 'ファイル選択');
+    // 以前の言い分け(読み込んだ後は「別フォルダへ」)へ戻していない。
+    expect(find.text('別フォルダへ'), findsNothing);
   });
 
   testWidgets('場所が2つ以上なら、具体名を出さず複数であることだけを示す(要望12)', (tester) async {
@@ -316,7 +316,7 @@ void main() {
     // **どちらの folder 名も帯には出ない**(要望12: 具体的なフォルダ名を表示しない)。
     expect(find.text('写真'), findsNothing);
     expect(find.text('ダウンロード'), findsNothing);
-    expect(_pickLabel(tester), '別フォルダへ');
+    expect(_pickLabel(tester), 'ファイル選択');
   });
 
   testWidgets('場所を持たない行だけのときは、嘘の場所も「未選択」も出さない', (tester) async {
@@ -330,7 +330,7 @@ void main() {
     expect(_location(tester), isNull);
     expect(find.text('未選択'), findsNothing);
     // button の文言は読み込み済みとして扱う(一覧は空でない)。
-    expect(_pickLabel(tester), '別フォルダへ');
+    expect(_pickLabel(tester), 'ファイル選択');
   });
 
   testWidgets('場所を持たない行が混ざっても、名前は1つなので「複数のフォルダ」にしない', (tester) async {
@@ -350,7 +350,7 @@ void main() {
     expect(find.text('複数のフォルダ'), findsNothing);
   });
 
-  testWidgets('一覧を空にすると「未選択」と「ファイルを選ぶ」へ戻る(両方向)', (tester) async {
+  testWidgets('一覧を空にすると「未選択」へ戻る(両方向)', (tester) async {
     final controller = FileListController(
       files: [_entry('a.jpg', handle: 'h:a', location: 'Camera')],
     );
@@ -364,10 +364,10 @@ void main() {
     await clearAllFiles(tester);
 
     expect(_location(tester), '未選択');
-    expect(_pickLabel(tester), 'ファイルを選ぶ');
+    expect(_pickLabel(tester), 'ファイル選択');
   });
 
-  testWidgets('選択モード中は「別フォルダへ」を出さない(008:T29)', (tester) async {
+  testWidgets('選択モード中は「ファイル選択」を出さない(008:T29)', (tester) async {
     // 外す作業の最中に読み込み直しの導線が並んでいると、一覧が丸ごと置き換わる
     // 操作(004 REQ-004)と取り違えやすい。**帯そのもの(場所)は隠さない。**
     //
@@ -413,7 +413,7 @@ void main() {
   });
 
   testWidgets('モードの出入りで帯の高さが変わらない(008:T30 要望1)', (tester) async {
-    // `別フォルダへ` を隠すと枠(縦 padding + 枠線)が丸ごと消え、帯が場所の
+    // `ファイル選択` を隠すと枠(縦 padding + 枠線)が丸ごと消え、帯が場所の
     // ラベルの高さまで縮んで**下の一覧が跳ねる**(2026-09-19 の実機確認)。
     // **「だいたい同じ」ではなく同じ値**を見る。
     final controller = FileListController(
@@ -480,7 +480,7 @@ void main() {
     expect(_location(tester), 'Camera');
   });
 
-  testWidgets('選択を全部外してもファイルは入っているので「別フォルダへ」のまま', (tester) async {
+  testWidgets('選択を全部外してもファイルは入っているので帯は場所を示したまま', (tester) async {
     // 要望11の「ファイルが選択されていないとき」は**一覧が空のとき**と読んでいる。
     // 行の checkbox を全部外しただけなら、読み込み先を選び直す導線の意味は変わらない。
     final controller = FileListController(
@@ -493,7 +493,7 @@ void main() {
 
     expect(controller.selectedCount, 0);
     expect(_location(tester), 'Camera');
-    expect(_pickLabel(tester), '別フォルダへ');
+    expect(_pickLabel(tester), 'ファイル選択');
   });
   testWidgets('帯と一覧を同じ画面に組んでも、場所の出し分けが食い違わない(008:T10)', (tester) async {
     // `008:T08` から引き受けた残余risk。帯(`locationLabelOf`)と行(`showRowLocation`)は

@@ -85,7 +85,7 @@ class _DemoWorkspaceState extends State<DemoWorkspace> {
   );
 
   /// 除去のための選択モード(002 REQ-018)。**読み込み帯と一覧で同じものを使う** —
-  /// モード中は帯の `別フォルダへ` と下部の帯も隠れるためである(`008:T29`)。
+  /// モード中は帯の `ファイル選択` と下部の帯も隠れるためである(`008:T29`)。
   final RemovalSelection _removalSelection = RemovalSelection();
 
   /// 一覧の読み込み元(004 REQ-024。`010:T09`)。帯が記録し、帯と一覧の入口が読む。
