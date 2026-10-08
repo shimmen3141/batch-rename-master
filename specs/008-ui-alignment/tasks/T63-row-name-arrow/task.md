@@ -50,7 +50,7 @@ M833 | KILLED | M839 | KILLED | M841 | KILLED | M842 | KILLED
 
 ## Current state / handoff
 
-- Last checkpoint: `2ec1184`
+- Last checkpoint: `2ec1184`。Draft PR #235
 - Blocker category: なし
 - Evidence revision: `2ec1184`
 - Next Agent action: 独立review attempt 1(gpt-6-luna)、その後エミュレータ確認
