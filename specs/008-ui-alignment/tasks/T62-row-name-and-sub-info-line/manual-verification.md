@@ -1,7 +1,7 @@
 # 008 / T62 manual確認: 変更前の名前の色と補足情報の縦線
 
 - 対象 branch: `asdd/008-ui-alignment/T62-row-name-and-sub-info-line`
-- 対象 commit(code): `afc1137` 以後(この後の commit は `specs/` の記録だけ)。attempt 1 は `ef4dacb`
+- 対象 commit(code): `c6f6185` 以後(この後の commit は `specs/` の記録だけ)。attempt 1 は `ef4dacb`
 - 起動手順: [`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。branch の移動は不要(`/workspace` がこの branch にある)
 
 ## 手順と期待結果

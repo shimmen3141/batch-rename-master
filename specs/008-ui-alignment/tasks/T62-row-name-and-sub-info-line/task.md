@@ -29,8 +29,8 @@
 
 - [ ] 補足情報が縦線ごと、名前の左端からわずかに字下げされる(attempt 1 の要望)。
   - 証拠: widget test。
-- [ ] 大きさが有効数字3桁・1024 刻み・1000 に届いたら次の単位で書かれ、最長7文字。
-  - 証拠: `row_file_size_test.dart` の単体 test。
+- [ ] 大きさが有効数字3桁・1024 刻み・1000 に届いたら次の単位(EB まで)で書かれ、`int` で表せるどの大きさでも7文字以下。
+  - 証拠: `row_file_size_test.dart` の単体 test(0 から `int` の最大まで)。
 
 - [ ] 変更前の名前と矢印が本文の色で、変更前の名前は変更後の名前より小さく太字でない。
   - 証拠: widget test(`row_name_hierarchy_test.dart` の色の主張を今回の決定へ更新)。
@@ -87,7 +87,7 @@ M835 | KILLED | M836 | KILLED | M837 | KILLED
 ### checkpoint 2: 字下げと大きさの書き方(`afc1137`)
 
 - `_DateSubInfo` の外側の `Padding` に `left: rowSubInfoIndent`(4)を足した。線と文字の間 6・線の太さ 3 は変えていない。
-- `formatFileSize`: 1000 未満は `B`(丸めない)。それ以上は 1024 刻みで、有効数字3桁(1未満・10未満は小数2桁、100未満は1桁、それ以上は整数)。**丸めた値が 1000 に届いたら次の単位**(`999.6 KB` → `0.98 MB`、`1023 KB` → `1.00 MB`、`1023 MB` → `1.00 GB`)。丸めで桁が上がったら小数を減らす(`9.995 KB` → `10.0 KB`)。GB より上は持たない(`1500 GB`)。
+- `formatFileSize`: 1000 未満は `B`(丸めない)。それ以上は 1024 刻みで、有効数字3桁(1未満・10未満は小数2桁、100未満は1桁、それ以上は整数)。**丸めた値が 1000 に届いたら次の単位**(`999.6 KB` → `0.98 MB`、`1023 KB` → `1.00 MB`、`1023 MB` → `1.00 GB`)。丸めで桁が上がったら小数を減らす(`9.995 KB` → `10.0 KB`)。~~GB より上は持たない(`1500 GB`)~~ → **attempt 2 の P1 で EB まで持つようにした**(checkpoint 3)。
 - 大きさが2文字短くなったので(`1023.0 MB` 9文字 → 最長7文字)、**字下げ 4・間 6 のままで `T48` の test が変更なしで PASS**(320/360/411dp × 1.0/1.3/2.0)。その test の「いちばん長い書き方」は `0.98 GB`(1000 MB)へ変えた(以前の最長 `1023.0 MB` は `1.00 GB` になり、最長ではなくなった)。
 - test:
   - `row_file_size_test.dart`: 書き方の単体 test を新しい規則へ書き直した(境界・繰り上げ・桁の調整・GB より上・**1500 GB までの最長が7文字以下**)。行の test の期待値 `2.4 MB` → `2.40 MB`。
@@ -103,9 +103,29 @@ M825 | KILLED | M834 | KILLED | M836 | KILLED | M838 | KILLED | M839 | KILLED
 
 - `flutter test`(全件)@`afc1137`: `00:54 +1435: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(759)。
 
+### 独立review attempt 2(差分review)
+
+- range `e721139..991bb96`。reviewer: Codex **gpt-6-luna**。
+- 判定: **FAIL**(この task の FAIL 累計 1)。
+- 指摘 P1(成果物の欠陥): 「最長7文字」「有効数字3桁」と「GB より大きい単位は持たない」が両立しない。`10000 GB` が8文字になり、1000 GB 以上は有効数字3桁でもない。単体 test が 1500 GB までに範囲を限っていて検出しなかった。
+- 確認された点: 字下げが線と中身をまとめて下げ、名前・矢印・線と文字の間・補足の中身を変えていない。書き方の境界・繰り上げ・桁の調整・browser への波及の test、`browser_row_look_test.dart` の期待値の更新が書き方の変更に伴うものであること、`T48` の test 本体が変わっていないこと。reviewer の実行結果: `flutter test` `00:55 +1435: All tests passed!`、analyze・format・`workspace.py check` PASS、mutation M617〜M619・M838・M839 は `5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED`。
+
+### checkpoint 3: attempt 2 の P1 の修正(`c6f6185`)
+
+- 単位を `KB`〜`EB` まで持たせ、「最後の単位なら 1000 以上でも書く」条件を外した。`int` の最大(2^63 - 1)は `8.00 EB` なので、どの大きさも有効数字3桁・7文字以下になる。
+- test: 単体 test の範囲を **0 から `int` の最大まで**(1% ずつ)へ広げ、全部の値で有効数字3桁以下・最長7文字以下を確かめる。TB・PB・EB の例(`1.46 TB`・`9.77 TB`・`1.00 PB`・`8.00 EB`)を足した。`T48` の幅の test の入力 `0.98 GB` は、どの大きさも7文字以下で test の字体 Ahem では7文字はどれも同じ幅なので、最長を代表する(comment に書いた)。
+- mutation: M618 の `find` を追随させ、M840(単位を GB で止める)を足した。範囲付き(`flutter test test/spec_002_file_list test/spec_004_file_source`、対象 `c6f6185`、5件):
+
+```text
+M617 | KILLED | M618 | KILLED | M619 | KILLED | M838 | KILLED | M840 | KILLED
+5 mutations: 5 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`c6f6185`: `00:57 +1435: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(760)。
+
 ## Current state / handoff
 
-- Last checkpoint: `afc1137`。Draft PR #234
+- Last checkpoint: `c6f6185`。Draft PR #234
 - Blocker category: なし
-- Evidence revision: `afc1137`
-- Next Agent action: 差分review attempt 2(`e721139..head`。`lib/`・`test/`・`tool/` に差分があるので full regression)、その後エミュレータ確認 attempt 2
+- Evidence revision: `c6f6185`
+- Next Agent action: 差分review attempt 3(`991bb96..head`。full regression)、その後エミュレータ確認 attempt 2
