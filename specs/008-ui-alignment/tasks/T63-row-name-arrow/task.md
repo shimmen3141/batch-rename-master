@@ -48,9 +48,17 @@ M833 | KILLED | M839 | KILLED | M841 | KILLED | M842 | KILLED
 
 - `flutter test`(全件)@`2ec1184`: `01:07 +1435: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(762)。
 
+### 独立review attempt 1
+
+- range `21f9d93..5395214`(全範囲)。reviewer: Codex **gpt-6-luna**(開発者の指定。実装は Claude Opus 5.5)。
+- 判定: **PASS**。指摘なし。glyph・大きさ・間の変更が要望どおりで、色・変更後の名前・補足情報の字下げの基準・溢れを変えていないこと、test の更新が glyph の置き換えと大きさの追加に限られること、M833 の追随と M841・M842 が妥当なこと、記録が差分と食い違わないことを確かめた。reviewer の実行結果: `flutter test` `01:00 +1435: All tests passed!`、analyze・format・`workspace.py check` PASS。範囲付き mutation(M833・M839・M841・M842)は `4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
+- **reviewer の log では、M842 が1回 `SURVIVED` と出た**(`4 mutations: 3 KILLED, 1 SURVIVED`)。log を読むと、reviewer が**同じ worktree で mutation_check を2本同時に走らせていた**(227秒と241秒でほぼ同時に終わった)。一方が file を元に戻した後で、もう一方の test が走ったためと見られる。reviewer が M842 だけを回し直すと `1 mutations: 1 KILLED`、test file を絞っても KILLED だった。M842 を捕まえるのは `row_name_hierarchy_test.dart` の `getSize(...).width == 18`(値を直に書いた主張)。**`arrow.size == rowNameArrowSize` は定数どうしを比べるだけで、M842 を捕まえない**。所有側の実行(checkpoint 1)でも KILLED だった。
+
 ## Current state / handoff
 
-- Last checkpoint: `2ec1184`。Draft PR #235
-- Blocker category: なし
-- Evidence revision: `2ec1184`
-- Next Agent action: 独立review attempt 1(gpt-6-luna)、その後エミュレータ確認
+- Last checkpoint: 独立review attempt 1 PASS(`21f9d93..5395214`)。Draft PR #235
+- Blocker category: manual-evidence
+- Evidence revision: `2ec1184`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの確認)
+- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
+- Next Agent action: 結果を記録する。調整の指示があれば直して差分review。PASS なら `T63` を done にし、PR #235 を ready にして merge する
