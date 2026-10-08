@@ -47,9 +47,29 @@
 
 - 2026-10-08 登録・着手。branch `asdd/008-ui-alignment/T62-row-name-and-sub-info-line`(起点 `dev`@`406f8e3`)。
 
+### checkpoint 1: 実装(`ef4dacb`。登録は `9ed134f`)
+
+- `rowCurrentNameColorOf` を `textPrimary` にし、`→` も同じ関数の色にした(`rowNameArrowKey` を足した)。大きさ 11.5・太さ通常はそのまま。
+- `_DateSubInfo` の `Column` を `Container(key: rowSubInfoLineKey)` で包み、`BoxDecoration` の `border` で**左だけ**に線を引いた(太さ `rowSubInfoLineWidth = 3`、色 `rowSubInfoLineColorOf` = `textMuted`(補足の文字と同じ灰)、線と文字の間 `rowSubInfoLineGap = 6`)。面の色は付けない。
+- 横幅が 9dp 減るが、`row_file_size_test.dart` の 320dp × 文字倍率 2.0 で大きさが削られない(`T48`)は**変更なしで PASS**。
+- test:
+  - `row_name_hierarchy_test.dart`: 色の主張を `T10`(本文の白より暗く、`textMuted` より明るく)から今回の決定(本文の色。赤ではない)へ**更新した**。大きさ・太さの主張はそのまま。`→` の色の test を足した。
+  - `row_sub_info_line_test.dart`(新規): 線が左だけ・太さ・色・面を塗らない。場所・作成日時・大きさが線の箱の中で、線の高さの内側、線の右から始まる。現在名・変更後名・`→` は線の外で、線より上。
+  - 補足情報を塗った面で包まないこと(`row_emphasis_test.dart`)・溢れないこと・強調の条件の既存 test は変更なしで PASS。
+- mutation: 字下げが深くなった M163・M164・M281・M616・M620 の `find` を追随させ、M825(帯が戻る)を縦線の装飾へ面の色を足す形へ追随させた。M609・M610 は `T10` の向きから今回の向きへ置き換えた(灰へ戻す・赤にする)。M833〜M837 を足した。範囲付き(`flutter test test/spec_002_file_list test/spec_005_rename_exec test/widget_test.dart`、対象 `ef4dacb`、13件):
+
+```text
+M163 | KILLED | M164 | KILLED | M281 | KILLED | M609 | KILLED | M610 | KILLED
+M616 | KILLED | M620 | KILLED | M825 | KILLED | M833 | KILLED | M834 | KILLED
+M835 | KILLED | M836 | KILLED | M837 | KILLED
+13 mutations: 13 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`ef4dacb` 相当の作業木: `01:18 +1433: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(757)。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録
+- Last checkpoint: `ef4dacb`
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 実装
+- Evidence revision: `ef4dacb`
+- Next Agent action: 独立review attempt 1(gpt-6-luna)、その後エミュレータ確認([manual-verification.md](manual-verification.md))
