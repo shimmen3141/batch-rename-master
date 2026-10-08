@@ -69,7 +69,7 @@ M835 | KILLED | M836 | KILLED | M837 | KILLED
 
 ## Current state / handoff
 
-- Last checkpoint: `ef4dacb`
+- Last checkpoint: `ef4dacb`。Draft PR #234
 - Blocker category: なし
 - Evidence revision: `ef4dacb`
 - Next Agent action: 独立review attempt 1(gpt-6-luna)、その後エミュレータ確認([manual-verification.md](manual-verification.md))
