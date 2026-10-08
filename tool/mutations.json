@@ -5275,9 +5275,9 @@
     {
       "id": "M833",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                                size: rowNameArrowSize,\n                                color: rowCurrentNameColorOf(colors),\n",
-      "replace": "                                size: rowNameArrowSize,\n                                color: colors.textMuted,\n",
-      "note": "008:T62 `→` を以前の薄い灰へ戻す(開発者の決定「変更前と矢印を白に近い色に」) **008:T63 で大きさを定数にしたので `find` を追随させた**"
+      "find": "                                  size: rowNameArrowSize,\n                                  color: rowCurrentNameColorOf(colors),\n",
+      "replace": "                                  size: rowNameArrowSize,\n                                  color: colors.textMuted,\n",
+      "note": "008:T62 `→` を以前の薄い灰へ戻す(開発者の決定「変更前と矢印を白に近い色に」) **008:T63 で大きさを定数にしたので `find` を追随させた** **008:T63 attempt 1 の要望で `Transform.scale` に包み字下げが深くなったので `find` を追随させた**"
     },
     {
       "id": "M834",
@@ -5341,6 +5341,27 @@
       "find": "const double rowNameArrowSize = 18;",
       "replace": "const double rowNameArrowSize = 12;",
       "note": "008:T63 `→` を以前の 12 に戻す — 細い glyph が小さくなり矢印に見えにくい"
+    },
+    {
+      "id": "M843",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowNameArrowScale = 22 / 18;",
+      "replace": "const double rowNameArrowScale = 1;",
+      "note": "008:T63 `→` を拡大しない — 矢尻が目立たない(2026-10-08 のエミュレータ確認 attempt 1 の要望「もう一回り大きく」)"
+    },
+    {
+      "id": "M844",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                              padding: const EdgeInsets.only(right: 4),\n                              // 変更前の名前と同じ色",
+      "replace": "                              padding: const EdgeInsets.only(right: 2),\n                              // 変更前の名前と同じ色",
+      "note": "008:T63 拡大した `→` の分を空けない — 描いた矢印が変更後名に付く"
+    },
+    {
+      "id": "M845",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowNameArrowSize = 18;",
+      "replace": "const double rowNameArrowSize = 22;",
+      "note": "008:T63 拡大ではなく大きさそのものを上げる — 名前の行が 2dp 高くなる(行の間隔 66 → 68)"
     }
   ]
 }
