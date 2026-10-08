@@ -1,0 +1,11 @@
+{
+  "schema": "asdd.task/v1",
+  "id": "T62",
+  "title": "リネーム画面の行で、変更前の名前と矢印を白に近い色にし、補足情報の左に縦線を引く",
+  "status": "in_progress",
+  "dependsOn": [],
+  "covers": [],
+  "issue": null,
+  "pullRequest": null,
+  "manualVerification": "manual-verification.md"
+}

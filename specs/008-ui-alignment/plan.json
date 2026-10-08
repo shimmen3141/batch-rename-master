@@ -64,6 +64,7 @@
     "tasks/T58-browser-row-look",
     "tasks/T59-rename-row-emphasis",
     "tasks/T60-define-sub-info-dates",
-    "tasks/T61-implement-sub-info-dates"
+    "tasks/T61-implement-sub-info-dates",
+    "tasks/T62-row-name-and-sub-info-line"
   ]
 }
