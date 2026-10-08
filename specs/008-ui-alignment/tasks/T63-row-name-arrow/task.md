@@ -35,9 +35,22 @@
 
 - 2026-10-08 登録・着手。branch `asdd/008-ui-alignment/T63-row-name-arrow`(起点 `dev`@`21f9d93`)。
 
+### checkpoint 1: 実装(`2ec1184`。登録は `6afbe3c`)
+
+- `→` を `Icons.arrow_right_alt`・大きさ `rowNameArrowSize = 18`・間 `right: 2` にした。色は `T62` のまま。
+- test: `row_name_hierarchy_test.dart` の `→` の test で、glyph の主張を `arrow_forward` → `arrow_right_alt` に更新し、大きさ(18)を足した。他の test は変更なしで PASS(狭幅 × 文字倍率の溢れ、`T62` の字下げの基準を含む)。
+- mutation: M833 の `find` を追随させ(大きさを定数にした)、M841(glyph を戻す)・M842(大きさを 12 に戻す)を足した。範囲付き(`flutter test test/spec_002_file_list test/spec_005_rename_exec test/widget_test.dart`、対象 `2ec1184`、4件):
+
+```text
+M833 | KILLED | M839 | KILLED | M841 | KILLED | M842 | KILLED
+4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED
+```
+
+- `flutter test`(全件)@`2ec1184`: `01:07 +1435: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(762)。
+
 ## Current state / handoff
 
-- Last checkpoint: 登録
+- Last checkpoint: `2ec1184`
 - Blocker category: なし
-- Evidence revision: なし
-- Next Agent action: 実装
+- Evidence revision: `2ec1184`
+- Next Agent action: 独立review attempt 1(gpt-6-luna)、その後エミュレータ確認

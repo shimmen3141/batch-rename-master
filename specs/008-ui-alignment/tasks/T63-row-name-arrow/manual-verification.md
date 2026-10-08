@@ -1,7 +1,7 @@
 # 008 / T63 manual確認: 変更前後をつなぐ矢印
 
 - 対象 branch: `asdd/008-ui-alignment/T63-row-name-arrow`
-- 対象 commit(code): 実装の commit 以後(task.md の作業記録)
+- 対象 commit(code): `2ec1184` 以後(この後の commit は `specs/` の記録だけ)
 - 起動手順: [`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。branch の移動は不要(`/workspace` がこの branch にある)
 
 ## 手順と期待結果
