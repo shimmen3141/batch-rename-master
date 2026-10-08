@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T63",
   "title": "リネーム画面の行で、変更前後をつなぐ矢印を軸が長く矢じりが小さい形にする",
-  "status": "blocked",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,

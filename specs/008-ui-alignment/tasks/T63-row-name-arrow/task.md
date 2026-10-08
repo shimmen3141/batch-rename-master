@@ -18,13 +18,13 @@
 
 ## 受け入れ条件
 
-- [ ] `→` が `Icons.arrow_right_alt`・本文の色で、取る場所 18・描く大きさ 22 相当(行の高さを変えない。attempt 1 の要望)。
+- [x] `→` が `Icons.arrow_right_alt`・本文の色で、取る場所 18・描く大きさ 22 相当(行の高さを変えない。attempt 1 の要望)。
   - 証拠: widget test(`row_name_hierarchy_test.dart`)。
-- [ ] 既存の行の保証が成り立つ(既存の test が変更なしで PASS。glyph を主張する test だけ更新する)。
+- [x] 既存の行の保証が成り立つ(既存の test が変更なしで PASS。glyph を主張する test だけ更新する)。
   - 証拠: `flutter test`。
-- [ ] 開発者が Android エミュレータで矢印の見え方を確かめている。
+- [x] 開発者が Android エミュレータで矢印の見え方を確かめている。
   - 証拠: [manual-verification.md](manual-verification.md)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -82,11 +82,14 @@ M843 | KILLED | M844 | KILLED | M845 | KILLED
 - 判定: **PASS**。指摘なし。描画だけ 22 相当で場所は 18 のまま、行の高さ・色・変更後名・間を test が検査していること、`T62` の字下げの test の基準の変更が主張を緩めていないこと、M833 の追随と M843〜M845 が妥当なことを確かめた。reviewer の実行結果: `flutter test` `00:51 +1436: All tests passed!`、analyze・format・`workspace.py check` PASS。範囲付き mutation(M833・M843・M844・M845、1本ずつ)は `4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
 - review の連鎖: `21f9d93..5395214` PASS → `5395214..3678ebd` 記録だけ → `3678ebd..37057ba` PASS。
 
+### エミュレータ確認 attempt 2(2026-10-08)
+
+- 開発者が Android エミュレータで [manual-verification.md](manual-verification.md) の手順を実施。**PASS**(原文: 「問題ありませんでした。」)。
+- 対象: code `d6656a5`(branch head `9ab5f90`。`d6656a5` 以後は `specs/` の記録だけで、`lib/`・`test/`・`tool/`・依存・build 設定の差分は無い)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 2 PASS(`3678ebd..37057ba`)。Draft PR #235
-- Blocker category: manual-evidence
-- Evidence revision: `d6656a5`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの確認 attempt 2)
-- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を記録する。PASS なら `T63` を done にし、PR #235 を ready にして merge する
+- Last checkpoint: エミュレータ確認 attempt 2 PASS。review の連鎖 `21f9d93..5395214` PASS → 記録 → `3678ebd..37057ba` PASS → 以後は記録だけ
+- Blocker category: なし
+- Evidence revision: `d6656a5`
+- Next Agent action: なし(PR #235 の merge で完了)
