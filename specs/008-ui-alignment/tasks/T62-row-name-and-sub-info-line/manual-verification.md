@@ -1,7 +1,7 @@
 # 008 / T62 manual確認: 変更前の名前の色と補足情報の縦線
 
 - 対象 branch: `asdd/008-ui-alignment/T62-row-name-and-sub-info-line`
-- 対象 commit(code): `ef4dacb` 以後(この後の commit は `specs/` の記録だけ)
+- 対象 commit(code): `afc1137` 以後(この後の commit は `specs/` の記録だけ)。attempt 1 は `ef4dacb`
 - 起動手順: [`docs/development/emulator-verification.md`](../../../../docs/development/emulator-verification.md)。branch の移動は不要(`/workspace` がこの branch にある)
 
 ## 手順と期待結果
@@ -17,7 +17,12 @@
    - 赤いのは変更後の名前と右端の警告だけで、変更前の名前は白に近い色のまま。
 5. 行を長押しして選択モードにする。
    - 選ばれた行(面が染まる)でも縦線が見える。
+6. (attempt 2)補足情報の字下げと大きさの書き方を見る。
+   - 補足情報が縦線ごと、名前の左端(`→`)から少し右へ下がっている(4dp)。
+   - 大きさが有効数字3桁で出る(例: `2.40 MB`、`12.3 MB`、`0.98 GB`)。`1023.0 MB` のような書き方は出ない。
+   - app 内の browser(ファイル選択)の行の2行目の大きさも同じ書き方になっている。
 
 ## 結果
 
-未実施。結果は会話で自由に伝えてもらい、Agent が task.md へ記録する。
+- attempt 1(2026-10-08、`ef4dacb`): 開発者「悪くないですが、補足情報を縦線も含めてわずかにインデントしてほしいです。」→ 字下げと大きさの書き方を直した(`afc1137`。task.md の checkpoint 2)。
+- attempt 2: 未実施。
