@@ -70,30 +70,52 @@ bool _isTruncated(WidgetTester tester, Finder text) {
 }
 
 void main() {
-  group('大きさの書き方(参考design の fmtSize + GB)', () {
-    test('1024 未満は B', () {
+  group('大きさの書き方(有効数字3桁、1024 刻み、1000 に届いたら次の単位。008:T62)', () {
+    test('1000 未満は B(丸めない)', () {
       expect(formatFileSize(0), '0 B');
-      expect(formatFileSize(1023), '1023 B');
+      expect(formatFileSize(999), '999 B');
     });
 
-    test('KB は整数に丸める', () {
-      expect(formatFileSize(1024), '1 KB');
-      expect(formatFileSize(1535), '1 KB');
-      expect(formatFileSize(1536), '2 KB');
-      expect(formatFileSize(1024 * 1023), '1023 KB');
+    test('1000 B からは KB。1未満・10未満は小数2桁、100未満は1桁、それ以上は整数', () {
+      expect(formatFileSize(1000), '0.98 KB');
+      expect(formatFileSize(1024), '1.00 KB');
+      expect(formatFileSize(1536), '1.50 KB');
+      expect(formatFileSize(10230), '9.99 KB');
+      expect(formatFileSize(102350), '100 KB');
+      expect(formatFileSize(1023487), '999 KB');
     });
 
-    test('MB は小数1桁。丸めで 1024 KB に届くものは 1.0 MB と書く', () {
-      expect(formatFileSize(1024 * 1024 - 1), '1.0 MB');
-      expect(formatFileSize(1024 * 1024), '1.0 MB');
-      expect(formatFileSize(2516582), '2.4 MB');
-      expect(formatFileSize(1024 * 1024 * 1023), '1023.0 MB');
+    test('丸めで桁が上がったら小数を1桁減らす(4桁にしない)', () {
+      // 9.995 KB → `10.00` ではなく `10.0`。
+      expect(formatFileSize(10235), '10.0 KB');
+      // 99.96 KB → `100.0` ではなく `100`。
+      expect(formatFileSize(102359), '100 KB');
     });
 
-    test('GB は小数1桁。丸めで 1024.0 MB に届くものは 1.0 GB と書く', () {
-      expect(formatFileSize(1024 * 1024 * 1024 - 1), '1.0 GB');
-      expect(formatFileSize(1024 * 1024 * 1024), '1.0 GB');
-      expect(formatFileSize((5.3 * 1024 * 1024 * 1024).round()), '5.3 GB');
+    test('値が 1000 に届いたら(丸めで届いたものも)次の単位で書く', () {
+      // 1023 KB は 0.999 MB。`1023 KB` とは書かない。
+      expect(formatFileSize(1024 * 1023), '1.00 MB');
+      // 999.6 KB は丸めると 1000 KB に届くので MB。
+      expect(formatFileSize(1023590), '0.98 MB');
+      expect(formatFileSize(1024 * 1024), '1.00 MB');
+      expect(formatFileSize(2516582), '2.40 MB');
+      // 以前は `1023.0 MB`(9文字)だった。
+      expect(formatFileSize(1024 * 1024 * 1023), '1.00 GB');
+      expect(formatFileSize(1024 * 1024 * 1000), '0.98 GB');
+      expect(formatFileSize(1288490189), '1.20 GB');
+    });
+
+    test('GB より大きい単位は持たない(1000 GB 以上は整数の GB)', () {
+      expect(formatFileSize(1024 * 1024 * 1024 * 1500), '1500 GB');
+    });
+
+    test('1500 GB までのどの大きさでも、7文字以下', () {
+      var longest = '';
+      for (var b = 0; b < 1024 * 1024 * 1024 * 1500; b = b * 1.01 ~/ 1 + 1) {
+        final text = formatFileSize(b);
+        if (text.length > longest.length) longest = text;
+      }
+      expect(longest.length, lessThanOrEqualTo(7), reason: longest);
     });
   });
 
@@ -103,7 +125,7 @@ void main() {
 
       final size = find.byKey(rowSizeKey);
       expect(size, findsOneWidget);
-      expect(tester.widget<Text>(size).data, '2.4 MB');
+      expect(tester.widget<Text>(size).data, '2.40 MB');
       // 補足情報の中で、更新日時より後ろ(右か下)にある。
       final sizeRect = tester.getRect(size);
       final modified = tester.getRect(find.byKey(rowModifiedAtKey));
@@ -130,8 +152,8 @@ void main() {
             tester,
             size: Size(width, 800),
             textScale: scale,
-            // いちばん長い書き方(`1023.0 MB`)で測る。
-            bytes: 1024 * 1024 * 1023,
+            // いちばん長い書き方(7文字。`0.98 GB`)で測る。
+            bytes: 1024 * 1024 * 1000,
           );
           expect(errors, isEmpty);
           // 作成日時の省略は**この変更の前から字体と幅で決まる**(test の Ahem は

@@ -92,6 +92,12 @@ void main() {
         ),
       );
     }
+    // 線ごと、名前の左端(`→` の左端)からわずかに字下げする(attempt 1 の要望)。
+    expect(rowSubInfoIndent, greaterThan(0));
+    expect(
+      lineRect.left,
+      tester.getRect(_first(rowNameArrowKey)).left + rowSubInfoIndent,
+    );
     for (final key in [rowCurrentNameKey, rowNewNameKey, rowNameArrowKey]) {
       expect(
         find.descendant(of: line, matching: _first(key)),

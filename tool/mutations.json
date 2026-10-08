@@ -3924,23 +3924,23 @@
     {
       "id": "M617",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  final kb = (bytes / k).round();",
-      "replace": "  final kb = (bytes / k).floor();",
-      "note": "008:T48 KB の丸めを切り捨てにする(参考design の fmtSize は Math.round)"
+      "find": "  if (bytes < 1000) return '$bytes B';",
+      "replace": "  if (bytes < 1024) return '$bytes B';",
+      "note": "008:T62 B を 1023 まで残す — `1000 B` の4桁になり、1000 に届いたら次の単位の規則に反する。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「KB の丸めを切り捨てにする」)"
     },
     {
       "id": "M618",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  if (kb < k) return '$kb KB';",
-      "replace": "  if (kb <= k) return '$kb KB';",
-      "note": "008:T48 丸めで 1024 KB に届いたものを MB へ上げない(`1024 KB` と出る)"
+      "find": "    if (double.parse(text) < 1000 || i == units.length - 1) {",
+      "replace": "    if (value < 1000 || i == units.length - 1) {",
+      "note": "008:T62 丸めで 1000 に届いたもの(999.6 KB)を次の単位へ上げない(`1000 KB` と出る)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024 KB に届いたものを MB へ上げない」)"
     },
     {
       "id": "M619",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  if (double.parse(mb.toStringAsFixed(1)) < k) {",
-      "replace": "  if (mb < k) {",
-      "note": "008:T48 丸めで 1024.0 MB に届いたものを GB へ上げない(`1024.0 MB` と出る)"
+      "find": "  while (digits > 0 && double.parse(text) >= (digits == 2 ? 10 : 100)) {",
+      "replace": "  while (digits < 0 && double.parse(text) >= (digits == 2 ? 10 : 100)) {",
+      "note": "008:T62 丸めで桁が上がったときに小数を減らさない(`10.00 KB` の4桁になる)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024.0 MB に届いたものを GB へ上げない」)"
     },
     {
       "id": "M620",
@@ -5306,6 +5306,20 @@
       "find": "const double rowSubInfoLineWidth = 3;",
       "replace": "const double rowSubInfoLineWidth = 1;",
       "note": "008:T62 縦線を細くする — 開発者の「太めの縦線」に反し、区切り線と見分けにくい"
+    },
+    {
+      "id": "M838",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "    final text = _threeSignificant(value);",
+      "replace": "    final text = value.toStringAsFixed(1);",
+      "note": "008:T62 有効数字3桁ではなく、以前の小数1桁で書く(`1023.0 MB` の9文字が戻り、狭い行で大きさが削られる)"
+    },
+    {
+      "id": "M839",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      padding: const EdgeInsets.only(top: 2, left: rowSubInfoIndent),",
+      "replace": "      padding: const EdgeInsets.only(top: 2),",
+      "note": "008:T62 補足情報を線ごと字下げしない(2026-10-08 のエミュレータ確認 attempt 1 の要望「縦線も含めてわずかにインデント」)"
     }
   ]
 }

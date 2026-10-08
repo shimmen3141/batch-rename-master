@@ -2312,8 +2312,9 @@ class _DateSubInfo extends StatelessWidget {
     // 代わりに**左に縦線を引いて、補足情報を1つのまとまりにする**(`008:T62`。
     // 2026-10-08 の開発者の決定。原文は「補足情報の左辺に太めの縦線を引く(notionの
     // 引用のような感じ)ことで、補足情報を強調せずにまとまりにできる」)。面は塗らない。
+    // **線ごとわずかに字下げする**(2026-10-08 のエミュレータ確認 attempt 1 の要望)。
     return Padding(
-      padding: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.only(top: 2, left: rowSubInfoIndent),
       child: Container(
         key: rowSubInfoLineKey,
         padding: const EdgeInsets.only(left: rowSubInfoLineGap),
@@ -2502,6 +2503,10 @@ const double rowSubInfoLineWidth = 3;
 
 /// 縦線と補足情報の文字の間。
 const double rowSubInfoLineGap = 6;
+
+/// 補足情報(縦線を含む)の、名前の左端からの字下げ(`008:T62`。2026-10-08 の
+/// エミュレータ確認 attempt 1 の要望「縦線も含めてわずかにインデント」)。
+const double rowSubInfoIndent = 4;
 
 /// 補足情報の左の縦線の色。**補足情報の文字と同じ灰**で、強調しない。
 Color rowSubInfoLineColorOf(AppColors colors) => colors.textMuted;
