@@ -71,11 +71,34 @@ void main() {
     expect(current.color, isNot(colors.danger));
   });
 
-  testWidgets('「→」は現在名と同じ本文の色(008:T62)', (tester) async {
+  testWidgets('「→」は現在名と同じ本文の色(008:T62)で、軸が長く矢じりが小さい形(008:T63)', (tester) async {
     await _pump(tester);
 
     final arrow = tester.widget<Icon>(find.byKey(rowNameArrowKey));
-    expect(arrow.icon, Icons.arrow_forward);
+    // 以前の `arrow_forward` は軸が短く矢じりが大きかった(2026-10-08 の開発者の要望)。
+    expect(arrow.icon, Icons.arrow_right_alt);
     expect(arrow.color, AppColors.dark.textPrimary);
+  });
+
+  testWidgets('「→」は一回り大きく描くが、名前の行の高さは変えない(008:T63 attempt 1)', (tester) async {
+    await _pump(tester);
+
+    // 行に取る場所は 18。
+    final box = tester.getRect(find.byKey(rowNameArrowScaleKey));
+    expect(box.width, 18);
+    expect(box.height, 18);
+    // 描くのは 22 相当(矢尻が目立たなかったので一回り大きく)。中心は場所の中心のまま。
+    final drawn = tester.getRect(find.byKey(rowNameArrowKey));
+    expect(drawn.width, closeTo(22, 0.01));
+    expect(drawn.center.dx, closeTo(box.center.dx, 0.01));
+    expect(drawn.center.dy, closeTo(box.center.dy, 0.01));
+    // 描いた矢印と変更後名の間を空ける(拡大した分で詰まらない)。
+    expect(
+      drawn.right + 2,
+      lessThanOrEqualTo(tester.getRect(find.byKey(rowNewNameKey)).left),
+    );
+    // 名前の行の高さは変更後名の文字で決まる(矢印で高くならない)。
+    final newName = tester.getRect(find.byKey(rowNewNameKey));
+    expect(box.height, lessThanOrEqualTo(newName.height));
   });
 }

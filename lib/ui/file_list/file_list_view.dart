@@ -2156,13 +2156,30 @@ class _FileRowState extends State<_FileRow> {
                         Row(
                           children: [
                             Padding(
+                              // glyph の左右に余白(24 のうち 4 ずつ)がある。拡大した分
+                              // (下の `Transform.scale`)は右へはみ出すので、その分を空ける。
                               padding: const EdgeInsets.only(right: 4),
                               // 変更前の名前と同じ色(`008:T62`)。
-                              child: Icon(
-                                Icons.arrow_forward,
-                                key: rowNameArrowKey,
-                                size: 12,
-                                color: rowCurrentNameColorOf(colors),
+                              //
+                              // **軸が長く矢じりが小さい `arrow_right_alt`**(`008:T63`。
+                              // 2026-10-08 の開発者の要望「矢印が短く見える(逆に矢の部分が
+                              // 大きい)」)。以前の `arrow_forward` は正方形に大きな矢じりと
+                              // 短い軸を描く。線が細い glyph なので大きさを 12 → 18 にした。
+                              //
+                              // **描くときだけ一回り大きくする**(2026-10-08 のエミュレータ
+                              // 確認 attempt 1 の要望「矢尻が目立たなくなったので、もう一回り
+                              // 大きく」)。この glyph は矢じりだけを大きくできないので全体を
+                              // 拡大する。大きさそのものを上げると名前の行が 2dp 高くなる
+                              // (行の間隔 66 → 68)ので、場所は 18 のまま取る。
+                              child: Transform.scale(
+                                key: rowNameArrowScaleKey,
+                                scale: rowNameArrowScale,
+                                child: Icon(
+                                  Icons.arrow_right_alt,
+                                  key: rowNameArrowKey,
+                                  size: rowNameArrowSize,
+                                  color: rowCurrentNameColorOf(colors),
+                                ),
                               ),
                             ),
                             Expanded(
@@ -2494,6 +2511,15 @@ Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;
 
 /// 現在名と変更後名の間の `→`。
 const Key rowNameArrowKey = Key('row-name-arrow');
+
+/// `→` が行に取る大きさ(`008:T63`)。名前の行の高さを変えない。
+const double rowNameArrowSize = 18;
+
+/// `→` を描くときの拡大率(`008:T63` attempt 1 の要望)。見た目は 22dp 相当。
+const double rowNameArrowScale = 22 / 18;
+
+/// `→` を拡大する `Transform`。
+const Key rowNameArrowScaleKey = Key('row-name-arrow-scale');
 
 /// 補足情報(場所・日時・大きさ)を包み、左に縦線を引く箱(`008:T62`)。
 const Key rowSubInfoLineKey = Key('row-sub-info-line');

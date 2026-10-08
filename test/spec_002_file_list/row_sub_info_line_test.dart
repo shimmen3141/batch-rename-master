@@ -92,11 +92,12 @@ void main() {
         ),
       );
     }
-    // 線ごと、名前の左端(`→` の左端)からわずかに字下げする(attempt 1 の要望)。
+    // 線ごと、名前の左端(`→` が取る場所の左端)からわずかに字下げする(attempt 1 の
+    // 要望)。`→` は描くときだけ拡大する(`008:T63`)ので、拡大前の場所で測る。
     expect(rowSubInfoIndent, greaterThan(0));
     expect(
       lineRect.left,
-      tester.getRect(_first(rowNameArrowKey)).left + rowSubInfoIndent,
+      tester.getRect(_first(rowNameArrowScaleKey)).left + rowSubInfoIndent,
     );
     for (final key in [rowCurrentNameKey, rowNewNameKey, rowNameArrowKey]) {
       expect(
