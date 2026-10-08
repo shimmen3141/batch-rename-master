@@ -1137,16 +1137,16 @@
     {
       "id": "M163",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                    Flexible(\n                      child: Text(\n                        item.text,\n                        key: item.key,\n                        maxLines: 1,\n                        overflow: TextOverflow.ellipsis,",
-      "replace": "                    SizedBox(\n                      child: Text(\n                        item.text,\n                        key: item.key,\n                        maxLines: 1,",
-      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる  **008:T58 で日時の書式を `formatRowDateTime` へ出したので `find` を追随させた**  **008:T61 で日時を `_dateItems` から並べる形にしたので `find` を追随させた**(下限はどの日時にも付く)"
+      "find": "                      Flexible(\n                        child: Text(\n                          item.text,\n                          key: item.key,\n                          maxLines: 1,\n                          overflow: TextOverflow.ellipsis,",
+      "replace": "                      SizedBox(\n                        child: Text(\n                          item.text,\n                          key: item.key,\n                          maxLines: 1,",
+      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる  **008:T58 で日時の書式を `formatRowDateTime` へ出したので `find` を追随させた**  **008:T61 で日時を `_dateItems` から並べる形にしたので `find` を追随させた**(下限はどの日時にも付く) **008:T62 で補足情報を縦線の `Container` で包み字下げが2つ深くなったので `find` を追随させた**"
     },
     {
       "id": "M164",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
-      "replace": "      child: Row(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
-      "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる。`008:T08` が場所の表示条件を変えたときに comment ごと追随させた(守る対象は不変)"
+      "find": "        child: Column(\n          crossAxisAlignment: CrossAxisAlignment.start,\n          mainAxisSize: MainAxisSize.min,\n          children: [\n            // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
+      "replace": "        child: Row(\n          crossAxisAlignment: CrossAxisAlignment.start,\n          mainAxisSize: MainAxisSize.min,\n          children: [\n            // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**",
+      "note": "008:T07 場所を日時と同じ行へ戻す — 場所が幅を使い切り日時が読めなくなる。`008:T08` が場所の表示条件を変えたときに comment ごと追随させた(守る対象は不変) **008:T62 で補足情報を縦線の `Container` で包み字下げが2つ深くなったので `find` を追随させた**"
     },
     {
       "id": "M165",
@@ -1851,9 +1851,9 @@
     {
       "id": "M281",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "            SourcePathText(\n              text: file.sourceLocation!,\n              textKey: rowLocationKey,\n              style: base,\n            ),",
-      "replace": "            Text(\n              file.sourceLocation!,\n              key: rowLocationKey,\n              maxLines: 1,\n              overflow: TextOverflow.ellipsis,\n              style: base,\n            ),",
-      "note": "008:T23 行を素の Text へ戻す — 混在時にどの行も共通の接頭辞だけを出し、行が場所を出す目的(どの行がどのfolderか見分ける。002 代表例 7c)が果たせなくなる"
+      "find": "              SourcePathText(\n                text: file.sourceLocation!,\n                textKey: rowLocationKey,\n                style: base,\n              ),",
+      "replace": "              Text(\n                file.sourceLocation!,\n                key: rowLocationKey,\n                maxLines: 1,\n                overflow: TextOverflow.ellipsis,\n                style: base,\n              ),",
+      "note": "008:T23 行を素の Text へ戻す — 混在時にどの行も共通の接頭辞だけを出し、行が場所を出す目的(どの行がどのfolderか見分ける。002 代表例 7c)が果たせなくなる **008:T62 で補足情報を縦線の `Container` で包み字下げが2つ深くなったので `find` を追随させた**"
     },
     {
       "id": "M282",
@@ -3868,16 +3868,16 @@
     {
       "id": "M609",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;",
-      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;",
-      "note": "008:T10 現在名を本文の白へ戻す(2026-10-01 の要望「変更前の名前の色を薄く」)"
+      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;",
+      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;",
+      "note": "008:T62 現在名と `→` を `T10` の灰へ戻す(2026-10-08 の開発者の決定「変更前と矢印を白に近い色に」)。以前は `T10` で逆向き(白へ戻す)の mutation だった"
     },
     {
       "id": "M610",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;",
-      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.textMuted;",
-      "note": "008:T10 現在名を最も薄い段にする — 小さい字で読めなくなる下限の対照"
+      "find": "Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;",
+      "replace": "Color rowCurrentNameColorOf(AppColors colors) => colors.danger;",
+      "note": "008:T62 現在名を赤にする — 赤は問題があることだけに使う(2026-10-08 の相談で採らなかった案)。以前は `T10` の「最も薄い段」の対照"
     },
     {
       "id": "M611",
@@ -3917,37 +3917,37 @@
     {
       "id": "M616",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "              Text(\n                formatFileSize(file.size),\n                key: rowSizeKey,\n                maxLines: 1,\n                style: base,\n              ),\n",
+      "find": "                Text(\n                  formatFileSize(file.size),\n                  key: rowSizeKey,\n                  maxLines: 1,\n                  style: base,\n                ),\n",
       "replace": "",
-      "note": "008:T48 行の補足情報から大きさを落とす(2026-10-01 の開発者の要望「ファイルのサイズの情報も入れたい」)"
+      "note": "008:T48 行の補足情報から大きさを落とす(2026-10-01 の開発者の要望「ファイルのサイズの情報も入れたい」) **008:T62 で補足情報を縦線の `Container` で包み字下げが2つ深くなったので `find` を追随させた**"
     },
     {
       "id": "M617",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  final kb = (bytes / k).round();",
-      "replace": "  final kb = (bytes / k).floor();",
-      "note": "008:T48 KB の丸めを切り捨てにする(参考design の fmtSize は Math.round)"
+      "find": "  if (bytes < 1000) return '$bytes B';",
+      "replace": "  if (bytes < 1024) return '$bytes B';",
+      "note": "008:T62 B を 1023 まで残す — `1000 B` の4桁になり、1000 に届いたら次の単位の規則に反する。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「KB の丸めを切り捨てにする」)"
     },
     {
       "id": "M618",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  if (kb < k) return '$kb KB';",
-      "replace": "  if (kb <= k) return '$kb KB';",
-      "note": "008:T48 丸めで 1024 KB に届いたものを MB へ上げない(`1024 KB` と出る)"
+      "find": "    if (double.parse(text) < 1000) {",
+      "replace": "    if (value < 1000) {",
+      "note": "008:T62 丸めで 1000 に届いたもの(999.6 KB)を次の単位へ上げない(`1000 KB` と出る)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024 KB に届いたものを MB へ上げない」) **独立review attempt 2 の P1 の修正で GB 止まりの条件を外したので `find` を追随させた**"
     },
     {
       "id": "M619",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "  if (double.parse(mb.toStringAsFixed(1)) < k) {",
-      "replace": "  if (mb < k) {",
-      "note": "008:T48 丸めで 1024.0 MB に届いたものを GB へ上げない(`1024.0 MB` と出る)"
+      "find": "  while (digits > 0 && double.parse(text) >= (digits == 2 ? 10 : 100)) {",
+      "replace": "  while (digits < 0 && double.parse(text) >= (digits == 2 ? 10 : 100)) {",
+      "note": "008:T62 丸めで桁が上がったときに小数を減らさない(`10.00 KB` の4桁になる)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024.0 MB に届いたものを GB へ上げない」)"
     },
     {
       "id": "M620",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base,",
-      "replace": "                key: rowSizeKey,\n                maxLines: 1,\n                style: base.copyWith(fontSize: 12),",
-      "note": "008:T48 大きさだけ補足情報と違う大きさにする(日時と同じ見え方で、強調しない)"
+      "find": "                  key: rowSizeKey,\n                  maxLines: 1,\n                  style: base,",
+      "replace": "                  key: rowSizeKey,\n                  maxLines: 1,\n                  style: base.copyWith(fontSize: 12),",
+      "note": "008:T48 大きさだけ補足情報と違う大きさにする(日時と同じ見え方で、強調しない) **008:T62 で補足情報を縦線の `Container` で包み字下げが2つ深くなったので `find` を追随させた**"
     },
     {
       "id": "M622",
@@ -5219,9 +5219,9 @@
     {
       "id": "M825",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "    return Padding(\n      padding: const EdgeInsets.only(top: 2),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
-      "replace": "    return Container(\n      padding: const EdgeInsets.only(top: 2),\n      color: const Color(0xFF221F2B),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
-      "note": "008:T59 補足情報を塗った面で包む — 2026-10-07 のエミュレータ確認で消した帯が戻る"
+      "find": "        decoration: BoxDecoration(\n          border: Border(\n            left: BorderSide(",
+      "replace": "        decoration: BoxDecoration(\n          color: const Color(0xFF221F2B),\n          border: Border(\n            left: BorderSide(",
+      "note": "008:T59 補足情報を塗った面で包む — 2026-10-07 のエミュレータ確認で消した帯が戻る **008:T62 で補足情報を縦線の `BoxDecoration` で包んだので、その装飾へ面の色を足す形へ追随させた**(守る対象は不変)"
     },
     {
       "id": "M826",
@@ -5271,6 +5271,62 @@
       "find": "        created == null && (sortMode == FileSortMode.createdAt || dateWarned);",
       "replace": "        created == null && (dateWarned);",
       "note": "[reviewer追加][対照] 008:T61 作成日時ソートの強調を落とし、ルールの警告の強調だけ残す — 002 代表例 15 が逆向きの条件として捕まえる(T60/T61 の独立review attempt 1 が置いた対照。M624 と逆向き)"
+    },
+    {
+      "id": "M833",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "                                size: 12,\n                                color: rowCurrentNameColorOf(colors),\n",
+      "replace": "                                size: 12,\n                                color: colors.textMuted,\n",
+      "note": "008:T62 `→` を以前の薄い灰へ戻す(開発者の決定「変更前と矢印を白に近い色に」)"
+    },
+    {
+      "id": "M834",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "            left: BorderSide(\n",
+      "replace": "            bottom: BorderSide(\n",
+      "note": "008:T62 補足情報の縦線を左ではなく下の横線にする"
+    },
+    {
+      "id": "M835",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "Color rowSubInfoLineColorOf(AppColors colors) => colors.textMuted;",
+      "replace": "Color rowSubInfoLineColorOf(AppColors colors) => colors.primary;",
+      "note": "008:T62 縦線を強調色にする — 補足情報を強調せずにまとめる(開発者の原文)に反する"
+    },
+    {
+      "id": "M836",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        padding: const EdgeInsets.only(left: rowSubInfoLineGap),\n",
+      "replace": "        padding: EdgeInsets.zero,\n",
+      "note": "008:T62 縦線と補足情報の文字の間を詰める — 線に文字が付く"
+    },
+    {
+      "id": "M837",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "const double rowSubInfoLineWidth = 3;",
+      "replace": "const double rowSubInfoLineWidth = 1;",
+      "note": "008:T62 縦線を細くする — 開発者の「太めの縦線」に反し、区切り線と見分けにくい"
+    },
+    {
+      "id": "M838",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "    final text = _threeSignificant(value);",
+      "replace": "    final text = value.toStringAsFixed(1);",
+      "note": "008:T62 有効数字3桁ではなく、以前の小数1桁で書く(`1023.0 MB` の9文字が戻り、狭い行で大きさが削られる)"
+    },
+    {
+      "id": "M839",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "      padding: const EdgeInsets.only(top: 2, left: rowSubInfoIndent),",
+      "replace": "      padding: const EdgeInsets.only(top: 2),",
+      "note": "008:T62 補足情報を線ごと字下げしない(2026-10-08 のエミュレータ確認 attempt 1 の要望「縦線も含めてわずかにインデント」)"
+    },
+    {
+      "id": "M840",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB'];",
+      "replace": "  const units = ['KB', 'MB', 'GB'];",
+      "note": "008:T62 単位を GB で止める — 1000 GB 以上が書けない(独立review attempt 2 の P1。以前は `10000 GB` の8文字になった)"
     }
   ]
 }

@@ -191,8 +191,8 @@ void main() {
     String detailOf(Finder row) =>
         tester.widget<Text>(_in(row, find.byKey(browserRowDetailKey))).data!;
 
-    expect(detailOf(_row('photo.jpg')), '2026/10/1 09:05 · 2.4 MB');
-    expect(detailOf(_row('memo.pdf')), '2026/5/1 21:30 · 2 KB');
+    expect(detailOf(_row('photo.jpg')), '2026/10/1 09:05 · 2.40 MB');
+    expect(detailOf(_row('memo.pdf')), '2026/5/1 21:30 · 2.00 KB');
     expect(detailOf(_row('DCIM', folder: true)), '2026/9/30 08:05');
     expect(
       _in(_row('broken-link'), find.byKey(browserRowDetailKey)),
