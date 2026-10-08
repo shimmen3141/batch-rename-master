@@ -71,11 +71,14 @@ void main() {
     expect(current.color, isNot(colors.danger));
   });
 
-  testWidgets('「→」は現在名と同じ本文の色(008:T62)', (tester) async {
+  testWidgets('「→」は現在名と同じ本文の色(008:T62)で、軸が長く矢じりが小さい形(008:T63)', (tester) async {
     await _pump(tester);
 
     final arrow = tester.widget<Icon>(find.byKey(rowNameArrowKey));
-    expect(arrow.icon, Icons.arrow_forward);
+    // 以前の `arrow_forward` は軸が短く矢じりが大きかった(2026-10-08 の開発者の要望)。
+    expect(arrow.icon, Icons.arrow_right_alt);
+    expect(arrow.size, rowNameArrowSize);
+    expect(tester.getSize(find.byKey(rowNameArrowKey)).width, 18);
     expect(arrow.color, AppColors.dark.textPrimary);
   });
 }

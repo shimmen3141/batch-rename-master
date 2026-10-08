@@ -2156,12 +2156,18 @@ class _FileRowState extends State<_FileRow> {
                         Row(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(right: 4),
+                              // glyph の左右に余白(24 のうち 4 ずつ)があるので、間は狭く置く。
+                              padding: const EdgeInsets.only(right: 2),
                               // 変更前の名前と同じ色(`008:T62`)。
+                              //
+                              // **軸が長く矢じりが小さい `arrow_right_alt`**(`008:T63`。
+                              // 2026-10-08 の開発者の要望「矢印が短く見える(逆に矢の部分が
+                              // 大きい)」)。以前の `arrow_forward` は正方形に大きな矢じりと
+                              // 短い軸を描く。線が細い glyph なので大きさを 12 → 18 にした。
                               child: Icon(
-                                Icons.arrow_forward,
+                                Icons.arrow_right_alt,
                                 key: rowNameArrowKey,
-                                size: 12,
+                                size: rowNameArrowSize,
                                 color: rowCurrentNameColorOf(colors),
                               ),
                             ),
@@ -2494,6 +2500,9 @@ Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;
 
 /// 現在名と変更後名の間の `→`。
 const Key rowNameArrowKey = Key('row-name-arrow');
+
+/// `→` の大きさ(`008:T63`)。
+const double rowNameArrowSize = 18;
 
 /// 補足情報(場所・日時・大きさ)を包み、左に縦線を引く箱(`008:T62`)。
 const Key rowSubInfoLineKey = Key('row-sub-info-line');
