@@ -36,7 +36,9 @@ FileEntry _unknownCreatedAt() => FileEntry(
 FileEntry _knownCreatedAt() => FileEntry(
   name: 'IMG_20261231_235959.jpg',
   createdAt: DateTime(2026, 12, 31, 23, 59),
-  modifiedAt: DateTime(2026, 12, 31, 23, 59),
+  // 作成日時と**違う値**にする。同じだと「作成・更新:」の1つにまとまり、
+  // 2つの日時が行を取り合う場合を見られない(`008:T61`)。幅は同じ。
+  modifiedAt: DateTime(2026, 12, 30, 23, 59),
   size: 0,
   sourceLocation: 'DCIM/Camera',
   sourceHandle: '/storage/emulated/0/DCIM/Camera/IMG_20261231_235959.jpg',
@@ -56,6 +58,17 @@ FileEntry _otherFolder() => FileEntry(
 );
 
 /// pump 中に起きた layout error(overflow を含む)。
+/// 作成日時と更新日時の**両方**を行に出す状態にする(`008:T61` 以降、行が出すのは
+/// 並び順またはルールが使っている日時だけ。002 REQ-013)。このファイルの検査は
+/// 2つの日時が同じ行を取り合う場合を見るので、並び順を作成日時にし、ルールに
+/// 更新日時のトークンを入れる。
+FileListController _bothDates(List<FileEntry> files) => FileListController(
+  files: files,
+  rule: const RenameRule([
+    DateTimeToken(source: DateTimeSource.modified, format: 'YYYY'),
+  ]),
+)..setSortMode(FileSortMode.createdAt);
+
 Future<List<String>> _errorsWhilePumping(
   WidgetTester tester,
   Size size,
@@ -69,9 +82,7 @@ Future<List<String>> _errorsWhilePumping(
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
-      home: Scaffold(
-        body: FileListView(controller: FileListController(files: files)),
-      ),
+      home: Scaffold(body: FileListView(controller: _bothDates(files))),
     ),
   );
   FlutterError.onError = previous;
@@ -81,8 +92,7 @@ Future<List<String>> _errorsWhilePumping(
 Future<void> _pumpAt(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final controller = FileListController(files: [_unknownCreatedAt()]);
-  controller.setSortMode(FileSortMode.createdAt);
+  final controller = _bothDates([_unknownCreatedAt()]);
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
@@ -98,10 +108,7 @@ Future<void> _pumpAt(WidgetTester tester, Size size) async {
 Future<void> _pumpMixedAt(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final controller = FileListController(
-    files: [_unknownCreatedAt(), _otherFolder()],
-  );
-  controller.setSortMode(FileSortMode.createdAt);
+  final controller = _bothDates([_unknownCreatedAt(), _otherFolder()]);
   await tester.pumpWidget(
     MaterialApp(
       theme: appDarkTheme(),
@@ -171,9 +178,7 @@ void main() {
         MaterialApp(
           theme: appDarkTheme(),
           home: Scaffold(
-            body: FileListView(
-              controller: FileListController(files: [_knownCreatedAt()]),
-            ),
+            body: FileListView(controller: _bothDates([_knownCreatedAt()])),
           ),
         ),
       );

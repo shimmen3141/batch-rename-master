@@ -62,6 +62,8 @@
     "tasks/T56-implement-same-folder-reselect",
     "tasks/T57-file-select-label",
     "tasks/T58-browser-row-look",
-    "tasks/T59-rename-row-emphasis"
+    "tasks/T59-rename-row-emphasis",
+    "tasks/T60-define-sub-info-dates",
+    "tasks/T61-implement-sub-info-dates"
   ]
 }

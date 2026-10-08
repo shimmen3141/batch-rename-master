@@ -7,6 +7,7 @@ import 'package:batch_rename_master/core/rename_engine.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_controller.dart';
 import 'package:batch_rename_master/ui/file_list/file_list_view.dart';
 import 'package:batch_rename_master/ui/file_list/file_size_format.dart';
+import 'package:batch_rename_master/ui/file_list/file_sort.dart';
 import 'package:batch_rename_master/ui/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -15,7 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 FileEntry _entry({int size = 2516582}) => FileEntry(
   name: 'IMG_20261231_235959.jpg',
   createdAt: DateTime(2026, 12, 31, 23, 59),
-  modifiedAt: DateTime(2026, 12, 31, 23, 59),
+  // 作成日時と違う値(同じだと「作成・更新:」の1つにまとまる。`008:T61`)。
+  modifiedAt: DateTime(2026, 12, 30, 23, 59),
   size: size,
   sourceHandle: '/storage/emulated/0/DCIM/Camera/IMG_20261231_235959.jpg',
 );
@@ -42,7 +44,15 @@ Future<List<String>> _pump(
         ),
         child: Scaffold(
           body: FileListView(
-            controller: FileListController(files: [_entry(size: bytes)]),
+            // **いちばん長い補足情報**(作成日時・更新日時・大きさ)で測る。`008:T61`
+            // 以降、行が出すのは並び順またはルールが使っている日時だけなので、
+            // 並び順を作成日時にし、ルールに更新日時のトークンを入れる。
+            controller: FileListController(
+              files: [_entry(size: bytes)],
+              rule: const RenameRule([
+                DateTimeToken(source: DateTimeSource.modified, format: 'YYYY'),
+              ]),
+            )..setSortMode(FileSortMode.createdAt),
           ),
         ),
       ),

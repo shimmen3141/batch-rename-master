@@ -205,54 +205,113 @@ void main() {
     });
   });
 
+  // 008:T60 で REQ-013 を更新した: **行が出す日時は、並び順またはルールが使っている
+  // 日時だけ**(2026-10-07 の開発者の承認)。見出しは「作成:」「更新:」、表示上同じなら
+  // 「作成・更新:」、どちらも使っていなければ見出しなしの更新日時(`008:T61`)。
   group('REQ-013: 行の日時サブ情報', () {
-    testWidgets('作成日時が判明している行は両日時を表示する', (tester) async {
+    String? textOf(WidgetTester tester, Key key) {
+      final finder = find.byKey(key);
+      if (finder.evaluate().isEmpty) return null;
+      return tester.widget<Text>(finder).data;
+    }
+
+    const createdRule = RenameRule([
+      DateTimeToken(source: DateTimeSource.created, format: 'YYYY'),
+    ]);
+    const modifiedRule = RenameRule([
+      DateTimeToken(source: DateTimeSource.modified, format: 'YYYY'),
+    ]);
+
+    testWidgets('どちらも使っていなければ、更新日時だけを見出しなしで出す', (tester) async {
       await _pump(tester, FileListController(files: [_known('a.txt')]));
 
-      expect(find.textContaining('作成日時: 2023/5/6 07:08'), findsOneWidget);
-      expect(find.textContaining('更新日時: 2026/8/4 16:00'), findsOneWidget);
+      expect(textOf(tester, rowModifiedAtKey), '2026/8/4 16:00');
+      expect(textOf(tester, rowCreatedAtKey), isNull);
     });
 
-    testWidgets('作成日時ソートのとき、不明な行は「不明」と警告色で示す(REQ-013)', (tester) async {
+    testWidgets('例14: 名前順・ルールが作成日時を使わないなら、不明でも作成日時を出さない', (tester) async {
       final c = FileListController(files: [_unknown('b.png')]);
       await _pump(tester, c);
-      c.setSortMode(FileSortMode.createdAt); // 強調はこのときだけ
-      await tester.pump();
 
-      // 008:T07 で作成日時と更新日時を別の `Text` へ分けた(狭幅で作成日時が
-      // 省略されないようにするため)。**双方が出ていること**が REQ-013 の要求で、
-      // 1つの文字列に連結されていることではない。
-      final createdAt = tester.widget<Text>(find.byKey(rowCreatedAtKey));
-      final modifiedAt = tester.widget<Text>(find.byKey(rowModifiedAtKey));
-      expect(createdAt.data, contains('作成日時: 不明'));
-      expect(modifiedAt.data, contains('更新日時: 2026/8/4 16:00'));
-
-      // 不明はセマンティックな危険色(色の直書きをしない)。**更新日時は
-      // 強調しない** — 強調の対象は代替された作成日時だけである。
-      expect(createdAt.style?.color, AppColors.dark.danger);
-      expect(modifiedAt.style?.color, isNot(AppColors.dark.danger));
-    });
-
-    testWidgets('例14: 名前順のときは「不明」を表示するが強調しない(REQ-013)', (tester) async {
-      final c = FileListController(files: [_unknown('b.png')]);
-      await _pump(tester, c);
-      c.setSortMode(FileSortMode.name);
-      await tester.pump();
-
-      final richText = tester
-          .widgetList<RichText>(find.byType(RichText))
-          .firstWhere((w) => w.text.toPlainText().contains('作成日時: '));
-      expect(richText.text.toPlainText(), contains('作成日時: 不明'));
-
-      final leaves = <TextSpan>[];
-      richText.text.visitChildren((span) {
-        if (span is TextSpan && span.text != null) leaves.add(span);
-        return true;
-      });
-      final unknownSpan = leaves.firstWhere((s) => s.text!.contains('不明'));
-      // 強調しない: 危険色でなく、警告アイコンも出ない。
-      expect(unknownSpan.style?.color, isNot(AppColors.dark.danger));
+      expect(textOf(tester, rowCreatedAtKey), isNull);
+      expect(textOf(tester, rowModifiedAtKey), '2026/8/4 16:00');
+      expect(find.textContaining('不明'), findsNothing);
       expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+    });
+
+    testWidgets('例14b: 名前順でもルールが作成日時を使えば「作成: 不明」を出す', (tester) async {
+      final c = FileListController(
+        files: [_unknown('b.png')],
+        rule: createdRule,
+      );
+      await _pump(tester, c);
+
+      expect(textOf(tester, rowCreatedAtKey), '作成: 不明');
+      expect(textOf(tester, rowModifiedAtKey), isNull, reason: '更新日時は使っていない');
+    });
+
+    testWidgets('例15: 作成日時ソートのとき、不明な行は「作成: 不明」を警告色で示す', (tester) async {
+      final c = FileListController(files: [_unknown('b.png')]);
+      await _pump(tester, c);
+      c.setSortMode(FileSortMode.createdAt);
+      await tester.pump();
+
+      final createdAt = tester.widget<Text>(find.byKey(rowCreatedAtKey));
+      expect(createdAt.data, '作成: 不明');
+      // 不明はセマンティックな危険色(色の直書きをしない)。
+      expect(createdAt.style?.color, AppColors.dark.danger);
+      expect(textOf(tester, rowModifiedAtKey), isNull, reason: '更新日時は使っていない');
+    });
+
+    testWidgets('例14d: ルールが更新日時だけを使えば「更新:」だけ', (tester) async {
+      final c = FileListController(
+        files: [_known('a.txt')],
+        rule: modifiedRule,
+      );
+      await _pump(tester, c);
+
+      expect(textOf(tester, rowModifiedAtKey), '更新: 2026/8/4 16:00');
+      expect(textOf(tester, rowCreatedAtKey), isNull);
+    });
+
+    testWidgets('両方を使い、値が違えば両方を出す(更新日時は強調しない)', (tester) async {
+      final c = FileListController(
+        files: [_known('a.txt'), _unknown('b.png')],
+        rule: modifiedRule,
+      );
+      await _pump(tester, c);
+      c.setSortMode(FileSortMode.createdAt);
+      await tester.pump();
+
+      final created = tester
+          .widgetList<Text>(find.byKey(rowCreatedAtKey))
+          .map((t) => t.data)
+          .toList();
+      final modified = tester
+          .widgetList<Text>(find.byKey(rowModifiedAtKey))
+          .toList();
+      expect(created, containsAll(['作成: 2023/5/6 07:08', '作成: 不明']));
+      expect(modified.map((t) => t.data), everyElement('更新: 2026/8/4 16:00'));
+      // 強調の対象は代替された作成日時だけである。
+      for (final t in modified) {
+        expect(t.style?.color, isNot(AppColors.dark.danger));
+      }
+    });
+
+    testWidgets('例14c: 両方を使い、表示上同じ値なら「作成・更新:」にまとめる', (tester) async {
+      final same = FileEntry(
+        name: 'same.jpg',
+        createdAt: DateTime(2026, 8, 4, 16, 0, 12),
+        modifiedAt: DateTime(2026, 8, 4, 16, 0, 47),
+        size: 0,
+      );
+      final c = FileListController(files: [same], rule: modifiedRule);
+      await _pump(tester, c);
+      c.setSortMode(FileSortMode.createdAt);
+      await tester.pump();
+
+      expect(textOf(tester, rowCreatedAtKey), '作成・更新: 2026/8/4 16:00');
+      expect(textOf(tester, rowModifiedAtKey), isNull, reason: '1つにまとめる');
     });
   });
 }

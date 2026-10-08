@@ -1137,9 +1137,9 @@
     {
       "id": "M163",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "                  Flexible(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,",
-      "replace": "                  SizedBox(\n                    child: Text(\n                      '作成日時: ${unknown ? '不明' : formatRowDateTime(createdAt)}',\n                      key: rowCreatedAtKey,\n                      maxLines: 1,",
-      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる  **008:T58 で日時の書式を `formatRowDateTime` へ出したので `find` を追随させた**"
+      "find": "                    Flexible(\n                      child: Text(\n                        item.text,\n                        key: item.key,\n                        maxLines: 1,\n                        overflow: TextOverflow.ellipsis,",
+      "replace": "                    SizedBox(\n                      child: Text(\n                        item.text,\n                        key: item.key,\n                        maxLines: 1,",
+      "note": "008:T07 作成日時から下限(Flexible+ellipsis)を外す — 狭幅で省略ではなくoverflowになる  **008:T58 で日時の書式を `formatRowDateTime` へ出したので `find` を追随させた**  **008:T61 で日時を `_dateItems` から並べる形にしたので `find` を追随させた**(下限はどの日時にも付く)"
     },
     {
       "id": "M164",
@@ -3966,9 +3966,9 @@
     {
       "id": "M624",
       "file": "lib/ui/file_list/file_list_view.dart",
-      "find": "        unknown && (sortMode == FileSortMode.createdAt || dateWarned);",
-      "replace": "        unknown && (sortMode == FileSortMode.createdAt);",
-      "note": "008:T50 ルールが作成日時を使って警告が出ても補足情報の作成日時を強調しない — 右端に書かないので、作成日時不明の種別が一覧から読めなくなる(005 REQ-009 (1))"
+      "find": "        created == null && (sortMode == FileSortMode.createdAt || dateWarned);",
+      "replace": "        created == null && (sortMode == FileSortMode.createdAt);",
+      "note": "008:T50 ルールが作成日時を使って警告が出ても補足情報の作成日時を強調しない — 右端に書かないので、作成日時不明の種別が一覧から読めなくなる(005 REQ-009 (1))  **008:T61 で `find` を追随させた**"
     },
     {
       "id": "M625",
@@ -5222,6 +5222,55 @@
       "find": "    return Padding(\n      padding: const EdgeInsets.only(top: 2),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
       "replace": "    return Container(\n      padding: const EdgeInsets.only(top: 2),\n      color: const Color(0xFF221F2B),\n      child: Column(\n        crossAxisAlignment: CrossAxisAlignment.start,\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          // 場所(元フォルダ)",
       "note": "008:T59 補足情報を塗った面で包む — 2026-10-07 のエミュレータ確認で消した帯が戻る"
+    },
+    {
+      "id": "M826",
+      "file": "lib/ui/file_list/row_dates.dart",
+      "find": "        sources.contains(DateTimeSource.created),",
+      "replace": "        false,",
+      "note": "008:T61 ルールの作成日時トークンを数えない — ルールが作成日時を使っても補足情報に作成日時が出ず、空になる理由が行から読めない(002 代表例 14b)"
+    },
+    {
+      "id": "M827",
+      "file": "lib/ui/file_list/row_dates.dart",
+      "find": "        sortMode == FileSortMode.modifiedAt ||\n",
+      "replace": "",
+      "note": "008:T61 更新日時の並び順を数えない — 更新日時順なのに「更新:」の見出しが付かない"
+    },
+    {
+      "id": "M828",
+      "file": "lib/ui/file_list/row_dates.dart",
+      "find": "      if (token is DateTimeToken) token.source,",
+      "replace": "      if (token is DateTimeToken)\n        token.source == DateTimeSource.current\n            ? DateTimeSource.created\n            : token.source,",
+      "note": "008:T61 現在日時のトークンを作成日時として数える — 現在日時しか使わないのに作成日時が出る"
+    },
+    {
+      "id": "M829",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (dateUse.none) {\n      return [(key: rowModifiedAtKey, text: modified, emphasize: false)];\n    }\n",
+      "replace": "",
+      "note": "008:T61 日時を使っていないときも見出し付きで全部出す — 2026-10-07 の開発者の決定 ①(見出しなしで更新日時)に反する"
+    },
+    {
+      "id": "M830",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "    if (dateUse.created && dateUse.modified && created == modified) {",
+      "replace": "    if (dateUse.created && dateUse.modified && created == null) {",
+      "note": "008:T61 表示上同じでも「作成・更新:」にまとめない(代わりに不明のときにまとめる誤り)— 2026-10-07 の開発者の提案に反し、不明が「作成・更新:」に化ける"
+    },
+    {
+      "id": "M831",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "          text: '作成: ${created ?? '不明'}',",
+      "replace": "          text: '作成日時: ${created ?? '不明'}',",
+      "note": "008:T61 見出しを以前の「作成日時:」に戻す — 2026-10-07 の開発者の指定「作成:」に反する"
+    },
+    {
+      "id": "M832",
+      "file": "lib/ui/file_list/file_list_view.dart",
+      "find": "        created == null && (sortMode == FileSortMode.createdAt || dateWarned);",
+      "replace": "        created == null && (dateWarned);",
+      "note": "[reviewer追加][対照] 008:T61 作成日時ソートの強調を落とし、ルールの警告の強調だけ残す — 002 代表例 15 が逆向きの条件として捕まえる(T60/T61 の独立review attempt 1 が置いた対照。M624 と逆向き)"
     }
   ]
 }
