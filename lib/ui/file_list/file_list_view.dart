@@ -2157,10 +2157,12 @@ class _FileRowState extends State<_FileRow> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.only(right: 4),
+                              // 変更前の名前と同じ色(`008:T62`)。
                               child: Icon(
                                 Icons.arrow_forward,
+                                key: rowNameArrowKey,
                                 size: 12,
-                                color: colors.textMuted,
+                                color: rowCurrentNameColorOf(colors),
                               ),
                             ),
                             Expanded(
@@ -2305,79 +2307,95 @@ class _DateSubInfo extends StatelessWidget {
       fontSize: AppFontSize.caption,
     );
     // 補足情報を薄い面の帯に入れる案(`008:T59` の案A)は、2026-10-07 のエミュレータ
-    // 確認で「あまりわかりやすくならなかった」ので**消した**。別の見せ方は開発者と相談する。
+    // 確認で「あまりわかりやすくならなかった」ので**消した**。
+    //
+    // 代わりに**左に縦線を引いて、補足情報を1つのまとまりにする**(`008:T62`。
+    // 2026-10-08 の開発者の決定。原文は「補足情報の左辺に太めの縦線を引く(notionの
+    // 引用のような感じ)ことで、補足情報を強調せずにまとまりにできる」)。面は塗らない。
     return Padding(
       padding: const EdgeInsets.only(top: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**
-          // 行だけ表示する(REQ-010 と 002 の決定。`008:T22`)。
-          //
-          // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
-          // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
-          //
-          // **省略は先頭側から行う**(`…/DCIM/t07-fixtures`)。帯と同じ文字列なので、
-          // 同じ見せ方にする(`008:T23`)。
-          if (showLocation && file.sourceLocation != null)
-            SourcePathText(
-              text: file.sourceLocation!,
-              textKey: rowLocationKey,
-              style: base,
+      child: Container(
+        key: rowSubInfoLineKey,
+        padding: const EdgeInsets.only(left: rowSubInfoLineGap),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: rowSubInfoLineColorOf(colors),
+              width: rowSubInfoLineWidth,
             ),
-          // **日時は `Wrap` に置く。** 横に並びきらなければ後ろの日時が次の行へ
-          // 落ち、前の日時は丸ごと残る。
-          //
-          // `Row` で作成日時を「縮まない側」に置くと、幅が足りなくなった瞬間に
-          // 省略ではなく **overflow** になる(独立review attempt 1 の P1-1)。
-          // 後ろを削るだけでは足りず、前の日時自身にも下限が要る。
-          // ここでも「優先順位ではなく行数で解く」を一段深く適用している。
-          Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              for (final item in _dateItems())
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (item.emphasize) ...[
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 11,
-                        color: colors.danger,
-                      ),
-                      const SizedBox(width: 3),
-                    ],
-                    // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
-                    // ほど狭いとき(極端な font scale など)に、はみ出させない。
-                    Flexible(
-                      child: Text(
-                        item.text,
-                        key: item.key,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: base.copyWith(
-                          color: item.emphasize
-                              ? colors.danger
-                              : colors.textMuted,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              // **大きさは日時の後ろ、ラベル無し**(`008:T48`。2026-10-01 の開発者の
-              // 決定 A。参考designも `2.4 MB · 8/4 16:00` とラベルを付けない)。
-              // 短いので、日時が2行に分かれる幅では更新日時の横へ収まる。
-              Text(
-                formatFileSize(file.size),
-                key: rowSizeKey,
-                maxLines: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 場所(元フォルダ)。004 が供給し、かつ**一覧に複数の場所が混ざっている**
+            // 行だけ表示する(REQ-010 と 002 の決定。`008:T22`)。
+            //
+            // **日時と同じ行に置かない。** 同居させると狭幅で場所が幅を使い切り、
+            // 後ろにある `作成日時: 不明` から省略される(008:T07 の (h))。
+            //
+            // **省略は先頭側から行う**(`…/DCIM/t07-fixtures`)。帯と同じ文字列なので、
+            // 同じ見せ方にする(`008:T23`)。
+            if (showLocation && file.sourceLocation != null)
+              SourcePathText(
+                text: file.sourceLocation!,
+                textKey: rowLocationKey,
                 style: base,
               ),
-            ],
-          ),
-        ],
+            // **日時は `Wrap` に置く。** 横に並びきらなければ後ろの日時が次の行へ
+            // 落ち、前の日時は丸ごと残る。
+            //
+            // `Row` で作成日時を「縮まない側」に置くと、幅が足りなくなった瞬間に
+            // 省略ではなく **overflow** になる(独立review attempt 1 の P1-1)。
+            // 後ろを削るだけでは足りず、前の日時自身にも下限が要る。
+            // ここでも「優先順位ではなく行数で解く」を一段深く適用している。
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final item in _dateItems())
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (item.emphasize) ...[
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 11,
+                          color: colors.danger,
+                        ),
+                        const SizedBox(width: 3),
+                      ],
+                      // 最後の砦として省略も持たせる。**1行に単独で置いても入らない**
+                      // ほど狭いとき(極端な font scale など)に、はみ出させない。
+                      Flexible(
+                        child: Text(
+                          item.text,
+                          key: item.key,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: base.copyWith(
+                            color: item.emphasize
+                                ? colors.danger
+                                : colors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                // **大きさは日時の後ろ、ラベル無し**(`008:T48`。2026-10-01 の開発者の
+                // 決定 A。参考designも `2.4 MB · 8/4 16:00` とラベルを付けない)。
+                // 短いので、日時が2行に分かれる幅では更新日時の横へ収まる。
+                Text(
+                  formatFileSize(file.size),
+                  key: rowSizeKey,
+                  maxLines: 1,
+                  style: base,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2466,9 +2484,27 @@ const double rowNewNameFontSize = AppFontSize.title;
 /// 現在名の文字の大きさ。**変更後名より小さい**(参考design: 11.5 と 13)。
 const double rowCurrentNameFontSize = AppFontSize.label;
 
-/// 現在名の色。**変更後名より薄い**(2026-10-01 の要望)。読めなくならないよう、
-/// いちばん薄い `textMuted` ではなく `textSecondary` を使う。
-Color rowCurrentNameColorOf(AppColors colors) => colors.textSecondary;
+/// 現在名と `→` の色。**本文の色**(`008:T62`。2026-10-08 の開発者の決定「変更前と
+/// 矢印を白に近い色に」)。灰色の補足情報と見分けるため。以前は `T10`(2026-10-01 の
+/// 要望「変更前の名前の文字の色を薄く」)で `textSecondary` にしていた。変更後名より
+/// 弱い段であることは、大きさ(小さい)と太さ(通常)と色相(変更後名は緑/赤)で保つ。
+/// **赤にはしない** — 赤は問題があることだけに使う。
+Color rowCurrentNameColorOf(AppColors colors) => colors.textPrimary;
+
+/// 現在名と変更後名の間の `→`。
+const Key rowNameArrowKey = Key('row-name-arrow');
+
+/// 補足情報(場所・日時・大きさ)を包み、左に縦線を引く箱(`008:T62`)。
+const Key rowSubInfoLineKey = Key('row-sub-info-line');
+
+/// 補足情報の左の縦線の太さ。
+const double rowSubInfoLineWidth = 3;
+
+/// 縦線と補足情報の文字の間。
+const double rowSubInfoLineGap = 6;
+
+/// 補足情報の左の縦線の色。**補足情報の文字と同じ灰**で、強調しない。
+Color rowSubInfoLineColorOf(AppColors colors) => colors.textMuted;
 
 /// 変更後名の太さ。参考designは 700。
 const FontWeight rowNewNameFontWeight = FontWeight.w700;
