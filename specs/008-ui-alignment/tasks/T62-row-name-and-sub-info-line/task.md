@@ -30,7 +30,7 @@
 - [ ] 補足情報が縦線ごと、名前の左端からわずかに字下げされる(attempt 1 の要望)。
   - 証拠: widget test。
 - [ ] 大きさが有効数字3桁・1024 刻み・1000 に届いたら次の単位(EB まで)で書かれ、`int` で表せるどの大きさでも7文字以下。
-  - 証拠: `row_file_size_test.dart` の単体 test(0 から `int` の最大まで)。
+  - 証拠: `row_file_size_test.dart` の単体 test(0 から `int` の最大まで 1% 刻みの標本と、`int` の最大・各単位の境界の例)。
 
 - [ ] 変更前の名前と矢印が本文の色で、変更前の名前は変更後の名前より小さく太字でない。
   - 証拠: widget test(`row_name_hierarchy_test.dart` の色の主張を今回の決定へ更新)。
@@ -113,7 +113,7 @@ M825 | KILLED | M834 | KILLED | M836 | KILLED | M838 | KILLED | M839 | KILLED
 ### checkpoint 3: attempt 2 の P1 の修正(`c6f6185`)
 
 - 単位を `KB`〜`EB` まで持たせ、「最後の単位なら 1000 以上でも書く」条件を外した。`int` の最大(2^63 - 1)は `8.00 EB` なので、どの大きさも有効数字3桁・7文字以下になる。
-- test: 単体 test の範囲を **0 から `int` の最大まで**(1% ずつ)へ広げ、全部の値で有効数字3桁以下・最長7文字以下を確かめる。TB・PB・EB の例(`1.46 TB`・`9.77 TB`・`1.00 PB`・`8.00 EB`)を足した。`T48` の幅の test の入力 `0.98 GB` は、どの大きさも7文字以下で test の字体 Ahem では7文字はどれも同じ幅なので、最長を代表する(comment に書いた)。
+- test: 単体 test の範囲を **0 から `int` の最大まで**へ広げた。全整数ではなく、**1% ずつ増やした標本と `int` の最大**で、有効数字3桁以下・最長7文字以下を確かめる(境界は別の test の例で見る)。TB・PB・EB の例(`1.46 TB`・`9.77 TB`・`1.00 PB`・`8.00 EB`)を足した。`T48` の幅の test の入力 `0.98 GB` は、どの大きさも7文字以下で test の字体 Ahem では7文字はどれも同じ幅なので、最長を代表する(comment に書いた)。
 - mutation: M618 の `find` を追随させ、M840(単位を GB で止める)を足した。範囲付き(`flutter test test/spec_002_file_list test/spec_004_file_source`、対象 `c6f6185`、5件):
 
 ```text
@@ -123,9 +123,22 @@ M617 | KILLED | M618 | KILLED | M619 | KILLED | M838 | KILLED | M840 | KILLED
 
 - `flutter test`(全件)@`c6f6185`: `00:57 +1435: All tests passed!`。`flutter analyze` No issues、`dart format` PASS、`check_mutation_finds.py` PASS(760)。
 
+### 独立review attempt 3(差分review)
+
+- range `991bb96..5d93284`。reviewer: Codex **gpt-6-luna**。
+- 判定: **PASS**。attempt 2 の P1 は閉じた(KB〜EB、`999 GB`・1000 GB 相当・`int` の最大 `8.00 EB` の境界)。`0.98 GB` が7文字の最長を代表すること、M618 の追随と M840 が妥当なこと、記録が差分と食い違わないことを確かめた。reviewer の実行結果: `flutter test` `00:58 +1435: All tests passed!`、analyze・format・`workspace.py check` PASS、mutation M617・M618・M619・M840 は `4 mutations: 4 KILLED, 0 SURVIVED, 0 SKIPPED`。
+- 指摘 P2 ×1(成果物の欠陥・記録): 「0 から `int` の最大まで」「全部の値」が全整数を検査したように読めるが、実際は 1% 刻みの標本と最大値。
+
+### SELF-CHECK(attempt 3 の後)
+
+- P2 を閉じた: 受け入れ条件の証拠と checkpoint 3 の記述を「1% 刻みの標本と `int` の最大」へ直した。test の名前「int で表せるどの大きさでも」は変えていない(test 本文の comment は「1% ずつ増やしながら」と書いており、直すと `test/` に差分が出て再reviewが要るため。主張の範囲はこの記録で明確にした)。`lib/`・`test/` は変えていないので再reviewは起動しない。
+- review の連鎖: `406f8e3..af2eb6d` PASS → `af2eb6d..e721139` 記録だけ(attempt 1 の記録) → `e721139..991bb96` FAIL → `991bb96..5d93284` PASS(attempt 2 の P1 が閉じた) → `5d93284..` SELF-CHECK。
+
 ## Current state / handoff
 
-- Last checkpoint: `c6f6185`。Draft PR #234
-- Blocker category: なし
-- Evidence revision: `c6f6185`
-- Next Agent action: 差分review attempt 3(`991bb96..head`。full regression)、その後エミュレータ確認 attempt 2
+- Last checkpoint: 独立review attempt 3 PASS(`991bb96..5d93284`)。Draft PR #234
+- Blocker category: manual-evidence
+- Evidence revision: `c6f6185`(code の最後の commit)
+- Waiting for: 開発者(Android エミュレータの確認 attempt 2)
+- Requested action: [manual-verification.md](manual-verification.md) の手順(特に 6)を行い、結果を会話で伝える
+- Next Agent action: 結果を記録する。PASS なら `T62` を done にし、PR #234 を ready にして merge する
