@@ -105,15 +105,33 @@ void main() {
       expect(formatFileSize(1288490189), '1.20 GB');
     });
 
-    test('GB より大きい単位は持たない(1000 GB 以上は整数の GB)', () {
-      expect(formatFileSize(1024 * 1024 * 1024 * 1500), '1500 GB');
+    test('GB の先は TB・PB・EB(1000 に届いたら次の単位の規則のまま)', () {
+      const gb = 1024 * 1024 * 1024;
+      expect(formatFileSize(gb * 999), '999 GB');
+      expect(formatFileSize(gb * 1500), '1.46 TB');
+      expect(formatFileSize(gb * 10000), '9.77 TB');
+      expect(formatFileSize(gb * 1024 * 1024), '1.00 PB');
+      // int の最大(2^63 - 1)。
+      expect(formatFileSize(9223372036854775807), '8.00 EB');
     });
 
-    test('1500 GB までのどの大きさでも、7文字以下', () {
+    test('int で表せるどの大きさでも、有効数字3桁・7文字以下', () {
+      // 0 から int の最大まで、1% ずつ増やしながら全部の単位を通る。
       var longest = '';
-      for (var b = 0; b < 1024 * 1024 * 1024 * 1500; b = b * 1.01 ~/ 1 + 1) {
+      final values = <int>[9223372036854775807];
+      for (var b = 0; b < 9223372036854775807 ~/ 2; b = b * 1.01 ~/ 1 + 1) {
+        values.add(b);
+      }
+      for (final b in values) {
         final text = formatFileSize(b);
         if (text.length > longest.length) longest = text;
+        final digits = text.split(' ').first.replaceAll('.', '');
+        // 1 未満の `0.98` の先頭の 0 は有効数字に数えない。B は整数(3桁以下)。
+        expect(
+          digits.replaceFirst(RegExp('^0'), '').length,
+          lessThanOrEqualTo(3),
+          reason: text,
+        );
       }
       expect(longest.length, lessThanOrEqualTo(7), reason: longest);
     });
@@ -152,7 +170,8 @@ void main() {
             tester,
             size: Size(width, 800),
             textScale: scale,
-            // いちばん長い書き方(7文字。`0.98 GB`)で測る。
+            // いちばん長い書き方(7文字。`0.98 GB`)で測る。どの大きさも7文字以下で
+            // (上の単体 test)、test の字体 Ahem は1文字 = 1em なので7文字はどれも同じ幅。
             bytes: 1024 * 1024 * 1000,
           );
           expect(errors, isEmpty);

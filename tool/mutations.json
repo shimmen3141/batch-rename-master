@@ -3931,9 +3931,9 @@
     {
       "id": "M618",
       "file": "lib/ui/file_list/file_size_format.dart",
-      "find": "    if (double.parse(text) < 1000 || i == units.length - 1) {",
-      "replace": "    if (value < 1000 || i == units.length - 1) {",
-      "note": "008:T62 丸めで 1000 に届いたもの(999.6 KB)を次の単位へ上げない(`1000 KB` と出る)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024 KB に届いたものを MB へ上げない」)"
+      "find": "    if (double.parse(text) < 1000) {",
+      "replace": "    if (value < 1000) {",
+      "note": "008:T62 丸めで 1000 に届いたもの(999.6 KB)を次の単位へ上げない(`1000 KB` と出る)。**008:T62 で書き方を有効数字3桁(1000 に届いたら次の単位)へ変えたので、守る対象ごと置き換えた**(以前は「丸めで 1024 KB に届いたものを MB へ上げない」) **独立review attempt 2 の P1 の修正で GB 止まりの条件を外したので `find` を追随させた**"
     },
     {
       "id": "M619",
@@ -5320,6 +5320,13 @@
       "find": "      padding: const EdgeInsets.only(top: 2, left: rowSubInfoIndent),",
       "replace": "      padding: const EdgeInsets.only(top: 2),",
       "note": "008:T62 補足情報を線ごと字下げしない(2026-10-08 のエミュレータ確認 attempt 1 の要望「縦線も含めてわずかにインデント」)"
+    },
+    {
+      "id": "M840",
+      "file": "lib/ui/file_list/file_size_format.dart",
+      "find": "  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB'];",
+      "replace": "  const units = ['KB', 'MB', 'GB'];",
+      "note": "008:T62 単位を GB で止める — 1000 GB 以上が書けない(独立review attempt 2 の P1。以前は `10000 GB` の8文字になった)"
     }
   ]
 }

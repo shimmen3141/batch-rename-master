@@ -12,18 +12,20 @@
 ///
 /// **丸めで 1000 に届いたら、次の単位で出す。** `999.6 KB` は `1000 KB` ではなく
 /// `0.98 MB` と書く。B は丸めないので `999 B` までで、1000 B からは KB になる。
-/// GB より大きい単位は持たない(1000 GB 以上は `1234 GB` のように整数で書く)。
+/// **単位は EB まで持つ**ので、`int` で表せるどの大きさ(最大 約 8 EB)も有効数字3桁・
+/// 7文字以下で書ける(独立review attempt 2 の P1。GB で止めると `10000 GB` の8文字になった)。
 String formatFileSize(int bytes) {
   if (bytes < 1000) return '$bytes B';
-  const units = ['KB', 'MB', 'GB'];
+  const units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
   var value = bytes / 1024;
   for (var i = 0; i < units.length; i++) {
     final text = _threeSignificant(value);
-    if (double.parse(text) < 1000 || i == units.length - 1) {
+    if (double.parse(text) < 1000) {
       return '$text ${units[i]}';
     }
     value /= 1024;
   }
+  // int の最大(2^63 - 1)は 8.00 EB なので、ここへは来ない。
   throw StateError('unreachable');
 }
 
