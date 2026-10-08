@@ -27,22 +27,22 @@
 
 ## 受け入れ条件
 
-- [ ] 補足情報が縦線ごと、名前の左端からわずかに字下げされる(attempt 1 の要望)。
+- [x] 補足情報が縦線ごと、名前の左端からわずかに字下げされる(attempt 1 の要望)。
   - 証拠: widget test。
-- [ ] 大きさが有効数字3桁・1024 刻み・1000 に届いたら次の単位(EB まで)で書かれ、`int` で表せるどの大きさでも7文字以下。
+- [x] 大きさが有効数字3桁・1024 刻み・1000 に届いたら次の単位(EB まで)で書かれ、`int` で表せるどの大きさでも7文字以下。
   - 証拠: `row_file_size_test.dart` の単体 test(0 から `int` の最大まで 1% 刻みの標本と、`int` の最大・各単位の境界の例)。
 
-- [ ] 変更前の名前と矢印が本文の色で、変更前の名前は変更後の名前より小さく太字でない。
+- [x] 変更前の名前と矢印が本文の色で、変更前の名前は変更後の名前より小さく太字でない。
   - 証拠: widget test(`row_name_hierarchy_test.dart` の色の主張を今回の決定へ更新)。
-- [ ] 補足情報の左に縦線があり、補足情報の高さ全体にかかる。名前の2段にはかからない。面は塗らない。
+- [x] 補足情報の左に縦線があり、補足情報の高さ全体にかかる。名前の2段にはかからない。面は塗らない。
   - 証拠: widget test。
-- [ ] 上の「守ること」が成り立つ(既存の test が変更なしで PASS。変えた値を主張する test だけ更新する)。
+- [x] 上の「守ること」が成り立つ(既存の test が変更なしで PASS。変えた値を主張する test だけ更新する)。
   - 証拠: widget test。
-- [ ] 狭幅(320 / 360 / 411dp)× 文字倍率(1.0 / 1.3 / 2.0)と 2ペインで溢れない。大きさが削られない(`T48`)。
+- [x] 狭幅(320 / 360 / 411dp)× 文字倍率(1.0 / 1.3 / 2.0)と 2ペインで溢れない。大きさが削られない(`T48`)。
   - 証拠: widget test。
-- [ ] 開発者が Android エミュレータで見え方を確かめている。
+- [x] 開発者が Android エミュレータで見え方を確かめている。
   - 証拠: [manual-verification.md](manual-verification.md)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -134,11 +134,14 @@ M617 | KILLED | M618 | KILLED | M619 | KILLED | M838 | KILLED | M840 | KILLED
 - P2 を閉じた: 受け入れ条件の証拠と checkpoint 3 の記述を「1% 刻みの標本と `int` の最大」へ直した。test の名前「int で表せるどの大きさでも」は変えていない(test 本文の comment は「1% ずつ増やしながら」と書いており、直すと `test/` に差分が出て再reviewが要るため。主張の範囲はこの記録で明確にした)。`lib/`・`test/` は変えていないので再reviewは起動しない。
 - review の連鎖: `406f8e3..af2eb6d` PASS → `af2eb6d..e721139` 記録だけ(attempt 1 の記録) → `e721139..991bb96` FAIL → `991bb96..5d93284` PASS(attempt 2 の P1 が閉じた) → `5d93284..` SELF-CHECK。
 
+### エミュレータ確認 attempt 2(2026-10-08)
+
+- 開発者が Android エミュレータで [manual-verification.md](manual-verification.md) の手順(attempt 2 の 6 を含む)を実施。**PASS**(原文: 「問題ありませんでした。」)。
+- 対象: code `c6f6185`(branch head `f1028ac`。`c6f6185` 以後は `specs/` の記録だけで、`lib/`・`test/`・`tool/`・依存・build 設定の差分は無い)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 3 PASS(`991bb96..5d93284`)。Draft PR #234
-- Blocker category: manual-evidence
-- Evidence revision: `c6f6185`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの確認 attempt 2)
-- Requested action: [manual-verification.md](manual-verification.md) の手順(特に 6)を行い、結果を会話で伝える
-- Next Agent action: 結果を記録する。PASS なら `T62` を done にし、PR #234 を ready にして merge する
+- Last checkpoint: エミュレータ確認 attempt 2 PASS。review の連鎖 `406f8e3..af2eb6d` PASS → 記録 → `e721139..991bb96` FAIL → `991bb96..5d93284` PASS → `5d93284..` SELF-CHECK
+- Blocker category: なし
+- Evidence revision: `c6f6185`
+- Next Agent action: なし(PR #234 の merge で完了)
