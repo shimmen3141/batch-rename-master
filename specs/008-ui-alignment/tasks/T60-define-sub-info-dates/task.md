@@ -23,13 +23,13 @@
 
 ## 受け入れ条件
 
-- [ ] 002 `spec.md` の REQ-013・代表例・更新節と Status 行が上の決定どおり。
+- [x] 002 `spec.md` の REQ-013・代表例・更新節と Status 行が上の決定どおり。
   - 証拠: diff。
-- [ ] 開発者の承認。
+- [x] 開発者の承認。
   - 証拠: 上の原文(2026-10-07)。
-- [ ] `T61` の `covers` に `002:REQ-013` を書く。
+- [x] `T61` の `covers` に `002:REQ-013` を書く。
   - 証拠: `T61/task.json`。
-- [ ] 独立review が PASS(`T61` と同じ PR)。
+- [x] 独立review が PASS(`T61` と同じ PR)。
 
 ## 作業記録
 
@@ -42,7 +42,7 @@
 
 ## Current state / handoff
 
-- Last checkpoint: `8d63d6e`
+- Last checkpoint: `8d63d6e`。独立review attempt 1 PASS と `T61` の manual確認 PASS(2026-10-08)は `T61` に記録
 - Blocker category: なし
 - Evidence revision: `8d63d6e`
-- Next Agent action: 独立review attempt 1 は PASS(`T61` に記録)。`T61` の確認の後、merge と一緒に done にする
+- Next Agent action: なし(PR #233 の merge で完了)

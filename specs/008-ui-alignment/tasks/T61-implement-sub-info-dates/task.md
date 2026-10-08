@@ -26,15 +26,15 @@
 
 ## 受け入れ条件
 
-- [ ] 上の表のとおりに出る。
+- [x] 上の表のとおりに出る。
   - 証拠: widget test(並び順 × ルールの組み合わせ、一致と不一致、不明)と、使っている日時を決める関数の単体 test。
-- [ ] `作成: 不明` の強調の条件が変わらない(002 代表例 15、`T50`)。
+- [x] `作成: 不明` の強調の条件が変わらない(002 代表例 15、`T50`)。
   - 証拠: 既存 test(文言の変更に伴う期待値の更新だけ)。
-- [ ] 狭幅(320 / 360 / 411dp)× 文字倍率(1.0 / 1.3 / 2.0)で溢れない。大きさが削られない(`T48`)。
+- [x] 狭幅(320 / 360 / 411dp)× 文字倍率(1.0 / 1.3 / 2.0)で溢れない。大きさが削られない(`T48`)。
   - 証拠: widget test。
-- [ ] Android エミュレータで見え方を確かめる。
+- [x] Android エミュレータで見え方を確かめる。
   - 証拠: [manual-verification.md](manual-verification.md)。
-- [ ] 独立review が PASS。
+- [x] 独立review が PASS。
 
 ## machine検証範囲と引き受け先
 
@@ -90,11 +90,14 @@ M832 | KILLED | Reviewer control: keep rule warning emphasis but drop createdAt 
 - reviewer の対照を **M832** として取り込んだ。`find` の一致 PASS(752)、`flutter test test/tooling` PASS、範囲付き(`flutter test test/spec_002_file_list`)で `M832 | KILLED`、`1 mutations: 1 KILLED, 0 SURVIVED, 0 SKIPPED`。`lib/`・`test/` は変えていないので再reviewは起動しない。
 - review の連鎖: `f704d85..d0e2725` PASS → `d0e2725..` SELF-CHECK。
 
+### manual確認(2026-10-08)
+
+- 開発者が Android エミュレータで [manual-verification.md](manual-verification.md) の手順を実施。**PASS**(原文: 「確認事項について、問題ありませんでした。」)。
+- 対象: code `66f9c33`(branch head `6338204`。`66f9c33` 以後は `specs/` の記録と `tool/mutations.json` の M832 だけで、`lib/`・依存・build 設定の差分は無い)。
+
 ## Current state / handoff
 
-- Last checkpoint: 独立review attempt 1 PASS(`f704d85..d0e2725`)。Draft PR #233
-- Blocker category: manual-evidence
-- Evidence revision: `66f9c33`(code の最後の commit)
-- Waiting for: 開発者(Android エミュレータの確認)
-- Requested action: [manual-verification.md](manual-verification.md) の手順を行い、結果を会話で伝える
-- Next Agent action: 結果を記録する。PASS なら `T60`・`T61` を done にし、PR #233 を ready にして merge する
+- Last checkpoint: manual確認 PASS。独立review の連鎖 `f704d85..d0e2725` PASS → `d0e2725..` SELF-CHECK
+- Blocker category: なし
+- Evidence revision: `66f9c33`
+- Next Agent action: なし(PR #233 の merge で完了)

@@ -2,7 +2,7 @@
   "schema": "asdd.task/v1",
   "id": "T60",
   "title": "リネーム画面の行の補足情報に出す日時を、並び順とルールが使う日時だけにする(002 REQ-013 の更新)",
-  "status": "in_progress",
+  "status": "done",
   "dependsOn": [],
   "covers": [],
   "issue": null,
