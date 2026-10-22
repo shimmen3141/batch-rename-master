@@ -1,8 +1,9 @@
 FROM debian:bookworm-slim
+COPY --from=node:22.23.4-bookworm-slim /usr/local/ /usr/local/
 
 # 基本ツール(firewall 用 iptables 類と、Dart code asset ビルド用の C ツールチェーンを含む)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates unzip xz-utils zip iptables ipset iproute2 dnsutils jq sudo nodejs npm \
+      git curl ca-certificates unzip xz-utils zip iptables ipset iproute2 dnsutils jq sudo libstdc++6 \
       clang build-essential \
   && rm -rf /var/lib/apt/lists/*
 
@@ -64,3 +65,9 @@ RUN flutter precache
 # container自体をsecurity boundaryにしたCodex起動wrapper。
 # 最後のlayerに置き、wrapperだけの変更でFlutter SDKを再取得しない。
 COPY --chmod=0755 codex-container /usr/local/bin/codex-container
+
+# ASDD と repository 検査で使う Python は、Debian 版 npm の間接依存に頼らず導入する。
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends python3 \
+  && rm -rf /var/lib/apt/lists/*
+USER dev
