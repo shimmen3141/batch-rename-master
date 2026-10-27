@@ -70,4 +70,8 @@ COPY --chmod=0755 codex-container /usr/local/bin/codex-container
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends python3 \
   && rm -rf /var/lib/apt/lists/*
+# HTTP2Shell (CVE-2026-111497): 古い apt layer の再利用で未修正版へ戻らないよう最低版を検証する。
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade libbrotli1 \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libbrotli1)" ge '1.0.9-2+deb12u1' \
+  && rm -rf /var/lib/apt/lists/*
 USER dev
